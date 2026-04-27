@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  EMPLOYEE
+}
+
+enum ClockType {
+  IN
+  OUT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum RoundingMode {
+  UP
+  DOWN
+  NEAREST
+}
+
+enum RequestType {
+  VACATION
+  PERMISSION
+  SHIFT_CHANGE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  email           String           @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            Role             @default(EMPLOYEE)
+  mustChangePwd   Boolean          @default(true)
+  ownedBars       Bar[]            @relation("BarOwner")
+  barMemberships  EmployeeBar[]
+  assignedShifts  Shift[]          @relation("ShiftAssigned")
+  createdShifts   Shift[]          @relation("ShiftCreated")
+  timeLogs        TimeLog[]
+  tasksAssigned   Task[]           @relation("TaskAssigned")
+  tasksCreated    Task[]           @relation("TaskCreated")
+  tasksCompleted  Task[]           @relation("TaskCompleted")
+  taskCompletions TaskCompletion[]
+  notesAuthored   Note[]           @relation("NoteAuthor")
+  notesAbout      Note[]           @relation("NoteAboutEmployee")
+  requests        Request[]        @relation("RequestEmployee")
+  reviewedReqs    Request[]        @relation("RequestReviewer")
+  sessions        Session[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Session {
+  id          String    @id @default(uuid()) @db.Uuid
+  token       String    @unique
+  userId      String    @db.Uuid
+  activeBarId String?   @db.Uuid
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeBar   Bar?      @relation(fields: [activeBarId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model Bar {
+  id                String        @id @default(uuid()) @db.Uuid
+  name              String
+  latitude          Float
+  longitude         Float
+  radiusMeters      Int           @default(10)
+  roundingEnabled   Boolean       @default(false)
+  entryToleranceMin Int           @default(5)
+  roundingStepMin   Int           @default(15)
+  exitToleranceMin  Int           @default(13)
+  ownerId           String        @db.Uuid
+  owner             User          @relation("BarOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships       EmployeeBar[]
+  settings          BarSettings?
+  shifts            Shift[]
+  timeLogs          TimeLog[]
+  tasks             Task[]
+  notes             Note[]
+  requests          Request[]
+  sessions          Session[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([ownerId])
+}
+
+model BarSettings {
+  id              String        @id @default(uuid()) @db.Uuid
+  barId           String        @unique @db.Uuid
+  bar             Bar           @relation(fields: [barId], references: [id], onDelete: Cascade)
+  gpsLatitude     Float?
+  gpsLongitude    Float?
+  gpsRadius       Int?
+  roundingEnabled Boolean       @default(false)
+  roundingMinutes Int?
+  roundingMode    RoundingMode?
+}
+
+model EmployeeBar {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  barId      String    @db.Uuid
+  hourlyRate Decimal?  @db.Decimal(10, 2)
+  isActive   Boolean   @default(true)
+  hiredAt    DateTime  @default(now())
+  endedAt    DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bar        Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, barId])
+  @@index([userId])
+  @@index([barId])
+}
+
+model Shift {
+  id           String    @id @default(uuid()) @db.Uuid
+  title        String?
+  startTime    DateTime
+  endTime      DateTime
+  barId        String    @db.Uuid
+  bar          Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
+  assignedToId String    @db.Uuid
+  assignedTo   User      @relation("ShiftAssigned", fields: [assignedToId], references: [id], onDelete: Cascade)
+  createdById  String    @db.Uuid
+  createdBy    User      @relation("ShiftCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  timeLogs     TimeLog[]
+  requests     Request[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([barId, assignedToId])
+  @@index([startTime])
+  @@index([createdById])
+}
+
+model TimeLog {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  barId     String    @db.Uuid
+  bar       Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
+  shiftId   String?   @db.Uuid
+  shift     Shift?    @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  type      ClockType
+  timestamp DateTime  @default(now())
+  latitude  Float?
+  longitude Float?
+
+  @@index([barId, userId, timestamp])
+  @@index([shiftId])
+}
+
+model Task {
+  id            String           @id @default(uuid()) @db.Uuid
+  title         String
+  description   String?
+  status        TaskStatus       @default(TODO)
+  dueDate       DateTime
+  isUrgent      Boolean          @default(false)
+  barId         String           @db.Uuid
+  bar           Bar              @relation(fields: [barId], references: [id], onDelete: Cascade)
+  assignedToId  String?          @db.Uuid
+  assignedTo    User?            @relation("TaskAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdById   String           @db.Uuid
+  createdBy     User             @relation("TaskCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  completedAt   DateTime?
+  completedById String?          @db.Uuid
+  completedBy   User?            @relation("TaskCompleted", fields: [completedById], references: [id], onDelete: SetNull)
+  completions   TaskCompletion[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([barId, dueDate])
+  @@index([assignedToId])
+  @@index([completedById])
+}
+
+model TaskCompletion {
+  id          String   @id @default(uuid()) @db.Uuid
+  taskId      String   @db.Uuid
+  userId      String   @db.Uuid
+  completedAt DateTime @default(now())
+  note        String?
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([userId])
+}
+
+model Note {
+  id         String   @id @default(uuid()) @db.Uuid
+  barId      String   @db.Uuid
+  authorId   String   @db.Uuid
+  employeeId String?  @db.Uuid
+  content    String
+  isPinned   Boolean  @default(false)
+  bar        Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  author     User     @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  employee   User?    @relation("NoteAboutEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([barId, createdAt])
+  @@index([employeeId])
+}
+
+model Request {
+  id           String        @id @default(uuid()) @db.Uuid
+  barId        String        @db.Uuid
+  employeeId   String        @db.Uuid
+  shiftId      String?       @db.Uuid
+  reviewedById String?       @db.Uuid
+  type         RequestType
+  status       RequestStatus @default(PENDING)
+  reason       String?
+  startsAt     DateTime?
+  endsAt       DateTime?
+  reviewedAt   DateTime?
+  bar          Bar           @relation(fields: [barId], references: [id], onDelete: Cascade)
+  employee     User          @relation("RequestEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  shift        Shift?        @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  reviewedBy   User?         @relation("RequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([barId, status])
+  @@index([employeeId, createdAt])
+}
