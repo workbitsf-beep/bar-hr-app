@@ -1,4 +1,47 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = (await response.json().catch(() => null)) as
+        | { ok?: boolean; message?: string }
+        | null;
+
+      if (!response.ok || data?.ok !== true) {
+        setError(data?.message || "Login failed");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Unable to sign in right now");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main
       style={{
@@ -37,12 +80,17 @@ export default function LoginPage() {
           Sign in to access your dashboard.
         </p>
 
-        <form style={{ display: "grid", gap: 16, marginTop: 24 }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "grid", gap: 16, marginTop: 24 }}
+        >
           <label style={{ display: "grid", gap: 8 }}>
             <span style={{ fontWeight: 600 }}>Email</span>
             <input
               type="email"
               name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               style={{
                 borderRadius: 14,
@@ -59,6 +107,8 @@ export default function LoginPage() {
             <input
               type="password"
               name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               style={{
                 borderRadius: 14,
@@ -70,8 +120,13 @@ export default function LoginPage() {
             />
           </label>
 
+          {error ? (
+            <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p>
+          ) : null}
+
           <button
             type="submit"
+            disabled={loading}
             style={{
               background: "#1f2937",
               color: "#fff",
@@ -79,11 +134,12 @@ export default function LoginPage() {
               borderRadius: 999,
               padding: "12px 18px",
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: loading ? "default" : "pointer",
               marginTop: 4,
+              opacity: loading ? 0.7 : 1,
             }}
           >
-            Sign in
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </section>

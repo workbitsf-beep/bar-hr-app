@@ -10,14 +10,20 @@ export type SessionWithUser = Prisma.SessionGetPayload<{
 
 export async function getSession(): Promise<SessionWithUser | null> {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("session")?.value;
+  const sessionValue = cookieStore.get("session")?.value;
 
-  if (!sessionId) {
+  if (!sessionValue) {
     return null;
   }
 
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
+  const session = await prisma.session.findFirst({
+    where: {
+      revokedAt: null,
+      expiresAt: {
+        gt: new Date(),
+      },
+      OR: [{ token: sessionValue }, { id: sessionValue }],
+    },
     include: { user: true },
   });
 

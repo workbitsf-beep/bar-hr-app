@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { TaskStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -327,13 +328,7 @@ export default async function DashboardPage() {
   const session = await getSession();
 
   if (!session) {
-    return (
-      <main style={{ padding: 32 }}>
-        <Panel title="Dashboard">
-          <EmptyState message="You need to sign in before using the dashboard." />
-        </Panel>
-      </main>
-    );
+    redirect("/login");
   }
 
   const role = session.user.role as string;

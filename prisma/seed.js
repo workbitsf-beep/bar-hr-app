@@ -4,40 +4,63 @@ const bcrypt = require("bcrypt");
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = "owner@workbit.com";
-
-  const existingOwner = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, email: true },
-  });
-
-  if (existingOwner) {
-    console.log(`Owner gia' presente: ${existingOwner.email} (${existingOwner.id})`);
-    return;
-  }
-
-  const passwordHash = await bcrypt.hash("Workbit123!", 10);
-
-  const owner = await prisma.user.create({
-    data: {
-      email,
-      passwordHash,
+  const usersToSeed = [
+    {
+      email: "owner@workbit.com",
+      password: "Workbit123!",
       firstName: "Mario",
       lastName: "Rossi",
       role: Role.OWNER,
       mustChangePwd: false,
+      label: "Owner",
     },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      firstName: true,
-      lastName: true,
-      mustChangePwd: true,
+    {
+      email: "admin@test.com",
+      password: "password123",
+      firstName: "Admin",
+      lastName: "Test",
+      role: Role.OWNER,
+      mustChangePwd: false,
+      label: "Dev admin",
     },
-  });
+  ];
 
-  console.log("Owner creato con successo:", owner);
+  for (const userData of usersToSeed) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: userData.email },
+      select: { id: true, email: true },
+    });
+
+    if (existingUser) {
+      console.log(
+        `${userData.label} gia' presente: ${existingUser.email} (${existingUser.id})`
+      );
+      continue;
+    }
+
+    const passwordHash = await bcrypt.hash(userData.password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        email: userData.email,
+        passwordHash,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        role: userData.role,
+        mustChangePwd: userData.mustChangePwd,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        mustChangePwd: true,
+      },
+    });
+
+    console.log(`${userData.label} creato con successo:`, user);
+  }
 }
 
 main()

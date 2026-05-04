@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 type LoginBody = {
@@ -12,7 +13,7 @@ export async function POST(req: Request): Promise<Response> {
   const { email, password } = body;
 
   if (!email || !password) {
-    return Response.json(
+    return NextResponse.json(
       { ok: false, message: "Invalid credentials" },
       { status: 401 }
     );
@@ -27,7 +28,7 @@ export async function POST(req: Request): Promise<Response> {
   });
 
   if (!user) {
-    return Response.json(
+    return NextResponse.json(
       { ok: false, message: "Invalid credentials" },
       { status: 401 }
     );
@@ -36,18 +37,17 @@ export async function POST(req: Request): Promise<Response> {
   const isValid = await bcrypt.compare(password, user.passwordHash);
 
   if (!isValid) {
-    return Response.json(
+    return NextResponse.json(
       { ok: false, message: "Invalid credentials" },
       { status: 401 }
     );
   }
 
-  const sessionId = crypto.randomUUID();
+  const sessionToken = crypto.randomUUID();
 
   await prisma.session.create({
     data: {
-      id: sessionId,
-      token: sessionId,
+      token: sessionToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       user: {
         connect: {
@@ -58,10 +58,13 @@ export async function POST(req: Request): Promise<Response> {
   });
 
   const cookieStore = await cookies();
-  cookieStore.set("session", sessionId, {
+  cookieStore.set("session", sessionToken, {
     httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     path: "/",
+    maxAge: 60 * 60 * 24 * 7,
   });
 
-  return Response.json({ ok: true });
+  return NextResponse.json({ ok: true }, { status: 200 });
 }
