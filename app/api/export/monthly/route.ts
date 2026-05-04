@@ -279,13 +279,17 @@ export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     const body = (await req.json()) as ExportBody;
     const { userId, month, year, format = "json" } = body;
+    const monthNum = Number(month);
+    const yearNum = Number(year);
 
     if (
       !userId ||
-      !Number.isInteger(month) ||
-      !Number.isInteger(year) ||
-      month < 1 ||
-      month > 12
+      Number.isNaN(monthNum) ||
+      Number.isNaN(yearNum) ||
+      !Number.isInteger(monthNum) ||
+      !Number.isInteger(yearNum) ||
+      monthNum < 1 ||
+      monthNum > 12
     ) {
       return Response.json(
         { ok: false, message: "Invalid input" },
@@ -294,7 +298,7 @@ export const POST = withBar(
     }
 
     const [dataset, user] = await Promise.all([
-      buildMonthlyDataset(session.activeBarId, userId, month, year),
+      buildMonthlyDataset(session.activeBarId, userId, monthNum, yearNum),
       prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -311,15 +315,16 @@ export const POST = withBar(
         : userId;
       const pdfBuffer = await createMonthlyPdfBuffer(
         userLabel,
-        month,
-        year,
+        monthNum,
+        yearNum,
         dataset
       );
+      const uint8Array = new Uint8Array(pdfBuffer);
 
-      return new Response(pdfBuffer, {
+      return new Response(uint8Array, {
         headers: {
           "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="monthly-export-${year}-${String(month).padStart(2, "0")}.pdf"`,
+          "Content-Disposition": `attachment; filename="monthly-export-${yearNum}-${monthNum}.pdf"`,
         },
       });
     }
