@@ -3,7 +3,7 @@ import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { ClockActionsPanel } from "../timelogs/timelogs-client";
-import { BillingRequiredState, EmptyState, Panel, PrimaryButton, StatusPill } from "../ui";
+import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, StatusPill } from "../ui";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
 
@@ -409,7 +409,7 @@ export default async function DashboardCalendarPage({
     "";
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <Stack columns="minmax(0, 1fr)">
       {role !== Role.OWNER ? <ClockActionsPanel role={role} settings={settings} compact /> : null}
 
       {(role === Role.OWNER || role === Role.MANAGER) ? (
@@ -604,10 +604,11 @@ export default async function DashboardCalendarPage({
               </div>
             </div>
 
-            <div className="dashboard-mobile-only" style={{ display: "grid", gap: 16 }}>
+            <div className="dashboard-mobile-only dashboard-week-strip" style={{ display: "grid", gap: 16 }}>
               {calendarWeeks.map((week, weekIndex) => (
                 <section
                   key={`${week[0]?.date.toISOString() ?? weekIndex}`}
+                  className="dashboard-week-card"
                   style={{
                     display: "grid",
                     gap: 12,
@@ -757,6 +758,6 @@ export default async function DashboardCalendarPage({
           </>
         )}
       </Panel>
-    </div>
+    </Stack>
   );
 }

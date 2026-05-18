@@ -87,6 +87,11 @@ function DashboardResponsiveStyles() {
         display: block;
       }
 
+      .dashboard-week-strip {
+        display: grid;
+        gap: 16px;
+      }
+
       @media (max-width: 900px) {
         .dashboard-shell {
           padding: 12px !important;
@@ -97,6 +102,12 @@ function DashboardResponsiveStyles() {
         .dashboard-panel {
           padding: 20px !important;
           border-radius: 24px !important;
+        }
+
+        .dashboard-shell-card {
+          position: sticky;
+          top: 12px;
+          z-index: 30;
         }
 
         .dashboard-shell-top,
@@ -169,7 +180,7 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-top-nav {
-          width: 100%;
+          width: auto !important;
           justify-content: flex-end !important;
         }
 
@@ -180,7 +191,21 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-stack {
-          grid-template-columns: minmax(0, 1fr) !important;
+          display: flex !important;
+          gap: 16px !important;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          align-items: stretch;
+          padding-bottom: 6px;
+          margin-inline: -2px;
+          padding-inline: 2px;
+        }
+
+        .dashboard-stack > * {
+          flex: 0 0 calc(100vw - 28px);
+          width: calc(100vw - 28px);
+          max-width: 560px;
+          scroll-snap-align: start;
         }
 
         .dashboard-inline-grid,
@@ -218,7 +243,7 @@ function DashboardResponsiveStyles() {
 
         .dashboard-modal-wrap {
           padding: 10px !important;
-          place-items: end center !important;
+          place-items: center !important;
         }
 
         .dashboard-modal-panel {
@@ -226,6 +251,7 @@ function DashboardResponsiveStyles() {
           max-height: calc(100vh - 20px) !important;
           padding: 18px !important;
           border-radius: 24px !important;
+          overscroll-behavior: contain;
         }
 
         .dashboard-modal-body-grid,
@@ -275,6 +301,21 @@ function DashboardResponsiveStyles() {
 
         .dashboard-desktop-only {
           display: none !important;
+        }
+
+        .dashboard-week-strip {
+          display: flex !important;
+          gap: 14px !important;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          padding-bottom: 6px;
+        }
+
+        .dashboard-week-card {
+          flex: 0 0 calc(100vw - 28px);
+          width: calc(100vw - 28px);
+          max-width: 560px;
+          scroll-snap-align: start;
         }
 
         .super-admin-mobile-list {
@@ -338,59 +379,57 @@ export function DashboardShell({
           <div
             className="dashboard-shell-top"
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
+              display: "grid",
               gap: 18,
-              flexWrap: "wrap",
-            }}
-          >
-            <div className="dashboard-shell-brand" style={{ display: "grid", gap: 8 }}>
-              <BrandLogo
-                href={navItems[0]?.href ?? "/dashboard"}
-                size={40}
-                showIcon
-                showSecondaryLabel
-                style={{ gap: 12 }}
-              />
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 32,
-                  lineHeight: 1,
-                  color: "#0f172a",
-                  fontWeight: 700,
-                }}
-              >
-                {barName}
-              </h1>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                {userName} - {role}
-              </p>
-            </div>
-            {toolbar ? <div className="dashboard-toolbar-slot">{toolbar}</div> : null}
-          </div>
-
-          <div
-            className="dashboard-nav-row"
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
             }}
           >
             <div
-              className="dashboard-top-nav"
               style={{
-                width: "100%",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
                 gap: 16,
-                flexWrap: "wrap",
+                flexWrap: "nowrap",
               }}
             >
-              <DashboardNavMenu navItems={navItems} menuLabel={menuLabel} />
+              <div className="dashboard-shell-brand" style={{ display: "grid", gap: 8, minWidth: 0 }}>
+                <BrandLogo
+                  href={navItems[0]?.href ?? "/dashboard"}
+                  size={40}
+                  showIcon
+                  showSecondaryLabel
+                  style={{ gap: 12 }}
+                />
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: 32,
+                    lineHeight: 1,
+                    color: "#0f172a",
+                    fontWeight: 700,
+                  }}
+                >
+                  {barName}
+                </h1>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {userName} - {role}
+                </p>
+              </div>
+
+              <div
+                className="dashboard-top-nav"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  flexShrink: 0,
+                }}
+              >
+                <DashboardNavMenu navItems={navItems} menuLabel={menuLabel} />
+              </div>
             </div>
+
+            {toolbar ? <div className="dashboard-toolbar-slot">{toolbar}</div> : null}
           </div>
         </section>
 

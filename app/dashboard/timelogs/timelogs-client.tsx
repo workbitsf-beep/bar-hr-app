@@ -89,10 +89,6 @@ export function ClockActionsPanel({
     settings.gpsRadius !== null;
   const canClock = role !== "OWNER";
   const configuredRadius = settings?.gpsRadius ?? null;
-  const effectiveRadius =
-    configuredRadius !== null && accuracy !== null
-      ? configuredRadius + accuracy
-      : configuredRadius;
   const insideRadius =
     gpsConfigured &&
     latitude !== "" &&
@@ -101,7 +97,6 @@ export function ClockActionsPanel({
     accuracy !== null &&
     distance <= ((settings?.gpsRadius ?? 0) + accuracy);
   const lowAccuracy = accuracy !== null && accuracy > 80;
-  const recommendedRadiusTooLow = configuredRadius !== null && configuredRadius < 100;
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
@@ -119,14 +114,14 @@ export function ClockActionsPanel({
     }
 
     if (lowAccuracy) {
-      return "Posizione poco precisa, riprova o spostati vicino all'ingresso.";
+      return "Posizione poco precisa, riprova o spostati vicino al punto impostato dal titolare.";
     }
 
     if (insideRadius) {
       return "Posizione aggiornata. Puoi timbrare subito.";
     }
 
-    return "Sei fuori dall'area valida per la timbratura.";
+    return "Avvicinati di piu al punto impostato dal titolare (cassa o spogliatoio).";
   }, [accuracy, distance, gpsConfigured, insideRadius, locating, locationError, lowAccuracy]);
 
   async function refreshGeolocation(manual = false) {
@@ -255,7 +250,7 @@ export function ClockActionsPanel({
   return (
     <Panel
       title={compact ? "Timbratura veloce" : "Entrata / uscita"}
-      action={gpsConfigured ? `Raggio ${settings?.gpsRadius} m` : "GPS non configurato"}
+      action={gpsConfigured ? "GPS attivo" : "GPS non configurato"}
     >
       <div style={{ display: "grid", gap: 16 }}>
         <div
@@ -276,25 +271,9 @@ export function ClockActionsPanel({
               Arrotondamento attivo: {settings.roundingMode} ogni {settings.roundingMinutes} minuti.
             </div>
           ) : null}
-          {recommendedRadiusTooLow ? (
-            <div style={{ color: "#92400e", fontWeight: 600 }}>
-              Raggio consigliato almeno 100 m per una timbratura piu stabile.
-            </div>
-          ) : null}
-          {distance !== null ? (
-            <div style={{ display: "grid", gap: 4 }}>
-              <div style={{ fontWeight: 600 }}>Distanza attuale: {Math.round(distance)} m</div>
-              <div style={{ fontWeight: 600 }}>
-                Precisione GPS: +/-{accuracy !== null ? Math.round(accuracy) : "--"} m
-              </div>
-              <div>
-                Timbratura valida fino a {effectiveRadius !== null ? Math.round(effectiveRadius) : "--"} m
-              </div>
-              {sampleCount !== null ? (
-                <div style={{ color: "#64748b", fontSize: 14 }}>
-                  Letture usate per stabilizzare la posizione: {sampleCount}
-                </div>
-              ) : null}
+          {sampleCount !== null ? (
+            <div style={{ color: "#64748b", fontSize: 14 }}>
+              Controllo posizione completato con {sampleCount} letture GPS.
             </div>
           ) : null}
         </div>
@@ -306,7 +285,7 @@ export function ClockActionsPanel({
             onClick={captureGeolocation}
             disabled={locating || !gpsConfigured}
           >
-            {locating ? "Aggiornamento posizione..." : compact ? "Ricalcola posizione" : "Aggiorna posizione"}
+            {locating ? "Aggiornamento posizione..." : compact ? "Verifica posizione" : "Aggiorna posizione"}
           </PrimaryButton>
           <PrimaryButton
             type="button"

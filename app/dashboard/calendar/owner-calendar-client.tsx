@@ -118,6 +118,19 @@ export function OwnerCalendarClient({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!selectedDate) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedDate]);
+
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
@@ -318,10 +331,11 @@ export function OwnerCalendarClient({
         </div>
       </div>
 
-      <div className="dashboard-mobile-only" style={{ display: "grid", gap: 16 }}>
+      <div className="dashboard-mobile-only dashboard-week-strip" style={{ display: "grid", gap: 16 }}>
         {weeks.map((week, weekIndex) => (
           <section
             key={`${week[0]?.date ?? weekIndex}`}
+            className="dashboard-week-card"
             style={{
               display: "grid",
               gap: 12,

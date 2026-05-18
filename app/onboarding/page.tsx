@@ -114,7 +114,7 @@ async function createBarAction(formData: FormData) {
       name,
       latitude: 0,
       longitude: 0,
-      radiusMeters: 10,
+      radiusMeters: 90,
       roundingEnabled: false,
       entryToleranceMin: 5,
       roundingStepMin: 15,
@@ -154,9 +154,9 @@ async function saveGpsAction(formData: FormData) {
 
   const gpsLatitude = parseNumber(formData.get("gpsLatitude"));
   const gpsLongitude = parseNumber(formData.get("gpsLongitude"));
-  const gpsRadius = parseInteger(formData.get("gpsRadius"));
+  const gpsRadius = 90;
 
-  if (gpsLatitude === null || gpsLongitude === null || gpsRadius === null) {
+  if (gpsLatitude === null || gpsLongitude === null) {
     redirect("/onboarding?step=2&error=invalid-gps");
   }
 
@@ -580,23 +580,9 @@ export default async function OnboardingPage({
               initialLongitude={activeBar.settings?.gpsLongitude}
             />
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 320px))",
-                gap: 16,
-              }}
-            >
-              <Input
-                name="gpsRadius"
-                label="Radius in meters"
-                type="number"
-                defaultValue={activeBar.settings?.gpsRadius ?? activeBar.radiusMeters}
-                placeholder="100"
-              />
-            </div>
+            <input type="hidden" name="gpsRadius" value="90" />
             <p style={{ margin: 0, color: "#6b7280", lineHeight: 1.6 }}>
-              Per una timbratura piu stabile consigliamo almeno 100 metri di raggio.
+              Il raggio timbrature verra impostato automaticamente a 90 metri.
             </p>
             <div>
               <SubmitButton label="Save GPS and continue" />

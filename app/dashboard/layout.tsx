@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { getDashboardContext } from "./context";
 import { logoutAction, selectBarAction, setLanguageAction } from "./actions";
-import { DashboardShell, PrimaryButton, Select } from "./ui";
+import { AutoSubmitSelectForm } from "./auto-submit-select-form";
+import { DashboardShell, PrimaryButton } from "./ui";
 
 export default async function DashboardLayout({
   children,
@@ -40,42 +41,30 @@ export default async function DashboardLayout({
           }}
         >
           {role !== "SUPER_ADMIN" && accessibleBars.length > 0 ? (
-            <form className="dashboard-inline-actions" action={selectBarAction} style={{ display: "flex", gap: 8 }}>
-              <Select
-                name="barId"
-                defaultValue={activeBarId ?? ""}
-                style={{ minWidth: 220 }}
-                aria-label={t.selectBar}
-              >
-                {accessibleBars.map((bar) => (
-                  <option key={bar.id} value={bar.id}>
-                    {bar.name} - {getRoleLabel(language, bar.role)}
-                  </option>
-                ))}
-              </Select>
-              <PrimaryButton type="submit" tone="sand">
-                {t.changeBar}
-              </PrimaryButton>
-            </form>
+            <AutoSubmitSelectForm
+              action={selectBarAction}
+              name="barId"
+              defaultValue={activeBarId ?? ""}
+              ariaLabel={t.selectBar}
+              minWidth={220}
+              options={accessibleBars.map((bar) => ({
+                value: bar.id,
+                label: `${bar.name} - ${getRoleLabel(language, bar.role)}`,
+              }))}
+            />
           ) : null}
 
-          <form className="dashboard-inline-actions" action={setLanguageAction} style={{ display: "flex", gap: 8 }}>
-            <Select
-              name="language"
-              defaultValue={language}
-              style={{ minWidth: 180 }}
-              aria-label={t.language}
-            >
-              {languageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <PrimaryButton type="submit" tone="sand">
-              {t.language}
-            </PrimaryButton>
-          </form>
+          <AutoSubmitSelectForm
+            action={setLanguageAction}
+            name="language"
+            defaultValue={language}
+            ariaLabel={t.language}
+            minWidth={180}
+            options={languageOptions.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+          />
 
           <form className="dashboard-inline-actions" action={logoutAction}>
             <PrimaryButton type="submit">{t.logout}</PrimaryButton>

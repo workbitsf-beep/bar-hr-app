@@ -11,7 +11,6 @@ import {
   PrimaryButton,
   Select,
   Stack,
-  TextInput,
 } from "../ui";
 
 export default async function DashboardSettingsPage() {
@@ -55,26 +54,10 @@ export default async function DashboardSettingsPage() {
               initialLongitude={settings?.gpsLongitude}
             />
 
-            <div
-              className="dashboard-inline-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 320px))",
-                gap: 12,
-              }}
-            >
-              <FormField label="Raggio valido in metri">
-                <TextInput
-                  name="gpsRadius"
-                  type="number"
-                  defaultValue={settings?.gpsRadius ?? 100}
-                  required
-                />
-              </FormField>
-            </div>
+            <input type="hidden" name="gpsRadius" value="90" />
 
             <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-              Per una timbratura piu stabile consigliamo almeno 100 metri di raggio.
+              Il raggio timbrature viene impostato automaticamente a 90 metri.
             </p>
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>

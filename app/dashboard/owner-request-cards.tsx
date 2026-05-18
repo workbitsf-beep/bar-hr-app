@@ -128,6 +128,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
               key={request.id}
               type="button"
               onClick={() => setSelectedRequestId(request.id)}
+              className="dashboard-list-button"
               style={{
                 width: "100%",
                 padding: 16,
@@ -144,11 +145,11 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
             >
               <div style={{ display: "grid", gap: 4 }}>
                 <strong style={{ color: "#0f172a" }}>
-                  {requestLabel(request.type)} · {request.employee.firstName} {request.employee.lastName}
+                  {requestLabel(request.type)} - {request.employee.firstName} {request.employee.lastName}
                 </strong>
                 <span style={{ color: "#475569", fontSize: 14 }}>
                   {request.shift
-                    ? `${request.shift.title || "Turno"} · ${formatDateTime(request.shift.startTime)}`
+                    ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
                     : request.startsAt
                       ? `${formatDateTime(request.startsAt)}${request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}`
                       : "Dettagli richiesta"}
@@ -159,6 +160,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
               </div>
 
               <span
+                className="dashboard-list-button-arrow"
                 style={{
                   color: "#64748b",
                   fontSize: 18,
@@ -176,6 +178,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
       {mounted && selectedRequest
         ? createPortal(
             <div
+              className="dashboard-modal-wrap"
               style={{
                 position: "fixed",
                 inset: 0,
@@ -199,6 +202,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
               />
 
               <section
+                className="dashboard-modal-panel"
                 style={{
                   position: "relative",
                   width: "min(720px, calc(100vw - 32px))",
@@ -272,7 +276,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
 
                   {selectedRequest.shift ? (
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      {selectedRequest.shift.title || "Turno"} · {formatDateTime(selectedRequest.shift.startTime)}
+                      {selectedRequest.shift.title || "Turno"} - {formatDateTime(selectedRequest.shift.startTime)}
                       {" - "}
                       {formatDateTime(selectedRequest.shift.endTime)}
                     </div>

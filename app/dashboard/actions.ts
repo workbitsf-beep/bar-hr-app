@@ -448,8 +448,11 @@ export async function selectBarAction(formData: FormData) {
     data: { activeBarId: barId },
   });
 
+  const returnPath = await getReturnPathFromReferer("/dashboard");
+
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  revalidatePath("/billing");
+  redirect(returnPath);
 }
 
 export async function logoutAction() {
@@ -582,7 +585,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
       postalCode: postalCode || null,
       latitude: 0,
       longitude: 0,
-      radiusMeters: 80,
+      radiusMeters: 90,
       ownerId,
     },
   });
@@ -1434,7 +1437,7 @@ export async function updateSettingsAction(formData: FormData) {
 
   const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
   const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
-  const gpsRadius = parseOptionalNumber(formData.get("gpsRadius"));
+  const gpsRadius = 90;
   const roundingEnabled = formData.get("roundingEnabled") === "on";
   const roundingMinutes = parseOptionalNumber(formData.get("roundingMinutes"));
   const roundingModeRaw = String(formData.get("roundingMode") ?? "");
@@ -1445,7 +1448,7 @@ export async function updateSettingsAction(formData: FormData) {
       ? roundingModeRaw
       : "NEAREST";
 
-  if (gpsLatitude === null || gpsLongitude === null || gpsRadius === null) {
+  if (gpsLatitude === null || gpsLongitude === null) {
     throw new Error("Missing GPS settings");
   }
 
