@@ -1,4 +1,5 @@
 import { getSession } from "./auth";
+import { canAccessBar } from "./billing";
 
 type BarHandler = (
   req: Request,
@@ -21,6 +22,17 @@ export function withBar(handler: BarHandler) {
       return Response.json(
         { ok: false, message: "No active bar selected" },
         { status: 400 }
+      );
+    }
+
+    if (!(await canAccessBar(session.activeBarId))) {
+      return Response.json(
+        {
+          ok: false,
+          code: "SUBSCRIPTION_REQUIRED",
+          message: "Subscription required",
+        },
+        { status: 403 }
       );
     }
 

@@ -1,17 +1,13 @@
+import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
-
-type CreateShiftBody = {
-  title?: string;
-  startTime?: string;
-  endTime?: string;
-  assignedToId?: string;
-};
 
 type SessionWithBar = {
   activeBarId: string;
   user: {
     id: string;
+    role: Role;
   };
 };
 
@@ -25,17 +21,14 @@ export const GET = withBar(
         startTime: "asc",
       },
       include: {
-        assignedTo: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        createdBy: {
-          select: {
-            firstName: true,
-            lastName: true,
+        assignments: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
           },
         },
       },
@@ -47,40 +40,50 @@ export const GET = withBar(
 
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
-    const body = (await req.json()) as CreateShiftBody;
-    const { title, startTime, endTime, assignedToId } = body;
+    const access = await getActiveBarAccess(session as never);
 
-    if (!startTime || !endTime || !assignedToId) {
+    if (!canManageOperations(access.role)) {
+      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+    }
+
+    const body = (await req.json()) as {
+      title?: string;
+      startTime?: string;
+      endTime?: string;
+      employeeIds?: string[];
+    };
+    const employeeIds = Array.from(new Set((body.employeeIds ?? []).filter(Boolean)));
+
+    if (!body.startTime || !body.endTime || employeeIds.length === 0) {
       return Response.json(
         { ok: false, message: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    const parsedStartTime = new Date(startTime);
-    const parsedEndTime = new Date(endTime);
+    const startTime = new Date(body.startTime);
+    const endTime = new Date(body.endTime);
 
-    if (
-      Number.isNaN(parsedStartTime.getTime()) ||
-      Number.isNaN(parsedEndTime.getTime())
-    ) {
-      return Response.json(
-        { ok: false, message: "Invalid shift time" },
-        { status: 400 }
-      );
+    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
+      return Response.json({ ok: false, message: "Invalid shift range" }, { status: 400 });
     }
 
     const shift = await prisma.shift.create({
       data: {
-        title: title ?? null,
-        startTime: parsedStartTime,
-        endTime: parsedEndTime,
-        assignedToId,
+        title: body.title?.trim() || null,
+        startTime,
+        endTime,
+        assignedToId: employeeIds[0],
         barId: session.activeBarId,
         createdById: session.user.id,
+        assignments: {
+          createMany: {
+            data: employeeIds.map((userId) => ({ userId })),
+          },
+        },
       },
     });
 
-    return Response.json(shift);
+    return Response.json({ ok: true, shift });
   }
 );

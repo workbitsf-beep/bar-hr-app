@@ -1,9 +1,19 @@
-export default function Home() {
-  return (
-    <div style={{ padding: 40 }}>
-      <h1>App is running 🚀</h1>
-      <p>If you see this, routing works.</p>
-      <a href="/login">Go to login</a>
-    </div>
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { getPostLoginDestination } from "@/lib/permissions";
+
+export default async function Home() {
+  const session = await getSession();
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  redirect(
+    await getPostLoginDestination({
+      userId: session.user.id,
+      role: session.user.role,
+      mustChangePwd: session.user.mustChangePwd,
+    })
   );
 }

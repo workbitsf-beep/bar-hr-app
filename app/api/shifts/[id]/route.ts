@@ -1,20 +1,21 @@
+import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
   activeBarId: string;
-};
-
-type RouteContext = {
-  params?: {
-    id?: string;
+  user: {
+    id: string;
+    role: Role;
   };
 };
 
-type UpdateShiftBody = {
-  assignedToId?: string;
-  startTime?: string;
-  endTime?: string;
+type RouteContext = {
+  params?: Promise<{
+    id?: string;
+  }>;
 };
 
 export const PATCH = withBar(
@@ -23,15 +24,24 @@ export const PATCH = withBar(
     session: SessionWithBar,
     context?: RouteContext
   ): Promise<Response> => {
-    const shiftId = context?.params?.id;
+    const params = context?.params ? await context.params : undefined;
+    const shiftId = params?.id;
+    const access = await getActiveBarAccess(session as never);
 
-    if (!shiftId) {
-      return Response.json(
-        { ok: false, message: "Missing shift id" },
-        { status: 400 }
-      );
+    if (!canManageOperations(access.role)) {
+      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
     }
 
+    if (!shiftId) {
+      return Response.json({ ok: false, message: "Missing shift id" }, { status: 400 });
+    }
+
+    const body = (await req.json()) as {
+      title?: string;
+      startTime?: string;
+      endTime?: string;
+      employeeIds?: string[];
+    };
     const shift = await prisma.shift.findFirst({
       where: {
         id: shiftId,
@@ -40,59 +50,78 @@ export const PATCH = withBar(
     });
 
     if (!shift) {
-      return Response.json(
-        { ok: false, message: "Shift not found" },
-        { status: 404 }
-      );
+      return Response.json({ ok: false, message: "Shift not found" }, { status: 404 });
     }
 
-    const body = (await req.json()) as UpdateShiftBody;
-    const { assignedToId, startTime, endTime } = body;
-
-    if (
-      assignedToId === undefined &&
-      startTime === undefined &&
-      endTime === undefined
-    ) {
-      return Response.json(
-        { ok: false, message: "No fields to update" },
-        { status: 400 }
-      );
-    }
-
-    const nextStartTime =
-      startTime !== undefined ? new Date(startTime) : shift.startTime;
-    const nextEndTime =
-      endTime !== undefined ? new Date(endTime) : shift.endTime;
+    const nextStartTime = body.startTime ? new Date(body.startTime) : shift.startTime;
+    const nextEndTime = body.endTime ? new Date(body.endTime) : shift.endTime;
+    const employeeIds =
+      body.employeeIds && body.employeeIds.length > 0
+        ? Array.from(new Set(body.employeeIds.filter(Boolean)))
+        : [shift.assignedToId].filter(Boolean) as string[];
 
     if (
       Number.isNaN(nextStartTime.getTime()) ||
-      Number.isNaN(nextEndTime.getTime())
+      Number.isNaN(nextEndTime.getTime()) ||
+      nextEndTime <= nextStartTime ||
+      employeeIds.length === 0
     ) {
-      return Response.json(
-        { ok: false, message: "Invalid shift time" },
-        { status: 400 }
-      );
-    }
-
-    if (nextEndTime <= nextStartTime) {
-      return Response.json(
-        { ok: false, message: "endTime must be after startTime" },
-        { status: 400 }
-      );
+      return Response.json({ ok: false, message: "Invalid shift update" }, { status: 400 });
     }
 
     const updatedShift = await prisma.shift.update({
-      where: {
-        id: shiftId,
-      },
+      where: { id: shiftId },
       data: {
-        assignedToId: assignedToId ?? shift.assignedToId,
+        title: body.title?.trim() || null,
+        assignedToId: employeeIds[0],
         startTime: nextStartTime,
         endTime: nextEndTime,
+        confirmedAt: null,
+        confirmedById: null,
+        assignments: {
+          deleteMany: {},
+          createMany: {
+            data: employeeIds.map((userId) => ({ userId })),
+          },
+        },
       },
     });
 
-    return Response.json(updatedShift);
+    return Response.json({ ok: true, shift: updatedShift });
+  }
+);
+
+export const DELETE = withBar(
+  async (
+    _req: Request,
+    session: SessionWithBar,
+    context?: RouteContext
+  ): Promise<Response> => {
+    const params = context?.params ? await context.params : undefined;
+    const shiftId = params?.id;
+    const access = await getActiveBarAccess(session as never);
+
+    if (!canManageOperations(access.role)) {
+      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+    }
+
+    if (!shiftId) {
+      return Response.json({ ok: false, message: "Missing shift id" }, { status: 400 });
+    }
+
+    const result = await deleteShiftWithCleanup(shiftId, {
+      barId: session.activeBarId,
+    });
+
+    if (!result.deleted) {
+      return Response.json({ ok: false, message: "Shift not found" }, { status: 404 });
+    }
+
+    return Response.json({
+      ok: true,
+      deletedShiftCount: result.deletedShiftCount,
+      deletedRequestCount: result.deletedRequestCount,
+      detachedTimeLogCount: result.detachedTimeLogCount,
+    });
   }
 );

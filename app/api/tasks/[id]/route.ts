@@ -1,18 +1,20 @@
-import { TaskStatus } from "@prisma/client";
+import { Role, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
   activeBarId: string;
   user: {
     id: string;
+    role: Role;
   };
 };
 
 type RouteContext = {
-  params?: {
+  params?: Promise<{
     id?: string;
-  };
+  }>;
 };
 
 export const PATCH = withBar(
@@ -21,43 +23,64 @@ export const PATCH = withBar(
     session: SessionWithBar,
     context?: RouteContext
   ): Promise<Response> => {
-    const taskId = context?.params?.id;
+    const params = context?.params ? await context.params : undefined;
+    const taskId = params?.id;
+    const access = await getActiveBarAccess(session as never);
 
     if (!taskId) {
-      return Response.json(
-        { ok: false, message: "Missing task id" },
-        { status: 400 }
-      );
+      return Response.json({ ok: false, message: "Missing task id" }, { status: 400 });
     }
 
-    const existingTask = await prisma.task.findFirst({
+    const task = await prisma.task.findFirst({
       where: {
         id: taskId,
         barId: session.activeBarId,
       },
       select: {
         id: true,
+        assignedToId: true,
+        assignedToAll: true,
       },
     });
 
-    if (!existingTask) {
-      return Response.json(
-        { ok: false, message: "Task not found" },
-        { status: 404 }
-      );
+    if (!task) {
+      return Response.json({ ok: false, message: "Task not found" }, { status: 404 });
     }
 
-    const task = await prisma.task.update({
-      where: {
-        id: taskId,
-      },
-      data: {
-        status: TaskStatus.DONE,
-        completedAt: new Date(),
-        completedById: session.user.id,
-      },
-    });
+    if (
+      access.role === Role.EMPLOYEE &&
+      !task.assignedToAll &&
+      task.assignedToId !== session.user.id
+    ) {
+      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+    }
 
-    return Response.json(task);
+    const [, updatedTask] = await prisma.$transaction([
+      prisma.taskCompletion.upsert({
+        where: {
+          taskId_userId: {
+            taskId: task.id,
+            userId: session.user.id,
+          },
+        },
+        update: {
+          completedAt: new Date(),
+        },
+        create: {
+          taskId: task.id,
+          userId: session.user.id,
+        },
+      }),
+      prisma.task.update({
+        where: { id: task.id },
+        data: {
+          status: TaskStatus.DONE,
+          completedAt: new Date(),
+          completedById: session.user.id,
+        },
+      }),
+    ]);
+
+    return Response.json({ ok: true, task: updatedTask });
   }
 );

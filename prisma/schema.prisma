@@ -8,8 +8,38 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
   OWNER
+  MANAGER
   EMPLOYEE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INACTIVE
+}
+
+enum PlanType {
+  FREE
+  TRIAL
+  PAID
+  LIFETIME
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum AppLanguage {
+  it
+  en
+  es
+  fr
 }
 
 enum ClockType {
@@ -42,29 +72,36 @@ enum RequestStatus {
 }
 
 model User {
-  id              String           @id @default(uuid()) @db.Uuid
-  email           String           @unique
-  passwordHash    String
-  firstName       String
-  lastName        String
-  role            Role             @default(EMPLOYEE)
-  mustChangePwd   Boolean          @default(true)
-  ownedBars       Bar[]            @relation("BarOwner")
-  barMemberships  EmployeeBar[]
-  assignedShifts  Shift[]          @relation("ShiftAssigned")
-  createdShifts   Shift[]          @relation("ShiftCreated")
-  timeLogs        TimeLog[]
-  tasksAssigned   Task[]           @relation("TaskAssigned")
-  tasksCreated    Task[]           @relation("TaskCreated")
-  tasksCompleted  Task[]           @relation("TaskCompleted")
-  taskCompletions TaskCompletion[]
-  notesAuthored   Note[]           @relation("NoteAuthor")
-  notesAbout      Note[]           @relation("NoteAboutEmployee")
-  requests        Request[]        @relation("RequestEmployee")
-  reviewedReqs    Request[]        @relation("RequestReviewer")
-  sessions        Session[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                  String            @id @default(uuid()) @db.Uuid
+  email               String            @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  role                Role              @default(EMPLOYEE)
+  language            AppLanguage       @default(it)
+  mustChangePwd       Boolean           @default(true)
+  ownedBars           Bar[]             @relation("BarOwner")
+  barMemberships      EmployeeBar[]
+  assignedShifts      Shift[]           @relation("ShiftAssigned")
+  createdShifts       Shift[]           @relation("ShiftCreated")
+  confirmedShifts     Shift[]           @relation("ShiftConfirmed")
+  shiftAssignments    ShiftAssignment[]
+  timeLogs            TimeLog[]
+  createdTimeLogs     TimeLog[]         @relation("TimeLogCreatedBy")
+  tasksAssigned       Task[]            @relation("TaskAssigned")
+  tasksCreated        Task[]            @relation("TaskCreated")
+  tasksCompleted      Task[]            @relation("TaskCompleted")
+  taskCompletions     TaskCompletion[]
+  notesAuthored       Note[]            @relation("NoteAuthor")
+  notesAbout          Note[]            @relation("NoteAboutEmployee")
+  requests            Request[]         @relation("RequestEmployee")
+  reviewedReqs        Request[]         @relation("RequestReviewer")
+  peerReviewedReqs    Request[]         @relation("RequestPeerReviewer")
+  swapRequests        Request[]         @relation("RequestSwapEmployee")
+  availabilities      Availability[]
+  sessions            Session[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 }
 
 model Session {
@@ -82,29 +119,60 @@ model Session {
 }
 
 model Bar {
-  id                String        @id @default(uuid()) @db.Uuid
+  id                String          @id @default(uuid()) @db.Uuid
   name              String
+  legalName         String?
+  email             String?
+  phone             String?
+  addressLine1      String?
+  city              String?
+  postalCode        String?
+  vatNumber         String?
   latitude          Float
   longitude         Float
-  radiusMeters      Int           @default(10)
-  roundingEnabled   Boolean       @default(false)
-  entryToleranceMin Int           @default(5)
-  roundingStepMin   Int           @default(15)
-  exitToleranceMin  Int           @default(13)
-  ownerId           String        @db.Uuid
-  owner             User          @relation("BarOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  radiusMeters      Int             @default(10)
+  roundingEnabled   Boolean         @default(false)
+  entryToleranceMin Int             @default(5)
+  roundingStepMin   Int             @default(15)
+  exitToleranceMin  Int             @default(13)
+  ownerId           String          @db.Uuid
+  owner             User            @relation("BarOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   memberships       EmployeeBar[]
   settings          BarSettings?
+  subscription      Subscription?
   shifts            Shift[]
   timeLogs          TimeLog[]
   tasks             Task[]
   notes             Note[]
   requests          Request[]
+  availabilities    Availability[]
   sessions          Session[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([ownerId])
+}
+
+model Subscription {
+  id                   String             @id @default(uuid()) @db.Uuid
+  barId                String             @unique @db.Uuid
+  bar                  Bar                @relation(fields: [barId], references: [id], onDelete: Cascade)
+  planType             PlanType           @default(PAID)
+  billingInterval      BillingInterval?
+  status               SubscriptionStatus @default(INACTIVE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  currentPeriodEnd     DateTime?
+  trialEndsAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([status])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([currentPeriodEnd])
+  @@index([trialEndsAt])
 }
 
 model BarSettings {
@@ -123,6 +191,7 @@ model EmployeeBar {
   id         String    @id @default(uuid()) @db.Uuid
   userId     String    @db.Uuid
   barId      String    @db.Uuid
+  role       Role      @default(EMPLOYEE)
   hourlyRate Decimal?  @db.Decimal(10, 2)
   isActive   Boolean   @default(true)
   hiredAt    DateTime  @default(now())
@@ -136,38 +205,59 @@ model EmployeeBar {
 }
 
 model Shift {
-  id           String    @id @default(uuid()) @db.Uuid
+  id           String            @id @default(uuid()) @db.Uuid
   title        String?
   startTime    DateTime
   endTime      DateTime
-  barId        String    @db.Uuid
-  bar          Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
-  assignedToId String    @db.Uuid
-  assignedTo   User      @relation("ShiftAssigned", fields: [assignedToId], references: [id], onDelete: Cascade)
-  createdById  String    @db.Uuid
-  createdBy    User      @relation("ShiftCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  barId        String            @db.Uuid
+  bar          Bar               @relation(fields: [barId], references: [id], onDelete: Cascade)
+  assignedToId String?           @db.Uuid
+  assignedTo   User?             @relation("ShiftAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdById  String            @db.Uuid
+  createdBy    User              @relation("ShiftCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  confirmedAt  DateTime?
+  confirmedById String?          @db.Uuid
+  confirmedBy  User?             @relation("ShiftConfirmed", fields: [confirmedById], references: [id], onDelete: SetNull)
+  assignments  ShiftAssignment[]
   timeLogs     TimeLog[]
   requests     Request[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@index([barId, assignedToId])
   @@index([startTime])
   @@index([createdById])
+  @@index([confirmedById])
+}
+
+model ShiftAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  shiftId    String   @db.Uuid
+  userId     String   @db.Uuid
+  createdAt  DateTime @default(now())
+  shift      Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shiftId, userId])
+  @@index([userId, shiftId])
 }
 
 model TimeLog {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  barId     String    @db.Uuid
-  bar       Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
-  shiftId   String?   @db.Uuid
-  shift     Shift?    @relation(fields: [shiftId], references: [id], onDelete: SetNull)
-  type      ClockType
-  timestamp DateTime  @default(now())
-  latitude  Float?
-  longitude Float?
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  barId       String    @db.Uuid
+  bar         Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
+  shiftId     String?   @db.Uuid
+  shift       Shift?    @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  createdById String?   @db.Uuid
+  createdBy   User?     @relation("TimeLogCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  type        ClockType
+  timestamp   DateTime  @default(now())
+  latitude    Float?
+  longitude   Float?
+  isManual    Boolean   @default(false)
+  note        String?
 
   @@index([barId, userId, timestamp])
   @@index([shiftId])
@@ -180,6 +270,7 @@ model Task {
   status        TaskStatus       @default(TODO)
   dueDate       DateTime
   isUrgent      Boolean          @default(false)
+  assignedToAll Boolean          @default(false)
   barId         String           @db.Uuid
   bar           Bar              @relation(fields: [barId], references: [id], onDelete: Cascade)
   assignedToId  String?          @db.Uuid
@@ -228,24 +319,48 @@ model Note {
   @@index([employeeId])
 }
 
+model Availability {
+  id        String   @id @default(uuid()) @db.Uuid
+  barId     String   @db.Uuid
+  userId    String   @db.Uuid
+  startsAt  DateTime
+  endsAt    DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bar       Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([barId, startsAt])
+  @@index([userId, startsAt])
+}
+
 model Request {
-  id           String        @id @default(uuid()) @db.Uuid
-  barId        String        @db.Uuid
-  employeeId   String        @db.Uuid
-  shiftId      String?       @db.Uuid
-  reviewedById String?       @db.Uuid
-  type         RequestType
-  status       RequestStatus @default(PENDING)
-  reason       String?
-  startsAt     DateTime?
-  endsAt       DateTime?
-  reviewedAt   DateTime?
-  bar          Bar           @relation(fields: [barId], references: [id], onDelete: Cascade)
-  employee     User          @relation("RequestEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
-  shift        Shift?        @relation(fields: [shiftId], references: [id], onDelete: SetNull)
-  reviewedBy   User?         @relation("RequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id               String         @id @default(uuid()) @db.Uuid
+  barId            String         @db.Uuid
+  employeeId       String         @db.Uuid
+  shiftId          String?        @db.Uuid
+  reviewedById     String?        @db.Uuid
+  swapWithUserId   String?        @db.Uuid
+  peerReviewedById String?        @db.Uuid
+  type             RequestType
+  status           RequestStatus  @default(PENDING)
+  peerStatus       RequestStatus?
+  ownerStatus      RequestStatus?
+  reason           String?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  peerReviewedAt   DateTime?
+  reviewedAt       DateTime?
+  appliedAt        DateTime?
+  bar              Bar            @relation(fields: [barId], references: [id], onDelete: Cascade)
+  employee         User           @relation("RequestEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  shift            Shift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  reviewedBy       User?          @relation("RequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  swapWith         User?          @relation("RequestSwapEmployee", fields: [swapWithUserId], references: [id], onDelete: SetNull)
+  peerReviewedBy   User?          @relation("RequestPeerReviewer", fields: [peerReviewedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([barId, status])
   @@index([employeeId, createdAt])

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { userCanAccessBar } from "@/lib/permissions";
 import { withAuth } from "@/lib/withAuth";
 
 type SelectBarBody = {
@@ -24,18 +25,7 @@ export const POST = withAuth(
       );
     }
 
-    const bar = await prisma.bar.findFirst({
-      where: {
-        id: barId,
-        memberships: {
-          some: {
-            userId: session.user.id,
-          },
-        },
-      },
-    });
-
-    if (!bar) {
+    if (!(await userCanAccessBar(session.user.id, barId))) {
       return Response.json(
         { ok: false, message: "Bar not allowed" },
         { status: 403 }

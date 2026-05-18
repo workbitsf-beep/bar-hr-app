@@ -20,7 +20,9 @@
     "pdfkit": "^0.18.0",
     "prisma": "^6.19.1",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "resend": "^6.12.3",
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

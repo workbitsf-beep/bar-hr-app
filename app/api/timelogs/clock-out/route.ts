@@ -1,6 +1,7 @@
-import { ClockType } from "@prisma/client";
+import { ClockType, Role } from "@prisma/client";
+import { isWithinRadius } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
-import { applyRounding } from "@/lib/rounding";
+import { getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
 
 type ClockOutBody = {
@@ -17,6 +18,15 @@ type SessionWithBar = {
 
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
+    const access = await getActiveBarAccess(session as never);
+
+    if (access.role === Role.OWNER) {
+      return Response.json(
+        { ok: false, message: "Owner accounts cannot clock out" },
+        { status: 403 }
+      );
+    }
+
     const lastClockIn = await prisma.timeLog.findFirst({
       where: {
         userId: session.user.id,
@@ -68,19 +78,36 @@ export const POST = withBar(
     const longitude =
       typeof body.longitude === "number" ? body.longitude : null;
 
-    let outTimestamp = new Date();
-
     if (
-      settings?.roundingEnabled &&
-      settings.roundingMode &&
-      settings.roundingMinutes
+      latitude === null ||
+      longitude === null ||
+      !settings ||
+      settings.gpsLatitude === null ||
+      settings.gpsLongitude === null ||
+      settings.gpsRadius === null
     ) {
-      outTimestamp = applyRounding(
-        outTimestamp,
-        settings.roundingMode,
-        settings.roundingMinutes
+      return Response.json(
+        { ok: false, message: "Missing coordinates" },
+        { status: 400 }
       );
     }
+
+    const allowed = isWithinRadius(
+      latitude,
+      longitude,
+      settings.gpsLatitude,
+      settings.gpsLongitude,
+      settings.gpsRadius
+    );
+
+    if (!allowed) {
+      return Response.json(
+        { ok: false, message: "Outside allowed radius" },
+        { status: 403 }
+      );
+    }
+
+    const outTimestamp = new Date();
 
     await prisma.timeLog.create({
       data: {

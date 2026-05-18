@@ -1,6 +1,7 @@
-import { ClockType } from "@prisma/client";
+import { ClockType, Role } from "@prisma/client";
 import { isWithinRadius } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
+import { getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
 
 type ClockInBody = {
@@ -17,6 +18,15 @@ type SessionWithBar = {
 
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
+    const access = await getActiveBarAccess(session as never);
+
+    if (access.role === Role.OWNER) {
+      return Response.json(
+        { ok: false, message: "Owner accounts cannot clock in" },
+        { status: 403 }
+      );
+    }
+
     const body = (await req.json()) as ClockInBody;
     const { latitude, longitude } = body;
 
@@ -60,6 +70,37 @@ export const POST = withBar(
       );
     }
 
+    const openClockIn = await prisma.timeLog.findFirst({
+      where: {
+        userId: session.user.id,
+        barId: session.activeBarId,
+        type: ClockType.IN,
+      },
+      orderBy: {
+        timestamp: "desc",
+      },
+    });
+
+    if (openClockIn) {
+      const matchingClockOut = await prisma.timeLog.findFirst({
+        where: {
+          userId: session.user.id,
+          barId: session.activeBarId,
+          type: ClockType.OUT,
+          timestamp: {
+            gte: openClockIn.timestamp,
+          },
+        },
+      });
+
+      if (!matchingClockOut) {
+        return Response.json(
+          { ok: false, message: "A clock-in is already open" },
+          { status: 400 }
+        );
+      }
+    }
+
     const log = await prisma.timeLog.create({
       data: {
         type: ClockType.IN,
@@ -70,6 +111,6 @@ export const POST = withBar(
       },
     });
 
-    return Response.json(log);
+    return Response.json({ ok: true, log });
   }
 );

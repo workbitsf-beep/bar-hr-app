@@ -1,23 +1,24 @@
 import type { ReactNode } from "react";
-import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { RoundingMode, Role } from "@prisma/client";
+import { GpsLocationField } from "@/app/components/gps-location-field";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type StepNumber = 1 | 2 | 3 | 4;
 
-function generateTempPassword(): string {
-  const alphabet =
-    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  let password = "";
-
-  for (let i = 0; i < 10; i += 1) {
-    password += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-
-  return password;
+function hasCompletedRoundingSetup(
+  settings:
+    | Awaited<ReturnType<typeof getOwnerContext>>["activeBar"]["settings"]
+    | null
+    | undefined
+) {
+  return Boolean(
+    settings &&
+      settings.roundingMinutes !== null &&
+      settings.roundingMode !== null
+  );
 }
 
 function parseNumber(value: FormDataEntryValue | null): number | null {
@@ -86,11 +87,7 @@ function getCurrentStep(activeBar: Awaited<ReturnType<typeof getOwnerContext>>["
     return 2;
   }
 
-  if (
-    activeBar.settings.roundingEnabled &&
-    (activeBar.settings.roundingMinutes === null ||
-      activeBar.settings.roundingMode === null)
-  ) {
+  if (!hasCompletedRoundingSetup(activeBar.settings)) {
     return 3;
   }
 
@@ -125,6 +122,13 @@ async function createBarAction(formData: FormData) {
       ownerId: session.user.id,
       settings: {
         create: {},
+      },
+      memberships: {
+        create: {
+          userId: session.user.id,
+          role: Role.OWNER,
+          isActive: true,
+        },
       },
     },
     select: { id: true },
@@ -224,14 +228,14 @@ async function saveRoundingAction(formData: FormData) {
       where: { barId: activeBar.id },
       update: {
         roundingEnabled,
-        roundingMinutes: roundingEnabled ? roundingMinutes : null,
-        roundingMode: roundingEnabled ? (roundingMode as RoundingMode) : null,
+        roundingMinutes: roundingMinutes ?? 15,
+        roundingMode: (roundingMode as RoundingMode | null) ?? RoundingMode.NEAREST,
       },
       create: {
         barId: activeBar.id,
         roundingEnabled,
-        roundingMinutes: roundingEnabled ? roundingMinutes : null,
-        roundingMode: roundingEnabled ? (roundingMode as RoundingMode) : null,
+        roundingMinutes: roundingMinutes ?? 15,
+        roundingMode: (roundingMode as RoundingMode | null) ?? RoundingMode.NEAREST,
       },
     }),
   ]);
@@ -252,8 +256,11 @@ async function inviteEmployeeAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
+  const initialPassword = String(formData.get("initialPassword") ?? "").trim();
+  const roleRaw = String(formData.get("role") ?? "");
+  const memberRole = roleRaw === "MANAGER" ? Role.MANAGER : Role.EMPLOYEE;
 
-  if (!email || !firstName || !lastName) {
+  if (!email || !firstName || !lastName || !initialPassword) {
     redirect("/onboarding?step=4&error=missing-employee");
   }
 
@@ -271,12 +278,14 @@ async function inviteEmployeeAction(formData: FormData) {
         },
       },
       update: {
+        role: memberRole,
         isActive: true,
         endedAt: null,
       },
       create: {
         userId: existingUser.id,
         barId: activeBar.id,
+        role: memberRole,
         isActive: true,
       },
     });
@@ -285,8 +294,9 @@ async function inviteEmployeeAction(formData: FormData) {
     redirect("/onboarding?step=4");
   }
 
-  const tempPassword = generateTempPassword();
-  const passwordHash = await bcrypt.hash(tempPassword, 10);
+  const passwordHash = await import("bcrypt").then((module) =>
+    module.default.hash(initialPassword, 10)
+  );
 
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
@@ -294,7 +304,7 @@ async function inviteEmployeeAction(formData: FormData) {
         email,
         firstName,
         lastName,
-        role: Role.EMPLOYEE,
+        role: memberRole,
         mustChangePwd: true,
         passwordHash,
       },
@@ -305,6 +315,7 @@ async function inviteEmployeeAction(formData: FormData) {
       data: {
         userId: user.id,
         barId: activeBar.id,
+        role: memberRole,
         isActive: true,
       },
     });
@@ -323,7 +334,7 @@ async function finishOnboardingAction() {
     redirect("/onboarding");
   }
 
-  redirect("/dashboard");
+  redirect("/dashboard/calendar");
 }
 
 function StepShell({
@@ -522,6 +533,8 @@ export default async function OnboardingPage({
 }) {
   const params = searchParams ? await searchParams : {};
   const { activeBar } = await getOwnerContext();
+  const invitedMembers =
+    activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
   const computedStep = getCurrentStep(activeBar);
   const requestedStepRaw = Array.isArray(params.step) ? params.step[0] : params.step;
   const requestedStep = requestedStepRaw ? Number(requestedStepRaw) : computedStep;
@@ -530,7 +543,7 @@ export default async function OnboardingPage({
       ? (requestedStep as StepNumber)
       : computedStep;
 
-  if (computedStep === 4 && activeBar && activeBar.memberships.length > 0 && requestedStepRaw === "done") {
+  if (computedStep === 4 && activeBar && invitedMembers.length > 0 && requestedStepRaw === "done") {
     redirect("/dashboard");
   }
 
@@ -545,7 +558,7 @@ export default async function OnboardingPage({
             <Input
               name="name"
               label="Bar name"
-              placeholder="Example: Workbit Coffee House"
+              placeholder="Nome del locale"
             />
             <div>
               <SubmitButton label="Save and continue" />
@@ -560,27 +573,20 @@ export default async function OnboardingPage({
           subtitle="Employees will use this location when clocking in and clocking out."
         >
           <form action={saveGpsAction} style={{ display: "grid", gap: 16 }}>
+            <GpsLocationField
+              latitudeName="gpsLatitude"
+              longitudeName="gpsLongitude"
+              initialLatitude={activeBar.settings?.gpsLatitude}
+              initialLongitude={activeBar.settings?.gpsLongitude}
+            />
+
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 320px))",
                 gap: 16,
               }}
             >
-              <Input
-                name="gpsLatitude"
-                label="Latitude"
-                type="number"
-                defaultValue={activeBar.settings?.gpsLatitude}
-                placeholder="45.4642"
-              />
-              <Input
-                name="gpsLongitude"
-                label="Longitude"
-                type="number"
-                defaultValue={activeBar.settings?.gpsLongitude}
-                placeholder="9.1900"
-              />
               <Input
                 name="gpsRadius"
                 label="Radius in meters"
@@ -675,7 +681,7 @@ export default async function OnboardingPage({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             gap: 20,
           }}
         >
@@ -683,7 +689,21 @@ export default async function OnboardingPage({
             title="Invite first employees"
             subtitle="Create the first employee accounts now. They will be asked to change password at first sign-in."
           >
-            <form action={inviteEmployeeAction} style={{ display: "grid", gap: 16 }}>
+            <form action={inviteEmployeeAction} style={{ display: "grid", gap: 18 }}>
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 18,
+                  background: "#f7f2e9",
+                  border: "1px solid #eadfc9",
+                  color: "#6b7280",
+                  lineHeight: 1.6,
+                }}
+              >
+                Inserisci i primi account del team. Potrai aggiungerne altri anche piu tardi dalla
+                dashboard.
+              </div>
+
               <div
                 style={{
                   display: "grid",
@@ -697,8 +717,31 @@ export default async function OnboardingPage({
                   name="email"
                   label="Email"
                   type="email"
-                  placeholder="employee@bar.com"
+                  placeholder="nome@locale.it"
                 />
+                <Input
+                  name="initialPassword"
+                  label="Temporary password"
+                  type="text"
+                  placeholder="Imposta una password iniziale"
+                />
+                <label style={{ display: "grid", gap: 8 }}>
+                  <span style={{ fontWeight: 600 }}>Role</span>
+                  <select
+                    name="role"
+                    defaultValue="EMPLOYEE"
+                    style={{
+                      borderRadius: 14,
+                      border: "1px solid #d9cdb8",
+                      padding: "12px 14px",
+                      fontSize: 15,
+                      background: "#fff",
+                    }}
+                  >
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="MANAGER">Manager</option>
+                  </select>
+                </label>
               </div>
               <div>
                 <SubmitButton label="Invite employee" />
@@ -709,29 +752,92 @@ export default async function OnboardingPage({
           <Card
             title="Current team"
             subtitle={
-              activeBar.memberships.length > 0
-                ? "These employees have already been linked to the bar."
+              invitedMembers.length > 0
+                ? "These employees are already linked to the bar."
                 : "No employees invited yet. You can still finish and add them later."
             }
           >
             <div style={{ display: "grid", gap: 12 }}>
-              {activeBar.memberships.length > 0 ? (
-                activeBar.memberships.map((membership) => (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    padding: 14,
+                    borderRadius: 16,
+                    background: "#f7f2e9",
+                    border: "1px solid #eadfc9",
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase" }}>
+                    Invitati
+                  </div>
+                  <strong style={{ fontSize: 22, color: "#1f2937" }}>{invitedMembers.length}</strong>
+                </div>
+                <div
+                  style={{
+                    padding: 14,
+                    borderRadius: 16,
+                    background: "#f7f2e9",
+                    border: "1px solid #eadfc9",
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase" }}>
+                    Titolare
+                  </div>
+                  <strong style={{ fontSize: 16, color: "#1f2937" }}>
+                    {activeBar.ownerId ? "Gia collegato" : "Da collegare"}
+                  </strong>
+                </div>
+              </div>
+
+              {invitedMembers.length > 0 ? (
+                invitedMembers.map((membership) => (
                   <div
                     key={membership.id}
                     style={{
-                      padding: 14,
-                      borderRadius: 16,
-                      background: "#f7f2e9",
+                      padding: 16,
+                      borderRadius: 18,
+                      background: "#fff",
                       border: "1px solid #eadfc9",
+                      display: "grid",
+                      gap: 8,
                     }}
                   >
-                    <strong>
-                      {membership.user.firstName} {membership.user.lastName}
-                    </strong>
-                    <div style={{ marginTop: 6, color: "#6b7280" }}>
-                      {membership.user.email}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <strong>
+                        {membership.user.firstName} {membership.user.lastName}
+                      </strong>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          borderRadius: 999,
+                          padding: "6px 10px",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                          background: membership.role === Role.MANAGER ? "#dbeafe" : "#ede9fe",
+                          color: membership.role === Role.MANAGER ? "#1d4ed8" : "#6d28d9",
+                        }}
+                      >
+                        {membership.role === Role.MANAGER ? "Manager" : "Employee"}
+                      </span>
                     </div>
+                    <div style={{ color: "#6b7280" }}>{membership.user.email}</div>
                   </div>
                 ))
               ) : (

@@ -1,7 +1,8 @@
 import PDFDocument from "pdfkit";
-import { ClockType, RoundingMode } from "@prisma/client";
+import { Role } from "@prisma/client";
+import { buildMonthlyDataset } from "@/lib/reporting";
 import { prisma } from "@/lib/prisma";
-import { applyRounding } from "@/lib/rounding";
+import { getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
 
 type ExportBody = {
@@ -13,48 +14,11 @@ type ExportBody = {
 
 type SessionWithBar = {
   activeBarId: string;
-};
-
-type TimeLogItem = {
-  id: string;
-  type: ClockType;
-  timestamp: Date;
-};
-
-type ExportEntry = {
-  inLogId: string;
-  outLogId: string;
-  clockIn: string;
-  clockOut: string;
-  realDurationMs: number;
-  roundedDurationMs: number;
-  realHours: number;
-  roundedHours: number;
-};
-
-type GroupedDay = {
-  date: string;
-  entries: ExportEntry[];
-  totals: {
-    realHours: number;
-    roundedHours: number;
+  user: {
+    id: string;
+    role: Role;
   };
 };
-
-type MonthlyDataset = {
-  groupedLogs: GroupedDay[];
-  totals: {
-    realHours: number;
-    roundedHours: number;
-  };
-};
-
-function formatDayKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function formatTime(dateIso: string): string {
   return new Date(dateIso).toLocaleTimeString("it-IT", {
@@ -63,154 +27,12 @@ function formatTime(dateIso: string): string {
   });
 }
 
-function toHours(durationMs: number): number {
-  return Math.round((durationMs / 3600000) * 100) / 100;
-}
-
-function getRoundedTimestamp(
-  timestamp: Date,
-  roundingEnabled: boolean,
-  roundingMode: RoundingMode | null,
-  roundingMinutes: number | null
-): Date {
-  if (!roundingEnabled || !roundingMode || !roundingMinutes) {
-    return timestamp;
-  }
-
-  return applyRounding(timestamp, roundingMode, roundingMinutes);
-}
-
-async function buildMonthlyDataset(
-  activeBarId: string,
-  userId: string,
-  month: number,
-  year: number
-): Promise<MonthlyDataset> {
-  const monthStart = new Date(year, month - 1, 1);
-  const monthEnd = new Date(year, month, 1);
-
-  const [timeLogs, settings] = await Promise.all([
-    prisma.timeLog.findMany({
-      where: {
-        userId,
-        barId: activeBarId,
-        timestamp: {
-          gte: monthStart,
-          lt: monthEnd,
-        },
-      },
-      select: {
-        id: true,
-        type: true,
-        timestamp: true,
-      },
-      orderBy: {
-        timestamp: "asc",
-      },
-    }),
-    prisma.barSettings.findUnique({
-      where: {
-        barId: activeBarId,
-      },
-      select: {
-        roundingEnabled: true,
-        roundingMode: true,
-        roundingMinutes: true,
-      },
-    }),
-  ]);
-
-  const groupedMap = new Map<string, GroupedDay>();
-  let pendingIn: TimeLogItem | null = null;
-  let totalRealMs = 0;
-  let totalRoundedMs = 0;
-
-  for (const log of timeLogs) {
-    if (log.type === ClockType.IN) {
-      pendingIn = log;
-      continue;
-    }
-
-    if (!pendingIn) {
-      continue;
-    }
-
-    const realDurationMs = Math.max(
-      0,
-      log.timestamp.getTime() - pendingIn.timestamp.getTime()
-    );
-
-    const roundedIn = getRoundedTimestamp(
-      pendingIn.timestamp,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedOut = getRoundedTimestamp(
-      log.timestamp,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedDurationMs = Math.max(
-      0,
-      roundedOut.getTime() - roundedIn.getTime()
-    );
-
-    const dayKey = formatDayKey(pendingIn.timestamp);
-    const existingDay = groupedMap.get(dayKey) ?? {
-      date: dayKey,
-      entries: [],
-      totals: {
-        realHours: 0,
-        roundedHours: 0,
-      },
-    };
-
-    const entry: ExportEntry = {
-      inLogId: pendingIn.id,
-      outLogId: log.id,
-      clockIn: pendingIn.timestamp.toISOString(),
-      clockOut: log.timestamp.toISOString(),
-      realDurationMs,
-      roundedDurationMs,
-      realHours: toHours(realDurationMs),
-      roundedHours: toHours(roundedDurationMs),
-    };
-
-    existingDay.entries.push(entry);
-    existingDay.totals.realHours = Math.round(
-      (existingDay.totals.realHours + entry.realHours) * 100
-    ) / 100;
-    existingDay.totals.roundedHours = Math.round(
-      (existingDay.totals.roundedHours + entry.roundedHours) * 100
-    ) / 100;
-    groupedMap.set(dayKey, existingDay);
-
-    totalRealMs += realDurationMs;
-    totalRoundedMs += roundedDurationMs;
-    pendingIn = null;
-  }
-
-  const groupedLogs = Array.from(groupedMap.values()).sort((a, b) =>
-    a.date.localeCompare(b.date)
-  );
-
-  return {
-    groupedLogs,
-    totals: {
-      realHours: toHours(totalRealMs),
-      roundedHours: toHours(totalRoundedMs),
-    },
-  };
-}
-
-async function createMonthlyPdfBuffer(
-  userLabel: string,
-  month: number,
-  year: number,
-  dataset: MonthlyDataset
-): Promise<Buffer> {
+async function createMonthlyPdfBuffer(input: {
+  userLabel: string;
+  month: number;
+  year: number;
+  dataset: Awaited<ReturnType<typeof buildMonthlyDataset>>;
+}): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       margin: 40,
@@ -228,49 +50,57 @@ async function createMonthlyPdfBuffer(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(18).text("Monthly Time Log Export", { align: "left" });
+    doc.fontSize(18).text("Report mensile dipendente");
     doc.moveDown(0.5);
-    doc.fontSize(12).text(`User: ${userLabel}`);
-    doc.text(`Month: ${String(month).padStart(2, "0")}/${year}`);
+    doc.fontSize(12).text(`Dipendente: ${input.userLabel}`);
+    doc.text(`Mese: ${String(input.month).padStart(2, "0")}/${input.year}`);
     doc.moveDown();
 
-    doc.fontSize(10).text("Date", 40, doc.y, { continued: true });
-    doc.text("Clock In", 120, doc.y, { continued: true });
-    doc.text("Clock Out", 200, doc.y, { continued: true });
-    doc.text("Real Hours", 290, doc.y, { continued: true });
-    doc.text("Rounded Hours", 380, doc.y);
-    doc.moveTo(40, doc.y + 4).lineTo(555, doc.y + 4).stroke();
-    doc.moveDown();
-
-    for (const day of dataset.groupedLogs) {
-      ensureSpace(36);
-      doc.fontSize(10).font("Helvetica-Bold").text(day.date);
+    for (const day of input.dataset.groupedLogs) {
+      ensureSpace(56);
+      doc.font("Helvetica-Bold").fontSize(11).text(day.date);
       doc.font("Helvetica");
 
-      for (const entry of day.entries) {
-        ensureSpace(22);
-        doc.text("", 40, doc.y, { continued: true });
-        doc.text(formatTime(entry.clockIn), 120, doc.y, { continued: true });
-        doc.text(formatTime(entry.clockOut), 200, doc.y, { continued: true });
-        doc.text(entry.realHours.toFixed(2), 290, doc.y, { continued: true });
-        doc.text(entry.roundedHours.toFixed(2), 380, doc.y);
+      if (day.labels.length > 0) {
+        doc
+          .fontSize(10)
+          .fillColor("#92400e")
+          .text(`Etichette: ${day.labels.join(", ")}`);
+        doc.fillColor("#000000");
       }
 
-      ensureSpace(20);
-      doc.font("Helvetica-Oblique").text(
-        `Day totals: real ${day.totals.realHours.toFixed(2)}h | rounded ${day.totals.roundedHours.toFixed(2)}h`
-      );
-      doc.font("Helvetica").moveDown(0.5);
+      if (day.entries.length === 0) {
+        doc
+          .fontSize(10)
+          .text("Nessuna timbratura registrata per questa giornata.");
+      }
+
+      for (const entry of day.entries) {
+        ensureSpace(24);
+        doc
+          .fontSize(10)
+          .text(
+            `${formatTime(entry.clockIn)} - ${formatTime(entry.clockOut)} | ore reali ${entry.realHours.toFixed(2)} | ore arrotondate ${entry.roundedHours.toFixed(2)}`
+          );
+      }
+
+      ensureSpace(22);
+      doc
+        .font("Helvetica-Oblique")
+        .text(
+          `Totale giorno: reali ${day.totals.realHours.toFixed(2)}h | arrotondate ${day.totals.roundedHours.toFixed(2)}h`
+        );
+      doc.font("Helvetica").moveDown(0.6);
     }
 
-    ensureSpace(40);
-    doc.moveDown();
+    ensureSpace(30);
     doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-    doc.moveDown(0.5);
-    doc.font("Helvetica-Bold").text(
-      `Totals - Real: ${dataset.totals.realHours.toFixed(2)}h | Rounded: ${dataset.totals.roundedHours.toFixed(2)}h`
-    );
-
+    doc.moveDown(0.6);
+    doc
+      .font("Helvetica-Bold")
+      .text(
+        `Totale mese: ore reali ${input.dataset.totals.realHours.toFixed(2)}h | ore arrotondate ${input.dataset.totals.roundedHours.toFixed(2)}h`
+      );
     doc.end();
   });
 }
@@ -278,53 +108,76 @@ async function createMonthlyPdfBuffer(
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     const body = (await req.json()) as ExportBody;
-    const { userId, month, year, format = "json" } = body;
-    const monthNum = Number(month);
-    const yearNum = Number(year);
+    const month = Number(body.month);
+    const year = Number(body.year);
+    const format = body.format === "pdf" ? "pdf" : "json";
+    const access = await getActiveBarAccess(session as never);
+    const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
 
     if (
-      !userId ||
-      Number.isNaN(monthNum) ||
-      Number.isNaN(yearNum) ||
-      !Number.isInteger(monthNum) ||
-      !Number.isInteger(yearNum) ||
-      monthNum < 1 ||
-      monthNum > 12
+      Number.isNaN(month) ||
+      Number.isNaN(year) ||
+      !Number.isInteger(month) ||
+      !Number.isInteger(year) ||
+      month < 1 ||
+      month > 12
     ) {
       return Response.json(
-        { ok: false, message: "Invalid input" },
+        { ok: false, message: "Input non valido" },
         { status: 400 }
       );
     }
 
-    const [dataset, user] = await Promise.all([
-      buildMonthlyDataset(session.activeBarId, userId, monthNum, yearNum),
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          firstName: true,
-          lastName: true,
-          email: true,
+    if (access.role !== Role.OWNER && requestedUserId !== session.user.id) {
+      return Response.json(
+        { ok: false, message: "Non autorizzato" },
+        { status: 403 }
+      );
+    }
+
+    const membership = await prisma.employeeBar.findFirst({
+      where: {
+        barId: session.activeBarId,
+        userId: requestedUserId,
+        isActive: true,
+      },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
         },
-      }),
-    ]);
+      },
+    });
+
+    if (!membership) {
+      return Response.json(
+        { ok: false, message: "Dipendente non trovato" },
+        { status: 404 }
+      );
+    }
+
+    const dataset = await buildMonthlyDataset(
+      session.activeBarId,
+      requestedUserId,
+      month,
+      year
+    );
 
     if (format === "pdf") {
-      const userLabel = user
-        ? `${user.firstName} ${user.lastName} (${user.email})`
-        : userId;
-      const pdfBuffer = await createMonthlyPdfBuffer(
-        userLabel,
-        monthNum,
-        yearNum,
-        dataset
-      );
-      const uint8Array = new Uint8Array(pdfBuffer);
+      const pdfBuffer = await createMonthlyPdfBuffer({
+        userLabel: `${membership.user.firstName} ${membership.user.lastName} (${membership.user.email})`,
+        month,
+        year,
+        dataset,
+      });
 
-      return new Response(uint8Array, {
+      return new Response(new Uint8Array(pdfBuffer), {
         headers: {
           "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="monthly-export-${yearNum}-${monthNum}.pdf"`,
+          "Content-Disposition": `attachment; filename="report-${year}-${String(month).padStart(2, "0")}.pdf"`,
         },
       });
     }

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,16 +23,28 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*", "./*"]
+      "@/*": [
+        "./src/*",
+        "./*"
+      ]
     }
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "**/*.mts",
+    "next.config.js",
+    "src/app/api/stores/register/route.js",
+    "src/app/login/page.js",
+    "src/app/api/stores/login.js",
+    "src/app/api/stores/register.js",
+    "src/app/layout.jsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
-, "next.config.js", "src/app/api/stores/register/route.js", "src/app/login/page.js", "src/app/api/stores/login.js", "src/app/api/stores/register.js", "src/app/layout.jsx"  ],
-  "exclude": ["node_modules"]
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }
