@@ -98,11 +98,13 @@ export function OwnerCalendarClient({
   weekdayLabels,
   days,
   members,
+  filteredDay,
 }: {
   locale: string;
   weekdayLabels: string[];
   days: DayItem[];
   members: MemberOption[];
+  filteredDay?: string | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -140,6 +142,13 @@ export function OwnerCalendarClient({
     [editingShiftId, selectedDay]
   );
   const weeks = useMemo(() => chunkByWeek(days), [days]);
+  const visibleWeeks = useMemo(
+    () =>
+      filteredDay
+        ? weeks.filter((week) => week.some((day) => day.date.slice(0, 10) === filteredDay))
+        : weeks,
+    [filteredDay, weeks]
+  );
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
@@ -332,9 +341,9 @@ export function OwnerCalendarClient({
       </div>
 
       <div className="dashboard-mobile-only dashboard-week-strip" style={{ display: "grid", gap: 16 }}>
-        {weeks.map((week, weekIndex) => (
+        {visibleWeeks.map((week, weekIndex) => (
           <section
-            key={`${week[0]?.date ?? weekIndex}`}
+            key={`${week[0]?.date ?? `${weekIndex}-${filteredDay ?? "all"}`}`}
             className="dashboard-week-card"
             style={{
               display: "grid",

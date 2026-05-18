@@ -13,7 +13,7 @@ type SessionWithBar = {
   };
 };
 
-function parseWeekStart(value: unknown) {
+function parseStartDate(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
     return null;
   }
@@ -24,28 +24,39 @@ function parseWeekStart(value: unknown) {
     return null;
   }
 
-  const day = parsed.getDay();
-  const offset = day === 0 ? -6 : 1 - day;
-  parsed.setDate(parsed.getDate() + offset);
   parsed.setHours(0, 0, 0, 0);
 
   return parsed;
 }
 
-function getWeekEnd(weekStart: Date) {
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-  return weekEnd;
+function parseEndDate(value: unknown) {
+  const parsed = parseStartDate(value);
+
+  if (!parsed) {
+    return null;
+  }
+
+  parsed.setHours(23, 59, 59, 999);
+  return parsed;
 }
 
-function getWeekLabel(weekStart: Date, weekEnd: Date) {
+function getRangeLabel(rangeStart: Date, rangeEnd: Date) {
+  if (
+    rangeStart.getMonth() === rangeEnd.getMonth() &&
+    rangeStart.getFullYear() === rangeEnd.getFullYear()
+  ) {
+    return new Intl.DateTimeFormat("it-IT", {
+      month: "long",
+      year: "numeric",
+    }).format(rangeStart);
+  }
+
   const formatter = new Intl.DateTimeFormat("it-IT", {
     day: "numeric",
     month: "long",
   });
 
-  return `${formatter.format(weekStart)} - ${formatter.format(weekEnd)}`;
+  return `${formatter.format(rangeStart)} - ${formatter.format(rangeEnd)}`;
 }
 
 function buildDeliveryMessage(failedCount: number, errorMessages: string[]) {
@@ -84,14 +95,26 @@ export const POST = withBar(
       return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
     }
 
-    const body = (await req.json().catch(() => null)) as { weekStart?: string } | null;
-    const weekStart = parseWeekStart(body?.weekStart);
+    const body = (await req.json().catch(() => null)) as {
+      weekStart?: string;
+      rangeStart?: string;
+      rangeEnd?: string;
+    } | null;
+    const rangeStart = parseStartDate(body?.rangeStart ?? body?.weekStart);
+    const rangeEnd = body?.rangeEnd
+      ? parseEndDate(body.rangeEnd)
+      : rangeStart
+        ? (() => {
+            const weekEnd = new Date(rangeStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+            return weekEnd;
+          })()
+        : null;
 
-    if (!weekStart) {
-      return Response.json({ ok: false, message: "Invalid week start" }, { status: 400 });
+    if (!rangeStart || !rangeEnd || rangeEnd < rangeStart) {
+      return Response.json({ ok: false, message: "Invalid date range" }, { status: 400 });
     }
-
-    const weekEnd = getWeekEnd(weekStart);
     const bar = await prisma.bar.findUnique({
       where: { id: session.activeBarId },
       select: { name: true },
@@ -106,10 +129,10 @@ export const POST = withBar(
         barId: session.activeBarId,
         confirmedAt: null,
         startTime: {
-          lte: weekEnd,
+          lte: rangeEnd,
         },
         endTime: {
-          gte: weekStart,
+          gte: rangeStart,
         },
       },
       include: {
@@ -156,7 +179,7 @@ export const POST = withBar(
       }
     }
 
-    const weekLabel = getWeekLabel(weekStart, weekEnd);
+    const weekLabel = getRangeLabel(rangeStart, rangeEnd);
     const results = await Promise.all(
       Array.from(recipientMap.values()).map((recipient) =>
         sendWeeklyShiftsPublishedEmail(

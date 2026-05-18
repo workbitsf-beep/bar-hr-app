@@ -3,7 +3,7 @@ import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { ClockActionsPanel } from "../timelogs/timelogs-client";
-import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, StatusPill } from "../ui";
+import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, StatusPill, TextInput } from "../ui";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
 
@@ -120,6 +120,16 @@ function getRangeDayKeys(start: Date, end: Date) {
   return keys;
 }
 
+function parseDayFilter(searchParams?: Record<string, string | string[] | undefined>) {
+  const raw = Array.isArray(searchParams?.day) ? searchParams?.day[0] : searchParams?.day;
+
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return null;
+  }
+
+  return raw;
+}
+
 export default async function DashboardCalendarPage({
   searchParams,
 }: {
@@ -142,6 +152,7 @@ export default async function DashboardCalendarPage({
 
   const locale = getLocale(language);
   const { month, year } = parseMonth(params);
+  const dayFilter = parseDayFilter(params);
   const calendarStart = startOfCalendarMonth(year, month);
   const calendarEnd = endOfCalendarMonth(year, month);
   const monthStart = new Date(year, month - 1, 1);
@@ -369,44 +380,12 @@ export default async function DashboardCalendarPage({
     role: member.role,
   }));
   const calendarWeeks = chunkByWeek(days);
-  const unconfirmedShiftCount = shifts.filter((shift) => !shift.confirmedAt).length;
-  const weekOptions = Array.from({ length: 6 }, (_, index) => {
-    const start = new Date(calendarStart);
-    start.setDate(calendarStart.getDate() + index * 7);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-
-    const pendingCount = shifts.filter(
-      (shift) => !shift.confirmedAt && shift.startTime <= end && shift.endTime >= start
-    ).length;
-
-    return {
-      start: toLocalDateKey(start),
-      label: `${new Intl.DateTimeFormat(locale, {
-        day: "numeric",
-        month: "short",
-      }).format(start)} - ${new Intl.DateTimeFormat(locale, {
-        day: "numeric",
-        month: "short",
-      }).format(end)}`,
-      pendingCount,
-    };
-  });
-  const now = new Date();
-  const defaultWeekStart =
-    weekOptions.find((week) => {
-      const weekStart = new Date(`${week.start}T00:00:00`);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
-      return now >= weekStart && now <= weekEnd;
-    })?.start ??
-    weekOptions.find((week) => week.pendingCount > 0)?.start ??
-    weekOptions[0]?.start ??
-    "";
+  const unconfirmedShiftCount = shifts.filter(
+    (shift) => !shift.confirmedAt && shift.startTime <= monthEnd && shift.endTime >= monthStart
+  ).length;
+  const visibleCalendarWeeks = dayFilter
+    ? calendarWeeks.filter((week) => week.some((day) => toLocalDateKey(day.date) === dayFilter))
+    : calendarWeeks;
 
   return (
     <Stack columns="minmax(0, 1fr)">
@@ -414,10 +393,14 @@ export default async function DashboardCalendarPage({
 
       {(role === Role.OWNER || role === Role.MANAGER) ? (
         <Panel
-          title="Invio turni"
+          title="Conferma turni"
           action={unconfirmedShiftCount === 0 ? "Tutti inviati" : `${unconfirmedShiftCount} da inviare`}
         >
-          <PublishWeekPanel weeks={weekOptions} defaultWeekStart={defaultWeekStart} />
+          <PublishWeekPanel
+            rangeStart={toLocalDateKey(monthStart)}
+            rangeEnd={toLocalDateKey(monthEnd)}
+            pendingCount={unconfirmedShiftCount}
+          />
         </Panel>
       ) : null}
 
@@ -449,6 +432,30 @@ export default async function DashboardCalendarPage({
                 {">"}
               </PrimaryButton>
             </Link>
+            <form
+              method="get"
+              style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}
+            >
+              <input type="hidden" name="month" value={month} />
+              <input type="hidden" name="year" value={year} />
+              <TextInput
+                type="date"
+                name="day"
+                defaultValue={dayFilter ?? ""}
+                aria-label="Cerca giorno"
+                style={{ minWidth: 180 }}
+              />
+              <PrimaryButton type="submit" tone="sand">
+                Cerca giorno
+              </PrimaryButton>
+              {dayFilter ? (
+                <Link href={`/dashboard/calendar?month=${month}&year=${year}`} style={{ textDecoration: "none" }}>
+                  <PrimaryButton type="button" tone="sand">
+                    Reset
+                  </PrimaryButton>
+                </Link>
+              ) : null}
+            </form>
           </div>
         }
       >
@@ -458,6 +465,7 @@ export default async function DashboardCalendarPage({
             weekdayLabels={weekdayLabels}
             days={serializedDays}
             members={memberOptions}
+            filteredDay={dayFilter}
           />
         ) : (
           <>
@@ -605,9 +613,9 @@ export default async function DashboardCalendarPage({
             </div>
 
             <div className="dashboard-mobile-only dashboard-week-strip" style={{ display: "grid", gap: 16 }}>
-              {calendarWeeks.map((week, weekIndex) => (
+              {visibleCalendarWeeks.map((week, weekIndex) => (
                 <section
-                  key={`${week[0]?.date.toISOString() ?? weekIndex}`}
+                  key={`${week[0]?.date.toISOString() ?? `${weekIndex}-${dayFilter ?? "all"}`}`}
                   className="dashboard-week-card"
                   style={{
                     display: "grid",

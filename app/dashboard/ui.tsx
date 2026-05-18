@@ -104,12 +104,6 @@ function DashboardResponsiveStyles() {
           border-radius: 24px !important;
         }
 
-        .dashboard-shell-card {
-          position: sticky;
-          top: 12px;
-          z-index: 30;
-        }
-
         .dashboard-shell-top,
         .dashboard-panel-header,
         .dashboard-modal-header,

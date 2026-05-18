@@ -88,7 +88,6 @@ export function ClockActionsPanel({
     settings.gpsLongitude !== null &&
     settings.gpsRadius !== null;
   const canClock = role !== "OWNER";
-  const configuredRadius = settings?.gpsRadius ?? null;
   const insideRadius =
     gpsConfigured &&
     latitude !== "" &&
@@ -100,28 +99,26 @@ export function ClockActionsPanel({
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
-      return "Completa la configurazione GPS del locale per abilitare le timbrature.";
+      return "Posizione non aggiornata.";
     }
 
     if (locationError) {
-      return locationError;
+      return "Posizione non aggiornata.";
     }
 
     if (distance === null || accuracy === null) {
-      return locating
-        ? "Sto stabilizzando la posizione con piu letture GPS consecutive."
-        : "Attendo una posizione affidabile dal dispositivo.";
+      return locating ? "Posizione in aggiornamento..." : "Posizione non aggiornata.";
     }
 
     if (lowAccuracy) {
-      return "Posizione poco precisa, riprova o spostati vicino al punto impostato dal titolare.";
+      return "Posizione non aggiornata.";
     }
 
     if (insideRadius) {
-      return "Posizione aggiornata. Puoi timbrare subito.";
+      return "Posizione aggiornata.";
     }
 
-    return "Avvicinati di piu al punto impostato dal titolare (cassa o spogliatoio).";
+    return "Posizione non aggiornata. Avvicinati di piu al punto impostato dal titolare.";
   }, [accuracy, distance, gpsConfigured, insideRadius, locating, locationError, lowAccuracy]);
 
   async function refreshGeolocation(manual = false) {
@@ -269,11 +266,6 @@ export function ClockActionsPanel({
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div>
               Arrotondamento attivo: {settings.roundingMode} ogni {settings.roundingMinutes} minuti.
-            </div>
-          ) : null}
-          {sampleCount !== null ? (
-            <div style={{ color: "#64748b", fontSize: 14 }}>
-              Controllo posizione completato con {sampleCount} letture GPS.
             </div>
           ) : null}
         </div>
