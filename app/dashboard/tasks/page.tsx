@@ -50,7 +50,15 @@ export default async function DashboardTasksPage() {
           : {}),
       },
       orderBy: [{ status: "asc" }, { isUrgent: "desc" }, { dueDate: "asc" }],
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        dueDate: true,
+        status: true,
+        isUrgent: true,
+        assignedToAll: true,
+        assignedToId: true,
         assignedTo: {
           select: {
             id: true,
@@ -74,7 +82,9 @@ export default async function DashboardTasksPage() {
           orderBy: {
             completedAt: "desc",
           },
-          include: {
+          select: {
+            id: true,
+            completedAt: true,
             user: {
               select: {
                 firstName: true,
@@ -85,27 +95,29 @@ export default async function DashboardTasksPage() {
         },
       },
     }),
-    prisma.employeeBar.findMany({
-      where: {
-        barId: activeBarId,
-        isActive: true,
-        role: {
-          not: Role.OWNER,
-        },
-      },
-      orderBy: {
-        role: "asc",
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+    canManage
+      ? prisma.employeeBar.findMany({
+          where: {
+            barId: activeBarId,
+            isActive: true,
+            role: {
+              not: Role.OWNER,
+            },
           },
-        },
-      },
-    }),
+          orderBy: {
+            role: "asc",
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   return (

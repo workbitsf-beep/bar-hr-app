@@ -33,6 +33,11 @@ export type MonthlyDataset = {
   };
 };
 
+export type MonthlyTotals = {
+  realHours: number;
+  roundedHours: number;
+};
+
 function formatDayKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -67,6 +72,111 @@ function requestLabel(type: RequestType): string {
   }
 
   return "Richiesta";
+}
+
+type MinimalTimeLog = {
+  id: string;
+  type: ClockType;
+  timestamp: Date;
+};
+
+type MinimalRoundingSettings = {
+  roundingEnabled: boolean;
+  roundingMode: RoundingMode | null;
+  roundingMinutes: number | null;
+} | null;
+
+function calculateMonthlyTotals(
+  timeLogs: MinimalTimeLog[],
+  settings: MinimalRoundingSettings
+): {
+  totalRealMs: number;
+  totalRoundedMs: number;
+} {
+  let pendingIn: MinimalTimeLog | null = null;
+  let totalRealMs = 0;
+  let totalRoundedMs = 0;
+
+  for (const log of timeLogs) {
+    if (log.type === ClockType.IN) {
+      pendingIn = log;
+      continue;
+    }
+
+    if (!pendingIn) {
+      continue;
+    }
+
+    const realDurationMs = Math.max(0, log.timestamp.getTime() - pendingIn.timestamp.getTime());
+    const roundedIn = getRoundedTimestamp(
+      pendingIn.timestamp,
+      settings?.roundingEnabled ?? false,
+      settings?.roundingMode ?? null,
+      settings?.roundingMinutes ?? null
+    );
+    const roundedOut = getRoundedTimestamp(
+      log.timestamp,
+      settings?.roundingEnabled ?? false,
+      settings?.roundingMode ?? null,
+      settings?.roundingMinutes ?? null
+    );
+    const roundedDurationMs = Math.max(0, roundedOut.getTime() - roundedIn.getTime());
+
+    totalRealMs += realDurationMs;
+    totalRoundedMs += roundedDurationMs;
+    pendingIn = null;
+  }
+
+  return {
+    totalRealMs,
+    totalRoundedMs,
+  };
+}
+
+export async function buildMonthlyTotals(
+  barId: string,
+  userId: string,
+  month: number,
+  year: number
+): Promise<MonthlyTotals> {
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 1);
+
+  const [timeLogs, settings] = await Promise.all([
+    prisma.timeLog.findMany({
+      where: {
+        userId,
+        barId,
+        timestamp: {
+          gte: monthStart,
+          lt: monthEnd,
+        },
+      },
+      select: {
+        id: true,
+        type: true,
+        timestamp: true,
+      },
+      orderBy: {
+        timestamp: "asc",
+      },
+    }),
+    prisma.barSettings.findUnique({
+      where: { barId },
+      select: {
+        roundingEnabled: true,
+        roundingMode: true,
+        roundingMinutes: true,
+      },
+    }),
+  ]);
+
+  const totals = calculateMonthlyTotals(timeLogs, settings);
+
+  return {
+    realHours: toHours(totals.totalRealMs),
+    roundedHours: toHours(totals.totalRoundedMs),
+  };
 }
 
 export async function buildMonthlyDataset(

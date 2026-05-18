@@ -67,11 +67,15 @@ export default async function DashboardSettingsPage() {
                 <TextInput
                   name="gpsRadius"
                   type="number"
-                  defaultValue={settings?.gpsRadius ?? 80}
+                  defaultValue={settings?.gpsRadius ?? 100}
                   required
                 />
               </FormField>
             </div>
+
+            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+              Per una timbratura piu stabile consigliamo almeno 100 metri di raggio.
+            </p>
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input

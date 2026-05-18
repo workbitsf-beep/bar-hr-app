@@ -49,7 +49,7 @@ export default async function DashboardLayout({
               >
                 {accessibleBars.map((bar) => (
                   <option key={bar.id} value={bar.id}>
-                    {bar.name} · {getRoleLabel(language, bar.role)}
+                    {bar.name} - {getRoleLabel(language, bar.role)}
                   </option>
                 ))}
               </Select>

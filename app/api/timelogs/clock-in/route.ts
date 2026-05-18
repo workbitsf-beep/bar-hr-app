@@ -1,5 +1,5 @@
 import { ClockType, Role } from "@prisma/client";
-import { isWithinRadius } from "@/lib/gps";
+import { isWithinRadiusWithAccuracy } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
@@ -7,6 +7,7 @@ import { withBar } from "@/lib/withBar";
 type ClockInBody = {
   latitude?: number;
   longitude?: number;
+  accuracy?: number;
 };
 
 type SessionWithBar = {
@@ -29,6 +30,10 @@ export const POST = withBar(
 
     const body = (await req.json()) as ClockInBody;
     const { latitude, longitude } = body;
+    const accuracy =
+      typeof body.accuracy === "number" && Number.isFinite(body.accuracy)
+        ? Math.max(0, body.accuracy)
+        : 0;
 
     if (typeof latitude !== "number" || typeof longitude !== "number") {
       return Response.json(
@@ -55,12 +60,13 @@ export const POST = withBar(
       );
     }
 
-    const allowed = isWithinRadius(
+    const allowed = isWithinRadiusWithAccuracy(
       latitude,
       longitude,
       settings.gpsLatitude,
       settings.gpsLongitude,
-      settings.gpsRadius
+      settings.gpsRadius,
+      accuracy
     );
 
     if (!allowed) {
@@ -108,6 +114,7 @@ export const POST = withBar(
         barId: session.activeBarId,
         latitude,
         longitude,
+        note: accuracy > 0 ? `Precisione GPS: ±${Math.round(accuracy)} m` : null,
       },
     });
 

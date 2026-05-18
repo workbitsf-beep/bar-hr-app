@@ -2,6 +2,17 @@ import { RequestType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const SHIFT_RETENTION_DAYS = 45;
+const SHIFT_RETENTION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
+
+let lastRetentionCleanupAt = 0;
+let retentionCleanupPromise:
+  | Promise<{
+      cutoff: Date;
+      deletedShiftCount: number;
+      deletedRequestCount: number;
+      detachedTimeLogCount: number;
+    }>
+  | null = null;
 
 export function getShiftRetentionCutoff(now = new Date()) {
   const cutoff = new Date(now);
@@ -133,4 +144,19 @@ export async function runShiftRetentionCleanup(now = new Date()) {
     cutoff,
     ...result,
   };
+}
+
+export async function maybeRunShiftRetentionCleanup(now = new Date()) {
+  if (now.getTime() - lastRetentionCleanupAt < SHIFT_RETENTION_CLEANUP_INTERVAL_MS) {
+    return null;
+  }
+
+  if (!retentionCleanupPromise) {
+    retentionCleanupPromise = runShiftRetentionCleanup(now).finally(() => {
+      lastRetentionCleanupAt = Date.now();
+      retentionCleanupPromise = null;
+    });
+  }
+
+  return retentionCleanupPromise;
 }

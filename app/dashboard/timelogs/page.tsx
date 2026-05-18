@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { buildMonthlyDataset } from "@/lib/reporting";
+import { buildMonthlyTotals } from "@/lib/reporting";
 import { createManualTimeLogAction } from "../actions";
 import { getDashboardContext } from "../context";
 import { BillingRequiredState, EmptyState, FormField, Panel, PrimaryButton, Select, Stack, TextInput } from "../ui";
@@ -21,19 +21,22 @@ export default async function DashboardTimeLogsPage() {
     return <BillingRequiredState role={String(role)} />;
   }
 
+  const isOwner = role === Role.OWNER;
   const [settings, members, logs, ownTotals] = await Promise.all([
-    prisma.barSettings.findUnique({
-      where: { barId: activeBarId },
-      select: {
-        gpsLatitude: true,
-        gpsLongitude: true,
-        gpsRadius: true,
-        roundingEnabled: true,
-        roundingMinutes: true,
-        roundingMode: true,
-      },
-    }),
-    role === Role.OWNER
+    isOwner
+      ? Promise.resolve(null)
+      : prisma.barSettings.findUnique({
+          where: { barId: activeBarId },
+          select: {
+            gpsLatitude: true,
+            gpsLongitude: true,
+            gpsRadius: true,
+            roundingEnabled: true,
+            roundingMinutes: true,
+            roundingMode: true,
+          },
+        }),
+    isOwner
       ? prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
@@ -43,7 +46,7 @@ export default async function DashboardTimeLogsPage() {
             },
           },
           orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-          include: {
+          select: {
             user: {
               select: {
                 id: true,
@@ -57,13 +60,20 @@ export default async function DashboardTimeLogsPage() {
     prisma.timeLog.findMany({
       where: {
         barId: activeBarId,
-        ...(role === Role.OWNER ? {} : { userId: session.user.id }),
+        ...(isOwner ? {} : { userId: session.user.id }),
       },
       orderBy: {
         timestamp: "desc",
       },
-      take: role === Role.OWNER ? 50 : 20,
-      include: {
+      take: isOwner ? 50 : 20,
+      select: {
+        id: true,
+        type: true,
+        timestamp: true,
+        latitude: true,
+        longitude: true,
+        isManual: true,
+        note: true,
         user: {
           select: {
             firstName: true,
@@ -72,89 +82,89 @@ export default async function DashboardTimeLogsPage() {
         },
       },
     }),
-    role === Role.OWNER
+    isOwner
       ? Promise.resolve(null)
-      : buildMonthlyDataset(activeBarId, session.user.id, new Date().getMonth() + 1, new Date().getFullYear()),
+      : buildMonthlyTotals(activeBarId, session.user.id, new Date().getMonth() + 1, new Date().getFullYear()),
   ]);
 
   return (
-    <>
-      <Stack>
-        {role === Role.OWNER ? (
-          <Panel title="Aggiungi timbratura manuale">
-            {members.length === 0 ? (
-              <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
-            ) : (
-              <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
-                <div
-                  className="dashboard-inline-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  <FormField label="Dipendente">
-                    <Select name="userId" required defaultValue="">
-                      <option value="" disabled>
-                        Seleziona
+    <Stack>
+      {isOwner ? (
+        <Panel title="Aggiungi timbratura manuale">
+          {members.length === 0 ? (
+            <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
+          ) : (
+            <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
+              <div
+                className="dashboard-inline-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <FormField label="Dipendente">
+                  <Select name="userId" required defaultValue="">
+                    <option value="" disabled>
+                      Seleziona
+                    </option>
+                    {members.map((member) => (
+                      <option key={member.user.id} value={member.user.id}>
+                        {member.user.firstName} {member.user.lastName}
                       </option>
-                      {members.map((member) => (
-                        <option key={member.user.id} value={member.user.id}>
-                          {member.user.firstName} {member.user.lastName}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormField>
+                    ))}
+                  </Select>
+                </FormField>
 
-                  <FormField label="Tipo">
-                    <Select name="type" defaultValue="IN">
-                      <option value="IN">Entrata</option>
-                      <option value="OUT">Uscita</option>
-                    </Select>
-                  </FormField>
+                <FormField label="Tipo">
+                  <Select name="type" defaultValue="IN">
+                    <option value="IN">Entrata</option>
+                    <option value="OUT">Uscita</option>
+                  </Select>
+                </FormField>
 
-                  <FormField label="Timestamp">
-                    <TextInput name="timestamp" type="datetime-local" required />
-                  </FormField>
+                <FormField label="Timestamp">
+                  <TextInput name="timestamp" type="datetime-local" required />
+                </FormField>
 
-                  <FormField label="Nota">
-                    <TextInput name="note" />
-                  </FormField>
-                </div>
+                <FormField label="Nota">
+                  <TextInput name="note" />
+                </FormField>
+              </div>
 
-                <div className="dashboard-form-actions">
-                  <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
-                </div>
-              </form>
-            )}
-          </Panel>
-        ) : null}
+              <div className="dashboard-form-actions">
+                <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
+              </div>
+            </form>
+          )}
+        </Panel>
+      ) : null}
 
-        <TimeLogsClient
-          role={role}
-          initialLogs={logs.map((log) => ({
-            id: log.id,
-            type: log.type,
-            timestamp: log.timestamp.toISOString(),
-            latitude: log.latitude,
-            longitude: log.longitude,
-            isManual: log.isManual,
-            note: log.note,
-            user: {
-              firstName: log.user.firstName,
-              lastName: log.user.lastName,
-            },
-          }))}
-          settings={settings}
-          totals={ownTotals
+      <TimeLogsClient
+        role={role}
+        initialLogs={logs.map((log) => ({
+          id: log.id,
+          type: log.type,
+          timestamp: log.timestamp.toISOString(),
+          latitude: log.latitude,
+          longitude: log.longitude,
+          isManual: log.isManual,
+          note: log.note,
+          user: {
+            firstName: log.user.firstName,
+            lastName: log.user.lastName,
+          },
+        }))}
+        settings={settings}
+        totals={
+          ownTotals
             ? {
-                realHours: ownTotals.totals.realHours,
-                roundedHours: ownTotals.totals.roundedHours,
+                realHours: ownTotals.realHours,
+                roundedHours: ownTotals.roundedHours,
               }
-            : null}
-        />
-      </Stack>
-    </>
+            : null
+        }
+      />
+    </Stack>
   );
 }

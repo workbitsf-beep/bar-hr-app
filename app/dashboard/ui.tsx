@@ -79,14 +79,23 @@ function DashboardResponsiveStyles() {
         display: none;
       }
 
+      .dashboard-mobile-only {
+        display: none !important;
+      }
+
+      .dashboard-desktop-only {
+        display: block;
+      }
+
       @media (max-width: 900px) {
         .dashboard-shell {
           padding: 12px !important;
+          font-size: 16px !important;
         }
 
         .dashboard-shell-card,
         .dashboard-panel {
-          padding: 18px !important;
+          padding: 20px !important;
           border-radius: 24px !important;
         }
 
@@ -102,13 +111,28 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-shell-brand h1 {
-          font-size: 26px !important;
+          font-size: 28px !important;
           line-height: 1.1 !important;
         }
 
         .dashboard-shell-brand p,
         .dashboard-shell-brand strong {
           word-break: break-word;
+        }
+
+        .dashboard-panel-title,
+        .dashboard-item-card strong,
+        .dashboard-list-card strong {
+          font-size: 18px !important;
+        }
+
+        .dashboard-panel,
+        .dashboard-item-card,
+        .dashboard-list-card,
+        .dashboard-summary-card,
+        .dashboard-calendar-day,
+        .dashboard-calendar-weekday {
+          font-size: 15px !important;
         }
 
         .dashboard-toolbar-slot,
@@ -146,10 +170,13 @@ function DashboardResponsiveStyles() {
 
         .dashboard-top-nav {
           width: 100%;
+          justify-content: flex-end !important;
         }
 
         .dashboard-nav-row .dashboard-menu-button {
-          width: 100%;
+          width: auto !important;
+          min-width: 56px;
+          margin-left: auto;
         }
 
         .dashboard-stack {
@@ -167,7 +194,7 @@ function DashboardResponsiveStyles() {
         .dashboard-item-card,
         .dashboard-list-card,
         .dashboard-summary-card {
-          padding: 14px !important;
+          padding: 16px !important;
           border-radius: 18px !important;
         }
 
@@ -185,7 +212,7 @@ function DashboardResponsiveStyles() {
 
         .dashboard-calendar-day {
           min-height: 180px !important;
-          padding: 12px !important;
+          padding: 14px !important;
           border-radius: 18px !important;
         }
 
@@ -239,6 +266,14 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-table-desktop {
+          display: none !important;
+        }
+
+        .dashboard-mobile-only {
+          display: grid !important;
+        }
+
+        .dashboard-desktop-only {
           display: none !important;
         }
 
@@ -330,7 +365,7 @@ export function DashboardShell({
                 {barName}
               </h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                {userName} · {role}
+                {userName} - {role}
               </p>
             </div>
             {toolbar ? <div className="dashboard-toolbar-slot">{toolbar}</div> : null}
@@ -553,9 +588,7 @@ export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} style={{ ...fieldStyle, ...props.style }} />;
 }
 
-export function TextArea(
-  props: React.TextareaHTMLAttributes<HTMLTextAreaElement>
-) {
+export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...props}
@@ -635,7 +668,7 @@ export function ArrowLinkButton({
         boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
       }}
     >
-      →
+      {">"}
     </Link>
   );
 }

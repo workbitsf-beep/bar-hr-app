@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
+import { getBestAccuracyPosition } from "@/lib/browser-gps";
+import { calculateDistance } from "@/lib/gps";
 import {
   EmptyState,
   FormField,
@@ -45,30 +47,6 @@ type Totals = {
   roundedHours: number;
 } | null;
 
-const EARTH_RADIUS_METERS = 6371000;
-
-function toRadians(value: number) {
-  return (value * Math.PI) / 180;
-}
-
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-) {
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-
-  return EARTH_RADIUS_METERS * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 function getDayKey(value: string) {
   return new Date(value).toISOString().slice(0, 10);
 }
@@ -94,10 +72,15 @@ export function ClockActionsPanel({
   const router = useRouter();
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
-  const [message, setMessage] = useState("");
   const [distance, setDistance] = useState<number | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const [sampleCount, setSampleCount] = useState<number | null>(null);
   const [geoReady, setGeoReady] = useState(false);
-  const [submitting, setSubmitting] = useState<"in" | "out" | "geo" | null>(null);
+  const [locationError, setLocationError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [submitting, setSubmitting] = useState<"in" | "out" | null>(null);
+  const [locating, setLocating] = useState(false);
+  const refreshInFlightRef = useRef(false);
 
   const gpsConfigured =
     settings &&
@@ -105,62 +88,116 @@ export function ClockActionsPanel({
     settings.gpsLongitude !== null &&
     settings.gpsRadius !== null;
   const canClock = role !== "OWNER";
+  const configuredRadius = settings?.gpsRadius ?? null;
+  const effectiveRadius =
+    configuredRadius !== null && accuracy !== null
+      ? configuredRadius + accuracy
+      : configuredRadius;
   const insideRadius =
     gpsConfigured &&
     latitude !== "" &&
     longitude !== "" &&
     distance !== null &&
-    distance <= (settings?.gpsRadius ?? 0);
+    accuracy !== null &&
+    distance <= ((settings?.gpsRadius ?? 0) + accuracy);
+  const lowAccuracy = accuracy !== null && accuracy > 80;
+  const recommendedRadiusTooLow = configuredRadius !== null && configuredRadius < 100;
+
+  const locationSummary = useMemo(() => {
+    if (!gpsConfigured) {
+      return "Completa la configurazione GPS del locale per abilitare le timbrature.";
+    }
+
+    if (locationError) {
+      return locationError;
+    }
+
+    if (distance === null || accuracy === null) {
+      return locating
+        ? "Sto stabilizzando la posizione con piu letture GPS consecutive."
+        : "Attendo una posizione affidabile dal dispositivo.";
+    }
+
+    if (lowAccuracy) {
+      return "Posizione poco precisa, riprova o spostati vicino all'ingresso.";
+    }
+
+    if (insideRadius) {
+      return "Posizione aggiornata. Puoi timbrare subito.";
+    }
+
+    return "Sei fuori dall'area valida per la timbratura.";
+  }, [accuracy, distance, gpsConfigured, insideRadius, locating, locationError, lowAccuracy]);
+
+  async function refreshGeolocation(manual = false) {
+    if (!canClock || !gpsConfigured || refreshInFlightRef.current) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    setLocating(true);
+    setLocationError("");
+
+    try {
+      const sample = await getBestAccuracyPosition();
+      const nextDistance = calculateDistance(
+        sample.latitude,
+        sample.longitude,
+        settings.gpsLatitude as number,
+        settings.gpsLongitude as number
+      );
+
+      setLatitude(String(sample.latitude));
+      setLongitude(String(sample.longitude));
+      setAccuracy(sample.accuracy);
+      setSampleCount(sample.sampleCount);
+      setDistance(nextDistance);
+      setGeoReady(true);
+
+      if (manual) {
+        setActionMessage("");
+      }
+    } catch {
+      setLocationError(
+        manual
+          ? "Impossibile leggere la posizione attuale."
+          : "Impossibile aggiornare automaticamente la posizione."
+      );
+    } finally {
+      refreshInFlightRef.current = false;
+      setLocating(false);
+    }
+  }
 
   useEffect(() => {
     if (!canClock || !gpsConfigured || !navigator.geolocation) {
       return;
     }
 
-    setSubmitting("geo");
-    setGeoReady(false);
+    void refreshGeolocation(false);
 
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const nextLat = position.coords.latitude;
-        const nextLon = position.coords.longitude;
-        setLatitude(String(nextLat));
-        setLongitude(String(nextLon));
-        const nextDistance = calculateDistance(
-          nextLat,
-          nextLon,
-          settings.gpsLatitude as number,
-          settings.gpsLongitude as number
-        );
-        setDistance(nextDistance);
-        setGeoReady(true);
-        setMessage(
-          nextDistance <= (settings.gpsRadius as number)
-            ? `Posizione aggiornata automaticamente. Sei nel raggio corretto (${Math.round(nextDistance)} m).`
-            : `Posizione aggiornata automaticamente. Sei fuori raggio di ${Math.round(nextDistance)} m.`
-        );
-        setSubmitting((current) => (current === "geo" ? null : current));
-      },
-      () => {
-        setGeoReady(false);
-        setMessage("Impossibile leggere automaticamente la posizione attuale.");
-        setSubmitting((current) => (current === "geo" ? null : current));
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 10000,
-        timeout: 15000,
+    const intervalId = window.setInterval(() => {
+      void refreshGeolocation(false);
+    }, 45000);
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void refreshGeolocation(false);
       }
-    );
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      navigator.geolocation.clearWatch(watchId);
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      refreshInFlightRef.current = false;
     };
-  }, [canClock, gpsConfigured, settings]);
+  }, [canClock, gpsConfigured, settings?.gpsLatitude, settings?.gpsLongitude]);
 
   async function runClockAction(endpoint: "clock-in" | "clock-out") {
     setSubmitting(endpoint === "clock-in" ? "in" : "out");
-    setMessage("");
+    setActionMessage("");
 
     try {
       const response = await fetch(`/api/timelogs/${endpoint}`, {
@@ -171,6 +208,7 @@ export function ClockActionsPanel({
         body: JSON.stringify({
           latitude: Number(latitude),
           longitude: Number(longitude),
+          accuracy,
         }),
       });
       const payload = (await response.json().catch(() => null)) as
@@ -178,61 +216,36 @@ export function ClockActionsPanel({
         | null;
 
       if (!response.ok || payload?.ok === false) {
-        setMessage(payload?.message || "Operazione non riuscita");
+        setActionMessage(payload?.message || "Operazione non riuscita");
         return;
       }
 
       if (endpoint === "clock-out" && typeof payload?.duration === "number") {
         const hours = Math.round((payload.duration / 3600000) * 100) / 100;
-        setMessage(`Uscita registrata. Durata ${hours} ore.`);
+        setActionMessage(`Uscita registrata. Durata ${hours} ore.`);
       } else {
-        setMessage("Entrata registrata.");
+        setActionMessage("Entrata registrata.");
       }
 
       router.refresh();
     } catch {
-      setMessage("Impossibile contattare il servizio timbrature.");
+      setActionMessage("Impossibile contattare il servizio timbrature.");
     } finally {
       setSubmitting(null);
     }
   }
 
   function captureGeolocation() {
-    if (!navigator.geolocation || !gpsConfigured) {
-      setMessage("Geolocalizzazione non disponibile.");
+    if (locating) {
       return;
     }
 
-    setSubmitting("geo");
-    setMessage("");
+    if (!navigator.geolocation || !gpsConfigured) {
+      setLocationError("Geolocalizzazione non disponibile.");
+      return;
+    }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const nextLat = position.coords.latitude;
-        const nextLon = position.coords.longitude;
-        setLatitude(String(nextLat));
-        setLongitude(String(nextLon));
-        const nextDistance = calculateDistance(
-          nextLat,
-          nextLon,
-          settings.gpsLatitude as number,
-          settings.gpsLongitude as number
-        );
-        setDistance(nextDistance);
-        setMessage(
-          nextDistance <= (settings.gpsRadius as number)
-            ? `Sei nel raggio corretto (${Math.round(nextDistance)} m).`
-            : `Sei fuori raggio di ${Math.round(nextDistance)} m.`
-        );
-        setGeoReady(true);
-        setSubmitting(null);
-      },
-      () => {
-        setGeoReady(false);
-        setMessage("Impossibile leggere la posizione attuale.");
-        setSubmitting(null);
-      }
-    );
+    void refreshGeolocation(true);
   }
 
   if (!canClock) {
@@ -253,34 +266,48 @@ export function ClockActionsPanel({
             padding: 14,
             color: "#334155",
             lineHeight: 1.6,
+            display: "grid",
+            gap: 8,
           }}
         >
-          {gpsConfigured
-            ? "La posizione viene aggiornata automaticamente. Puoi timbrare appena il dispositivo entra nel raggio configurato."
-            : "Completa la configurazione GPS del locale per abilitare le timbrature."}
+          <div>{locationSummary}</div>
           {settings?.roundingEnabled && settings.roundingMinutes ? (
-            <div style={{ marginTop: 6 }}>
+            <div>
               Arrotondamento attivo: {settings.roundingMode} ogni {settings.roundingMinutes} minuti.
             </div>
           ) : null}
+          {recommendedRadiusTooLow ? (
+            <div style={{ color: "#92400e", fontWeight: 600 }}>
+              Raggio consigliato almeno 100 m per una timbratura piu stabile.
+            </div>
+          ) : null}
           {distance !== null ? (
-            <div style={{ marginTop: 6, fontWeight: 600 }}>
-              Distanza attuale: {Math.round(distance)} m
+            <div style={{ display: "grid", gap: 4 }}>
+              <div style={{ fontWeight: 600 }}>Distanza attuale: {Math.round(distance)} m</div>
+              <div style={{ fontWeight: 600 }}>
+                Precisione GPS: +/-{accuracy !== null ? Math.round(accuracy) : "--"} m
+              </div>
+              <div>
+                Timbratura valida fino a {effectiveRadius !== null ? Math.round(effectiveRadius) : "--"} m
+              </div>
+              {sampleCount !== null ? (
+                <div style={{ color: "#64748b", fontSize: 14 }}>
+                  Letture usate per stabilizzare la posizione: {sampleCount}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
 
         <div className="dashboard-clock-actions" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {!compact ? (
-            <PrimaryButton
-              type="button"
-              tone="sand"
-              onClick={captureGeolocation}
-              disabled={submitting !== null || !gpsConfigured}
-            >
-              {submitting === "geo" ? "Aggiornamento posizione..." : "Aggiorna posizione"}
-            </PrimaryButton>
-          ) : null}
+          <PrimaryButton
+            type="button"
+            tone="sand"
+            onClick={captureGeolocation}
+            disabled={locating || !gpsConfigured}
+          >
+            {locating ? "Aggiornamento posizione..." : compact ? "Ricalcola posizione" : "Aggiorna posizione"}
+          </PrimaryButton>
           <PrimaryButton
             type="button"
             tone="green"
@@ -299,8 +326,8 @@ export function ClockActionsPanel({
           </PrimaryButton>
         </div>
 
-        {message ? (
-          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{message}</p>
+        {actionMessage ? (
+          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{actionMessage}</p>
         ) : null}
 
         {compact && !gpsConfigured ? (
@@ -417,7 +444,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                 <div style={{ display: "grid", gap: 4 }}>
                   <strong style={{ color: "#0f172a" }}>{group.name}</strong>
                   <span style={{ color: "#475569", fontSize: 14 }}>
-                    {group.logs.length} timbrature · ultima {formatDateTime(group.latest)}
+                    {group.logs.length} timbrature - ultima {formatDateTime(group.latest)}
                   </span>
                 </div>
 
@@ -519,11 +546,11 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                       <ItemCard
                         key={log.id}
                         title={formatDayLabel(log.timestamp)}
-                        subtitle={`${log.type} · ${formatDateTime(log.timestamp)}`}
+                        subtitle={`${log.type} - ${formatDateTime(log.timestamp)}`}
                         meta={
                           <>
                             {log.latitude !== null && log.longitude !== null
-                              ? `Lat ${log.latitude.toFixed(5)} · Lon ${log.longitude.toFixed(5)}`
+                              ? `Lat ${log.latitude.toFixed(5)} - Lon ${log.longitude.toFixed(5)}`
                               : "Coordinate non salvate"}
                             {log.note ? (
                               <>
@@ -593,11 +620,11 @@ function PersonalTimeLogsPanel({
               <ItemCard
                 key={log.id}
                 title={formatDateTime(log.timestamp)}
-                subtitle={`${log.type} · ${log.isManual ? "manuale" : "ufficiale"}`}
+                subtitle={`${log.type} - ${log.isManual ? "manuale" : "ufficiale"}`}
                 meta={
                   <>
                     {log.latitude !== null && log.longitude !== null
-                      ? `Lat ${log.latitude.toFixed(5)} · Lon ${log.longitude.toFixed(5)}`
+                      ? `Lat ${log.latitude.toFixed(5)} - Lon ${log.longitude.toFixed(5)}`
                       : "Coordinate non salvate"}
                     {log.note ? (
                       <>

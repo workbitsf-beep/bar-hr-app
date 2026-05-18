@@ -48,6 +48,18 @@ function formatDayTime(value: string, locale: string) {
   }).format(new Date(value));
 }
 
+function formatRoleLabel(role: string) {
+  if (role === "MANAGER") {
+    return "Manager";
+  }
+
+  if (role === "OWNER") {
+    return "Titolare";
+  }
+
+  return "Dipendente";
+}
+
 export function ShiftEditorModal({
   open,
   locale,
@@ -218,7 +230,7 @@ export function ShiftEditorModal({
                 day: "numeric",
                 month: "long",
               }).format(new Date(shift.startTime))}
-              {" Â· "}
+              {" - "}
               {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
             </span>
           </div>
@@ -316,7 +328,7 @@ export function ShiftEditorModal({
                         checked={selectedMembers.includes(member.id)}
                         onChange={() => toggleMember(member.id)}
                       />
-                      {member.firstName} {member.lastName} Â· {member.role}
+                      {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
                     </label>
                   ))}
                 </div>

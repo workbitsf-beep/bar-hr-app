@@ -1,7 +1,6 @@
 import "server-only";
 
-import { Role } from "@prisma/client";
-import { ownerNeedsBillingSetup } from "@/lib/billing";
+import { PlanType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SessionWithUser } from "@/lib/auth";
 
@@ -18,14 +17,10 @@ export type ActiveBarAccess = {
 };
 
 export async function getAccessibleBarsForUser(
-  userId: string
+  userId: string,
+  userRole?: Role
 ): Promise<AccessibleBar[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  });
-
-  if (String(user?.role) === "SUPER_ADMIN") {
+  if (String(userRole) === "SUPER_ADMIN") {
     return [];
   }
 
@@ -90,7 +85,15 @@ export async function getAccessibleBarsForUser(
 export async function getActiveBarAccess(
   session: SessionWithUser
 ): Promise<ActiveBarAccess> {
-  const accessibleBars = await getAccessibleBarsForUser(session.user.id);
+  if (String(session.user.role) === "SUPER_ADMIN") {
+    return {
+      activeBar: null,
+      accessibleBars: [],
+      role: session.user.role,
+    };
+  }
+
+  const accessibleBars = await getAccessibleBarsForUser(session.user.id, session.user.role);
   const fallbackBar = accessibleBars[0] ?? null;
   const activeBar =
     accessibleBars.find((bar) => bar.id === session.activeBarId) ?? fallbackBar;
@@ -160,15 +163,7 @@ export function canExportAll(role: Role): boolean {
 }
 
 export async function ownerNeedsOnboarding(userId: string): Promise<boolean> {
-  const ownedBar = await prisma.bar.findFirst({
-    where: { ownerId: userId },
-    include: {
-      settings: true,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
+  const ownedBar = await getOwnerPrimaryBarState(userId);
 
   if (!ownedBar) {
     return true;
@@ -184,6 +179,33 @@ export async function ownerNeedsOnboarding(userId: string): Promise<boolean> {
   );
 }
 
+async function getOwnerPrimaryBarState(userId: string) {
+  return prisma.bar.findFirst({
+    where: { ownerId: userId },
+    orderBy: {
+      createdAt: "asc",
+    },
+    select: {
+      settings: {
+        select: {
+          gpsLatitude: true,
+          gpsLongitude: true,
+          gpsRadius: true,
+          roundingMinutes: true,
+          roundingMode: true,
+        },
+      },
+      subscription: {
+        select: {
+          planType: true,
+          trialEndsAt: true,
+          stripeSubscriptionId: true,
+        },
+      },
+    },
+  });
+}
+
 export async function getPostLoginDestination(input: {
   userId: string;
   role: Role;
@@ -197,12 +219,37 @@ export async function getPostLoginDestination(input: {
     return "/dashboard/super-admin";
   }
 
-  if (input.role === Role.OWNER && (await ownerNeedsOnboarding(input.userId))) {
-    return "/onboarding";
-  }
+  if (input.role === Role.OWNER) {
+    const ownedBar = await getOwnerPrimaryBarState(input.userId);
 
-  if (input.role === Role.OWNER && (await ownerNeedsBillingSetup(input.userId))) {
-    return "/billing";
+    if (!ownedBar) {
+      return "/onboarding";
+    }
+
+    const needsOnboarding = Boolean(
+      !ownedBar.settings ||
+        ownedBar.settings.gpsLatitude === null ||
+        ownedBar.settings.gpsLongitude === null ||
+        ownedBar.settings.gpsRadius === null ||
+        ownedBar.settings.roundingMinutes === null ||
+        ownedBar.settings.roundingMode === null
+    );
+
+    if (needsOnboarding) {
+      return "/onboarding";
+    }
+
+    const needsBilling = Boolean(
+      ownedBar.subscription &&
+        ownedBar.subscription.planType === PlanType.TRIAL &&
+        ownedBar.subscription.trialEndsAt &&
+        ownedBar.subscription.trialEndsAt.getTime() > Date.now() &&
+        !ownedBar.subscription.stripeSubscriptionId
+    );
+
+    if (needsBilling) {
+      return "/billing";
+    }
   }
 
   return "/dashboard/calendar";

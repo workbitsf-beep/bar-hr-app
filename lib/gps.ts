@@ -36,3 +36,14 @@ export function isWithinRadius(
 ): boolean {
   return calculateDistance(userLat, userLon, barLat, barLon) <= radius;
 }
+
+export function isWithinRadiusWithAccuracy(
+  userLat: number,
+  userLon: number,
+  barLat: number,
+  barLon: number,
+  radius: number,
+  accuracy: number
+): boolean {
+  return calculateDistance(userLat, userLon, barLat, barLon) <= radius + Math.max(0, accuracy);
+}

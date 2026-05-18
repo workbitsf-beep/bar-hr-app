@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 import { getBillingStatus, type BillingStatusResult } from "@/lib/billing";
 import { getActiveBarAccess, getPostLoginDestination } from "@/lib/permissions";
 import { getTranslation } from "@/lib/i18n";
-import { runShiftRetentionCleanup } from "@/lib/shiftCleanup";
+import { maybeRunShiftRetentionCleanup } from "@/lib/shiftCleanup";
 
 export type DashboardNavItem = {
   label: string;
@@ -50,7 +50,7 @@ export const getDashboardContext = cache(async (options?: {
     redirect(redirectTo);
   }
 
-  await runShiftRetentionCleanup();
+  await maybeRunShiftRetentionCleanup();
 
   const { activeBar, accessibleBars, role } = await getActiveBarAccess(session);
   const language = session.user.language ?? AppLanguage.it;

@@ -54,9 +54,13 @@ export default async function DashboardShiftsPage() {
       orderBy: {
         startTime: "asc",
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
         assignments: {
-          include: {
+          select: {
             user: {
               select: {
                 id: true,
@@ -74,25 +78,28 @@ export default async function DashboardShiftsPage() {
         },
       },
     }),
-    prisma.employeeBar.findMany({
-      where: {
-        barId: activeBarId,
-        isActive: true,
-        role: {
-          not: Role.OWNER,
-        },
-      },
-      orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+    canManage
+      ? prisma.employeeBar.findMany({
+          where: {
+            barId: activeBarId,
+            isActive: true,
+            role: {
+              not: Role.OWNER,
+            },
           },
-        },
-      },
-    }),
+          orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
+          select: {
+            role: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
     prisma.availability.findMany({
       where: {
         barId: activeBarId,
@@ -103,7 +110,12 @@ export default async function DashboardShiftsPage() {
       orderBy: {
         startsAt: "asc",
       },
-      include: {
+      take: 8,
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        reason: true,
         user: {
           select: {
             firstName: true,
@@ -111,7 +123,6 @@ export default async function DashboardShiftsPage() {
           },
         },
       },
-      take: 8,
     }),
     prisma.request.findMany({
       where: {
@@ -127,7 +138,13 @@ export default async function DashboardShiftsPage() {
       orderBy: {
         startsAt: "asc",
       },
-      include: {
+      take: 8,
+      select: {
+        id: true,
+        type: true,
+        startsAt: true,
+        endsAt: true,
+        reason: true,
         employee: {
           select: {
             firstName: true,
@@ -135,7 +152,6 @@ export default async function DashboardShiftsPage() {
           },
         },
       },
-      take: 8,
     }),
   ]);
 
@@ -178,7 +194,7 @@ export default async function DashboardShiftsPage() {
                     }}
                   >
                     <input type="checkbox" name="employeeIds" value={member.user.id} />
-                    {member.user.firstName} {member.user.lastName} · {member.role}
+                    {member.user.firstName} {member.user.lastName} - {member.role}
                   </label>
                 ))}
               </div>
@@ -252,7 +268,7 @@ export default async function DashboardShiftsPage() {
               <ItemCard
                 key={request.id}
                 title={`${request.employee.firstName} ${request.employee.lastName}`}
-                subtitle={`${request.type === "VACATION" ? "Ferie" : "Permesso"} · ${formatDateTime(request.startsAt ?? new Date())} - ${formatDateTime(request.endsAt ?? new Date())}`}
+                subtitle={`${request.type === "VACATION" ? "Ferie" : "Permesso"} - ${formatDateTime(request.startsAt ?? new Date())} - ${formatDateTime(request.endsAt ?? new Date())}`}
                 meta={request.reason || "Richiesta approvata"}
               />
             ))}

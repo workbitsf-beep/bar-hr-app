@@ -77,6 +77,49 @@ function toLocalDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function formatMemberRole(role: Role | string) {
+  if (role === Role.MANAGER || role === "MANAGER") {
+    return "Manager";
+  }
+
+  if (role === Role.OWNER || role === "OWNER") {
+    return "Titolare";
+  }
+
+  return "Dipendente";
+}
+
+function formatShiftTimeRange(locale: string, startTime: Date, endTime: Date) {
+  const formatter = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return `${formatter.format(startTime)} - ${formatter.format(endTime)}`;
+}
+
+function chunkByWeek<T>(items: T[]) {
+  return Array.from({ length: Math.ceil(items.length / 7) }, (_, index) =>
+    items.slice(index * 7, index * 7 + 7)
+  );
+}
+
+function getRangeDayKeys(start: Date, end: Date) {
+  const keys: string[] = [];
+  const cursor = new Date(start);
+  cursor.setHours(0, 0, 0, 0);
+
+  const limit = new Date(end);
+  limit.setHours(0, 0, 0, 0);
+
+  while (cursor <= limit) {
+    keys.push(toLocalDateKey(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return keys;
+}
+
 export default async function DashboardCalendarPage({
   searchParams,
 }: {
@@ -132,20 +175,20 @@ export default async function DashboardCalendarPage({
       orderBy: {
         startTime: "asc",
       },
-      include: {
-        confirmedBy: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
+        confirmedAt: true,
         assignments: {
-          include: {
+          select: {
             user: {
               select: {
                 id: true,
                 firstName: true,
                 lastName: true,
+                role: true,
               },
             },
           },
@@ -162,7 +205,10 @@ export default async function DashboardCalendarPage({
           gte: calendarStart,
         },
       },
-      include: {
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
         user: {
           select: {
             firstName: true,
@@ -188,7 +234,11 @@ export default async function DashboardCalendarPage({
           gte: calendarStart,
         },
       },
-      include: {
+      select: {
+        id: true,
+        type: true,
+        startsAt: true,
+        endsAt: true,
         employee: {
           select: {
             firstName: true,
@@ -210,7 +260,8 @@ export default async function DashboardCalendarPage({
             },
           },
           orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-          include: {
+          select: {
+            role: true,
             user: {
               select: {
                 id: true,
@@ -223,22 +274,56 @@ export default async function DashboardCalendarPage({
       : Promise.resolve([]),
   ]);
 
+  const shiftsByDay = new Map<string, typeof shifts>();
+  const availabilitiesByDay = new Map<string, typeof availabilities>();
+  const requestsByDay = new Map<string, typeof approvedRequests>();
+
+  for (const shift of shifts) {
+    const start = shift.startTime > calendarStart ? shift.startTime : calendarStart;
+    const end = shift.endTime < calendarEnd ? shift.endTime : calendarEnd;
+
+    for (const dayKey of getRangeDayKeys(start, end)) {
+      const dayShifts = shiftsByDay.get(dayKey) ?? [];
+      dayShifts.push(shift);
+      shiftsByDay.set(dayKey, dayShifts);
+    }
+  }
+
+  for (const availability of availabilities) {
+    const start = availability.startsAt > calendarStart ? availability.startsAt : calendarStart;
+    const end = availability.endsAt < calendarEnd ? availability.endsAt : calendarEnd;
+
+    for (const dayKey of getRangeDayKeys(start, end)) {
+      const dayAvailabilities = availabilitiesByDay.get(dayKey) ?? [];
+      dayAvailabilities.push(availability);
+      availabilitiesByDay.set(dayKey, dayAvailabilities);
+    }
+  }
+
+  for (const request of approvedRequests) {
+    const safeStart = request.startsAt ?? calendarStart;
+    const safeEnd = request.endsAt ?? safeStart;
+    const start = safeStart > calendarStart ? safeStart : calendarStart;
+    const end = safeEnd < calendarEnd ? safeEnd : calendarEnd;
+
+    for (const dayKey of getRangeDayKeys(start, end)) {
+      const dayRequests = requestsByDay.get(dayKey) ?? [];
+      dayRequests.push(request);
+      requestsByDay.set(dayKey, dayRequests);
+    }
+  }
+
   const days = Array.from({ length: 42 }, (_, index) => {
     const date = new Date(calendarStart);
     date.setDate(calendarStart.getDate() + index);
     date.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+    const dayKey = toLocalDateKey(date);
 
     return {
       date,
-      shifts: shifts.filter((shift) => shift.startTime <= dayEnd && shift.endTime >= date),
-      availabilities: availabilities.filter(
-        (availability) => availability.startsAt <= dayEnd && availability.endsAt >= date
-      ),
-      requests: approvedRequests.filter(
-        (request) => (request.startsAt ?? date) <= dayEnd && (request.endsAt ?? date) >= date
-      ),
+      shifts: shiftsByDay.get(dayKey) ?? [],
+      availabilities: availabilitiesByDay.get(dayKey) ?? [],
+      requests: requestsByDay.get(dayKey) ?? [],
     };
   });
 
@@ -261,6 +346,7 @@ export default async function DashboardCalendarPage({
         id: assignment.user.id,
         firstName: assignment.user.firstName,
         lastName: assignment.user.lastName,
+        role: assignment.user.role,
       })),
     })),
     availabilities: day.availabilities.map((availability) => ({
@@ -282,6 +368,7 @@ export default async function DashboardCalendarPage({
     lastName: member.user.lastName,
     role: member.role,
   }));
+  const calendarWeeks = chunkByWeek(days);
   const unconfirmedShiftCount = shifts.filter((shift) => !shift.confirmedAt).length;
   const weekOptions = Array.from({ length: 6 }, (_, index) => {
     const start = new Date(calendarStart);
@@ -373,152 +460,301 @@ export default async function DashboardCalendarPage({
             members={memberOptions}
           />
         ) : (
-          <div className="dashboard-calendar-scroll">
-            <div
-              className="dashboard-calendar-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                gap: 12,
-              }}
-            >
-              {weekdayLabels.map((label) => (
+          <>
+            <div className="dashboard-desktop-only">
+              <div className="dashboard-calendar-scroll">
                 <div
-                  key={label}
-                  className="dashboard-calendar-weekday"
+                  className="dashboard-calendar-grid"
                   style={{
-                    padding: "10px 12px",
-                    borderRadius: 16,
-                    background: "#e2e8f0",
-                    color: "#334155",
-                    fontWeight: 700,
-                    textTransform: "capitalize",
-                    textAlign: "center",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                    gap: 12,
                   }}
                 >
-                  {label}
-                </div>
-              ))}
-
-              {days.map((day) => {
-                const inCurrentMonth = day.date >= monthStart && day.date <= monthEnd;
-                const isToday = day.date.toDateString() === new Date().toDateString();
-
-                return (
-                  <div
-                    key={day.date.toISOString()}
-                    className="dashboard-calendar-day"
-                    style={{
-                      minHeight: 220,
-                      padding: 14,
-                      borderRadius: 20,
-                      background: inCurrentMonth ? "#ffffff" : "#f8fafc",
-                      border: isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
-                      boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-                      display: "grid",
-                      alignContent: "start",
-                      gap: 10,
-                      opacity: inCurrentMonth ? 1 : 0.72,
-                    }}
-                  >
+                  {weekdayLabels.map((label) => (
                     <div
+                      key={label}
+                      className="dashboard-calendar-weekday"
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 8,
+                        padding: "10px 12px",
+                        borderRadius: 16,
+                        background: "#e2e8f0",
+                        color: "#334155",
+                        fontWeight: 700,
+                        textTransform: "capitalize",
+                        textAlign: "center",
                       }}
                     >
-                      <strong style={{ color: "#0f172a", fontSize: 16 }}>{day.date.getDate()}</strong>
-                      {isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
+                      {label}
                     </div>
+                  ))}
 
-                    {day.shifts.length === 0 &&
-                    day.availabilities.length === 0 &&
-                    day.requests.length === 0 ? (
-                      <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
-                    ) : null}
+                  {days.map((day) => {
+                    const inCurrentMonth = day.date >= monthStart && day.date <= monthEnd;
+                    const isToday = day.date.toDateString() === new Date().toDateString();
 
-                    {day.shifts.map((shift) => (
+                    return (
                       <div
-                        key={shift.id}
+                        key={day.date.toISOString()}
+                        className="dashboard-calendar-day"
                         style={{
-                          padding: "10px 12px",
-                          borderRadius: 16,
-                          background: "#eff6ff",
-                          border: "1px solid #dbeafe",
-                          color: "#0f172a",
+                          minHeight: 220,
+                          padding: 14,
+                          borderRadius: 20,
+                          background: inCurrentMonth ? "#ffffff" : "#f8fafc",
+                          border: isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
+                          boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
                           display: "grid",
-                          gap: 4,
+                          alignContent: "start",
+                          gap: 10,
+                          opacity: inCurrentMonth ? 1 : 0.72,
                         }}
                       >
-                        <strong style={{ fontSize: 14 }}>{shift.title || "Turno"}</strong>
-                        <span style={{ color: "#475569", fontSize: 13 }}>
-                          {new Intl.DateTimeFormat(locale, {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }).format(shift.startTime)} - {new Intl.DateTimeFormat(locale, {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }).format(shift.endTime)}
-                        </span>
-                        <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                          {shift.assignments
-                            .map(
-                              (assignment) =>
-                                `${assignment.user.firstName} ${assignment.user.lastName}`
-                            )
-                            .join(", ")}
-                        </span>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {shift.confirmedAt ? (
-                            <StatusPill label="Confermato" tone="success" />
-                          ) : (
-                            <StatusPill label="Da confermare" tone="warning" />
-                          )}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{day.date.getDate()}</strong>
+                          {isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
                         </div>
-                      </div>
-                    ))}
 
-                    {day.availabilities.map((availability) => (
-                      <div
-                        key={availability.id}
-                        style={{
-                          padding: "10px 12px",
-                          borderRadius: 16,
-                          background: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          color: "#991b1b",
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        Indisponibilita: {availability.user.firstName} {availability.user.lastName}
-                      </div>
-                    ))}
+                        {day.shifts.length === 0 &&
+                        day.availabilities.length === 0 &&
+                        day.requests.length === 0 ? (
+                          <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
+                        ) : null}
 
-                    {day.requests.map((request) => (
-                      <div
-                        key={request.id}
-                        style={{
-                          padding: "10px 12px",
-                          borderRadius: 16,
-                          background: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          color: "#991b1b",
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {request.type === RequestType.VACATION ? "Ferie" : "Permesso"}:{" "}
-                        {request.employee.firstName} {request.employee.lastName}
+                        {day.shifts.map((shift) => (
+                          <div
+                            key={shift.id}
+                            style={{
+                              padding: "10px 12px",
+                              borderRadius: 16,
+                              background: "#eff6ff",
+                              border: "1px solid #dbeafe",
+                              color: "#0f172a",
+                              display: "grid",
+                              gap: 4,
+                            }}
+                          >
+                            <strong style={{ fontSize: 14 }}>{shift.title || "Turno"}</strong>
+                            <span style={{ color: "#475569", fontSize: 13 }}>
+                              {formatShiftTimeRange(locale, shift.startTime, shift.endTime)}
+                            </span>
+                            <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
+                              {shift.assignments
+                                .map(
+                                  (assignment) =>
+                                    `${assignment.user.firstName} ${assignment.user.lastName}`
+                                )
+                                .join(", ")}
+                            </span>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {shift.confirmedAt ? (
+                                <StatusPill label="Confermato" tone="success" />
+                              ) : (
+                                <StatusPill label="Da confermare" tone="warning" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+
+                        {day.availabilities.map((availability) => (
+                          <div
+                            key={availability.id}
+                            style={{
+                              padding: "10px 12px",
+                              borderRadius: 16,
+                              background: "#fef2f2",
+                              border: "1px solid #fecaca",
+                              color: "#991b1b",
+                              fontSize: 13,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            Indisponibilita: {availability.user.firstName} {availability.user.lastName}
+                          </div>
+                        ))}
+
+                        {day.requests.map((request) => (
+                          <div
+                            key={request.id}
+                            style={{
+                              padding: "10px 12px",
+                              borderRadius: 16,
+                              background: "#fef2f2",
+                              border: "1px solid #fecaca",
+                              color: "#991b1b",
+                              fontSize: 13,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {request.type === RequestType.VACATION ? "Ferie" : "Permesso"}:{" "}
+                            {request.employee.firstName} {request.employee.lastName}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
+
+            <div className="dashboard-mobile-only" style={{ display: "grid", gap: 16 }}>
+              {calendarWeeks.map((week, weekIndex) => (
+                <section
+                  key={`${week[0]?.date.toISOString() ?? weekIndex}`}
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    padding: 16,
+                    borderRadius: 22,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                      Settimana {weekIndex + 1}
+                    </strong>
+                    {week[0] && week[week.length - 1] ? (
+                      <span style={{ color: "#64748b", lineHeight: 1.6 }}>
+                        {new Intl.DateTimeFormat(locale, {
+                          day: "numeric",
+                          month: "long",
+                        }).format(week[0].date)}{" "}
+                        -{" "}
+                        {new Intl.DateTimeFormat(locale, {
+                          day: "numeric",
+                          month: "long",
+                        }).format(week[week.length - 1].date)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {week.map((day) => {
+                      const isToday = day.date.toDateString() === new Date().toDateString();
+
+                      return (
+                        <div
+                          key={day.date.toISOString()}
+                          style={{
+                            display: "grid",
+                            gap: 10,
+                            padding: 16,
+                            borderRadius: 20,
+                            background: "#ffffff",
+                            border: isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
+                            boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
+                            opacity: day.date >= monthStart && day.date <= monthEnd ? 1 : 0.7,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: 8,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                              {new Intl.DateTimeFormat(locale, {
+                                weekday: "long",
+                                day: "numeric",
+                                month: "long",
+                              }).format(day.date)}
+                            </strong>
+                            {isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
+                          </div>
+
+                          {day.shifts.length === 0 &&
+                          day.availabilities.length === 0 &&
+                          day.requests.length === 0 ? (
+                            <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
+                          ) : null}
+
+                          {day.shifts.map((shift) => (
+                            <div
+                              key={shift.id}
+                              style={{
+                                padding: 14,
+                                borderRadius: 18,
+                                background: "#eff6ff",
+                                border: "1px solid #dbeafe",
+                                display: "grid",
+                                gap: 8,
+                              }}
+                            >
+                              <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                                {shift.title || "Turno"}
+                              </strong>
+                              <div style={{ color: "#334155", fontWeight: 600, fontSize: 15 }}>
+                                {formatShiftTimeRange(locale, shift.startTime, shift.endTime)}
+                              </div>
+                              <div style={{ display: "grid", gap: 6 }}>
+                                {shift.assignments.map((assignment) => (
+                                  <div key={assignment.user.id} style={{ color: "#475569", lineHeight: 1.5 }}>
+                                    {assignment.user.firstName} {assignment.user.lastName} -{" "}
+                                    {formatMemberRole(assignment.user.role)}
+                                  </div>
+                                ))}
+                              </div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                {shift.confirmedAt ? (
+                                  <StatusPill label="Confermato" tone="success" />
+                                ) : (
+                                  <StatusPill label="Da confermare" tone="warning" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+
+                          {day.availabilities.map((availability) => (
+                            <div
+                              key={availability.id}
+                              style={{
+                                padding: "12px 14px",
+                                borderRadius: 18,
+                                background: "#fef2f2",
+                                border: "1px solid #fecaca",
+                                color: "#991b1b",
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              Indisponibilita: {availability.user.firstName} {availability.user.lastName}
+                            </div>
+                          ))}
+
+                          {day.requests.map((request) => (
+                            <div
+                              key={request.id}
+                              style={{
+                                padding: "12px 14px",
+                                borderRadius: 18,
+                                background: "#fef2f2",
+                                border: "1px solid #fecaca",
+                                color: "#991b1b",
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              {request.type === RequestType.VACATION ? "Ferie" : "Permesso"}:{" "}
+                              {request.employee.firstName} {request.employee.lastName}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </>
         )}
       </Panel>
     </div>

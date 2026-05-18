@@ -592,9 +592,12 @@ export default async function OnboardingPage({
                 label="Radius in meters"
                 type="number"
                 defaultValue={activeBar.settings?.gpsRadius ?? activeBar.radiusMeters}
-                placeholder="50"
+                placeholder="100"
               />
             </div>
+            <p style={{ margin: 0, color: "#6b7280", lineHeight: 1.6 }}>
+              Per una timbratura piu stabile consigliamo almeno 100 metri di raggio.
+            </p>
             <div>
               <SubmitButton label="Save GPS and continue" />
             </div>
