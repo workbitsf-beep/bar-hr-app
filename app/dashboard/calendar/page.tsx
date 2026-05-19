@@ -266,9 +266,6 @@ export default async function DashboardCalendarPage({
           where: {
             barId: activeBarId,
             isActive: true,
-            role: {
-              not: Role.OWNER,
-            },
           },
           orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
           select: {
@@ -383,6 +380,7 @@ export default async function DashboardCalendarPage({
   const unconfirmedShiftCount = shifts.filter(
     (shift) => !shift.confirmedAt && shift.startTime <= monthEnd && shift.endTime >= monthStart
   ).length;
+  const canPublishShifts = role === Role.OWNER || role === Role.MANAGER;
   const visibleCalendarWeeks = dayFilter
     ? calendarWeeks.filter((week) => week.some((day) => toLocalDateKey(day.date) === dayFilter))
     : calendarWeeks;
@@ -391,49 +389,74 @@ export default async function DashboardCalendarPage({
     <Stack columns="minmax(0, 1fr)">
       {role !== Role.OWNER ? <ClockActionsPanel role={role} settings={settings} compact /> : null}
 
-      {(role === Role.OWNER || role === Role.MANAGER) ? (
-        <Panel
-          title="Conferma turni"
-          action={unconfirmedShiftCount === 0 ? "Tutti inviati" : `${unconfirmedShiftCount} da inviare`}
-        >
-          <PublishWeekPanel
-            rangeStart={toLocalDateKey(monthStart)}
-            rangeEnd={toLocalDateKey(monthEnd)}
-            pendingCount={unconfirmedShiftCount}
-          />
-        </Panel>
-      ) : null}
-
       <Panel
         title={new Intl.DateTimeFormat(locale, {
           month: "long",
           year: "numeric",
         }).format(monthStart)}
         action={
-          <div className="dashboard-inline-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link
-              href={`/dashboard/calendar?month=${navigation.prev.month}&year=${navigation.prev.year}`}
-              style={{ textDecoration: "none" }}
-            >
-              <PrimaryButton type="button" tone="sand">
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link
+                href={`/dashboard/calendar?month=${navigation.prev.month}&year=${navigation.prev.year}`}
+                style={{
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 42,
+                  height: 42,
+                  borderRadius: 999,
+                  background: "#f8fafc",
+                  color: "#0f172a",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 700,
+                }}
+              >
                 {"<"}
-              </PrimaryButton>
-            </Link>
-            <Link href="/dashboard/calendar" style={{ textDecoration: "none" }}>
-              <PrimaryButton type="button" tone="sand">
+              </Link>
+              <Link
+                href="/dashboard/calendar"
+                style={{
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 64,
+                  height: 42,
+                  padding: "0 14px",
+                  borderRadius: 999,
+                  background: "#f8fafc",
+                  color: "#0f172a",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 700,
+                }}
+              >
                 Oggi
-              </PrimaryButton>
-            </Link>
-            <Link
-              href={`/dashboard/calendar?month=${navigation.next.month}&year=${navigation.next.year}`}
-              style={{ textDecoration: "none" }}
-            >
-              <PrimaryButton type="button" tone="sand">
+              </Link>
+              <Link
+                href={`/dashboard/calendar?month=${navigation.next.month}&year=${navigation.next.year}`}
+                style={{
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 42,
+                  height: 42,
+                  borderRadius: 999,
+                  background: "#f8fafc",
+                  color: "#0f172a",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 700,
+                }}
+              >
                 {">"}
-              </PrimaryButton>
-            </Link>
+              </Link>
+            </div>
+
             <form
               method="get"
+              className="dashboard-desktop-only"
               style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}
             >
               <input type="hidden" name="month" value={month} />
@@ -456,6 +479,14 @@ export default async function DashboardCalendarPage({
                 </Link>
               ) : null}
             </form>
+
+            {canPublishShifts ? (
+              <PublishWeekPanel
+                rangeStart={toLocalDateKey(monthStart)}
+                rangeEnd={toLocalDateKey(monthEnd)}
+                pendingCount={unconfirmedShiftCount}
+              />
+            ) : null}
           </div>
         }
       >

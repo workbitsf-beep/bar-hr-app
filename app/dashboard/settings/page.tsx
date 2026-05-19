@@ -52,13 +52,10 @@ export default async function DashboardSettingsPage() {
               longitudeName="gpsLongitude"
               initialLatitude={settings?.gpsLatitude}
               initialLongitude={settings?.gpsLongitude}
+              submitOnLocate
             />
 
             <input type="hidden" name="gpsRadius" value="90" />
-
-            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-              Il raggio timbrature viene impostato automaticamente a 90 metri.
-            </p>
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
@@ -98,7 +95,7 @@ export default async function DashboardSettingsPage() {
             </div>
 
             <div className="dashboard-form-actions">
-              <PrimaryButton type="submit">Salva impostazioni</PrimaryButton>
+              <PrimaryButton type="submit">Salva arrotondamento</PrimaryButton>
             </div>
           </form>
         </Panel>

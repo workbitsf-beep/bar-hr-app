@@ -74,7 +74,7 @@ export default async function DashboardBoardPage() {
         {notes.length === 0 ? (
           <EmptyState message="Nessun messaggio pubblicato al momento." />
         ) : (
-          <ItemList>
+          <ItemList scrollable>
             {notes.map((note) => (
               <ItemCard
                 key={note.id}

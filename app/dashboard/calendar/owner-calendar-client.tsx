@@ -355,10 +355,17 @@ export function OwnerCalendarClient({
             }}
           >
             <div style={{ display: "grid", gap: 4 }}>
-              <strong style={{ color: "#0f172a", fontSize: 18 }}>Settimana {weekIndex + 1}</strong>
               {week[0] && week[week.length - 1] ? (
                 <span style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {formatDayLabel(week[0].date, locale)} - {formatDayLabel(week[week.length - 1].date, locale)}
+                  {new Intl.DateTimeFormat(locale, {
+                    day: "numeric",
+                    month: "long",
+                  }).format(new Date(week[0].date))}
+                  {" - "}
+                  {new Intl.DateTimeFormat(locale, {
+                    day: "numeric",
+                    month: "long",
+                  }).format(new Date(week[week.length - 1].date))}
                 </span>
               ) : null}
             </div>
@@ -635,7 +642,7 @@ export function OwnerCalendarClient({
                             checked={selectedMembers.includes(member.id)}
                             onChange={() => toggleMember(member.id)}
                           />
-                          {member.firstName} {member.lastName} - {member.role}
+                          {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
                         </label>
                       ))}
                     </div>
@@ -657,51 +664,53 @@ export function OwnerCalendarClient({
                   {selectedDay.shifts.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessun turno presente in questa giornata.</div>
                   ) : (
-                    selectedDay.shifts.map((shift) => (
-                      <div
-                        className="dashboard-list-card"
-                        key={shift.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
-                          flexWrap: "wrap",
-                          padding: 14,
-                          borderRadius: 18,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                        }}
-                      >
-                        <div style={{ display: "grid", gap: 6 }}>
-                          <strong style={{ color: "#0f172a" }}>{shift.title || "Turno"}</strong>
-                          <span style={{ color: "#475569" }}>
-                            {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
-                          </span>
-                          <span style={{ color: "#64748b", fontSize: 14 }}>
-                            {shift.assignments
-                              .map((assignment) => `${assignment.firstName} ${assignment.lastName}`)
-                              .join(", ")}
-                          </span>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            {shift.confirmedAt ? (
-                              <StatusPill label="Confermato" tone="success" />
-                            ) : (
-                              <StatusPill label="Da confermare" tone="warning" />
-                            )}
-                          </div>
-                        </div>
-
-                        <PrimaryButton
-                          type="button"
-                          tone="sand"
-                          onClick={() => setEditingShiftId(shift.id)}
-                          disabled={isPending}
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {selectedDay.shifts.map((shift) => (
+                        <div
+                          className="dashboard-list-card"
+                          key={shift.id}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                          }}
                         >
-                          Modifica
-                        </PrimaryButton>
-                      </div>
-                    ))
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ color: "#0f172a" }}>{shift.title || "Turno"}</strong>
+                            <span style={{ color: "#475569" }}>
+                              {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
+                            </span>
+                            <span style={{ color: "#64748b", fontSize: 14 }}>
+                              {shift.assignments
+                                .map((assignment) => `${assignment.firstName} ${assignment.lastName}`)
+                                .join(", ")}
+                            </span>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {shift.confirmedAt ? (
+                                <StatusPill label="Confermato" tone="success" />
+                              ) : (
+                                <StatusPill label="Da confermare" tone="warning" />
+                              )}
+                            </div>
+                          </div>
+
+                          <PrimaryButton
+                            type="button"
+                            tone="sand"
+                            onClick={() => setEditingShiftId(shift.id)}
+                            disabled={isPending}
+                          >
+                            Modifica
+                          </PrimaryButton>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </section>

@@ -1,6 +1,12 @@
 import bcrypt from "bcrypt";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import {
+  getSessionCookieOptions,
+  getSessionExpiresAt,
+  getSessionMaxAge,
+  SESSION_COOKIE_NAME,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { getAccessibleBarsForUser, getPostLoginDestination } from "@/lib/permissions";
@@ -8,12 +14,14 @@ import { getAccessibleBarsForUser, getPostLoginDestination } from "@/lib/permiss
 type LoginBody = {
   email?: string;
   password?: string;
+  rememberMe?: boolean;
 };
 
 export async function POST(req: Request): Promise<Response> {
   const body = (await req.json()) as LoginBody;
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
+  const rememberMe = body.rememberMe === true;
 
   if (!email || !password) {
     return NextResponse.json(
@@ -43,24 +51,19 @@ export async function POST(req: Request): Promise<Response> {
   const accessibleBars = await getAccessibleBarsForUser(user.id);
   const activeBarId = accessibleBars[0]?.id ?? null;
   const sessionToken = crypto.randomUUID();
+  const sessionMaxAge = getSessionMaxAge(rememberMe);
 
   await prisma.session.create({
     data: {
       token: sessionToken,
       userId: user.id,
       activeBarId,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: getSessionExpiresAt(rememberMe),
     },
   });
 
   const cookieStore = await cookies();
-  cookieStore.set("session", sessionToken, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  cookieStore.set(SESSION_COOKIE_NAME, sessionToken, getSessionCookieOptions(sessionMaxAge));
   cookieStore.set(LANGUAGE_COOKIE_NAME, user.language, {
     httpOnly: false,
     sameSite: "lax",

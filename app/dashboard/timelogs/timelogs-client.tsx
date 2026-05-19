@@ -74,7 +74,6 @@ export function ClockActionsPanel({
   const [longitude, setLongitude] = useState("");
   const [distance, setDistance] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
-  const [sampleCount, setSampleCount] = useState<number | null>(null);
   const [geoReady, setGeoReady] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
@@ -102,24 +101,24 @@ export function ClockActionsPanel({
       return "Posizione non aggiornata.";
     }
 
+    if (locating && !geoReady) {
+      return "Posizione in aggiornamento...";
+    }
+
     if (locationError) {
       return "Posizione non aggiornata.";
     }
 
     if (distance === null || accuracy === null) {
-      return locating ? "Posizione in aggiornamento..." : "Posizione non aggiornata.";
-    }
-
-    if (lowAccuracy) {
       return "Posizione non aggiornata.";
     }
 
-    if (insideRadius) {
-      return "Posizione aggiornata.";
+    if (lowAccuracy || !insideRadius) {
+      return "Posizione non aggiornata.";
     }
 
-    return "Posizione non aggiornata. Avvicinati di piu al punto impostato dal titolare.";
-  }, [accuracy, distance, gpsConfigured, insideRadius, locating, locationError, lowAccuracy]);
+    return "Posizione aggiornata.";
+  }, [accuracy, distance, geoReady, gpsConfigured, insideRadius, locating, locationError, lowAccuracy]);
 
   async function refreshGeolocation(manual = false) {
     if (!canClock || !gpsConfigured || refreshInFlightRef.current) {
@@ -142,7 +141,6 @@ export function ClockActionsPanel({
       setLatitude(String(sample.latitude));
       setLongitude(String(sample.longitude));
       setAccuracy(sample.accuracy);
-      setSampleCount(sample.sampleCount);
       setDistance(nextDistance);
       setGeoReady(true);
 
@@ -391,7 +389,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
             Nessuna timbratura registrata.
           </p>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
             {groupedLogs.map((group) => (
               <button
                 key={group.name}
@@ -512,7 +510,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                 {filteredSelectedLogs.length === 0 ? (
                   <EmptyState message="Nessuna timbratura trovata per il giorno selezionato." />
                 ) : (
-                  <ItemList>
+                  <ItemList scrollable={filteredSelectedLogs.length > 4}>
                     {filteredSelectedLogs.map((log) => (
                       <ItemCard
                         key={log.id}
@@ -586,7 +584,7 @@ function PersonalTimeLogsPanel({
             Nessuna timbratura registrata.
           </p>
         ) : (
-          <ItemList>
+          <ItemList scrollable>
             {filteredLogs.map((log) => (
               <ItemCard
                 key={log.id}

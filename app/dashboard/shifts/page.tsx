@@ -83,9 +83,6 @@ export default async function DashboardShiftsPage() {
           where: {
             barId: activeBarId,
             isActive: true,
-            role: {
-              not: Role.OWNER,
-            },
           },
           orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
           select: {
@@ -246,7 +243,7 @@ export default async function DashboardShiftsPage() {
         {availabilities.length === 0 ? (
           <EmptyState message="Nessuna indisponibilita futura registrata." />
         ) : (
-          <ItemList>
+          <ItemList scrollable>
             {availabilities.map((availability) => (
               <ItemCard
                 key={availability.id}
@@ -263,7 +260,7 @@ export default async function DashboardShiftsPage() {
         {approvedTimeOff.length === 0 ? (
           <EmptyState message="Nessuna assenza approvata nel periodo corrente." />
         ) : (
-          <ItemList>
+          <ItemList scrollable>
             {approvedTimeOff.map((request) => (
               <ItemCard
                 key={request.id}

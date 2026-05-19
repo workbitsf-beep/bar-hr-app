@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +25,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
       const data = (await response.json().catch(() => null)) as
         | { ok?: boolean; message?: string; redirectTo?: string }
@@ -50,100 +51,130 @@ export default function LoginPage() {
         minHeight: "100vh",
         display: "grid",
         placeItems: "center",
-        padding: 24,
+        padding: 20,
         background:
-          "radial-gradient(circle at top left, rgba(241,245,249,1), rgba(255,255,255,1) 55%, rgba(248,250,252,1) 100%)",
+          "radial-gradient(circle at top, rgba(241,245,249,0.95), rgba(255,255,255,1) 52%, rgba(248,250,252,1) 100%)",
       }}
     >
       <section
         style={{
           width: "100%",
-          maxWidth: 430,
-          background: "rgba(255,255,255,0.96)",
-          border: "1px solid #e2e8f0",
-          borderRadius: 28,
-          padding: 30,
-          boxShadow: "0 20px 40px rgba(15, 23, 42, 0.08)",
+          maxWidth: 460,
+          padding: "24px 0",
         }}
       >
-        <div style={{ margin: 0 }}>
-          <BrandLogo
-            size={42}
-            priority
-            showSecondaryLabel
-            style={{ gap: 12 }}
-          />
-        </div>
-        <h1 style={{ margin: "12px 0 8px", fontSize: 34, color: "#0f172a" }}>
-          Accedi
-        </h1>
-        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          Gestisci turni, timbrature, richieste e bacheca del locale da un unico
-          spazio.
-        </p>
+        <div
+          style={{
+            display: "grid",
+            gap: 26,
+            padding: 28,
+            borderRadius: 30,
+            background: "rgba(255,255,255,0.9)",
+            border: "1px solid rgba(226,232,240,0.9)",
+            boxShadow: "0 24px 48px rgba(15, 23, 42, 0.06)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <div style={{ display: "grid", justifyItems: "center", gap: 14, textAlign: "center" }}>
+            <BrandLogo size={44} priority showIcon label="Workbit ShiftHub" style={{ gap: 12 }} />
+            <div style={{ display: "grid", gap: 8 }}>
+              <h1 style={{ margin: 0, fontSize: 34, color: "#0f172a", letterSpacing: "-0.03em" }}>
+                Accedi
+              </h1>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                Turni, timbrature e richieste in uno spazio semplice e pulito.
+              </p>
+            </div>
+          </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16, marginTop: 24 }}>
-          <label style={{ display: "grid", gap: 8 }}>
-            <span style={{ fontWeight: 600, color: "#1e293b" }}>Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="nome@locale.it"
-              style={{
-                borderRadius: 16,
-                border: "1px solid #dbe3ee",
-                padding: "12px 14px",
-                fontSize: 15,
-                background: "#fff",
-              }}
-            />
-          </label>
-
-          <label style={{ display: "grid", gap: 8 }}>
-            <span style={{ fontWeight: 600, color: "#1e293b" }}>Password</span>
-            <div style={{ display: "grid", gap: 10 }}>
+          <form onSubmit={handleSubmit} style={{ display: "grid", gap: 18 }}>
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Email</span>
               <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Inserisci la password"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="nome@locale.it"
                 style={{
-                  borderRadius: 16,
+                  borderRadius: 18,
                   border: "1px solid #dbe3ee",
-                  padding: "12px 14px",
-                  fontSize: 15,
+                  padding: "14px 16px",
+                  fontSize: 16,
                   background: "#fff",
                 }}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                style={{
-                  width: "fit-content",
-                  border: "1px solid #dbe3ee",
-                  background: "#f8fafc",
-                  color: "#334155",
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {showPassword ? "Nascondi password" : "Mostra password"}
-              </button>
-            </div>
-          </label>
+            </label>
 
-          {error ? (
-            <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p>
-          ) : null}
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Password</span>
+              <div style={{ display: "grid", gap: 10 }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Inserisci la password"
+                  style={{
+                    borderRadius: 18,
+                    border: "1px solid #dbe3ee",
+                    padding: "14px 16px",
+                    fontSize: 16,
+                    background: "#fff",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  style={{
+                    width: "fit-content",
+                    border: "1px solid #dbe3ee",
+                    background: "#f8fafc",
+                    color: "#334155",
+                    borderRadius: 999,
+                    padding: "9px 13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {showPassword ? "Nascondi password" : "Mostra password"}
+                </button>
+              </div>
+            </label>
 
-          <div>
+            {error ? (
+              <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p>
+            ) : null}
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 14px",
+                borderRadius: 18,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                color: "#334155",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+                style={{ width: 16, height: 16 }}
+              />
+              <span style={{ display: "grid", gap: 2 }}>
+                <span style={{ fontWeight: 700, color: "#0f172a" }}>Ricordami</span>
+                <span style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
+                  Mantieni l’accesso più a lungo su questo dispositivo.
+                </span>
+              </span>
+            </label>
+
             <button
               type="button"
               onClick={() => router.push("/forgot-password")}
               style={{
+                justifySelf: "start",
                 border: 0,
                 background: "transparent",
                 padding: 0,
@@ -154,26 +185,27 @@ export default function LoginPage() {
             >
               Hai dimenticato la password?
             </button>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              background: "#0f172a",
-              color: "#fff",
-              border: 0,
-              borderRadius: 999,
-              padding: "12px 18px",
-              fontWeight: 700,
-              cursor: loading ? "default" : "pointer",
-              opacity: loading ? 0.7 : 1,
-              boxShadow: "0 12px 22px rgba(15, 23, 42, 0.14)",
-            }}
-          >
-            {loading ? "Accesso in corso..." : "Entra"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                background: "#0f172a",
+                color: "#fff",
+                border: 0,
+                borderRadius: 999,
+                padding: "14px 18px",
+                fontWeight: 700,
+                fontSize: 16,
+                cursor: loading ? "default" : "pointer",
+                opacity: loading ? 0.7 : 1,
+                boxShadow: "0 12px 22px rgba(15, 23, 42, 0.14)",
+              }}
+            >
+              {loading ? "Accesso in corso..." : "Entra"}
+            </button>
+          </form>
+        </div>
       </section>
     </main>
   );

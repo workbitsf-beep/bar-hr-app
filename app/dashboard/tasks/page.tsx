@@ -178,7 +178,7 @@ export default async function DashboardTasksPage() {
         {tasks.length === 0 ? (
           <EmptyState message="Nessuna mansione disponibile." />
         ) : (
-          <ItemList>
+          <ItemList scrollable>
             {tasks.map((task) => {
               const isDone = task.status === "DONE";
               const canComplete =

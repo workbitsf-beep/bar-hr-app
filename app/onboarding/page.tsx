@@ -581,9 +581,6 @@ export default async function OnboardingPage({
             />
 
             <input type="hidden" name="gpsRadius" value="90" />
-            <p style={{ margin: 0, color: "#6b7280", lineHeight: 1.6 }}>
-              Il raggio timbrature verra impostato automaticamente a 90 metri.
-            </p>
             <div>
               <SubmitButton label="Save GPS and continue" />
             </div>

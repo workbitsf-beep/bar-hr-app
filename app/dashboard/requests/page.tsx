@@ -241,7 +241,7 @@ export default async function DashboardRequestsPage() {
           {requests.length === 0 ? (
             <EmptyState message="Nessuna richiesta presente." />
           ) : (
-            <ItemList>
+            <ItemList scrollable>
               {requests.map((request) => {
                 const canPeerReview =
                   request.type === "SHIFT_CHANGE" &&

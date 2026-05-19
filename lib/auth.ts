@@ -8,9 +8,34 @@ export type SessionWithUser = Prisma.SessionGetPayload<{
   include: { user: true };
 }>;
 
+export const SESSION_COOKIE_NAME = "session";
+const DAY_IN_SECONDS = 60 * 60 * 24;
+export const DEFAULT_SESSION_MAX_AGE = 7 * DAY_IN_SECONDS;
+export const REMEMBER_ME_SESSION_MAX_AGE = 45 * DAY_IN_SECONDS;
+
+export function getSessionMaxAge(rememberMe: boolean) {
+  return rememberMe ? REMEMBER_ME_SESSION_MAX_AGE : DEFAULT_SESSION_MAX_AGE;
+}
+
+export function getSessionExpiresAt(rememberMe: boolean) {
+  return new Date(Date.now() + getSessionMaxAge(rememberMe) * 1000);
+}
+
+export function getSessionCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge,
+    expires: new Date(Date.now() + maxAge * 1000),
+    priority: "high" as const,
+  };
+}
+
 export async function getSession(): Promise<SessionWithUser | null> {
   const cookieStore = await cookies();
-  const sessionValue = cookieStore.get("session")?.value;
+  const sessionValue = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!sessionValue) {
     return null;

@@ -7,7 +7,7 @@ import {
   setLanguageAction,
 } from "@/app/dashboard/actions";
 import { AutoSubmitSelectForm } from "@/app/dashboard/auto-submit-select-form";
-import { DashboardShell, PrimaryButton } from "@/app/dashboard/ui";
+import { DashboardShell, IconButton } from "@/app/dashboard/ui";
 
 export default async function BillingLayout({
   children,
@@ -34,23 +34,34 @@ export default async function BillingLayout({
       appName={t.appName}
       menuLabel={t.menu}
       navItems={navItems}
-      toolbar={
-        <div
-          className="dashboard-toolbar"
-          style={{
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-          }}
-        >
+      menuContent={
+        <div style={{ display: "grid", gap: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gap: 4,
+              padding: 14,
+              borderRadius: 18,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <strong style={{ color: "#0f172a", fontSize: 16 }}>
+              {role === "SUPER_ADMIN" ? "Console Super Admin" : activeBarName ?? t.noBarSelected}
+            </strong>
+            <span style={{ color: "#64748b", lineHeight: 1.5 }}>
+              {session.user.firstName} {session.user.lastName} - {getRoleLabel(language, role)}
+            </span>
+          </div>
+
           {role !== "SUPER_ADMIN" && accessibleBars.length > 0 ? (
             <AutoSubmitSelectForm
               action={selectBarAction}
               name="barId"
               defaultValue={activeBarId ?? ""}
               ariaLabel={t.selectBar}
-              minWidth={220}
+              label={t.selectBar}
+              closeMenuOnChange
               options={accessibleBars.map((bar) => ({
                 value: bar.id,
                 label: `${bar.name} - ${getRoleLabel(language, bar.role)}`,
@@ -63,17 +74,41 @@ export default async function BillingLayout({
             name="language"
             defaultValue={language}
             ariaLabel={t.language}
-            minWidth={180}
+            label={t.language}
+            closeMenuOnChange
             options={languageOptions.map((option) => ({
               value: option.value,
               label: option.label,
             }))}
           />
-
-          <form className="dashboard-inline-actions" action={logoutAction}>
-            <PrimaryButton type="submit">{t.logout}</PrimaryButton>
-          </form>
         </div>
+      }
+      headerAction={
+        <form
+          action={logoutAction}
+          style={{
+            display: "inline-flex",
+          }}
+        >
+          <IconButton type="submit" aria-label={t.logout} title={t.logout}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M10 7V5.75C10 4.78 10.78 4 11.75 4h6.5C19.22 4 20 4.78 20 5.75v12.5c0 .97-.78 1.75-1.75 1.75h-6.5A1.75 1.75 0 0 1 10 18.25V17"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M14 12H4m0 0 3-3m-3 3 3 3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </IconButton>
+        </form>
       }
     >
       {children}

@@ -54,7 +54,7 @@ export function PlannedShiftsList({
 
   return (
     <>
-      <div style={{ display: "grid", gap: 10 }}>
+      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
         {shifts.map((shift) => (
           <button
             key={shift.id}

@@ -54,6 +54,19 @@ function DashboardResponsiveStyles() {
         box-sizing: border-box;
       }
 
+      .dashboard-button,
+      .dashboard-menu-button,
+      .dashboard-icon-button {
+        transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease, background 140ms ease;
+        touch-action: manipulation;
+      }
+
+      .dashboard-button:active,
+      .dashboard-menu-button:active,
+      .dashboard-icon-button:active {
+        transform: scale(0.98);
+      }
+
       .dashboard-form-actions,
       .dashboard-modal-actions,
       .dashboard-inline-actions,
@@ -92,20 +105,34 @@ function DashboardResponsiveStyles() {
         gap: 16px;
       }
 
+      .dashboard-stack {
+        align-items: start;
+      }
+
+      .dashboard-scroll-list {
+        max-height: min(420px, 60vh);
+        overflow-y: auto;
+        padding-right: 4px;
+        overscroll-behavior: contain;
+      }
+
       @media (max-width: 900px) {
         .dashboard-shell {
           padding: 12px !important;
           font-size: 16px !important;
+          overflow-x: clip;
         }
 
         .dashboard-shell-card,
         .dashboard-panel {
-          padding: 20px !important;
-          border-radius: 24px !important;
+          padding: 18px !important;
+          border-radius: 22px !important;
         }
 
-        .dashboard-shell-top,
-        .dashboard-panel-header,
+        .dashboard-shell-top {
+          gap: 14px !important;
+        }
+
         .dashboard-modal-header,
         .dashboard-inline-actions,
         .dashboard-action-row,
@@ -115,14 +142,16 @@ function DashboardResponsiveStyles() {
           align-items: stretch !important;
         }
 
-        .dashboard-shell-brand h1 {
-          font-size: 28px !important;
-          line-height: 1.1 !important;
+        .dashboard-shell-header {
+          align-items: center !important;
         }
 
-        .dashboard-shell-brand p,
-        .dashboard-shell-brand strong {
-          word-break: break-word;
+        .dashboard-shell-brand {
+          gap: 6px !important;
+        }
+
+        .dashboard-shell-meta {
+          display: none !important;
         }
 
         .dashboard-panel-title,
@@ -140,22 +169,6 @@ function DashboardResponsiveStyles() {
           font-size: 15px !important;
         }
 
-        .dashboard-toolbar-slot,
-        .dashboard-toolbar {
-          width: 100%;
-        }
-
-        .dashboard-toolbar > form,
-        .dashboard-toolbar > div,
-        .dashboard-toolbar > form > div,
-        .dashboard-toolbar-slot > form,
-        .dashboard-toolbar-slot > div {
-          width: 100%;
-        }
-
-        .dashboard-toolbar select,
-        .dashboard-toolbar input,
-        .dashboard-toolbar button,
         .dashboard-form-actions .dashboard-button,
         .dashboard-inline-actions .dashboard-button,
         .dashboard-action-row .dashboard-button {
@@ -169,37 +182,27 @@ function DashboardResponsiveStyles() {
           width: 100%;
         }
 
-        .dashboard-nav-row {
-          width: 100%;
-        }
-
         .dashboard-top-nav {
           width: auto !important;
           justify-content: flex-end !important;
+          align-items: center !important;
+          gap: 8px !important;
         }
 
-        .dashboard-nav-row .dashboard-menu-button {
-          width: auto !important;
-          min-width: 56px;
-          margin-left: auto;
+        .dashboard-header-action,
+        .dashboard-top-nav .dashboard-menu-button,
+        .dashboard-top-nav .dashboard-icon-button {
+          flex: 0 0 auto;
         }
 
         .dashboard-stack {
-          display: flex !important;
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
           gap: 16px !important;
-          overflow-x: auto;
-          scroll-snap-type: x mandatory;
-          align-items: stretch;
-          padding-bottom: 6px;
-          margin-inline: -2px;
-          padding-inline: 2px;
-        }
-
-        .dashboard-stack > * {
-          flex: 0 0 calc(100vw - 28px);
-          width: calc(100vw - 28px);
-          max-width: 560px;
-          scroll-snap-align: start;
+          align-items: start !important;
+          overflow: visible !important;
+          padding: 0 !important;
+          margin: 0 !important;
         }
 
         .dashboard-inline-grid,
@@ -241,8 +244,8 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-modal-panel {
-          width: calc(100vw - 20px) !important;
-          max-height: calc(100vh - 20px) !important;
+          width: calc(100vw - 24px) !important;
+          max-height: calc(100vh - 24px) !important;
           padding: 18px !important;
           border-radius: 24px !important;
           overscroll-behavior: contain;
@@ -298,23 +301,24 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-week-strip {
-          display: flex !important;
+          display: grid !important;
           gap: 14px !important;
-          overflow-x: auto;
-          scroll-snap-type: x mandatory;
-          padding-bottom: 6px;
+          overflow: visible !important;
+          padding-bottom: 0;
         }
 
         .dashboard-week-card {
-          flex: 0 0 calc(100vw - 28px);
-          width: calc(100vw - 28px);
-          max-width: 560px;
-          scroll-snap-align: start;
+          width: 100% !important;
+          max-width: none !important;
         }
 
         .super-admin-mobile-list {
           display: grid;
           gap: 12px;
+        }
+
+        .dashboard-scroll-list {
+          max-height: 320px !important;
         }
       }
     `,
@@ -330,7 +334,8 @@ export function DashboardShell({
   appName,
   menuLabel,
   navItems,
-  toolbar,
+  menuContent,
+  headerAction,
   children,
 }: {
   userName: string;
@@ -339,7 +344,8 @@ export function DashboardShell({
   appName: string;
   menuLabel: string;
   navItems: DashboardNavItem[];
-  toolbar?: ReactNode;
+  menuContent?: ReactNode;
+  headerAction?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -365,69 +371,75 @@ export function DashboardShell({
           className="dashboard-shell-card"
           style={{
             ...shellCardStyle,
-            padding: 24,
-            display: "grid",
-            gap: 18,
+            padding: 22,
           }}
         >
           <div
             className="dashboard-shell-top"
             style={{
-              display: "grid",
-              gap: 18,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 16,
             }}
           >
             <div
+              className="dashboard-shell-header"
               style={{
                 display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
+                alignItems: "center",
                 gap: 16,
-                flexWrap: "nowrap",
+                minWidth: 0,
               }}
             >
-              <div className="dashboard-shell-brand" style={{ display: "grid", gap: 8, minWidth: 0 }}>
+              <div className="dashboard-shell-brand" style={{ display: "grid", gap: 10, minWidth: 0 }}>
                 <BrandLogo
                   href={navItems[0]?.href ?? "/dashboard"}
                   size={40}
                   showIcon
-                  showSecondaryLabel
+                  label={appName}
                   style={{ gap: 12 }}
                 />
-                <h1
-                  style={{
-                    margin: 0,
-                    fontSize: 32,
-                    lineHeight: 1,
-                    color: "#0f172a",
-                    fontWeight: 700,
-                  }}
-                >
-                  {barName}
-                </h1>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                  {userName} - {role}
-                </p>
-              </div>
-
-              <div
-                className="dashboard-top-nav"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  flexShrink: 0,
-                }}
-              >
-                <DashboardNavMenu navItems={navItems} menuLabel={menuLabel} />
+                <div className="dashboard-shell-meta" style={{ display: "grid", gap: 4 }}>
+                  <h1
+                    style={{
+                      margin: 0,
+                      fontSize: 28,
+                      lineHeight: 1.05,
+                      color: "#0f172a",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {barName}
+                  </h1>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    {userName} - {role}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {toolbar ? <div className="dashboard-toolbar-slot">{toolbar}</div> : null}
+            <div
+              className="dashboard-top-nav"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 10,
+                flexShrink: 0,
+              }}
+            >
+              {headerAction ? <div className="dashboard-header-action">{headerAction}</div> : null}
+              <DashboardNavMenu
+                navItems={navItems}
+                menuLabel={menuLabel}
+                menuContent={menuContent}
+              />
+            </div>
           </div>
         </section>
 
-        <div style={{ display: "grid", gap: 18 }}>{children}</div>
+        <div style={{ display: "grid", gap: 18, alignItems: "start" }}>{children}</div>
       </div>
       <DashboardResponsiveStyles />
     </main>
@@ -538,6 +550,7 @@ export function Stack({
         display: "grid",
         gridTemplateColumns: columns,
         gap: 18,
+        alignItems: "start",
       }}
     >
       {children}
@@ -545,9 +558,33 @@ export function Stack({
   );
 }
 
-export function ItemList({ children }: { children: ReactNode }) {
+export function ItemList({
+  children,
+  scrollable = false,
+  maxHeight,
+}: {
+  children: ReactNode;
+  scrollable?: boolean;
+  maxHeight?: number | string;
+}) {
   return (
-    <div className="dashboard-item-list" style={{ display: "grid", gap: 12 }}>
+    <div
+      className={joinClassNames("dashboard-item-list", scrollable ? "dashboard-scroll-list" : undefined)}
+      style={{
+        display: "grid",
+        gap: 12,
+        ...(scrollable
+          ? {
+              maxHeight:
+                typeof maxHeight === "number"
+                  ? `${maxHeight}px`
+                  : maxHeight ?? "min(420px, 60vh)",
+              overflowY: "auto",
+              paddingRight: 4,
+            }
+          : {}),
+      }}
+    >
       {children}
     </div>
   );
@@ -667,6 +704,38 @@ export function PrimaryButton({
         cursor: props.disabled ? "default" : "pointer",
         opacity: props.disabled ? 0.65 : 1,
         boxShadow: "0 10px 20px rgba(15, 23, 42, 0.14)",
+        transition: "transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease",
+        touchAction: "manipulation",
+        ...props.style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function IconButton({
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...props}
+      className={joinClassNames("dashboard-icon-button", props.className)}
+      style={{
+        width: 42,
+        height: 42,
+        borderRadius: 999,
+        border: "1px solid #e2e8f0",
+        background: "#f8fafc",
+        color: "#0f172a",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: props.disabled ? "default" : "pointer",
+        boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
+        opacity: props.disabled ? 0.65 : 1,
+        touchAction: "manipulation",
         ...props.style,
       }}
     >

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -16,9 +17,11 @@ type MenuPosition = {
 export function DashboardNavMenu({
   navItems,
   menuLabel,
+  menuContent,
 }: {
   navItems: DashboardNavItem[];
   menuLabel: string;
+  menuContent?: ReactNode;
 }) {
   const pathname = usePathname();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -109,17 +112,41 @@ export function DashboardNavMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         style={{
+          width: 44,
+          height: 44,
           borderRadius: 999,
-          padding: "11px 18px",
+          padding: 0,
           background: "#f8fafc",
           color: "#0f172a",
           border: "1px solid #e2e8f0",
           fontWeight: 700,
           boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
           cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {isMobile ? "Menu" : menuLabel}
+        <span
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {menuLabel}
+        </span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 7h16M4 12h16M4 17h16"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
       </button>
 
       {mounted && open
@@ -171,24 +198,37 @@ export function DashboardNavMenu({
               >
                 <nav
                   aria-label="Navigazione dashboard"
+                  onClickCapture={(event) => {
+                    const target = event.target as HTMLElement;
+                    if (target.closest("[data-dashboard-menu-close='true']")) {
+                      setOpen(false);
+                    }
+                  }}
+                  onChangeCapture={(event) => {
+                    const target = event.target as HTMLElement;
+                    if (target.closest("[data-dashboard-menu-close='true']")) {
+                      setOpen(false);
+                    }
+                  }}
                   style={{
                     position: isMobile ? "relative" : "absolute",
                     top: isMobile ? undefined : position.top,
                     left: isMobile ? undefined : position.left,
                     width: isMobile
-                      ? "min(360px, calc(100vw - 24px))"
-                      : `min(${position.width}px, calc(100vw - 36px))`,
-                    maxHeight: isMobile ? "min(82vh, 720px)" : "calc(100vh - 32px)",
+                      ? "min(380px, calc(100vw - 24px))"
+                      : `min(${Math.max(320, Math.min(position.width, 360))}px, calc(100vw - 36px))`,
+                    maxHeight: isMobile ? "min(84vh, 720px)" : "calc(100vh - 32px)",
                     overflowY: "auto",
-                    padding: 12,
-                    borderRadius: 26,
+                    padding: 14,
+                    borderRadius: 28,
                     border: "1px solid #e2e8f0",
                     background: "rgba(255,255,255,0.98)",
                     boxShadow: "0 28px 60px rgba(15, 23, 42, 0.20)",
                     display: "grid",
-                    gap: 10,
+                    gap: 12,
                     animation: "dashboardMenuEnter 180ms cubic-bezier(0.22, 1, 0.36, 1)",
                     touchAction: "pan-y",
+                    overscrollBehavior: "contain",
                   }}
                 >
                   <div
@@ -205,6 +245,8 @@ export function DashboardNavMenu({
                     <BrandLogo
                       href={navItems[0]?.href ?? "/dashboard"}
                       size={38}
+                      showIcon
+                      label="Workbit ShiftHub"
                       style={{ gap: 12 }}
                     />
 
@@ -224,36 +266,52 @@ export function DashboardNavMenu({
                         cursor: "pointer",
                       }}
                     >
-                      X
+                      ×
                     </button>
                   </div>
 
-                  {navItems.map((item) => {
-                    const active =
-                      pathname === item.href ||
-                      (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {navItems.map((item) => {
+                      const active =
+                        pathname === item.href ||
+                        (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        style={{
-                          textDecoration: "none",
-                          borderRadius: 18,
-                          padding: "14px 16px",
-                          background: active ? "#e2e8f0" : "#f8fafc",
-                          color: "#0f172a",
-                          border: "1px solid #e2e8f0",
-                          fontWeight: 700,
-                          fontSize: 16,
-                          lineHeight: 1.35,
-                        }}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          data-dashboard-menu-close="true"
+                          style={{
+                            textDecoration: "none",
+                            borderRadius: 18,
+                            padding: "14px 16px",
+                            background: active ? "#e2e8f0" : "#f8fafc",
+                            color: "#0f172a",
+                            border: "1px solid #e2e8f0",
+                            fontWeight: 700,
+                            fontSize: 16,
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+
+                  {menuContent ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                        paddingTop: 12,
+                        borderTop: "1px solid #e2e8f0",
+                      }}
+                    >
+                      {menuContent}
+                    </div>
+                  ) : null}
                 </nav>
               </div>
             </>,
