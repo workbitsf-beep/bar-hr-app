@@ -48,7 +48,7 @@ export default function LoginPage() {
   return (
     <main
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "grid",
         placeItems: "center",
         padding: 20,
@@ -76,7 +76,7 @@ export default function LoginPage() {
           }}
         >
           <div style={{ display: "grid", justifyItems: "center", gap: 14, textAlign: "center" }}>
-            <BrandLogo size={44} priority showIcon label="Workbit ShiftHub" style={{ gap: 12 }} />
+            <BrandLogo size={44} priority showIcon label="Workbit" style={{ gap: 12 }} />
             <div style={{ display: "grid", gap: 8 }}>
               <h1 style={{ margin: 0, fontSize: 34, color: "#0f172a", letterSpacing: "-0.03em" }}>
                 Accedi
@@ -165,7 +165,7 @@ export default function LoginPage() {
               <span style={{ display: "grid", gap: 2 }}>
                 <span style={{ fontWeight: 700, color: "#0f172a" }}>Ricordami</span>
                 <span style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
-                  Mantieni l’accesso più a lungo su questo dispositivo.
+                  Mantieni l'accesso piu a lungo su questo dispositivo.
                 </span>
               </span>
             </label>

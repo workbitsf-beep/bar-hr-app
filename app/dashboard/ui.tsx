@@ -46,12 +46,39 @@ function DashboardResponsiveStyles() {
         __html: `
       .dashboard-shell {
         min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .dashboard-shell-inner,
+      .dashboard-shell-card,
+      .dashboard-panel,
+      .dashboard-panel-header,
+      .dashboard-shell-top,
+      .dashboard-shell-header,
+      .dashboard-shell-brand,
+      .dashboard-top-nav,
+      .dashboard-calendar-scroll,
+      .dashboard-calendar-grid,
+      .dashboard-week-strip,
+      .dashboard-week-card,
+      .dashboard-calendar-day,
+      .dashboard-calendar-weekday,
+      .dashboard-modal-wrap,
+      .dashboard-modal-panel {
+        min-width: 0;
+        max-width: 100%;
       }
 
       .dashboard-shell *,
       .dashboard-modal-panel *,
       .super-admin-mobile-list * {
         box-sizing: border-box;
+      }
+
+      .dashboard-shell * {
+        max-width: 100%;
       }
 
       .dashboard-button,
@@ -114,7 +141,10 @@ function DashboardResponsiveStyles() {
       .dashboard-week-strip {
         display: flex;
         gap: 16px;
+        width: 100%;
+        max-width: 100%;
         overflow-x: auto;
+        overflow-y: hidden;
         padding-bottom: 6px;
         scroll-snap-type: x proximity;
         overscroll-behavior-x: contain;
@@ -127,10 +157,19 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-week-card {
-        flex: 0 0 min(86vw, 440px);
-        width: min(86vw, 440px);
-        max-width: calc(100vw - 56px);
+        flex: 0 0 min(360px, 100%);
+        width: min(360px, 100%);
+        max-width: 100%;
+        box-sizing: border-box;
         scroll-snap-align: start;
+      }
+
+      .dashboard-week-card,
+      .dashboard-week-card > *,
+      .dashboard-calendar-day,
+      .dashboard-calendar-day > * {
+        min-width: 0;
+        max-width: 100%;
       }
 
       .dashboard-modal-wrap {
@@ -138,15 +177,15 @@ function DashboardResponsiveStyles() {
           max(16px, env(safe-area-inset-top))
           max(16px, env(safe-area-inset-right))
           max(16px, env(safe-area-inset-bottom))
-          max(16px, env(safe-area-inset-left));
+          max(16px, env(safe-area-inset-left)) !important;
         overflow: hidden;
         overscroll-behavior: contain;
       }
 
       .dashboard-modal-panel {
-        width: min(92vw, 820px) !important;
+        width: 100% !important;
         max-width: min(92vw, 820px) !important;
-        max-height: 85vh !important;
+        max-height: calc(100dvh - 32px) !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         padding: clamp(18px, 2.8vw, 24px) !important;
@@ -175,13 +214,15 @@ function DashboardResponsiveStyles() {
         .dashboard-shell {
           padding: 12px !important;
           font-size: 16px !important;
-          overflow-x: clip;
+          overflow-x: hidden;
         }
 
         .dashboard-shell-card,
         .dashboard-panel {
           padding: 18px !important;
           border-radius: 22px !important;
+          width: 100% !important;
+          max-width: 100% !important;
         }
 
         .dashboard-shell-top {
@@ -276,8 +317,10 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-calendar-scroll {
+          width: 100%;
+          max-width: 100%;
           overflow-x: auto;
-          margin-inline: -4px;
+          margin-inline: 0;
           padding-bottom: 4px;
         }
 
@@ -303,9 +346,9 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-modal-panel {
-          width: min(92vw, 560px) !important;
-          max-width: min(92vw, 560px) !important;
-          max-height: 85vh !important;
+          width: 100% !important;
+          max-width: min(420px, calc(100vw - 32px)) !important;
+          max-height: calc(100dvh - 32px) !important;
           padding: 18px !important;
           border-radius: 24px !important;
           overscroll-behavior: contain;
@@ -362,16 +405,21 @@ function DashboardResponsiveStyles() {
 
         .dashboard-mobile-only.dashboard-week-strip {
           display: flex !important;
-          gap: 14px !important;
+          gap: 12px !important;
+          width: 100% !important;
+          max-width: 100% !important;
           overflow-x: auto !important;
           overflow-y: hidden !important;
+          padding-inline: 0 !important;
+          margin: 0 !important;
           padding-bottom: 6px;
         }
 
         .dashboard-week-card {
-          flex: 0 0 min(88vw, 420px) !important;
-          width: min(88vw, 420px) !important;
-          max-width: calc(100vw - 48px) !important;
+          flex: 0 0 calc(100% - 2px) !important;
+          width: calc(100% - 2px) !important;
+          max-width: calc(100% - 2px) !important;
+          min-width: 0 !important;
         }
 
         .super-admin-mobile-list {

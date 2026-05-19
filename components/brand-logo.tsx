@@ -87,7 +87,7 @@ function BrandLogoContent({
         >
           {label}
         </span>
-        {showSecondaryLabel ? (
+        {showSecondaryLabel && secondaryLabel.trim() ? (
           <span
             style={{
               color: secondaryColor,
@@ -113,7 +113,7 @@ export function BrandLogo({
   showIcon = false,
   showSecondaryLabel = false,
   label = "Workbit",
-  secondaryLabel = "ShiftHub",
+  secondaryLabel = "",
   textColor = "#0f172a",
   secondaryColor = "#64748b",
   style,

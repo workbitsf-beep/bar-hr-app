@@ -119,7 +119,7 @@ export default async function SuperAdminPage() {
           gap: 12,
         }}
       >
-        <BrandLogo size={44} showSecondaryLabel style={{ gap: 12 }} />
+        <BrandLogo size={44} style={{ gap: 12 }} />
         <div style={{ display: "grid", gap: 6 }}>
           <strong style={{ color: "#0f172a", fontSize: 20 }}>Console Super Admin</strong>
           <span style={{ color: "#64748b", lineHeight: 1.6 }}>

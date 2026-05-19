@@ -193,7 +193,7 @@ export function DashboardNavMenu({
                   overflow: "hidden",
                   display: isMobile ? "grid" : "block",
                   placeItems: isMobile ? "center" : undefined,
-                  padding: isMobile ? 12 : 0,
+                  padding: isMobile ? 16 : 0,
                 }}
               >
                 <nav
@@ -215,9 +215,10 @@ export function DashboardNavMenu({
                     top: isMobile ? undefined : position.top,
                     left: isMobile ? undefined : position.left,
                     width: isMobile
-                      ? "min(380px, calc(100vw - 24px))"
+                      ? "min(100%, 420px)"
                       : `min(${Math.max(320, Math.min(position.width, 360))}px, calc(100vw - 36px))`,
-                    maxHeight: isMobile ? "min(84vh, 720px)" : "calc(100vh - 32px)",
+                    maxWidth: isMobile ? "min(420px, calc(100vw - 32px))" : undefined,
+                    maxHeight: "calc(100dvh - 32px)",
                     overflowY: "auto",
                     padding: 14,
                     borderRadius: 28,
@@ -246,7 +247,7 @@ export function DashboardNavMenu({
                       href={navItems[0]?.href ?? "/dashboard"}
                       size={38}
                       showIcon
-                      label="Workbit ShiftHub"
+                      label="Workbit"
                       style={{ gap: 12 }}
                     />
 

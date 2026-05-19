@@ -28,7 +28,7 @@ type TranslationSet = {
 
 const translations: Record<AppLanguage, TranslationSet> = {
   it: {
-    appName: "Workbit ShiftHub",
+    appName: "Workbit",
     menu: "Menu",
     selectBar: "Seleziona un locale",
     changeBar: "Cambia locale",
@@ -51,7 +51,7 @@ const translations: Record<AppLanguage, TranslationSet> = {
     superAdmin: "Super Admin",
   },
   en: {
-    appName: "Workbit ShiftHub",
+    appName: "Workbit",
     menu: "Menu",
     selectBar: "Select venue",
     changeBar: "Change venue",
@@ -74,7 +74,7 @@ const translations: Record<AppLanguage, TranslationSet> = {
     superAdmin: "Super Admin",
   },
   es: {
-    appName: "Workbit ShiftHub",
+    appName: "Workbit",
     menu: "Menu",
     selectBar: "Selecciona local",
     changeBar: "Cambiar local",
@@ -97,7 +97,7 @@ const translations: Record<AppLanguage, TranslationSet> = {
     superAdmin: "Super Admin",
   },
   fr: {
-    appName: "Workbit ShiftHub",
+    appName: "Workbit",
     menu: "Menu",
     selectBar: "Choisir l'etablissement",
     changeBar: "Changer d'etablissement",

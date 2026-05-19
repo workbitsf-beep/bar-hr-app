@@ -340,7 +340,10 @@ export function OwnerCalendarClient({
         </div>
       </div>
 
-      <div className="dashboard-mobile-only dashboard-week-strip" style={{ display: "grid", gap: 16 }}>
+      <div
+        className="dashboard-mobile-only dashboard-week-strip"
+        style={{ display: "flex", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}
+      >
         {visibleWeeks.map((week, weekIndex) => {
           const weekIsCurrent = week.some((day) => day.isToday);
 
@@ -351,7 +354,10 @@ export function OwnerCalendarClient({
             style={{
               display: "grid",
               gap: 12,
-              padding: 16,
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+              padding: 14,
               borderRadius: 22,
               background: weekIsCurrent ? "#eef2ff" : "#f8fafc",
               border: weekIsCurrent ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
@@ -383,7 +389,10 @@ export function OwnerCalendarClient({
                   style={{
                     display: "grid",
                     gap: 10,
-                    padding: 16,
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    padding: 14,
                     borderRadius: 20,
                     background: "#ffffff",
                     border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
