@@ -55,7 +55,7 @@ export async function POST(req: Request): Promise<Response> {
     temporaryPassword
   );
 
-  if (!emailResult.success) {
+  if (!emailResult.ok) {
     await prisma.user.update({
       where: { id: user.id },
       data: {

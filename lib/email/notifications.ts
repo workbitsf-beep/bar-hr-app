@@ -16,7 +16,7 @@ async function sendTemplatedEmail(input: {
   ctaLabel: string;
   ctaUrl: string;
 }): Promise<SendEmailResult> {
-  return sendEmail({
+  const result = await sendEmail({
     to: input.to,
     subject: input.subject,
     html: buildEmailTemplate({
@@ -26,6 +26,16 @@ async function sendTemplatedEmail(input: {
       ctaUrl: input.ctaUrl,
     }),
   });
+
+  if (!result.ok) {
+    console.error("[email] Notification delivery failed.", {
+      recipient: input.to,
+      subject: input.subject,
+      error: result.error,
+    });
+  }
+
+  return result;
 }
 
 export async function sendWeeklyShiftsPublishedEmail(

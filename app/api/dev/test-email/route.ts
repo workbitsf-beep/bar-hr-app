@@ -1,32 +1,56 @@
 import { buildEmailTemplate } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/resend";
-import { getSession } from "@/lib/auth";
 
-export async function GET() {
-  if (process.env.NODE_ENV === "production") {
-    return Response.json({ ok: false, message: "Not found" }, { status: 404 });
+function isAuthorized(url: URL) {
+  if (process.env.NODE_ENV !== "production") {
+    return true;
   }
 
-  const session = await getSession();
+  const secret = process.env.DEV_SECRET?.trim();
 
-  if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+  if (!secret) {
+    return false;
+  }
+
+  return url.searchParams.get("secret") === secret;
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+
+  if (!isAuthorized(url)) {
+    return Response.json({ ok: false, error: "Not authorized" }, { status: 403 });
+  }
+
+  const to = url.searchParams.get("to")?.trim().toLowerCase() ?? "";
+
+  if (!to) {
+    return Response.json(
+      { ok: false, error: "Parametro 'to' obbligatorio." },
+      { status: 400 }
+    );
   }
 
   const result = await sendEmail({
-    to: session.user.email,
+    to,
     subject: "Workbit verifica email",
     html: buildEmailTemplate({
       title: "Verifica email",
-      message: `Ciao ${session.user.firstName},\nQuesta e una email di verifica inviata da Workbit.`,
+      message: `Questa e una email di test inviata da Workbit a ${to}.`,
       ctaLabel: "Apri dashboard",
       ctaUrl: `${(process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "")}/dashboard`,
     }),
   });
 
-  return Response.json({
-    ok: true,
-    success: result.success,
-    errorMessage: result.errorMessage ?? null,
-  });
+  if (!result.ok) {
+    return Response.json(
+      {
+        ok: false,
+        error: result.error,
+      },
+      { status: 503 }
+    );
+  }
+
+  return Response.json({ ok: true });
 }
