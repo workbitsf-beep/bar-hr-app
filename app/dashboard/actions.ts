@@ -16,9 +16,11 @@ import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  sendEmployeeWelcomeEmail,
   sendLeaveRequestEmail,
   sendLeaveRequestResultEmail,
   sendNoticeBoardEmail,
+  sendOwnerWelcomeEmail,
   sendShiftSwapRequestEmail,
   sendShiftSwapResultEmail,
   sendTaskAssignedEmail,
@@ -195,6 +197,10 @@ function parseRole(value: FormDataEntryValue | null): Role {
   }
 
   return Role.EMPLOYEE;
+}
+
+function createTemporaryPassword() {
+  return `Workbit-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
 }
 
 function parseRequestStatus(value: FormDataEntryValue | null): RequestStatus {
@@ -569,7 +575,19 @@ export async function createBarBySuperAdminAction(formData: FormData) {
       id: ownerId,
       role: Role.OWNER,
     },
-    select: { id: true },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      passwordHash: true,
+      mustChangePwd: true,
+      _count: {
+        select: {
+          ownedBars: true,
+        },
+      },
+    },
   });
 
   if (!owner) {
@@ -577,6 +595,14 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   }
 
   const globalGpsRadius = await getGlobalGpsRadius();
+  const ownerShouldReceiveFreshPassword =
+    owner.mustChangePwd && owner._count.ownedBars === 0;
+  const ownerTemporaryPassword = ownerShouldReceiveFreshPassword
+    ? createTemporaryPassword()
+    : null;
+  const ownerTemporaryPasswordHash = ownerTemporaryPassword
+    ? await bcrypt.hash(ownerTemporaryPassword, 10)
+    : null;
 
   const bar = await prisma.bar.create({
     data: {
@@ -630,6 +656,53 @@ export async function createBarBySuperAdminAction(formData: FormData) {
       status: SubscriptionStatus.TRIALING,
       trialEndsAt: createDefaultTrialEndsAt(),
     },
+  });
+
+  let ownerPasswordUpdated = false;
+
+  if (ownerTemporaryPasswordHash) {
+    try {
+      await prisma.user.update({
+        where: { id: owner.id },
+        data: {
+          passwordHash: ownerTemporaryPasswordHash,
+          mustChangePwd: true,
+        },
+      });
+      ownerPasswordUpdated = true;
+    } catch (error) {
+      console.error(
+        "[email] Failed to prepare owner temporary credentials for welcome email.",
+        error
+      );
+    }
+  }
+
+  await runEmailNotification(async () => {
+    const result = await sendOwnerWelcomeEmail(
+      owner.email,
+      getFullName(owner),
+      bar.name,
+      owner.email,
+      ownerPasswordUpdated ? ownerTemporaryPassword ?? undefined : undefined
+    );
+
+    if (!result.ok && ownerPasswordUpdated) {
+      try {
+        await prisma.user.update({
+          where: { id: owner.id },
+          data: {
+            passwordHash: owner.passwordHash,
+            mustChangePwd: owner.mustChangePwd,
+          },
+        });
+      } catch (error) {
+        console.error(
+          "[email] Failed to restore owner credentials after welcome email failure.",
+          error
+        );
+      }
+    }
   });
 
   revalidatePath("/billing");
@@ -1282,25 +1355,52 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Missing employee fields");
   }
 
-  const passwordHash = await bcrypt.hash(initialPassword, 10);
+  const [bar, existingUser] = await Promise.all([
+    prisma.bar.findUnique({
+      where: { id: activeBarId },
+      select: {
+        name: true,
+      },
+    }),
+    prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+      },
+    }),
+  ]);
+
+  if (!bar) {
+    throw new Error("Bar not found");
+  }
+
+  let createdUserId: string | null = null;
 
   await prisma.$transaction(async (tx) => {
-    const user = await tx.user.upsert({
-      where: { email },
-      update: {
-        firstName,
-        lastName,
-        role: userRole,
-      },
-      create: {
-        email,
-        firstName,
-        lastName,
-        role: userRole,
-        mustChangePwd: true,
-        passwordHash,
-      },
-    });
+    const user =
+      existingUser !== null
+        ? await tx.user.update({
+            where: { email },
+            data: {
+              firstName,
+              lastName,
+              role: userRole,
+            },
+          })
+        : await tx.user.create({
+            data: {
+              email,
+              firstName,
+              lastName,
+              role: userRole,
+              mustChangePwd: true,
+              passwordHash: await bcrypt.hash(initialPassword, 10),
+            },
+          });
+
+    if (!existingUser) {
+      createdUserId = user.id;
+    }
 
     await tx.employeeBar.upsert({
       where: {
@@ -1326,6 +1426,18 @@ export async function createEmployeeAction(formData: FormData) {
       },
     });
   });
+
+  if (createdUserId) {
+    await runEmailNotification(async () => {
+      await sendEmployeeWelcomeEmail(
+        email,
+        `${firstName} ${lastName}`.trim(),
+        bar.name,
+        email,
+        initialPassword
+      );
+    });
+  }
 
   revalidatePath("/dashboard/people");
 }

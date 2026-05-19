@@ -1,4 +1,5 @@
 import { buildEmailTemplate } from "@/lib/email/templates";
+import { getEmailAppUrl } from "@/lib/email/notifications";
 import { sendEmail } from "@/lib/email/resend";
 
 function isAuthorized(url: URL) {
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
       title: "Verifica email",
       message: `Questa e una email di test inviata da Workbit a ${to}.`,
       ctaLabel: "Apri dashboard",
-      ctaUrl: `${(process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "")}/dashboard`,
+      ctaUrl: getEmailAppUrl("/dashboard"),
     }),
   });
 

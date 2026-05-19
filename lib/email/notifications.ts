@@ -3,8 +3,20 @@ import "server-only";
 import { sendEmail, type SendEmailResult } from "@/lib/email/resend";
 import { buildEmailTemplate } from "@/lib/email/templates";
 
-function getAppUrl(path: string) {
-  const baseUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
+let hasLoggedMissingAppUrl = false;
+
+export function getEmailAppUrl(path: string) {
+  const baseUrl = process.env.APP_URL?.trim().replace(/\/$/, "");
+
+  if (!baseUrl) {
+    if (!hasLoggedMissingAppUrl) {
+      console.error("[email] Missing APP_URL. Email CTA links are disabled.");
+      hasLoggedMissingAppUrl = true;
+    }
+
+    return "";
+  }
+
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
@@ -14,7 +26,7 @@ async function sendTemplatedEmail(input: {
   title: string;
   message: string;
   ctaLabel: string;
-  ctaUrl: string;
+  ctaUrl?: string;
 }): Promise<SendEmailResult> {
   const result = await sendEmail({
     to: input.to,
@@ -50,7 +62,7 @@ export async function sendWeeklyShiftsPublishedEmail(
     title: "Turni confermati",
     message: `Ciao ${userName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${weekLabel} per ${barName}.`,
     ctaLabel: "Apri i turni",
-    ctaUrl: getAppUrl("/dashboard/shifts"),
+    ctaUrl: getEmailAppUrl("/dashboard/shifts"),
   });
 }
 
@@ -66,7 +78,7 @@ export async function sendShiftSwapRequestEmail(
     title: "Richiesta cambio turno",
     message: `Ciao ${toName},\n${requesterName} ha inviato una richiesta di cambio turno per ${barName}.`,
     ctaLabel: "Apri richieste",
-    ctaUrl: getAppUrl("/dashboard/requests"),
+    ctaUrl: getEmailAppUrl("/dashboard/requests"),
   });
 }
 
@@ -82,7 +94,7 @@ export async function sendShiftSwapResultEmail(
     title: approved ? "Cambio turno approvato" : "Cambio turno rifiutato",
     message: `Ciao ${toName},\nLa richiesta di cambio turno per ${barName} e stata ${approved ? "approvata" : "rifiutata"}.`,
     ctaLabel: "Apri richieste",
-    ctaUrl: getAppUrl("/dashboard/requests"),
+    ctaUrl: getEmailAppUrl("/dashboard/requests"),
   });
 }
 
@@ -98,7 +110,7 @@ export async function sendLeaveRequestEmail(
     title: `Nuova richiesta ${type}`,
     message: `${employeeName} ha inviato una richiesta di ${type} per ${barName}.`,
     ctaLabel: "Apri richieste",
-    ctaUrl: getAppUrl("/dashboard/requests"),
+    ctaUrl: getEmailAppUrl("/dashboard/requests"),
   });
 }
 
@@ -114,7 +126,7 @@ export async function sendLeaveRequestResultEmail(
     title: approved ? `${type} approvati` : `${type} rifiutati`,
     message: `La tua richiesta di ${type} per ${barName} e stata ${approved ? "approvata" : "rifiutata"}.`,
     ctaLabel: "Apri richieste",
-    ctaUrl: getAppUrl("/dashboard/requests"),
+    ctaUrl: getEmailAppUrl("/dashboard/requests"),
   });
 }
 
@@ -130,7 +142,7 @@ export async function sendNoticeBoardEmail(
     title: "Nuovo messaggio in bacheca",
     message: `Ciao ${toName},\n${authorName} ha pubblicato un nuovo messaggio nella bacheca di ${barName}.`,
     ctaLabel: "Apri bacheca",
-    ctaUrl: getAppUrl("/dashboard/board"),
+    ctaUrl: getEmailAppUrl("/dashboard/board"),
   });
 }
 
@@ -146,7 +158,7 @@ export async function sendUnavailabilityEmail(
     title: "Nuova indisponibilita",
     message: `${employeeName} ha registrato un'indisponibilita per ${dateLabel} in ${barName}.`,
     ctaLabel: "Apri calendario",
-    ctaUrl: getAppUrl("/dashboard/calendar"),
+    ctaUrl: getEmailAppUrl("/dashboard/calendar"),
   });
 }
 
@@ -162,7 +174,7 @@ export async function sendTaskAssignedEmail(
     title: "Nuova mansione",
     message: `Ciao ${toName},\nTi e stata assegnata una nuova mansione: ${taskTitle}.\nLocale: ${barName}.`,
     ctaLabel: "Apri mansioni",
-    ctaUrl: getAppUrl("/dashboard/tasks"),
+    ctaUrl: getEmailAppUrl("/dashboard/tasks"),
   });
 }
 
@@ -177,7 +189,7 @@ export async function sendSubscriptionActivatedEmail(
     title: "Abbonamento attivo",
     message: `Ciao ${ownerName},\nL'abbonamento del locale ${barName} e ora attivo.`,
     ctaLabel: "Apri dashboard",
-    ctaUrl: getAppUrl("/dashboard"),
+    ctaUrl: getEmailAppUrl("/dashboard"),
   });
 }
 
@@ -192,7 +204,7 @@ export async function sendSubscriptionCanceledEmail(
     title: "Abbonamento cancellato",
     message: `Ciao ${ownerName},\nL'abbonamento del locale ${barName} e stato cancellato o disattivato.`,
     ctaLabel: "Gestisci billing",
-    ctaUrl: getAppUrl("/billing"),
+    ctaUrl: getEmailAppUrl("/billing"),
   });
 }
 
@@ -207,7 +219,7 @@ export async function sendPaymentFailedEmail(
     title: "Pagamento non riuscito",
     message: `Ciao ${ownerName},\nIl pagamento dell'abbonamento per ${barName} non e andato a buon fine. Aggiorna il metodo di pagamento o rinnova l'abbonamento.`,
     ctaLabel: "Vai al billing",
-    ctaUrl: getAppUrl("/billing"),
+    ctaUrl: getEmailAppUrl("/billing"),
   });
 }
 
@@ -222,6 +234,40 @@ export async function sendTemporaryPasswordEmail(
     title: "Recupero password",
     message: `Ciao ${userName},\nabbiamo generato una password temporanea per il tuo accesso.\nPassword temporanea: ${temporaryPassword}\nDopo il login ti verra richiesto di cambiarla subito.`,
     ctaLabel: "Apri login",
-    ctaUrl: getAppUrl("/login"),
+    ctaUrl: getEmailAppUrl("/login"),
+  });
+}
+
+export async function sendOwnerWelcomeEmail(
+  ownerEmail: string,
+  ownerName: string,
+  barName: string,
+  loginEmail: string,
+  temporaryPassword?: string
+) {
+  return sendTemplatedEmail({
+    to: ownerEmail,
+    subject: "Benvenuto in Workbit",
+    title: "Benvenuto in Workbit",
+    message: `Ciao ${ownerName},\nil tuo locale e stato creato su Workbit.\nLocale: ${barName}\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. vai nelle impostazioni del locale\n4. fisicamente posizionati nel punto del locale in cui vuoi autorizzare le timbrature\n5. premi "Aggiorna posizione"\n6. imposta il raggio GPS desiderato\n7. crea dipendenti e turni`,
+    ctaLabel: "Accedi a Workbit",
+    ctaUrl: getEmailAppUrl("/login"),
+  });
+}
+
+export async function sendEmployeeWelcomeEmail(
+  employeeEmail: string,
+  employeeName: string,
+  barName: string,
+  loginEmail: string,
+  temporaryPassword?: string
+) {
+  return sendTemplatedEmail({
+    to: employeeEmail,
+    subject: "Benvenuto in Workbit",
+    title: "Benvenuto in Workbit",
+    message: `Ciao ${employeeName},\nsei stato aggiunto al locale ${barName} su Workbit.\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. consulta il calendario turni\n4. controlla mansioni e bacheca\n5. quando sei nel raggio GPS del locale, usa il tasto Entrata/Uscita per timbrare`,
+    ctaLabel: "Accedi a Workbit",
+    ctaUrl: getEmailAppUrl("/login"),
   });
 }

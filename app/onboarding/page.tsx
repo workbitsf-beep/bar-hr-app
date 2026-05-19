@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { RoundingMode, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { getSession } from "@/lib/auth";
+import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 
@@ -303,6 +304,8 @@ async function inviteEmployeeAction(formData: FormData) {
     module.default.hash(initialPassword, 10)
   );
 
+  let createdUser = false;
+
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -316,6 +319,8 @@ async function inviteEmployeeAction(formData: FormData) {
       select: { id: true },
     });
 
+    createdUser = true;
+
     await tx.employeeBar.create({
       data: {
         userId: user.id,
@@ -325,6 +330,20 @@ async function inviteEmployeeAction(formData: FormData) {
       },
     });
   });
+
+  if (createdUser) {
+    try {
+      await sendEmployeeWelcomeEmail(
+        email,
+        `${firstName} ${lastName}`.trim(),
+        activeBar.name,
+        email,
+        initialPassword
+      );
+    } catch (error) {
+      console.error("[email] Failed to send onboarding employee welcome email.", error);
+    }
+  }
 
   revalidatePath("/onboarding");
   redirect("/onboarding?step=4");
