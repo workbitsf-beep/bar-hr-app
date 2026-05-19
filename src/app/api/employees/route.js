@@ -1,35 +1,11 @@
 import { Prisma, PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcrypt";
-import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { getCurrentSessionFromRequest } from "@/app/lib/auth";
+import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
+import { validateTemporaryPassword } from "@/lib/temporary-password";
 
 const prisma = new PrismaClient();
-
-function generateTempPassword() {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  const digits = "0123456789";
-  const all = letters + digits;
-  const length = crypto.randomInt(10, 13);
-
-  const chars = [
-    letters[crypto.randomInt(0, letters.length)],
-    digits[crypto.randomInt(0, digits.length)],
-  ];
-
-  while (chars.length < length) {
-    chars.push(all[crypto.randomInt(0, all.length)]);
-  }
-
-  for (let i = chars.length - 1; i > 0; i -= 1) {
-    const j = crypto.randomInt(0, i + 1);
-    const tmp = chars[i];
-    chars[i] = chars[j];
-    chars[j] = tmp;
-  }
-
-  return chars.join("");
-}
 
 export async function GET(req) {
   try {
@@ -101,12 +77,41 @@ export async function POST(req) {
     const email = body?.email?.trim();
     const firstName = body?.firstName?.trim();
     const lastName = body?.lastName?.trim();
+    const temporaryPassword =
+      typeof body?.temporaryPassword === "string"
+        ? body.temporaryPassword
+        : typeof body?.initialPassword === "string"
+          ? body.initialPassword
+          : "";
 
     if (!email || !firstName || !lastName) {
       return NextResponse.json(
         { message: "email, firstName e lastName sono obbligatori" },
         { status: 400 }
       );
+    }
+
+    try {
+      validateTemporaryPassword(temporaryPassword);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Password temporanea non valida",
+        },
+        { status: 400 }
+      );
+    }
+
+    const bar = await prisma.bar.findUnique({
+      where: { id: auth.session.activeBarId },
+      select: { name: true },
+    });
+
+    if (!bar) {
+      return NextResponse.json({ message: "Bar non trovato" }, { status: 404 });
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -121,8 +126,7 @@ export async function POST(req) {
       );
     }
 
-    const tempPassword = generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
     const employee = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
@@ -155,11 +159,25 @@ export async function POST(req) {
       return createdUser;
     });
 
+    try {
+      await sendEmployeeWelcomeEmail(
+        email,
+        `${firstName} ${lastName}`.trim(),
+        bar.name,
+        email,
+        temporaryPassword
+      );
+    } catch (error) {
+      console.error("[welcome-email] employee failed", {
+        recipient: email,
+        error: error instanceof Error ? error.message : "Unexpected error",
+      });
+    }
+
     return NextResponse.json(
       {
         ok: true,
         employee,
-        tempPassword,
       },
       { status: 201 }
     );

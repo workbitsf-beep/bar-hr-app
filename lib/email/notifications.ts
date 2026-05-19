@@ -27,6 +27,7 @@ async function sendTemplatedEmail(input: {
   message: string;
   ctaLabel: string;
   ctaUrl?: string;
+  suppressFailureLog?: boolean;
 }): Promise<SendEmailResult> {
   const result = await sendEmail({
     to: input.to,
@@ -39,7 +40,7 @@ async function sendTemplatedEmail(input: {
     }),
   });
 
-  if (!result.ok) {
+  if (!result.ok && !input.suppressFailureLog) {
     console.error("[email] Notification delivery failed.", {
       recipient: input.to,
       subject: input.subject,
@@ -52,19 +53,18 @@ async function sendTemplatedEmail(input: {
 
 function logWelcomeEmailStatus(input: {
   type: "owner" | "employee";
-  stage: "queued" | "sent" | "failed";
+  stage: "sent" | "failed";
   recipient: string;
   error?: string;
 }) {
   const message =
     input.type === "owner"
-      ? `[welcome-email] owner welcome ${input.stage}`
-      : `[welcome-email] employee welcome ${input.stage}`;
+      ? `[welcome-email] owner ${input.stage}`
+      : `[welcome-email] employee ${input.stage}`;
 
   if (input.stage === "failed") {
     console.error(message, {
       recipient: input.recipient,
-      type: input.type,
       error: input.error,
     });
     return;
@@ -72,8 +72,35 @@ function logWelcomeEmailStatus(input: {
 
   console.info(message, {
     recipient: input.recipient,
-    type: input.type,
   });
+}
+
+function buildWelcomeCredentialsMessage(input: {
+  greetingName: string;
+  intro: string;
+  loginEmail: string;
+  temporaryPassword: string;
+  loginLinkLine?: string | null;
+  guideSteps: string[];
+  localeLine?: string | null;
+}) {
+  return [
+    `Ciao ${input.greetingName},`,
+    input.intro,
+    input.localeLine,
+    "",
+    "Credenziali iniziali:",
+    `Email di accesso: ${input.loginEmail}`,
+    `Password temporanea: ${input.temporaryPassword}`,
+    input.loginLinkLine,
+    "",
+    "Al primo accesso ti verra richiesto di cambiare la password.",
+    "",
+    "Guida rapida:",
+    ...input.guideSteps,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
 }
 
 export async function sendWeeklyShiftsPublishedEmail(
@@ -269,16 +296,29 @@ export async function sendOwnerWelcomeEmail(
   ownerName: string,
   barName: string | null | undefined,
   loginEmail: string,
-  temporaryPassword?: string
+  temporaryPassword: string
 ) {
-  const ownerMessage = barName
-    ? `Ciao ${ownerName},\nil tuo account titolare e il tuo locale sono pronti su Workbit.\nLocale: ${barName}\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. vai nelle impostazioni del locale\n4. fisicamente posizionati nel punto del locale in cui vuoi autorizzare le timbrature\n5. premi "Aggiorna posizione"\n6. crea dipendenti e turni`
-    : `Ciao ${ownerName},\nil tuo account titolare e pronto su Workbit.\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. attendi l'associazione del tuo locale da parte del Super Admin\n4. accedi a Workbit appena il locale sara pronto`;
-
-  logWelcomeEmailStatus({
-    type: "owner",
-    stage: "queued",
-    recipient: ownerEmail,
+  const loginUrl = getEmailAppUrl("/login");
+  const ownerMessage = buildWelcomeCredentialsMessage({
+    greetingName: ownerName,
+    intro: barName
+      ? "il tuo account titolare e il tuo locale sono pronti su Workbit."
+      : "il tuo account titolare e pronto su Workbit.",
+    localeLine: barName
+      ? `Locale: ${barName}`
+      : "Il Super Admin completera l'associazione del tuo locale.",
+    loginEmail,
+    temporaryPassword,
+    loginLinkLine: loginUrl ? `Link di accesso: ${loginUrl}` : null,
+    guideSteps: [
+      "1. Accedi a Workbit",
+      "2. Cambia password",
+      "3. Vai nelle impostazioni del locale",
+      "4. Posizionati fisicamente nel punto del locale dove vuoi autorizzare le timbrature",
+      '5. Premi "Aggiorna posizione"',
+      "6. Imposta il raggio GPS",
+      "7. Crea dipendenti e turni",
+    ],
   });
 
   const result = await sendTemplatedEmail({
@@ -287,7 +327,8 @@ export async function sendOwnerWelcomeEmail(
     title: "Benvenuto in Workbit",
     message: ownerMessage,
     ctaLabel: "Accedi a Workbit",
-    ctaUrl: getEmailAppUrl("/login"),
+    ctaUrl: loginUrl || undefined,
+    suppressFailureLog: true,
   });
 
   if (result.ok) {
@@ -313,21 +354,32 @@ export async function sendEmployeeWelcomeEmail(
   employeeName: string,
   barName: string,
   loginEmail: string,
-  temporaryPassword?: string
+  temporaryPassword: string
 ) {
-  logWelcomeEmailStatus({
-    type: "employee",
-    stage: "queued",
-    recipient: employeeEmail,
+  const loginUrl = getEmailAppUrl("/login");
+  const employeeMessage = buildWelcomeCredentialsMessage({
+    greetingName: employeeName,
+    intro: `sei stato aggiunto al locale ${barName} su Workbit.`,
+    loginEmail,
+    temporaryPassword,
+    loginLinkLine: loginUrl ? `Link di accesso: ${loginUrl}` : null,
+    guideSteps: [
+      "1. Accedi a Workbit",
+      "2. Cambia password",
+      "3. Consulta calendario turni",
+      "4. Controlla mansioni e bacheca",
+      "5. Quando sei nel raggio GPS del locale, usa Entrata/Uscita",
+    ],
   });
 
   const result = await sendTemplatedEmail({
     to: employeeEmail,
     subject: "Benvenuto in Workbit",
     title: "Benvenuto in Workbit",
-    message: `Ciao ${employeeName},\nsei stato aggiunto al locale ${barName} su Workbit.\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. consulta il calendario turni\n4. controlla mansioni e bacheca\n5. quando sei nel raggio GPS del locale, usa il tasto Entrata/Uscita per timbrare`,
+    message: employeeMessage,
     ctaLabel: "Accedi a Workbit",
-    ctaUrl: getEmailAppUrl("/login"),
+    ctaUrl: loginUrl || undefined,
+    suppressFailureLog: true,
   });
 
   if (result.ok) {

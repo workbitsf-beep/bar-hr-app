@@ -42,6 +42,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
+import { readTemporaryPasswordFromFormData } from "@/lib/temporary-password";
 
 type PlanTypeValue = "FREE" | "TRIAL" | "PAID" | "LIFETIME";
 type BillingIntervalValue = "MONTHLY" | "YEARLY";
@@ -197,10 +198,6 @@ function parseRole(value: FormDataEntryValue | null): Role {
   }
 
   return Role.EMPLOYEE;
-}
-
-function createTemporaryPassword() {
-  return `Workbit-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
 }
 
 function parseRequestStatus(value: FormDataEntryValue | null): RequestStatus {
@@ -522,10 +519,10 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "").trim();
+  const temporaryPassword = readTemporaryPasswordFromFormData(formData);
   const language = parseLanguage(formData.get("language"));
 
-  if (!firstName || !lastName || !email || !password) {
+  if (!firstName || !lastName || !email) {
     throw new Error("Missing owner data");
   }
 
@@ -538,7 +535,7 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
     throw new Error("Owner already exists");
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
   await prisma.user.create({
     data: {
@@ -550,6 +547,16 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
       language,
       mustChangePwd: true,
     },
+  });
+
+  await runEmailNotification(async () => {
+    await sendOwnerWelcomeEmail(
+      email,
+      `${firstName} ${lastName}`.trim(),
+      null,
+      email,
+      temporaryPassword
+    );
   });
 
   revalidatePath("/dashboard/super-admin");
@@ -578,15 +585,6 @@ export async function createBarBySuperAdminAction(formData: FormData) {
     select: {
       id: true,
       email: true,
-      firstName: true,
-      lastName: true,
-      passwordHash: true,
-      mustChangePwd: true,
-      _count: {
-        select: {
-          ownedBars: true,
-        },
-      },
     },
   });
 
@@ -595,14 +593,6 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   }
 
   const globalGpsRadius = await getGlobalGpsRadius();
-  const ownerShouldReceiveFreshPassword =
-    owner.mustChangePwd && owner._count.ownedBars === 0;
-  const ownerTemporaryPassword = ownerShouldReceiveFreshPassword
-    ? createTemporaryPassword()
-    : null;
-  const ownerTemporaryPasswordHash = ownerTemporaryPassword
-    ? await bcrypt.hash(ownerTemporaryPassword, 10)
-    : null;
 
   const bar = await prisma.bar.create({
     data: {
@@ -656,53 +646,6 @@ export async function createBarBySuperAdminAction(formData: FormData) {
       status: SubscriptionStatus.TRIALING,
       trialEndsAt: createDefaultTrialEndsAt(),
     },
-  });
-
-  let ownerPasswordUpdated = false;
-
-  if (ownerTemporaryPasswordHash) {
-    try {
-      await prisma.user.update({
-        where: { id: owner.id },
-        data: {
-          passwordHash: ownerTemporaryPasswordHash,
-          mustChangePwd: true,
-        },
-      });
-      ownerPasswordUpdated = true;
-    } catch (error) {
-      console.error(
-        "[email] Failed to prepare owner temporary credentials for welcome email.",
-        error
-      );
-    }
-  }
-
-  await runEmailNotification(async () => {
-    const result = await sendOwnerWelcomeEmail(
-      owner.email,
-      getFullName(owner),
-      bar.name,
-      owner.email,
-      ownerPasswordUpdated ? ownerTemporaryPassword ?? undefined : undefined
-    );
-
-    if (!result.ok && ownerPasswordUpdated) {
-      try {
-        await prisma.user.update({
-          where: { id: owner.id },
-          data: {
-            passwordHash: owner.passwordHash,
-            mustChangePwd: owner.mustChangePwd,
-          },
-        });
-      } catch (error) {
-        console.error(
-          "[email] Failed to restore owner credentials after welcome email failure.",
-          error
-        );
-      }
-    }
   });
 
   revalidatePath("/billing");
@@ -1347,11 +1290,11 @@ export async function createEmployeeAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
-  const initialPassword = String(formData.get("initialPassword") ?? "").trim();
+  const temporaryPassword = readTemporaryPasswordFromFormData(formData);
   const userRole = parseRole(formData.get("role"));
   const hourlyRate = parseOptionalNumber(formData.get("hourlyRate"));
 
-  if (!email || !firstName || !lastName || !initialPassword) {
+  if (!email || !firstName || !lastName) {
     throw new Error("Missing employee fields");
   }
 
@@ -1366,15 +1309,6 @@ export async function createEmployeeAction(formData: FormData) {
       where: { email },
       select: {
         id: true,
-        barMemberships: {
-          where: {
-            barId: activeBarId,
-          },
-          select: {
-            isActive: true,
-          },
-          take: 1,
-        },
       },
     }),
   ]);
@@ -1383,8 +1317,6 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Bar not found");
   }
 
-  const shouldSendWelcomeEmail =
-    !existingUser || existingUser.barMemberships[0]?.isActive !== true;
   let createdUserId: string | null = null;
 
   await prisma.$transaction(async (tx) => {
@@ -1405,7 +1337,7 @@ export async function createEmployeeAction(formData: FormData) {
               lastName,
               role: userRole,
               mustChangePwd: true,
-              passwordHash: await bcrypt.hash(initialPassword, 10),
+              passwordHash: await bcrypt.hash(temporaryPassword, 10),
             },
           });
 
@@ -1438,14 +1370,14 @@ export async function createEmployeeAction(formData: FormData) {
     });
   });
 
-  if (shouldSendWelcomeEmail) {
+  if (createdUserId) {
     await runEmailNotification(async () => {
       await sendEmployeeWelcomeEmail(
         email,
         `${firstName} ${lastName}`.trim(),
         bar.name,
         email,
-        createdUserId ? initialPassword : undefined
+        temporaryPassword
       );
     });
   }

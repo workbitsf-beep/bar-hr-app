@@ -7,6 +7,10 @@ import { getSession } from "@/lib/auth";
 import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
+import {
+  MIN_TEMPORARY_PASSWORD_LENGTH,
+  readTemporaryPasswordFromFormData,
+} from "@/lib/temporary-password";
 
 type StepNumber = 1 | 2 | 3 | 4;
 
@@ -262,11 +266,18 @@ async function inviteEmployeeAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
-  const initialPassword = String(formData.get("initialPassword") ?? "").trim();
+  let temporaryPassword: string;
+
+  try {
+    temporaryPassword = readTemporaryPasswordFromFormData(formData);
+  } catch {
+    redirect("/onboarding?step=4&error=invalid-temporary-password");
+  }
+
   const roleRaw = String(formData.get("role") ?? "");
   const memberRole = roleRaw === "MANAGER" ? Role.MANAGER : Role.EMPLOYEE;
 
-  if (!email || !firstName || !lastName || !initialPassword) {
+  if (!email || !firstName || !lastName) {
     redirect("/onboarding?step=4&error=missing-employee");
   }
 
@@ -274,20 +285,8 @@ async function inviteEmployeeAction(formData: FormData) {
     where: { email },
     select: {
       id: true,
-      barMemberships: {
-        where: {
-          barId: activeBar.id,
-        },
-        select: {
-          isActive: true,
-        },
-        take: 1,
-      },
     },
   });
-
-  const shouldSendWelcomeEmail =
-    !existingUser || existingUser.barMemberships[0]?.isActive !== true;
 
   if (existingUser) {
     await prisma.employeeBar.upsert({
@@ -310,25 +309,12 @@ async function inviteEmployeeAction(formData: FormData) {
       },
     });
 
-    if (shouldSendWelcomeEmail) {
-      try {
-        await sendEmployeeWelcomeEmail(
-          email,
-          `${firstName} ${lastName}`.trim(),
-          activeBar.name,
-          email
-        );
-      } catch (error) {
-        console.error("[email] Failed to send onboarding employee welcome email.", error);
-      }
-    }
-
     revalidatePath("/onboarding");
     redirect("/onboarding?step=4");
   }
 
   const passwordHash = await import("bcrypt").then((module) =>
-    module.default.hash(initialPassword, 10)
+    module.default.hash(temporaryPassword, 10)
   );
 
   let createdUser = false;
@@ -358,17 +344,20 @@ async function inviteEmployeeAction(formData: FormData) {
     });
   });
 
-  if (createdUser && shouldSendWelcomeEmail) {
+  if (createdUser) {
     try {
       await sendEmployeeWelcomeEmail(
         email,
         `${firstName} ${lastName}`.trim(),
         activeBar.name,
         email,
-        initialPassword
+        temporaryPassword
       );
     } catch (error) {
-      console.error("[email] Failed to send onboarding employee welcome email.", error);
+      console.error("[welcome-email] employee failed", {
+        recipient: email,
+        error: "Unexpected welcome email error.",
+      });
     }
   }
 
@@ -531,12 +520,18 @@ function Input({
   defaultValue,
   type = "text",
   placeholder,
+  minLength,
+  required,
+  autoComplete,
 }: {
   name: string;
   label: string;
   defaultValue?: string | number | null;
   type?: string;
   placeholder?: string;
+  minLength?: number;
+  required?: boolean;
+  autoComplete?: string;
 }) {
   return (
     <label style={{ display: "grid", gap: 8 }}>
@@ -546,6 +541,9 @@ function Input({
         type={type}
         defaultValue={defaultValue ?? ""}
         placeholder={placeholder}
+        minLength={minLength}
+        required={required}
+        autoComplete={autoComplete}
         style={{
           borderRadius: 14,
           border: "1px solid #d9cdb8",
@@ -755,13 +753,17 @@ export default async function OnboardingPage({
                   name="email"
                   label="Email"
                   type="email"
+                  required
                   placeholder="nome@locale.it"
                 />
                 <Input
-                  name="initialPassword"
-                  label="Temporary password"
+                  name="temporaryPassword"
+                  label="Password temporanea"
                   type="text"
-                  placeholder="Imposta una password iniziale"
+                  required
+                  minLength={MIN_TEMPORARY_PASSWORD_LENGTH}
+                  autoComplete="new-password"
+                  placeholder="Imposta una password temporanea"
                 />
                 <label style={{ display: "grid", gap: 8 }}>
                   <span style={{ fontWeight: 600 }}>Role</span>

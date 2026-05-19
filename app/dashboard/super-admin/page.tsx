@@ -23,6 +23,7 @@ import {
 import { BarGroupsClient } from "./bar-groups-client";
 import { GlobalGpsRadiusForm } from "./global-gps-radius-form";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
+import { MIN_TEMPORARY_PASSWORD_LENGTH } from "@/lib/temporary-password";
 
 type BarAdminItem = {
   id: string;
@@ -155,8 +156,14 @@ export default async function SuperAdminPage() {
               <TextInput name="email" type="email" required />
             </FormField>
 
-            <FormField label="Password iniziale">
-              <TextInput name="password" type="text" required />
+            <FormField label="Password temporanea">
+              <TextInput
+                name="temporaryPassword"
+                type="text"
+                required
+                minLength={MIN_TEMPORARY_PASSWORD_LENGTH}
+                autoComplete="new-password"
+              />
             </FormField>
 
             <FormField label="Lingua">

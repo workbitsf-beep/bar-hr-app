@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { MIN_TEMPORARY_PASSWORD_LENGTH } from "@/lib/temporary-password";
 import { createEmployeeAction, removeEmployeeAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -80,8 +81,14 @@ export default async function DashboardPeoplePage() {
                 <TextInput name="email" type="email" required />
               </FormField>
 
-              <FormField label="Password iniziale">
-                <TextInput name="initialPassword" type="text" required />
+              <FormField label="Password temporanea">
+                <TextInput
+                  name="temporaryPassword"
+                  type="text"
+                  required
+                  minLength={MIN_TEMPORARY_PASSWORD_LENGTH}
+                  autoComplete="new-password"
+                />
               </FormField>
 
               <FormField label="Ruolo">
@@ -116,7 +123,8 @@ export default async function DashboardPeoplePage() {
                     <>
                       Ruolo: {member.role}
                       <br />
-                      Password iniziale {member.user.mustChangePwd ? "non ancora cambiata" : "gia aggiornata"}
+                      Password temporanea{" "}
+                      {member.user.mustChangePwd ? "non ancora cambiata" : "gia aggiornata"}
                     </>
                   }
                   footer={
