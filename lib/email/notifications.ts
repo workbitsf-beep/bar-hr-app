@@ -50,6 +50,32 @@ async function sendTemplatedEmail(input: {
   return result;
 }
 
+function logWelcomeEmailStatus(input: {
+  type: "owner" | "employee";
+  stage: "queued" | "sent" | "failed";
+  recipient: string;
+  error?: string;
+}) {
+  const message =
+    input.type === "owner"
+      ? `[welcome-email] owner welcome ${input.stage}`
+      : `[welcome-email] employee welcome ${input.stage}`;
+
+  if (input.stage === "failed") {
+    console.error(message, {
+      recipient: input.recipient,
+      type: input.type,
+      error: input.error,
+    });
+    return;
+  }
+
+  console.info(message, {
+    recipient: input.recipient,
+    type: input.type,
+  });
+}
+
 export async function sendWeeklyShiftsPublishedEmail(
   userEmail: string,
   userName: string,
@@ -241,18 +267,45 @@ export async function sendTemporaryPasswordEmail(
 export async function sendOwnerWelcomeEmail(
   ownerEmail: string,
   ownerName: string,
-  barName: string,
+  barName: string | null | undefined,
   loginEmail: string,
   temporaryPassword?: string
 ) {
-  return sendTemplatedEmail({
+  const ownerMessage = barName
+    ? `Ciao ${ownerName},\nil tuo account titolare e il tuo locale sono pronti su Workbit.\nLocale: ${barName}\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. vai nelle impostazioni del locale\n4. fisicamente posizionati nel punto del locale in cui vuoi autorizzare le timbrature\n5. premi "Aggiorna posizione"\n6. crea dipendenti e turni`
+    : `Ciao ${ownerName},\nil tuo account titolare e pronto su Workbit.\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. attendi l'associazione del tuo locale da parte del Super Admin\n4. accedi a Workbit appena il locale sara pronto`;
+
+  logWelcomeEmailStatus({
+    type: "owner",
+    stage: "queued",
+    recipient: ownerEmail,
+  });
+
+  const result = await sendTemplatedEmail({
     to: ownerEmail,
     subject: "Benvenuto in Workbit",
     title: "Benvenuto in Workbit",
-    message: `Ciao ${ownerName},\nil tuo locale e stato creato su Workbit.\nLocale: ${barName}\n\nCredenziali iniziali:\nEmail: ${loginEmail}\nPassword temporanea: ${temporaryPassword ?? "usa quella ricevuta in precedenza oppure richiedine una nuova dalla pagina di accesso."}\n\nAl primo accesso ti verra richiesto di cambiare password.\n\nGuida rapida:\n1. entra in Workbit\n2. cambia password\n3. vai nelle impostazioni del locale\n4. fisicamente posizionati nel punto del locale in cui vuoi autorizzare le timbrature\n5. premi "Aggiorna posizione"\n6. imposta il raggio GPS desiderato\n7. crea dipendenti e turni`,
+    message: ownerMessage,
     ctaLabel: "Accedi a Workbit",
     ctaUrl: getEmailAppUrl("/login"),
   });
+
+  if (result.ok) {
+    logWelcomeEmailStatus({
+      type: "owner",
+      stage: "sent",
+      recipient: ownerEmail,
+    });
+  } else {
+    logWelcomeEmailStatus({
+      type: "owner",
+      stage: "failed",
+      recipient: ownerEmail,
+      error: result.error,
+    });
+  }
+
+  return result;
 }
 
 export async function sendEmployeeWelcomeEmail(
@@ -262,7 +315,13 @@ export async function sendEmployeeWelcomeEmail(
   loginEmail: string,
   temporaryPassword?: string
 ) {
-  return sendTemplatedEmail({
+  logWelcomeEmailStatus({
+    type: "employee",
+    stage: "queued",
+    recipient: employeeEmail,
+  });
+
+  const result = await sendTemplatedEmail({
     to: employeeEmail,
     subject: "Benvenuto in Workbit",
     title: "Benvenuto in Workbit",
@@ -270,4 +329,21 @@ export async function sendEmployeeWelcomeEmail(
     ctaLabel: "Accedi a Workbit",
     ctaUrl: getEmailAppUrl("/login"),
   });
+
+  if (result.ok) {
+    logWelcomeEmailStatus({
+      type: "employee",
+      stage: "sent",
+      recipient: employeeEmail,
+    });
+  } else {
+    logWelcomeEmailStatus({
+      type: "employee",
+      stage: "failed",
+      recipient: employeeEmail,
+      error: result.error,
+    });
+  }
+
+  return result;
 }

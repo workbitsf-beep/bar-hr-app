@@ -606,18 +606,6 @@ export default async function OnboardingPage({
             />
 
             <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
-            <div
-              style={{
-                padding: 14,
-                borderRadius: 18,
-                background: "#f7f2e9",
-                border: "1px solid #eadfc9",
-                color: "#6b7280",
-                lineHeight: 1.6,
-              }}
-            >
-              Range globale timbrature attivo: {globalGpsRadius} metri.
-            </div>
             <div>
               <SubmitButton label="Save GPS and continue" />
             </div>

@@ -552,6 +552,16 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
     },
   });
 
+  await runEmailNotification(async () => {
+    await sendOwnerWelcomeEmail(
+      email,
+      `${firstName} ${lastName}`.trim(),
+      null,
+      email,
+      password
+    );
+  });
+
   revalidatePath("/dashboard/super-admin");
 }
 
