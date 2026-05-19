@@ -303,6 +303,31 @@ async function getReturnPathFromReferer(fallbackPath = "/dashboard") {
   }
 }
 
+function appendStatusToPath(
+  path: string,
+  status: {
+    error?: string;
+    success?: string;
+  }
+) {
+  const [pathname, existingSearch = ""] = path.split("?");
+  const params = new URLSearchParams(existingSearch);
+
+  params.delete("error");
+  params.delete("success");
+
+  if (status.error) {
+    params.set("error", status.error);
+  }
+
+  if (status.success) {
+    params.set("success", status.success);
+  }
+
+  const nextSearch = params.toString();
+  return nextSearch ? `${pathname}?${nextSearch}` : pathname;
+}
+
 function parsePlanType(value: FormDataEntryValue | null): PlanTypeValue {
   const raw = String(value ?? "");
 
@@ -1287,6 +1312,8 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
+  const returnPath = await getReturnPathFromReferer("/dashboard/people");
+
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
@@ -1317,33 +1344,21 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Bar not found");
   }
 
-  let createdUserId: string | null = null;
+  if (existingUser) {
+    redirect(appendStatusToPath(returnPath, { error: "employee-exists" }));
+  }
 
   await prisma.$transaction(async (tx) => {
-    const user =
-      existingUser !== null
-        ? await tx.user.update({
-            where: { email },
-            data: {
-              firstName,
-              lastName,
-              role: userRole,
-            },
-          })
-        : await tx.user.create({
-            data: {
-              email,
-              firstName,
-              lastName,
-              role: userRole,
-              mustChangePwd: true,
-              passwordHash: await bcrypt.hash(temporaryPassword, 10),
-            },
-          });
-
-    if (!existingUser) {
-      createdUserId = user.id;
-    }
+    const user = await tx.user.create({
+      data: {
+        email,
+        firstName,
+        lastName,
+        role: userRole,
+        mustChangePwd: true,
+        passwordHash: await bcrypt.hash(temporaryPassword, 10),
+      },
+    });
 
     await tx.employeeBar.upsert({
       where: {
@@ -1370,19 +1385,18 @@ export async function createEmployeeAction(formData: FormData) {
     });
   });
 
-  if (createdUserId) {
-    await runEmailNotification(async () => {
-      await sendEmployeeWelcomeEmail(
-        email,
-        `${firstName} ${lastName}`.trim(),
-        bar.name,
-        email,
-        temporaryPassword
-      );
-    });
-  }
+  await runEmailNotification(async () => {
+    await sendEmployeeWelcomeEmail(
+      email,
+      `${firstName} ${lastName}`.trim(),
+      bar.name,
+      email,
+      temporaryPassword
+    );
+  });
 
   revalidatePath("/dashboard/people");
+  redirect(appendStatusToPath(returnPath, { success: "employee-created" }));
 }
 
 export async function removeEmployeeAction(formData: FormData) {
@@ -1392,6 +1406,8 @@ export async function removeEmployeeAction(formData: FormData) {
   if (!activeBarId) {
     throw new Error("No active bar selected");
   }
+
+  const returnPath = await getReturnPathFromReferer("/dashboard/people");
 
   const membershipId = String(formData.get("membershipId") ?? "").trim();
 
@@ -1420,69 +1436,17 @@ export async function removeEmployeeAction(formData: FormData) {
     throw new Error("Owner cannot be removed");
   }
 
-  const now = new Date();
-
-  await prisma.$transaction([
-    prisma.employeeBar.update({
-      where: { id: membership.id },
-      data: {
-        isActive: false,
-        endedAt: now,
-      },
-    }),
-    prisma.session.updateMany({
-      where: {
-        userId: membership.userId,
-        activeBarId,
-        revokedAt: null,
-      },
-      data: {
-        activeBarId: null,
-      },
-    }),
-    prisma.shiftAssignment.deleteMany({
-      where: {
-        userId: membership.userId,
-        shift: {
-          barId: activeBarId,
-          startTime: {
-            gte: now,
-          },
-        },
-      },
-    }),
-    prisma.shift.updateMany({
-      where: {
-        barId: activeBarId,
-        assignedToId: membership.userId,
-        startTime: {
-          gte: now,
-        },
-      },
-      data: {
-        assignedToId: null,
-      },
-    }),
-    prisma.request.updateMany({
-      where: {
-        barId: activeBarId,
-        status: RequestStatus.PENDING,
-        OR: [
-          { employeeId: membership.userId },
-          { swapWithUserId: membership.userId },
-        ],
-      },
-      data: {
-        status: RequestStatus.REJECTED,
-        ownerStatus: RequestStatus.REJECTED,
-      },
-    }),
-  ]);
+  await prisma.user.delete({
+    where: {
+      id: membership.userId,
+    },
+  });
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/people");
   revalidatePath("/dashboard/shifts");
   revalidatePath("/dashboard/requests");
+  redirect(appendStatusToPath(returnPath, { success: "employee-deleted" }));
 }
 
 export async function updateSettingsAction(formData: FormData) {

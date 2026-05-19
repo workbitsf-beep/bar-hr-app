@@ -16,7 +16,14 @@ import {
   TextInput,
 } from "../ui";
 
-export default async function DashboardPeoplePage() {
+export default async function DashboardPeoplePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
+  const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { role, activeBarId, billingStatus } = await getDashboardContext();
 
   if (role !== Role.OWNER) {
@@ -62,6 +69,48 @@ export default async function DashboardPeoplePage() {
       <Stack>
         <Panel title="Nuova persona">
           <form action={createEmployeeAction} style={{ display: "grid", gap: 16 }}>
+            {error === "employee-exists" ? (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 16,
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#b91c1c",
+                  lineHeight: 1.5,
+                }}
+              >
+                Esiste gia un utente con questa email. Usa un indirizzo diverso.
+              </div>
+            ) : null}
+            {success === "employee-created" ? (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 16,
+                  border: "1px solid #bbf7d0",
+                  background: "#f0fdf4",
+                  color: "#166534",
+                  lineHeight: 1.5,
+                }}
+              >
+                Dipendente creato correttamente. La welcome email e stata messa in invio.
+              </div>
+            ) : null}
+            {success === "employee-deleted" ? (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 16,
+                  border: "1px solid #bbf7d0",
+                  background: "#f0fdf4",
+                  color: "#166534",
+                  lineHeight: 1.5,
+                }}
+              >
+                Dipendente eliminato definitivamente dal database.
+              </div>
+            ) : null}
             <div
               style={{
                 display: "grid",

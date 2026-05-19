@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { RoundingMode, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
+import { PendingButton } from "@/app/components/pending-button";
 import { getSession } from "@/lib/auth";
 import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
@@ -558,8 +559,9 @@ function Input({
 
 function SubmitButton({ label }: { label: string }) {
   return (
-    <button
+    <PendingButton
       type="submit"
+      pendingLabel="Invio in corso..."
       style={{
         background: "#1f2937",
         color: "#fff",
@@ -567,11 +569,18 @@ function SubmitButton({ label }: { label: string }) {
         borderRadius: 999,
         padding: "12px 18px",
         fontWeight: 700,
+      }}
+      idleStyle={{
         cursor: "pointer",
+        opacity: 1,
+      }}
+      pendingStyle={{
+        cursor: "default",
+        opacity: 0.7,
       }}
     >
       {label}
-    </button>
+    </PendingButton>
   );
 }
 

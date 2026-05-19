@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { PendingButton } from "@/app/components/pending-button";
 import type { DashboardNavItem } from "./context";
 import { DashboardNavMenu } from "./dashboard-nav-menu";
 
@@ -789,9 +790,11 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 export function PrimaryButton({
   children,
   tone = "dark",
+  pendingLabel,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: "dark" | "green" | "red" | "sand";
+  pendingLabel?: React.ReactNode;
 }) {
   const backgrounds = {
     dark: "#0f172a",
@@ -801,8 +804,9 @@ export function PrimaryButton({
   };
 
   return (
-    <button
+    <PendingButton
       {...props}
+      pendingLabel={pendingLabel}
       className={joinClassNames("dashboard-button", props.className)}
       style={{
         background: backgrounds[tone],
@@ -811,26 +815,36 @@ export function PrimaryButton({
         borderRadius: 999,
         padding: "12px 18px",
         fontWeight: 700,
-        cursor: props.disabled ? "default" : "pointer",
-        opacity: props.disabled ? 0.65 : 1,
         boxShadow: "0 10px 20px rgba(15, 23, 42, 0.14)",
         transition: "transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease",
         touchAction: "manipulation",
         ...props.style,
       }}
+      idleStyle={{
+        cursor: "pointer",
+        opacity: 1,
+      }}
+      pendingStyle={{
+        cursor: "default",
+        opacity: 0.65,
+      }}
     >
       {children}
-    </button>
+    </PendingButton>
   );
 }
 
 export function IconButton({
   children,
+  pendingLabel,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  pendingLabel?: React.ReactNode;
+}) {
   return (
-    <button
+    <PendingButton
       {...props}
+      pendingLabel={pendingLabel}
       className={joinClassNames("dashboard-icon-button", props.className)}
       style={{
         width: 42,
@@ -842,15 +856,21 @@ export function IconButton({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        cursor: props.disabled ? "default" : "pointer",
         boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
-        opacity: props.disabled ? 0.65 : 1,
         touchAction: "manipulation",
         ...props.style,
       }}
+      idleStyle={{
+        cursor: "pointer",
+        opacity: 1,
+      }}
+      pendingStyle={{
+        cursor: "default",
+        opacity: 0.65,
+      }}
     >
       {children}
-    </button>
+    </PendingButton>
   );
 }
 
