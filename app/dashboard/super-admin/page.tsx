@@ -21,6 +21,8 @@ import {
   TextInput,
 } from "../ui";
 import { BarGroupsClient } from "./bar-groups-client";
+import { GlobalGpsRadiusForm } from "./global-gps-radius-form";
+import { getGlobalGpsRadius } from "@/lib/gps-settings";
 
 type BarAdminItem = {
   id: string;
@@ -59,7 +61,7 @@ export default async function SuperAdminPage() {
     );
   }
 
-  const [owners, bars] = await Promise.all([
+  const [owners, bars, globalGpsRadius] = await Promise.all([
     prisma.user.findMany({
       where: {
         role: Role.OWNER,
@@ -99,6 +101,7 @@ export default async function SuperAdminPage() {
         },
       },
     }),
+    getGlobalGpsRadius(),
   ]);
 
   const adminBars = bars as BarAdminItem[];
@@ -126,6 +129,10 @@ export default async function SuperAdminPage() {
       </section>
 
       <Stack columns="repeat(auto-fit, minmax(340px, 1fr))">
+        <Panel title="Range globale timbrature">
+          <GlobalGpsRadiusForm initialRadius={globalGpsRadius} />
+        </Panel>
+
         <Panel title="Crea titolare">
         <form action={createOwnerBySuperAdminAction} style={{ display: "grid", gap: 16 }}>
           <div

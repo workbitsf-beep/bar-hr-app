@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { RoundingMode, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { getSession } from "@/lib/auth";
+import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 
 type StepNumber = 1 | 2 | 3 | 4;
@@ -109,19 +110,23 @@ async function createBarAction(formData: FormData) {
     redirect("/onboarding?error=missing-bar-name");
   }
 
+  const globalGpsRadius = await getGlobalGpsRadius();
+
   const bar = await prisma.bar.create({
     data: {
       name,
       latitude: 0,
       longitude: 0,
-      radiusMeters: 90,
+      radiusMeters: globalGpsRadius,
       roundingEnabled: false,
       entryToleranceMin: 5,
       roundingStepMin: 15,
       exitToleranceMin: 13,
       ownerId: session.user.id,
       settings: {
-        create: {},
+        create: {
+          gpsRadius: globalGpsRadius,
+        },
       },
       memberships: {
         create: {
@@ -154,7 +159,7 @@ async function saveGpsAction(formData: FormData) {
 
   const gpsLatitude = parseNumber(formData.get("gpsLatitude"));
   const gpsLongitude = parseNumber(formData.get("gpsLongitude"));
-  const gpsRadius = 90;
+  const gpsRadius = await getGlobalGpsRadius();
 
   if (gpsLatitude === null || gpsLongitude === null) {
     redirect("/onboarding?step=2&error=invalid-gps");
@@ -533,6 +538,7 @@ export default async function OnboardingPage({
 }) {
   const params = searchParams ? await searchParams : {};
   const { activeBar } = await getOwnerContext();
+  const globalGpsRadius = await getGlobalGpsRadius();
   const invitedMembers =
     activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
   const computedStep = getCurrentStep(activeBar);
@@ -580,7 +586,19 @@ export default async function OnboardingPage({
               initialLongitude={activeBar.settings?.gpsLongitude}
             />
 
-            <input type="hidden" name="gpsRadius" value="90" />
+            <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 18,
+                background: "#f7f2e9",
+                border: "1px solid #eadfc9",
+                color: "#6b7280",
+                lineHeight: 1.6,
+              }}
+            >
+              Range globale timbrature attivo: {globalGpsRadius} metri.
+            </div>
             <div>
               <SubmitButton label="Save GPS and continue" />
             </div>

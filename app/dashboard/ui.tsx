@@ -67,6 +67,17 @@ function DashboardResponsiveStyles() {
         transform: scale(0.98);
       }
 
+      @keyframes dashboardModalEnter {
+        from {
+          opacity: 0;
+          transform: translateY(12px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
       .dashboard-form-actions,
       .dashboard-modal-actions,
       .dashboard-inline-actions,
@@ -101,8 +112,52 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-week-strip {
-        display: grid;
+        display: flex;
         gap: 16px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .dashboard-week-strip::-webkit-scrollbar {
+        display: none;
+      }
+
+      .dashboard-week-card {
+        flex: 0 0 min(86vw, 440px);
+        width: min(86vw, 440px);
+        max-width: calc(100vw - 56px);
+        scroll-snap-align: start;
+      }
+
+      .dashboard-modal-wrap {
+        padding:
+          max(16px, env(safe-area-inset-top))
+          max(16px, env(safe-area-inset-right))
+          max(16px, env(safe-area-inset-bottom))
+          max(16px, env(safe-area-inset-left));
+        overflow: hidden;
+        overscroll-behavior: contain;
+      }
+
+      .dashboard-modal-panel {
+        width: min(92vw, 820px) !important;
+        max-width: min(92vw, 820px) !important;
+        max-height: 85vh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        padding: clamp(18px, 2.8vw, 24px) !important;
+        border-radius: 28px !important;
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16) !important;
+        animation: dashboardModalEnter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .dashboard-modal-panel > * {
+        min-width: 0;
       }
 
       .dashboard-stack {
@@ -239,13 +294,18 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-modal-wrap {
-          padding: 10px !important;
+          padding:
+            max(16px, env(safe-area-inset-top))
+            max(16px, env(safe-area-inset-right))
+            max(16px, env(safe-area-inset-bottom))
+            max(16px, env(safe-area-inset-left)) !important;
           place-items: center !important;
         }
 
         .dashboard-modal-panel {
-          width: calc(100vw - 24px) !important;
-          max-height: calc(100vh - 24px) !important;
+          width: min(92vw, 560px) !important;
+          max-width: min(92vw, 560px) !important;
+          max-height: 85vh !important;
           padding: 18px !important;
           border-radius: 24px !important;
           overscroll-behavior: contain;
@@ -300,16 +360,18 @@ function DashboardResponsiveStyles() {
           display: none !important;
         }
 
-        .dashboard-week-strip {
-          display: grid !important;
+        .dashboard-mobile-only.dashboard-week-strip {
+          display: flex !important;
           gap: 14px !important;
-          overflow: visible !important;
-          padding-bottom: 0;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          padding-bottom: 6px;
         }
 
         .dashboard-week-card {
-          width: 100% !important;
-          max-width: none !important;
+          flex: 0 0 min(88vw, 420px) !important;
+          width: min(88vw, 420px) !important;
+          max-width: calc(100vw - 48px) !important;
         }
 
         .super-admin-mobile-list {

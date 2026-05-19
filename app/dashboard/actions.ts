@@ -38,6 +38,7 @@ import {
   userCanAccessBar,
 } from "@/lib/permissions";
 import { getSession } from "@/lib/auth";
+import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 
 type PlanTypeValue = "FREE" | "TRIAL" | "PAID" | "LIFETIME";
@@ -575,6 +576,8 @@ export async function createBarBySuperAdminAction(formData: FormData) {
     throw new Error("Owner not found");
   }
 
+  const globalGpsRadius = await getGlobalGpsRadius();
+
   const bar = await prisma.bar.create({
     data: {
       name,
@@ -585,7 +588,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
       postalCode: postalCode || null,
       latitude: 0,
       longitude: 0,
-      radiusMeters: 90,
+      radiusMeters: globalGpsRadius,
       ownerId,
     },
   });
@@ -615,7 +618,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
       barId: bar.id,
       gpsLatitude: null,
       gpsLongitude: null,
-      gpsRadius: null,
+      gpsRadius: globalGpsRadius,
       roundingEnabled: false,
     },
   });
@@ -1437,7 +1440,7 @@ export async function updateSettingsAction(formData: FormData) {
 
   const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
   const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
-  const gpsRadius = 90;
+  const gpsRadius = await getGlobalGpsRadius();
   const roundingEnabled = formData.get("roundingEnabled") === "on";
   const roundingMinutes = parseOptionalNumber(formData.get("roundingMinutes"));
   const roundingModeRaw = String(formData.get("roundingMode") ?? "");
@@ -1489,6 +1492,32 @@ export async function updateSettingsAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/timelogs");
+}
+
+export async function updateGlobalGpsRadiusAction(nextRadius: number) {
+  await getSuperAdminContext();
+
+  if (!Number.isFinite(nextRadius)) {
+    return {
+      ok: false,
+      gpsRadius: await getGlobalGpsRadius(),
+      message: "Inserisci un valore valido.",
+    };
+  }
+
+  const gpsRadius = await applyGlobalGpsRadius(nextRadius);
+
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/timelogs");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/onboarding");
+
+  return {
+    ok: true,
+    gpsRadius,
+    message: "Range globale aggiornato.",
+  };
 }
 
 export async function createManualTimeLogAction(formData: FormData) {

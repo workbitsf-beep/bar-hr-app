@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
+import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { updateSettingsAction } from "../actions";
@@ -36,11 +37,14 @@ export default async function DashboardSettingsPage() {
     return <BillingRequiredState role={String(role)} />;
   }
 
-  const settings = await prisma.barSettings.findUnique({
-    where: {
-      barId: activeBarId,
-    },
-  });
+  const [settings, globalGpsRadius] = await Promise.all([
+    prisma.barSettings.findUnique({
+      where: {
+        barId: activeBarId,
+      },
+    }),
+    getGlobalGpsRadius(),
+  ]);
 
   return (
     <>
@@ -55,7 +59,20 @@ export default async function DashboardSettingsPage() {
               submitOnLocate
             />
 
-            <input type="hidden" name="gpsRadius" value="90" />
+            <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
+
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 18,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                color: "#475569",
+                lineHeight: 1.6,
+              }}
+            >
+              Range globale timbrature attivo: {globalGpsRadius} metri.
+            </div>
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
