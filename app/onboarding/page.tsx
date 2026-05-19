@@ -272,8 +272,22 @@ async function inviteEmployeeAction(formData: FormData) {
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: {
+      id: true,
+      barMemberships: {
+        where: {
+          barId: activeBar.id,
+        },
+        select: {
+          isActive: true,
+        },
+        take: 1,
+      },
+    },
   });
+
+  const shouldSendWelcomeEmail =
+    !existingUser || existingUser.barMemberships[0]?.isActive !== true;
 
   if (existingUser) {
     await prisma.employeeBar.upsert({
@@ -295,6 +309,19 @@ async function inviteEmployeeAction(formData: FormData) {
         isActive: true,
       },
     });
+
+    if (shouldSendWelcomeEmail) {
+      try {
+        await sendEmployeeWelcomeEmail(
+          email,
+          `${firstName} ${lastName}`.trim(),
+          activeBar.name,
+          email
+        );
+      } catch (error) {
+        console.error("[email] Failed to send onboarding employee welcome email.", error);
+      }
+    }
 
     revalidatePath("/onboarding");
     redirect("/onboarding?step=4");
@@ -331,7 +358,7 @@ async function inviteEmployeeAction(formData: FormData) {
     });
   });
 
-  if (createdUser) {
+  if (createdUser && shouldSendWelcomeEmail) {
     try {
       await sendEmployeeWelcomeEmail(
         email,

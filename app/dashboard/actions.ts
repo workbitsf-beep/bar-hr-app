@@ -552,16 +552,6 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
     },
   });
 
-  await runEmailNotification(async () => {
-    await sendOwnerWelcomeEmail(
-      email,
-      `${firstName} ${lastName}`.trim(),
-      null,
-      email,
-      password
-    );
-  });
-
   revalidatePath("/dashboard/super-admin");
 }
 
@@ -1376,6 +1366,15 @@ export async function createEmployeeAction(formData: FormData) {
       where: { email },
       select: {
         id: true,
+        barMemberships: {
+          where: {
+            barId: activeBarId,
+          },
+          select: {
+            isActive: true,
+          },
+          take: 1,
+        },
       },
     }),
   ]);
@@ -1384,6 +1383,8 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Bar not found");
   }
 
+  const shouldSendWelcomeEmail =
+    !existingUser || existingUser.barMemberships[0]?.isActive !== true;
   let createdUserId: string | null = null;
 
   await prisma.$transaction(async (tx) => {
@@ -1437,14 +1438,14 @@ export async function createEmployeeAction(formData: FormData) {
     });
   });
 
-  if (createdUserId) {
+  if (shouldSendWelcomeEmail) {
     await runEmailNotification(async () => {
       await sendEmployeeWelcomeEmail(
         email,
         `${firstName} ${lastName}`.trim(),
         bar.name,
         email,
-        initialPassword
+        createdUserId ? initialPassword : undefined
       );
     });
   }
