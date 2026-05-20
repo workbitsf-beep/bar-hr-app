@@ -9,6 +9,7 @@ import {
   sendSubscriptionActivatedEmail,
   sendSubscriptionCanceledEmail,
 } from "@/lib/email/notifications";
+import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { requireStripe } from "@/lib/stripe";
 
@@ -138,6 +139,8 @@ async function upsertSubscriptionFromStripe(input: {
       trialEndsAt: input.trialEndsAt === undefined ? null : input.trialEndsAt,
     },
   });
+
+  invalidateBillingStatusCache(input.barId);
 }
 
 async function getLocalSubscriptionStatus(barId: string) {
@@ -432,6 +435,7 @@ export async function POST(req: Request) {
             status: SubscriptionStatus.PAST_DUE,
           },
         });
+        invalidateBillingStatusCache(barId);
 
         if (previous?.status !== SubscriptionStatus.PAST_DUE) {
           await sendOwnerBillingEmail({

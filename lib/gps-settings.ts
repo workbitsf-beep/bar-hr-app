@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 
 export const DEFAULT_GLOBAL_GPS_RADIUS = 90;
 
@@ -13,34 +14,36 @@ function normalizeGpsRadius(value: number) {
 }
 
 export async function getGlobalGpsRadius() {
-  const settings = await prisma.barSettings.findFirst({
-    where: {
-      gpsRadius: {
-        not: null,
+  return getOrSetRuntimeCache("global-gps-radius", 60_000, async () => {
+    const settings = await prisma.barSettings.findFirst({
+      where: {
+        gpsRadius: {
+          not: null,
+        },
       },
-    },
-    orderBy: {
-      barId: "asc",
-    },
-    select: {
-      gpsRadius: true,
-    },
+      orderBy: {
+        barId: "asc",
+      },
+      select: {
+        gpsRadius: true,
+      },
+    });
+
+    if (settings?.gpsRadius) {
+      return normalizeGpsRadius(settings.gpsRadius);
+    }
+
+    const bar = await prisma.bar.findFirst({
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        radiusMeters: true,
+      },
+    });
+
+    return normalizeGpsRadius(bar?.radiusMeters ?? DEFAULT_GLOBAL_GPS_RADIUS);
   });
-
-  if (settings?.gpsRadius) {
-    return normalizeGpsRadius(settings.gpsRadius);
-  }
-
-  const bar = await prisma.bar.findFirst({
-    orderBy: {
-      createdAt: "asc",
-    },
-    select: {
-      radiusMeters: true,
-    },
-  });
-
-  return normalizeGpsRadius(bar?.radiusMeters ?? DEFAULT_GLOBAL_GPS_RADIUS);
 }
 
 export async function applyGlobalGpsRadius(nextRadius: number) {
@@ -58,6 +61,8 @@ export async function applyGlobalGpsRadius(nextRadius: number) {
       },
     }),
   ]);
+
+  invalidateRuntimeCache("global-gps-radius");
 
   return gpsRadius;
 }

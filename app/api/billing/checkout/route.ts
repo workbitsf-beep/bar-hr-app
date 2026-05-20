@@ -1,5 +1,6 @@
 import { BillingInterval, PlanType, Role, SubscriptionStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth";
+import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { requireStripe } from "@/lib/stripe";
@@ -121,6 +122,7 @@ export async function POST(req: Request) {
         trialEndsAt: pendingTrialSetup ? subscription?.trialEndsAt ?? null : null,
       },
     });
+    invalidateBillingStatusCache(bar.id);
   } else {
     await prisma.subscription.updateMany({
       where: { barId: bar.id },
@@ -128,6 +130,7 @@ export async function POST(req: Request) {
         billingInterval: interval,
       },
     });
+    invalidateBillingStatusCache(bar.id);
   }
 
   const baseUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");

@@ -102,6 +102,8 @@ model User {
   sessions            Session[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
+
+  @@index([role])
 }
 
 model Session {
@@ -116,6 +118,8 @@ model Session {
   activeBar   Bar?      @relation(fields: [activeBarId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt, expiresAt])
 }
 
 model Bar {
@@ -151,6 +155,7 @@ model Bar {
   updatedAt         DateTime        @updatedAt
 
   @@index([ownerId])
+  @@index([ownerId, createdAt])
 }
 
 model Subscription {
@@ -202,6 +207,9 @@ model EmployeeBar {
   @@unique([userId, barId])
   @@index([userId])
   @@index([barId])
+  @@index([barId, isActive])
+  @@index([barId, role, isActive])
+  @@index([userId, isActive])
 }
 
 model Shift {
@@ -225,6 +233,9 @@ model Shift {
   updatedAt    DateTime          @updatedAt
 
   @@index([barId, assignedToId])
+  @@index([barId, startTime])
+  @@index([barId, endTime])
+  @@index([barId, confirmedAt])
   @@index([startTime])
   @@index([createdById])
   @@index([confirmedById])
@@ -260,7 +271,9 @@ model TimeLog {
   note        String?
 
   @@index([barId, userId, timestamp])
+  @@index([barId, userId, type, timestamp])
   @@index([shiftId])
+  @@index([userId, timestamp])
 }
 
 model Task {
@@ -285,6 +298,8 @@ model Task {
   updatedAt     DateTime         @updatedAt
 
   @@index([barId, dueDate])
+  @@index([barId, status, dueDate])
+  @@index([barId, assignedToId, status])
   @@index([assignedToId])
   @@index([completedById])
 }
@@ -316,6 +331,7 @@ model Note {
   updatedAt  DateTime @updatedAt
 
   @@index([barId, createdAt])
+  @@index([barId, isPinned, createdAt])
   @@index([employeeId])
 }
 
@@ -332,6 +348,8 @@ model Availability {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([barId, startsAt])
+  @@index([barId, endsAt])
+  @@index([barId, userId, startsAt])
   @@index([userId, startsAt])
 }
 
@@ -363,5 +381,9 @@ model Request {
   updatedAt        DateTime       @updatedAt
 
   @@index([barId, status])
+  @@index([barId, status, createdAt])
+  @@index([barId, type, status])
+  @@index([barId, startsAt])
   @@index([employeeId, createdAt])
+  @@index([swapWithUserId])
 }

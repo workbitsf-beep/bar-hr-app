@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 
 export const DEFAULT_TRIAL_DAYS = 30;
 
@@ -46,19 +47,24 @@ function computeCanAccess(input: {
 export const getBillingStatus = cache(async function getBillingStatus(
   barId: string
 ): Promise<BillingStatusResult> {
-  const subscription = await prisma.subscription.findUnique({
-    where: { barId },
-    select: {
-      planType: true,
-      status: true,
-      billingInterval: true,
-      currentPeriodEnd: true,
-      trialEndsAt: true,
-      stripeCustomerId: true,
-      stripeSubscriptionId: true,
-      stripePriceId: true,
-    },
-  });
+  const subscription = await getOrSetRuntimeCache(
+    `billing-status:${barId}`,
+    30_000,
+    async () =>
+      prisma.subscription.findUnique({
+        where: { barId },
+        select: {
+          planType: true,
+          status: true,
+          billingInterval: true,
+          currentPeriodEnd: true,
+          trialEndsAt: true,
+          stripeCustomerId: true,
+          stripeSubscriptionId: true,
+          stripePriceId: true,
+        },
+      })
+  );
 
   const result: BillingStatusResult = {
     planType: subscription?.planType ?? PlanType.PAID,
@@ -75,6 +81,10 @@ export const getBillingStatus = cache(async function getBillingStatus(
   result.canAccess = computeCanAccess(result);
   return result;
 });
+
+export function invalidateBillingStatusCache(barId: string) {
+  invalidateRuntimeCache(`billing-status:${barId}`);
+}
 
 export async function canAccessBar(barId: string) {
   const status = await getBillingStatus(barId);

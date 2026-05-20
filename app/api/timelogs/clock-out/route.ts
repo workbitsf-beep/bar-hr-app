@@ -2,6 +2,7 @@ import { ClockType, Role } from "@prisma/client";
 import { isWithinRadiusWithAccuracy } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
+import { invalidateReportingCache } from "@/lib/reporting";
 import { withBar } from "@/lib/withBar";
 
 type ClockOutBody = {
@@ -127,6 +128,8 @@ export const POST = withBar(
         note: accuracy > 0 ? `Precisione GPS: ±${Math.round(accuracy)} m` : null,
       },
     });
+
+    invalidateReportingCache(session.activeBarId, session.user.id);
 
     const duration = outTimestamp.getTime() - lastClockIn.timestamp.getTime();
 

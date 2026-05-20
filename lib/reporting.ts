@@ -3,6 +3,7 @@ import "server-only";
 import { ClockType, type Prisma, RequestStatus, RequestType, RoundingMode } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { applyRounding } from "@/lib/rounding";
+import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 
 export type ExportEntry = {
   inLogId: string;
@@ -139,44 +140,50 @@ export async function buildMonthlyTotals(
   month: number,
   year: number
 ): Promise<MonthlyTotals> {
-  const monthStart = new Date(year, month - 1, 1);
-  const monthEnd = new Date(year, month, 1);
+  return getOrSetRuntimeCache(
+    `monthly-totals:${barId}:${userId}:${year}:${month}`,
+    20_000,
+    async () => {
+      const monthStart = new Date(year, month - 1, 1);
+      const monthEnd = new Date(year, month, 1);
 
-  const [timeLogs, settings] = await Promise.all([
-    prisma.timeLog.findMany({
-      where: {
-        userId,
-        barId,
-        timestamp: {
-          gte: monthStart,
-          lt: monthEnd,
-        },
-      },
-      select: {
-        id: true,
-        type: true,
-        timestamp: true,
-      },
-      orderBy: {
-        timestamp: "asc",
-      },
-    }),
-    prisma.barSettings.findUnique({
-      where: { barId },
-      select: {
-        roundingEnabled: true,
-        roundingMode: true,
-        roundingMinutes: true,
-      },
-    }),
-  ]);
+      const [timeLogs, settings] = await Promise.all([
+        prisma.timeLog.findMany({
+          where: {
+            userId,
+            barId,
+            timestamp: {
+              gte: monthStart,
+              lt: monthEnd,
+            },
+          },
+          select: {
+            id: true,
+            type: true,
+            timestamp: true,
+          },
+          orderBy: {
+            timestamp: "asc",
+          },
+        }),
+        prisma.barSettings.findUnique({
+          where: { barId },
+          select: {
+            roundingEnabled: true,
+            roundingMode: true,
+            roundingMinutes: true,
+          },
+        }),
+      ]);
 
-  const totals = calculateMonthlyTotals(timeLogs, settings);
+      const totals = calculateMonthlyTotals(timeLogs, settings);
 
-  return {
-    realHours: toHours(totals.totalRealMs),
-    roundedHours: toHours(totals.totalRoundedMs),
-  };
+      return {
+        realHours: toHours(totals.totalRealMs),
+        roundedHours: toHours(totals.totalRoundedMs),
+      };
+    }
+  );
 }
 
 export async function buildMonthlyDataset(
@@ -185,177 +192,197 @@ export async function buildMonthlyDataset(
   month: number,
   year: number
 ): Promise<MonthlyDataset> {
-  const monthStart = new Date(year, month - 1, 1);
-  const monthEnd = new Date(year, month, 1);
+  return getOrSetRuntimeCache(
+    `monthly-dataset:${barId}:${userId}:${year}:${month}`,
+    20_000,
+    async () => {
+      const monthStart = new Date(year, month - 1, 1);
+      const monthEnd = new Date(year, month, 1);
 
-  const [timeLogs, settings, approvedRequests] = await Promise.all([
-    prisma.timeLog.findMany({
-      where: {
-        userId,
-        barId,
-        timestamp: {
-          gte: monthStart,
-          lt: monthEnd,
-        },
-      },
-      select: {
-        id: true,
-        type: true,
-        timestamp: true,
-      },
-      orderBy: {
-        timestamp: "asc",
-      },
-    }),
-    prisma.barSettings.findUnique({
-      where: { barId },
-      select: {
-        roundingEnabled: true,
-        roundingMode: true,
-        roundingMinutes: true,
-      },
-    }),
-    prisma.request.findMany({
-      where: {
-        barId,
-        employeeId: userId,
-        type: {
-          in: [RequestType.VACATION, RequestType.PERMISSION],
-        },
-        status: RequestStatus.APPROVED,
-        startsAt: {
-          lt: monthEnd,
-        },
-        endsAt: {
-          gte: monthStart,
-        },
-      },
-      select: {
-        type: true,
-        startsAt: true,
-        endsAt: true,
-      },
-    }),
-  ]);
+      const [timeLogs, settings, approvedRequests] = await Promise.all([
+        prisma.timeLog.findMany({
+          where: {
+            userId,
+            barId,
+            timestamp: {
+              gte: monthStart,
+              lt: monthEnd,
+            },
+          },
+          select: {
+            id: true,
+            type: true,
+            timestamp: true,
+          },
+          orderBy: {
+            timestamp: "asc",
+          },
+        }),
+        prisma.barSettings.findUnique({
+          where: { barId },
+          select: {
+            roundingEnabled: true,
+            roundingMode: true,
+            roundingMinutes: true,
+          },
+        }),
+        prisma.request.findMany({
+          where: {
+            barId,
+            employeeId: userId,
+            type: {
+              in: [RequestType.VACATION, RequestType.PERMISSION],
+            },
+            status: RequestStatus.APPROVED,
+            startsAt: {
+              lt: monthEnd,
+            },
+            endsAt: {
+              gte: monthStart,
+            },
+          },
+          select: {
+            type: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        }),
+      ]);
 
-  const labelsByDay = new Map<string, Set<string>>();
+      const labelsByDay = new Map<string, Set<string>>();
 
-  for (const request of approvedRequests) {
-    if (!request.startsAt || !request.endsAt) {
-      continue;
-    }
+      for (const request of approvedRequests) {
+        if (!request.startsAt || !request.endsAt) {
+          continue;
+        }
 
-    const cursor = new Date(request.startsAt);
-    cursor.setHours(0, 0, 0, 0);
+        const cursor = new Date(request.startsAt);
+        cursor.setHours(0, 0, 0, 0);
 
-    const requestEnd = new Date(request.endsAt);
-    requestEnd.setHours(0, 0, 0, 0);
+        const requestEnd = new Date(request.endsAt);
+        requestEnd.setHours(0, 0, 0, 0);
 
-    while (cursor <= requestEnd) {
-      if (cursor >= monthStart && cursor < monthEnd) {
-        const key = formatDayKey(cursor);
-        const labels = labelsByDay.get(key) ?? new Set<string>();
-        labels.add(requestLabel(request.type));
-        labelsByDay.set(key, labels);
+        while (cursor <= requestEnd) {
+          if (cursor >= monthStart && cursor < monthEnd) {
+            const key = formatDayKey(cursor);
+            const labels = labelsByDay.get(key) ?? new Set<string>();
+            labels.add(requestLabel(request.type));
+            labelsByDay.set(key, labels);
+          }
+
+          cursor.setDate(cursor.getDate() + 1);
+        }
       }
 
-      cursor.setDate(cursor.getDate() + 1);
-    }
-  }
+      const groupedMap = new Map<string, GroupedDay>();
+      let pendingIn: Pick<
+        Prisma.TimeLogGetPayload<{ select: { id: true; type: true; timestamp: true } }>,
+        "id" | "type" | "timestamp"
+      > | null = null;
+      let totalRealMs = 0;
+      let totalRoundedMs = 0;
 
-  const groupedMap = new Map<string, GroupedDay>();
-  let pendingIn: Pick<Prisma.TimeLogGetPayload<{ select: { id: true; type: true; timestamp: true } }>, "id" | "type" | "timestamp"> | null = null;
-  let totalRealMs = 0;
-  let totalRoundedMs = 0;
+      for (const log of timeLogs) {
+        if (log.type === ClockType.IN) {
+          pendingIn = log;
+          continue;
+        }
 
-  for (const log of timeLogs) {
-    if (log.type === ClockType.IN) {
-      pendingIn = log;
-      continue;
-    }
+        if (!pendingIn) {
+          continue;
+        }
 
-    if (!pendingIn) {
-      continue;
-    }
+        const realDurationMs = Math.max(
+          0,
+          log.timestamp.getTime() - pendingIn.timestamp.getTime()
+        );
+        const roundedIn = getRoundedTimestamp(
+          pendingIn.timestamp,
+          settings?.roundingEnabled ?? false,
+          settings?.roundingMode ?? null,
+          settings?.roundingMinutes ?? null
+        );
+        const roundedOut = getRoundedTimestamp(
+          log.timestamp,
+          settings?.roundingEnabled ?? false,
+          settings?.roundingMode ?? null,
+          settings?.roundingMinutes ?? null
+        );
+        const roundedDurationMs = Math.max(
+          0,
+          roundedOut.getTime() - roundedIn.getTime()
+        );
 
-    const realDurationMs = Math.max(
-      0,
-      log.timestamp.getTime() - pendingIn.timestamp.getTime()
-    );
-    const roundedIn = getRoundedTimestamp(
-      pendingIn.timestamp,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedOut = getRoundedTimestamp(
-      log.timestamp,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedDurationMs = Math.max(
-      0,
-      roundedOut.getTime() - roundedIn.getTime()
-    );
+        const dayKey = formatDayKey(pendingIn.timestamp);
+        const day =
+          groupedMap.get(dayKey) ??
+          {
+            date: dayKey,
+            entries: [],
+            totals: {
+              realHours: 0,
+              roundedHours: 0,
+            },
+            labels: Array.from(labelsByDay.get(dayKey) ?? []),
+          };
 
-    const dayKey = formatDayKey(pendingIn.timestamp);
-    const day =
-      groupedMap.get(dayKey) ??
-      {
-        date: dayKey,
-        entries: [],
+        const entry: ExportEntry = {
+          inLogId: pendingIn.id,
+          outLogId: log.id,
+          clockIn: pendingIn.timestamp.toISOString(),
+          clockOut: log.timestamp.toISOString(),
+          realDurationMs,
+          roundedDurationMs,
+          realHours: toHours(realDurationMs),
+          roundedHours: toHours(roundedDurationMs),
+        };
+
+        day.entries.push(entry);
+        day.totals.realHours =
+          Math.round((day.totals.realHours + entry.realHours) * 100) / 100;
+        day.totals.roundedHours =
+          Math.round((day.totals.roundedHours + entry.roundedHours) * 100) / 100;
+        groupedMap.set(dayKey, day);
+        totalRealMs += realDurationMs;
+        totalRoundedMs += roundedDurationMs;
+        pendingIn = null;
+      }
+
+      for (const [dayKey, labels] of labelsByDay.entries()) {
+        if (!groupedMap.has(dayKey)) {
+          groupedMap.set(dayKey, {
+            date: dayKey,
+            entries: [],
+            totals: {
+              realHours: 0,
+              roundedHours: 0,
+            },
+            labels: Array.from(labels),
+          });
+        }
+      }
+
+      const groupedLogs = Array.from(groupedMap.values()).sort((a, b) =>
+        a.date.localeCompare(b.date)
+      );
+
+      return {
+        groupedLogs,
         totals: {
-          realHours: 0,
-          roundedHours: 0,
+          realHours: toHours(totalRealMs),
+          roundedHours: toHours(totalRoundedMs),
         },
-        labels: Array.from(labelsByDay.get(dayKey) ?? []),
       };
-
-    const entry: ExportEntry = {
-      inLogId: pendingIn.id,
-      outLogId: log.id,
-      clockIn: pendingIn.timestamp.toISOString(),
-      clockOut: log.timestamp.toISOString(),
-      realDurationMs,
-      roundedDurationMs,
-      realHours: toHours(realDurationMs),
-      roundedHours: toHours(roundedDurationMs),
-    };
-
-    day.entries.push(entry);
-    day.totals.realHours = Math.round((day.totals.realHours + entry.realHours) * 100) / 100;
-    day.totals.roundedHours =
-      Math.round((day.totals.roundedHours + entry.roundedHours) * 100) / 100;
-    groupedMap.set(dayKey, day);
-    totalRealMs += realDurationMs;
-    totalRoundedMs += roundedDurationMs;
-    pendingIn = null;
-  }
-
-  for (const [dayKey, labels] of labelsByDay.entries()) {
-    if (!groupedMap.has(dayKey)) {
-      groupedMap.set(dayKey, {
-        date: dayKey,
-        entries: [],
-        totals: {
-          realHours: 0,
-          roundedHours: 0,
-        },
-        labels: Array.from(labels),
-      });
     }
-  }
-
-  const groupedLogs = Array.from(groupedMap.values()).sort((a, b) =>
-    a.date.localeCompare(b.date)
   );
+}
 
-  return {
-    groupedLogs,
-    totals: {
-      realHours: toHours(totalRealMs),
-      roundedHours: toHours(totalRoundedMs),
-    },
-  };
+export function invalidateReportingCache(barId: string, userId?: string) {
+  invalidateRuntimeCache(`monthly-totals:${barId}:`);
+  invalidateRuntimeCache(`monthly-dataset:${barId}:`);
+
+  if (userId) {
+    invalidateRuntimeCache(`monthly-totals:${barId}:${userId}:`);
+    invalidateRuntimeCache(`monthly-dataset:${barId}:${userId}:`);
+  }
 }

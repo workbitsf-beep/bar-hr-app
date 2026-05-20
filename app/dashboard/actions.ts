@@ -29,9 +29,11 @@ import {
 import {
   canAccessBar as canAccessBillingBar,
   createDefaultTrialEndsAt,
+  invalidateBillingStatusCache,
 } from "@/lib/billing";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { prisma } from "@/lib/prisma";
+import { invalidateReportingCache } from "@/lib/reporting";
 import { requireStripe } from "@/lib/stripe";
 import {
   canManageOperations,
@@ -678,6 +680,8 @@ export async function createBarBySuperAdminAction(formData: FormData) {
     },
   });
 
+  invalidateBillingStatusCache(bar.id);
+
   revalidatePath("/billing");
   revalidatePath("/dashboard/super-admin");
 }
@@ -769,6 +773,8 @@ export async function updateBarSubscriptionAction(formData: FormData) {
       trialEndsAt: planType === PlanType.TRIAL ? trialEndsAt : null,
     },
   });
+
+  invalidateBillingStatusCache(barId);
 
   revalidatePath("/billing");
   revalidatePath("/dashboard/super-admin");
@@ -1578,6 +1584,8 @@ export async function createManualTimeLogAction(formData: FormData) {
       note: note || null,
     },
   });
+
+  invalidateReportingCache(activeBarId, userId);
 
   revalidatePath("/dashboard/timelogs");
   revalidatePath("/dashboard/export");

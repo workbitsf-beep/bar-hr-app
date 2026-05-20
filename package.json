@@ -2,10 +2,14 @@
   "name": "fashionplace",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint",
     "seed:super-admin": "tsx prisma/seed-super-admin.ts"
   },

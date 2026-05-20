@@ -1,5 +1,6 @@
 import { PlanType, Role, SubscriptionStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth";
+import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { requireStripe } from "@/lib/stripe";
@@ -71,6 +72,8 @@ export async function POST() {
       trialEndsAt: null,
     },
   });
+
+  invalidateBillingStatusCache(activeBar.id);
 
   return Response.json({ ok: true });
 }
