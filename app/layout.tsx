@@ -10,6 +10,10 @@ type RootLayoutProps = {
 
 export const metadata: Metadata = {
   title: "Workbit",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default async function RootLayout({ children }: RootLayoutProps) {

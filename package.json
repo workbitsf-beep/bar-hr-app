@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/copy-standalone-assets.js",
     "start": "node --max-old-space-size=512 server.js",
     "lint": "eslint",
     "seed:super-admin": "tsx prisma/seed-super-admin.ts"
