@@ -6,6 +6,7 @@ import { ClockActionsPanel } from "../timelogs/timelogs-client";
 import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, StatusPill, TextInput } from "../ui";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
+import { CalendarWeekStrip } from "./calendar-week-strip";
 
 function getLocale(language: string) {
   if (language === "en") {
@@ -643,7 +644,7 @@ export default async function DashboardCalendarPage({
               </div>
             </div>
 
-            <div
+            <CalendarWeekStrip
               className="dashboard-mobile-only dashboard-week-strip"
               style={{ display: "flex", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}
             >
@@ -656,6 +657,7 @@ export default async function DashboardCalendarPage({
                 <section
                   key={`${week[0]?.date.toISOString() ?? `${weekIndex}-${dayFilter ?? "all"}`}`}
                   className="dashboard-week-card"
+                  data-current-week={weekIsCurrent ? "true" : undefined}
                   style={{
                     display: "grid",
                     gap: 12,
@@ -805,7 +807,7 @@ export default async function DashboardCalendarPage({
                   </div>
                 </section>
               )})}
-            </div>
+            </CalendarWeekStrip>
           </>
         )}
       </Panel>

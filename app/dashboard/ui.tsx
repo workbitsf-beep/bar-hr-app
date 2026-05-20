@@ -414,13 +414,17 @@ function DashboardResponsiveStyles() {
           padding-inline: 0 !important;
           margin: 0 !important;
           padding-bottom: 6px;
+          scroll-snap-type: x mandatory !important;
+          scroll-padding-inline: 0 !important;
         }
 
         .dashboard-week-card {
-          flex: 0 0 calc(100% - 2px) !important;
-          width: calc(100% - 2px) !important;
-          max-width: calc(100% - 2px) !important;
+          flex: 0 0 100% !important;
+          width: 100% !important;
+          max-width: 100% !important;
           min-width: 0 !important;
+          scroll-snap-align: start !important;
+          scroll-snap-stop: always !important;
         }
 
         .super-admin-mobile-list {

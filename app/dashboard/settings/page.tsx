@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
@@ -15,11 +15,24 @@ import {
   Stack,
 } from "../ui";
 
+async function getPasskeyCount(userId: string) {
+  try {
+    return await prisma.webAuthnCredential.count({
+      where: { userId },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+      console.error("[webauthn] passkey table missing; run prisma migrate deploy");
+      return 0;
+    }
+
+    throw error;
+  }
+}
+
 export default async function DashboardSettingsPage() {
   const { session, role, activeBarId, billingStatus } = await getDashboardContext();
-  const passkeyCount = await prisma.webAuthnCredential.count({
-    where: { userId: session.user.id },
-  });
+  const passkeyCount = await getPasskeyCount(session.user.id);
   const securityPanel = (
     <Panel title="Sicurezza account">
       <WebAuthnRegistrationPanel initialPasskeyCount={passkeyCount} />

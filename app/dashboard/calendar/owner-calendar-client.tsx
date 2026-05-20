@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { createShiftAction } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { PrimaryButton, StatusPill } from "../ui";
+import { CalendarWeekStrip } from "./calendar-week-strip";
 
 type MemberOption = {
   id: string;
@@ -340,7 +341,7 @@ export function OwnerCalendarClient({
         </div>
       </div>
 
-      <div
+      <CalendarWeekStrip
         className="dashboard-mobile-only dashboard-week-strip"
         style={{ display: "flex", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}
       >
@@ -351,6 +352,7 @@ export function OwnerCalendarClient({
           <section
             key={`${week[0]?.date ?? `${weekIndex}-${filteredDay ?? "all"}`}`}
             className="dashboard-week-card"
+            data-current-week={weekIsCurrent ? "true" : undefined}
             style={{
               display: "grid",
               gap: 12,
@@ -493,9 +495,9 @@ export function OwnerCalendarClient({
                 </button>
               ))}
             </div>
-          </section>
+            </section>
         )})}
-      </div>
+      </CalendarWeekStrip>
 
       {mounted && selectedDay
         ? createPortal(

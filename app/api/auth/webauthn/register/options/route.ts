@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   getChallengeExpiresAt,
   getWebAuthnConfig,
+  isMissingWebAuthnTableError,
   pruneExpiredWebAuthnChallenges,
   userIdToWebAuthnUserID,
   WEBAUTHN_REGISTRATION_CHALLENGE,
@@ -72,6 +73,17 @@ export async function POST(req: Request): Promise<Response> {
     console.error("[webauthn] registration options failed", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
+
+    if (isMissingWebAuthnTableError(error)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "La biometria non e ancora pronta sul database. Esegui le migration e riprova.",
+        },
+        { status: 503 }
+      );
+    }
 
     return NextResponse.json(
       { ok: false, message: "Impossibile avviare la registrazione biometrica." },

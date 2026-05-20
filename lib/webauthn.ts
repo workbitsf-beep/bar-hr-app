@@ -5,6 +5,7 @@ import type {
   Base64URLString,
   WebAuthnCredential,
 } from "@simplewebauthn/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const WEBAUTHN_REGISTRATION_CHALLENGE = "registration";
@@ -14,7 +15,7 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 export function getWebAuthnConfig(req: Request) {
   const configuredOrigin = process.env.WEBAUTHN_ORIGIN || process.env.APP_URL;
   const origin = normalizeOrigin(configuredOrigin) ?? getForwardedOrigin(req) ?? new URL(req.url).origin;
-  const rpID = process.env.WEBAUTHN_RP_ID || new URL(origin).hostname;
+  const rpID = normalizeRpID(process.env.WEBAUTHN_RP_ID) ?? new URL(origin).hostname;
 
   return {
     rpName: process.env.WEBAUTHN_RP_NAME || "Workbit",
@@ -35,6 +36,10 @@ export async function pruneExpiredWebAuthnChallenges() {
       },
     },
   });
+}
+
+export function isMissingWebAuthnTableError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021";
 }
 
 export function userIdToWebAuthnUserID(userId: string) {
@@ -72,6 +77,24 @@ function normalizeOrigin(value?: string | null) {
     return new URL(value).origin;
   } catch {
     return null;
+  }
+}
+
+function normalizeRpID(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmed).hostname;
+  } catch {
+    return trimmed.replace(/^https?:\/\//, "").split("/")[0].split(":")[0] || null;
   }
 }
 
