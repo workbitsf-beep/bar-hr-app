@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { RoundingMode, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { PendingButton } from "@/app/components/pending-button";
+import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { getSession } from "@/lib/auth";
 import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
@@ -401,6 +402,7 @@ function StepShell({
           "linear-gradient(180deg, #f8f2e6 0%, #efe5d3 45%, #f7f4ec 100%)",
       }}
     >
+      <SessionKeepAlive />
       <div
         style={{
           maxWidth: 1080,

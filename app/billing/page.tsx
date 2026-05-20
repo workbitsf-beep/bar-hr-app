@@ -65,9 +65,7 @@ function formatDate(value: Date | null) {
 }
 
 export default async function BillingPage() {
-  const { role, activeBarId, activeBarName, billingStatus } = await getDashboardContext({
-    allowBillingDestination: true,
-  });
+  const { role, activeBarId, activeBarName, billingStatus } = await getDashboardContext(true);
 
   if (String(role) === "SUPER_ADMIN") {
     return (

@@ -5,7 +5,9 @@ import {
   getSessionCookieOptions,
   getSessionExpiresAt,
   getSessionMaxAge,
+  getSessionPersistenceCookieOptions,
   SESSION_COOKIE_NAME,
+  SESSION_PERSIST_COOKIE_NAME,
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
@@ -64,6 +66,11 @@ export async function POST(req: Request): Promise<Response> {
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, sessionToken, getSessionCookieOptions(sessionMaxAge));
+  cookieStore.set(
+    SESSION_PERSIST_COOKIE_NAME,
+    rememberMe ? "1" : "0",
+    getSessionPersistenceCookieOptions(sessionMaxAge)
+  );
   cookieStore.set(LANGUAGE_COOKIE_NAME, user.language, {
     httpOnly: false,
     sameSite: "lax",

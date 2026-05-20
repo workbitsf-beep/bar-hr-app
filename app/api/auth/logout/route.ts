@@ -1,6 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getSession, SESSION_COOKIE_NAME } from "@/lib/auth";
+import {
+  getSession,
+  SESSION_COOKIE_NAME,
+  SESSION_PERSIST_COOKIE_NAME,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(): Promise<Response> {
@@ -21,6 +25,7 @@ export async function POST(): Promise<Response> {
 
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
+  cookieStore.delete(SESSION_PERSIST_COOKIE_NAME);
 
   return NextResponse.json({ ok: true });
 }

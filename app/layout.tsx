@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
-import { getSession } from "@/lib/auth";
 import { RuntimeLanguageSync } from "@/app/components/runtime-language-sync";
 import { LANGUAGE_COOKIE_NAME, normalizeLanguage } from "@/lib/language";
 
@@ -19,11 +18,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-  const session = await getSession();
   const cookieStore = await cookies();
-  const htmlLang = normalizeLanguage(
-    session?.user.language ?? cookieStore.get(LANGUAGE_COOKIE_NAME)?.value ?? "it"
-  );
+  const htmlLang = normalizeLanguage(cookieStore.get(LANGUAGE_COOKIE_NAME)?.value ?? "it");
 
   return (
     <html lang={htmlLang}>

@@ -39,7 +39,11 @@ import {
   getActiveBarAccess,
   userCanAccessBar,
 } from "@/lib/permissions";
-import { getSession } from "@/lib/auth";
+import {
+  getSession,
+  SESSION_COOKIE_NAME,
+  SESSION_PERSIST_COOKIE_NAME,
+} from "@/lib/auth";
 import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { readTemporaryPasswordFromFormData } from "@/lib/temporary-password";
@@ -501,7 +505,8 @@ export async function logoutAction() {
   }
 
   const cookieStore = await cookies();
-  cookieStore.delete("session");
+  cookieStore.delete(SESSION_COOKIE_NAME);
+  cookieStore.delete(SESSION_PERSIST_COOKIE_NAME);
   redirect("/login");
 }
 

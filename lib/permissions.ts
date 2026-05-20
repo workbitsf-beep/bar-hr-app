@@ -1,6 +1,7 @@
 import "server-only";
 
 import { PlanType, Role } from "@prisma/client";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { SessionWithUser } from "@/lib/auth";
 
@@ -16,7 +17,7 @@ export type ActiveBarAccess = {
   role: Role;
 };
 
-export async function getAccessibleBarsForUser(
+export const getAccessibleBarsForUser = cache(async function getAccessibleBarsForUser(
   userId: string,
   userRole?: Role
 ): Promise<AccessibleBar[]> {
@@ -80,7 +81,7 @@ export async function getAccessibleBarsForUser(
   }
 
   return Array.from(barMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-}
+});
 
 export async function getActiveBarAccess(
   session: SessionWithUser
@@ -179,7 +180,7 @@ export async function ownerNeedsOnboarding(userId: string): Promise<boolean> {
   );
 }
 
-async function getOwnerPrimaryBarState(userId: string) {
+const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(userId: string) {
   return prisma.bar.findFirst({
     where: { ownerId: userId },
     orderBy: {
@@ -204,7 +205,7 @@ async function getOwnerPrimaryBarState(userId: string) {
       },
     },
   });
-}
+});
 
 export async function getPostLoginDestination(input: {
   userId: string;

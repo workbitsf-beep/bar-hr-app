@@ -5,7 +5,6 @@ import { getSession } from "@/lib/auth";
 import { getBillingStatus, type BillingStatusResult } from "@/lib/billing";
 import { getActiveBarAccess, getPostLoginDestination } from "@/lib/permissions";
 import { getTranslation } from "@/lib/i18n";
-import { maybeRunShiftRetentionCleanup } from "@/lib/shiftCleanup";
 
 export type DashboardNavItem = {
   label: string;
@@ -28,9 +27,9 @@ export type DashboardContext = {
   }[];
 };
 
-export const getDashboardContext = cache(async (options?: {
-  allowBillingDestination?: boolean;
-}): Promise<DashboardContext> => {
+export const getDashboardContext = cache(async function getDashboardContext(
+  allowBillingDestination = false
+): Promise<DashboardContext> {
   const session = await getSession();
 
   if (!session) {
@@ -45,13 +44,10 @@ export const getDashboardContext = cache(async (options?: {
 
   if (
     !redirectTo.startsWith("/dashboard") &&
-    !(options?.allowBillingDestination && redirectTo === "/billing")
+    !(allowBillingDestination && redirectTo === "/billing")
   ) {
     redirect(redirectTo);
   }
-
-  await maybeRunShiftRetentionCleanup();
-
   const { activeBar, accessibleBars, role } = await getActiveBarAccess(session);
   const language = session.user.language ?? AppLanguage.it;
   const t = getTranslation(language);

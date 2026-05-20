@@ -5,6 +5,7 @@ import {
   PlanType,
   SubscriptionStatus,
 } from "@prisma/client";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export const DEFAULT_TRIAL_DAYS = 30;
@@ -42,7 +43,9 @@ function computeCanAccess(input: {
   );
 }
 
-export async function getBillingStatus(barId: string): Promise<BillingStatusResult> {
+export const getBillingStatus = cache(async function getBillingStatus(
+  barId: string
+): Promise<BillingStatusResult> {
   const subscription = await prisma.subscription.findUnique({
     where: { barId },
     select: {
@@ -71,7 +74,7 @@ export async function getBillingStatus(barId: string): Promise<BillingStatusResu
 
   result.canAccess = computeCanAccess(result);
   return result;
-}
+});
 
 export async function canAccessBar(barId: string) {
   const status = await getBillingStatus(barId);
