@@ -2,6 +2,7 @@ import { Role, TaskStatus } from "@prisma/client";
 import { sendTaskAssignedEmail } from "@/lib/email/notifications";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { parseTaskDueDate } from "@/lib/task-dates";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
@@ -66,9 +67,9 @@ export const POST = withBar(
       );
     }
 
-    const dueDate = new Date(body.dueDate);
+    const dueDate = parseTaskDueDate(body.dueDate);
 
-    if (Number.isNaN(dueDate.getTime())) {
+    if (!dueDate) {
       return Response.json({ ok: false, message: "Invalid due date" }, { status: 400 });
     }
 

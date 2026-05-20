@@ -1,0 +1,155 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  browserSupportsWebAuthn,
+  platformAuthenticatorIsAvailable,
+  startRegistration,
+} from "@simplewebauthn/browser";
+import { PrimaryButton } from "@/app/dashboard/ui";
+
+type WebAuthnRegistrationPanelProps = {
+  initialPasskeyCount: number;
+};
+
+type ApiResponse = {
+  ok?: boolean;
+  message?: string;
+  options?: Parameters<typeof startRegistration>[0]["optionsJSON"];
+};
+
+export function WebAuthnRegistrationPanel({
+  initialPasskeyCount,
+}: WebAuthnRegistrationPanelProps) {
+  const [passkeyCount, setPasskeyCount] = useState(initialPasskeyCount);
+  const [available, setAvailable] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function checkSupport() {
+      try {
+        const supportsWebAuthn = browserSupportsWebAuthn();
+        const supportsPlatformAuthenticator =
+          supportsWebAuthn && (await platformAuthenticatorIsAvailable());
+
+        if (active) {
+          setAvailable(Boolean(supportsPlatformAuthenticator));
+        }
+      } catch {
+        if (active) {
+          setAvailable(false);
+        }
+      } finally {
+        if (active) {
+          setChecking(false);
+        }
+      }
+    }
+
+    void checkSupport();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleRegister() {
+    setError("");
+    setMessage("");
+    setLoading(true);
+
+    try {
+      const optionsResponse = await fetch("/api/auth/webauthn/register/options", {
+        method: "POST",
+      });
+      const optionsPayload = (await optionsResponse.json().catch(() => null)) as ApiResponse | null;
+
+      if (!optionsResponse.ok || !optionsPayload?.ok || !optionsPayload.options) {
+        setError(optionsPayload?.message || "Impossibile avviare la registrazione biometrica.");
+        return;
+      }
+
+      // startRegistration opens the native Face ID / Touch ID / fingerprint prompt.
+      const credential = await startRegistration({
+        optionsJSON: optionsPayload.options,
+      });
+
+      const verifyResponse = await fetch("/api/auth/webauthn/register/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ response: credential }),
+      });
+      const verifyPayload = (await verifyResponse.json().catch(() => null)) as ApiResponse | null;
+
+      if (!verifyResponse.ok || verifyPayload?.ok !== true) {
+        setError(verifyPayload?.message || "Registrazione biometrica non riuscita.");
+        return;
+      }
+
+      setPasskeyCount((current) => current + 1);
+      setMessage(verifyPayload.message || "Biometria attivata su questo dispositivo.");
+    } catch (err) {
+      const cancelled = err instanceof Error && err.name === "NotAllowedError";
+      setError(
+        cancelled
+          ? "Operazione annullata o non autorizzata dal dispositivo."
+          : "Il dispositivo non ha completato la registrazione biometrica."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div
+        style={{
+          padding: "12px 14px",
+          borderRadius: 18,
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          color: "#475569",
+          lineHeight: 1.6,
+        }}
+      >
+        <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
+          Passkey registrate: {passkeyCount}
+        </strong>
+        Usa Face ID, Touch ID o impronta digitale sul dispositivo. Workbit salva solo la chiave
+        pubblica, mai dati biometrici.
+      </div>
+
+      {checking ? (
+        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+          Verifica supporto biometria...
+        </p>
+      ) : null}
+
+      {!checking && !available ? (
+        <p style={{ margin: 0, color: "#b45309", lineHeight: 1.6 }}>
+          Questo browser o dispositivo non espone un autenticatore biometrico compatibile.
+        </p>
+      ) : null}
+
+      {error ? <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p> : null}
+      {message ? <p style={{ margin: 0, color: "#166534", fontSize: 14 }}>{message}</p> : null}
+
+      <div className="dashboard-form-actions">
+        <PrimaryButton
+          type="button"
+          onClick={handleRegister}
+          disabled={loading || checking || !available}
+        >
+          {loading ? "Attivazione..." : "Attiva Face ID / Touch ID"}
+        </PrimaryButton>
+      </div>
+    </div>
+  );
+}

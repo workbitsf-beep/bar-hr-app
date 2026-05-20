@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
+import { PasskeyLoginButton } from "./passkey-login-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,6 +44,11 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handlePasskeySuccess(redirectTo: string) {
+    router.push(redirectTo);
+    router.refresh();
   }
 
   return (
@@ -205,6 +211,35 @@ export default function LoginPage() {
               {loading ? "Accesso in corso..." : "Entra"}
             </button>
           </form>
+
+          <div
+            style={{
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
+                gap: 12,
+                alignItems: "center",
+                color: "#94a3b8",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              <span style={{ height: 1, background: "#e2e8f0" }} />
+              <span>oppure</span>
+              <span style={{ height: 1, background: "#e2e8f0" }} />
+            </div>
+
+            <PasskeyLoginButton
+              rememberMe={rememberMe}
+              onError={setError}
+              onSuccess={handlePasskeySuccess}
+            />
+          </div>
         </div>
       </section>
     </main>

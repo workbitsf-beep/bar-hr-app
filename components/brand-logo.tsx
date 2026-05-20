@@ -1,6 +1,8 @@
+"use client";
+
 import type { CSSProperties } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 type BrandLogoProps = {
   href?: string;
@@ -34,6 +36,8 @@ function BrandLogoContent({
   textColor: string;
   secondaryColor: string;
 }) {
+  const [logoFailed, setLogoFailed] = useState(false);
+
   return (
     <>
       {showIcon ? (
@@ -50,21 +54,31 @@ function BrandLogoContent({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
+            color: "#0f172a",
+            fontSize: Math.max(14, Math.round(size * 0.42)),
+            fontWeight: 800,
+            lineHeight: 1,
           }}
         >
-          <Image
-            src="/logo.png"
-            alt="Workbit logo"
-            width={size}
-            height={size}
-            priority={priority}
-            sizes={`${size}px`}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
+          {logoFailed ? (
+            <span aria-hidden="true">W</span>
+          ) : (
+            <img
+              src="/logo.png"
+              alt="Workbit logo"
+              width={size}
+              height={size}
+              loading={priority ? "eager" : "lazy"}
+              decoding="async"
+              onError={() => setLogoFailed(true)}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          )}
         </span>
       ) : null}
 

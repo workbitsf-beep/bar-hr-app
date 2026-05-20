@@ -4,7 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
-import { getBestAccuracyPosition } from "@/lib/browser-gps";
+import {
+  MAX_ACCEPTED_ACCURACY_METERS,
+  startPreciseGeolocationWatch,
+} from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
 import {
   EmptyState,
@@ -79,7 +82,8 @@ export function ClockActionsPanel({
   const [actionMessage, setActionMessage] = useState("");
   const [submitting, setSubmitting] = useState<"in" | "out" | null>(null);
   const [locating, setLocating] = useState(false);
-  const refreshInFlightRef = useRef(false);
+  const [weakAccuracy, setWeakAccuracy] = useState<number | null>(null);
+  const stopWatchRef = useRef<(() => void) | null>(null);
 
   const gpsConfigured =
     settings &&
@@ -94,7 +98,6 @@ export function ClockActionsPanel({
     distance !== null &&
     accuracy !== null &&
     distance <= ((settings?.gpsRadius ?? 0) + accuracy);
-  const lowAccuracy = accuracy !== null && accuracy > 80;
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
@@ -113,50 +116,77 @@ export function ClockActionsPanel({
       return "Posizione non aggiornata.";
     }
 
-    if (lowAccuracy || !insideRadius) {
+    if (!insideRadius) {
       return "Posizione non aggiornata.";
     }
 
     return "Posizione aggiornata.";
-  }, [accuracy, distance, geoReady, gpsConfigured, insideRadius, locating, locationError, lowAccuracy]);
+  }, [accuracy, distance, geoReady, gpsConfigured, insideRadius, locating, locationError]);
 
-  async function refreshGeolocation(manual = false) {
-    if (!canClock || !gpsConfigured || refreshInFlightRef.current) {
+  function stopGeolocationWatch() {
+    stopWatchRef.current?.();
+    stopWatchRef.current = null;
+  }
+
+  function startGeolocationWatch(manual = false) {
+    if (!canClock || !gpsConfigured || !navigator.geolocation) {
       return;
     }
 
-    refreshInFlightRef.current = true;
+    stopGeolocationWatch();
     setLocating(true);
     setLocationError("");
+    setWeakAccuracy(null);
 
-    try {
-      const sample = await getBestAccuracyPosition();
-      const nextDistance = calculateDistance(
-        sample.latitude,
-        sample.longitude,
-        settings.gpsLatitude as number,
-        settings.gpsLongitude as number
-      );
-
-      setLatitude(String(sample.latitude));
-      setLongitude(String(sample.longitude));
-      setAccuracy(sample.accuracy);
-      setDistance(nextDistance);
-      setGeoReady(true);
-
-      if (manual) {
-        setActionMessage("");
-      }
-    } catch {
-      setLocationError(
-        manual
-          ? "Impossibile leggere la posizione attuale."
-          : "Impossibile aggiornare automaticamente la posizione."
-      );
-    } finally {
-      refreshInFlightRef.current = false;
-      setLocating(false);
+    if (manual) {
+      setActionMessage("");
     }
+
+    // Continuous high-accuracy tracking keeps the GPS chip active, rejects
+    // weak points over 15 m, and updates the form only with fresh samples.
+    stopWatchRef.current = startPreciseGeolocationWatch({
+      onSample(sample) {
+        const nextDistance = calculateDistance(
+          sample.latitude,
+          sample.longitude,
+          settings.gpsLatitude as number,
+          settings.gpsLongitude as number
+        );
+
+        setLatitude(String(sample.latitude));
+        setLongitude(String(sample.longitude));
+        setAccuracy(sample.accuracy);
+        setDistance(nextDistance);
+        setGeoReady(true);
+        setWeakAccuracy(null);
+        setLocationError("");
+        setLocating(false);
+      },
+      onLowAccuracy(nextAccuracy) {
+        setLatitude("");
+        setLongitude("");
+        setDistance(null);
+        setAccuracy(nextAccuracy);
+        setGeoReady(false);
+        setWeakAccuracy(nextAccuracy);
+        setLocationError("");
+        setLocating(true);
+      },
+      onError() {
+        setLatitude("");
+        setLongitude("");
+        setDistance(null);
+        setAccuracy(null);
+        setGeoReady(false);
+        setWeakAccuracy(null);
+        setLocating(false);
+        setLocationError(
+          manual
+            ? "Impossibile leggere la posizione attuale."
+            : "Impossibile aggiornare automaticamente la posizione."
+        );
+      },
+    });
   }
 
   useEffect(() => {
@@ -164,26 +194,21 @@ export function ClockActionsPanel({
       return;
     }
 
-    void refreshGeolocation(false);
-
-    const intervalId = window.setInterval(() => {
-      void refreshGeolocation(false);
-    }, 45000);
+    startGeolocationWatch(false);
 
     function handleVisibilityChange() {
       if (document.visibilityState === "visible") {
-        void refreshGeolocation(false);
+        startGeolocationWatch(false);
       }
     }
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      refreshInFlightRef.current = false;
+      stopGeolocationWatch();
     };
-  }, [canClock, gpsConfigured, settings?.gpsLatitude, settings?.gpsLongitude]);
+  }, [canClock, gpsConfigured, settings?.gpsLatitude, settings?.gpsLongitude, settings?.gpsRadius]);
 
   async function runClockAction(endpoint: "clock-in" | "clock-out") {
     setSubmitting(endpoint === "clock-in" ? "in" : "out");
@@ -235,7 +260,7 @@ export function ClockActionsPanel({
       return;
     }
 
-    void refreshGeolocation(true);
+    startGeolocationWatch(true);
   }
 
   if (!canClock) {
@@ -261,6 +286,18 @@ export function ClockActionsPanel({
           }}
         >
           <div>{locationSummary}</div>
+          {weakAccuracy !== null ? (
+            <div>
+              Segnale GPS debole: ultimo fix scartato a ±{Math.round(weakAccuracy)} m. Attendo un punto entro{" "}
+              {MAX_ACCEPTED_ACCURACY_METERS} m.
+            </div>
+          ) : null}
+          {accuracy !== null && weakAccuracy === null ? (
+            <div>Precisione GPS attuale: ±{Math.round(accuracy)} m.</div>
+          ) : null}
+          {distance !== null && weakAccuracy === null ? (
+            <div>Distanza dal locale: {Math.round(distance)} m.</div>
+          ) : null}
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div>
               Arrotondamento attivo: {settings.roundingMode} ogni {settings.roundingMinutes} minuti.

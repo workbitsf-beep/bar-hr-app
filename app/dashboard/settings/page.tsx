@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
+import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
@@ -15,26 +16,38 @@ import {
 } from "../ui";
 
 export default async function DashboardSettingsPage() {
-  const { role, activeBarId, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, billingStatus } = await getDashboardContext();
+  const passkeyCount = await prisma.webAuthnCredential.count({
+    where: { userId: session.user.id },
+  });
+  const securityPanel = (
+    <Panel title="Sicurezza account">
+      <WebAuthnRegistrationPanel initialPasskeyCount={passkeyCount} />
+    </Panel>
+  );
 
   if (role !== Role.OWNER) {
-    return (
-      <Panel title="Impostazioni">
-        <EmptyState message="Solo il titolare puo modificare GPS e arrotondamento delle ore." />
-      </Panel>
-    );
+    return <Stack columns="minmax(0, 760px)">{securityPanel}</Stack>;
   }
 
   if (!activeBarId) {
     return (
-      <Panel title="Impostazioni">
-        <EmptyState message="Seleziona un locale attivo per gestire le impostazioni." />
-      </Panel>
+      <Stack columns="minmax(0, 760px)">
+        {securityPanel}
+        <Panel title="Impostazioni locale">
+          <EmptyState message="Seleziona un locale attivo per gestire le impostazioni." />
+        </Panel>
+      </Stack>
     );
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return (
+      <Stack columns="minmax(0, 760px)">
+        {securityPanel}
+        <BillingRequiredState role={String(role)} />
+      </Stack>
+    );
   }
 
   const [settings, globalGpsRadius] = await Promise.all([
@@ -49,6 +62,8 @@ export default async function DashboardSettingsPage() {
   return (
     <>
       <Stack columns="minmax(0, 760px)">
+        {securityPanel}
+
         <Panel title="Configura locale">
           <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
             <GpsLocationField

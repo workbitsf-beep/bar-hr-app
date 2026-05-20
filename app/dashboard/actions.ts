@@ -35,6 +35,7 @@ import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { requireStripe } from "@/lib/stripe";
+import { parseTaskDueDate } from "@/lib/task-dates";
 import {
   canManageOperations,
   canManagePeople,
@@ -895,13 +896,17 @@ export async function createTaskAction(formData: FormData) {
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const dueDate = parseRequiredDate(formData.get("dueDate"));
+  const dueDate = parseTaskDueDate(String(formData.get("dueDate") ?? ""));
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
   const assignedToAll = formData.get("assignedToAll") === "on";
   const isUrgent = formData.get("isUrgent") === "on";
 
   if (!title) {
     throw new Error("Missing title");
+  }
+
+  if (!dueDate) {
+    throw new Error("Invalid due date");
   }
 
   if (!assignedToAll && assignedToId) {

@@ -141,7 +141,7 @@ export default async function DashboardTasksPage() {
               }}
             >
               <FormField label="Scadenza">
-                <TextInput name="dueDate" type="datetime-local" required />
+                <TextInput name="dueDate" type="date" required />
               </FormField>
 
               <FormField label="Assegna a">

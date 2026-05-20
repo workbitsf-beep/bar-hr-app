@@ -1,7 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { getBestAccuracyPosition } from "@/lib/browser-gps";
+import {
+  getBestAccuracyPosition,
+  MAX_ACCEPTED_ACCURACY_METERS,
+} from "@/lib/browser-gps";
 
 type GpsLocationFieldProps = {
   latitudeName: string;
@@ -38,12 +41,21 @@ export function GpsLocationField({
     }
 
     setLoading(true);
+    setMessage("Ricerca GPS satellitare ad alta precisione in corso...");
 
     try {
-      const sample = await getBestAccuracyPosition();
+      // We accept only a fresh high-accuracy fix so the venue position is not
+      // saved from browser cache or from a weak Wi-Fi based approximation.
+      const sample = await getBestAccuracyPosition({
+        onLowAccuracy(nextAccuracy) {
+          setMessage(
+            `Segnale GPS debole (±${Math.round(nextAccuracy)} m). Attendo una precisione entro ${MAX_ACCEPTED_ACCURACY_METERS} m...`
+          );
+        },
+      });
       setLatitude(sample.latitude);
       setLongitude(sample.longitude);
-      setMessage("Posizione aggiornata.");
+      setMessage(`Posizione aggiornata con precisione ±${Math.round(sample.accuracy)} m.`);
 
       if (submitOnLocate) {
         window.setTimeout(() => {
@@ -51,7 +63,10 @@ export function GpsLocationField({
         }, 0);
       }
     } catch {
-      setError("Impossibile leggere la posizione attuale. Controlla i permessi GPS.");
+      setError(
+        `Impossibile ottenere un fix GPS preciso entro ${MAX_ACCEPTED_ACCURACY_METERS} m. Controlla permessi e visibilita del cielo.`
+      );
+      setMessage("Posizione non aggiornata.");
     } finally {
       setLoading(false);
     }

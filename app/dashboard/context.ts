@@ -75,6 +75,8 @@ export const getDashboardContext = cache(async function getDashboardContext(
     navItems.push({ label: t.people, href: "/dashboard/people" });
     navItems.push({ label: t.settings, href: "/dashboard/settings" });
     navItems.push({ label: t.billing, href: "/billing" });
+  } else if (String(role) !== "SUPER_ADMIN") {
+    navItems.push({ label: t.settings, href: "/dashboard/settings" });
   }
 
   if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") {
