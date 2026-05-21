@@ -4,6 +4,8 @@ const globalForPrisma = global as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+const BUILD_TIME_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
+
 const prismaLogLevels: Prisma.LogLevel[] =
   process.env.PRISMA_QUERY_LOGS === "true"
     ? ["query", "warn", "error"]
@@ -21,6 +23,14 @@ function hasRailwayRuntime() {
     process.env.RAILWAY_ENVIRONMENT ||
       process.env.RAILWAY_PROJECT_ID ||
       process.env.RAILWAY_SERVICE_ID
+  );
+}
+
+function isNextBuildPhase() {
+  return (
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.npm_lifecycle_event === "build" ||
+    process.env.npm_lifecycle_script?.includes("next build") === true
   );
 }
 
@@ -87,6 +97,10 @@ function resolveDatabaseUrl() {
   const databaseUrl = rawDatabasePrivateUrl || fallbackDatabaseUrl;
 
   if (!databaseUrl) {
+    if (isNextBuildPhase()) {
+      return BUILD_TIME_DATABASE_URL;
+    }
+
     throw new Error(
       "Database connection is not configured. Set a non-empty DATABASE_URL or PGHOST/PGUSER/PGPASSWORD/PGDATABASE."
     );
