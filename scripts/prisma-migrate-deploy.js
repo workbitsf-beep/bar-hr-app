@@ -150,19 +150,48 @@ function resolveDatabaseUrl() {
 const databaseUrl = resolveDatabaseUrl();
 const { host, connection } = describeDatabaseUrl(databaseUrl);
 const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
+const maxAttempts = Number(process.env.PRISMA_MIGRATE_RETRIES || 12);
+const retryDelayMs = Number(process.env.PRISMA_MIGRATE_RETRY_DELAY_MS || 5000);
 
 console.info("[database] prisma migrate deploy", {
   host,
   connection,
   railwayRuntime: hasRailwayRuntime(),
+  maxAttempts,
 });
 
-const result = spawnSync(npxCommand, ["prisma", "migrate", "deploy"], {
-  stdio: "inherit",
-  env: {
-    ...process.env,
-    DATABASE_URL: databaseUrl,
-  },
-});
+function wait(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
 
-process.exit(result.status ?? 1);
+let status = 1;
+
+for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  console.info("[database] migration attempt", { attempt, maxAttempts });
+
+  const result = spawnSync(npxCommand, ["prisma", "migrate", "deploy"], {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+    },
+  });
+
+  status = result.status ?? 1;
+
+  if (status === 0) {
+    process.exit(0);
+  }
+
+  if (attempt < maxAttempts) {
+    console.warn("[database] migration failed, retrying after database warmup", {
+      attempt,
+      maxAttempts,
+      retryDelayMs,
+    });
+
+    wait(retryDelayMs);
+  }
+}
+
+process.exit(status);
