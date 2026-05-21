@@ -1,10 +1,11 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
 
-const globalForPrisma = global as unknown as {
-  prisma: PrismaClient | undefined;
-};
+const FALLBACK_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
 
-const BUILD_TIME_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
+const globalForPrisma = globalThis as unknown as {
+  prismaGlobal: PrismaClient | undefined;
+  prismaGlobalUrl: string | undefined;
+};
 
 const prismaLogLevels: Prisma.LogLevel[] =
   process.env.PRISMA_QUERY_LOGS === "true"
@@ -23,14 +24,6 @@ function hasRailwayRuntime() {
     process.env.RAILWAY_ENVIRONMENT ||
       process.env.RAILWAY_PROJECT_ID ||
       process.env.RAILWAY_SERVICE_ID
-  );
-}
-
-function isNextBuildPhase() {
-  return (
-    process.env.NEXT_PHASE === "phase-production-build" ||
-    process.env.npm_lifecycle_event === "build" ||
-    process.env.npm_lifecycle_script?.includes("next build") === true
   );
 }
 
@@ -60,7 +53,6 @@ function buildDatabaseUrlFromPgEnvironment() {
   }
 
   const params = new URLSearchParams();
-
   const sslMode = readEnvironmentValue("PGSSLMODE");
 
   if (sslMode) {
@@ -87,49 +79,24 @@ function isPublicRailwayProxyUrl(databaseUrl?: string | null) {
 }
 
 function resolveDatabaseUrl() {
-  const rawDatabasePrivateUrl = readEnvironmentValue("DATABASE_PRIVATE_URL");
-  const rawDatabaseUrl = readEnvironmentValue("DATABASE_URL");
+  const privateDatabaseUrl = readEnvironmentValue("DATABASE_PRIVATE_URL");
+  const databaseUrl = readEnvironmentValue("DATABASE_URL");
+  const publicDatabaseUrl = readEnvironmentValue("NEXT_PUBLIC_DATABASE_URL");
   const pgDatabaseUrl = buildDatabaseUrlFromPgEnvironment();
-  const fallbackDatabaseUrl =
-    hasRailwayRuntime() && isPublicRailwayProxyUrl(rawDatabaseUrl)
-      ? pgDatabaseUrl
-      : rawDatabaseUrl || pgDatabaseUrl;
-  const databaseUrl = rawDatabasePrivateUrl || fallbackDatabaseUrl;
 
-  if (!databaseUrl) {
-    if (isNextBuildPhase()) {
-      return BUILD_TIME_DATABASE_URL;
-    }
-
-    throw new Error(
-      "Database connection is not configured. Set a non-empty DATABASE_URL or PGHOST/PGUSER/PGPASSWORD/PGDATABASE."
-    );
+  if (privateDatabaseUrl) {
+    return privateDatabaseUrl;
   }
 
-  try {
-    new URL(databaseUrl);
-  } catch {
-    throw new Error(
-      "Database connection URL is invalid. Check DATABASE_URL or DATABASE_PRIVATE_URL."
-    );
+  if (hasRailwayRuntime() && isPublicRailwayProxyUrl(databaseUrl) && pgDatabaseUrl) {
+    return pgDatabaseUrl;
   }
 
-  if (hasRailwayRuntime()) {
-    if (isPublicRailwayProxyUrl(databaseUrl)) {
-      throw new Error(
-        "Railway production must use the private Postgres network. Set DATABASE_URL or DATABASE_PRIVATE_URL to the internal Railway database URL, not the public proxy."
-      );
-    }
-  }
-
-  return databaseUrl;
+  return databaseUrl || pgDatabaseUrl || publicDatabaseUrl || FALLBACK_DATABASE_URL;
 }
 
-const databaseUrl = resolveDatabaseUrl();
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function prismaClientSingleton(databaseUrl = resolveDatabaseUrl()) {
+  return new PrismaClient({
     log: prismaLogLevels,
     datasources: {
       db: {
@@ -137,7 +104,29 @@ export const prisma =
       },
     },
   });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
 }
+
+function getPrismaClient() {
+  const databaseUrl = resolveDatabaseUrl();
+
+  if (
+    !globalForPrisma.prismaGlobal ||
+    globalForPrisma.prismaGlobalUrl !== databaseUrl
+  ) {
+    globalForPrisma.prismaGlobal = prismaClientSingleton(databaseUrl);
+    globalForPrisma.prismaGlobalUrl = databaseUrl;
+  }
+
+  return globalForPrisma.prismaGlobal;
+}
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, property) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, property, client);
+
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
+
+export default prisma;
