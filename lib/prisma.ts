@@ -78,11 +78,34 @@ function isPublicRailwayProxyUrl(databaseUrl?: string | null) {
   }
 }
 
+function toValidPostgresUrl(value?: string | null) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (!trimmed.startsWith("postgresql://") && !trimmed.startsWith("postgres://")) {
+    return null;
+  }
+
+  try {
+    new URL(trimmed);
+    return trimmed;
+  } catch {
+    return null;
+  }
+}
+
 function resolveDatabaseUrl() {
-  const privateDatabaseUrl = readEnvironmentValue("DATABASE_PRIVATE_URL");
-  const databaseUrl = readEnvironmentValue("DATABASE_URL");
-  const publicDatabaseUrl = readEnvironmentValue("NEXT_PUBLIC_DATABASE_URL");
-  const pgDatabaseUrl = buildDatabaseUrlFromPgEnvironment();
+  const privateDatabaseUrl = toValidPostgresUrl(
+    readEnvironmentValue("DATABASE_PRIVATE_URL")
+  );
+  const databaseUrl = toValidPostgresUrl(readEnvironmentValue("DATABASE_URL"));
+  const fallbackDatabaseUrl = toValidPostgresUrl(
+    readEnvironmentValue("DATABASE_FALLBACK_URL")
+  );
+  const pgDatabaseUrl = toValidPostgresUrl(buildDatabaseUrlFromPgEnvironment());
 
   if (privateDatabaseUrl) {
     return privateDatabaseUrl;
@@ -92,7 +115,7 @@ function resolveDatabaseUrl() {
     return pgDatabaseUrl;
   }
 
-  return databaseUrl || pgDatabaseUrl || publicDatabaseUrl || FALLBACK_DATABASE_URL;
+  return databaseUrl || pgDatabaseUrl || fallbackDatabaseUrl || FALLBACK_DATABASE_URL;
 }
 
 function prismaClientSingleton(databaseUrl = resolveDatabaseUrl()) {
