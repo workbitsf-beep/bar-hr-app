@@ -1,7 +1,12 @@
-import { runTaskEscalation } from "@/lib/taskEscalation";
-import { runShiftRetentionCleanup } from "@/lib/shiftCleanup";
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(): Promise<Response> {
+  const [{ runTaskEscalation }, { runShiftRetentionCleanup }] = await Promise.all([
+    import("@/lib/taskEscalation"),
+    import("@/lib/shiftCleanup"),
+  ]);
+
   const [taskResult, shiftResult] = await Promise.all([
     runTaskEscalation(),
     runShiftRetentionCleanup(),
