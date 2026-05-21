@@ -1,30 +1,41 @@
--- CreateEnum
-CREATE TYPE "PlanType" AS ENUM ('FREE', 'TRIAL', 'PAID', 'LIFETIME');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlanType') THEN
+    CREATE TYPE "PlanType" AS ENUM ('FREE', 'TRIAL', 'PAID', 'LIFETIME');
+  END IF;
 
--- CreateEnum
-CREATE TYPE "BillingInterval" AS ENUM ('MONTHLY', 'YEARLY');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'BillingInterval') THEN
+    CREATE TYPE "BillingInterval" AS ENUM ('MONTHLY', 'YEARLY');
+  END IF;
 
--- AlterEnum
-BEGIN;
-CREATE TYPE "SubscriptionStatus_new" AS ENUM ('ACTIVE', 'TRIALING', 'PAST_DUE', 'CANCELED', 'UNPAID', 'INACTIVE');
-ALTER TABLE "public"."Bar" ALTER COLUMN "subscriptionStatus" DROP DEFAULT;
-ALTER TABLE "Subscription" ALTER COLUMN "status" TYPE "SubscriptionStatus_new" USING ("status"::text::"SubscriptionStatus_new");
-ALTER TYPE "SubscriptionStatus" RENAME TO "SubscriptionStatus_old";
-ALTER TYPE "SubscriptionStatus_new" RENAME TO "SubscriptionStatus";
-DROP TYPE "public"."SubscriptionStatus_old";
-COMMIT;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SubscriptionStatus') THEN
+    CREATE TYPE "SubscriptionStatus" AS ENUM (
+      'ACTIVE',
+      'TRIALING',
+      'PAST_DUE',
+      'CANCELED',
+      'UNPAID',
+      'INACTIVE'
+    );
+  END IF;
+END $$;
 
--- AlterTable
-ALTER TABLE "Bar" DROP COLUMN "subscriptionEndsAt",
-DROP COLUMN "subscriptionNotes",
-DROP COLUMN "subscriptionPlan",
-DROP COLUMN "subscriptionStatus";
+ALTER TYPE "SubscriptionStatus" ADD VALUE IF NOT EXISTS 'ACTIVE';
+ALTER TYPE "SubscriptionStatus" ADD VALUE IF NOT EXISTS 'TRIALING';
+ALTER TYPE "SubscriptionStatus" ADD VALUE IF NOT EXISTS 'PAST_DUE';
+ALTER TYPE "SubscriptionStatus" ADD VALUE IF NOT EXISTS 'CANCELED';
+ALTER TYPE "SubscriptionStatus" ADD VALUE IF NOT EXISTS 'UNPAID';
+ALTER TYPE "SubscriptionStatus" ADD VALUE IF NOT EXISTS 'INACTIVE';
 
--- DropEnum
-DROP TYPE "SubscriptionPlan";
+ALTER TABLE "Bar"
+DROP COLUMN IF EXISTS "subscriptionEndsAt",
+DROP COLUMN IF EXISTS "subscriptionNotes",
+DROP COLUMN IF EXISTS "subscriptionPlan",
+DROP COLUMN IF EXISTS "subscriptionStatus";
 
--- CreateTable
-CREATE TABLE "Subscription" (
+DROP TYPE IF EXISTS "SubscriptionPlan";
+
+CREATE TABLE IF NOT EXISTS "Subscription" (
     "id" UUID NOT NULL,
     "barId" UUID NOT NULL,
     "planType" "PlanType" NOT NULL DEFAULT 'PAID',
@@ -41,24 +52,22 @@ CREATE TABLE "Subscription" (
     CONSTRAINT "Subscription_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "Subscription_barId_key" ON "Subscription"("barId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Subscription_barId_key" ON "Subscription"("barId");
+CREATE INDEX IF NOT EXISTS "Subscription_status_idx" ON "Subscription"("status");
+CREATE INDEX IF NOT EXISTS "Subscription_stripeCustomerId_idx" ON "Subscription"("stripeCustomerId");
+CREATE INDEX IF NOT EXISTS "Subscription_stripeSubscriptionId_idx" ON "Subscription"("stripeSubscriptionId");
+CREATE INDEX IF NOT EXISTS "Subscription_currentPeriodEnd_idx" ON "Subscription"("currentPeriodEnd");
+CREATE INDEX IF NOT EXISTS "Subscription_trialEndsAt_idx" ON "Subscription"("trialEndsAt");
 
--- CreateIndex
-CREATE INDEX "Subscription_status_idx" ON "Subscription"("status");
-
--- CreateIndex
-CREATE INDEX "Subscription_stripeCustomerId_idx" ON "Subscription"("stripeCustomerId");
-
--- CreateIndex
-CREATE INDEX "Subscription_stripeSubscriptionId_idx" ON "Subscription"("stripeSubscriptionId");
-
--- CreateIndex
-CREATE INDEX "Subscription_currentPeriodEnd_idx" ON "Subscription"("currentPeriodEnd");
-
--- CreateIndex
-CREATE INDEX "Subscription_trialEndsAt_idx" ON "Subscription"("trialEndsAt");
-
--- AddForeignKey
-ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_barId_fkey" FOREIGN KEY ("barId") REFERENCES "Bar"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'Subscription_barId_fkey'
+  ) THEN
+    ALTER TABLE "Subscription"
+    ADD CONSTRAINT "Subscription_barId_fkey"
+    FOREIGN KEY ("barId") REFERENCES "Bar"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
