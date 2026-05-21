@@ -157,7 +157,7 @@ function resolveDatabaseUrl() {
     }
 
     throw new Error(
-      `Railway database private URL is missing or invalid. Set DATABASE_PRIVATE_URL to \${{Postgres.DATABASE_URL}} in the bar-hr-app service variables, save it, and redeploy. Safe env status: DATABASE_PRIVATE_URL=${Boolean(privateDatabaseUrl)}, DATABASE_URL=${Boolean(databaseUrl)}, PG_ENV=${Boolean(pgDatabaseUrl)}, DATABASE_FALLBACK_URL=${Boolean(fallbackDatabaseUrl)}.`
+      `Railway database URL is missing or invalid. Add a Postgres service to this Railway environment, or set DATABASE_PRIVATE_URL/DATABASE_URL in the bar-hr-app service to a valid PostgreSQL URL. If using a Railway reference variable, replace Postgres with the exact database service name, for example \${{YourDatabaseService.DATABASE_URL}}. Safe env status: DATABASE_PRIVATE_URL=${Boolean(privateDatabaseUrl)}, DATABASE_URL=${Boolean(databaseUrl)}, PG_ENV=${Boolean(pgDatabaseUrl)}, DATABASE_FALLBACK_URL=${Boolean(fallbackDatabaseUrl)}.`
     );
   }
 
