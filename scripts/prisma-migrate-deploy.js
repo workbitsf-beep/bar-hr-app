@@ -1,5 +1,9 @@
 const { spawnSync } = require("node:child_process");
 
+if (!process.env.DATABASE_URL && typeof process.loadEnvFile === "function") {
+  process.loadEnvFile(".env");
+}
+
 const BUILD_TIME_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
 
 function hasRailwayRuntime() {
