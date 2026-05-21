@@ -5,6 +5,7 @@ const BUILD_TIME_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
 const globalForPrisma = globalThis as unknown as {
   prismaGlobal: PrismaClient | undefined;
   prismaGlobalUrl: string | undefined;
+  prismaGlobalLoggedUrl: string | undefined;
 };
 
 const prismaLogLevels: Prisma.LogLevel[] =
@@ -86,6 +87,24 @@ function isPublicRailwayProxyUrl(databaseUrl?: string | null) {
   }
 }
 
+function describeDatabaseUrl(databaseUrl: string) {
+  try {
+    const host = new URL(databaseUrl).hostname;
+    const connection =
+      host.endsWith(".railway.internal")
+        ? "railway-private"
+        : host.endsWith(".proxy.rlwy.net") || host === "proxy.rlwy.net"
+          ? "railway-public-proxy"
+          : host === "localhost" || host === "127.0.0.1"
+            ? "local"
+            : "external";
+
+    return { host, connection };
+  } catch {
+    return { host: "invalid-url", connection: "invalid" };
+  }
+}
+
 function toValidPostgresUrl(value?: string | null) {
   const trimmed = value?.trim();
 
@@ -138,7 +157,7 @@ function resolveDatabaseUrl() {
     }
 
     throw new Error(
-      "Railway database private URL is missing or invalid. Set DATABASE_PRIVATE_URL to ${{Postgres.DATABASE_URL}} in the bar-hr-app service variables, save it, and redeploy."
+      `Railway database private URL is missing or invalid. Set DATABASE_PRIVATE_URL to \${{Postgres.DATABASE_URL}} in the bar-hr-app service variables, save it, and redeploy. Safe env status: DATABASE_PRIVATE_URL=${Boolean(privateDatabaseUrl)}, DATABASE_URL=${Boolean(databaseUrl)}, PG_ENV=${Boolean(pgDatabaseUrl)}, DATABASE_FALLBACK_URL=${Boolean(fallbackDatabaseUrl)}.`
     );
   }
 
@@ -175,6 +194,19 @@ function getPrismaClient() {
     !globalForPrisma.prismaGlobal ||
     globalForPrisma.prismaGlobalUrl !== databaseUrl
   ) {
+    if (globalForPrisma.prismaGlobalLoggedUrl !== databaseUrl) {
+      const { host, connection } = describeDatabaseUrl(databaseUrl);
+
+      console.info("[database] prisma client", {
+        host,
+        connection,
+        railwayRuntime: hasRailwayRuntime(),
+        buildPhase: isNextBuildPhase(),
+      });
+
+      globalForPrisma.prismaGlobalLoggedUrl = databaseUrl;
+    }
+
     globalForPrisma.prismaGlobal = prismaClientSingleton(databaseUrl);
     globalForPrisma.prismaGlobalUrl = databaseUrl;
   }

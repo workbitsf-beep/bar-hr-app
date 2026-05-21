@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/copy-standalone-assets.js",
-    "start": "node --max-old-space-size=512 server.js",
+    "start": "node --max-old-space-size=512 scripts/start-production.js",
+    "migrate:deploy": "node scripts/prisma-migrate-deploy.js",
     "lint": "eslint",
     "seed:super-admin": "tsx prisma/seed-super-admin.ts"
   },
