@@ -1,6 +1,6 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
 
-const FALLBACK_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
+const BUILD_TIME_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
 
 const globalForPrisma = globalThis as unknown as {
   prismaGlobal: PrismaClient | undefined;
@@ -24,6 +24,14 @@ function hasRailwayRuntime() {
     process.env.RAILWAY_ENVIRONMENT ||
       process.env.RAILWAY_PROJECT_ID ||
       process.env.RAILWAY_SERVICE_ID
+  );
+}
+
+function isNextBuildPhase() {
+  return (
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.npm_lifecycle_event === "build" ||
+    process.env.npm_lifecycle_script?.includes("next build") === true
   );
 }
 
@@ -111,11 +119,42 @@ function resolveDatabaseUrl() {
     return privateDatabaseUrl;
   }
 
-  if (hasRailwayRuntime() && isPublicRailwayProxyUrl(databaseUrl) && pgDatabaseUrl) {
-    return pgDatabaseUrl;
+  if (hasRailwayRuntime()) {
+    const railwayPrivateCandidate =
+      pgDatabaseUrl && !isPublicRailwayProxyUrl(pgDatabaseUrl)
+        ? pgDatabaseUrl
+        : databaseUrl && !isPublicRailwayProxyUrl(databaseUrl)
+          ? databaseUrl
+          : fallbackDatabaseUrl && !isPublicRailwayProxyUrl(fallbackDatabaseUrl)
+            ? fallbackDatabaseUrl
+            : null;
+
+    if (railwayPrivateCandidate) {
+      return railwayPrivateCandidate;
+    }
+
+    if (isNextBuildPhase()) {
+      return BUILD_TIME_DATABASE_URL;
+    }
+
+    throw new Error(
+      "Railway database private URL is missing or invalid. Set DATABASE_PRIVATE_URL to ${{Postgres.DATABASE_URL}} in the bar-hr-app service variables, save it, and redeploy."
+    );
   }
 
-  return databaseUrl || pgDatabaseUrl || fallbackDatabaseUrl || FALLBACK_DATABASE_URL;
+  const localDatabaseUrl = databaseUrl || pgDatabaseUrl || fallbackDatabaseUrl;
+
+  if (localDatabaseUrl) {
+    return localDatabaseUrl;
+  }
+
+  if (isNextBuildPhase()) {
+    return BUILD_TIME_DATABASE_URL;
+  }
+
+  throw new Error(
+    "Database connection is not configured. Set DATABASE_URL or DATABASE_PRIVATE_URL to a valid postgresql:// URL."
+  );
 }
 
 function prismaClientSingleton(databaseUrl = resolveDatabaseUrl()) {
