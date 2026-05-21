@@ -12,7 +12,7 @@
     "start": "node --max-old-space-size=512 scripts/start-production.js",
     "migrate:deploy": "node scripts/prisma-migrate-deploy.js",
     "lint": "eslint",
-    "seed:super-admin": "tsx prisma/seed-super-admin.ts"
+    "seed:super-admin": "node scripts/seed-super-admin.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.1",
