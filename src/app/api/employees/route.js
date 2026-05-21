@@ -1,11 +1,10 @@
-import { Prisma, PrismaClient, Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
 import { getCurrentSessionFromRequest } from "@/app/lib/auth";
 import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
 import { validateTemporaryPassword } from "@/lib/temporary-password";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req) {
   try {

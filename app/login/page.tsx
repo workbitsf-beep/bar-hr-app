@@ -1,9 +1,14 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
+import {
+  clearPersistentSession,
+  hasPersistentSessionMarker,
+  markPersistentSession,
+} from "@/lib/client-session";
 import { PasskeyLoginButton } from "./passkey-login-button";
 
 export default function LoginPage() {
@@ -14,6 +19,43 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreSession() {
+      if (!hasPersistentSessionMarker()) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+
+        if (!active) {
+          return;
+        }
+
+        if (response.ok) {
+          router.replace("/dashboard");
+          router.refresh();
+          return;
+        }
+
+        clearPersistentSession();
+      } catch {
+        // Keep the login form usable if the session check cannot complete.
+      }
+    }
+
+    void restoreSession();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,6 +79,7 @@ export default function LoginPage() {
         return;
       }
 
+      markPersistentSession();
       router.push(data.redirectTo || "/dashboard");
       router.refresh();
     } catch {
@@ -47,6 +90,7 @@ export default function LoginPage() {
   }
 
   function handlePasskeySuccess(redirectTo: string) {
+    markPersistentSession();
     router.push(redirectTo);
     router.refresh();
   }

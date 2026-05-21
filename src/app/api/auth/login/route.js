@@ -1,9 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 async function createSession(userId) {
   const token = crypto.randomBytes(48).toString("hex");

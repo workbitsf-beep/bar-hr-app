@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { getDashboardContext } from "@/app/dashboard/context";
@@ -87,7 +88,7 @@ export default async function BillingLayout({
           </div>
         }
         headerAction={
-          <form
+          <LogoutForm
             action={logoutAction}
             style={{
               display: "inline-flex",
@@ -111,7 +112,7 @@ export default async function BillingLayout({
                 />
               </svg>
             </IconButton>
-          </form>
+          </LogoutForm>
         }
       >
         {children}
