@@ -1,8 +1,10 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
+  createBoardNoteAction,
   completeTaskAction,
   createTaskAction,
+  deleteBoardNoteAction,
   deleteCompletedTaskAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
@@ -28,8 +30,8 @@ export default async function DashboardTasksPage() {
 
   if (!activeBarId) {
     return (
-      <Panel title="Mansioni">
-        <EmptyState message="Seleziona un locale attivo per gestire le mansioni." />
+      <Panel title="Mansioni e bacheca">
+        <EmptyState message="Seleziona un locale attivo per gestire mansioni e bacheca." />
       </Panel>
     );
   }
@@ -39,7 +41,7 @@ export default async function DashboardTasksPage() {
   }
 
   const canManage = role === Role.OWNER || role === Role.MANAGER;
-  const [tasks, members] = await Promise.all([
+  const [tasks, members, notes] = await Promise.all([
     prisma.task.findMany({
       where: {
         barId: activeBarId,
@@ -118,10 +120,47 @@ export default async function DashboardTasksPage() {
           },
         })
       : Promise.resolve([]),
+    prisma.note.findMany({
+      where: {
+        barId: activeBarId,
+      },
+      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+      include: {
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    }),
   ]);
 
   return (
     <Stack>
+      <Panel title="Nuovo messaggio bacheca">
+        <form action={createBoardNoteAction} style={{ display: "grid", gap: 16 }}>
+          <FormField label="Messaggio">
+            <TextArea
+              name="content"
+              required
+              placeholder="Aggiornamento servizio, briefing o comunicazione interna"
+            />
+          </FormField>
+
+          {canManage ? (
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input type="checkbox" name="isPinned" />
+              Metti in evidenza
+            </label>
+          ) : null}
+
+          <div>
+            <PrimaryButton type="submit">Pubblica</PrimaryButton>
+          </div>
+        </form>
+      </Panel>
+
       {canManage ? (
         <Panel title="Crea nuova mansione">
           <form action={createTaskAction} style={{ display: "grid", gap: 16 }}>
@@ -173,6 +212,31 @@ export default async function DashboardTasksPage() {
           </form>
         </Panel>
       ) : null}
+
+      <Panel title="Bacheca" action={`${notes.length} messaggi`}>
+        {notes.length === 0 ? (
+          <EmptyState message="Nessun messaggio pubblicato al momento." />
+        ) : (
+          <ItemList scrollable>
+            {notes.map((note) => (
+              <ItemCard
+                key={note.id}
+                title={note.isPinned ? "Messaggio fissato" : "Messaggio"}
+                subtitle={note.content}
+                meta={`${note.author.firstName} ${note.author.lastName} - ${formatDateTime(note.createdAt)}`}
+                footer={
+                  <form action={deleteBoardNoteAction}>
+                    <input type="hidden" name="noteId" value={note.id} />
+                    <PrimaryButton type="submit" tone="red">
+                      Elimina messaggio
+                    </PrimaryButton>
+                  </form>
+                }
+              />
+            ))}
+          </ItemList>
+        )}
+      </Panel>
 
       <Panel title="Elenco mansioni" action={`${tasks.length} risultati`}>
         {tasks.length === 0 ? (

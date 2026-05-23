@@ -28,7 +28,7 @@ export default async function DashboardPeoplePage({
 
   if (role !== Role.OWNER) {
     return (
-      <Panel title="Persone">
+      <Panel title="Personale">
         <EmptyState message="Solo il titolare puo creare e gestire dipendenti e manager." />
       </Panel>
     );
@@ -36,7 +36,7 @@ export default async function DashboardPeoplePage({
 
   if (!activeBarId) {
     return (
-      <Panel title="Persone">
+      <Panel title="Personale">
         <EmptyState message="Seleziona un locale attivo per gestire il personale." />
       </Panel>
     );

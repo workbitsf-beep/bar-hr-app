@@ -170,8 +170,8 @@ export async function POST(req: Request) {
           }
         : {}),
     },
-    success_url: `${baseUrl}/billing/success`,
-    cancel_url: `${baseUrl}/billing`,
+    success_url: `${baseUrl}/dashboard/settings`,
+    cancel_url: `${baseUrl}/dashboard/settings`,
   });
 
   return Response.json({

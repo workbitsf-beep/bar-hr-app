@@ -159,6 +159,7 @@ export default async function DashboardCalendarPage({
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
   const navigation = getMonthNavigation(year, month);
+  const canManageShifts = role === Role.OWNER || role === Role.MANAGER;
 
   const [settings, shifts, availabilities, approvedRequests, ownerMembers] = await Promise.all([
     role === Role.OWNER
@@ -262,7 +263,7 @@ export default async function DashboardCalendarPage({
         startsAt: "asc",
       },
     }),
-    role === Role.OWNER
+    canManageShifts
       ? prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
@@ -381,7 +382,7 @@ export default async function DashboardCalendarPage({
   const unconfirmedShiftCount = shifts.filter(
     (shift) => !shift.confirmedAt && shift.startTime <= monthEnd && shift.endTime >= monthStart
   ).length;
-  const canPublishShifts = role === Role.OWNER || role === Role.MANAGER;
+  const canPublishShifts = canManageShifts;
   const visibleCalendarWeeks = dayFilter
     ? calendarWeeks.filter((week) => week.some((day) => toLocalDateKey(day.date) === dayFilter))
     : calendarWeeks;
@@ -491,7 +492,7 @@ export default async function DashboardCalendarPage({
           </div>
         }
       >
-        {role === Role.OWNER ? (
+        {canManageShifts ? (
           <OwnerCalendarClient
             locale={locale}
             weekdayLabels={weekdayLabels}

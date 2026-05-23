@@ -10,8 +10,8 @@ export default function BillingSuccessPage() {
           attivera o rinnovera automaticamente al termine dei 30 giorni di prova.
         </p>
         <div>
-          <Link href="/dashboard" style={{ textDecoration: "none" }}>
-            <PrimaryButton type="button">Torna alla dashboard</PrimaryButton>
+          <Link href="/dashboard/settings" style={{ textDecoration: "none" }}>
+            <PrimaryButton type="button">Torna alle impostazioni</PrimaryButton>
           </Link>
         </div>
       </div>

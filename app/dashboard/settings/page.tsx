@@ -1,12 +1,12 @@
 import { Prisma, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
+import { getBillingStatus } from "@/lib/billing";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { updateSettingsAction } from "../actions";
 import {
-  BillingRequiredState,
   EmptyState,
   FormField,
   Panel,
@@ -14,6 +14,7 @@ import {
   Select,
   Stack,
 } from "../ui";
+import { BillingSettingsPanel } from "./billing-settings-panel";
 
 async function getPasskeyCount(userId: string) {
   try {
@@ -31,7 +32,7 @@ async function getPasskeyCount(userId: string) {
 }
 
 export default async function DashboardSettingsPage() {
-  const { session, role, activeBarId, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, activeBarName, billingStatus } = await getDashboardContext();
   const passkeyCount = await getPasskeyCount(session.user.id);
   const securityPanel = (
     <Panel title="Sicurezza account">
@@ -54,28 +55,22 @@ export default async function DashboardSettingsPage() {
     );
   }
 
-  if (billingStatus && !billingStatus.canAccess) {
-    return (
-      <Stack columns="minmax(0, 760px)">
-        {securityPanel}
-        <BillingRequiredState role={String(role)} />
-      </Stack>
-    );
-  }
-
-  const [settings, globalGpsRadius] = await Promise.all([
+  const [settings, globalGpsRadius, resolvedBillingStatus] = await Promise.all([
     prisma.barSettings.findUnique({
       where: {
         barId: activeBarId,
       },
     }),
     getGlobalGpsRadius(),
+    billingStatus ? Promise.resolve(billingStatus) : getBillingStatus(activeBarId),
   ]);
 
   return (
     <>
       <Stack columns="minmax(0, 760px)">
         {securityPanel}
+
+        <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
 
         <Panel title="Configura locale">
           <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
@@ -88,19 +83,6 @@ export default async function DashboardSettingsPage() {
             />
 
             <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
-
-            <div
-              style={{
-                padding: "12px 14px",
-                borderRadius: 18,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                color: "#475569",
-                lineHeight: 1.6,
-              }}
-            >
-              Range globale timbrature attivo: {globalGpsRadius} metri.
-            </div>
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input

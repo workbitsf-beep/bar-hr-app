@@ -487,7 +487,7 @@ export async function selectBarAction(formData: FormData) {
   const returnPath = await getReturnPathFromReferer("/dashboard");
 
   revalidatePath("/dashboard");
-  revalidatePath("/billing");
+  revalidatePath("/dashboard/settings");
   redirect(returnPath);
 }
 
@@ -541,7 +541,7 @@ export async function setLanguageAction(formData: FormData) {
   const returnPath = await getReturnPathFromReferer("/dashboard");
 
   revalidatePath("/dashboard");
-  revalidatePath("/billing");
+  revalidatePath("/dashboard/settings");
   revalidatePath("/onboarding");
   redirect(returnPath);
 }
@@ -702,7 +702,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
 
   invalidateBillingStatusCache(bar.id);
 
-  revalidatePath("/billing");
+  revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
 }
 
@@ -796,7 +796,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
 
   invalidateBillingStatusCache(barId);
 
-  revalidatePath("/billing");
+  revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
 }
 
@@ -866,7 +866,7 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
     });
   }
 
-  revalidatePath("/billing");
+  revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
 }
 
@@ -1251,7 +1251,7 @@ export async function createBoardNoteAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/board");
+  revalidatePath("/dashboard/tasks");
 }
 
 export async function deleteBoardNoteAction(formData: FormData) {
@@ -1275,7 +1275,7 @@ export async function deleteBoardNoteAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/board");
+  revalidatePath("/dashboard/tasks");
 }
 
 export async function createAvailabilityAction(formData: FormData) {
@@ -1335,8 +1335,9 @@ export async function createAvailabilityAction(formData: FormData) {
     );
   });
 
-  revalidatePath("/dashboard/availability");
+  revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function createEmployeeAction(formData: FormData) {

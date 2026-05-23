@@ -66,15 +66,12 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: t.shifts, href: "/dashboard/shifts" },
           { label: t.tasks, href: "/dashboard/tasks" },
           { label: t.timelogs, href: "/dashboard/timelogs" },
-          { label: t.board, href: "/dashboard/board" },
           { label: t.requests, href: "/dashboard/requests" },
-          { label: t.availability, href: "/dashboard/availability" },
         ];
 
   if (role === Role.OWNER) {
     navItems.push({ label: t.people, href: "/dashboard/people" });
     navItems.push({ label: t.settings, href: "/dashboard/settings" });
-    navItems.push({ label: t.billing, href: "/billing" });
   } else if (String(role) !== "SUPER_ADMIN") {
     navItems.push({ label: t.settings, href: "/dashboard/settings" });
   }

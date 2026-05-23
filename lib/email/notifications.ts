@@ -195,7 +195,7 @@ export async function sendNoticeBoardEmail(
     title: "Nuovo messaggio in bacheca",
     message: `Ciao ${toName},\n${authorName} ha pubblicato un nuovo messaggio nella bacheca di ${barName}.`,
     ctaLabel: "Apri bacheca",
-    ctaUrl: getEmailAppUrl("/dashboard/board"),
+    ctaUrl: getEmailAppUrl("/dashboard/tasks"),
   });
 }
 
@@ -257,7 +257,7 @@ export async function sendSubscriptionCanceledEmail(
     title: "Abbonamento cancellato",
     message: `Ciao ${ownerName},\nL'abbonamento del locale ${barName} e stato cancellato o disattivato.`,
     ctaLabel: "Gestisci billing",
-    ctaUrl: getEmailAppUrl("/billing"),
+    ctaUrl: getEmailAppUrl("/dashboard/settings"),
   });
 }
 
@@ -272,7 +272,7 @@ export async function sendPaymentFailedEmail(
     title: "Pagamento non riuscito",
     message: `Ciao ${ownerName},\nIl pagamento dell'abbonamento per ${barName} non e andato a buon fine. Aggiorna il metodo di pagamento o rinnova l'abbonamento.`,
     ctaLabel: "Vai al billing",
-    ctaUrl: getEmailAppUrl("/billing"),
+    ctaUrl: getEmailAppUrl("/dashboard/settings"),
   });
 }
 

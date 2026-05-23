@@ -249,7 +249,7 @@ export async function getPostLoginDestination(input: {
     );
 
     if (needsBilling) {
-      return "/billing";
+      return "/dashboard/settings";
     }
   }
 

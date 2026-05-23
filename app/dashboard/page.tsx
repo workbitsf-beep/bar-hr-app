@@ -269,7 +269,7 @@ export default async function DashboardPage() {
         )}
       </Panel>
 
-      <Panel title="Bacheca" action={<ArrowLinkButton href="/dashboard/board" />}>
+      <Panel title="Bacheca" action={<ArrowLinkButton href="/dashboard/tasks" />}>
         {notes.length === 0 ? (
           <EmptyState message="Nessun messaggio in bacheca." />
         ) : (
@@ -334,7 +334,7 @@ export default async function DashboardPage() {
 
       {canManagePeople ? (
         <Panel
-          title="Team attivo"
+          title={isOwner ? "Personale" : "Team attivo"}
           action={<ArrowLinkButton href={isOwner ? "/dashboard/people" : "/dashboard/shifts"} />}
         >
           {teamMembers.length === 0 ? (

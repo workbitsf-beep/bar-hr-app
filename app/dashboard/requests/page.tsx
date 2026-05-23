@@ -1,6 +1,7 @@
 import { RequestStatus, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
+  createAvailabilityAction,
   createShiftChangeRequestAction,
   createTimeOffRequestAction,
   reviewRequestAction,
@@ -39,8 +40,8 @@ export default async function DashboardRequestsPage() {
 
   if (!activeBarId) {
     return (
-      <Panel title="Richieste">
-        <EmptyState message="Seleziona un locale attivo per vedere ferie, permessi e cambi turno." />
+      <Panel title="Richieste e indisponibilita">
+        <EmptyState message="Seleziona un locale attivo per vedere richieste e indisponibilita." />
       </Panel>
     );
   }
@@ -50,7 +51,7 @@ export default async function DashboardRequestsPage() {
   }
 
   const canCreateRequests = role !== Role.OWNER;
-  const [requests, ownShifts, teammates] = await Promise.all([
+  const [requests, ownShifts, teammates, availabilities] = await Promise.all([
     prisma.request.findMany({
       where: {
         barId: activeBarId,
@@ -150,6 +151,23 @@ export default async function DashboardRequestsPage() {
           },
         })
       : Promise.resolve([]),
+    prisma.availability.findMany({
+      where: {
+        barId: activeBarId,
+      },
+      orderBy: {
+        startsAt: "asc",
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    }),
   ]);
 
   return (
@@ -236,6 +254,58 @@ export default async function DashboardRequestsPage() {
             </Panel>
           </>
         ) : null}
+
+        <Panel title="Nuova indisponibilita">
+          <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 12,
+              }}
+            >
+              <FormField label="Da">
+                <TextInput name="startsAt" type="datetime-local" required />
+              </FormField>
+
+              <FormField label="A">
+                <TextInput name="endsAt" type="datetime-local" required />
+              </FormField>
+            </div>
+
+            <FormField label="Motivo">
+              <TextArea
+                name="reason"
+                placeholder="Facoltativo: esame, visita, evento personale"
+              />
+            </FormField>
+
+            <div className="dashboard-form-actions">
+              <PrimaryButton type="submit">Salva indisponibilita</PrimaryButton>
+            </div>
+          </form>
+        </Panel>
+
+        <Panel title="Calendario indisponibilita" action={`${availabilities.length} elementi`}>
+          {availabilities.length === 0 ? (
+            <EmptyState message="Nessuna indisponibilita registrata." />
+          ) : (
+            <ItemList scrollable>
+              {availabilities.map((availability) => (
+                <ItemCard
+                  key={availability.id}
+                  title={
+                    availability.user.id === session.user.id
+                      ? "La tua indisponibilita"
+                      : `${availability.user.firstName} ${availability.user.lastName}`
+                  }
+                  subtitle={`${formatDateTime(availability.startsAt)} - ${formatDateTime(availability.endsAt)}`}
+                  meta={availability.reason || "Nessuna nota aggiuntiva"}
+                />
+              ))}
+            </ItemList>
+          )}
+        </Panel>
 
         <Panel title="Storico richieste" action={`${requests.length} elementi`}>
           {requests.length === 0 ? (

@@ -58,7 +58,14 @@ export function AutoSubmitSelectForm({
         style={minWidth ? { minWidth } : undefined}
         aria-label={ariaLabel}
         onChange={(event) => {
-          event.currentTarget.form?.requestSubmit();
+          const form = event.currentTarget.form ?? formRef.current;
+
+          if (typeof form?.requestSubmit === "function") {
+            form.requestSubmit();
+            return;
+          }
+
+          form?.submit();
         }}
       >
         {options.map((option) => (

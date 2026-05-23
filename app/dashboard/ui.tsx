@@ -40,6 +40,127 @@ const shellCardStyle: CSSProperties = {
   backdropFilter: "blur(16px)",
 };
 
+function getBottomNavItems(navItems: DashboardNavItem[]) {
+  const preferredHrefs = [
+    "/dashboard/calendar",
+    "/dashboard",
+    "/dashboard/tasks",
+    "/dashboard/requests",
+    "/dashboard/settings",
+  ];
+  const preferred = preferredHrefs
+    .map((href) => navItems.find((item) => item.href === href))
+    .filter((item): item is DashboardNavItem => Boolean(item));
+  const fill = navItems.filter((item) => !preferred.some((selected) => selected.href === item.href));
+
+  return [...preferred, ...fill].slice(0, 5);
+}
+
+function BottomNavIcon({ href }: { href: string }) {
+  const common = {
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (href.includes("/calendar")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M7 3v3M17 3v3M4 9h16" {...common} />
+        <path d="M6.5 5h11A2.5 2.5 0 0 1 20 7.5v10A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-10A2.5 2.5 0 0 1 6.5 5Z" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/tasks")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 7h11M8 12h11M8 17h7" {...common} />
+        <path d="m4 7 1 1 2-2M4 12l1 1 2-2M4 17l1 1 2-2" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/requests")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 4h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2Z" {...common} />
+        <path d="M8 9h8M8 13h5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/settings")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...common} />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.38a1.7 1.7 0 0 0-1 .92l-.03.08a2 2 0 0 1-3.78 0l-.03-.08A1.7 1.7 0 0 0 9.2 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.62 15a1.7 1.7 0 0 0-.92-1l-.08-.03a2 2 0 0 1 0-3.78l.08-.03A1.7 1.7 0 0 0 4.6 9.2a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.62a1.7 1.7 0 0 0 1-.92l.03-.08a2 2 0 0 1 3.78 0l.03.08a1.7 1.7 0 0 0 .96.9 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.38 9c.15.42.48.75.9.92l.08.03a2 2 0 0 1 0 3.78l-.08.03c-.42.17-.75.5-.92.92Z" {...common} />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" {...common} />
+    </svg>
+  );
+}
+
+function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
+  const bottomNavItems = getBottomNavItems(navItems);
+
+  if (bottomNavItems.length <= 1) {
+    return null;
+  }
+
+  return (
+    <nav
+      aria-label="Navigazione principale"
+      className="dashboard-bottom-nav"
+      style={{
+        position: "fixed",
+        left: "50%",
+        bottom: "max(12px, env(safe-area-inset-bottom))",
+        transform: "translateX(-50%)",
+        zIndex: 200,
+        display: "flex",
+        gap: 8,
+        padding: 10,
+        borderRadius: 999,
+        border: "1px solid rgba(226, 232, 240, 0.96)",
+        background: "rgba(255,255,255,0.94)",
+        boxShadow: "0 18px 44px rgba(15, 23, 42, 0.16)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+      }}
+    >
+      {bottomNavItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          aria-label={item.label}
+          title={item.label}
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: 999,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#0f172a",
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            textDecoration: "none",
+          }}
+        >
+          <BottomNavIcon href={item.href} />
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 function DashboardResponsiveStyles() {
   return (
     <style
@@ -50,6 +171,7 @@ function DashboardResponsiveStyles() {
         width: 100%;
         max-width: 100%;
         overflow-x: hidden;
+        padding-bottom: 100px !important;
       }
 
       .dashboard-shell-inner,
@@ -84,14 +206,16 @@ function DashboardResponsiveStyles() {
 
       .dashboard-button,
       .dashboard-menu-button,
-      .dashboard-icon-button {
+      .dashboard-icon-button,
+      .dashboard-bottom-nav a {
         transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease, background 140ms ease;
         touch-action: manipulation;
       }
 
       .dashboard-button:active,
       .dashboard-menu-button:active,
-      .dashboard-icon-button:active {
+      .dashboard-icon-button:active,
+      .dashboard-bottom-nav a:active {
         transform: scale(0.98);
       }
 
@@ -214,6 +338,7 @@ function DashboardResponsiveStyles() {
       @media (max-width: 900px) {
         .dashboard-shell {
           padding: 12px !important;
+          padding-bottom: 100px !important;
           font-size: 16px !important;
           overflow-x: hidden;
         }
@@ -556,6 +681,7 @@ export function DashboardShell({
 
         <div style={{ display: "grid", gap: 18, alignItems: "start" }}>{children}</div>
       </div>
+      <BottomNav navItems={navItems} />
       <DashboardResponsiveStyles />
     </main>
   );
@@ -965,7 +1091,7 @@ export function BillingRequiredState({
         {canManageBilling ? (
           <div>
             <Link
-              href="/billing"
+              href="/dashboard/settings"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -979,7 +1105,7 @@ export function BillingRequiredState({
                 boxShadow: "0 10px 20px rgba(15, 23, 42, 0.14)",
               }}
             >
-              Vai al billing
+              Vai all'abbonamento
             </Link>
           </div>
         ) : null}

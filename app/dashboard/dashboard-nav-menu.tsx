@@ -204,12 +204,6 @@ export function DashboardNavMenu({
                       setOpen(false);
                     }
                   }}
-                  onChangeCapture={(event) => {
-                    const target = event.target as HTMLElement;
-                    if (target.closest("[data-dashboard-menu-close='true']")) {
-                      setOpen(false);
-                    }
-                  }}
                   style={{
                     position: isMobile ? "relative" : "absolute",
                     top: isMobile ? undefined : position.top,
