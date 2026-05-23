@@ -51,7 +51,16 @@ type BarAdminItem = {
   } | null;
 };
 
-export default async function SuperAdminPage() {
+export default async function SuperAdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
+  const success = Array.isArray(params.success)
+    ? params.success[0]
+    : params.success;
   const { role } = await getDashboardContext();
 
   if (String(role) !== "SUPER_ADMIN") {
@@ -136,6 +145,49 @@ export default async function SuperAdminPage() {
 
         <Panel title="Crea titolare">
         <form action={createOwnerBySuperAdminAction} style={{ display: "grid", gap: 16 }}>
+          {error === "owner-exists" ? (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid #fecaca",
+                background: "#fef2f2",
+                color: "#b91c1c",
+                lineHeight: 1.5,
+              }}
+            >
+              Esiste gia un titolare con questa email. Usa un indirizzo diverso.
+            </div>
+          ) : null}
+          {success === "owner-created" ? (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid #bbf7d0",
+                background: "#f0fdf4",
+                color: "#166534",
+                lineHeight: 1.5,
+              }}
+            >
+              Titolare creato correttamente. La welcome email e stata inviata.
+            </div>
+          ) : null}
+          {success === "owner-created-email-failed" ? (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid #fed7aa",
+                background: "#fff7ed",
+                color: "#c2410c",
+                lineHeight: 1.5,
+              }}
+            >
+              Titolare creato, ma la welcome email non e partita. Controlla
+              RESEND_API_KEY, EMAIL_FROM e dominio mittente su Railway.
+            </div>
+          ) : null}
           <div
             className="dashboard-inline-grid"
             style={{

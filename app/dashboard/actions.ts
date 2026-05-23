@@ -549,6 +549,8 @@ export async function setLanguageAction(formData: FormData) {
 export async function createOwnerBySuperAdminAction(formData: FormData) {
   await getSuperAdminContext();
 
+  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin");
+
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -565,7 +567,7 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
   });
 
   if (existingUser) {
-    throw new Error("Owner already exists");
+    redirect(appendStatusToPath(returnPath, { error: "owner-exists" }));
   }
 
   const passwordHash = await bcrypt.hash(temporaryPassword, 10);
@@ -582,17 +584,34 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
     },
   });
 
-  await runEmailNotification(async () => {
-    await sendOwnerWelcomeEmail(
+  let welcomeEmailSent = false;
+
+  try {
+    const emailResult = await sendOwnerWelcomeEmail(
       email,
       `${firstName} ${lastName}`.trim(),
       null,
       email,
       temporaryPassword
     );
-  });
+
+    welcomeEmailSent = emailResult.ok;
+  } catch (error) {
+    console.error("[welcome-email] owner failed", {
+      recipient: email,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unexpected owner welcome email error.",
+    });
+  }
 
   revalidatePath("/dashboard/super-admin");
+  redirect(
+    appendStatusToPath(returnPath, {
+      success: welcomeEmailSent ? "owner-created" : "owner-created-email-failed",
+    })
+  );
 }
 
 export async function createBarBySuperAdminAction(formData: FormData) {
