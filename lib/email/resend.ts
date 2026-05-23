@@ -2,7 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 
-const FALLBACK_EMAIL_FROM = "Workbit <onboarding@resend.dev>";
+const FALLBACK_EMAIL_FROM = "Workbit <noreply@workbit.it>";
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
@@ -48,7 +48,7 @@ function getEmailFrom() {
 
   if (!hasLoggedMissingEmailFrom) {
     console.warn(
-      `[email] EMAIL_FROM missing. Using fallback sender "${FALLBACK_EMAIL_FROM}".`
+      `[email] EMAIL_FROM missing. Using fallback sender "${FALLBACK_EMAIL_FROM}". Set EMAIL_FROM on Railway to avoid delivery issues.`
     );
     hasLoggedMissingEmailFrom = true;
   }
