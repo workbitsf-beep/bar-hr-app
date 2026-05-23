@@ -38,11 +38,6 @@ function parseNumber(value: FormDataEntryValue | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function parseInteger(value: FormDataEntryValue | null): number | null {
-  const parsed = parseNumber(value);
-  return parsed !== null && Number.isInteger(parsed) ? parsed : null;
-}
-
 async function getOwnerContext() {
   const session = await getSession();
 
@@ -215,39 +210,29 @@ async function saveRoundingAction(formData: FormData) {
   }
 
   const roundingEnabled = formData.get("roundingEnabled") === "on";
-  const roundingMinutes = parseInteger(formData.get("roundingMinutes"));
-  const roundingModeRaw = String(formData.get("roundingMode") ?? "");
-  const roundingMode =
-    roundingModeRaw === "UP" ||
-    roundingModeRaw === "DOWN" ||
-    roundingModeRaw === "NEAREST"
-      ? roundingModeRaw
-      : null;
-
-  if (roundingEnabled && (roundingMinutes === null || roundingMode === null)) {
-    redirect("/onboarding?step=3&error=invalid-rounding");
-  }
+  const roundingMinutes = 15;
+  const roundingMode = RoundingMode.NEAREST;
 
   await prisma.$transaction([
     prisma.bar.update({
       where: { id: activeBar.id },
       data: {
         roundingEnabled,
-        roundingStepMin: roundingEnabled && roundingMinutes ? roundingMinutes : 15,
+        roundingStepMin: roundingMinutes,
       },
     }),
     prisma.barSettings.upsert({
       where: { barId: activeBar.id },
       update: {
         roundingEnabled,
-        roundingMinutes: roundingMinutes ?? 15,
-        roundingMode: (roundingMode as RoundingMode | null) ?? RoundingMode.NEAREST,
+        roundingMinutes,
+        roundingMode,
       },
       create: {
         barId: activeBar.id,
         roundingEnabled,
-        roundingMinutes: roundingMinutes ?? 15,
-        roundingMode: (roundingMode as RoundingMode | null) ?? RoundingMode.NEAREST,
+        roundingMinutes,
+        roundingMode,
       },
     }),
   ]);
@@ -668,53 +653,24 @@ export default async function OnboardingPage({
                 type="checkbox"
                 defaultChecked={Boolean(activeBar.settings?.roundingEnabled)}
               />
-              Enable rounding
+              Enable quarter-hour rounding
             </label>
+
+            <input type="hidden" name="roundingMinutes" value="15" />
+            <input type="hidden" name="roundingMode" value="NEAREST" />
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 16,
+                padding: "14px 16px",
+                borderRadius: 18,
+                background: "#f7f2e9",
+                border: "1px solid #e7dcc8",
+                color: "#5f5546",
+                lineHeight: 1.7,
               }}
             >
-              <label style={{ display: "grid", gap: 8 }}>
-                <span style={{ fontWeight: 600 }}>Rounding minutes</span>
-                <select
-                  name="roundingMinutes"
-                  defaultValue={String(activeBar.settings?.roundingMinutes ?? 15)}
-                  style={{
-                    borderRadius: 14,
-                    border: "1px solid #d9cdb8",
-                    padding: "12px 14px",
-                    fontSize: 15,
-                    background: "#fff",
-                  }}
-                >
-                  <option value="5">5 minutes</option>
-                  <option value="10">10 minutes</option>
-                  <option value="15">15 minutes</option>
-                </select>
-              </label>
-
-              <label style={{ display: "grid", gap: 8 }}>
-                <span style={{ fontWeight: 600 }}>Rounding mode</span>
-                <select
-                  name="roundingMode"
-                  defaultValue={activeBar.settings?.roundingMode ?? "NEAREST"}
-                  style={{
-                    borderRadius: 14,
-                    border: "1px solid #d9cdb8",
-                    padding: "12px 14px",
-                    fontSize: 15,
-                    background: "#fff",
-                  }}
-                >
-                  <option value="NEAREST">Nearest</option>
-                  <option value="UP">Up</option>
-                  <option value="DOWN">Down</option>
-                </select>
-              </label>
+              Fixed rule: 00-07 goes to 00, 08-17 goes to 15, 18-37 goes to 30,
+              38-52 goes to 45, 53-59 goes to the next hour.
             </div>
 
             <div>

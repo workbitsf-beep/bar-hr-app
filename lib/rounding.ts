@@ -1,21 +1,40 @@
 import { RoundingMode } from "@prisma/client";
 
-export function applyRounding(
-  date: Date,
-  mode: RoundingMode,
-  minutes: number
-): Date {
-  const intervalMs = minutes * 60 * 1000;
-  const timestamp = date.getTime();
-  let roundedTimestamp: number;
-
-  if (mode === RoundingMode.UP) {
-    roundedTimestamp = Math.ceil(timestamp / intervalMs) * intervalMs;
-  } else if (mode === RoundingMode.DOWN) {
-    roundedTimestamp = Math.floor(timestamp / intervalMs) * intervalMs;
-  } else {
-    roundedTimestamp = Math.round(timestamp / intervalMs) * intervalMs;
+function getQuarterHourMinute(minutes: number) {
+  if (minutes <= 7) {
+    return 0;
   }
 
-  return new Date(roundedTimestamp);
+  if (minutes <= 17) {
+    return 15;
+  }
+
+  if (minutes <= 37) {
+    return 30;
+  }
+
+  if (minutes <= 52) {
+    return 45;
+  }
+
+  return 60;
+}
+
+export function applyRounding(
+  date: Date,
+  _mode: RoundingMode,
+  _minutes: number
+): Date {
+  const rounded = new Date(date);
+  const roundedMinutes = getQuarterHourMinute(rounded.getUTCMinutes());
+
+  rounded.setUTCSeconds(0, 0);
+
+  if (roundedMinutes === 60) {
+    rounded.setUTCHours(rounded.getUTCHours() + 1, 0, 0, 0);
+    return rounded;
+  }
+
+  rounded.setUTCMinutes(roundedMinutes, 0, 0);
+  return rounded;
 }

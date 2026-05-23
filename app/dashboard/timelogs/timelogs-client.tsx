@@ -300,7 +300,7 @@ export function ClockActionsPanel({
           ) : null}
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div>
-              Arrotondamento attivo: {settings.roundingMode} ogni {settings.roundingMinutes} minuti.
+              Arrotondamento attivo al quarto d'ora.
             </div>
           ) : null}
         </div>

@@ -607,6 +607,9 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/owners");
+  revalidatePath("/dashboard/super-admin/bars");
+  revalidatePath("/dashboard/super-admin/billing");
   redirect(
     appendStatusToPath(returnPath, {
       success: welcomeEmailSent ? "owner-created" : "owner-created-email-failed",
@@ -704,6 +707,8 @@ export async function createBarBySuperAdminAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/bars");
+  revalidatePath("/dashboard/super-admin/billing");
 }
 
 export async function updateBarSubscriptionAction(formData: FormData) {
@@ -798,6 +803,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/billing");
 }
 
 export async function deleteBarBySuperAdminAction(formData: FormData) {
@@ -868,6 +874,7 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/billing");
 }
 
 export async function confirmVisibleShiftsAction(formData: FormData) {
@@ -1497,14 +1504,8 @@ export async function updateSettingsAction(formData: FormData) {
   const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
   const gpsRadius = await getGlobalGpsRadius();
   const roundingEnabled = formData.get("roundingEnabled") === "on";
-  const roundingMinutes = parseOptionalNumber(formData.get("roundingMinutes"));
-  const roundingModeRaw = String(formData.get("roundingMode") ?? "");
-  const roundingMode =
-    roundingModeRaw === "UP" ||
-    roundingModeRaw === "DOWN" ||
-    roundingModeRaw === "NEAREST"
-      ? roundingModeRaw
-      : "NEAREST";
+  const roundingMinutes = 15;
+  const roundingMode = "NEAREST";
 
   if (gpsLatitude === null || gpsLongitude === null) {
     throw new Error("Missing GPS settings");
@@ -1518,7 +1519,7 @@ export async function updateSettingsAction(formData: FormData) {
         longitude: gpsLongitude,
         radiusMeters: Math.round(gpsRadius),
         roundingEnabled,
-        roundingStepMin: roundingMinutes ? Math.round(roundingMinutes) : 15,
+        roundingStepMin: roundingMinutes,
       },
     }),
     prisma.barSettings.upsert({
@@ -1528,8 +1529,7 @@ export async function updateSettingsAction(formData: FormData) {
         gpsLongitude,
         gpsRadius: Math.round(gpsRadius),
         roundingEnabled,
-        roundingMinutes:
-          roundingMinutes !== null ? Math.round(roundingMinutes) : 15,
+        roundingMinutes,
         roundingMode,
       },
       create: {
@@ -1538,8 +1538,7 @@ export async function updateSettingsAction(formData: FormData) {
         gpsLongitude,
         gpsRadius: Math.round(gpsRadius),
         roundingEnabled,
-        roundingMinutes:
-          roundingMinutes !== null ? Math.round(roundingMinutes) : 15,
+        roundingMinutes,
         roundingMode,
       },
     }),
@@ -1563,6 +1562,7 @@ export async function updateGlobalGpsRadiusAction(nextRadius: number) {
   const gpsRadius = await applyGlobalGpsRadius(nextRadius);
 
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/gps");
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/timelogs");
   revalidatePath("/dashboard/calendar");

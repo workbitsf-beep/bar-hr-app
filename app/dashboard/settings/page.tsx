@@ -8,10 +8,8 @@ import { getDashboardContext } from "../context";
 import { updateSettingsAction } from "../actions";
 import {
   EmptyState,
-  FormField,
   Panel,
   PrimaryButton,
-  Select,
   Stack,
 } from "../ui";
 import { BillingSettingsPanel } from "./billing-settings-panel";
@@ -90,35 +88,24 @@ export default async function DashboardSettingsPage() {
                 name="roundingEnabled"
                 defaultChecked={Boolean(settings?.roundingEnabled)}
               />
-              Abilita arrotondamento ore
+              Abilita arrotondamento al quarto d'ora
             </label>
 
+            <input type="hidden" name="roundingMinutes" value="15" />
+            <input type="hidden" name="roundingMode" value="NEAREST" />
+
             <div
-              className="dashboard-inline-grid"
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
+                padding: "12px 14px",
+                borderRadius: 18,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                color: "#475569",
+                lineHeight: 1.6,
               }}
             >
-              <FormField label="Scatto arrotondamento">
-                <Select
-                  name="roundingMinutes"
-                  defaultValue={String(settings?.roundingMinutes ?? 15)}
-                >
-                  <option value="5">5 minuti</option>
-                  <option value="10">10 minuti</option>
-                  <option value="15">15 minuti</option>
-                </Select>
-              </FormField>
-
-              <FormField label="Modalita">
-                <Select name="roundingMode" defaultValue={settings?.roundingMode ?? "NEAREST"}>
-                  <option value="NEAREST">Al piu vicino</option>
-                  <option value="UP">Sempre in eccesso</option>
-                  <option value="DOWN">Sempre in difetto</option>
-                </Select>
-              </FormField>
+              Regola unica: 00-07 va a 00, 08-17 va a 15, 18-37 va a 30,
+              38-52 va a 45, 53-59 va all'ora successiva.
             </div>
 
             <div className="dashboard-form-actions">
