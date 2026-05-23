@@ -1,4 +1,3 @@
-import { MIN_TEMPORARY_PASSWORD_LENGTH } from "@/lib/temporary-password";
 import { createOwnerBySuperAdminAction } from "../../actions";
 import { getDashboardContext } from "../../context";
 import {
@@ -29,7 +28,7 @@ export default async function SuperAdminOwnersPage({
   return (
     <SuperAdminFrame
       title="Titolari"
-      description="Crea un titolare e invia la welcome email con la password temporanea inserita."
+      description="Crea un titolare e invia la welcome email con una password temporanea generata automaticamente."
     >
       <Panel title="Crea titolare">
         <form action={createOwnerBySuperAdminAction} style={{ display: "grid", gap: 16 }}>
@@ -94,16 +93,6 @@ export default async function SuperAdminOwnersPage({
 
             <FormField label="Email">
               <TextInput name="email" type="email" required />
-            </FormField>
-
-            <FormField label="Password temporanea">
-              <TextInput
-                name="temporaryPassword"
-                type="text"
-                required
-                minLength={MIN_TEMPORARY_PASSWORD_LENGTH}
-                autoComplete="new-password"
-              />
             </FormField>
 
             <FormField label="Lingua">

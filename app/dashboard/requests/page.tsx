@@ -1,4 +1,4 @@
-import { RequestStatus, Role } from "@prisma/client";
+import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   createAvailabilityAction,
@@ -99,6 +99,7 @@ export default async function DashboardRequestsPage() {
             endTime: true,
           },
         },
+        certificateCode: true,
       },
     }),
     canCreateRequests
@@ -175,7 +176,7 @@ export default async function DashboardRequestsPage() {
       <Stack>
         {canCreateRequests ? (
           <>
-            <Panel title="Richiedi ferie o permesso">
+            <Panel title="Richiedi ferie, permesso o malattia">
               <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
                 <div
                   className="dashboard-inline-grid"
@@ -189,6 +190,7 @@ export default async function DashboardRequestsPage() {
                     <Select name="type" defaultValue="VACATION">
                       <option value="VACATION">Ferie</option>
                       <option value="PERMISSION">Permesso</option>
+                      <option value="SICKNESS">Malattia</option>
                     </Select>
                   </FormField>
 
@@ -203,6 +205,13 @@ export default async function DashboardRequestsPage() {
 
                 <FormField label="Motivo">
                   <TextArea name="reason" placeholder="Spiega brevemente la richiesta" />
+                </FormField>
+
+                <FormField label="Codice certificato malattia">
+                  <TextInput
+                    name="certificateCode"
+                    placeholder="Obbligatorio solo se scegli Malattia"
+                  />
                 </FormField>
 
                 <div className="dashboard-form-actions">
@@ -321,6 +330,7 @@ export default async function DashboardRequestsPage() {
                 const canOwnerReview =
                   role === Role.OWNER &&
                   request.status === RequestStatus.PENDING &&
+                  request.type !== RequestType.SICKNESS &&
                   (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
 
                 return (
@@ -331,7 +341,9 @@ export default async function DashboardRequestsPage() {
                         ? "Ferie"
                         : request.type === "PERMISSION"
                           ? "Permesso"
-                          : "Cambio turno"
+                          : request.type === "SICKNESS"
+                            ? "Malattia"
+                            : "Cambio turno"
                     }
                     subtitle={`${request.employee.firstName} ${request.employee.lastName}`}
                     meta={
@@ -341,7 +353,9 @@ export default async function DashboardRequestsPage() {
                         <br />
                         {request.shift
                           ? `${request.shift.title || "Turno"} · ${formatDateTime(request.shift.startTime)}`
-                          : request.reason || "Nessun dettaglio aggiuntivo"}
+                          : request.certificateCode
+                            ? `Certificato: ${request.certificateCode}${request.reason ? ` - ${request.reason}` : ""}`
+                            : request.reason || "Nessun dettaglio aggiuntivo"}
                       </>
                     }
                     footer={

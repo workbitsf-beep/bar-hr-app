@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { AppLanguage, Role } from "@prisma/client";
+import { ActivityType, AppLanguage, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getBillingStatus, type BillingStatusResult } from "@/lib/billing";
@@ -18,12 +18,14 @@ export type DashboardContext = {
   t: ReturnType<typeof getTranslation>;
   activeBarId: string | null;
   activeBarName: string | null;
+  activeBarActivityType: ActivityType | null;
   billingStatus: BillingStatusResult | null;
   navItems: DashboardNavItem[];
   accessibleBars: {
     id: string;
     name: string;
     role: Role;
+    activityType: ActivityType;
   }[];
 };
 
@@ -56,11 +58,20 @@ export const getDashboardContext = cache(async function getDashboardContext(
     activeBar?.id && String(role) !== "SUPER_ADMIN"
       ? await getBillingStatus(activeBar.id)
       : null;
+  const isCompany = activeBar?.activityType === ActivityType.COMPANY;
 
   const navItems: DashboardNavItem[] =
     String(role) === "SUPER_ADMIN"
       ? [{ label: t.superAdmin, href: "/dashboard/super-admin" }]
-      : [
+      : isCompany
+        ? [
+          { label: t.calendar, href: "/dashboard/calendar" },
+          { label: t.dashboard, href: "/dashboard" },
+          { label: t.tasks, href: "/dashboard/tasks" },
+          { label: "Corsi", href: "/dashboard/courses" },
+          { label: t.requests, href: "/dashboard/requests" },
+        ]
+        : [
           { label: t.calendar, href: "/dashboard/calendar" },
           { label: t.dashboard, href: "/dashboard" },
           { label: t.shifts, href: "/dashboard/shifts" },
@@ -89,6 +100,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
     t,
     activeBarId: activeBar?.id ?? null,
     activeBarName: activeBar?.name ?? null,
+    activeBarActivityType: activeBar?.activityType ?? null,
     billingStatus,
     navItems,
     accessibleBars,

@@ -1,4 +1,4 @@
-import { Prisma, Role } from "@prisma/client";
+import { ActivityType, Prisma, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
@@ -30,7 +30,14 @@ async function getPasskeyCount(userId: string) {
 }
 
 export default async function DashboardSettingsPage() {
-  const { session, role, activeBarId, activeBarName, billingStatus } = await getDashboardContext();
+  const {
+    session,
+    role,
+    activeBarId,
+    activeBarName,
+    activeBarActivityType,
+    billingStatus,
+  } = await getDashboardContext();
   const passkeyCount = await getPasskeyCount(session.user.id);
   const securityPanel = (
     <Panel title="Sicurezza account">
@@ -70,8 +77,9 @@ export default async function DashboardSettingsPage() {
 
         <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
 
-        <Panel title="Configura locale">
-          <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+        {activeBarActivityType === ActivityType.RESTAURANT ? (
+          <Panel title="Configura locale">
+            <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
             <GpsLocationField
               latitudeName="gpsLatitude"
               longitudeName="gpsLongitude"
@@ -111,8 +119,13 @@ export default async function DashboardSettingsPage() {
             <div className="dashboard-form-actions">
               <PrimaryButton type="submit">Salva arrotondamento</PrimaryButton>
             </div>
-          </form>
-        </Panel>
+            </form>
+          </Panel>
+        ) : (
+          <Panel title="Impostazioni azienda">
+            <EmptyState message="Per le aziende il GPS e le timbrature non sono necessari. Restano attivi abbonamento, corsi, mansioni, bacheca, calendario e richieste." />
+          </Panel>
+        )}
       </Stack>
     </>
   );

@@ -45,6 +45,7 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
     "/dashboard/calendar",
     "/dashboard",
     "/dashboard/tasks",
+    "/dashboard/courses",
     "/dashboard/requests",
     "/dashboard/settings",
   ];
@@ -87,6 +88,15 @@ function BottomNavIcon({ href }: { href: string }) {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M6 4h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2Z" {...common} />
         <path d="M8 9h8M8 13h5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/courses")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" {...common} />
+        <path d="M8 4v13a3 3 0 0 0 3 3M9 8h6M9 12h5" {...common} />
       </svg>
     );
   }

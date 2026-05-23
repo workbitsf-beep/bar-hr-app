@@ -10,8 +10,7 @@ import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import {
-  MIN_TEMPORARY_PASSWORD_LENGTH,
-  readTemporaryPasswordFromFormData,
+  createTemporaryPassword,
 } from "@/lib/temporary-password";
 
 type StepNumber = 1 | 2 | 3 | 4;
@@ -253,14 +252,6 @@ async function inviteEmployeeAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
-  let temporaryPassword: string;
-
-  try {
-    temporaryPassword = readTemporaryPasswordFromFormData(formData);
-  } catch {
-    redirect("/onboarding?step=4&error=invalid-temporary-password");
-  }
-
   const roleRaw = String(formData.get("role") ?? "");
   const memberRole = roleRaw === "MANAGER" ? Role.MANAGER : Role.EMPLOYEE;
 
@@ -300,6 +291,7 @@ async function inviteEmployeeAction(formData: FormData) {
     redirect("/onboarding?step=4");
   }
 
+  const temporaryPassword = createTemporaryPassword();
   const passwordHash = await import("bcrypt").then((module) =>
     module.default.hash(temporaryPassword, 10)
   );
@@ -722,15 +714,6 @@ export default async function OnboardingPage({
                   type="email"
                   required
                   placeholder="nome@locale.it"
-                />
-                <Input
-                  name="temporaryPassword"
-                  label="Password temporanea"
-                  type="text"
-                  required
-                  minLength={MIN_TEMPORARY_PASSWORD_LENGTH}
-                  autoComplete="new-password"
-                  placeholder="Imposta una password temporanea"
                 />
                 <label style={{ display: "grid", gap: 8 }}>
                   <span style={{ fontWeight: 600 }}>Role</span>

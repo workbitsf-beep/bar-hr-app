@@ -1,6 +1,5 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { MIN_TEMPORARY_PASSWORD_LENGTH } from "@/lib/temporary-password";
 import { createEmployeeAction, removeEmployeeAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -94,7 +93,7 @@ export default async function DashboardPeoplePage({
                   lineHeight: 1.5,
                 }}
               >
-                Dipendente creato correttamente. La welcome email e stata messa in invio.
+                Dipendente creato correttamente. La password temporanea automatica e stata inviata via email.
               </div>
             ) : null}
             {success === "employee-deleted" ? (
@@ -128,16 +127,6 @@ export default async function DashboardPeoplePage({
 
               <FormField label="Email">
                 <TextInput name="email" type="email" required />
-              </FormField>
-
-              <FormField label="Password temporanea">
-                <TextInput
-                  name="temporaryPassword"
-                  type="text"
-                  required
-                  minLength={MIN_TEMPORARY_PASSWORD_LENGTH}
-                  autoComplete="new-password"
-                />
               </FormField>
 
               <FormField label="Ruolo">

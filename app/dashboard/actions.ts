@@ -2,6 +2,7 @@
 
 import bcrypt from "bcrypt";
 import {
+  ActivityType,
   AppLanguage,
   BillingInterval,
   PlanType,
@@ -49,7 +50,7 @@ import {
 } from "@/lib/auth";
 import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
-import { readTemporaryPasswordFromFormData } from "@/lib/temporary-password";
+import { createTemporaryPassword } from "@/lib/temporary-password";
 
 type PlanTypeValue = "FREE" | "TRIAL" | "PAID" | "LIFETIME";
 type BillingIntervalValue = "MONTHLY" | "YEARLY";
@@ -80,7 +81,15 @@ function getFullName(user: { firstName: string; lastName: string }) {
 }
 
 function getLeaveTypeLabel(type: RequestType) {
-  return type === RequestType.PERMISSION ? "permesso" : "ferie";
+  if (type === RequestType.PERMISSION) {
+    return "permesso";
+  }
+
+  if (type === RequestType.SICKNESS) {
+    return "malattia";
+  }
+
+  return "ferie";
 }
 
 function formatRangeLabel(startsAt: Date, endsAt: Date) {
@@ -290,6 +299,12 @@ function parseLanguage(value: FormDataEntryValue | null): AppLanguage {
   }
 
   return AppLanguage.it;
+}
+
+function parseActivityType(value: FormDataEntryValue | null): ActivityType {
+  return String(value ?? "") === ActivityType.COMPANY
+    ? ActivityType.COMPANY
+    : ActivityType.RESTAURANT;
 }
 
 async function getReturnPathFromReferer(fallbackPath = "/dashboard") {
@@ -554,7 +569,6 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const temporaryPassword = readTemporaryPasswordFromFormData(formData);
   const language = parseLanguage(formData.get("language"));
 
   if (!firstName || !lastName || !email) {
@@ -570,6 +584,7 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
     redirect(appendStatusToPath(returnPath, { error: "owner-exists" }));
   }
 
+  const temporaryPassword = createTemporaryPassword();
   const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
   await prisma.user.create({
@@ -627,6 +642,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   const addressLine1 = String(formData.get("addressLine1") ?? "").trim();
   const city = String(formData.get("city") ?? "").trim();
   const postalCode = String(formData.get("postalCode") ?? "").trim();
+  const activityType = parseActivityType(formData.get("activityType"));
 
   if (!ownerId || !name) {
     throw new Error("Missing bar data");
@@ -660,6 +676,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
       latitude: 0,
       longitude: 0,
       radiusMeters: globalGpsRadius,
+      activityType,
       ownerId,
     },
   });
@@ -1347,6 +1364,88 @@ export async function createAvailabilityAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
+export async function createCourseAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const bar = await prisma.bar.findUnique({
+    where: { id: activeBarId },
+    select: { activityType: true },
+  });
+
+  if (bar?.activityType !== ActivityType.COMPANY) {
+    throw new Error("Courses are available only for company activity type");
+  }
+
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim();
+  const startsAt = parseRequiredDate(formData.get("startsAt"));
+  const endsAt = parseRequiredDate(formData.get("endsAt"));
+  const assignedToAll = formData.get("assignedToAll") === "on";
+  const assignedToId = String(formData.get("assignedToId") ?? "").trim();
+
+  if (!title) {
+    throw new Error("Missing course title");
+  }
+
+  if (endsAt <= startsAt) {
+    throw new Error("Invalid course range");
+  }
+
+  if (!assignedToAll && assignedToId) {
+    await ensureUsersBelongToBar(activeBarId, [assignedToId]);
+  }
+
+  await prisma.course.create({
+    data: {
+      barId: activeBarId,
+      title,
+      description: description || null,
+      startsAt,
+      endsAt,
+      location: location || null,
+      assignedToAll,
+      assignedToId: assignedToAll || !assignedToId ? null : assignedToId,
+      createdById: session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard/courses");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/export");
+}
+
+export async function deleteCourseAction(formData: FormData) {
+  const { role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const courseId = String(formData.get("courseId") ?? "").trim();
+
+  if (!courseId) {
+    throw new Error("Missing course id");
+  }
+
+  await prisma.course.deleteMany({
+    where: {
+      id: courseId,
+      barId: activeBarId,
+    },
+  });
+
+  revalidatePath("/dashboard/courses");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/export");
+}
+
 export async function createEmployeeAction(formData: FormData) {
   const { role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);
@@ -1360,7 +1459,6 @@ export async function createEmployeeAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
-  const temporaryPassword = readTemporaryPasswordFromFormData(formData);
   const userRole = parseRole(formData.get("role"));
   const hourlyRate = parseOptionalNumber(formData.get("hourlyRate"));
 
@@ -1391,6 +1489,9 @@ export async function createEmployeeAction(formData: FormData) {
     redirect(appendStatusToPath(returnPath, { error: "employee-exists" }));
   }
 
+  const temporaryPassword = createTemporaryPassword();
+  const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -1399,7 +1500,7 @@ export async function createEmployeeAction(formData: FormData) {
         lastName,
         role: userRole,
         mustChangePwd: true,
-        passwordHash: await bcrypt.hash(temporaryPassword, 10),
+        passwordHash,
       },
     });
 
@@ -1627,23 +1728,40 @@ export async function createTimeOffRequestAction(formData: FormData) {
   const startsAt = parseRequiredDate(formData.get("startsAt"));
   const endsAt = parseRequiredDate(formData.get("endsAt"));
   const reason = String(formData.get("reason") ?? "").trim();
+  const certificateCode = String(formData.get("certificateCode") ?? "").trim();
   const type =
-    typeRaw === RequestType.PERMISSION ? RequestType.PERMISSION : RequestType.VACATION;
+    typeRaw === RequestType.PERMISSION
+      ? RequestType.PERMISSION
+      : typeRaw === RequestType.SICKNESS
+        ? RequestType.SICKNESS
+        : RequestType.VACATION;
 
   if (endsAt <= startsAt) {
     throw new Error("Invalid date range");
   }
+
+  if (type === RequestType.SICKNESS && !certificateCode) {
+    throw new Error("Missing certificate code");
+  }
+
+  const autoApproved = type === RequestType.SICKNESS;
 
   await prisma.request.create({
     data: {
       barId: activeBarId,
       employeeId: session.user.id,
       type,
-      status: RequestStatus.PENDING,
-      ownerStatus: RequestStatus.PENDING,
+      status: autoApproved ? RequestStatus.APPROVED : RequestStatus.PENDING,
+      ownerStatus: autoApproved ? RequestStatus.APPROVED : RequestStatus.PENDING,
       reason: reason || null,
+      certificateCode: certificateCode || null,
       startsAt,
       endsAt,
+      ...(autoApproved
+        ? {
+            reviewedAt: new Date(),
+          }
+        : {}),
     },
   });
 
@@ -1664,6 +1782,7 @@ export async function createTimeOffRequestAction(formData: FormData) {
 
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function createShiftChangeRequestAction(formData: FormData) {

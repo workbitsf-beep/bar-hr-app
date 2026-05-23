@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { RequestStatus, RequestType, Role } from "@prisma/client";
+import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { ClockActionsPanel } from "../timelogs/timelogs-client";
@@ -137,7 +137,8 @@ export default async function DashboardCalendarPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : undefined;
-  const { role, language, activeBarId, billingStatus } = await getDashboardContext();
+  const { role, language, activeBarId, activeBarActivityType, billingStatus } =
+    await getDashboardContext();
 
   if (!activeBarId) {
     return (
@@ -159,10 +160,11 @@ export default async function DashboardCalendarPage({
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
   const navigation = getMonthNavigation(year, month);
-  const canManageShifts = role === Role.OWNER || role === Role.MANAGER;
+  const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
+  const canManageShifts = isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
 
   const [settings, shifts, availabilities, approvedRequests, ownerMembers] = await Promise.all([
-    role === Role.OWNER
+    role === Role.OWNER || !isRestaurant
       ? Promise.resolve(null)
       : prisma.barSettings.findUnique({
           where: { barId: activeBarId },
@@ -175,39 +177,41 @@ export default async function DashboardCalendarPage({
             roundingMode: true,
           },
         }),
-    prisma.shift.findMany({
-      where: {
-        barId: activeBarId,
-        startTime: {
-          lte: calendarEnd,
-        },
-        endTime: {
-          gte: calendarStart,
-        },
-      },
-      orderBy: {
-        startTime: "asc",
-      },
-      select: {
-        id: true,
-        title: true,
-        startTime: true,
-        endTime: true,
-        confirmedAt: true,
-        assignments: {
+    isRestaurant
+      ? prisma.shift.findMany({
+          where: {
+            barId: activeBarId,
+            startTime: {
+              lte: calendarEnd,
+            },
+            endTime: {
+              gte: calendarStart,
+            },
+          },
+          orderBy: {
+            startTime: "asc",
+          },
           select: {
-            user: {
+            id: true,
+            title: true,
+            startTime: true,
+            endTime: true,
+            confirmedAt: true,
+            assignments: {
               select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                role: true,
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    role: true,
+                  },
+                },
               },
             },
           },
-        },
-      },
-    }),
+        })
+      : Promise.resolve([]),
     prisma.availability.findMany({
       where: {
         barId: activeBarId,
@@ -237,7 +241,7 @@ export default async function DashboardCalendarPage({
       where: {
         barId: activeBarId,
         type: {
-          in: [RequestType.VACATION, RequestType.PERMISSION],
+          in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
         },
         status: RequestStatus.APPROVED,
         startsAt: {
@@ -389,7 +393,9 @@ export default async function DashboardCalendarPage({
 
   return (
     <Stack columns="minmax(0, 1fr)">
-      {role !== Role.OWNER ? <ClockActionsPanel role={role} settings={settings} compact /> : null}
+      {isRestaurant && role !== Role.OWNER ? (
+        <ClockActionsPanel role={role} settings={settings} compact />
+      ) : null}
 
       <Panel
         title={new Intl.DateTimeFormat(locale, {
@@ -634,7 +640,11 @@ export default async function DashboardCalendarPage({
                               lineHeight: 1.5,
                             }}
                           >
-                            {request.type === RequestType.VACATION ? "Ferie" : "Permesso"}:{" "}
+                            {request.type === RequestType.VACATION
+                              ? "Ferie"
+                              : request.type === RequestType.SICKNESS
+                                ? "Malattia"
+                                : "Permesso"}:{" "}
                             {request.employee.firstName} {request.employee.lastName}
                           </div>
                         ))}
@@ -798,7 +808,11 @@ export default async function DashboardCalendarPage({
                                 lineHeight: 1.6,
                               }}
                             >
-                              {request.type === RequestType.VACATION ? "Ferie" : "Permesso"}:{" "}
+                              {request.type === RequestType.VACATION
+                                ? "Ferie"
+                                : request.type === RequestType.SICKNESS
+                                  ? "Malattia"
+                                  : "Permesso"}:{" "}
                               {request.employee.firstName} {request.employee.lastName}
                             </div>
                           ))}

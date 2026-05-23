@@ -72,6 +72,10 @@ function requestLabel(type: RequestType): string {
     return "Permesso";
   }
 
+  if (type === RequestType.SICKNESS) {
+    return "Malattia";
+  }
+
   return "Richiesta";
 }
 
@@ -231,7 +235,7 @@ export async function buildMonthlyDataset(
             barId,
             employeeId: userId,
             type: {
-              in: [RequestType.VACATION, RequestType.PERMISSION],
+              in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
             },
             status: RequestStatus.APPROVED,
             startsAt: {

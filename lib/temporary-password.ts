@@ -1,5 +1,10 @@
+import { randomInt } from "crypto";
+
 const MIN_TEMPORARY_PASSWORD_LENGTH = 6;
 const MAX_BCRYPT_PASSWORD_LENGTH = 72;
+const GENERATED_TEMPORARY_PASSWORD_LENGTH = 14;
+const TEMPORARY_PASSWORD_ALPHABET =
+  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
 
 function readFormValue(formData: FormData, fieldName: string) {
   const value = formData.get(fieldName);
@@ -48,6 +53,15 @@ export function readTemporaryPasswordFromFormData(
   }
 
   throw new Error("Missing temporary password");
+}
+
+export function createTemporaryPassword() {
+  const password = Array.from({ length: GENERATED_TEMPORARY_PASSWORD_LENGTH }, () => {
+    const index = randomInt(TEMPORARY_PASSWORD_ALPHABET.length);
+    return TEMPORARY_PASSWORD_ALPHABET[index];
+  }).join("");
+
+  return validateTemporaryPassword(password);
 }
 
 export { MIN_TEMPORARY_PASSWORD_LENGTH };

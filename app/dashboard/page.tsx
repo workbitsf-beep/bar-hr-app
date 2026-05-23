@@ -1,4 +1,4 @@
-import { RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
+import { ActivityType, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
@@ -18,7 +18,8 @@ import {
 } from "./ui";
 
 export default async function DashboardPage() {
-  const { session, role, activeBarId, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, activeBarActivityType, billingStatus } =
+    await getDashboardContext();
 
   if (String(role) === "SUPER_ADMIN") {
     redirect("/dashboard/super-admin");
@@ -40,10 +41,11 @@ export default async function DashboardPage() {
   const canManagePeople = role === Role.OWNER || role === Role.MANAGER;
   const isOwner = role === Role.OWNER;
   const isEmployee = role === Role.EMPLOYEE;
+  const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
 
   const [settings, shifts, tasks, notes, pendingRequests, pendingRequestCount, teamMembers, ownHours] =
     await Promise.all([
-      isOwner
+      isOwner || !isRestaurant
         ? Promise.resolve(null)
         : prisma.barSettings.findUnique({
             where: { barId: activeBarId },
@@ -56,34 +58,36 @@ export default async function DashboardPage() {
               roundingMode: true,
             },
           }),
-      prisma.shift.findMany({
-        where: {
-          barId: activeBarId,
-          endTime: {
-            gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-          },
-        },
-        orderBy: {
-          startTime: "asc",
-        },
-        take: 6,
-        select: {
-          id: true,
-          title: true,
-          startTime: true,
-          endTime: true,
-          assignments: {
+      isRestaurant
+        ? prisma.shift.findMany({
+            where: {
+              barId: activeBarId,
+              endTime: {
+                gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+              },
+            },
+            orderBy: {
+              startTime: "asc",
+            },
+            take: 6,
             select: {
-              user: {
+              id: true,
+              title: true,
+              startTime: true,
+              endTime: true,
+              assignments: {
                 select: {
-                  firstName: true,
-                  lastName: true,
+                  user: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
                 },
               },
             },
-          },
-        },
-      }),
+          })
+        : Promise.resolve([]),
       prisma.task.findMany({
         where: {
           barId: activeBarId,
@@ -209,7 +213,7 @@ export default async function DashboardPage() {
             },
           })
         : Promise.resolve([]),
-      isOwner
+      isOwner || !isRestaurant
         ? Promise.resolve(null)
         : buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear()),
     ]);
@@ -218,9 +222,9 @@ export default async function DashboardPage() {
 
   return (
     <Stack>
-      {!isOwner ? <ClockActionsPanel role={role} settings={settings} /> : null}
+      {isRestaurant && !isOwner ? <ClockActionsPanel role={role} settings={settings} /> : null}
 
-      {!isOwner && ownHours ? (
+      {isRestaurant && !isOwner && ownHours ? (
         <Panel title="Ore del mese" action={<ArrowLinkButton href="/dashboard/timelogs" />}>
           <ItemCard
             title={`${ownHours.roundedHours.toFixed(2)} ore arrotondate`}
@@ -229,22 +233,24 @@ export default async function DashboardPage() {
         </Panel>
       ) : null}
 
-      <Panel title="Turni in arrivo" action={<ArrowLinkButton href="/dashboard/shifts" />}>
-        {shifts.length === 0 ? (
-          <EmptyState message="Nessun turno schedulato al momento." />
-        ) : (
-          <ItemList>
-            {shifts.map((shift) => (
-              <ItemCard
-                key={shift.id}
-                title={shift.title || "Turno condiviso"}
-                subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
-                meta={shift.assignments.map((entry) => `${entry.user.firstName} ${entry.user.lastName}`).join(", ")}
-              />
-            ))}
-          </ItemList>
-        )}
-      </Panel>
+      {isRestaurant ? (
+        <Panel title="Turni in arrivo" action={<ArrowLinkButton href="/dashboard/shifts" />}>
+          {shifts.length === 0 ? (
+            <EmptyState message="Nessun turno schedulato al momento." />
+          ) : (
+            <ItemList>
+              {shifts.map((shift) => (
+                <ItemCard
+                  key={shift.id}
+                  title={shift.title || "Turno condiviso"}
+                  subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
+                  meta={shift.assignments.map((entry) => `${entry.user.firstName} ${entry.user.lastName}`).join(", ")}
+                />
+              ))}
+            </ItemList>
+          )}
+        </Panel>
+      ) : null}
 
       <Panel title="Mansioni aperte" action={<ArrowLinkButton href="/dashboard/tasks" />}>
         {tasks.length === 0 ? (

@@ -125,7 +125,7 @@ export default async function DashboardShiftsPage() {
       where: {
         barId: activeBarId,
         type: {
-          in: [RequestType.VACATION, RequestType.PERMISSION],
+          in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
         },
         status: RequestStatus.APPROVED,
         endsAt: {
@@ -256,7 +256,7 @@ export default async function DashboardShiftsPage() {
         )}
       </Panel>
 
-      <Panel title="Ferie e permessi approvati">
+      <Panel title="Assenze approvate">
         {approvedTimeOff.length === 0 ? (
           <EmptyState message="Nessuna assenza approvata nel periodo corrente." />
         ) : (
@@ -265,7 +265,13 @@ export default async function DashboardShiftsPage() {
               <ItemCard
                 key={request.id}
                 title={`${request.employee.firstName} ${request.employee.lastName}`}
-                subtitle={`${request.type === "VACATION" ? "Ferie" : "Permesso"} - ${formatDateTime(request.startsAt ?? new Date())} - ${formatDateTime(request.endsAt ?? new Date())}`}
+                subtitle={`${
+                  request.type === "VACATION"
+                    ? "Ferie"
+                    : request.type === "SICKNESS"
+                      ? "Malattia"
+                      : "Permesso"
+                } - ${formatDateTime(request.startsAt ?? new Date())} - ${formatDateTime(request.endsAt ?? new Date())}`}
                 meta={request.reason || "Richiesta approvata"}
               />
             ))}

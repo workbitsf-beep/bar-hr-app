@@ -42,6 +42,11 @@ enum AppLanguage {
   fr
 }
 
+enum ActivityType {
+  RESTAURANT
+  COMPANY
+}
+
 enum ClockType {
   IN
   OUT
@@ -63,6 +68,7 @@ enum RequestType {
   VACATION
   PERMISSION
   SHIFT_CHANGE
+  SICKNESS
 }
 
 enum RequestStatus {
@@ -99,6 +105,8 @@ model User {
   peerReviewedReqs    Request[]         @relation("RequestPeerReviewer")
   swapRequests        Request[]         @relation("RequestSwapEmployee")
   availabilities      Availability[]
+  coursesAssigned     Course[]          @relation("CourseAssigned")
+  coursesCreated      Course[]          @relation("CourseCreated")
   sessions            Session[]
   webAuthnCredentials WebAuthnCredential[]
   webAuthnChallenges  WebAuthnChallenge[]
@@ -173,6 +181,7 @@ model Bar {
   entryToleranceMin Int             @default(5)
   roundingStepMin   Int             @default(15)
   exitToleranceMin  Int             @default(13)
+  activityType      ActivityType    @default(RESTAURANT)
   ownerId           String          @db.Uuid
   owner             User            @relation("BarOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   memberships       EmployeeBar[]
@@ -184,6 +193,7 @@ model Bar {
   notes             Note[]
   requests          Request[]
   availabilities    Availability[]
+  courses           Course[]
   sessions          Session[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -400,6 +410,7 @@ model Request {
   peerStatus       RequestStatus?
   ownerStatus      RequestStatus?
   reason           String?
+  certificateCode  String?
   startsAt         DateTime?
   endsAt           DateTime?
   peerReviewedAt   DateTime?
@@ -420,4 +431,27 @@ model Request {
   @@index([barId, startsAt])
   @@index([employeeId, createdAt])
   @@index([swapWithUserId])
+}
+
+model Course {
+  id            String   @id @default(uuid()) @db.Uuid
+  barId         String   @db.Uuid
+  title         String
+  description   String?
+  startsAt      DateTime
+  endsAt        DateTime
+  location      String?
+  assignedToAll Boolean  @default(false)
+  assignedToId  String?  @db.Uuid
+  createdById   String   @db.Uuid
+  bar           Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  assignedTo    User?    @relation("CourseAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy     User     @relation("CourseCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([barId, startsAt])
+  @@index([barId, assignedToId, startsAt])
+  @@index([assignedToId, startsAt])
+  @@index([createdById])
 }

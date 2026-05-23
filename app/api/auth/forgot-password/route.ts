@@ -2,14 +2,11 @@ import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
 import { sendTemporaryPasswordEmail } from "@/lib/email/notifications";
 import { prisma } from "@/lib/prisma";
+import { createTemporaryPassword } from "@/lib/temporary-password";
 
 type ForgotPasswordBody = {
   email?: string;
 };
-
-function createTemporaryPassword() {
-  return `Workbit-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
-}
 
 export async function POST(req: Request): Promise<Response> {
   const body = (await req.json().catch(() => ({}))) as ForgotPasswordBody;

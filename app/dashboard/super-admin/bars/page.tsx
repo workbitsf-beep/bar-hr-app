@@ -74,6 +74,13 @@ export default async function SuperAdminBarsPage() {
                 <TextInput name="postalCode" />
               </FormField>
 
+              <FormField label="Tipo attivita">
+                <Select name="activityType" defaultValue="RESTAURANT">
+                  <option value="RESTAURANT">Ristorazione</option>
+                  <option value="COMPANY">Azienda</option>
+                </Select>
+              </FormField>
+
               <FormField label="Titolare">
                 <Select name="ownerId" required defaultValue="">
                   <option value="" disabled>

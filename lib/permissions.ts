@@ -1,6 +1,6 @@
 import "server-only";
 
-import { PlanType, Role } from "@prisma/client";
+import { ActivityType, PlanType, Role } from "@prisma/client";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { SessionWithUser } from "@/lib/auth";
@@ -9,6 +9,7 @@ export type AccessibleBar = {
   id: string;
   name: string;
   role: Role;
+  activityType: ActivityType;
 };
 
 export type ActiveBarAccess = {
@@ -31,6 +32,7 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
       select: {
         id: true,
         name: true,
+        activityType: true,
       },
       orderBy: { name: "asc" },
     }),
@@ -46,6 +48,7 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
             id: true,
             name: true,
             ownerId: true,
+            activityType: true,
           },
         },
       },
@@ -64,6 +67,7 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
       id: bar.id,
       name: bar.name,
       role: Role.OWNER,
+      activityType: bar.activityType,
     });
   }
 
@@ -76,6 +80,7 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
         id: membership.bar.id,
         name: membership.bar.name,
         role: derivedRole,
+        activityType: membership.bar.activityType,
       });
     }
   }
@@ -170,11 +175,16 @@ export async function ownerNeedsOnboarding(userId: string): Promise<boolean> {
     return true;
   }
 
-  return Boolean(
-    !ownedBar.settings ||
+  const needsGps =
+    ownedBar.activityType === ActivityType.RESTAURANT &&
+    (!ownedBar.settings ||
       ownedBar.settings.gpsLatitude === null ||
       ownedBar.settings.gpsLongitude === null ||
-      ownedBar.settings.gpsRadius === null ||
+      ownedBar.settings.gpsRadius === null);
+
+  return Boolean(
+    !ownedBar.settings ||
+      needsGps ||
       ownedBar.settings.roundingMinutes === null ||
       ownedBar.settings.roundingMode === null
   );
@@ -187,6 +197,7 @@ const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(use
       createdAt: "asc",
     },
     select: {
+      activityType: true,
       settings: {
         select: {
           gpsLatitude: true,
@@ -227,11 +238,15 @@ export async function getPostLoginDestination(input: {
       return "/onboarding";
     }
 
-    const needsOnboarding = Boolean(
-      !ownedBar.settings ||
+    const needsGps =
+      ownedBar.activityType === ActivityType.RESTAURANT &&
+      (!ownedBar.settings ||
         ownedBar.settings.gpsLatitude === null ||
         ownedBar.settings.gpsLongitude === null ||
-        ownedBar.settings.gpsRadius === null ||
+        ownedBar.settings.gpsRadius === null);
+    const needsOnboarding = Boolean(
+      !ownedBar.settings ||
+        needsGps ||
         ownedBar.settings.roundingMinutes === null ||
         ownedBar.settings.roundingMode === null
     );
