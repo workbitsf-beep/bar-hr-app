@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getBestAccuracyPosition,
   LOW_ACCURACY_WARNING_METERS,
@@ -31,6 +31,23 @@ export function GpsLocationField({
   );
   const [error, setError] = useState("");
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const pendingSubmitRef = useRef(false);
+
+  useEffect(() => {
+    if (!submitOnLocate || !pendingSubmitRef.current || latitude === null || longitude === null) {
+      return;
+    }
+
+    pendingSubmitRef.current = false;
+
+    const frameId = window.requestAnimationFrame(() => {
+      triggerRef.current?.form?.requestSubmit();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [latitude, longitude, submitOnLocate]);
 
   async function handleLocate() {
     setError("");
@@ -59,9 +76,7 @@ export function GpsLocationField({
       setMessage("Posizione aggiornata.");
 
       if (submitOnLocate) {
-        window.setTimeout(() => {
-          triggerRef.current?.form?.requestSubmit();
-        }, 0);
+        pendingSubmitRef.current = true;
       }
     } catch {
       setError("Impossibile aggiornare la posizione. Controlla i permessi GPS e riprova.");

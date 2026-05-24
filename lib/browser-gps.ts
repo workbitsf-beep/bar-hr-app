@@ -13,7 +13,7 @@ type GeolocationWatchCallbacks = {
   onLowAccuracy?: (accuracy: number) => void;
 };
 
-const MIN_SAMPLE_COUNT = 3;
+const MIN_SAMPLE_COUNT = 2;
 const TARGET_SAMPLE_COUNT = 5;
 const IDEAL_ACCURACY_METERS = 35;
 const LOW_ACCURACY_WARNING_METERS = 80;
@@ -212,6 +212,25 @@ function createBatchCollector({
   let samples: GeolocationSample[] = [];
   let emittedCount = 0;
 
+  function emitBestAvailable() {
+    const bestSample = chooseBestSample(samples, previousSampleRef.current);
+
+    if (!bestSample) {
+      samples = [];
+      return;
+    }
+
+    emittedCount += samples.length;
+    const emittedSample: GeolocationSample = {
+      ...bestSample,
+      sampleCount: emittedCount,
+    };
+
+    previousSampleRef.current = emittedSample;
+    onSample(emittedSample);
+    samples = [];
+  }
+
   return {
     add(sample: GeolocationSample) {
       samples.push(sample);
@@ -224,22 +243,14 @@ function createBatchCollector({
         return;
       }
 
-      const bestSample = chooseBestSample(samples, previousSampleRef.current);
-
-      if (!bestSample) {
-        samples = [];
+      emitBestAvailable();
+    },
+    flush() {
+      if (samples.length === 0) {
         return;
       }
 
-      emittedCount += samples.length;
-      const emittedSample: GeolocationSample = {
-        ...bestSample,
-        sampleCount: emittedCount,
-      };
-
-      previousSampleRef.current = emittedSample;
-      onSample(emittedSample);
-      samples = [];
+      emitBestAvailable();
     },
   };
 }
@@ -313,6 +324,7 @@ export function startPreciseGeolocationWatch({
         return;
       }
 
+      collector.flush();
       startWatch();
     }, GEOLOCATION_BATCH_WAIT_MS);
   };
