@@ -6,23 +6,23 @@ import { EmptyState, Panel } from "../ui";
 const superAdminItems = [
   {
     href: "/dashboard/super-admin/owners",
-    title: "Titolari",
-    description: "Crea nuovi titolari e invia la welcome email.",
+    title: "Responsabili",
+    description: "Crea i referenti principali e invia l'accesso iniziale.",
   },
   {
     href: "/dashboard/super-admin/bars",
-    title: "Locali",
-    description: "Crea locali e associali al titolare corretto.",
+    title: "Strutture",
+    description: "Crea nuove strutture e collegale al responsabile corretto.",
   },
   {
     href: "/dashboard/super-admin/billing",
-    title: "Pagamenti",
-    description: "Gestisci piano, stato e scadenze dei locali.",
+    title: "Abbonamenti",
+    description: "Gestisci piano, stato e scadenze di ogni account cliente.",
   },
   {
     href: "/dashboard/super-admin/gps",
-    title: "GPS",
-    description: "Imposta il raggio globale per le timbrature.",
+    title: "GPS globale",
+    description: "Imposta il raggio globale per le timbrature di tutte le strutture.",
   },
 ];
 
@@ -61,34 +61,6 @@ export function SuperAdminFrame({
           <strong style={{ color: "#0f172a", fontSize: 20 }}>{title}</strong>
           <span style={{ color: "#64748b", lineHeight: 1.6 }}>{description}</span>
         </div>
-
-        <nav
-          aria-label="Menu Super Admin"
-          className="dashboard-inline-actions"
-          style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-        >
-          {superAdminItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 999,
-                padding: "10px 14px",
-                background: "#f8fafc",
-                color: "#0f172a",
-                border: "1px solid #e2e8f0",
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
-              title={item.description}
-            >
-              {item.title}
-            </Link>
-          ))}
-        </nav>
       </section>
 
       {children}

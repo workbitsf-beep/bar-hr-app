@@ -77,7 +77,7 @@ export function GlobalGpsRadiusForm({
           lineHeight: 1.6,
         }}
       >
-        {isPending ? "Aggiornamento in corso..." : feedback ?? "Il valore viene applicato automaticamente a tutti i locali."}
+        {isPending ? "Aggiornamento in corso..." : feedback ?? "Il valore viene applicato automaticamente a tutte le strutture."}
       </div>
     </div>
   );

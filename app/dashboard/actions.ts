@@ -2098,4 +2098,5 @@ export async function reviewRequestAction(formData: FormData) {
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard/export");
   revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
 }

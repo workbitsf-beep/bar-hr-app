@@ -14,8 +14,8 @@ export default async function SuperAdminPage() {
 
   return (
     <SuperAdminFrame
-      title="Console Super Admin"
-      description="Scegli una sezione: ogni area operativa ora vive nella sua pagina dedicata."
+      title="Console centrale"
+      description="Scegli la sezione che vuoi gestire tra responsabili, strutture, abbonamenti e GPS globale."
     >
       <SuperAdminMenuGrid />
     </SuperAdminFrame>

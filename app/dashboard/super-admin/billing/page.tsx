@@ -89,12 +89,12 @@ export default async function SuperAdminBillingPage() {
 
   return (
     <SuperAdminFrame
-      title="Pagamenti"
-      description="Gestisci abbonamenti, trial, scadenze e stato dei locali."
+      title="Abbonamenti"
+      description="Gestisci abbonamenti, trial, scadenze e stato di tutte le strutture."
     >
-      <Panel title="Pagamenti" action={`${adminBars.length} bar`}>
+      <Panel title="Abbonamenti" action={`${adminBars.length} strutture`}>
         {adminBars.length === 0 ? (
-          <EmptyState message="Nessun bar creato al momento." />
+          <EmptyState message="Nessuna struttura creata al momento." />
         ) : (
           <BarGroupsClient
             owners={owners.map((owner) => ({

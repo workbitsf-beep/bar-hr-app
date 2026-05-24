@@ -272,7 +272,7 @@ export function BarGroupsClient({
     }
 
     const confirmed = window.confirm(
-      `Vuoi eliminare definitivamente ${targetBar.name}? Questa azione rimuove il cliente e tutti i dati del locale.`
+      `Vuoi eliminare definitivamente ${targetBar.name}? Questa azione rimuove il cliente e tutti i dati della struttura.`
     );
 
     if (!confirmed) {
@@ -389,7 +389,7 @@ export function BarGroupsClient({
             gridTemplateColumns: "1.3fr 1.1fr 0.8fr 0.9fr 1fr 1.3fr 1.2fr",
           }}
         >
-          {["Bar", "Titolare", "Piano", "Stato", "Scadenza", "Stripe subscription id", "Azioni"].map(
+          {["Struttura", "Responsabile", "Piano", "Stato", "Scadenza", "Stripe subscription id", "Azioni"].map(
             (label) => (
               <div
                 key={label}
@@ -665,7 +665,7 @@ export function BarGroupsClient({
                   <div style={{ display: "grid", gap: 6 }}>
                     <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedBar.name}</strong>
                     <span style={{ color: "#475569" }}>
-                      Titolare: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
+                      Responsabile: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
                     </span>
                   </div>
 
@@ -695,7 +695,7 @@ export function BarGroupsClient({
                   }}
                 >
                   <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolare</span>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Responsabile</span>
                     <select
                       value={ownerId}
                       onChange={(event) => setOwnerId(event.target.value)}

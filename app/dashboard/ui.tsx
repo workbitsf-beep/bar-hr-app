@@ -92,6 +92,54 @@ function BottomNavIcon({ href }: { href: string }) {
     );
   }
 
+  if (href.includes("/super-admin/owners")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1" {...common} />
+        <path d="M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" {...common} />
+        <path d="M19 8a3 3 0 0 1 0 6" {...common} />
+        <path d="M21 19v-1a4 4 0 0 0-3-3.87" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/bars")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 10h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V10Z" {...common} />
+        <path d="M3 10 5 4h14l2 6" {...common} />
+        <path d="M9 21v-6h6v6" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/billing")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 7h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" {...common} />
+        <path d="M3 10h18" {...common} />
+        <path d="M7 15h4" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/gps")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 21s6-5.33 6-11a6 6 0 1 0-12 0c0 5.67 6 11 6 11Z" {...common} />
+        <path d="M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" {...common} />
+      </svg>
+    );
+  }
+
   if (href.includes("/courses")) {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">

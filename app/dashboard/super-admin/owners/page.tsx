@@ -27,10 +27,10 @@ export default async function SuperAdminOwnersPage({
 
   return (
     <SuperAdminFrame
-      title="Titolari"
-      description="Crea un titolare e invia la welcome email con una password temporanea generata automaticamente."
+      title="Responsabili"
+      description="Crea un responsabile e invia la welcome email con l'accesso iniziale."
     >
-      <Panel title="Crea titolare">
+      <Panel title="Crea responsabile">
         <form action={createOwnerBySuperAdminAction} style={{ display: "grid", gap: 16 }}>
           {error === "owner-exists" ? (
             <div
@@ -43,7 +43,7 @@ export default async function SuperAdminOwnersPage({
                 lineHeight: 1.5,
               }}
             >
-              Esiste gia un titolare con questa email. Usa un indirizzo diverso.
+              Esiste gia un responsabile con questa email. Usa un indirizzo diverso.
             </div>
           ) : null}
           {success === "owner-created" ? (
@@ -57,7 +57,7 @@ export default async function SuperAdminOwnersPage({
                 lineHeight: 1.5,
               }}
             >
-              Titolare creato correttamente. La welcome email e stata inviata.
+              Responsabile creato correttamente. La welcome email e stata inviata.
             </div>
           ) : null}
           {success === "owner-created-email-failed" ? (
@@ -71,7 +71,7 @@ export default async function SuperAdminOwnersPage({
                 lineHeight: 1.5,
               }}
             >
-              Titolare creato, ma la welcome email non e partita. Controlla
+              Responsabile creato, ma la welcome email non e partita. Controlla
               RESEND_API_KEY, EMAIL_FROM e dominio mittente su Railway.
             </div>
           ) : null}
@@ -106,7 +106,7 @@ export default async function SuperAdminOwnersPage({
           </div>
 
           <div className="dashboard-form-actions">
-            <PrimaryButton type="submit">Crea titolare</PrimaryButton>
+            <PrimaryButton type="submit">Crea responsabile</PrimaryButton>
           </div>
         </form>
       </Panel>

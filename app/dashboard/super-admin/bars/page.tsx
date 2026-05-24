@@ -34,12 +34,12 @@ export default async function SuperAdminBarsPage() {
 
   return (
     <SuperAdminFrame
-      title="Locali"
-      description="Crea un nuovo locale e collegalo al titolare corretto."
+      title="Strutture"
+      description="Crea una nuova struttura e collegala al responsabile corretto."
     >
-      <Panel title="Crea bar">
+      <Panel title="Crea struttura">
         {owners.length === 0 ? (
-          <EmptyState message="Crea prima almeno un titolare da associare al nuovo bar." />
+          <EmptyState message="Crea prima almeno un responsabile da associare alla nuova struttura." />
         ) : (
           <form action={createBarBySuperAdminAction} style={{ display: "grid", gap: 16 }}>
             <div
@@ -50,11 +50,11 @@ export default async function SuperAdminBarsPage() {
                 gap: 12,
               }}
             >
-              <FormField label="Nome bar">
+              <FormField label="Nome struttura">
                 <TextInput name="name" required />
               </FormField>
 
-              <FormField label="Email locale">
+              <FormField label="Email struttura">
                 <TextInput name="email" type="email" />
               </FormField>
 
@@ -74,17 +74,17 @@ export default async function SuperAdminBarsPage() {
                 <TextInput name="postalCode" />
               </FormField>
 
-              <FormField label="Tipo attivita">
+              <FormField label="Categoria attivita">
                 <Select name="activityType" defaultValue="RESTAURANT">
                   <option value="RESTAURANT">Ristorazione</option>
                   <option value="COMPANY">Azienda</option>
                 </Select>
               </FormField>
 
-              <FormField label="Titolare">
+              <FormField label="Responsabile">
                 <Select name="ownerId" required defaultValue="">
                   <option value="" disabled>
-                    Seleziona titolare
+                    Seleziona responsabile
                   </option>
                   {owners.map((owner) => (
                     <option key={owner.id} value={owner.id}>
@@ -96,7 +96,7 @@ export default async function SuperAdminBarsPage() {
             </div>
 
             <div className="dashboard-form-actions">
-              <PrimaryButton type="submit">Crea bar</PrimaryButton>
+              <PrimaryButton type="submit">Crea struttura</PrimaryButton>
             </div>
           </form>
         )}

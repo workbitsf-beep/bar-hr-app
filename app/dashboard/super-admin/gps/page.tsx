@@ -16,7 +16,7 @@ export default async function SuperAdminGpsPage() {
   return (
     <SuperAdminFrame
       title="GPS timbrature"
-      description="Imposta il raggio GPS globale usato dai locali per autorizzare entrata e uscita."
+      description="Imposta il raggio GPS globale usato da tutte le strutture per autorizzare entrata e uscita."
     >
       <Panel title="Range globale timbrature">
         <GlobalGpsRadiusForm initialRadius={globalGpsRadius} />

@@ -3,10 +3,10 @@ import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { ClockActionsPanel } from "../timelogs/timelogs-client";
-import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, StatusPill, TextInput } from "../ui";
+import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, TextInput } from "../ui";
+import { DayActionCalendarClient } from "./day-action-calendar-client";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
-import { CalendarWeekStrip } from "./calendar-week-strip";
 
 function getLocale(language: string) {
   if (language === "en") {
@@ -78,33 +78,6 @@ function toLocalDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function formatMemberRole(role: Role | string) {
-  if (role === Role.MANAGER || role === "MANAGER") {
-    return "Manager";
-  }
-
-  if (role === Role.OWNER || role === "OWNER") {
-    return "Titolare";
-  }
-
-  return "Dipendente";
-}
-
-function formatShiftTimeRange(locale: string, startTime: Date, endTime: Date) {
-  const formatter = new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  return `${formatter.format(startTime)} - ${formatter.format(endTime)}`;
-}
-
-function chunkByWeek<T>(items: T[]) {
-  return Array.from({ length: Math.ceil(items.length / 7) }, (_, index) =>
-    items.slice(index * 7, index * 7 + 7)
-  );
-}
-
 function getRangeDayKeys(start: Date, end: Date) {
   const keys: string[] = [];
   const cursor = new Date(start);
@@ -137,7 +110,7 @@ export default async function DashboardCalendarPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : undefined;
-  const { role, language, activeBarId, activeBarActivityType, billingStatus } =
+  const { session, role, language, activeBarId, activeBarActivityType, billingStatus } =
     await getDashboardContext();
 
   if (!activeBarId) {
@@ -162,135 +135,240 @@ export default async function DashboardCalendarPage({
   const navigation = getMonthNavigation(year, month);
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
   const canManageShifts = isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
+  const canReviewCompanyRequests = !isRestaurant && role === Role.OWNER;
+  const canAssignCompanyCourses = !isRestaurant && role === Role.OWNER;
 
-  const [settings, shifts, availabilities, approvedRequests, ownerMembers] = await Promise.all([
-    role === Role.OWNER || !isRestaurant
-      ? Promise.resolve(null)
-      : prisma.barSettings.findUnique({
-          where: { barId: activeBarId },
-          select: {
-            gpsLatitude: true,
-            gpsLongitude: true,
-            gpsRadius: true,
-            roundingEnabled: true,
-            roundingMinutes: true,
-            roundingMode: true,
-          },
-        }),
-    isRestaurant
-      ? prisma.shift.findMany({
-          where: {
-            barId: activeBarId,
-            startTime: {
-              lte: calendarEnd,
+  const [
+    settings,
+    shifts,
+    availabilities,
+    approvedRequests,
+    pendingRequests,
+    courses,
+    calendarMembers,
+  ] =
+    await Promise.all([
+      role === Role.OWNER || !isRestaurant
+        ? Promise.resolve(null)
+        : prisma.barSettings.findUnique({
+            where: { barId: activeBarId },
+            select: {
+              gpsLatitude: true,
+              gpsLongitude: true,
+              gpsRadius: true,
+              roundingEnabled: true,
+              roundingMinutes: true,
+              roundingMode: true,
             },
-            endTime: {
-              gte: calendarStart,
+          }),
+      isRestaurant
+        ? prisma.shift.findMany({
+            where: {
+              barId: activeBarId,
+              startTime: {
+                lte: calendarEnd,
+              },
+              endTime: {
+                gte: calendarStart,
+              },
+            },
+            orderBy: {
+              startTime: "asc",
+            },
+            select: {
+              id: true,
+              title: true,
+              startTime: true,
+              endTime: true,
+              confirmedAt: true,
+              assignments: {
+                select: {
+                  user: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      role: true,
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      isRestaurant
+        ? prisma.availability.findMany({
+            where: {
+              barId: activeBarId,
+              startsAt: {
+                lte: calendarEnd,
+              },
+              endsAt: {
+                gte: calendarStart,
+              },
+            },
+            select: {
+              id: true,
+              startsAt: true,
+              endsAt: true,
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+            orderBy: {
+              startsAt: "asc",
+            },
+          })
+        : Promise.resolve([]),
+      prisma.request.findMany({
+        where: {
+          barId: activeBarId,
+          type: {
+            in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+          },
+          status: RequestStatus.APPROVED,
+          startsAt: {
+            lte: calendarEnd,
+          },
+          endsAt: {
+            gte: calendarStart,
+          },
+        },
+        select: {
+          id: true,
+          type: true,
+          startsAt: true,
+          endsAt: true,
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
             },
           },
-          orderBy: {
-            startTime: "asc",
-          },
-          select: {
-            id: true,
-            title: true,
-            startTime: true,
-            endTime: true,
-            confirmedAt: true,
-            assignments: {
+        },
+        orderBy: {
+          startsAt: "asc",
+        },
+      }),
+      canReviewCompanyRequests
+        ? prisma.request.findMany({
+            where: {
+              barId: activeBarId,
+              type: {
+                in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+              },
+              status: RequestStatus.PENDING,
+              startsAt: {
+                lte: calendarEnd,
+              },
+              endsAt: {
+                gte: calendarStart,
+              },
+            },
+            select: {
+              id: true,
+              type: true,
+              startsAt: true,
+              endsAt: true,
+              reason: true,
+              certificateCode: true,
+              employee: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+            orderBy: {
+              startsAt: "asc",
+            },
+          })
+        : Promise.resolve([]),
+      !isRestaurant
+        ? prisma.course.findMany({
+            where: {
+              barId: activeBarId,
+              startsAt: {
+                lte: calendarEnd,
+              },
+              endsAt: {
+                gte: calendarStart,
+              },
+              ...(role === Role.OWNER || role === Role.MANAGER
+                ? {}
+                : {
+                    OR: [{ assignedToAll: true }, { assignedToId: session.user.id }],
+                  }),
+            },
+            select: {
+              id: true,
+              title: true,
+              startsAt: true,
+              endsAt: true,
+              location: true,
+              assignedToAll: true,
+              assignedTo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+            orderBy: {
+              startsAt: "asc",
+            },
+          })
+        : Promise.resolve([]),
+      canManageShifts
+        ? prisma.employeeBar.findMany({
+            where: {
+              barId: activeBarId,
+              isActive: true,
+            },
+            orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
+            select: {
+              role: true,
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          })
+        : canAssignCompanyCourses
+          ? prisma.employeeBar.findMany({
+              where: {
+                barId: activeBarId,
+                isActive: true,
+                role: {
+                  not: Role.OWNER,
+                },
+              },
+              orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
               select: {
+                role: true,
                 user: {
                   select: {
                     id: true,
                     firstName: true,
                     lastName: true,
-                    role: true,
                   },
                 },
               },
-            },
-          },
-        })
-      : Promise.resolve([]),
-    prisma.availability.findMany({
-      where: {
-        barId: activeBarId,
-        startsAt: {
-          lte: calendarEnd,
-        },
-        endsAt: {
-          gte: calendarStart,
-        },
-      },
-      select: {
-        id: true,
-        startsAt: true,
-        endsAt: true,
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      orderBy: {
-        startsAt: "asc",
-      },
-    }),
-    prisma.request.findMany({
-      where: {
-        barId: activeBarId,
-        type: {
-          in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
-        },
-        status: RequestStatus.APPROVED,
-        startsAt: {
-          lte: calendarEnd,
-        },
-        endsAt: {
-          gte: calendarStart,
-        },
-      },
-      select: {
-        id: true,
-        type: true,
-        startsAt: true,
-        endsAt: true,
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      orderBy: {
-        startsAt: "asc",
-      },
-    }),
-    canManageShifts
-      ? prisma.employeeBar.findMany({
-          where: {
-            barId: activeBarId,
-            isActive: true,
-          },
-          orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-          select: {
-            role: true,
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        })
-      : Promise.resolve([]),
-  ]);
+            })
+          : Promise.resolve([]),
+    ]);
 
   const shiftsByDay = new Map<string, typeof shifts>();
   const availabilitiesByDay = new Map<string, typeof availabilities>();
   const requestsByDay = new Map<string, typeof approvedRequests>();
+  const pendingRequestsByDay = new Map<string, typeof pendingRequests>();
+  const coursesByDay = new Map<string, typeof courses>();
 
   for (const shift of shifts) {
     const start = shift.startTime > calendarStart ? shift.startTime : calendarStart;
@@ -324,6 +402,30 @@ export default async function DashboardCalendarPage({
       const dayRequests = requestsByDay.get(dayKey) ?? [];
       dayRequests.push(request);
       requestsByDay.set(dayKey, dayRequests);
+    }
+  }
+
+  for (const request of pendingRequests) {
+    const safeStart = request.startsAt ?? calendarStart;
+    const safeEnd = request.endsAt ?? safeStart;
+    const start = safeStart > calendarStart ? safeStart : calendarStart;
+    const end = safeEnd < calendarEnd ? safeEnd : calendarEnd;
+
+    for (const dayKey of getRangeDayKeys(start, end)) {
+      const dayPendingRequests = pendingRequestsByDay.get(dayKey) ?? [];
+      dayPendingRequests.push(request);
+      pendingRequestsByDay.set(dayKey, dayPendingRequests);
+    }
+  }
+
+  for (const course of courses) {
+    const start = course.startsAt > calendarStart ? course.startsAt : calendarStart;
+    const end = course.endsAt < calendarEnd ? course.endsAt : calendarEnd;
+
+    for (const dayKey of getRangeDayKeys(start, end)) {
+      const dayCourses = coursesByDay.get(dayKey) ?? [];
+      dayCourses.push(course);
+      coursesByDay.set(dayKey, dayCourses);
     }
   }
 
@@ -374,22 +476,40 @@ export default async function DashboardCalendarPage({
       firstName: request.employee.firstName,
       lastName: request.employee.lastName,
     })),
+    pendingRequests: (pendingRequestsByDay.get(toLocalDateKey(day.date)) ?? []).map((request) => ({
+      id: request.id,
+      type: request.type,
+      firstName: request.employee.firstName,
+      lastName: request.employee.lastName,
+      startsAt: request.startsAt?.toISOString() ?? day.date.toISOString(),
+      endsAt: request.endsAt?.toISOString() ?? request.startsAt?.toISOString() ?? day.date.toISOString(),
+      reason: request.reason ?? null,
+      certificateCode: request.certificateCode ?? null,
+    })),
+    courses: (coursesByDay.get(toLocalDateKey(day.date)) ?? []).map((course) => ({
+      id: course.id,
+      title: course.title,
+      startTime: course.startsAt.toISOString(),
+      endTime: course.endsAt.toISOString(),
+      location: course.location,
+      audienceLabel: course.assignedToAll
+        ? "Assegnato a tutto il team"
+        : course.assignedTo
+          ? `Assegnato a ${course.assignedTo.firstName} ${course.assignedTo.lastName}`
+          : "Corso interno",
+    })),
   }));
 
-  const memberOptions = ownerMembers.map((member) => ({
+  const memberOptions = calendarMembers.map((member) => ({
     id: member.user.id,
     firstName: member.user.firstName,
     lastName: member.user.lastName,
     role: member.role,
   }));
-  const calendarWeeks = chunkByWeek(days);
   const unconfirmedShiftCount = shifts.filter(
     (shift) => !shift.confirmedAt && shift.startTime <= monthEnd && shift.endTime >= monthStart
   ).length;
   const canPublishShifts = canManageShifts;
-  const visibleCalendarWeeks = dayFilter
-    ? calendarWeeks.filter((week) => week.some((day) => toLocalDateKey(day.date) === dayFilter))
-    : calendarWeeks;
 
   return (
     <Stack columns="minmax(0, 1fr)">
@@ -507,323 +627,15 @@ export default async function DashboardCalendarPage({
             filteredDay={dayFilter}
           />
         ) : (
-          <>
-            <div className="dashboard-desktop-only">
-              <div className="dashboard-calendar-scroll">
-                <div
-                  className="dashboard-calendar-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  {weekdayLabels.map((label) => (
-                    <div
-                      key={label}
-                      className="dashboard-calendar-weekday"
-                      style={{
-                        padding: "10px 12px",
-                        borderRadius: 16,
-                        background: "#e2e8f0",
-                        color: "#334155",
-                        fontWeight: 700,
-                        textTransform: "capitalize",
-                        textAlign: "center",
-                      }}
-                    >
-                      {label}
-                    </div>
-                  ))}
-
-                  {days.map((day) => {
-                    const inCurrentMonth = day.date >= monthStart && day.date <= monthEnd;
-                    const isToday = day.date.toDateString() === new Date().toDateString();
-
-                    return (
-                      <div
-                        key={day.date.toISOString()}
-                        className="dashboard-calendar-day"
-                        style={{
-                          minHeight: 220,
-                          padding: 14,
-                          borderRadius: 20,
-                          background: inCurrentMonth ? "#ffffff" : "#f8fafc",
-                          border: isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
-                          boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-                          display: "grid",
-                          alignContent: "start",
-                          gap: 10,
-                          opacity: inCurrentMonth ? 1 : 0.72,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{day.date.getDate()}</strong>
-                          {isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
-                        </div>
-
-                        {day.shifts.length === 0 &&
-                        day.availabilities.length === 0 &&
-                        day.requests.length === 0 ? (
-                          <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
-                        ) : null}
-
-                        {day.shifts.map((shift) => (
-                          <div
-                            key={shift.id}
-                            style={{
-                              padding: "10px 12px",
-                              borderRadius: 16,
-                              background: "#eff6ff",
-                              border: "1px solid #dbeafe",
-                              color: "#0f172a",
-                              display: "grid",
-                              gap: 4,
-                            }}
-                          >
-                            <strong style={{ fontSize: 14 }}>{shift.title || "Turno"}</strong>
-                            <span style={{ color: "#475569", fontSize: 13 }}>
-                              {formatShiftTimeRange(locale, shift.startTime, shift.endTime)}
-                            </span>
-                            <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                              {shift.assignments
-                                .map(
-                                  (assignment) =>
-                                    `${assignment.user.firstName} ${assignment.user.lastName}`
-                                )
-                                .join(", ")}
-                            </span>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              {shift.confirmedAt ? (
-                                <StatusPill label="Confermato" tone="success" />
-                              ) : (
-                                <StatusPill label="Da confermare" tone="warning" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
-
-                        {day.availabilities.map((availability) => (
-                          <div
-                            key={availability.id}
-                            style={{
-                              padding: "10px 12px",
-                              borderRadius: 16,
-                              background: "#fef2f2",
-                              border: "1px solid #fecaca",
-                              color: "#991b1b",
-                              fontSize: 13,
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            Indisponibilita: {availability.user.firstName} {availability.user.lastName}
-                          </div>
-                        ))}
-
-                        {day.requests.map((request) => (
-                          <div
-                            key={request.id}
-                            style={{
-                              padding: "10px 12px",
-                              borderRadius: 16,
-                              background: "#fef2f2",
-                              border: "1px solid #fecaca",
-                              color: "#991b1b",
-                              fontSize: 13,
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {request.type === RequestType.VACATION
-                              ? "Ferie"
-                              : request.type === RequestType.SICKNESS
-                                ? "Malattia"
-                                : "Permesso"}:{" "}
-                            {request.employee.firstName} {request.employee.lastName}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <CalendarWeekStrip
-              className="dashboard-mobile-only dashboard-week-strip"
-              style={{ display: "flex", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}
-            >
-              {visibleCalendarWeeks.map((week, weekIndex) => {
-                const weekIsCurrent = week.some(
-                  (day) => day.date.toDateString() === new Date().toDateString()
-                );
-
-                return (
-                <section
-                  key={`${week[0]?.date.toISOString() ?? `${weekIndex}-${dayFilter ?? "all"}`}`}
-                  className="dashboard-week-card"
-                  data-current-week={weekIsCurrent ? "true" : undefined}
-                  style={{
-                    display: "grid",
-                    gap: 12,
-                    width: "100%",
-                    maxWidth: "100%",
-                    boxSizing: "border-box",
-                    padding: 14,
-                    borderRadius: 22,
-                    background: weekIsCurrent ? "#eef2ff" : "#f8fafc",
-                    border: weekIsCurrent ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
-                    boxShadow: weekIsCurrent ? "0 10px 24px rgba(99, 102, 241, 0.08)" : undefined,
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 4 }}>
-                    {week[0] && week[week.length - 1] ? (
-                      <span style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        {new Intl.DateTimeFormat(locale, {
-                          day: "numeric",
-                          month: "long",
-                        }).format(week[0].date)}{" "}
-                        -{" "}
-                        {new Intl.DateTimeFormat(locale, {
-                          day: "numeric",
-                          month: "long",
-                        }).format(week[week.length - 1].date)}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {week.map((day) => {
-                      const isToday = day.date.toDateString() === new Date().toDateString();
-
-                      return (
-                        <div
-                          key={day.date.toISOString()}
-                          style={{
-                            display: "grid",
-                            gap: 10,
-                            width: "100%",
-                            maxWidth: "100%",
-                            boxSizing: "border-box",
-                            padding: 14,
-                            borderRadius: 20,
-                            background: "#ffffff",
-                            border: isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
-                            boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-                            opacity: day.date >= monthStart && day.date <= monthEnd ? 1 : 0.7,
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              gap: 8,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                              {new Intl.DateTimeFormat(locale, {
-                                weekday: "long",
-                                day: "numeric",
-                                month: "long",
-                              }).format(day.date)}
-                            </strong>
-                            {isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
-                          </div>
-
-                          {day.shifts.length === 0 &&
-                          day.availabilities.length === 0 &&
-                          day.requests.length === 0 ? (
-                            <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
-                          ) : null}
-
-                          {day.shifts.map((shift) => (
-                            <div
-                              key={shift.id}
-                              style={{
-                                padding: 14,
-                                borderRadius: 18,
-                                background: "#eff6ff",
-                                border: "1px solid #dbeafe",
-                                display: "grid",
-                                gap: 8,
-                              }}
-                            >
-                              <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                                {shift.title || "Turno"}
-                              </strong>
-                              <div style={{ color: "#334155", fontWeight: 600, fontSize: 15 }}>
-                                {formatShiftTimeRange(locale, shift.startTime, shift.endTime)}
-                              </div>
-                              <div style={{ display: "grid", gap: 6 }}>
-                                {shift.assignments.map((assignment) => (
-                                  <div key={assignment.user.id} style={{ color: "#475569", lineHeight: 1.5 }}>
-                                    {assignment.user.firstName} {assignment.user.lastName} -{" "}
-                                    {formatMemberRole(assignment.user.role)}
-                                  </div>
-                                ))}
-                              </div>
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                {shift.confirmedAt ? (
-                                  <StatusPill label="Confermato" tone="success" />
-                                ) : (
-                                  <StatusPill label="Da confermare" tone="warning" />
-                                )}
-                              </div>
-                            </div>
-                          ))}
-
-                          {day.availabilities.map((availability) => (
-                            <div
-                              key={availability.id}
-                              style={{
-                                padding: "12px 14px",
-                                borderRadius: 18,
-                                background: "#fef2f2",
-                                border: "1px solid #fecaca",
-                                color: "#991b1b",
-                                lineHeight: 1.6,
-                              }}
-                            >
-                              Indisponibilita: {availability.user.firstName} {availability.user.lastName}
-                            </div>
-                          ))}
-
-                          {day.requests.map((request) => (
-                            <div
-                              key={request.id}
-                              style={{
-                                padding: "12px 14px",
-                                borderRadius: 18,
-                                background: "#fef2f2",
-                                border: "1px solid #fecaca",
-                                color: "#991b1b",
-                                lineHeight: 1.6,
-                              }}
-                            >
-                              {request.type === RequestType.VACATION
-                                ? "Ferie"
-                                : request.type === RequestType.SICKNESS
-                                  ? "Malattia"
-                                  : "Permesso"}:{" "}
-                              {request.employee.firstName} {request.employee.lastName}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )})}
-            </CalendarWeekStrip>
-          </>
+          <DayActionCalendarClient
+            locale={locale}
+            weekdayLabels={weekdayLabels}
+            days={serializedDays}
+            filteredDay={dayFilter}
+            role={String(role)}
+            activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
+            members={memberOptions}
+          />
         )}
       </Panel>
     </Stack>
