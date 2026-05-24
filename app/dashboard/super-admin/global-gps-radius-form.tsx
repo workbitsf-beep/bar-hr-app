@@ -38,7 +38,7 @@ export function GlobalGpsRadiusForm({
         <input
           type="number"
           inputMode="numeric"
-          min={20}
+          min={0}
           step={1}
           value={value}
           onChange={(event) => {

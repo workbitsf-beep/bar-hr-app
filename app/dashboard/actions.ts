@@ -20,10 +20,12 @@ import {
   sendEmployeeWelcomeEmail,
   sendLeaveRequestEmail,
   sendLeaveRequestResultEmail,
+  sendNoticeBoardDigestEmail,
   sendNoticeBoardEmail,
   sendOwnerWelcomeEmail,
   sendShiftSwapRequestEmail,
   sendShiftSwapResultEmail,
+  sendTaskAssignedDigestEmail,
   sendTaskAssignedEmail,
   sendUnavailabilityEmail,
 } from "@/lib/email/notifications";
@@ -230,6 +232,13 @@ function normalizeIds(entries: FormDataEntryValue[]): string[] {
         .filter((entry) => entry.length > 0)
     )
   );
+}
+
+function splitBulkTextEntries(value: string) {
+  return value
+    .split(/\r?\n+/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 }
 
 function ensureOperationRole(role: Role) {
@@ -943,8 +952,9 @@ export async function createTaskAction(formData: FormData) {
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
   const assignedToAll = formData.get("assignedToAll") === "on";
   const isUrgent = formData.get("isUrgent") === "on";
+  const taskTitles = splitBulkTextEntries(title);
 
-  if (!title) {
+  if (taskTitles.length === 0) {
     throw new Error("Missing title");
   }
 
@@ -956,9 +966,9 @@ export async function createTaskAction(formData: FormData) {
     await ensureUsersBelongToBar(activeBarId, [assignedToId]);
   }
 
-  const task = await prisma.task.create({
-    data: {
-      title,
+  await prisma.task.createMany({
+    data: taskTitles.map((taskTitle) => ({
+      title: taskTitle,
       description: description || null,
       dueDate,
       assignedToAll,
@@ -967,7 +977,7 @@ export async function createTaskAction(formData: FormData) {
       createdById: session.user.id,
       status: TaskStatus.TODO,
       isUrgent,
-    },
+    })),
   });
 
   await runEmailNotification(async () => {
@@ -983,12 +993,19 @@ export async function createTaskAction(formData: FormData) {
 
     await Promise.all(
       recipients.map((recipient) =>
-        sendTaskAssignedEmail(
-          recipient.email,
-          recipient.firstName,
-          task.title,
-          notificationContext.barName
-        )
+        taskTitles.length === 1
+          ? sendTaskAssignedEmail(
+              recipient.email,
+              recipient.firstName,
+              taskTitles[0],
+              notificationContext.barName
+            )
+          : sendTaskAssignedDigestEmail(
+              recipient.email,
+              recipient.firstName,
+              taskTitles,
+              notificationContext.barName
+            )
       )
     );
   });
@@ -1236,18 +1253,19 @@ export async function createBoardNoteAction(formData: FormData) {
 
   const content = String(formData.get("content") ?? "").trim();
   const isPinned = canManageOperations(role) && formData.get("isPinned") === "on";
+  const noteEntries = splitBulkTextEntries(content);
 
-  if (!content) {
+  if (noteEntries.length === 0) {
     throw new Error("Missing content");
   }
 
-  await prisma.note.create({
-    data: {
+  await prisma.note.createMany({
+    data: noteEntries.map((entry) => ({
       barId: activeBarId,
       authorId: session.user.id,
-      content,
+      content: entry,
       isPinned,
-    },
+    })),
   });
 
   await runEmailNotification(async () => {
@@ -1264,12 +1282,20 @@ export async function createBoardNoteAction(formData: FormData) {
 
     await Promise.all(
       recipients.map((recipient) =>
-        sendNoticeBoardEmail(
-          recipient.email,
-          recipient.firstName,
-          authorName,
-          notificationContext.barName
-        )
+        noteEntries.length === 1
+          ? sendNoticeBoardEmail(
+              recipient.email,
+              recipient.firstName,
+              authorName,
+              notificationContext.barName
+            )
+          : sendNoticeBoardDigestEmail(
+              recipient.email,
+              recipient.firstName,
+              authorName,
+              notificationContext.barName,
+              noteEntries.length
+            )
       )
     );
   });

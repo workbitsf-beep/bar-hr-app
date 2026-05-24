@@ -1,5 +1,8 @@
 import { Role, TaskStatus } from "@prisma/client";
-import { sendTaskAssignedEmail } from "@/lib/email/notifications";
+import {
+  sendTaskAssignedDigestEmail,
+  sendTaskAssignedEmail,
+} from "@/lib/email/notifications";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { parseTaskDueDate } from "@/lib/task-dates";
@@ -12,6 +15,13 @@ type SessionWithBar = {
     role: Role;
   };
 };
+
+function splitBulkTextEntries(value: string) {
+  return value
+    .split(/\r?\n+/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
 
 export const GET = withBar(
   async (_req: Request, session: SessionWithBar): Promise<Response> => {
@@ -67,15 +77,24 @@ export const POST = withBar(
       );
     }
 
+    const taskTitles = splitBulkTextEntries(body.title);
+
+    if (taskTitles.length === 0) {
+      return Response.json(
+        { ok: false, message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
     const dueDate = parseTaskDueDate(body.dueDate);
 
     if (!dueDate) {
       return Response.json({ ok: false, message: "Invalid due date" }, { status: 400 });
     }
 
-    const task = await prisma.task.create({
-      data: {
-        title: body.title.trim(),
+    await prisma.task.createMany({
+      data: taskTitles.map((taskTitle) => ({
+        title: taskTitle,
         description: body.description?.trim() || null,
         dueDate,
         assignedToId: body.assignedToAll ? null : body.assignedToId || null,
@@ -84,7 +103,7 @@ export const POST = withBar(
         createdById: session.user.id,
         status: TaskStatus.TODO,
         isUrgent: Boolean(body.isUrgent),
-      },
+      })),
     });
 
     const bar = await prisma.bar.findUnique({
@@ -112,20 +131,27 @@ export const POST = withBar(
     if (bar) {
       const recipients = body.assignedToAll
         ? bar.memberships.filter((membership) => membership.role !== Role.OWNER)
-        : bar.memberships.filter((membership) => membership.user.id === task.assignedToId);
+        : bar.memberships.filter((membership) => membership.user.id === body.assignedToId);
 
       await Promise.all(
         recipients.map((recipient) =>
-          sendTaskAssignedEmail(
-            recipient.user.email,
-            recipient.user.firstName,
-            task.title,
-            bar.name
-          )
+          taskTitles.length === 1
+            ? sendTaskAssignedEmail(
+                recipient.user.email,
+                recipient.user.firstName,
+                taskTitles[0],
+                bar.name
+              )
+            : sendTaskAssignedDigestEmail(
+                recipient.user.email,
+                recipient.user.firstName,
+                taskTitles,
+                bar.name
+              )
         )
       );
     }
 
-    return Response.json({ ok: true, task });
+    return Response.json({ ok: true, count: taskTitles.length });
   }
 );

@@ -199,6 +199,23 @@ export async function sendNoticeBoardEmail(
   });
 }
 
+export async function sendNoticeBoardDigestEmail(
+  toEmail: string,
+  toName: string,
+  authorName: string,
+  barName: string,
+  noteCount: number
+) {
+  return sendTemplatedEmail({
+    to: toEmail,
+    subject: `Nuovi messaggi in bacheca - ${barName}`,
+    title: "Nuovi messaggi in bacheca",
+    message: `Ciao ${toName},\n${authorName} ha pubblicato ${noteCount} nuovi messaggi nella bacheca di ${barName}.`,
+    ctaLabel: "Apri bacheca",
+    ctaUrl: getEmailAppUrl("/dashboard/tasks"),
+  });
+}
+
 export async function sendUnavailabilityEmail(
   toEmail: string,
   employeeName: string,
@@ -226,6 +243,26 @@ export async function sendTaskAssignedEmail(
     subject: `Nuova mansione assegnata - ${barName}`,
     title: "Nuova mansione",
     message: `Ciao ${toName},\nTi e stata assegnata una nuova mansione: ${taskTitle}.\nLocale: ${barName}.`,
+    ctaLabel: "Apri mansioni",
+    ctaUrl: getEmailAppUrl("/dashboard/tasks"),
+  });
+}
+
+export async function sendTaskAssignedDigestEmail(
+  toEmail: string,
+  toName: string,
+  taskTitles: string[],
+  barName: string
+) {
+  const preview = taskTitles.slice(0, 5).map((title) => `- ${title}`).join("\n");
+  const extraCount = Math.max(0, taskTitles.length - 5);
+  const extraLine = extraCount > 0 ? `\n+ altre ${extraCount} mansioni` : "";
+
+  return sendTemplatedEmail({
+    to: toEmail,
+    subject: `Nuove mansioni assegnate - ${barName}`,
+    title: "Nuove mansioni",
+    message: `Ciao ${toName},\nTi sono state assegnate ${taskTitles.length} nuove mansioni per ${barName}.\n${preview}${extraLine}`,
     ctaLabel: "Apri mansioni",
     ctaUrl: getEmailAppUrl("/dashboard/tasks"),
   });

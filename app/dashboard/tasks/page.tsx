@@ -140,11 +140,14 @@ export default async function DashboardTasksPage() {
     <Stack>
       <Panel title="Nuovo messaggio bacheca">
         <form action={createBoardNoteAction} style={{ display: "grid", gap: 16 }}>
-          <FormField label="Messaggio">
+          <FormField
+            label="Messaggi"
+            hint="Scrivi un messaggio per riga. Ogni riga verra pubblicata separatamente."
+          >
             <TextArea
               name="content"
               required
-              placeholder="Aggiornamento servizio, briefing o comunicazione interna"
+              placeholder={"Aggiornamento servizio\nBriefing di apertura\nPromemoria turni del weekend"}
             />
           </FormField>
 
@@ -164,8 +167,16 @@ export default async function DashboardTasksPage() {
       {canManage ? (
         <Panel title="Crea nuova mansione">
           <form action={createTaskAction} style={{ display: "grid", gap: 16 }}>
-            <FormField label="Titolo">
-              <TextInput name="title" required placeholder="Pulizia banco caffetteria" />
+            <FormField
+              label="Mansioni"
+              hint="Scrivi una mansione per riga. Ogni riga verra salvata come voce separata."
+            >
+              <TextArea
+                name="title"
+                required
+                placeholder={"Pulizia banco caffetteria\nRiordino magazzino\nControllo frigoriferi"}
+                style={{ minHeight: 120 }}
+              />
             </FormField>
 
             <FormField label="Descrizione">

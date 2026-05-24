@@ -173,21 +173,12 @@ export function ClockActionsPanel({
         setLocating(false);
       },
       onLowAccuracy(nextAccuracy) {
-        setLatitude("");
-        setLongitude("");
-        setDistance(null);
         setAccuracy(nextAccuracy);
-        setGeoReady(false);
         setWeakAccuracy(nextAccuracy);
         setLocationError("");
         setLocating(true);
       },
       onError() {
-        setLatitude("");
-        setLongitude("");
-        setDistance(null);
-        setAccuracy(null);
-        setGeoReady(false);
         setWeakAccuracy(null);
         setLocating(false);
         setLocationError(

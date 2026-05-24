@@ -10,7 +10,7 @@ function normalizeGpsRadius(value: number) {
     return DEFAULT_GLOBAL_GPS_RADIUS;
   }
 
-  return Math.min(1000, Math.max(20, Math.round(value)));
+  return Math.min(1000, Math.max(0, Math.round(value)));
 }
 
 export async function getGlobalGpsRadius() {
@@ -29,7 +29,7 @@ export async function getGlobalGpsRadius() {
       },
     });
 
-    if (settings?.gpsRadius) {
+    if (settings?.gpsRadius !== null && settings?.gpsRadius !== undefined) {
       return normalizeGpsRadius(settings.gpsRadius);
     }
 
