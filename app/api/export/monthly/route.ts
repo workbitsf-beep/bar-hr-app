@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import { Role } from "@prisma/client";
+import { ActivityType, Role } from "@prisma/client";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
@@ -22,6 +22,16 @@ type SessionWithBar = {
 
 function formatTime(dateIso: string): string {
   return new Date(dateIso).toLocaleTimeString("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatDateTime(dateIso: string): string {
+  return new Date(dateIso).toLocaleString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -50,11 +60,55 @@ async function createMonthlyPdfBuffer(input: {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(18).text("Report mensile dipendente");
+    doc
+      .fontSize(18)
+      .text(
+        input.dataset.mode === "company"
+          ? "Report mensile registrazioni"
+          : "Report mensile dipendente"
+      );
     doc.moveDown(0.5);
-    doc.fontSize(12).text(`Dipendente: ${input.userLabel}`);
+    doc.fontSize(12).text(`Profilo: ${input.userLabel}`);
     doc.text(`Mese: ${String(input.month).padStart(2, "0")}/${input.year}`);
     doc.moveDown();
+
+    if (input.dataset.mode === "company") {
+      if (input.dataset.groupedLogs.length === 0) {
+        doc
+          .fontSize(10)
+          .text("Nessuna indisponibilita, ferie, permessi o corsi registrati nel mese selezionato.");
+      }
+
+      for (const day of input.dataset.groupedLogs) {
+        ensureSpace(64);
+        doc.font("Helvetica-Bold").fontSize(11).text(day.date);
+        doc.font("Helvetica");
+
+        for (const item of day.items ?? []) {
+          ensureSpace(34);
+          doc.fontSize(10).text(`${item.type}: ${item.title}`);
+          doc.text(`Periodo: ${formatDateTime(item.startsAt)} - ${formatDateTime(item.endsAt)}`);
+
+          if (item.note) {
+            doc.fillColor("#64748b").text(item.note);
+            doc.fillColor("#000000");
+          }
+
+          doc.moveDown(0.2);
+        }
+
+        doc.moveDown(0.5);
+      }
+
+      ensureSpace(34);
+      doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
+      doc.moveDown(0.6);
+      doc.font("Helvetica-Bold").text(
+        `Riepilogo mese: indisponibilita ${input.dataset.summary.availability} | ferie ${input.dataset.summary.vacation} | permessi ${input.dataset.summary.permission} | malattie ${input.dataset.summary.sickness} | corsi ${input.dataset.summary.courses}`
+      );
+      doc.end();
+      return;
+    }
 
     for (const day of input.dataset.groupedLogs) {
       ensureSpace(56);
@@ -112,6 +166,7 @@ export const POST = withBar(
     const year = Number(body.year);
     const format = body.format === "pdf" ? "pdf" : "json";
     const access = await getActiveBarAccess(session as never);
+    const activityType = access.activeBar?.activityType ?? ActivityType.RESTAURANT;
     const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
 
     if (
@@ -163,7 +218,8 @@ export const POST = withBar(
       session.activeBarId,
       requestedUserId,
       month,
-      year
+      year,
+      activityType
     );
 
     if (format === "pdf") {
@@ -184,8 +240,10 @@ export const POST = withBar(
 
     return Response.json({
       ok: true,
+      mode: dataset.mode,
       data: dataset.groupedLogs,
       totals: dataset.totals,
+      summary: dataset.mode === "company" ? dataset.summary : undefined,
     });
   }
 );

@@ -11,8 +11,9 @@ type RootLayoutProps = {
 export const metadata: Metadata = {
   title: "Workbit",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

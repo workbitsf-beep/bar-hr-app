@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { RoundingMode, Role } from "@prisma/client";
+import { ActivityType, RoundingMode, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { PendingButton } from "@/app/components/pending-button";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
@@ -80,11 +80,14 @@ function getCurrentStep(activeBar: Awaited<ReturnType<typeof getOwnerContext>>["
     return 1;
   }
 
+  const requiresGps = activeBar.activityType === ActivityType.RESTAURANT;
+
   if (
-    !activeBar.settings ||
-    activeBar.settings.gpsLatitude === null ||
-    activeBar.settings.gpsLongitude === null ||
-    activeBar.settings.gpsRadius === null
+    requiresGps &&
+    (!activeBar.settings ||
+      activeBar.settings.gpsLatitude === null ||
+      activeBar.settings.gpsLongitude === null ||
+      activeBar.settings.gpsRadius === null)
   ) {
     return 2;
   }
@@ -156,6 +159,10 @@ async function saveGpsAction(formData: FormData) {
 
   if (!activeBar) {
     redirect("/onboarding");
+  }
+
+  if (activeBar.activityType !== ActivityType.RESTAURANT) {
+    redirect("/onboarding?step=3");
   }
 
   const gpsLatitude = parseNumber(formData.get("gpsLatitude"));
@@ -358,18 +365,13 @@ async function finishOnboardingAction() {
 
 function StepShell({
   currentStep,
+  steps,
   children,
 }: {
   currentStep: StepNumber;
+  steps: Array<{ id: StepNumber; title: string }>;
   children: ReactNode;
 }) {
-  const steps = [
-    { id: 1, title: "Create Bar" },
-    { id: 2, title: "Set GPS" },
-    { id: 3, title: "Rounding Rules" },
-    { id: 4, title: "Invite Employees" },
-  ] as const;
-
   return (
     <main
       style={{
@@ -393,27 +395,10 @@ function StepShell({
             background: "#1f2937",
             color: "#f8fafc",
             borderRadius: 24,
-            padding: 28,
+            padding: 24,
           }}
         >
-          <p
-            style={{
-              margin: 0,
-              fontSize: 12,
-              opacity: 0.75,
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-            }}
-          >
-            SaaS onboarding
-          </p>
-          <h1 style={{ margin: "10px 0 8px", fontSize: 34 }}>
-            Set up your bar workspace
-          </h1>
-          <p style={{ margin: 0, color: "#cbd5e1", lineHeight: 1.6 }}>
-            Move step by step. Every section saves directly to the database so
-            you can leave and continue later.
-          </p>
+          <h1 style={{ margin: 0, fontSize: 32 }}>Configurazione iniziale</h1>
         </header>
 
         <section
@@ -444,15 +429,11 @@ function StepShell({
               >
                 <div
                   style={{
-                    fontSize: 12,
-                    opacity: 0.75,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
+                    fontWeight: 700,
                   }}
                 >
-                  Step {step.id}
+                  {step.title}
                 </div>
-                <div style={{ marginTop: 8, fontWeight: 700 }}>{step.title}</div>
               </div>
             );
           })}
@@ -571,6 +552,19 @@ export default async function OnboardingPage({
   const params = searchParams ? await searchParams : {};
   const { activeBar } = await getOwnerContext();
   const globalGpsRadius = await getGlobalGpsRadius();
+  const showGpsStep = activeBar?.activityType !== ActivityType.COMPANY;
+  const onboardingSteps = showGpsStep
+    ? ([
+        { id: 1 as StepNumber, title: "Locale" },
+        { id: 2 as StepNumber, title: "Posizione" },
+        { id: 3 as StepNumber, title: "Arrotondamento" },
+        { id: 4 as StepNumber, title: "Team" },
+      ] as const)
+    : ([
+        { id: 1 as StepNumber, title: "Locale" },
+        { id: 3 as StepNumber, title: "Arrotondamento" },
+        { id: 4 as StepNumber, title: "Team" },
+      ] as const);
   const invitedMembers =
     activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
   const computedStep = getCurrentStep(activeBar);
@@ -586,29 +580,27 @@ export default async function OnboardingPage({
   }
 
   return (
-    <StepShell currentStep={currentStep}>
+    <StepShell currentStep={currentStep} steps={[...onboardingSteps]}>
       {currentStep === 1 ? (
         <Card
-          title="Create your first bar"
-          subtitle="Start by creating the main bar profile. You can add more bars later from the owner dashboard."
+          title="Crea il locale"
         >
           <form action={createBarAction} style={{ display: "grid", gap: 16 }}>
             <Input
               name="name"
-              label="Bar name"
+              label="Nome locale"
               placeholder="Nome del locale"
             />
             <div>
-              <SubmitButton label="Save and continue" />
+              <SubmitButton label="Continua" />
             </div>
           </form>
         </Card>
       ) : null}
 
-      {currentStep === 2 && activeBar ? (
+      {currentStep === 2 && activeBar && showGpsStep ? (
         <Card
-          title="Set GPS location"
-          subtitle="Employees will use this location when clocking in and clocking out."
+          title="Imposta la posizione"
         >
           <form action={saveGpsAction} style={{ display: "grid", gap: 16 }}>
             <GpsLocationField
@@ -620,7 +612,7 @@ export default async function OnboardingPage({
 
             <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
             <div>
-              <SubmitButton label="Save GPS and continue" />
+              <SubmitButton label="Continua" />
             </div>
           </form>
         </Card>
@@ -628,8 +620,7 @@ export default async function OnboardingPage({
 
       {currentStep === 3 && activeBar ? (
         <Card
-          title="Set rounding rules"
-          subtitle="This step is optional. You can enable it now or leave it disabled and configure it later."
+          title="Imposta l'arrotondamento"
         >
           <form action={saveRoundingAction} style={{ display: "grid", gap: 18 }}>
             <label
@@ -645,28 +636,14 @@ export default async function OnboardingPage({
                 type="checkbox"
                 defaultChecked={Boolean(activeBar.settings?.roundingEnabled)}
               />
-              Enable quarter-hour rounding
+              Abilita arrotondamento al quarto d'ora
             </label>
 
             <input type="hidden" name="roundingMinutes" value="15" />
             <input type="hidden" name="roundingMode" value="NEAREST" />
 
-            <div
-              style={{
-                padding: "14px 16px",
-                borderRadius: 18,
-                background: "#f7f2e9",
-                border: "1px solid #e7dcc8",
-                color: "#5f5546",
-                lineHeight: 1.7,
-              }}
-            >
-              Fixed rule: 00-07 goes to 00, 08-17 goes to 15, 18-37 goes to 30,
-              38-52 goes to 45, 53-59 goes to the next hour.
-            </div>
-
             <div>
-              <SubmitButton label="Save rules and continue" />
+              <SubmitButton label="Continua" />
             </div>
           </form>
         </Card>
@@ -681,24 +658,9 @@ export default async function OnboardingPage({
           }}
         >
           <Card
-            title="Invite first employees"
-            subtitle="Create the first employee accounts now. They will be asked to change password at first sign-in."
+            title="Invita il team"
           >
             <form action={inviteEmployeeAction} style={{ display: "grid", gap: 18 }}>
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 18,
-                  background: "#f7f2e9",
-                  border: "1px solid #eadfc9",
-                  color: "#6b7280",
-                  lineHeight: 1.6,
-                }}
-              >
-                Inserisci i primi account del team. Potrai aggiungerne altri anche piu tardi dalla
-                dashboard.
-              </div>
-
               <div
                 style={{
                   display: "grid",
@@ -706,8 +668,8 @@ export default async function OnboardingPage({
                   gap: 16,
                 }}
               >
-                <Input name="firstName" label="First name" />
-                <Input name="lastName" label="Last name" />
+                <Input name="firstName" label="Nome" />
+                <Input name="lastName" label="Cognome" />
                 <Input
                   name="email"
                   label="Email"
@@ -716,7 +678,7 @@ export default async function OnboardingPage({
                   placeholder="nome@locale.it"
                 />
                 <label style={{ display: "grid", gap: 8 }}>
-                  <span style={{ fontWeight: 600 }}>Role</span>
+                  <span style={{ fontWeight: 600 }}>Ruolo</span>
                   <select
                     name="role"
                     defaultValue="EMPLOYEE"
@@ -728,23 +690,23 @@ export default async function OnboardingPage({
                       background: "#fff",
                     }}
                   >
-                    <option value="EMPLOYEE">Employee</option>
+                    <option value="EMPLOYEE">Dipendente</option>
                     <option value="MANAGER">Manager</option>
                   </select>
                 </label>
               </div>
               <div>
-                <SubmitButton label="Invite employee" />
+                <SubmitButton label="Invita" />
               </div>
             </form>
           </Card>
 
           <Card
-            title="Current team"
+            title="Team attuale"
             subtitle={
               invitedMembers.length > 0
-                ? "These employees are already linked to the bar."
-                : "No employees invited yet. You can still finish and add them later."
+                ? "Persone gia collegate al locale."
+                : "Nessuna persona invitata."
             }
           >
             <div style={{ display: "grid", gap: 12 }}>
@@ -824,7 +786,7 @@ export default async function OnboardingPage({
                           color: membership.role === Role.MANAGER ? "#1d4ed8" : "#6d28d9",
                         }}
                       >
-                        {membership.role === Role.MANAGER ? "Manager" : "Employee"}
+                        {membership.role === Role.MANAGER ? "Manager" : "Dipendente"}
                       </span>
                     </div>
                     <div style={{ color: "#6b7280" }}>{membership.user.email}</div>
@@ -832,14 +794,13 @@ export default async function OnboardingPage({
                 ))
               ) : (
                 <p style={{ margin: 0, color: "#6b7280", lineHeight: 1.6 }}>
-                  Finish onboarding now if you prefer to invite employees later
-                  from the dashboard.
+                  Puoi completare ora la configurazione e aggiungere persone in seguito.
                 </p>
               )}
             </div>
 
             <form action={finishOnboardingAction} style={{ marginTop: 20 }}>
-              <SubmitButton label="Finish onboarding" />
+              <SubmitButton label="Completa configurazione" />
             </form>
           </Card>
         </div>

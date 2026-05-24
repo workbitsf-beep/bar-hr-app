@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 type BrandLogoProps = {
   href?: string;
@@ -64,13 +65,13 @@ function BrandLogoContent({
           {logoFailed ? (
             <span aria-hidden="true">W</span>
           ) : (
-            <img
-              src="/workbit-logo.png"
+            <Image
+              src="/logo.png"
               alt="Workbit logo"
               width={size}
               height={size}
-              loading={priority ? "eager" : "lazy"}
-              decoding="async"
+              priority={priority}
+              unoptimized
               onError={() => setLogoFailed(true)}
               style={{
                 width: "100%",

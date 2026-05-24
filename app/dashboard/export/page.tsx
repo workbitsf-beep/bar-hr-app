@@ -5,7 +5,8 @@ import { BillingRequiredState, EmptyState, Panel } from "../ui";
 import { ExportClient } from "./export-client";
 
 export default async function DashboardExportPage() {
-  const { session, role, activeBarId, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, activeBarActivityType, billingStatus } =
+    await getDashboardContext();
 
   if (!activeBarId) {
     return (
@@ -50,6 +51,7 @@ export default async function DashboardExportPage() {
           label: `${employee.user.firstName} ${employee.user.lastName}`,
           email: employee.user.email,
         }))}
+        activityType={activeBarActivityType}
         defaultMonth={now.getMonth() + 1}
         defaultYear={now.getFullYear()}
         allowEmployeeSelection={role === Role.OWNER}

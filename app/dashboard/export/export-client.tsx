@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ActivityType } from "@prisma/client";
 import {
   EmptyState,
   FormField,
@@ -28,6 +29,15 @@ type ExportEntry = {
   roundedHours: number;
 };
 
+type CompanyReportItem = {
+  id: string;
+  type: "Indisponibilita" | "Ferie" | "Permesso" | "Malattia" | "Corso";
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  note?: string | null;
+};
+
 type GroupedDay = {
   date: string;
   entries: ExportEntry[];
@@ -36,24 +46,36 @@ type GroupedDay = {
     roundedHours: number;
   };
   labels: string[];
+  items?: CompanyReportItem[];
 };
 
 type ExportPayload = {
   ok: true;
+  mode: "restaurant" | "company";
   data: GroupedDay[];
   totals: {
     realHours: number;
     roundedHours: number;
   };
+  summary?: {
+    availability: number;
+    vacation: number;
+    permission: number;
+    sickness: number;
+    courses: number;
+    total: number;
+  };
 };
 
 export function ExportClient({
   employees,
+  activityType,
   defaultMonth,
   defaultYear,
   allowEmployeeSelection,
 }: {
   employees: EmployeeOption[];
+  activityType: ActivityType | null;
   defaultMonth: number;
   defaultYear: number;
   allowEmployeeSelection: boolean;
@@ -141,11 +163,16 @@ export function ExportClient({
     }
   }
 
+  const initialPreviewMessage =
+    activityType === ActivityType.COMPANY
+      ? "Genera un'anteprima per vedere indisponibilita, ferie, permessi e corsi registrati nel mese."
+      : "Genera un'anteprima per vedere ore reali, ore arrotondate e ferie o permessi.";
+
   return (
     <Stack>
       <Panel title="Genera report">
         {employees.length === 0 ? (
-          <EmptyState message="Nessun dipendente disponibile per l'export." />
+          <EmptyState message="Nessuna persona disponibile per l'export." />
         ) : (
           <div style={{ display: "grid", gap: 16 }}>
             <div
@@ -155,7 +182,7 @@ export function ExportClient({
                 gap: 12,
               }}
             >
-              <FormField label="Dipendente">
+              <FormField label="Profilo">
                 <Select
                   value={userId}
                   onChange={(event) => setUserId(event.target.value)}
@@ -214,56 +241,114 @@ export function ExportClient({
         )}
       </Panel>
 
-      <Panel title="Anteprima giornaliera">
+      <Panel title="Anteprima mensile">
         {!result ? (
-          <EmptyState message="Genera un'anteprima per vedere ore reali, ore arrotondate e ferie o permessi." />
+          <EmptyState message={initialPreviewMessage} />
         ) : (
           <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <ItemCard title="Ore reali" meta={`${result.totals.realHours.toFixed(2)} h`} />
-              <ItemCard
-                title="Ore arrotondate"
-                meta={`${result.totals.roundedHours.toFixed(2)} h`}
-              />
-            </div>
+            {result.mode === "company" ? (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <ItemCard title="Indisponibilita" meta={String(result.summary?.availability ?? 0)} />
+                <ItemCard title="Ferie" meta={String(result.summary?.vacation ?? 0)} />
+                <ItemCard title="Permessi" meta={String(result.summary?.permission ?? 0)} />
+                <ItemCard title="Corsi" meta={String(result.summary?.courses ?? 0)} />
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <ItemCard title="Ore reali" meta={`${result.totals.realHours.toFixed(2)} h`} />
+                <ItemCard
+                  title="Ore arrotondate"
+                  meta={`${result.totals.roundedHours.toFixed(2)} h`}
+                />
+              </div>
+            )}
 
             {result.data.length === 0 ? (
-              <EmptyState message="Nessuna timbratura nel periodo selezionato." />
+              <EmptyState
+                message={
+                  result.mode === "company"
+                    ? "Nessuna registrazione nel periodo selezionato."
+                    : "Nessuna timbratura nel periodo selezionato."
+                }
+              />
             ) : (
               <ItemList>
                 {result.data.map((day) => (
                   <ItemCard
                     key={day.date}
                     title={day.date}
-                    subtitle={`Ore reali ${day.totals.realHours.toFixed(2)} · Ore arrotondate ${day.totals.roundedHours.toFixed(2)}`}
-                    meta={day.labels.length > 0 ? `Etichette: ${day.labels.join(", ")}` : "Nessuna etichetta"}
+                    subtitle={
+                      result.mode === "company"
+                        ? `${day.items?.length ?? 0} registrazioni`
+                        : `Ore reali ${day.totals.realHours.toFixed(2)} - Ore arrotondate ${day.totals.roundedHours.toFixed(2)}`
+                    }
+                    meta={
+                      result.mode === "company"
+                        ? undefined
+                        : day.labels.length > 0
+                          ? `Etichette: ${day.labels.join(", ")}`
+                          : "Nessuna etichetta"
+                    }
                     footer={
-                      <div style={{ display: "grid", gap: 8 }}>
-                        {day.entries.length === 0 ? (
-                          <div style={{ color: "#64748b", fontSize: 14 }}>
-                            Nessuna timbratura per questa giornata.
-                          </div>
-                        ) : (
-                          day.entries.map((entry) => (
+                      result.mode === "company" ? (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {(day.items ?? []).map((item) => (
                             <div
-                              key={`${entry.inLogId}-${entry.outLogId}`}
-                              style={{ color: "#334155", fontSize: 14 }}
+                              key={item.id}
+                              style={{ color: "#334155", fontSize: 14, display: "grid", gap: 4 }}
                             >
-                              {new Date(entry.clockIn).toLocaleTimeString("it-IT", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}{" "}
-                              -{" "}
-                              {new Date(entry.clockOut).toLocaleTimeString("it-IT", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}{" "}
-                              · reali {entry.realHours.toFixed(2)} h · arrotondate{" "}
-                              {entry.roundedHours.toFixed(2)} h
+                              <strong style={{ color: "#0f172a" }}>
+                                {item.type}: {item.title}
+                              </strong>
+                              <span>
+                                {new Date(item.startsAt).toLocaleString("it-IT", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                -{" "}
+                                {new Date(item.endsAt).toLocaleString("it-IT", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                              {item.note ? <span style={{ color: "#64748b" }}>{item.note}</span> : null}
                             </div>
-                          ))
-                        )}
-                      </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {day.entries.length === 0 ? (
+                            <div style={{ color: "#64748b", fontSize: 14 }}>
+                              Nessuna timbratura per questa giornata.
+                            </div>
+                          ) : (
+                            day.entries.map((entry) => (
+                              <div
+                                key={`${entry.inLogId}-${entry.outLogId}`}
+                                style={{ color: "#334155", fontSize: 14 }}
+                              >
+                                {new Date(entry.clockIn).toLocaleTimeString("it-IT", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                -{" "}
+                                {new Date(entry.clockOut).toLocaleTimeString("it-IT", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                - reali {entry.realHours.toFixed(2)} h - arrotondate{" "}
+                                {entry.roundedHours.toFixed(2)} h
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )
                     }
                   />
                 ))}

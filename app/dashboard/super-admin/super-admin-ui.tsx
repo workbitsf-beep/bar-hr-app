@@ -56,7 +56,7 @@ export function SuperAdminFrame({
           gap: 16,
         }}
       >
-        <BrandLogo size={44} style={{ gap: 12 }} />
+        <BrandLogo size={44} showIcon style={{ gap: 12 }} />
         <div style={{ display: "grid", gap: 6 }}>
           <strong style={{ color: "#0f172a", fontSize: 20 }}>{title}</strong>
           <span style={{ color: "#64748b", lineHeight: 1.6 }}>{description}</span>
