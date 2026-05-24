@@ -1,4 +1,4 @@
-import { ClockType, Role } from "@prisma/client";
+﻿import { ClockType, Role } from "@prisma/client";
 import { isWithinRadiusWithAccuracy } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
@@ -125,7 +125,7 @@ export const POST = withBar(
         latitude,
         longitude,
         timestamp: outTimestamp,
-        note: accuracy > 0 ? `Precisione GPS: ±${Math.round(accuracy)} m` : null,
+        note: accuracy > 0 ? `Precisione GPS: +/-${Math.round(accuracy)} m` : null,
       },
     });
 
@@ -136,3 +136,4 @@ export const POST = withBar(
     return Response.json({ ok: true, duration });
   }
 );
+

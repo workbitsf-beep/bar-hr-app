@@ -1,3 +1,5 @@
+import { calculateDistance } from "./gps";
+
 export type GeolocationSample = {
   latitude: number;
   longitude: number;
@@ -11,8 +13,14 @@ type GeolocationWatchCallbacks = {
   onLowAccuracy?: (accuracy: number) => void;
 };
 
-const MAX_ACCEPTED_ACCURACY_METERS = 15;
-const GEOLOCATION_TIMEOUT_MS = 5000;
+const MIN_SAMPLE_COUNT = 3;
+const TARGET_SAMPLE_COUNT = 5;
+const IDEAL_ACCURACY_METERS = 35;
+const LOW_ACCURACY_WARNING_METERS = 80;
+const MAX_ACCEPTABLE_ACCURACY_METERS = 250;
+const GEOLOCATION_TIMEOUT_MS = 15000;
+const GEOLOCATION_BATCH_WAIT_MS = 22000;
+const LARGE_JUMP_METERS = 750;
 
 const GEOLOCATION_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
@@ -27,7 +35,7 @@ type WakeLockNavigator = Navigator & {
 };
 
 function createPreciseGeolocationError() {
-  return new Error("Unable to acquire a precise GPS fix");
+  return new Error("Unable to acquire a reliable GPS fix");
 }
 
 function createScreenWakeLockController() {
@@ -64,7 +72,7 @@ function createScreenWakeLockController() {
     try {
       await sentinel.release();
     } catch {
-      // Ignore release errors from unsupported browsers or transient OS state.
+      // Ignore wake lock release issues from unsupported browsers.
     } finally {
       sentinel = null;
     }
@@ -107,6 +115,135 @@ function toSample(position: GeolocationPosition, sampleCount: number): Geolocati
   };
 }
 
+function scoreSample(sample: GeolocationSample, samples: GeolocationSample[]) {
+  const distances = samples
+    .filter((candidate) => candidate !== sample)
+    .map((candidate) =>
+      calculateDistance(
+        sample.latitude,
+        sample.longitude,
+        candidate.latitude,
+        candidate.longitude
+      )
+    )
+    .sort((left, right) => left - right);
+
+  const nearestDistances = distances.slice(0, 2);
+  const clusterPenalty =
+    nearestDistances.length === 0
+      ? 0
+      : nearestDistances.reduce((sum, value) => sum + value, 0) / nearestDistances.length;
+
+  return sample.accuracy + clusterPenalty * 0.35;
+}
+
+function chooseBestSample(samples: GeolocationSample[], previousSample?: GeolocationSample | null) {
+  const acceptableSamples = samples.filter(
+    (sample) =>
+      Number.isFinite(sample.accuracy) &&
+      sample.accuracy > 0 &&
+      sample.accuracy <= MAX_ACCEPTABLE_ACCURACY_METERS
+  );
+  const candidates = acceptableSamples.length > 0 ? acceptableSamples : samples;
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const ranked = [...candidates].sort((left, right) => {
+    const scoreDelta = scoreSample(left, candidates) - scoreSample(right, candidates);
+
+    if (scoreDelta !== 0) {
+      return scoreDelta;
+    }
+
+    return left.accuracy - right.accuracy;
+  });
+
+  const bestCandidate = ranked[0];
+
+  if (!previousSample || ranked.length === 1) {
+    return bestCandidate;
+  }
+
+  const jumpDistance = calculateDistance(
+    previousSample.latitude,
+    previousSample.longitude,
+    bestCandidate.latitude,
+    bestCandidate.longitude
+  );
+
+  if (jumpDistance <= LARGE_JUMP_METERS || bestCandidate.accuracy <= previousSample.accuracy * 0.7) {
+    return bestCandidate;
+  }
+
+  const stableCandidate = ranked.find((candidate) => {
+    const candidateJump = calculateDistance(
+      previousSample.latitude,
+      previousSample.longitude,
+      candidate.latitude,
+      candidate.longitude
+    );
+
+    return candidateJump <= LARGE_JUMP_METERS;
+  });
+
+  return stableCandidate ?? bestCandidate;
+}
+
+function shouldEmitBatch(samples: GeolocationSample[]) {
+  if (samples.length < MIN_SAMPLE_COUNT) {
+    return false;
+  }
+
+  const bestAccuracy = Math.min(...samples.map((sample) => sample.accuracy));
+  return bestAccuracy <= IDEAL_ACCURACY_METERS || samples.length >= TARGET_SAMPLE_COUNT;
+}
+
+function createBatchCollector({
+  onSample,
+  onLowAccuracy,
+  previousSampleRef,
+}: {
+  onSample: (sample: GeolocationSample) => void;
+  onLowAccuracy?: (accuracy: number) => void;
+  previousSampleRef: { current: GeolocationSample | null };
+}) {
+  let samples: GeolocationSample[] = [];
+  let emittedCount = 0;
+
+  return {
+    add(sample: GeolocationSample) {
+      samples.push(sample);
+
+      if (sample.accuracy > LOW_ACCURACY_WARNING_METERS) {
+        onLowAccuracy?.(sample.accuracy);
+      }
+
+      if (!shouldEmitBatch(samples)) {
+        return;
+      }
+
+      const bestSample = chooseBestSample(samples, previousSampleRef.current);
+
+      if (!bestSample) {
+        samples = [];
+        return;
+      }
+
+      emittedCount += samples.length;
+      const emittedSample: GeolocationSample = {
+        ...bestSample,
+        sampleCount: emittedCount,
+      };
+
+      previousSampleRef.current = emittedSample;
+      onSample(emittedSample);
+      samples = [];
+    },
+  };
+}
+
 export function startPreciseGeolocationWatch({
   onSample,
   onError,
@@ -119,9 +256,12 @@ export function startPreciseGeolocationWatch({
 
   let active = true;
   let watchId: number | null = null;
-  let sampleCount = 0;
   let restartTimer: number | null = null;
+  let sampleCount = 0;
   const wakeLock = createScreenWakeLockController();
+  const previousSampleRef: { current: GeolocationSample | null } = {
+    current: null,
+  };
 
   const clearRestartTimer = () => {
     if (restartTimer !== null) {
@@ -130,25 +270,22 @@ export function startPreciseGeolocationWatch({
     }
   };
 
-  const scheduleRestart = (restart: () => void) => {
-    clearRestartTimer();
-    restartTimer = window.setTimeout(() => {
-      if (!active) {
-        return;
-      }
-
-      restart();
-    }, GEOLOCATION_TIMEOUT_MS);
-  };
-
   const startWatch = () => {
     if (!active) {
       return;
     }
 
+    clearRestartTimer();
+
     if (watchId !== null) {
       navigator.geolocation.clearWatch(watchId);
     }
+
+    const collector = createBatchCollector({
+      onSample,
+      onLowAccuracy,
+      previousSampleRef,
+    });
 
     watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -157,41 +294,32 @@ export function startPreciseGeolocationWatch({
         }
 
         sampleCount += 1;
-        const sample = toSample(position, sampleCount);
-
-        if (sample.accuracy > MAX_ACCEPTED_ACCURACY_METERS) {
-          onLowAccuracy?.(sample.accuracy);
-          scheduleRestart(startWatch);
-          return;
-        }
-
-        onSample(sample);
-        scheduleRestart(startWatch);
+        collector.add(toSample(position, sampleCount));
       },
       (error) => {
         if (!active) {
           return;
         }
 
-        if (error.code === error.TIMEOUT) {
-          scheduleRestart(startWatch);
-          return;
+        if (error.code !== error.TIMEOUT) {
+          onError?.(error);
         }
-
-        onError?.(error);
-        scheduleRestart(startWatch);
       },
       GEOLOCATION_OPTIONS
     );
 
-    scheduleRestart(startWatch);
+    restartTimer = window.setTimeout(() => {
+      if (!active) {
+        return;
+      }
+
+      startWatch();
+    }, GEOLOCATION_BATCH_WAIT_MS);
   };
 
   void wakeLock.start();
   startWatch();
 
-  // Keeps GPS tracking live with high-accuracy settings and restarts quickly
-  // if the browser stops delivering a fresh precise fix.
   return () => {
     active = false;
     clearRestartTimer();
@@ -208,7 +336,7 @@ export function getBestAccuracyPosition(options?: {
   maxWaitMs?: number;
   onLowAccuracy?: (accuracy: number) => void;
 }): Promise<GeolocationSample> {
-  const maxWaitMs = Math.max(GEOLOCATION_TIMEOUT_MS, options?.maxWaitMs ?? 20000);
+  const maxWaitMs = Math.max(GEOLOCATION_BATCH_WAIT_MS, options?.maxWaitMs ?? 25000);
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -235,8 +363,6 @@ export function getBestAccuracyPosition(options?: {
       handler();
     };
 
-    // One-shot acquisition built on top of watchPosition so we never consume
-    // browser-cached coordinates and we can reject weak GPS fixes in real time.
     stopWatch = startPreciseGeolocationWatch({
       onSample(sample) {
         settle(() => resolve(sample));
@@ -251,4 +377,9 @@ export function getBestAccuracyPosition(options?: {
   });
 }
 
-export { GEOLOCATION_OPTIONS, GEOLOCATION_TIMEOUT_MS, MAX_ACCEPTED_ACCURACY_METERS };
+export {
+  GEOLOCATION_OPTIONS,
+  GEOLOCATION_TIMEOUT_MS,
+  LOW_ACCURACY_WARNING_METERS,
+  MAX_ACCEPTABLE_ACCURACY_METERS,
+};

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import {
   getBestAccuracyPosition,
-  MAX_ACCEPTED_ACCURACY_METERS,
+  LOW_ACCURACY_WARNING_METERS,
 } from "@/lib/browser-gps";
 
 type GpsLocationFieldProps = {
@@ -41,21 +41,22 @@ export function GpsLocationField({
     }
 
     setLoading(true);
-    setMessage("Ricerca GPS satellitare ad alta precisione in corso...");
+    setMessage("Aggiornamento posizione in corso...");
 
     try {
-      // We accept only a fresh high-accuracy fix so the venue position is not
-      // saved from browser cache or from a weak Wi-Fi based approximation.
+      // We collect multiple fresh fixes and keep the most reliable one so the
+      // saved venue point stays stable between repeated updates.
       const sample = await getBestAccuracyPosition({
-        onLowAccuracy(nextAccuracy) {
+        onLowAccuracy() {
           setMessage(
-            `Segnale GPS debole (±${Math.round(nextAccuracy)} m). Attendo una precisione entro ${MAX_ACCEPTED_ACCURACY_METERS} m...`
+            `Segnale GPS debole. Attendo una posizione piu stabile entro circa ${LOW_ACCURACY_WARNING_METERS} m.`
           );
         },
       });
+
       setLatitude(sample.latitude);
       setLongitude(sample.longitude);
-      setMessage(`Posizione aggiornata con precisione ±${Math.round(sample.accuracy)} m.`);
+      setMessage("Posizione aggiornata.");
 
       if (submitOnLocate) {
         window.setTimeout(() => {
@@ -63,9 +64,7 @@ export function GpsLocationField({
         }, 0);
       }
     } catch {
-      setError(
-        `Impossibile ottenere un fix GPS preciso entro ${MAX_ACCEPTED_ACCURACY_METERS} m. Controlla permessi e visibilita del cielo.`
-      );
+      setError("Impossibile aggiornare la posizione. Controlla i permessi GPS e riprova.");
       setMessage("Posizione non aggiornata.");
     } finally {
       setLoading(false);

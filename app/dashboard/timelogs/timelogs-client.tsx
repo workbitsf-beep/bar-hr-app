@@ -1,13 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
-import {
-  MAX_ACCEPTED_ACCURACY_METERS,
-  startPreciseGeolocationWatch,
-} from "@/lib/browser-gps";
+import { LOW_ACCURACY_WARNING_METERS, startPreciseGeolocationWatch } from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
 import {
   EmptyState,
@@ -101,7 +98,7 @@ export function ClockActionsPanel({
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
-      return "Posizione non aggiornata.";
+      return "Il punto del locale non e ancora impostato dal titolare.";
     }
 
     if (locating && !geoReady) {
@@ -112,16 +109,29 @@ export function ClockActionsPanel({
       return "Posizione non aggiornata.";
     }
 
+    if (weakAccuracy !== null) {
+      return "Posizione poco precisa. Avvicinati al punto impostato dal titolare e riprova.";
+    }
+
     if (distance === null || accuracy === null) {
       return "Posizione non aggiornata.";
     }
 
     if (!insideRadius) {
-      return "Posizione non aggiornata.";
+      return "Avvicinati di piu al punto impostato dal titolare.";
     }
 
     return "Posizione aggiornata.";
-  }, [accuracy, distance, geoReady, gpsConfigured, insideRadius, locating, locationError]);
+  }, [
+    accuracy,
+    distance,
+    geoReady,
+    gpsConfigured,
+    insideRadius,
+    locating,
+    locationError,
+    weakAccuracy,
+  ]);
 
   function stopGeolocationWatch() {
     stopWatchRef.current?.();
@@ -142,8 +152,8 @@ export function ClockActionsPanel({
       setActionMessage("");
     }
 
-    // Continuous high-accuracy tracking keeps the GPS chip active, rejects
-    // weak points over 15 m, and updates the form only with fresh samples.
+    // Continuous tracking collects multiple fresh samples and only keeps the
+    // most reliable point before enabling clock in/out.
     stopWatchRef.current = startPreciseGeolocationWatch({
       onSample(sample) {
         const nextDistance = calculateDistance(
@@ -288,15 +298,14 @@ export function ClockActionsPanel({
           <div>{locationSummary}</div>
           {weakAccuracy !== null ? (
             <div>
-              Segnale GPS debole: ultimo fix scartato a ±{Math.round(weakAccuracy)} m. Attendo un punto entro{" "}
-              {MAX_ACCEPTED_ACCURACY_METERS} m.
+              Segnale GPS debole. Aspetto una posizione piu stabile vicino al punto impostato dal titolare.
             </div>
           ) : null}
-          {accuracy !== null && weakAccuracy === null ? (
-            <div>Precisione GPS attuale: ±{Math.round(accuracy)} m.</div>
-          ) : null}
-          {distance !== null && weakAccuracy === null ? (
-            <div>Distanza dal locale: {Math.round(distance)} m.</div>
+          {accuracy !== null &&
+          weakAccuracy === null &&
+          accuracy > LOW_ACCURACY_WARNING_METERS &&
+          !insideRadius ? (
+            <div>Posizione poco precisa. Aggiorna la posizione vicino al punto impostato.</div>
           ) : null}
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div>
@@ -696,3 +705,4 @@ export function TimeLogsClient({
     </>
   );
 }
+
