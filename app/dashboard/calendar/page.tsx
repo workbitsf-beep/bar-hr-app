@@ -146,6 +146,8 @@ export default async function DashboardCalendarPage({
     pendingRequests,
     courses,
     calendarMembers,
+    tasks,
+    notes,
   ] =
     await Promise.all([
       role === Role.OWNER || !isRestaurant
@@ -368,6 +370,63 @@ export default async function DashboardCalendarPage({
               },
             })
           : Promise.resolve([]),
+      prisma.task.findMany({
+        where: {
+          barId: activeBarId,
+          dueDate: {
+            gte: calendarStart,
+            lte: calendarEnd,
+          },
+          ...(role === Role.EMPLOYEE
+            ? {
+                OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
+              }
+            : {}),
+        },
+        orderBy: [{ status: "asc" }, { isUrgent: "desc" }, { dueDate: "asc" }],
+        select: {
+          id: true,
+          title: true,
+          dueDate: true,
+          status: true,
+          isUrgent: true,
+          assignedToAll: true,
+          assignedTo: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+          completedBy: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+      prisma.note.findMany({
+        where: {
+          barId: activeBarId,
+          createdAt: {
+            gte: calendarStart,
+            lte: calendarEnd,
+          },
+        },
+        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+        select: {
+          id: true,
+          content: true,
+          isPinned: true,
+          createdAt: true,
+          author: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
     ]);
 
   const shiftsByDay = new Map<string, typeof shifts>();
@@ -375,6 +434,8 @@ export default async function DashboardCalendarPage({
   const requestsByDay = new Map<string, typeof approvedRequests>();
   const pendingRequestsByDay = new Map<string, typeof pendingRequests>();
   const coursesByDay = new Map<string, typeof courses>();
+  const tasksByDay = new Map<string, typeof tasks>();
+  const notesByDay = new Map<string, typeof notes>();
 
   for (const shift of shifts) {
     const start = shift.startTime > calendarStart ? shift.startTime : calendarStart;
@@ -433,6 +494,20 @@ export default async function DashboardCalendarPage({
       dayCourses.push(course);
       coursesByDay.set(dayKey, dayCourses);
     }
+  }
+
+  for (const task of tasks) {
+    const dayKey = toLocalDateKey(task.dueDate);
+    const dayTasks = tasksByDay.get(dayKey) ?? [];
+    dayTasks.push(task);
+    tasksByDay.set(dayKey, dayTasks);
+  }
+
+  for (const note of notes) {
+    const dayKey = toLocalDateKey(note.createdAt);
+    const dayNotes = notesByDay.get(dayKey) ?? [];
+    dayNotes.push(note);
+    notesByDay.set(dayKey, dayNotes);
   }
 
   const days = Array.from({ length: 42 }, (_, index) => {
@@ -508,6 +583,28 @@ export default async function DashboardCalendarPage({
         : course.assignedTo
           ? `Assegnato a ${course.assignedTo.firstName} ${course.assignedTo.lastName}`
           : "Corso interno",
+    })),
+    tasks: (tasksByDay.get(toLocalDateKey(day.date)) ?? []).map((task) => ({
+      id: task.id,
+      title: task.title,
+      dueDate: task.dueDate.toISOString(),
+      status: task.status,
+      isUrgent: task.isUrgent,
+      assignedLabel: task.assignedToAll
+        ? "Assegnata a tutto il team"
+        : task.assignedTo
+          ? `Assegnata a ${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+          : "Senza assegnatario singolo",
+      completedByLabel: task.completedBy
+        ? `${task.completedBy.firstName} ${task.completedBy.lastName}`
+        : null,
+    })),
+    notes: (notesByDay.get(toLocalDateKey(day.date)) ?? []).map((note) => ({
+      id: note.id,
+      content: note.content,
+      isPinned: note.isPinned,
+      createdAt: note.createdAt.toISOString(),
+      authorName: `${note.author.firstName} ${note.author.lastName}`.trim(),
     })),
   }));
 

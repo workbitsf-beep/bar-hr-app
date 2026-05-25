@@ -70,6 +70,24 @@ type CourseItem = {
   audienceLabel: string;
 };
 
+type TaskItem = {
+  id: string;
+  title: string;
+  dueDate: string;
+  status: string;
+  isUrgent: boolean;
+  assignedLabel: string;
+  completedByLabel: string | null;
+};
+
+type NoteItem = {
+  id: string;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  authorName: string;
+};
+
 type DayItem = {
   date: string;
   isToday: boolean;
@@ -79,6 +97,8 @@ type DayItem = {
   requests: RequestItem[];
   pendingRequests: PendingRequestItem[];
   courses: CourseItem[];
+  tasks: TaskItem[];
+  notes: NoteItem[];
 };
 
 type FeedbackState =
@@ -279,6 +299,62 @@ function renderPendingRequestCard(request: PendingRequestItem, mobile = false) {
   );
 }
 
+function renderTaskCard(task: TaskItem, mobile = false) {
+  return (
+    <div
+      key={task.id}
+      style={{
+        padding: mobile ? 14 : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        display: "grid",
+        gap: mobile ? 8 : 4,
+      }}
+    >
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 16 : 14 }}>{task.title}</strong>
+      <span style={{ color: "#475569", fontSize: mobile ? 14 : 13 }}>{task.assignedLabel}</span>
+      {task.completedByLabel ? (
+        <span style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
+          Completata da {task.completedByLabel}
+        </span>
+      ) : null}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <StatusPill
+          label={task.status}
+          tone={task.status === "DONE" ? "success" : task.isUrgent ? "danger" : "warning"}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderNoteCard(note: NoteItem, locale: string, mobile = false) {
+  return (
+    <div
+      key={note.id}
+      style={{
+        padding: mobile ? 14 : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        display: "grid",
+        gap: mobile ? 8 : 4,
+      }}
+    >
+      <div style={{ color: "#334155", lineHeight: 1.6, fontSize: mobile ? 14 : 13 }}>
+        {note.content}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {note.isPinned ? <StatusPill label="Fissato" tone="warning" /> : null}
+        <span style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
+          {note.authorName} - {formatTime(note.createdAt, locale)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function DayActionCalendarClient({
   locale,
   weekdayLabels,
@@ -352,6 +428,7 @@ export function DayActionCalendarClient({
   const canCreateAvailability = !isCompany;
   const canCreateCourse = isCompany && role === Role.OWNER;
   const canReviewRequests = isCompany && role === Role.OWNER;
+  const canOpenTaskComposer = role === Role.OWNER || role === Role.MANAGER;
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
@@ -470,6 +547,15 @@ export function DayActionCalendarClient({
     );
   }
 
+  function openTasksSection(hash: "tasks-compose" | "board-compose") {
+    closeModal();
+    router.push(
+      hash === "tasks-compose" && !canOpenTaskComposer
+        ? "/dashboard/tasks"
+        : `/dashboard/tasks#${hash}`
+    );
+  }
+
   return (
     <>
       <div className="dashboard-desktop-only">
@@ -539,7 +625,9 @@ export function DayActionCalendarClient({
                 day.availabilities.length === 0 &&
                 day.requests.length === 0 &&
                 day.pendingRequests.length === 0 &&
-                day.courses.length === 0 ? (
+                day.courses.length === 0 &&
+                day.tasks.length === 0 &&
+                day.notes.length === 0 ? (
                   <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
                 ) : null}
 
@@ -548,6 +636,36 @@ export function DayActionCalendarClient({
                 {day.pendingRequests.map((request) => renderPendingRequestCard(request))}
                 {day.availabilities.map((availability) => renderAvailabilityCard(availability))}
                 {day.requests.map((request) => renderApprovedRequestCard(request))}
+                {day.tasks.length > 0 ? (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 16,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#334155",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Mansioni: {day.tasks.length}
+                  </div>
+                ) : null}
+                {day.notes.length > 0 ? (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 16,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#334155",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Bacheca: {day.notes.length}
+                  </div>
+                ) : null}
               </button>
             ))}
           </div>
@@ -644,7 +762,9 @@ export function DayActionCalendarClient({
                     day.availabilities.length === 0 &&
                     day.requests.length === 0 &&
                     day.pendingRequests.length === 0 &&
-                    day.courses.length === 0 ? (
+                    day.courses.length === 0 &&
+                    day.tasks.length === 0 &&
+                    day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
@@ -655,6 +775,34 @@ export function DayActionCalendarClient({
                       renderAvailabilityCard(availability, true)
                     )}
                     {day.requests.map((request) => renderApprovedRequestCard(request, true))}
+                    {day.tasks.length > 0 ? (
+                      <div
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          color: "#334155",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Mansioni: {day.tasks.length}
+                      </div>
+                    ) : null}
+                    {day.notes.length > 0 ? (
+                      <div
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          color: "#334155",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Bacheca: {day.notes.length}
+                      </div>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -760,6 +908,25 @@ export function DayActionCalendarClient({
                     {feedback.message}
                   </div>
                 ) : null}
+
+                <div className="dashboard-modal-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <PrimaryButton
+                    type="button"
+                    tone="sand"
+                    onClick={() => openTasksSection("tasks-compose")}
+                    disabled={isPending}
+                  >
+                    Vai a mansioni
+                  </PrimaryButton>
+                  <PrimaryButton
+                    type="button"
+                    tone="sand"
+                    onClick={() => openTasksSection("board-compose")}
+                    disabled={isPending}
+                  >
+                    Vai a bacheca
+                  </PrimaryButton>
+                </div>
 
                 {canReviewRequests ? (
                   <div style={{ display: "grid", gap: 12 }}>
@@ -1104,7 +1271,9 @@ export function DayActionCalendarClient({
                   selectedDay.availabilities.length === 0 &&
                   selectedDay.requests.length === 0 &&
                   selectedDay.courses.length === 0 &&
-                  selectedDay.pendingRequests.length === 0 ? (
+                  selectedDay.pendingRequests.length === 0 &&
+                  selectedDay.tasks.length === 0 &&
+                  selectedDay.notes.length === 0 ? (
                     <div style={{ color: "#64748b" }}>
                       Nessun evento registrato in questa giornata.
                     </div>
@@ -1114,6 +1283,8 @@ export function DayActionCalendarClient({
                       {selectedDay.courses.map((course) =>
                         renderCourseCard(course, locale, true)
                       )}
+                      {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
+                      {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
                       {selectedDay.pendingRequests.map((request) =>
                         renderPendingRequestCard(request, true)
                       )}

@@ -49,6 +49,24 @@ type RequestItem = {
   lastName: string;
 };
 
+type TaskItem = {
+  id: string;
+  title: string;
+  dueDate: string;
+  status: string;
+  isUrgent: boolean;
+  assignedLabel: string;
+  completedByLabel: string | null;
+};
+
+type NoteItem = {
+  id: string;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  authorName: string;
+};
+
 type DayItem = {
   date: string;
   isToday: boolean;
@@ -56,6 +74,8 @@ type DayItem = {
   shifts: ShiftItem[];
   availabilities: AvailabilityItem[];
   requests: RequestItem[];
+  tasks: TaskItem[];
+  notes: NoteItem[];
 };
 
 type FeedbackState =
@@ -120,6 +140,13 @@ function chunkByWeek<T>(items: T[]) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Operazione non riuscita.";
+}
+
+function formatNoteTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export function OwnerCalendarClient({
@@ -297,6 +324,11 @@ export function OwnerCalendarClient({
     }, "Indisponibilita salvata.");
   }
 
+  function openTasksSection(hash: "tasks-compose" | "board-compose") {
+    closeModal();
+    router.push(`/dashboard/tasks#${hash}`);
+  }
+
   return (
     <>
       <div className="dashboard-desktop-only">
@@ -364,7 +396,9 @@ export function OwnerCalendarClient({
 
                 {day.shifts.length === 0 &&
                 day.availabilities.length === 0 &&
-                day.requests.length === 0 ? (
+                day.requests.length === 0 &&
+                day.tasks.length === 0 &&
+                day.notes.length === 0 ? (
                   <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
                 ) : null}
 
@@ -433,6 +467,38 @@ export function OwnerCalendarClient({
                     {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
                   </div>
                 ))}
+
+                {day.tasks.length > 0 ? (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 16,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#334155",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Mansioni: {day.tasks.length}
+                  </div>
+                ) : null}
+
+                {day.notes.length > 0 ? (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 16,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#334155",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Bacheca: {day.notes.length}
+                  </div>
+                ) : null}
               </button>
             ))}
           </div>
@@ -527,7 +593,9 @@ export function OwnerCalendarClient({
 
                     {day.shifts.length === 0 &&
                     day.availabilities.length === 0 &&
-                    day.requests.length === 0 ? (
+                    day.requests.length === 0 &&
+                    day.tasks.length === 0 &&
+                    day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
@@ -601,6 +669,36 @@ export function OwnerCalendarClient({
                         {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
                       </div>
                     ))}
+
+                    {day.tasks.length > 0 ? (
+                      <div
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          color: "#334155",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Mansioni: {day.tasks.length}
+                      </div>
+                    ) : null}
+
+                    {day.notes.length > 0 ? (
+                      <div
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          color: "#334155",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Bacheca: {day.notes.length}
+                      </div>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -701,6 +799,25 @@ export function OwnerCalendarClient({
                     {feedback.message}
                   </div>
                 ) : null}
+
+                <div className="dashboard-modal-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <PrimaryButton
+                    type="button"
+                    tone="sand"
+                    onClick={() => openTasksSection("tasks-compose")}
+                    disabled={isPending}
+                  >
+                    Vai a mansioni
+                  </PrimaryButton>
+                  <PrimaryButton
+                    type="button"
+                    tone="sand"
+                    onClick={() => openTasksSection("board-compose")}
+                    disabled={isPending}
+                  >
+                    Vai a bacheca
+                  </PrimaryButton>
+                </div>
 
                 <div style={{ display: "grid", gap: 12 }}>
                   <label style={{ display: "grid", gap: 8 }}>
@@ -1050,6 +1167,84 @@ export function OwnerCalendarClient({
                           >
                             Modifica
                           </PrimaryButton>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <strong style={{ fontSize: 18, color: "#0f172a" }}>Mansioni del giorno</strong>
+                  {selectedDay.tasks.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>Nessuna mansione collegata a questa giornata.</div>
+                  ) : (
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {selectedDay.tasks.map((task) => (
+                        <div
+                          key={task.id}
+                          className="dashboard-list-card"
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ color: "#0f172a" }}>{task.title}</strong>
+                            <span style={{ color: "#475569" }}>{task.assignedLabel}</span>
+                            {task.completedByLabel ? (
+                              <span style={{ color: "#64748b", fontSize: 14 }}>
+                                Completata da {task.completedByLabel}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <StatusPill
+                              label={task.status}
+                              tone={
+                                task.status === "DONE"
+                                  ? "success"
+                                  : task.isUrgent
+                                    ? "danger"
+                                    : "warning"
+                              }
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <strong style={{ fontSize: 18, color: "#0f172a" }}>Bacheca del giorno</strong>
+                  {selectedDay.notes.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>Nessun messaggio pubblicato in questa giornata.</div>
+                  ) : (
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {selectedDay.notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="dashboard-list-card"
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ color: "#334155", lineHeight: 1.6 }}>{note.content}</div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            {note.isPinned ? <StatusPill label="Fissato" tone="warning" /> : null}
+                            <span style={{ color: "#64748b", fontSize: 14 }}>
+                              {note.authorName} - {formatNoteTime(note.createdAt, locale)}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
