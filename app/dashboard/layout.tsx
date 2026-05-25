@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
+import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
 import { logoutAction, selectBarAction, setLanguageAction } from "./actions";
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
@@ -19,6 +20,7 @@ export default async function DashboardLayout({
     t,
     activeBarId,
     activeBarName,
+    ownerNeedsSubscriptionActivation,
     navItems,
     accessibleBars,
   } = await getDashboardContext();
@@ -27,6 +29,10 @@ export default async function DashboardLayout({
   return (
     <>
       <SessionKeepAlive />
+      <DashboardRouteGuard
+        redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings" : null}
+        allowPrefixes={["/dashboard/settings"]}
+      />
       <DashboardShell
         userName={`${session.user.firstName} ${session.user.lastName}`}
         role={getRoleLabel(language, role)}

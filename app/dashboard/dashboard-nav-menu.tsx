@@ -90,15 +90,21 @@ export function DashboardNavMenu({
       }
     }
 
+    function handleMenuClose() {
+      setOpen(false);
+    }
+
     syncPosition();
     window.addEventListener("resize", syncPosition);
     window.addEventListener("scroll", syncPosition, true);
     window.addEventListener("keydown", handleEscape);
+    window.addEventListener("dashboard-menu-close", handleMenuClose);
 
     return () => {
       window.removeEventListener("resize", syncPosition);
       window.removeEventListener("scroll", syncPosition, true);
       window.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("dashboard-menu-close", handleMenuClose);
     };
   }, [open]);
 
@@ -198,12 +204,6 @@ export function DashboardNavMenu({
               >
                 <nav
                   aria-label="Navigazione dashboard"
-                  onClickCapture={(event) => {
-                    const target = event.target as HTMLElement;
-                    if (target.closest("[data-dashboard-menu-close='true']")) {
-                      setOpen(false);
-                    }
-                  }}
                   style={{
                     position: isMobile ? "relative" : "absolute",
                     top: isMobile ? undefined : position.top,

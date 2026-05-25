@@ -31,6 +31,7 @@ import {
   sendUnavailabilityEmail,
 } from "@/lib/email/notifications";
 import {
+  barNeedsSubscriptionActivation,
   canAccessBar as canAccessBillingBar,
   createDefaultTrialEndsAt,
   invalidateBillingStatusCache,
@@ -44,6 +45,7 @@ import {
   canManageOperations,
   canManagePeople,
   getActiveBarAccess,
+  getAccessibleBarsForUser,
   userCanAccessBar,
 } from "@/lib/permissions";
 import {
@@ -584,6 +586,18 @@ export async function selectBarAction(formData: FormData) {
     where: { id: session.id },
     data: { activeBarId: barId },
   });
+
+  const [accessibleBars, needsSubscriptionActivation] = await Promise.all([
+    getAccessibleBarsForUser(session.user.id, session.user.role),
+    barNeedsSubscriptionActivation(barId),
+  ]);
+  const selectedBar = accessibleBars.find((bar) => bar.id === barId);
+
+  if (selectedBar?.role === Role.OWNER && needsSubscriptionActivation) {
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/settings");
+    redirect("/dashboard/settings");
+  }
 
   const returnPath = await getReturnPathFromReferer("/dashboard");
 

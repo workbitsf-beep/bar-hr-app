@@ -36,7 +36,6 @@ export function AutoSubmitSelectForm({
       ref={formRef}
       className={["dashboard-inline-actions", className].filter(Boolean).join(" ")}
       action={action}
-      data-dashboard-menu-close={closeMenuOnChange ? "true" : undefined}
       style={{ display: "grid", gap: 8 }}
     >
       {label ? (
@@ -62,10 +61,13 @@ export function AutoSubmitSelectForm({
 
           if (typeof form?.requestSubmit === "function") {
             form.requestSubmit();
-            return;
+          } else {
+            form?.submit();
           }
 
-          form?.submit();
+          if (closeMenuOnChange) {
+            window.dispatchEvent(new CustomEvent("dashboard-menu-close"));
+          }
         }}
       >
         {options.map((option) => (

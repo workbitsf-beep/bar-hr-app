@@ -20,6 +20,7 @@ export type DashboardContext = {
   activeBarName: string | null;
   activeBarActivityType: ActivityType | null;
   billingStatus: BillingStatusResult | null;
+  ownerNeedsSubscriptionActivation: boolean;
   navItems: DashboardNavItem[];
   accessibleBars: {
     id: string;
@@ -58,6 +59,8 @@ export const getDashboardContext = cache(async function getDashboardContext(
     activeBar?.id && String(role) !== "SUPER_ADMIN"
       ? await getBillingStatus(activeBar.id)
       : null;
+  const ownerNeedsSubscriptionActivation =
+    role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
 
   const navItems: DashboardNavItem[] =
@@ -108,6 +111,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
     activeBarName: activeBar?.name ?? null,
     activeBarActivityType: activeBar?.activityType ?? null,
     billingStatus,
+    ownerNeedsSubscriptionActivation,
     navItems,
     accessibleBars,
   };

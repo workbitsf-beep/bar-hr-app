@@ -22,8 +22,22 @@ export type BillingStatusResult = {
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   stripePriceId: string | null;
+  requiresActivation: boolean;
   canAccess: boolean;
 };
+
+export function requiresSubscriptionActivation(input: {
+  planType: PlanType;
+  trialEndsAt: Date | null;
+  stripeSubscriptionId: string | null;
+}) {
+  return Boolean(
+    input.planType === PlanType.TRIAL &&
+      input.trialEndsAt &&
+      input.trialEndsAt.getTime() > Date.now() &&
+      !input.stripeSubscriptionId
+  );
+}
 
 function computeCanAccess(input: {
   planType: PlanType;
@@ -79,9 +93,11 @@ export const getBillingStatus = cache(async function getBillingStatus(
     stripeCustomerId: subscription?.stripeCustomerId ?? null,
     stripeSubscriptionId: subscription?.stripeSubscriptionId ?? null,
     stripePriceId: subscription?.stripePriceId ?? null,
+    requiresActivation: false,
     canAccess: false,
   };
 
+  result.requiresActivation = requiresSubscriptionActivation(result);
   result.canAccess = computeCanAccess(result);
   return result;
 });
@@ -93,6 +109,11 @@ export function invalidateBillingStatusCache(barId: string) {
 export async function canAccessBar(barId: string) {
   const status = await getBillingStatus(barId);
   return status.canAccess;
+}
+
+export async function barNeedsSubscriptionActivation(barId: string) {
+  const status = await getBillingStatus(barId);
+  return status.requiresActivation;
 }
 
 export function createDefaultTrialEndsAt() {

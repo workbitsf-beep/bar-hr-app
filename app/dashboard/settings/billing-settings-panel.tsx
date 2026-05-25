@@ -95,7 +95,7 @@ export function BillingSettingsPanel({
       action={
         <StatusPill
           label={formatStatus(status.status)}
-          tone={status.canAccess ? "success" : "danger"}
+          tone={status.canAccess && !status.requiresActivation ? "success" : "danger"}
         />
       }
     >
