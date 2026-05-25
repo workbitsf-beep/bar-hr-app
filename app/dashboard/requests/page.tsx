@@ -35,6 +35,22 @@ function requestTone(status: RequestStatus) {
   return "warning" as const;
 }
 
+function getReviewerName(
+  reviewer:
+    | {
+        firstName: string;
+        lastName: string;
+      }
+    | null
+    | undefined
+) {
+  if (!reviewer) {
+    return null;
+  }
+
+  return `${reviewer.firstName} ${reviewer.lastName}`.trim();
+}
+
 export default async function DashboardRequestsPage() {
   const { session, role, activeBarId, activeBarActivityType, billingStatus } =
     await getDashboardContext();
@@ -331,6 +347,8 @@ export default async function DashboardRequestsPage() {
           ) : (
             <ItemList scrollable>
               {requests.map((request) => {
+                const peerReviewerName = getReviewerName(request.peerReviewedBy);
+                const ownerReviewerName = getReviewerName(request.reviewedBy);
                 const canPeerReview =
                   request.type === "SHIFT_CHANGE" &&
                   request.swapWithUserId === session.user.id &&
@@ -393,6 +411,30 @@ export default async function DashboardRequestsPage() {
 
                         {request.reason ? (
                           <div style={{ color: "#334155", lineHeight: 1.6 }}>{request.reason}</div>
+                        ) : null}
+
+                        {request.type === "SHIFT_CHANGE" &&
+                        request.peerStatus &&
+                        request.peerStatus !== RequestStatus.PENDING ? (
+                          <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                            Revisione collega:{" "}
+                            {peerReviewerName
+                              ? `${peerReviewerName} (${request.peerStatus.toLowerCase()})`
+                              : request.peerStatus.toLowerCase()}
+                          </div>
+                        ) : null}
+
+                        {request.ownerStatus &&
+                        request.ownerStatus !== RequestStatus.PENDING ? (
+                          <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                            Revisione titolare:{" "}
+                            {ownerReviewerName
+                              ? `${ownerReviewerName} (${request.ownerStatus.toLowerCase()})`
+                              : request.type === RequestType.SICKNESS &&
+                                  request.ownerStatus === RequestStatus.APPROVED
+                                ? "Approvazione automatica"
+                                : request.ownerStatus.toLowerCase()}
+                          </div>
                         ) : null}
 
                         {canPeerReview || canOwnerReview ? (

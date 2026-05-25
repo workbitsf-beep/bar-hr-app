@@ -13,6 +13,7 @@ import {
   SubscriptionStatus,
   TaskStatus,
 } from "@prisma/client";
+import type Stripe from "stripe";
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -115,6 +116,10 @@ function dedupeUsers(users: Array<NotificationUser | null | undefined>) {
   }
 
   return Array.from(byId.values());
+}
+
+function excludeActorFromUsers<T extends { id: string }>(users: T[], actorId: string) {
+  return users.filter((user) => user.id !== actorId);
 }
 
 async function runEmailNotification(task: () => Promise<void>) {
@@ -396,6 +401,78 @@ function parseBillingStatus(value: FormDataEntryValue | null): BillingStatusValu
   }
 
   return "INACTIVE";
+}
+
+function normalizeMonthlyDiscountPercent(value: FormDataEntryValue | null) {
+  const parsed = parseOptionalNumber(value);
+
+  if (parsed === null) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+}
+
+async function syncStripeMonthlyDiscount(input: {
+  barId: string;
+  stripeSubscriptionId: string | null;
+  planType: PlanType;
+  billingInterval: BillingInterval | null;
+  monthlyDiscountPercent: number;
+}) {
+  if (!input.stripeSubscriptionId) {
+    return;
+  }
+
+  const stripe = requireStripe();
+
+  if (
+    input.planType === PlanType.PAID &&
+    input.billingInterval === BillingInterval.MONTHLY &&
+    input.monthlyDiscountPercent > 0
+  ) {
+    const coupon = await stripe.coupons.create({
+      percent_off: input.monthlyDiscountPercent,
+      duration: "forever",
+      name: `Workbit sconto mensile ${input.monthlyDiscountPercent}%`,
+      metadata: {
+        barId: input.barId,
+        kind: "MONTHLY_DISCOUNT",
+      },
+    });
+
+    await stripe.subscriptions.update(input.stripeSubscriptionId, {
+      discounts: [
+        {
+          coupon: coupon.id,
+        },
+      ],
+    });
+
+    await prisma.subscription.update({
+      where: {
+        barId: input.barId,
+      },
+      data: {
+        stripeDiscountCouponId: coupon.id,
+      },
+    });
+
+    return;
+  }
+
+  await stripe.subscriptions.update(input.stripeSubscriptionId, {
+    discounts: [] as Stripe.SubscriptionUpdateParams.Discount[],
+  });
+
+  await prisma.subscription.update({
+    where: {
+      barId: input.barId,
+    },
+    data: {
+      stripeDiscountCouponId: null,
+    },
+  });
 }
 
 async function ensureUsersBelongToBar(barId: string, userIds: string[]) {
@@ -744,6 +821,9 @@ export async function updateBarSubscriptionAction(formData: FormData) {
   const ownerId = String(formData.get("ownerId") ?? "").trim();
   const planType = parsePlanType(formData.get("planType"));
   const billingInterval = parseBillingInterval(formData.get("billingInterval"));
+  const monthlyDiscountPercent = normalizeMonthlyDiscountPercent(
+    formData.get("monthlyDiscountPercent")
+  );
   const status = parseBillingStatus(formData.get("status"));
   const currentPeriodEndRaw = String(formData.get("currentPeriodEnd") ?? "").trim();
   const trialEndsAtRaw = String(formData.get("trialEndsAt") ?? "").trim();
@@ -769,12 +849,20 @@ export async function updateBarSubscriptionAction(formData: FormData) {
     : null;
   const trialEndsAt = trialEndsAtRaw ? parseRequiredDate(trialEndsAtRaw) : null;
 
-  const bar = await prisma.bar.update({
-    where: { id: barId },
-    data: {
-      ownerId,
-    },
-  });
+  const [currentSubscription, bar] = await Promise.all([
+    prisma.subscription.findUnique({
+      where: { barId },
+      select: {
+        stripeSubscriptionId: true,
+      },
+    }),
+    prisma.bar.update({
+      where: { id: barId },
+      data: {
+        ownerId,
+      },
+    }),
+  ]);
 
   await prisma.employeeBar.upsert({
     where: {
@@ -801,6 +889,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
     update: {
       planType,
       billingInterval,
+      monthlyDiscountPercent,
       status:
         planType === PlanType.FREE || planType === PlanType.LIFETIME
           ? SubscriptionStatus.ACTIVE
@@ -814,6 +903,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
       barId,
       planType,
       billingInterval,
+      monthlyDiscountPercent,
       status:
         planType === PlanType.FREE || planType === PlanType.LIFETIME
           ? SubscriptionStatus.ACTIVE
@@ -824,6 +914,21 @@ export async function updateBarSubscriptionAction(formData: FormData) {
       trialEndsAt: planType === PlanType.TRIAL ? trialEndsAt : null,
     },
   });
+
+  try {
+    await syncStripeMonthlyDiscount({
+      barId,
+      stripeSubscriptionId: currentSubscription?.stripeSubscriptionId ?? null,
+      planType: planType as PlanType,
+      billingInterval: billingInterval as BillingInterval | null,
+      monthlyDiscountPercent,
+    });
+  } catch (error) {
+    console.error("[billing-discount] Failed to sync Stripe monthly discount.", {
+      barId,
+      error: error instanceof Error ? error.message : "Unexpected sync error.",
+    });
+  }
 
   invalidateBillingStatusCache(barId);
 
@@ -988,8 +1093,14 @@ export async function createTaskAction(formData: FormData) {
     }
 
     const recipients = assignedToAll
-      ? notificationContext.users.filter((user) => user.role !== Role.OWNER)
-      : notificationContext.users.filter((user) => user.id === assignedToId);
+      ? excludeActorFromUsers(
+          notificationContext.users.filter((user) => user.role !== Role.OWNER),
+          session.user.id
+        )
+      : excludeActorFromUsers(
+          notificationContext.users.filter((user) => user.id === assignedToId),
+          session.user.id
+        );
 
     await Promise.all(
       recipients.map((recipient) =>
@@ -1360,10 +1471,11 @@ export async function createAvailabilityAction(formData: FormData) {
       return;
     }
 
-    const recipients = notificationContext.users.filter(
-      (user) =>
-        user.id !== session.user.id &&
-        (user.id === notificationContext.owner.id || user.role === Role.MANAGER)
+    const recipients = excludeActorFromUsers(
+      notificationContext.users.filter(
+        (user) => user.role === Role.OWNER || user.role === Role.MANAGER
+      ),
+      session.user.id
     );
 
     if (recipients.length === 0) {
@@ -1556,6 +1668,17 @@ export async function createEmployeeAction(formData: FormData) {
   });
 
   await runEmailNotification(async () => {
+    if (userRole === Role.OWNER) {
+      await sendOwnerWelcomeEmail(
+        email,
+        `${firstName} ${lastName}`.trim(),
+        bar.name,
+        email,
+        temporaryPassword
+      );
+      return;
+    }
+
     await sendEmployeeWelcomeEmail(
       email,
       `${firstName} ${lastName}`.trim(),
@@ -1798,11 +1921,20 @@ export async function createTimeOffRequestAction(formData: FormData) {
       return;
     }
 
-    await sendLeaveRequestEmail(
-      notificationContext.owner.email,
-      getFullName(session.user),
-      getLeaveTypeLabel(type),
-      notificationContext.barName
+    const ownerRecipients = excludeActorFromUsers(
+      notificationContext.users.filter((user) => user.role === Role.OWNER),
+      session.user.id
+    );
+
+    await Promise.all(
+      ownerRecipients.map((recipient) =>
+        sendLeaveRequestEmail(
+          recipient.email,
+          getFullName(session.user),
+          getLeaveTypeLabel(type),
+          notificationContext.barName
+        )
+      )
     );
   });
 
@@ -1824,6 +1956,10 @@ export async function createShiftChangeRequestAction(formData: FormData) {
 
   if (!shiftId || !swapWithUserId) {
     throw new Error("Missing shift change data");
+  }
+
+  if (swapWithUserId === session.user.id) {
+    throw new Error("Seleziona un collega diverso da te");
   }
 
   const shift = await prisma.shift.findFirst({
@@ -1872,10 +2008,13 @@ export async function createShiftChangeRequestAction(formData: FormData) {
       return;
     }
 
-    const recipients = dedupeUsers([
-      notificationContext.owner,
-      notificationContext.users.find((user) => user.id === swapWithUserId),
-    ]);
+    const recipients = excludeActorFromUsers(
+      dedupeUsers([
+        ...notificationContext.users.filter((user) => user.role === Role.OWNER),
+        notificationContext.users.find((user) => user.id === swapWithUserId),
+      ]),
+      session.user.id
+    );
 
     if (recipients.length === 0) {
       return;
@@ -1991,7 +2130,8 @@ export async function reviewRequestAction(formData: FormData) {
       shiftChangeNotification = {
         approved: false,
         barName: request.bar.name,
-        recipients: dedupeUsers([
+        recipients: excludeActorFromUsers(
+          dedupeUsers([
           {
             id: request.employeeId,
             email: request.employee.email,
@@ -2008,7 +2148,9 @@ export async function reviewRequestAction(formData: FormData) {
                 role: Role.EMPLOYEE,
               }
             : null,
-        ]).map((user) => ({
+          ]),
+          session.user.id
+        ).map((user) => ({
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
@@ -2045,7 +2187,8 @@ export async function reviewRequestAction(formData: FormData) {
         shiftChangeNotification = {
           approved: true,
           barName: request.bar.name,
-          recipients: dedupeUsers([
+          recipients: excludeActorFromUsers(
+            dedupeUsers([
             {
               id: request.employeeId,
               email: request.employee.email,
@@ -2062,7 +2205,9 @@ export async function reviewRequestAction(formData: FormData) {
                   role: Role.EMPLOYEE,
                 }
               : null,
-          ]).map((user) => ({
+            ]),
+            session.user.id
+          ).map((user) => ({
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,

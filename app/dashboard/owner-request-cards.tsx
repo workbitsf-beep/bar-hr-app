@@ -20,6 +20,14 @@ type RequestCardItem = {
     firstName: string;
     lastName: string;
   };
+  reviewedBy: {
+    firstName: string;
+    lastName: string;
+  } | null;
+  peerReviewedBy: {
+    firstName: string;
+    lastName: string;
+  } | null;
   swapWith: {
     firstName: string;
     lastName: string;
@@ -60,6 +68,21 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatReviewerName(
+  reviewer:
+    | {
+        firstName: string;
+        lastName: string;
+      }
+    | null
+) {
+  if (!reviewer) {
+    return null;
+  }
+
+  return `${reviewer.firstName} ${reviewer.lastName}`.trim();
 }
 
 export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] }) {
@@ -122,6 +145,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
             request.status === RequestStatus.PENDING &&
             (request.type !== RequestType.SHIFT_CHANGE ||
               request.peerStatus === RequestStatus.APPROVED);
+          const peerReviewerName = formatReviewerName(request.peerReviewedBy);
 
           return (
             <button
@@ -155,7 +179,11 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
                       : "Dettagli richiesta"}
                 </span>
                 <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {canOwnerReview ? "Apri per approvare o rifiutare" : "In attesa di revisione del collega"}
+                  {peerReviewerName
+                    ? `Collega: ${peerReviewerName}`
+                    : canOwnerReview
+                      ? "Apri per approvare o rifiutare"
+                      : "In attesa di revisione del collega"}
                 </span>
               </div>
 
@@ -282,9 +310,29 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
                     </div>
                   ) : null}
 
-                  {selectedRequest.swapWith ? (
+                {selectedRequest.swapWith ? (
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    Collega coinvolto: {selectedRequest.swapWith.firstName} {selectedRequest.swapWith.lastName}
+                  </div>
+                ) : null}
+
+                  {selectedRequest.peerStatus &&
+                  selectedRequest.peerStatus !== RequestStatus.PENDING ? (
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Collega coinvolto: {selectedRequest.swapWith.firstName} {selectedRequest.swapWith.lastName}
+                      Revisione collega:{" "}
+                      {formatReviewerName(selectedRequest.peerReviewedBy)
+                        ? `${formatReviewerName(selectedRequest.peerReviewedBy)} (${selectedRequest.peerStatus.toLowerCase()})`
+                        : selectedRequest.peerStatus.toLowerCase()}
+                    </div>
+                  ) : null}
+
+                  {selectedRequest.ownerStatus &&
+                  selectedRequest.ownerStatus !== RequestStatus.PENDING ? (
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Revisione titolare:{" "}
+                      {formatReviewerName(selectedRequest.reviewedBy)
+                        ? `${formatReviewerName(selectedRequest.reviewedBy)} (${selectedRequest.ownerStatus.toLowerCase()})`
+                        : selectedRequest.ownerStatus.toLowerCase()}
                     </div>
                   ) : null}
 

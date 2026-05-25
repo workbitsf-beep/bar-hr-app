@@ -15,6 +15,18 @@ import {
   TextInput,
 } from "../ui";
 
+function formatRoleLabel(role: Role) {
+  if (role === Role.OWNER) {
+    return "Titolare";
+  }
+
+  if (role === Role.MANAGER) {
+    return "Manager";
+  }
+
+  return "Dipendente";
+}
+
 export default async function DashboardPeoplePage({
   searchParams,
 }: {
@@ -28,7 +40,7 @@ export default async function DashboardPeoplePage({
   if (role !== Role.OWNER) {
     return (
       <Panel title="Personale">
-        <EmptyState message="Solo il titolare puo creare e gestire dipendenti e manager." />
+        <EmptyState message="Solo i titolari possono creare e gestire il team." />
       </Panel>
     );
   }
@@ -93,7 +105,7 @@ export default async function DashboardPeoplePage({
                   lineHeight: 1.5,
                 }}
               >
-                Dipendente creato correttamente. La password temporanea automatica e stata inviata via email.
+                Account creato correttamente. La password temporanea automatica e stata inviata via email.
               </div>
             ) : null}
             {success === "employee-deleted" ? (
@@ -131,6 +143,7 @@ export default async function DashboardPeoplePage({
 
               <FormField label="Ruolo">
                 <Select name="role" defaultValue="EMPLOYEE">
+                  <option value="OWNER">Titolare</option>
                   <option value="EMPLOYEE">Dipendente</option>
                   <option value="MANAGER">Manager</option>
                 </Select>
@@ -159,7 +172,7 @@ export default async function DashboardPeoplePage({
                   subtitle={member.user.email}
                   meta={
                     <>
-                      Ruolo: {member.role}
+                      Ruolo: {formatRoleLabel(member.role)}
                       <br />
                       Password temporanea{" "}
                       {member.user.mustChangePwd ? "non ancora cambiata" : "gia aggiornata"}

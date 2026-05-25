@@ -107,6 +107,8 @@ export function BillingSettingsPanel({
           <br />
           Intervallo: {formatInterval(status.billingInterval)}
           <br />
+          Sconto mensile: {status.monthlyDiscountPercent > 0 ? `${status.monthlyDiscountPercent}%` : "Nessuno"}
+          <br />
           Rinnovo / scadenza: {formatNullableDate(status.currentPeriodEnd)}
           <br />
           Fine trial: {formatNullableDate(status.trialEndsAt)}
@@ -145,10 +147,17 @@ export function BillingSettingsPanel({
           </div>
         )}
 
+        {status.monthlyDiscountPercent > 0 ? (
+          <div style={{ color: "#166534", lineHeight: 1.7 }}>
+            Per questo locale e attivo uno sconto mensile del {status.monthlyDiscountPercent}% sul piano mensile.
+          </div>
+        ) : null}
+
         <BillingCheckoutClient
           canActivate={canActivateCheckout}
           canCancel={canCancelSubscription}
           trialSetupRequired={requiresTrialCardSetup}
+          monthlyDiscountPercent={status.monthlyDiscountPercent}
         />
       </div>
     </Panel>

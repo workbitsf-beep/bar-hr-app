@@ -140,6 +140,7 @@ export const POST = withBar(
           include: {
             user: {
               select: {
+                id: true,
                 email: true,
                 firstName: true,
                 lastName: true,
@@ -157,6 +158,7 @@ export const POST = withBar(
     const recipientMap = new Map<
       string,
       {
+        id: string;
         email: string;
         firstName: string;
         lastName: string;
@@ -165,6 +167,10 @@ export const POST = withBar(
 
     for (const shift of shifts) {
       for (const assignment of shift.assignments) {
+        if (assignment.user.id === session.user.id) {
+          continue;
+        }
+
         const email = assignment.user.email.trim().toLowerCase();
 
         if (!email) {
@@ -172,6 +178,7 @@ export const POST = withBar(
         }
 
         recipientMap.set(email, {
+          id: assignment.user.id,
           email,
           firstName: assignment.user.firstName,
           lastName: assignment.user.lastName,

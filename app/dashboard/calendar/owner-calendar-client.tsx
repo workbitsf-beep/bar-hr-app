@@ -1,9 +1,14 @@
 "use client";
 
+import { RequestType } from "@prisma/client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { createShiftAction } from "../actions";
+import {
+  createAvailabilityAction,
+  createShiftAction,
+  createTimeOffRequestAction,
+} from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { PrimaryButton, StatusPill } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
@@ -53,6 +58,13 @@ type DayItem = {
   requests: RequestItem[];
 };
 
+type FeedbackState =
+  | {
+      tone: "success" | "danger";
+      message: string;
+    }
+  | null;
+
 function formatDayTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
@@ -80,6 +92,18 @@ function formatRoleLabel(role: string) {
   return "Dipendente";
 }
 
+function formatRequestTypeLabel(type: string) {
+  if (type === RequestType.PERMISSION) {
+    return "Permesso";
+  }
+
+  if (type === RequestType.SICKNESS) {
+    return "Malattia";
+  }
+
+  return "Ferie";
+}
+
 function toDateTimeLocal(dateIso: string, hour: number, minute: number) {
   const date = new Date(dateIso);
   const year = date.getFullYear();
@@ -94,28 +118,43 @@ function chunkByWeek<T>(items: T[]) {
   );
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Operazione non riuscita.";
+}
+
 export function OwnerCalendarClient({
   locale,
   weekdayLabels,
   days,
   members,
   filteredDay,
+  role,
 }: {
   locale: string;
   weekdayLabels: string[];
   days: DayItem[];
   members: MemberOption[];
   filteredDay?: string | null;
+  role: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
+  const [requestStart, setRequestStart] = useState("");
+  const [requestEnd, setRequestEnd] = useState("");
+  const [requestReason, setRequestReason] = useState("");
+  const [certificateCode, setCertificateCode] = useState("");
+  const [availabilityStart, setAvailabilityStart] = useState("");
+  const [availabilityEnd, setAvailabilityEnd] = useState("");
+  const [availabilityReason, setAvailabilityReason] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -150,13 +189,24 @@ export function OwnerCalendarClient({
         : weeks,
     [filteredDay, weeks]
   );
+  const canCreatePersonalEntries = role === "MANAGER";
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
+    setEditingShiftId(null);
+    setFeedback(null);
     setTitle("");
     setStartTime(toDateTimeLocal(day.date, 9, 0));
     setEndTime(toDateTimeLocal(day.date, 17, 0));
     setSelectedMembers(day.shifts[0]?.assignments.map((assignment) => assignment.id) ?? []);
+    setRequestType(RequestType.VACATION);
+    setRequestStart(toDateTimeLocal(day.date, 9, 0));
+    setRequestEnd(toDateTimeLocal(day.date, 18, 0));
+    setRequestReason("");
+    setCertificateCode("");
+    setAvailabilityStart(toDateTimeLocal(day.date, 9, 0));
+    setAvailabilityEnd(toDateTimeLocal(day.date, 18, 0));
+    setAvailabilityReason("");
   }
 
   function closeModal() {
@@ -166,6 +216,7 @@ export function OwnerCalendarClient({
 
     setEditingShiftId(null);
     setSelectedDate(null);
+    setFeedback(null);
   }
 
   function toggleMember(memberId: string) {
@@ -176,7 +227,23 @@ export function OwnerCalendarClient({
     );
   }
 
-  async function handleCreateShift() {
+  function runAction(task: () => Promise<void>, successMessage: string, closeOnSuccess = false) {
+    startTransition(async () => {
+      try {
+        await task();
+        setFeedback({ tone: "success", message: successMessage });
+        if (closeOnSuccess) {
+          setEditingShiftId(null);
+          setSelectedDate(null);
+        }
+        router.refresh();
+      } catch (error) {
+        setFeedback({ tone: "danger", message: getErrorMessage(error) });
+      }
+    });
+  }
+
+  function handleCreateShift() {
     if (!selectedDay || selectedMembers.length === 0) {
       return;
     }
@@ -190,12 +257,44 @@ export function OwnerCalendarClient({
       formData.append("employeeIds", memberId);
     }
 
-    startTransition(async () => {
+    runAction(async () => {
       await createShiftAction(formData);
-      setEditingShiftId(null);
-      setSelectedDate(null);
-      router.refresh();
-    });
+    }, "Turno aggiunto.", true);
+  }
+
+  function handleCreateRequest() {
+    if (!selectedDay || !requestStart || !requestEnd) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("type", requestType);
+    formData.set("startsAt", requestStart);
+    formData.set("endsAt", requestEnd);
+    formData.set("reason", requestReason);
+    formData.set("certificateCode", certificateCode);
+
+    runAction(async () => {
+      await createTimeOffRequestAction(formData);
+      setRequestReason("");
+      setCertificateCode("");
+    }, "Richiesta salvata.");
+  }
+
+  function handleCreateAvailability() {
+    if (!selectedDay || !availabilityStart || !availabilityEnd) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("startsAt", availabilityStart);
+    formData.set("endsAt", availabilityEnd);
+    formData.set("reason", availabilityReason);
+
+    runAction(async () => {
+      await createAvailabilityAction(formData);
+      setAvailabilityReason("");
+    }, "Indisponibilita salvata.");
   }
 
   return (
@@ -331,8 +430,7 @@ export function OwnerCalendarClient({
                       lineHeight: 1.5,
                     }}
                   >
-                    {request.type === "VACATION" ? "Ferie" : "Permesso"}: {request.firstName}{" "}
-                    {request.lastName}
+                    {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
                   </div>
                 ))}
               </button>
@@ -343,160 +441,172 @@ export function OwnerCalendarClient({
 
       <CalendarWeekStrip
         className="dashboard-mobile-only dashboard-week-strip"
-        style={{ display: "flex", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}
+        style={{
+          display: "flex",
+          gap: 12,
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
+        }}
       >
         {visibleWeeks.map((week, weekIndex) => {
           const weekIsCurrent = week.some((day) => day.isToday);
 
           return (
-          <section
-            key={`${week[0]?.date ?? `${weekIndex}-${filteredDay ?? "all"}`}`}
-            className="dashboard-week-card"
-            data-current-week={weekIsCurrent ? "true" : undefined}
-            style={{
-              display: "grid",
-              gap: 12,
-              width: "100%",
-              maxWidth: "100%",
-              boxSizing: "border-box",
-              padding: 14,
-              borderRadius: 22,
-              background: weekIsCurrent ? "#eef2ff" : "#f8fafc",
-              border: weekIsCurrent ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
-              boxShadow: weekIsCurrent ? "0 10px 24px rgba(99, 102, 241, 0.08)" : undefined,
-            }}
-          >
-            <div style={{ display: "grid", gap: 4 }}>
-              {week[0] && week[week.length - 1] ? (
-                <span style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {new Intl.DateTimeFormat(locale, {
-                    day: "numeric",
-                    month: "long",
-                  }).format(new Date(week[0].date))}
-                  {" - "}
-                  {new Intl.DateTimeFormat(locale, {
-                    day: "numeric",
-                    month: "long",
-                  }).format(new Date(week[week.length - 1].date))}
-                </span>
-              ) : null}
-            </div>
+            <section
+              key={`${week[0]?.date ?? `${weekIndex}-${filteredDay ?? "all"}`}`}
+              className="dashboard-week-card"
+              data-current-week={weekIsCurrent ? "true" : undefined}
+              style={{
+                display: "grid",
+                gap: 12,
+                width: "100%",
+                maxWidth: "100%",
+                boxSizing: "border-box",
+                padding: 14,
+                borderRadius: 22,
+                background: weekIsCurrent ? "#eef2ff" : "#f8fafc",
+                border: weekIsCurrent ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
+                boxShadow: weekIsCurrent
+                  ? "0 10px 24px rgba(99, 102, 241, 0.08)"
+                  : undefined,
+              }}
+            >
+              <div style={{ display: "grid", gap: 4 }}>
+                {week[0] && week[week.length - 1] ? (
+                  <span style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    {new Intl.DateTimeFormat(locale, {
+                      day: "numeric",
+                      month: "long",
+                    }).format(new Date(week[0].date))}
+                    {" - "}
+                    {new Intl.DateTimeFormat(locale, {
+                      day: "numeric",
+                      month: "long",
+                    }).format(new Date(week[week.length - 1].date))}
+                  </span>
+                ) : null}
+              </div>
 
-            <div style={{ display: "grid", gap: 12 }}>
-              {week.map((day) => (
-                <button
-                  key={day.date}
-                  type="button"
-                  onClick={() => openDay(day)}
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    width: "100%",
-                    maxWidth: "100%",
-                    boxSizing: "border-box",
-                    padding: 14,
-                    borderRadius: 20,
-                    background: "#ffffff",
-                    border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
-                    boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-                    opacity: day.inCurrentMonth ? 1 : 0.7,
-                    textAlign: "left",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
+              <div style={{ display: "grid", gap: 12 }}>
+                {week.map((day) => (
+                  <button
+                    key={day.date}
+                    type="button"
+                    onClick={() => openDay(day)}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 8,
-                      flexWrap: "wrap",
+                      display: "grid",
+                      gap: 10,
+                      width: "100%",
+                      maxWidth: "100%",
+                      boxSizing: "border-box",
+                      padding: 14,
+                      borderRadius: 20,
+                      background: "#ffffff",
+                      border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
+                      boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
+                      opacity: day.inCurrentMonth ? 1 : 0.7,
+                      textAlign: "left",
+                      cursor: "pointer",
                     }}
                   >
-                    <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                      {formatDayLabel(day.date, locale)}
-                    </strong>
-                    {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
-                  </div>
-
-                  {day.shifts.length === 0 &&
-                  day.availabilities.length === 0 &&
-                  day.requests.length === 0 ? (
-                    <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
-                  ) : null}
-
-                  {day.shifts.map((shift) => (
                     <div
-                      key={shift.id}
                       style={{
-                        padding: 14,
-                        borderRadius: 18,
-                        background: "#eff6ff",
-                        border: "1px solid #dbeafe",
-                        display: "grid",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
                         gap: 8,
+                        flexWrap: "wrap",
                       }}
                     >
-                      <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                        {shift.title || "Turno"}
+                      <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                        {formatDayLabel(day.date, locale)}
                       </strong>
-                      <div style={{ color: "#334155", fontWeight: 600, fontSize: 15 }}>
-                        {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
-                      </div>
-                      <div style={{ display: "grid", gap: 6 }}>
-                        {shift.assignments.map((assignment) => (
-                          <div key={`${shift.id}-${assignment.id}`} style={{ color: "#475569", lineHeight: 1.5 }}>
-                            {assignment.firstName} {assignment.lastName} - {formatRoleLabel(assignment.role)}
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {shift.confirmedAt ? (
-                          <StatusPill label="Confermato" tone="success" />
-                        ) : (
-                          <StatusPill label="Da confermare" tone="warning" />
-                        )}
-                      </div>
+                      {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
                     </div>
-                  ))}
 
-                  {day.availabilities.map((availability) => (
-                    <div
-                      key={availability.id}
-                      style={{
-                        padding: "12px 14px",
-                        borderRadius: 18,
-                        background: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        color: "#991b1b",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      Indisponibilita: {availability.firstName} {availability.lastName}
-                    </div>
-                  ))}
+                    {day.shifts.length === 0 &&
+                    day.availabilities.length === 0 &&
+                    day.requests.length === 0 ? (
+                      <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
+                    ) : null}
 
-                  {day.requests.map((request) => (
-                    <div
-                      key={request.id}
-                      style={{
-                        padding: "12px 14px",
-                        borderRadius: 18,
-                        background: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        color: "#991b1b",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {request.type === "VACATION" ? "Ferie" : "Permesso"}: {request.firstName}{" "}
-                      {request.lastName}
-                    </div>
-                  ))}
-                </button>
-              ))}
-            </div>
+                    {day.shifts.map((shift) => (
+                      <div
+                        key={shift.id}
+                        style={{
+                          padding: 14,
+                          borderRadius: 18,
+                          background: "#eff6ff",
+                          border: "1px solid #dbeafe",
+                          display: "grid",
+                          gap: 8,
+                        }}
+                      >
+                        <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                          {shift.title || "Turno"}
+                        </strong>
+                        <div style={{ color: "#334155", fontWeight: 600, fontSize: 15 }}>
+                          {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {shift.assignments.map((assignment) => (
+                            <div
+                              key={`${shift.id}-${assignment.id}`}
+                              style={{ color: "#475569", lineHeight: 1.5 }}
+                            >
+                              {assignment.firstName} {assignment.lastName} -{" "}
+                              {formatRoleLabel(assignment.role)}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {shift.confirmedAt ? (
+                            <StatusPill label="Confermato" tone="success" />
+                          ) : (
+                            <StatusPill label="Da confermare" tone="warning" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {day.availabilities.map((availability) => (
+                      <div
+                        key={availability.id}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          color: "#991b1b",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Indisponibilita: {availability.firstName} {availability.lastName}
+                      </div>
+                    ))}
+
+                    {day.requests.map((request) => (
+                      <div
+                        key={request.id}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          color: "#991b1b",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
+                      </div>
+                    ))}
+                  </button>
+                ))}
+              </div>
             </section>
-        )})}
+          );
+        })}
       </CalendarWeekStrip>
 
       {mounted && selectedDay
@@ -562,7 +672,9 @@ export function OwnerCalendarClient({
                       }).format(new Date(selectedDay.date))}
                     </strong>
                     <span style={{ color: "#64748b" }}>
-                      Aggiungi un nuovo turno oppure apri quelli esistenti per modificarli o eliminarli.
+                      {canCreatePersonalEntries
+                        ? "Gestisci turni, richieste e indisponibilita da questa giornata."
+                        : "Aggiungi un nuovo turno oppure apri quelli esistenti per modificarli o eliminarli."}
                     </span>
                   </div>
 
@@ -570,6 +682,25 @@ export function OwnerCalendarClient({
                     Chiudi
                   </PrimaryButton>
                 </div>
+
+                {feedback ? (
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 16,
+                      border:
+                        feedback.tone === "success"
+                          ? "1px solid #bbf7d0"
+                          : "1px solid #fecaca",
+                      background:
+                        feedback.tone === "success" ? "#f0fdf4" : "#fef2f2",
+                      color: feedback.tone === "success" ? "#166534" : "#b91c1c",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {feedback.message}
+                  </div>
+                ) : null}
 
                 <div style={{ display: "grid", gap: 12 }}>
                   <label style={{ display: "grid", gap: 8 }}>
@@ -663,7 +794,10 @@ export function OwnerCalendarClient({
                     </div>
                   </div>
 
-                  <div className="dashboard-modal-actions" style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div
+                    className="dashboard-modal-actions"
+                    style={{ display: "flex", justifyContent: "flex-end" }}
+                  >
                     <PrimaryButton
                       type="button"
                       onClick={handleCreateShift}
@@ -673,6 +807,199 @@ export function OwnerCalendarClient({
                     </PrimaryButton>
                   </div>
                 </div>
+
+                {canCreatePersonalEntries ? (
+                  <>
+                    <div style={{ display: "grid", gap: 12 }}>
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuova richiesta</strong>
+
+                      <div
+                        className="dashboard-modal-body-grid"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Tipo</span>
+                          <select
+                            value={requestType}
+                            onChange={(event) => setRequestType(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          >
+                            <option value={RequestType.VACATION}>Ferie</option>
+                            <option value={RequestType.PERMISSION}>Permesso</option>
+                            <option value={RequestType.SICKNESS}>Malattia</option>
+                          </select>
+                        </label>
+
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
+                          <input
+                            type="datetime-local"
+                            value={requestStart}
+                            onChange={(event) => setRequestStart(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
+                          <input
+                            type="datetime-local"
+                            value={requestEnd}
+                            onChange={(event) => setRequestEnd(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <label style={{ display: "grid", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
+                        <textarea
+                          value={requestReason}
+                          onChange={(event) => setRequestReason(event.target.value)}
+                          placeholder="Aggiungi un dettaglio utile per il titolare"
+                          style={{
+                            minHeight: 120,
+                            resize: "vertical",
+                            borderRadius: 16,
+                            border: "1px solid #dbe3ee",
+                            padding: "12px 14px",
+                            fontSize: 15,
+                            background: "#ffffff",
+                          }}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Codice certificato</span>
+                        <input
+                          value={certificateCode}
+                          onChange={(event) => setCertificateCode(event.target.value)}
+                          placeholder="Obbligatorio solo per malattia"
+                          style={{
+                            borderRadius: 16,
+                            border: "1px solid #dbe3ee",
+                            padding: "12px 14px",
+                            fontSize: 15,
+                            background: "#ffffff",
+                          }}
+                        />
+                      </label>
+
+                      <div
+                        className="dashboard-modal-actions"
+                        style={{ display: "flex", justifyContent: "flex-end" }}
+                      >
+                        <PrimaryButton
+                          type="button"
+                          onClick={handleCreateRequest}
+                          disabled={isPending || !requestStart || !requestEnd}
+                        >
+                          {isPending ? "Invio..." : "Invia richiesta"}
+                        </PrimaryButton>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 12 }}>
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Nuova indisponibilita
+                      </strong>
+
+                      <div
+                        className="dashboard-modal-body-grid"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
+                          <input
+                            type="datetime-local"
+                            value={availabilityStart}
+                            onChange={(event) => setAvailabilityStart(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
+                          <input
+                            type="datetime-local"
+                            value={availabilityEnd}
+                            onChange={(event) => setAvailabilityEnd(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <label style={{ display: "grid", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
+                        <textarea
+                          value={availabilityReason}
+                          onChange={(event) => setAvailabilityReason(event.target.value)}
+                          placeholder="Facoltativo"
+                          style={{
+                            minHeight: 100,
+                            resize: "vertical",
+                            borderRadius: 16,
+                            border: "1px solid #dbe3ee",
+                            padding: "12px 14px",
+                            fontSize: 15,
+                            background: "#ffffff",
+                          }}
+                        />
+                      </label>
+
+                      <div
+                        className="dashboard-modal-actions"
+                        style={{ display: "flex", justifyContent: "flex-end" }}
+                      >
+                        <PrimaryButton
+                          type="button"
+                          onClick={handleCreateAvailability}
+                          disabled={isPending || !availabilityStart || !availabilityEnd}
+                        >
+                          {isPending ? "Salvataggio..." : "Salva indisponibilita"}
+                        </PrimaryButton>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
 
                 <div style={{ display: "grid", gap: 10 }}>
                   <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>

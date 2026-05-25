@@ -28,6 +28,7 @@ type BarAdminItem = {
     planType: PlanType;
     status: SubscriptionStatus;
     billingInterval: BillingInterval | null;
+    monthlyDiscountPercent: number;
     currentPeriodEnd: Date | null;
     trialEndsAt: Date | null;
     stripeSubscriptionId: string | null;
@@ -74,6 +75,7 @@ export default async function SuperAdminBillingPage() {
             planType: true,
             status: true,
             billingInterval: true,
+            monthlyDiscountPercent: true,
             currentPeriodEnd: true,
             trialEndsAt: true,
             stripeSubscriptionId: true,
@@ -121,6 +123,7 @@ export default async function SuperAdminBillingPage() {
                 planType: bar.subscription?.planType ?? PlanType.PAID,
                 status: bar.subscription?.status ?? SubscriptionStatus.INACTIVE,
                 billingInterval: bar.subscription?.billingInterval ?? null,
+                monthlyDiscountPercent: bar.subscription?.monthlyDiscountPercent ?? 0,
                 currentPeriodEnd: bar.subscription?.currentPeriodEnd?.toISOString() ?? null,
                 trialEndsAt: bar.subscription?.trialEndsAt?.toISOString() ?? null,
                 stripeSubscriptionId: bar.subscription?.stripeSubscriptionId ?? null,

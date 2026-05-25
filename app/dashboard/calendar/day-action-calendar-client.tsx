@@ -47,6 +47,7 @@ type RequestItem = {
   type: string;
   firstName: string;
   lastName: string;
+  approvedBy: string | null;
 };
 
 type PendingRequestItem = {
@@ -222,7 +223,14 @@ function renderApprovedRequestCard(request: RequestItem, mobile = false) {
         fontSize: mobile ? 14 : 13,
       }}
     >
-      {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
+      <div style={{ display: "grid", gap: 4 }}>
+        <strong style={{ color: "#991b1b", fontSize: mobile ? 14 : 13 }}>
+          {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
+        </strong>
+        {request.approvedBy ? (
+          <span style={{ color: "#b91c1c" }}>Approvata da: {request.approvedBy}</span>
+        ) : null}
+      </div>
     </div>
   );
 }

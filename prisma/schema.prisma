@@ -208,10 +208,12 @@ model Subscription {
   bar                  Bar                @relation(fields: [barId], references: [id], onDelete: Cascade)
   planType             PlanType           @default(PAID)
   billingInterval      BillingInterval?
+  monthlyDiscountPercent Int              @default(0)
   status               SubscriptionStatus @default(INACTIVE)
   stripeCustomerId     String?
   stripeSubscriptionId String?
   stripePriceId        String?
+  stripeDiscountCouponId String?
   currentPeriodEnd     DateTime?
   trialEndsAt          DateTime?
   createdAt            DateTime           @default(now())

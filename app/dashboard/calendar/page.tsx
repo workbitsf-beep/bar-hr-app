@@ -242,6 +242,12 @@ export default async function DashboardCalendarPage({
           type: true,
           startsAt: true,
           endsAt: true,
+          reviewedBy: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
           employee: {
             select: {
               firstName: true,
@@ -475,6 +481,11 @@ export default async function DashboardCalendarPage({
       type: request.type,
       firstName: request.employee.firstName,
       lastName: request.employee.lastName,
+      approvedBy: request.reviewedBy
+        ? `${request.reviewedBy.firstName} ${request.reviewedBy.lastName}`.trim()
+        : request.type === RequestType.SICKNESS
+          ? "Approvazione automatica"
+          : null,
     })),
     pendingRequests: (pendingRequestsByDay.get(toLocalDateKey(day.date)) ?? []).map((request) => ({
       id: request.id,
@@ -625,6 +636,7 @@ export default async function DashboardCalendarPage({
             days={serializedDays}
             members={memberOptions}
             filteredDay={dayFilter}
+            role={String(role)}
           />
         ) : (
           <DayActionCalendarClient

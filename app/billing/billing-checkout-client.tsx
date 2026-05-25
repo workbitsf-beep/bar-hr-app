@@ -10,10 +10,12 @@ export function BillingCheckoutClient({
   canActivate,
   canCancel,
   trialSetupRequired,
+  monthlyDiscountPercent,
 }: {
   canActivate: boolean;
   canCancel: boolean;
   trialSetupRequired: boolean;
+  monthlyDiscountPercent: number;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -98,6 +100,12 @@ export function BillingCheckoutClient({
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
+      {monthlyDiscountPercent > 0 ? (
+        <div style={{ color: "#166534", fontSize: 14, lineHeight: 1.6 }}>
+          Sconto mensile attivo: {monthlyDiscountPercent}% sul piano mensile di questo locale.
+        </div>
+      ) : null}
+
       <div className="dashboard-action-row" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {canActivate ? (
           <>

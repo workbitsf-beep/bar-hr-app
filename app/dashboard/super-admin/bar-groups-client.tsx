@@ -44,6 +44,7 @@ type BarAdminItem = {
     planType: PlanTypeValue;
     status: BillingStatusValue;
     billingInterval: BillingIntervalValue | null;
+    monthlyDiscountPercent: number;
     currentPeriodEnd: string | null;
     trialEndsAt: string | null;
     stripeSubscriptionId: string | null;
@@ -213,6 +214,7 @@ export function BarGroupsClient({
   const [planType, setPlanType] = useState<PlanTypeValue>("PAID");
   const [status, setStatus] = useState<BillingStatusValue>("INACTIVE");
   const [billingInterval, setBillingInterval] = useState<BillingIntervalValue | "">("");
+  const [monthlyDiscountPercent, setMonthlyDiscountPercent] = useState("0");
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState("");
   const [trialEndsAt, setTrialEndsAt] = useState("");
 
@@ -239,6 +241,7 @@ export function BarGroupsClient({
     setPlanType(selectedBar.subscription.planType);
     setStatus(selectedBar.subscription.status);
     setBillingInterval(selectedBar.subscription.billingInterval ?? "");
+    setMonthlyDiscountPercent(String(selectedBar.subscription.monthlyDiscountPercent ?? 0));
     setCurrentPeriodEnd(formatDateInput(selectedBar.subscription.currentPeriodEnd));
     setTrialEndsAt(formatDateInput(selectedBar.subscription.trialEndsAt));
   }, [selectedBar]);
@@ -321,17 +324,35 @@ export function BarGroupsClient({
     formData.set("ownerId", inputBarId ? targetBar.owner.id : ownerId);
     formData.set("planType", effectivePlanType);
     formData.set("status", effectiveStatus);
+    formData.set(
+      "monthlyDiscountPercent",
+      inputBarId
+        ? String(targetBar.subscription.monthlyDiscountPercent ?? 0)
+        : monthlyDiscountPercent
+    );
 
     if (!inputBarId && billingInterval) {
       formData.set("billingInterval", billingInterval);
+    }
+
+    if (inputBarId && targetBar.subscription.billingInterval) {
+      formData.set("billingInterval", targetBar.subscription.billingInterval);
     }
 
     if (!inputBarId && currentPeriodEnd) {
       formData.set("currentPeriodEnd", currentPeriodEnd);
     }
 
+    if (inputBarId && targetBar.subscription.currentPeriodEnd) {
+      formData.set("currentPeriodEnd", targetBar.subscription.currentPeriodEnd);
+    }
+
     if (!inputBarId && trialEndsAt) {
       formData.set("trialEndsAt", trialEndsAt);
+    }
+
+    if (inputBarId && targetBar.subscription.trialEndsAt) {
+      formData.set("trialEndsAt", targetBar.subscription.trialEndsAt);
     }
 
     startTransition(async () => {
@@ -386,10 +407,10 @@ export function BarGroupsClient({
           style={{
             minWidth: 980,
             display: "grid",
-            gridTemplateColumns: "1.3fr 1.1fr 0.8fr 0.9fr 1fr 1.3fr 1.2fr",
+            gridTemplateColumns: "1.2fr 1fr 0.75fr 0.85fr 0.85fr 1fr 1.05fr 1.2fr",
           }}
         >
-          {["Struttura", "Responsabile", "Piano", "Stato", "Scadenza", "Stripe subscription id", "Azioni"].map(
+          {["Struttura", "Responsabile", "Piano", "Stato", "Sconto mese", "Scadenza", "Stripe subscription id", "Azioni"].map(
             (label) => (
               <div
                 key={label}
@@ -446,6 +467,11 @@ export function BarGroupsClient({
                   >
                     {badge.label}
                   </span>
+                </div>
+                <div style={{ padding: "16px", borderBottom: "1px solid #eef2f7", color: "#334155" }}>
+                  {bar.subscription.monthlyDiscountPercent > 0
+                    ? `${bar.subscription.monthlyDiscountPercent}%`
+                    : "0%"}
                 </div>
                 <div style={{ padding: "16px", borderBottom: "1px solid #eef2f7", color: "#334155" }}>
                   {formatDateLabel(
@@ -598,6 +624,9 @@ export function BarGroupsClient({
                       ? bar.subscription.trialEndsAt
                       : bar.subscription.currentPeriodEnd
                   )}
+                </span>
+                <span style={{ color: "#64748b", fontSize: 14 }}>
+                  Sconto mese: {bar.subscription.monthlyDiscountPercent}%
                 </span>
               </div>
 
@@ -781,6 +810,24 @@ export function BarGroupsClient({
                   </label>
 
                   <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Sconto mensile %</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={monthlyDiscountPercent}
+                      onChange={(event) => setMonthlyDiscountPercent(event.target.value)}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                    />
+                  </label>
+
+                  <label style={{ display: "grid", gap: 8 }}>
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Scadenza periodo</span>
                     <input
                       type="date"
@@ -832,6 +879,8 @@ export function BarGroupsClient({
                     Subscription id: {selectedBar.subscription.stripeSubscriptionId || "—"}
                     <br />
                     Price id: {selectedBar.subscription.stripePriceId || "—"}
+                    <br />
+                    Sconto mensile: {selectedBar.subscription.monthlyDiscountPercent}%
                     <br />
                     Accesso attuale: {canAccess(selectedBar) ? "Sbloccato" : "Bloccato"}
                   </div>

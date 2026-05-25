@@ -192,7 +192,20 @@ export async function ownerNeedsOnboarding(userId: string): Promise<boolean> {
 
 const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(userId: string) {
   return prisma.bar.findFirst({
-    where: { ownerId: userId },
+    where: {
+      OR: [
+        { ownerId: userId },
+        {
+          memberships: {
+            some: {
+              userId,
+              role: Role.OWNER,
+              isActive: true,
+            },
+          },
+        },
+      ],
+    },
     orderBy: {
       createdAt: "asc",
     },

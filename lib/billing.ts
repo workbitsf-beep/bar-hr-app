@@ -3,6 +3,7 @@ import "server-only";
 import {
   BillingInterval,
   PlanType,
+  Role,
   SubscriptionStatus,
 } from "@prisma/client";
 import { cache } from "react";
@@ -15,6 +16,7 @@ export type BillingStatusResult = {
   planType: PlanType;
   status: SubscriptionStatus;
   billingInterval: BillingInterval | null;
+  monthlyDiscountPercent: number;
   currentPeriodEnd: Date | null;
   trialEndsAt: Date | null;
   stripeCustomerId: string | null;
@@ -57,6 +59,7 @@ export const getBillingStatus = cache(async function getBillingStatus(
           planType: true,
           status: true,
           billingInterval: true,
+          monthlyDiscountPercent: true,
           currentPeriodEnd: true,
           trialEndsAt: true,
           stripeCustomerId: true,
@@ -70,6 +73,7 @@ export const getBillingStatus = cache(async function getBillingStatus(
     planType: subscription?.planType ?? PlanType.PAID,
     status: subscription?.status ?? SubscriptionStatus.INACTIVE,
     billingInterval: subscription?.billingInterval ?? null,
+    monthlyDiscountPercent: subscription?.monthlyDiscountPercent ?? 0,
     currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
     trialEndsAt: subscription?.trialEndsAt ?? null,
     stripeCustomerId: subscription?.stripeCustomerId ?? null,
@@ -99,7 +103,20 @@ export function createDefaultTrialEndsAt() {
 
 export async function ownerNeedsBillingSetup(userId: string): Promise<boolean> {
   const ownedBar = await prisma.bar.findFirst({
-    where: { ownerId: userId },
+    where: {
+      OR: [
+        { ownerId: userId },
+        {
+          memberships: {
+            some: {
+              userId,
+              role: Role.OWNER,
+              isActive: true,
+            },
+          },
+        },
+      ],
+    },
     orderBy: {
       createdAt: "asc",
     },

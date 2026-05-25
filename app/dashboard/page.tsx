@@ -167,6 +167,18 @@ export default async function DashboardPage() {
                   lastName: true,
                 },
               },
+              reviewedBy: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+              peerReviewedBy: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
               swapWith: {
                 select: {
                   firstName: true,
@@ -314,6 +326,18 @@ export default async function DashboardPage() {
                   firstName: request.employee.firstName,
                   lastName: request.employee.lastName,
                 },
+                reviewedBy: request.reviewedBy
+                  ? {
+                      firstName: request.reviewedBy.firstName,
+                      lastName: request.reviewedBy.lastName,
+                    }
+                  : null,
+                peerReviewedBy: request.peerReviewedBy
+                  ? {
+                      firstName: request.peerReviewedBy.firstName,
+                      lastName: request.peerReviewedBy.lastName,
+                    }
+                  : null,
                 swapWith: request.swapWith
                   ? {
                       firstName: request.swapWith.firstName,

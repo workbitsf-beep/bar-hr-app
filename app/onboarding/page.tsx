@@ -6,7 +6,10 @@ import { GpsLocationField } from "@/app/components/gps-location-field";
 import { PendingButton } from "@/app/components/pending-button";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { getSession } from "@/lib/auth";
-import { sendEmployeeWelcomeEmail } from "@/lib/email/notifications";
+import {
+  sendEmployeeWelcomeEmail,
+  sendOwnerWelcomeEmail,
+} from "@/lib/email/notifications";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import {
@@ -49,7 +52,20 @@ async function getOwnerContext() {
   }
 
   const ownedBars = await prisma.bar.findMany({
-    where: { ownerId: session.user.id },
+    where: {
+      OR: [
+        { ownerId: session.user.id },
+        {
+          memberships: {
+            some: {
+              userId: session.user.id,
+              role: Role.OWNER,
+              isActive: true,
+            },
+          },
+        },
+      ],
+    },
     include: {
       settings: true,
       memberships: {
@@ -260,7 +276,12 @@ async function inviteEmployeeAction(formData: FormData) {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const roleRaw = String(formData.get("role") ?? "");
-  const memberRole = roleRaw === "MANAGER" ? Role.MANAGER : Role.EMPLOYEE;
+  const memberRole =
+    roleRaw === "OWNER"
+      ? Role.OWNER
+      : roleRaw === "MANAGER"
+        ? Role.MANAGER
+        : Role.EMPLOYEE;
 
   if (!email || !firstName || !lastName) {
     redirect("/onboarding?step=4&error=missing-employee");
@@ -332,18 +353,33 @@ async function inviteEmployeeAction(formData: FormData) {
 
   if (createdUser) {
     try {
-      await sendEmployeeWelcomeEmail(
-        email,
-        `${firstName} ${lastName}`.trim(),
-        activeBar.name,
-        email,
-        temporaryPassword
-      );
+      if (memberRole === Role.OWNER) {
+        await sendOwnerWelcomeEmail(
+          email,
+          `${firstName} ${lastName}`.trim(),
+          activeBar.name,
+          email,
+          temporaryPassword
+        );
+      } else {
+        await sendEmployeeWelcomeEmail(
+          email,
+          `${firstName} ${lastName}`.trim(),
+          activeBar.name,
+          email,
+          temporaryPassword
+        );
+      }
     } catch (error) {
-      console.error("[welcome-email] employee failed", {
+      console.error(
+        memberRole === Role.OWNER
+          ? "[welcome-email] owner failed"
+          : "[welcome-email] employee failed",
+        {
         recipient: email,
-        error: "Unexpected welcome email error.",
-      });
+        error: error instanceof Error ? error.message : "Unexpected welcome email error.",
+      }
+      );
     }
   }
 
@@ -565,8 +601,10 @@ export default async function OnboardingPage({
         { id: 3 as StepNumber, title: "Arrotondamento" },
         { id: 4 as StepNumber, title: "Team" },
       ] as const);
+  const teamMembers = activeBar?.memberships ?? [];
   const invitedMembers =
     activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
+  const ownerMembers = teamMembers.filter((membership) => membership.role === Role.OWNER);
   const computedStep = getCurrentStep(activeBar);
   const requestedStepRaw = Array.isArray(params.step) ? params.step[0] : params.step;
   const requestedStep = requestedStepRaw ? Number(requestedStepRaw) : computedStep;
@@ -690,6 +728,7 @@ export default async function OnboardingPage({
                       background: "#fff",
                     }}
                   >
+                    <option value="OWNER">Titolare</option>
                     <option value="EMPLOYEE">Dipendente</option>
                     <option value="MANAGER">Manager</option>
                   </select>
@@ -704,7 +743,7 @@ export default async function OnboardingPage({
           <Card
             title="Team attuale"
             subtitle={
-              invitedMembers.length > 0
+              teamMembers.length > 0
                 ? "Persone gia collegate al locale."
                 : "Nessuna persona invitata."
             }
@@ -726,9 +765,9 @@ export default async function OnboardingPage({
                   }}
                 >
                   <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase" }}>
-                    Invitati
+                    Persone collegate
                   </div>
-                  <strong style={{ fontSize: 22, color: "#1f2937" }}>{invitedMembers.length}</strong>
+                  <strong style={{ fontSize: 22, color: "#1f2937" }}>{teamMembers.length}</strong>
                 </div>
                 <div
                   style={{
@@ -739,16 +778,16 @@ export default async function OnboardingPage({
                   }}
                 >
                   <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase" }}>
-                    Titolare
+                    Titolari
                   </div>
                   <strong style={{ fontSize: 16, color: "#1f2937" }}>
-                    {activeBar.ownerId ? "Gia collegato" : "Da collegare"}
+                    {ownerMembers.length}
                   </strong>
                 </div>
               </div>
 
-              {invitedMembers.length > 0 ? (
-                invitedMembers.map((membership) => (
+              {teamMembers.length > 0 ? (
+                teamMembers.map((membership) => (
                   <div
                     key={membership.id}
                     style={{
@@ -782,11 +821,25 @@ export default async function OnboardingPage({
                           fontWeight: 700,
                           letterSpacing: "0.04em",
                           textTransform: "uppercase",
-                          background: membership.role === Role.MANAGER ? "#dbeafe" : "#ede9fe",
-                          color: membership.role === Role.MANAGER ? "#1d4ed8" : "#6d28d9",
+                          background:
+                            membership.role === Role.OWNER
+                              ? "#fee2e2"
+                              : membership.role === Role.MANAGER
+                                ? "#dbeafe"
+                                : "#ede9fe",
+                          color:
+                            membership.role === Role.OWNER
+                              ? "#b91c1c"
+                              : membership.role === Role.MANAGER
+                                ? "#1d4ed8"
+                                : "#6d28d9",
                         }}
                       >
-                        {membership.role === Role.MANAGER ? "Manager" : "Dipendente"}
+                        {membership.role === Role.OWNER
+                          ? "Titolare"
+                          : membership.role === Role.MANAGER
+                            ? "Manager"
+                            : "Dipendente"}
                       </span>
                     </div>
                     <div style={{ color: "#6b7280" }}>{membership.user.email}</div>

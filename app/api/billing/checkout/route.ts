@@ -1,4 +1,5 @@
 import { BillingInterval, PlanType, Role, SubscriptionStatus } from "@prisma/client";
+import type Stripe from "stripe";
 import { getSession } from "@/lib/auth";
 import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +16,53 @@ function getPriceId(interval: BillingInterval) {
   }
 
   return process.env.STRIPE_PRICE_YEARLY || "";
+}
+
+function normalizeDiscountPercent(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+async function ensureMonthlyDiscountCoupon(input: {
+  stripe: Stripe;
+  barId: string;
+  currentCouponId: string | null;
+  monthlyDiscountPercent: number;
+}) {
+  const percent = normalizeDiscountPercent(input.monthlyDiscountPercent);
+
+  if (percent <= 0) {
+    return null;
+  }
+
+  if (input.currentCouponId) {
+    return input.currentCouponId;
+  }
+
+  const coupon = await input.stripe.coupons.create({
+    percent_off: percent,
+    duration: "forever",
+    name: `Workbit sconto mensile ${percent}%`,
+    metadata: {
+      barId: input.barId,
+      kind: "MONTHLY_DISCOUNT",
+    },
+  });
+
+  await prisma.subscription.updateMany({
+    where: {
+      barId: input.barId,
+    },
+    data: {
+      stripeDiscountCouponId: coupon.id,
+    },
+  });
+  invalidateBillingStatusCache(input.barId);
+
+  return coupon.id;
 }
 
 export async function POST(req: Request) {
@@ -75,8 +123,10 @@ export async function POST(req: Request) {
         planType: true,
         status: true,
         billingInterval: true,
+        monthlyDiscountPercent: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
+        stripeDiscountCouponId: true,
         trialEndsAt: true,
       },
     }),
@@ -117,6 +167,8 @@ export async function POST(req: Request) {
         barId: bar.id,
         stripeCustomerId,
         billingInterval: interval,
+        monthlyDiscountPercent: subscription?.monthlyDiscountPercent ?? 0,
+        stripeDiscountCouponId: subscription?.stripeDiscountCouponId ?? null,
         planType: pendingTrialSetup ? PlanType.TRIAL : PlanType.PAID,
         status: pendingTrialSetup ? SubscriptionStatus.TRIALING : SubscriptionStatus.INACTIVE,
         trialEndsAt: pendingTrialSetup ? subscription?.trialEndsAt ?? null : null,
@@ -134,6 +186,16 @@ export async function POST(req: Request) {
   }
 
   const baseUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const monthlyDiscountPercent = normalizeDiscountPercent(subscription?.monthlyDiscountPercent);
+  const monthlyCouponId =
+    interval === BillingInterval.MONTHLY
+      ? await ensureMonthlyDiscountCoupon({
+          stripe,
+          barId: bar.id,
+          currentCouponId: subscription?.stripeDiscountCouponId ?? null,
+          monthlyDiscountPercent,
+        })
+      : null;
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: stripeCustomerId,
@@ -146,10 +208,20 @@ export async function POST(req: Request) {
         quantity: 1,
       },
     ],
+    ...(monthlyCouponId
+      ? {
+          discounts: [
+            {
+              coupon: monthlyCouponId,
+            },
+          ],
+        }
+      : {}),
     metadata: {
       barId: bar.id,
       ownerId: bar.owner.id,
       interval,
+      monthlyDiscountPercent: String(monthlyDiscountPercent),
       checkoutKind: pendingTrialSetup ? "TRIAL_SETUP" : "PAID_START",
     },
     subscription_data: {
@@ -157,6 +229,7 @@ export async function POST(req: Request) {
         barId: bar.id,
         ownerId: bar.owner.id,
         interval,
+        monthlyDiscountPercent: String(monthlyDiscountPercent),
         checkoutKind: pendingTrialSetup ? "TRIAL_SETUP" : "PAID_START",
       },
       ...(pendingTrialSetup && subscription?.trialEndsAt

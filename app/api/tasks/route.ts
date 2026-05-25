@@ -130,8 +130,15 @@ export const POST = withBar(
 
     if (bar) {
       const recipients = body.assignedToAll
-        ? bar.memberships.filter((membership) => membership.role !== Role.OWNER)
-        : bar.memberships.filter((membership) => membership.user.id === body.assignedToId);
+        ? bar.memberships.filter(
+            (membership) =>
+              membership.role !== Role.OWNER && membership.user.id !== session.user.id
+          )
+        : bar.memberships.filter(
+            (membership) =>
+              membership.user.id === body.assignedToId &&
+              membership.user.id !== session.user.id
+          );
 
       await Promise.all(
         recipients.map((recipient) =>
