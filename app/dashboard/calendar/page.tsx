@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { buildShiftPresets } from "@/lib/shift-presets";
 import { getDashboardContext } from "../context";
 import { ClockActionsPanel } from "../timelogs/timelogs-client";
 import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, TextInput } from "../ui";
@@ -150,9 +151,8 @@ export default async function DashboardCalendarPage({
     notes,
   ] =
     await Promise.all([
-      role === Role.OWNER || !isRestaurant
-        ? Promise.resolve(null)
-        : prisma.barSettings.findUnique({
+      isRestaurant
+        ? prisma.barSettings.findUnique({
             where: { barId: activeBarId },
             select: {
               gpsLatitude: true,
@@ -161,8 +161,15 @@ export default async function DashboardCalendarPage({
               roundingEnabled: true,
               roundingMinutes: true,
               roundingMode: true,
+              morningStartTime: true,
+              morningEndTime: true,
+              afternoonStartTime: true,
+              afternoonEndTime: true,
+              eveningStartTime: true,
+              eveningEndTime: true,
             },
-          }),
+          })
+        : Promise.resolve(null),
       isRestaurant
         ? prisma.shift.findMany({
             where: {
@@ -614,6 +621,7 @@ export default async function DashboardCalendarPage({
     lastName: member.user.lastName,
     role: member.role,
   }));
+  const shiftPresets = buildShiftPresets(settings);
   const unconfirmedShiftCount = shifts.filter(
     (shift) => !shift.confirmedAt && shift.startTime <= monthEnd && shift.endTime >= monthStart
   ).length;
@@ -732,6 +740,7 @@ export default async function DashboardCalendarPage({
             weekdayLabels={weekdayLabels}
             days={serializedDays}
             members={memberOptions}
+            presets={shiftPresets}
             filteredDay={dayFilter}
             role={String(role)}
           />

@@ -8,9 +8,11 @@ import { getDashboardContext } from "../context";
 import { updateSettingsAction } from "../actions";
 import {
   EmptyState,
+  FormField,
   Panel,
   PrimaryButton,
   Stack,
+  TextInput,
 } from "../ui";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 
@@ -116,8 +118,63 @@ export default async function DashboardSettingsPage() {
               38-52 va a 45, 53-59 va all'ora successiva.
             </div>
 
+            <div style={{ display: "grid", gap: 12 }}>
+              <strong style={{ color: "#0f172a", fontSize: 18 }}>Orari standard turni</strong>
+              <div
+                className="dashboard-inline-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <FormField label="Mattina - inizio">
+                  <TextInput
+                    name="morningStartTime"
+                    type="time"
+                    defaultValue={settings?.morningStartTime ?? ""}
+                  />
+                </FormField>
+                <FormField label="Mattina - fine">
+                  <TextInput
+                    name="morningEndTime"
+                    type="time"
+                    defaultValue={settings?.morningEndTime ?? ""}
+                  />
+                </FormField>
+                <FormField label="Pomeriggio - inizio">
+                  <TextInput
+                    name="afternoonStartTime"
+                    type="time"
+                    defaultValue={settings?.afternoonStartTime ?? ""}
+                  />
+                </FormField>
+                <FormField label="Pomeriggio - fine">
+                  <TextInput
+                    name="afternoonEndTime"
+                    type="time"
+                    defaultValue={settings?.afternoonEndTime ?? ""}
+                  />
+                </FormField>
+                <FormField label="Sera - inizio">
+                  <TextInput
+                    name="eveningStartTime"
+                    type="time"
+                    defaultValue={settings?.eveningStartTime ?? ""}
+                  />
+                </FormField>
+                <FormField label="Sera - fine">
+                  <TextInput
+                    name="eveningEndTime"
+                    type="time"
+                    defaultValue={settings?.eveningEndTime ?? ""}
+                  />
+                </FormField>
+              </div>
+            </div>
+
             <div className="dashboard-form-actions">
-              <PrimaryButton type="submit">Salva arrotondamento</PrimaryButton>
+              <PrimaryButton type="submit">Salva impostazioni ristorante</PrimaryButton>
             </div>
             </form>
           </Panel>

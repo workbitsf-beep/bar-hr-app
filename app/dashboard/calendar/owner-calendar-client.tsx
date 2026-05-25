@@ -4,13 +4,14 @@ import { RequestType } from "@prisma/client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { applyShiftPreset, type ShiftPreset } from "@/lib/shift-presets";
 import {
   createAvailabilityAction,
   createShiftAction,
   createTimeOffRequestAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
-import { PrimaryButton, StatusPill } from "../ui";
+import { PrimaryButton, Select, StatusPill } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 
 type MemberOption = {
@@ -154,6 +155,7 @@ export function OwnerCalendarClient({
   weekdayLabels,
   days,
   members,
+  presets,
   filteredDay,
   role,
 }: {
@@ -161,6 +163,7 @@ export function OwnerCalendarClient({
   weekdayLabels: string[];
   days: DayItem[];
   members: MemberOption[];
+  presets: ShiftPreset[];
   filteredDay?: string | null;
   role: string;
 }) {
@@ -173,6 +176,7 @@ export function OwnerCalendarClient({
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [requestStart, setRequestStart] = useState("");
@@ -225,6 +229,7 @@ export function OwnerCalendarClient({
     setTitle("");
     setStartTime(toDateTimeLocal(day.date, 9, 0));
     setEndTime(toDateTimeLocal(day.date, 17, 0));
+    setSelectedPresetKey("CUSTOM");
     setSelectedMembers(day.shifts[0]?.assignments.map((assignment) => assignment.id) ?? []);
     setRequestType(RequestType.VACATION);
     setRequestStart(toDateTimeLocal(day.date, 9, 0));
@@ -252,6 +257,24 @@ export function OwnerCalendarClient({
         ? current.filter((id) => id !== memberId)
         : current.concat(memberId)
     );
+  }
+
+  function applyPresetByKey(nextKey: string) {
+    setSelectedPresetKey(nextKey);
+
+    if (!selectedDay || nextKey === "CUSTOM") {
+      return;
+    }
+
+    const preset = presets.find((entry) => entry.key === nextKey);
+
+    if (!preset) {
+      return;
+    }
+
+    const range = applyShiftPreset(selectedDay.date, preset);
+    setStartTime(range.startTime);
+    setEndTime(range.endTime);
   }
 
   function runAction(task: () => Promise<void>, successMessage: string, closeOnSuccess = false) {
@@ -836,6 +859,23 @@ export function OwnerCalendarClient({
                     />
                   </label>
 
+                  {presets.length > 0 ? (
+                    <label style={{ display: "grid", gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario standard</span>
+                      <Select
+                        value={selectedPresetKey}
+                        onChange={(event) => applyPresetByKey(event.target.value)}
+                      >
+                        <option value="CUSTOM">Personalizzato</option>
+                        {presets.map((preset) => (
+                          <option key={preset.key} value={preset.key}>
+                            {preset.label} - {preset.startTime} / {preset.endTime}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                  ) : null}
+
                   <div
                     className="dashboard-modal-body-grid"
                     style={{
@@ -849,7 +889,10 @@ export function OwnerCalendarClient({
                       <input
                         type="datetime-local"
                         value={startTime}
-                        onChange={(event) => setStartTime(event.target.value)}
+                        onChange={(event) => {
+                          setSelectedPresetKey("CUSTOM");
+                          setStartTime(event.target.value);
+                        }}
                         style={{
                           borderRadius: 16,
                           border: "1px solid #dbe3ee",
@@ -865,7 +908,10 @@ export function OwnerCalendarClient({
                       <input
                         type="datetime-local"
                         value={endTime}
-                        onChange={(event) => setEndTime(event.target.value)}
+                        onChange={(event) => {
+                          setSelectedPresetKey("CUSTOM");
+                          setEndTime(event.target.value);
+                        }}
                         style={{
                           borderRadius: 16,
                           border: "1px solid #dbe3ee",
@@ -1262,6 +1308,7 @@ export function OwnerCalendarClient({
         canManage
         shift={editingShift}
         members={members}
+        presets={presets}
         onClose={() => setEditingShiftId(null)}
       />
     </>

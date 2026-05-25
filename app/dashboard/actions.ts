@@ -215,6 +215,39 @@ function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parseOptionalTime(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(normalized)) {
+    throw new Error("Invalid time value");
+  }
+
+  return normalized;
+}
+
+function parseShiftPresetPair(
+  label: string,
+  startValue: FormDataEntryValue | null,
+  endValue: FormDataEntryValue | null
+) {
+  const startTime = parseOptionalTime(startValue);
+  const endTime = parseOptionalTime(endValue);
+
+  if (Boolean(startTime) !== Boolean(endTime)) {
+    throw new Error(`Complete both times for ${label.toLowerCase()}`);
+  }
+
+  return { startTime, endTime };
+}
+
 function parseRole(value: FormDataEntryValue | null): Role {
   const raw = String(value ?? "");
 
@@ -246,6 +279,12 @@ function splitBulkTextEntries(value: string) {
     .split(/\r?\n+/)
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+}
+
+function collectBulkTextEntries(formData: FormData, fieldName: string) {
+  return formData
+    .getAll(fieldName)
+    .flatMap((entry) => splitBulkTextEntries(String(entry ?? "")));
 }
 
 function ensureOperationRole(role: Role) {
@@ -1065,13 +1104,12 @@ export async function createTaskAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = parseTaskDueDate(String(formData.get("dueDate") ?? ""));
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
   const assignedToAll = formData.get("assignedToAll") === "on";
   const isUrgent = formData.get("isUrgent") === "on";
-  const taskTitles = splitBulkTextEntries(title);
+  const taskTitles = collectBulkTextEntries(formData, "title");
 
   if (taskTitles.length === 0) {
     throw new Error("Missing title");
@@ -1376,9 +1414,8 @@ export async function createBoardNoteAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const content = String(formData.get("content") ?? "").trim();
   const isPinned = canManageOperations(role) && formData.get("isPinned") === "on";
-  const noteEntries = splitBulkTextEntries(content);
+  const noteEntries = collectBulkTextEntries(formData, "content");
 
   if (noteEntries.length === 0) {
     throw new Error("Missing content");
@@ -1770,6 +1807,21 @@ export async function updateSettingsAction(formData: FormData) {
   const roundingEnabled = formData.get("roundingEnabled") === "on";
   const roundingMinutes = 15;
   const roundingMode = "NEAREST";
+  const morningPreset = parseShiftPresetPair(
+    "Mattina",
+    formData.get("morningStartTime"),
+    formData.get("morningEndTime")
+  );
+  const afternoonPreset = parseShiftPresetPair(
+    "Pomeriggio",
+    formData.get("afternoonStartTime"),
+    formData.get("afternoonEndTime")
+  );
+  const eveningPreset = parseShiftPresetPair(
+    "Sera",
+    formData.get("eveningStartTime"),
+    formData.get("eveningEndTime")
+  );
 
   if (gpsLatitude === null || gpsLongitude === null) {
     throw new Error("Missing GPS settings");
@@ -1795,6 +1847,12 @@ export async function updateSettingsAction(formData: FormData) {
         roundingEnabled,
         roundingMinutes,
         roundingMode,
+        morningStartTime: morningPreset.startTime,
+        morningEndTime: morningPreset.endTime,
+        afternoonStartTime: afternoonPreset.startTime,
+        afternoonEndTime: afternoonPreset.endTime,
+        eveningStartTime: eveningPreset.startTime,
+        eveningEndTime: eveningPreset.endTime,
       },
       create: {
         barId: activeBarId,
@@ -1804,12 +1862,20 @@ export async function updateSettingsAction(formData: FormData) {
         roundingEnabled,
         roundingMinutes,
         roundingMode,
+        morningStartTime: morningPreset.startTime,
+        morningEndTime: morningPreset.endTime,
+        afternoonStartTime: afternoonPreset.startTime,
+        afternoonEndTime: afternoonPreset.endTime,
+        eveningStartTime: eveningPreset.startTime,
+        eveningEndTime: eveningPreset.endTime,
       },
     }),
   ]);
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/timelogs");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/shifts");
 }
 
 export async function updateGlobalGpsRadiusAction(nextRadius: number) {

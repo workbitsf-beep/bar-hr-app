@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ShiftPreset } from "@/lib/shift-presets";
 import { ShiftEditorModal } from "./shift-editor-modal";
 
 type MemberOption = {
@@ -39,11 +40,13 @@ export function PlannedShiftsList({
   canManage,
   shifts,
   members,
+  presets,
 }: {
   locale: string;
   canManage: boolean;
   shifts: ShiftOption[];
   members: MemberOption[];
+  presets: ShiftPreset[];
 }) {
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
 
@@ -108,6 +111,7 @@ export function PlannedShiftsList({
         canManage={canManage}
         shift={selectedShift}
         members={members}
+        presets={presets}
         onClose={() => setSelectedShiftId(null)}
       />
     </>

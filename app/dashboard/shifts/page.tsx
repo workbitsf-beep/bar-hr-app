@@ -1,20 +1,19 @@
 import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { buildShiftPresets } from "@/lib/shift-presets";
 import { createShiftAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
   BillingRequiredState,
   EmptyState,
-  FormField,
   ItemCard,
   ItemList,
   Panel,
-  PrimaryButton,
   Stack,
-  TextInput,
   formatDateTime,
 } from "../ui";
 import { PlannedShiftsList } from "./planned-shifts-list";
+import { ShiftCreateForm } from "./shift-create-form";
 
 function getLocale(language: string) {
   if (language === "en") {
@@ -48,7 +47,7 @@ export default async function DashboardShiftsPage() {
   }
 
   const canManage = role === Role.OWNER || role === Role.MANAGER;
-  const [shifts, members, availabilities, approvedTimeOff] = await Promise.all([
+  const [shifts, members, availabilities, approvedTimeOff, settings] = await Promise.all([
     prisma.shift.findMany({
       where: { barId: activeBarId },
       orderBy: {
@@ -150,57 +149,38 @@ export default async function DashboardShiftsPage() {
         },
       },
     }),
+    canManage
+      ? prisma.barSettings.findUnique({
+          where: {
+            barId: activeBarId,
+          },
+          select: {
+            morningStartTime: true,
+            morningEndTime: true,
+            afternoonStartTime: true,
+            afternoonEndTime: true,
+            eveningStartTime: true,
+            eveningEndTime: true,
+          },
+        })
+      : Promise.resolve(null),
   ]);
+  const shiftPresets = buildShiftPresets(settings);
 
   return (
     <Stack>
       {canManage ? (
         <Panel title="Crea turno condiviso">
-          <form action={createShiftAction} style={{ display: "grid", gap: 16 }}>
-            <FormField label="Titolo turno">
-              <TextInput name="title" placeholder="Servizio pranzo" />
-            </FormField>
-
-            <div
-              className="dashboard-inline-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
-              }}
-            >
-              <FormField label="Inizio">
-                <TextInput name="startTime" type="datetime-local" required />
-              </FormField>
-
-              <FormField label="Fine">
-                <TextInput name="endTime" type="datetime-local" required />
-              </FormField>
-            </div>
-
-            <FormField label="Persone nel turno">
-              <div className="dashboard-member-grid" style={{ display: "grid", gap: 10 }}>
-                {members.map((member) => (
-                  <label
-                    key={member.user.id}
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                      color: "#334155",
-                    }}
-                  >
-                    <input type="checkbox" name="employeeIds" value={member.user.id} />
-                    {member.user.firstName} {member.user.lastName} - {member.role}
-                  </label>
-                ))}
-              </div>
-            </FormField>
-
-            <div className="dashboard-form-actions">
-              <PrimaryButton type="submit">Salva turno</PrimaryButton>
-            </div>
-          </form>
+          <ShiftCreateForm
+            action={createShiftAction}
+            presets={shiftPresets}
+            members={members.map((member) => ({
+              id: member.user.id,
+              firstName: member.user.firstName,
+              lastName: member.user.lastName,
+              role: member.role,
+            }))}
+          />
         </Panel>
       ) : null}
 
@@ -217,6 +197,7 @@ export default async function DashboardShiftsPage() {
               lastName: member.user.lastName,
               role: member.role,
             }))}
+            presets={shiftPresets}
             shifts={shifts.map((shift) => ({
               id: shift.id,
               title: shift.title,

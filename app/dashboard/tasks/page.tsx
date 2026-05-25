@@ -11,19 +11,17 @@ import { getDashboardContext } from "../context";
 import {
   BillingRequiredState,
   EmptyState,
-  FormField,
   ItemCard,
   ItemList,
   Panel,
   PrimaryButton,
-  Select,
   Stack,
   StatusPill,
-  TextArea,
-  TextInput,
   formatDate,
   formatDateTime,
 } from "../ui";
+import { BoardComposeForm } from "./board-compose-form";
+import { TaskComposeForm } from "./task-compose-form";
 
 export default async function DashboardTasksPage() {
   const { session, role, activeBarId, billingStatus } = await getDashboardContext();
@@ -140,90 +138,21 @@ export default async function DashboardTasksPage() {
     <Stack>
       <div id="board-compose">
         <Panel title="Nuovo messaggio bacheca">
-          <form action={createBoardNoteAction} style={{ display: "grid", gap: 16 }}>
-            <FormField
-              label="Messaggi"
-              hint="Scrivi un messaggio per riga. Ogni riga verra pubblicata separatamente."
-            >
-              <TextArea
-                name="content"
-                required
-                placeholder={"Aggiornamento servizio\nBriefing di apertura\nPromemoria turni del weekend"}
-              />
-            </FormField>
-
-            {canManage ? (
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input type="checkbox" name="isPinned" />
-                Metti in evidenza
-              </label>
-            ) : null}
-
-            <div>
-              <PrimaryButton type="submit">Pubblica</PrimaryButton>
-            </div>
-          </form>
+          <BoardComposeForm action={createBoardNoteAction} canManage={canManage} />
         </Panel>
       </div>
 
       {canManage ? (
         <div id="tasks-compose">
           <Panel title="Crea nuova mansione">
-            <form action={createTaskAction} style={{ display: "grid", gap: 16 }}>
-              <FormField
-                label="Mansioni"
-                hint="Scrivi una mansione per riga. Ogni riga verra salvata come voce separata."
-              >
-                <TextArea
-                  name="title"
-                  required
-                  placeholder={"Pulizia banco caffetteria\nRiordino magazzino\nControllo frigoriferi"}
-                  style={{ minHeight: 120 }}
-                />
-              </FormField>
-
-              <FormField label="Descrizione">
-                <TextArea name="description" placeholder="Dettagli operativi opzionali" />
-              </FormField>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <FormField label="Scadenza">
-                  <TextInput name="dueDate" type="date" required />
-                </FormField>
-
-                <FormField label="Assegna a">
-                  <Select name="assignedToId" defaultValue="">
-                    <option value="">Nessun singolo assegnatario</option>
-                    {members.map((member) => (
-                      <option key={member.user.id} value={member.user.id}>
-                        {member.user.firstName} {member.user.lastName}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-              </div>
-
-              <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input type="checkbox" name="assignedToAll" />
-                  Assegna a tutto il team
-                </label>
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input type="checkbox" name="isUrgent" />
-                  Segna come urgente
-                </label>
-              </div>
-
-              <div>
-                <PrimaryButton type="submit">Salva mansione</PrimaryButton>
-              </div>
-            </form>
+            <TaskComposeForm
+              action={createTaskAction}
+              members={members.map((member) => ({
+                id: member.user.id,
+                firstName: member.user.firstName,
+                lastName: member.user.lastName,
+              }))}
+            />
           </Panel>
         </div>
       ) : null}

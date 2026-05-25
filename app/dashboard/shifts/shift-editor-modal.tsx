@@ -3,8 +3,9 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { applyShiftPreset, type ShiftPreset } from "@/lib/shift-presets";
 import { deleteShiftAction, updateShiftAction } from "../actions";
-import { PrimaryButton } from "../ui";
+import { PrimaryButton, Select } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -66,6 +67,7 @@ export function ShiftEditorModal({
   canManage,
   shift,
   members,
+  presets,
   onClose,
 }: {
   open: boolean;
@@ -73,6 +75,7 @@ export function ShiftEditorModal({
   canManage: boolean;
   shift: ShiftOption | null;
   members: MemberOption[];
+  presets: ShiftPreset[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -82,6 +85,7 @@ export function ShiftEditorModal({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
 
   useEffect(() => {
     setMounted(true);
@@ -109,6 +113,7 @@ export function ShiftEditorModal({
     setStartTime(toDateTimeLocal(shift.startTime));
     setEndTime(toDateTimeLocal(shift.endTime));
     setSelectedMembers(shift.assignments.map((assignment) => assignment.id));
+    setSelectedPresetKey("CUSTOM");
   }, [shift]);
 
   function toggleMember(memberId: string) {
@@ -125,6 +130,24 @@ export function ShiftEditorModal({
     }
 
     onClose();
+  }
+
+  function applyPresetByKey(nextKey: string) {
+    setSelectedPresetKey(nextKey);
+
+    if (!shift || nextKey === "CUSTOM") {
+      return;
+    }
+
+    const preset = presets.find((entry) => entry.key === nextKey);
+
+    if (!preset) {
+      return;
+    }
+
+    const range = applyShiftPreset(startTime || shift.startTime, preset);
+    setStartTime(range.startTime);
+    setEndTime(range.endTime);
   }
 
   async function handleUpdate() {
@@ -259,6 +282,23 @@ export function ShiftEditorModal({
                 />
               </label>
 
+              {presets.length > 0 ? (
+                <label style={{ display: "grid", gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario standard</span>
+                  <Select
+                    value={selectedPresetKey}
+                    onChange={(event) => applyPresetByKey(event.target.value)}
+                  >
+                    <option value="CUSTOM">Personalizzato</option>
+                    {presets.map((preset) => (
+                      <option key={preset.key} value={preset.key}>
+                        {preset.label} - {preset.startTime} / {preset.endTime}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              ) : null}
+
               <div
                 className="dashboard-modal-body-grid"
                 style={{
@@ -272,7 +312,10 @@ export function ShiftEditorModal({
                   <input
                     type="datetime-local"
                     value={startTime}
-                    onChange={(event) => setStartTime(event.target.value)}
+                    onChange={(event) => {
+                      setSelectedPresetKey("CUSTOM");
+                      setStartTime(event.target.value);
+                    }}
                     style={{
                       borderRadius: 16,
                       border: "1px solid #dbe3ee",
@@ -288,7 +331,10 @@ export function ShiftEditorModal({
                   <input
                     type="datetime-local"
                     value={endTime}
-                    onChange={(event) => setEndTime(event.target.value)}
+                    onChange={(event) => {
+                      setSelectedPresetKey("CUSTOM");
+                      setEndTime(event.target.value);
+                    }}
                     style={{
                       borderRadius: 16,
                       border: "1px solid #dbe3ee",

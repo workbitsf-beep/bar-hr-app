@@ -236,6 +236,12 @@ model BarSettings {
   roundingEnabled Boolean       @default(false)
   roundingMinutes Int?
   roundingMode    RoundingMode?
+  morningStartTime   String?
+  morningEndTime     String?
+  afternoonStartTime String?
+  afternoonEndTime   String?
+  eveningStartTime   String?
+  eveningEndTime     String?
 }
 
 model EmployeeBar {
