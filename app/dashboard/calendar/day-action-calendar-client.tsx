@@ -5,13 +5,17 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
+  completeTaskAction,
   createAvailabilityAction,
+  createBoardNoteAction,
   createCourseAction,
+  createTaskAction,
   createTimeOffRequestAction,
   reviewRequestAction,
 } from "../actions";
 import { PrimaryButton, Select, StatusPill, TextArea, TextInput } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
+import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 
 type MemberOption = {
   id: string;
@@ -376,6 +380,7 @@ export function DayActionCalendarClient({
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [requestStart, setRequestStart] = useState("");
@@ -432,6 +437,7 @@ export function DayActionCalendarClient({
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
+    setQuickComposer(null);
     setFeedback(null);
     setRequestType(RequestType.VACATION);
     setRequestStart(toDateTimeLocal(day.date, 9, 0));
@@ -456,6 +462,7 @@ export function DayActionCalendarClient({
     }
 
     setSelectedDate(null);
+    setQuickComposer(null);
     setFeedback(null);
   }
 
@@ -547,13 +554,27 @@ export function DayActionCalendarClient({
     );
   }
 
-  function openTasksSection(hash: "tasks-compose" | "board-compose") {
-    closeModal();
-    router.push(
-      hash === "tasks-compose" && !canOpenTaskComposer
-        ? "/dashboard/tasks"
-        : `/dashboard/tasks#${hash}`
-    );
+  function submitTaskCompletion(taskId: string) {
+    const formData = new FormData();
+    formData.set("taskId", taskId);
+
+    runAction(async () => {
+      await completeTaskAction(formData);
+    }, "Mansione completata.");
+  }
+
+  function submitQuickTask(formData: FormData) {
+    runAction(async () => {
+      await createTaskAction(formData);
+      setQuickComposer(null);
+    }, "Mansione aggiunta.");
+  }
+
+  function submitQuickBoard(formData: FormData) {
+    runAction(async () => {
+      await createBoardNoteAction(formData);
+      setQuickComposer(null);
+    }, "Messaggio pubblicato.");
   }
 
   return (
@@ -592,6 +613,7 @@ export function DayActionCalendarClient({
                 type="button"
                 onClick={() => openDay(day)}
                 className="dashboard-calendar-day"
+                data-calendar-today={day.isToday ? "true" : undefined}
                 style={{
                   minHeight: 220,
                   padding: 14,
@@ -727,6 +749,7 @@ export function DayActionCalendarClient({
                     key={day.date}
                     type="button"
                     onClick={() => openDay(day)}
+                    data-calendar-today={day.isToday ? "true" : undefined}
                     style={{
                       display: "grid",
                       gap: 10,
@@ -910,21 +933,23 @@ export function DayActionCalendarClient({
                 ) : null}
 
                 <div className="dashboard-modal-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {canOpenTaskComposer ? (
+                    <PrimaryButton
+                      type="button"
+                      tone="sand"
+                      onClick={() => setQuickComposer("task")}
+                      disabled={isPending}
+                    >
+                      Aggiungi mansioni
+                    </PrimaryButton>
+                  ) : null}
                   <PrimaryButton
                     type="button"
                     tone="sand"
-                    onClick={() => openTasksSection("tasks-compose")}
+                    onClick={() => setQuickComposer("board")}
                     disabled={isPending}
                   >
-                    Vai a mansioni
-                  </PrimaryButton>
-                  <PrimaryButton
-                    type="button"
-                    tone="sand"
-                    onClick={() => openTasksSection("board-compose")}
-                    disabled={isPending}
-                  >
-                    Vai a bacheca
+                    Aggiungi in bacheca
                   </PrimaryButton>
                 </div>
 
@@ -1283,7 +1308,58 @@ export function DayActionCalendarClient({
                       {selectedDay.courses.map((course) =>
                         renderCourseCard(course, locale, true)
                       )}
-                      {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
+                      {selectedDay.tasks.map((task) => (
+                        <div
+                          key={task.id}
+                          className="dashboard-list-card"
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                              {task.title}
+                            </strong>
+                            <span style={{ color: "#475569", fontSize: 14 }}>
+                              {task.assignedLabel}
+                            </span>
+                            {task.completedByLabel ? (
+                              <span style={{ color: "#64748b", fontSize: 13 }}>
+                                Completata da {task.completedByLabel}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <StatusPill
+                              label={task.status}
+                              tone={
+                                task.status === "DONE"
+                                  ? "success"
+                                  : task.isUrgent
+                                    ? "danger"
+                                    : "warning"
+                              }
+                            />
+                          </div>
+                          {task.status !== "DONE" ? (
+                            <div className="dashboard-action-row">
+                              <PrimaryButton
+                                type="button"
+                                tone="green"
+                                onClick={() => submitTaskCompletion(task.id)}
+                                disabled={isPending}
+                              >
+                                {isPending ? "Salvataggio..." : "Conferma mansione"}
+                              </PrimaryButton>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
                       {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
                       {selectedDay.pendingRequests.map((request) =>
                         renderPendingRequestCard(request, true)
@@ -1301,7 +1377,18 @@ export function DayActionCalendarClient({
             </div>,
             document.body
           )
-        : null}
+          : null}
+      <QuickCalendarEntryModal
+        open={Boolean(selectedDay && quickComposer)}
+        mode={quickComposer}
+        dateIso={selectedDay?.date ?? null}
+        members={members}
+        canPinBoard={role === Role.OWNER || role === Role.MANAGER}
+        isPending={isPending}
+        onClose={() => setQuickComposer(null)}
+        onSubmitTask={submitQuickTask}
+        onSubmitBoard={submitQuickBoard}
+      />
     </>
   );
 }

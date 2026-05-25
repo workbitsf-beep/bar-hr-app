@@ -6,13 +6,17 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { applyShiftPreset, type ShiftPreset } from "@/lib/shift-presets";
 import {
+  completeTaskAction,
   createAvailabilityAction,
+  createBoardNoteAction,
   createShiftAction,
+  createTaskAction,
   createTimeOffRequestAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { PrimaryButton, Select, StatusPill } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
+import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 
 type MemberOption = {
   id: string;
@@ -172,6 +176,7 @@ export function OwnerCalendarClient({
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+  const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -225,6 +230,7 @@ export function OwnerCalendarClient({
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
     setEditingShiftId(null);
+    setQuickComposer(null);
     setFeedback(null);
     setTitle("");
     setStartTime(toDateTimeLocal(day.date, 9, 0));
@@ -247,6 +253,7 @@ export function OwnerCalendarClient({
     }
 
     setEditingShiftId(null);
+    setQuickComposer(null);
     setSelectedDate(null);
     setFeedback(null);
   }
@@ -347,9 +354,27 @@ export function OwnerCalendarClient({
     }, "Indisponibilita salvata.");
   }
 
-  function openTasksSection(hash: "tasks-compose" | "board-compose") {
-    closeModal();
-    router.push(`/dashboard/tasks#${hash}`);
+  function handleCompleteTask(taskId: string) {
+    const formData = new FormData();
+    formData.set("taskId", taskId);
+
+    runAction(async () => {
+      await completeTaskAction(formData);
+    }, "Mansione completata.");
+  }
+
+  function handleQuickTaskCreate(formData: FormData) {
+    runAction(async () => {
+      await createTaskAction(formData);
+      setQuickComposer(null);
+    }, "Mansione aggiunta.");
+  }
+
+  function handleQuickBoardCreate(formData: FormData) {
+    runAction(async () => {
+      await createBoardNoteAction(formData);
+      setQuickComposer(null);
+    }, "Messaggio pubblicato.");
   }
 
   return (
@@ -388,6 +413,7 @@ export function OwnerCalendarClient({
                 type="button"
                 onClick={() => openDay(day)}
                 className="dashboard-calendar-day"
+                data-calendar-today={day.isToday ? "true" : undefined}
                 style={{
                   minHeight: 220,
                   padding: 14,
@@ -583,6 +609,7 @@ export function OwnerCalendarClient({
                     key={day.date}
                     type="button"
                     onClick={() => openDay(day)}
+                    data-calendar-today={day.isToday ? "true" : undefined}
                     style={{
                       display: "grid",
                       gap: 10,
@@ -827,18 +854,18 @@ export function OwnerCalendarClient({
                   <PrimaryButton
                     type="button"
                     tone="sand"
-                    onClick={() => openTasksSection("tasks-compose")}
+                    onClick={() => setQuickComposer("task")}
                     disabled={isPending}
                   >
-                    Vai a mansioni
+                    Aggiungi mansioni
                   </PrimaryButton>
                   <PrimaryButton
                     type="button"
                     tone="sand"
-                    onClick={() => openTasksSection("board-compose")}
+                    onClick={() => setQuickComposer("board")}
                     disabled={isPending}
                   >
-                    Vai a bacheca
+                    Aggiungi in bacheca
                   </PrimaryButton>
                 </div>
 
@@ -1259,6 +1286,18 @@ export function OwnerCalendarClient({
                               }
                             />
                           </div>
+                          {task.status !== "DONE" ? (
+                            <div className="dashboard-action-row">
+                              <PrimaryButton
+                                type="button"
+                                tone="green"
+                                onClick={() => handleCompleteTask(task.id)}
+                                disabled={isPending}
+                              >
+                                {isPending ? "Salvataggio..." : "Conferma mansione"}
+                              </PrimaryButton>
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </div>
@@ -1310,6 +1349,17 @@ export function OwnerCalendarClient({
         members={members}
         presets={presets}
         onClose={() => setEditingShiftId(null)}
+      />
+      <QuickCalendarEntryModal
+        open={Boolean(selectedDay && quickComposer)}
+        mode={quickComposer}
+        dateIso={selectedDay?.date ?? null}
+        members={members}
+        canPinBoard
+        isPending={isPending}
+        onClose={() => setQuickComposer(null)}
+        onSubmitTask={handleQuickTaskCreate}
+        onSubmitBoard={handleQuickBoardCreate}
       />
     </>
   );

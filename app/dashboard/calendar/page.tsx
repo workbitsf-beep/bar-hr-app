@@ -8,6 +8,7 @@ import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, TextInpu
 import { DayActionCalendarClient } from "./day-action-calendar-client";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
+import { ScrollToTodayButton } from "./scroll-to-today-button";
 
 function getLocale(language: string) {
   if (language === "en") {
@@ -25,51 +26,48 @@ function getLocale(language: string) {
   return "it-IT";
 }
 
-function parseMonth(searchParams?: Record<string, string | string[] | undefined>) {
-  const now = new Date();
-  const monthRaw = Array.isArray(searchParams?.month)
-    ? searchParams.month[0]
-    : searchParams?.month;
-  const yearRaw = Array.isArray(searchParams?.year)
-    ? searchParams.year[0]
-    : searchParams?.year;
-  const month = Number(monthRaw ?? now.getMonth() + 1);
-  const year = Number(yearRaw ?? now.getFullYear());
-
-  const safeMonth =
-    Number.isInteger(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1;
-  const safeYear =
-    Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : now.getFullYear();
-
-  return { month: safeMonth, year: safeYear };
-}
-
-function startOfCalendarMonth(year: number, month: number) {
-  const firstDay = new Date(year, month - 1, 1);
-  const day = firstDay.getDay();
+function startOfCalendarWeek(date: Date) {
+  const start = new Date(date);
+  const day = start.getDay();
   const mondayOffset = day === 0 ? 6 : day - 1;
-  const start = new Date(firstDay);
-  start.setDate(firstDay.getDate() - mondayOffset);
+  start.setDate(start.getDate() - mondayOffset);
   start.setHours(0, 0, 0, 0);
   return start;
 }
 
-function endOfCalendarMonth(year: number, month: number) {
-  const start = startOfCalendarMonth(year, month);
+function endOfCalendarWeek(date: Date) {
+  const start = startOfCalendarWeek(date);
   const end = new Date(start);
-  end.setDate(start.getDate() + 41);
+  end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
   return end;
 }
 
-function getMonthNavigation(year: number, month: number) {
-  const prev = new Date(year, month - 2, 1);
-  const next = new Date(year, month, 1);
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
 
-  return {
-    prev: { year: prev.getFullYear(), month: prev.getMonth() + 1 },
-    next: { year: next.getFullYear(), month: next.getMonth() + 1 },
-  };
+function parseAnchorDate(searchParams?: Record<string, string | string[] | undefined>) {
+  const raw = Array.isArray(searchParams?.day) ? searchParams.day[0] : searchParams?.day;
+
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  }
+
+  const parsed = new Date(`${raw}T00:00:00`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  }
+
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
 }
 
 function toLocalDateKey(date: Date) {
@@ -127,13 +125,22 @@ export default async function DashboardCalendarPage({
   }
 
   const locale = getLocale(language);
-  const { month, year } = parseMonth(params);
   const dayFilter = parseDayFilter(params);
-  const calendarStart = startOfCalendarMonth(year, month);
-  const calendarEnd = endOfCalendarMonth(year, month);
-  const monthStart = new Date(year, month - 1, 1);
-  const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
-  const navigation = getMonthNavigation(year, month);
+  const anchorDate = parseAnchorDate(params);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const calendarStart = startOfCalendarWeek(addDays(anchorDate, -7 * 20));
+  const calendarEnd = endOfCalendarWeek(addDays(anchorDate, 7 * 32));
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const currentMonthEnd = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999
+  );
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
   const canManageShifts = isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
   const canReviewCompanyRequests = !isRestaurant && role === Role.OWNER;
@@ -538,8 +545,8 @@ export default async function DashboardCalendarPage({
 
   const serializedDays = days.map((day) => ({
     date: day.date.toISOString(),
-    isToday: day.date.toDateString() === new Date().toDateString(),
-    inCurrentMonth: day.date >= monthStart && day.date <= monthEnd,
+    isToday: day.date.toDateString() === today.toDateString(),
+    inCurrentMonth: true,
     shifts: day.shifts.map((shift) => ({
       id: shift.id,
       title: shift.title,
@@ -623,7 +630,10 @@ export default async function DashboardCalendarPage({
   }));
   const shiftPresets = buildShiftPresets(settings);
   const unconfirmedShiftCount = shifts.filter(
-    (shift) => !shift.confirmedAt && shift.startTime <= monthEnd && shift.endTime >= monthStart
+    (shift) =>
+      !shift.confirmedAt &&
+      shift.startTime <= currentMonthEnd &&
+      shift.endTime >= currentMonthStart
   ).length;
   const canPublishShifts = canManageShifts;
 
@@ -634,68 +644,11 @@ export default async function DashboardCalendarPage({
       ) : null}
 
       <Panel
-        title={new Intl.DateTimeFormat(locale, {
-          month: "long",
-          year: "numeric",
-        }).format(monthStart)}
+        title="Calendario"
         action={
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Link
-                href={`/dashboard/calendar?month=${navigation.prev.month}&year=${navigation.prev.year}`}
-                style={{
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minWidth: 42,
-                  height: 42,
-                  borderRadius: 999,
-                  background: "#f8fafc",
-                  color: "#0f172a",
-                  border: "1px solid #e2e8f0",
-                  fontWeight: 700,
-                }}
-              >
-                {"<"}
-              </Link>
-              <Link
-                href="/dashboard/calendar"
-                style={{
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minWidth: 64,
-                  height: 42,
-                  padding: "0 14px",
-                  borderRadius: 999,
-                  background: "#f8fafc",
-                  color: "#0f172a",
-                  border: "1px solid #e2e8f0",
-                  fontWeight: 700,
-                }}
-              >
-                Oggi
-              </Link>
-              <Link
-                href={`/dashboard/calendar?month=${navigation.next.month}&year=${navigation.next.year}`}
-                style={{
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minWidth: 42,
-                  height: 42,
-                  borderRadius: 999,
-                  background: "#f8fafc",
-                  color: "#0f172a",
-                  border: "1px solid #e2e8f0",
-                  fontWeight: 700,
-                }}
-              >
-                {">"}
-              </Link>
+              <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
             </div>
 
             <form
@@ -703,8 +656,6 @@ export default async function DashboardCalendarPage({
               className="dashboard-desktop-only"
               style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}
             >
-              <input type="hidden" name="month" value={month} />
-              <input type="hidden" name="year" value={year} />
               <TextInput
                 type="date"
                 name="day"
@@ -716,7 +667,7 @@ export default async function DashboardCalendarPage({
                 Cerca giorno
               </PrimaryButton>
               {dayFilter ? (
-                <Link href={`/dashboard/calendar?month=${month}&year=${year}`} style={{ textDecoration: "none" }}>
+                <Link href="/dashboard/calendar" style={{ textDecoration: "none" }}>
                   <PrimaryButton type="button" tone="sand">
                     Reset
                   </PrimaryButton>
@@ -726,8 +677,8 @@ export default async function DashboardCalendarPage({
 
             {canPublishShifts ? (
               <PublishWeekPanel
-                rangeStart={toLocalDateKey(monthStart)}
-                rangeEnd={toLocalDateKey(monthEnd)}
+                rangeStart={toLocalDateKey(currentMonthStart)}
+                rangeEnd={toLocalDateKey(currentMonthEnd)}
                 pendingCount={unconfirmedShiftCount}
               />
             ) : null}

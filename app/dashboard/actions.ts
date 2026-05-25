@@ -1173,9 +1173,10 @@ export async function createTaskAction(formData: FormData) {
     );
   });
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/tasks");
-}
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard/tasks");
+  }
 
 export async function completeTaskAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
@@ -1241,6 +1242,7 @@ export async function completeTaskAction(formData: FormData) {
   ]);
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/tasks");
 }
 
@@ -1283,9 +1285,10 @@ export async function deleteCompletedTaskAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/tasks");
-}
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard/tasks");
+  }
 
 export async function createShiftAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
