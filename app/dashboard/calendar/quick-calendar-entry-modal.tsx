@@ -387,7 +387,7 @@ export function QuickCalendarEntryModal({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 420,
+        zIndex: 2147483647,
         display: "grid",
         placeItems: "center",
         padding: 16,
