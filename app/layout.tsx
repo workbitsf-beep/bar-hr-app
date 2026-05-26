@@ -15,9 +15,9 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   description: "Gestione turni, timbrature, richieste e comunicazioni con Workbit.",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/icon",
+    shortcut: "/icon",
+    apple: "/apple-icon",
   },
   appleWebApp: {
     capable: true,
