@@ -139,11 +139,8 @@ export function QuickCalendarEntryModal({
   const content =
     mode === "task" ? (
       <div style={{ display: "grid", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
           <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi mansioni</strong>
-          <PrimaryButton type="button" tone="sand" onClick={onClose} disabled={isPending}>
-            Chiudi
-          </PrimaryButton>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -290,11 +287,8 @@ export function QuickCalendarEntryModal({
       </div>
     ) : (
       <div style={{ display: "grid", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
           <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi in bacheca</strong>
-          <PrimaryButton type="button" tone="sand" onClick={onClose} disabled={isPending}>
-            Chiudi
-          </PrimaryButton>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -400,6 +394,7 @@ export function QuickCalendarEntryModal({
       <section
         className="dashboard-modal-panel"
         style={{
+          position: "relative",
           width: "100%",
           maxWidth: 520,
           background: "rgba(255,255,255,0.98)",
@@ -410,6 +405,32 @@ export function QuickCalendarEntryModal({
         }}
         onClick={(event) => event.stopPropagation()}
       >
+        <IconButton
+          type="button"
+          onClick={onClose}
+          aria-label="Chiudi popup rapido"
+          disabled={isPending}
+          style={{
+            position: "absolute",
+            top: 14,
+            right: 14,
+            width: 40,
+            height: 40,
+            color: "#475569",
+            background: "#ffffff",
+            zIndex: 2,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6 6 18"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+          </svg>
+        </IconButton>
+
         {content}
       </section>
     </div>,

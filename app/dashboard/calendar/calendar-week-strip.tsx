@@ -25,9 +25,9 @@ export function CalendarWeekStrip({
     currentWeek.scrollIntoView({
       behavior: "instant",
       block: "nearest",
-      inline: "start",
+      inline: "center",
     });
-  }, []);
+  }, [children]);
 
   return (
     <div ref={stripRef} className={className} style={style}>

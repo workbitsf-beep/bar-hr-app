@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { applyShiftPreset, type ShiftPreset } from "@/lib/shift-presets";
+import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
+import type { ShiftPreset } from "@/lib/shift-presets";
 import { FormField, PrimaryButton, Select, TextInput } from "../ui";
 
 type MemberOption = {
@@ -10,15 +11,6 @@ type MemberOption = {
   lastName: string;
   role: string;
 };
-
-function toDateTimeLocal(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
 
 function formatRoleLabel(role: string) {
   if (role === "MANAGER") {
@@ -41,15 +33,11 @@ export function ShiftCreateForm({
   members: MemberOption[];
   presets: ShiftPreset[];
 }) {
-  const defaultStartTime = useMemo(() => toDateTimeLocal(new Date()), []);
-  const defaultEndTime = useMemo(() => {
-    const end = new Date();
-    end.setHours(end.getHours() + 8);
-    return toDateTimeLocal(end);
-  }, []);
+  const defaultShiftDate = useMemo(() => toDateInputValue(new Date()), []);
   const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
-  const [startTime, setStartTime] = useState(defaultStartTime);
-  const [endTime, setEndTime] = useState(defaultEndTime);
+  const [shiftDate, setShiftDate] = useState(defaultShiftDate);
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("17:00");
 
   function applyPresetByKey(nextKey: string) {
     setSelectedPresetKey(nextKey);
@@ -64,16 +52,26 @@ export function ShiftCreateForm({
       return;
     }
 
-    const anchorDate = startTime || endTime || defaultStartTime;
-    const range = applyShiftPreset(anchorDate, preset);
-    setStartTime(range.startTime);
-    setEndTime(range.endTime);
+    setStartTime(preset.startTime);
+    setEndTime(preset.endTime);
   }
 
   return (
     <form action={action} style={{ display: "grid", gap: 16 }}>
+      <input type="hidden" name="startTime" value={combineDateAndTime(shiftDate, startTime)} />
+      <input type="hidden" name="endTime" value={combineDateAndTime(shiftDate, endTime)} />
+
       <FormField label="Titolo turno">
         <TextInput name="title" placeholder="Servizio pranzo" />
+      </FormField>
+
+      <FormField label="Giorno">
+        <TextInput
+          type="date"
+          required
+          value={shiftDate}
+          onChange={(event) => setShiftDate(event.target.value)}
+        />
       </FormField>
 
       {presets.length > 0 ? (
@@ -100,10 +98,9 @@ export function ShiftCreateForm({
           gap: 12,
         }}
       >
-        <FormField label="Inizio">
+        <FormField label="Orario di inizio">
           <TextInput
-            name="startTime"
-            type="datetime-local"
+            type="time"
             required
             value={startTime}
             onChange={(event) => {
@@ -113,10 +110,9 @@ export function ShiftCreateForm({
           />
         </FormField>
 
-        <FormField label="Fine">
+        <FormField label="Orario di fine">
           <TextInput
-            name="endTime"
-            type="datetime-local"
+            type="time"
             required
             value={endTime}
             onChange={(event) => {

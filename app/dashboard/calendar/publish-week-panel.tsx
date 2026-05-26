@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PrimaryButton } from "../ui";
 
 export function PublishWeekPanel({
+  before,
   rangeStart,
   rangeEnd,
   pendingCount,
 }: {
+  before?: ReactNode;
   rangeStart: string;
   rangeEnd: string;
   pendingCount: number;
@@ -65,6 +67,8 @@ export function PublishWeekPanel({
         className="dashboard-publish-row"
         style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}
       >
+        {before}
+
         <PrimaryButton
           type="button"
           onClick={handlePublish}

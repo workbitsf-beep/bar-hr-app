@@ -524,7 +524,10 @@ export default async function DashboardCalendarPage({
     notesByDay.set(dayKey, dayNotes);
   }
 
-  const days = Array.from({ length: 42 }, (_, index) => {
+  const dayCount =
+    Math.floor((calendarEnd.getTime() - calendarStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const days = Array.from({ length: dayCount }, (_, index) => {
     const date = new Date(calendarStart);
     date.setDate(calendarStart.getDate() + index);
     date.setHours(0, 0, 0, 0);
@@ -647,10 +650,6 @@ export default async function DashboardCalendarPage({
         title="Calendario"
         action={
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
-            </div>
-
             <form
               method="get"
               className="dashboard-desktop-only"
@@ -677,11 +676,16 @@ export default async function DashboardCalendarPage({
 
             {canPublishShifts ? (
               <PublishWeekPanel
+                before={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
                 rangeStart={toLocalDateKey(currentMonthStart)}
                 rangeEnd={toLocalDateKey(currentMonthEnd)}
                 pendingCount={unconfirmedShiftCount}
               />
-            ) : null}
+            ) : (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
+              </div>
+            )}
           </div>
         }
       >

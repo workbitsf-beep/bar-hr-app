@@ -3,9 +3,14 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { applyShiftPreset, type ShiftPreset } from "@/lib/shift-presets";
+import {
+  combineDateAndTime,
+  toDateInputValue,
+  toTimeInputValue,
+} from "@/lib/shift-datetime";
+import type { ShiftPreset } from "@/lib/shift-presets";
 import { deleteShiftAction, updateShiftAction } from "../actions";
-import { PrimaryButton, Select } from "../ui";
+import { IconButton, PrimaryButton, Select } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -31,16 +36,6 @@ type ShiftOption = {
     lastName: string;
   } | null;
 };
-
-function toDateTimeLocal(value: string) {
-  const date = new Date(value);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
 
 function formatDayTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
@@ -82,6 +77,7 @@ export function ShiftEditorModal({
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState("");
+  const [shiftDate, setShiftDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
@@ -110,8 +106,9 @@ export function ShiftEditorModal({
     }
 
     setTitle(shift.title ?? "");
-    setStartTime(toDateTimeLocal(shift.startTime));
-    setEndTime(toDateTimeLocal(shift.endTime));
+    setShiftDate(toDateInputValue(shift.startTime));
+    setStartTime(toTimeInputValue(shift.startTime));
+    setEndTime(toTimeInputValue(shift.endTime));
     setSelectedMembers(shift.assignments.map((assignment) => assignment.id));
     setSelectedPresetKey("CUSTOM");
   }, [shift]);
@@ -145,21 +142,27 @@ export function ShiftEditorModal({
       return;
     }
 
-    const range = applyShiftPreset(startTime || shift.startTime, preset);
-    setStartTime(range.startTime);
-    setEndTime(range.endTime);
+    setStartTime(preset.startTime);
+    setEndTime(preset.endTime);
   }
 
   async function handleUpdate() {
-    if (!shift || !canManage || selectedMembers.length === 0 || !startTime || !endTime) {
+    if (
+      !shift ||
+      !canManage ||
+      selectedMembers.length === 0 ||
+      !shiftDate ||
+      !startTime ||
+      !endTime
+    ) {
       return;
     }
 
     const formData = new FormData();
     formData.set("shiftId", shift.id);
     formData.set("title", title);
-    formData.set("startTime", startTime);
-    formData.set("endTime", endTime);
+    formData.set("startTime", combineDateAndTime(shiftDate, startTime));
+    formData.set("endTime", combineDateAndTime(shiftDate, endTime));
 
     for (const memberId of selectedMembers) {
       formData.append("employeeIds", memberId);
@@ -233,14 +236,41 @@ export function ShiftEditorModal({
           zIndex: 1,
         }}
       >
+        <IconButton
+          type="button"
+          onClick={handleClose}
+          aria-label="Chiudi popup turno"
+          disabled={isPending}
+          style={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            width: 40,
+            height: 40,
+            color: "#475569",
+            background: "#ffffff",
+            zIndex: 2,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6 6 18"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+          </svg>
+        </IconButton>
+
         <div
           className="dashboard-modal-header"
           style={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-start",
             alignItems: "center",
             gap: 12,
             flexWrap: "wrap",
+            paddingRight: 56,
           }}
         >
           <div style={{ display: "grid", gap: 6 }}>
@@ -257,10 +287,6 @@ export function ShiftEditorModal({
               {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
             </span>
           </div>
-
-          <PrimaryButton type="button" tone="sand" onClick={handleClose} disabled={isPending}>
-            Chiudi
-          </PrimaryButton>
         </div>
 
         {canManage ? (
@@ -308,9 +334,25 @@ export function ShiftEditorModal({
                 }}
               >
                 <label style={{ display: "grid", gap: 8 }}>
-                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
+                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
                   <input
-                    type="datetime-local"
+                    type="date"
+                    value={shiftDate}
+                    onChange={(event) => setShiftDate(event.target.value)}
+                    style={{
+                      borderRadius: 16,
+                      border: "1px solid #dbe3ee",
+                      padding: "12px 14px",
+                      fontSize: 15,
+                      background: "#ffffff",
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
+                  <input
+                    type="time"
                     value={startTime}
                     onChange={(event) => {
                       setSelectedPresetKey("CUSTOM");
@@ -327,9 +369,9 @@ export function ShiftEditorModal({
                 </label>
 
                 <label style={{ display: "grid", gap: 8 }}>
-                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
+                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
                   <input
-                    type="datetime-local"
+                    type="time"
                     value={endTime}
                     onChange={(event) => {
                       setSelectedPresetKey("CUSTOM");
@@ -398,7 +440,13 @@ export function ShiftEditorModal({
                 type="button"
                 tone="sand"
                 onClick={handleUpdate}
-                disabled={isPending || selectedMembers.length === 0 || !startTime || !endTime}
+                disabled={
+                  isPending ||
+                  selectedMembers.length === 0 ||
+                  !shiftDate ||
+                  !startTime ||
+                  !endTime
+                }
               >
                 {isPending ? "Salvataggio..." : "Salva modifiche"}
               </PrimaryButton>

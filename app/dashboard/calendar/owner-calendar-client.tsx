@@ -4,7 +4,8 @@ import { RequestType } from "@prisma/client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { applyShiftPreset, type ShiftPreset } from "@/lib/shift-presets";
+import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
+import type { ShiftPreset } from "@/lib/shift-presets";
 import {
   completeTaskAction,
   createAvailabilityAction,
@@ -14,9 +15,10 @@ import {
   createTimeOffRequestAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
-import { PrimaryButton, Select, StatusPill } from "../ui";
+import { IconButton, PrimaryButton, Select, StatusPill } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
+import { scrollToTodayCard } from "./scroll-to-today-button";
 
 type MemberOption = {
   id: string;
@@ -179,6 +181,7 @@ export function OwnerCalendarClient({
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [title, setTitle] = useState("");
+  const [shiftDate, setShiftDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
@@ -209,6 +212,18 @@ export function OwnerCalendarClient({
     };
   }, [selectedDate]);
 
+  useEffect(() => {
+    if (filteredDay || selectedDate) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      scrollToTodayCard("instant");
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [filteredDay, selectedDate]);
+
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
@@ -233,8 +248,9 @@ export function OwnerCalendarClient({
     setQuickComposer(null);
     setFeedback(null);
     setTitle("");
-    setStartTime(toDateTimeLocal(day.date, 9, 0));
-    setEndTime(toDateTimeLocal(day.date, 17, 0));
+    setShiftDate(toDateInputValue(day.date));
+    setStartTime("09:00");
+    setEndTime("17:00");
     setSelectedPresetKey("CUSTOM");
     setSelectedMembers(day.shifts[0]?.assignments.map((assignment) => assignment.id) ?? []);
     setRequestType(RequestType.VACATION);
@@ -279,9 +295,8 @@ export function OwnerCalendarClient({
       return;
     }
 
-    const range = applyShiftPreset(selectedDay.date, preset);
-    setStartTime(range.startTime);
-    setEndTime(range.endTime);
+    setStartTime(preset.startTime);
+    setEndTime(preset.endTime);
   }
 
   function runAction(task: () => Promise<void>, successMessage: string, closeOnSuccess = false) {
@@ -301,14 +316,14 @@ export function OwnerCalendarClient({
   }
 
   function handleCreateShift() {
-    if (!selectedDay || selectedMembers.length === 0) {
+    if (!selectedDay || !shiftDate || !startTime || !endTime || selectedMembers.length === 0) {
       return;
     }
 
     const formData = new FormData();
     formData.set("title", title);
-    formData.set("startTime", startTime);
-    formData.set("endTime", endTime);
+    formData.set("startTime", combineDateAndTime(shiftDate, startTime));
+    formData.set("endTime", combineDateAndTime(shiftDate, endTime));
 
     for (const memberId of selectedMembers) {
       formData.append("employeeIds", memberId);
@@ -800,14 +815,41 @@ export function OwnerCalendarClient({
                   zIndex: 1,
                 }}
               >
+                <IconButton
+                  type="button"
+                  onClick={closeModal}
+                  aria-label="Chiudi popup"
+                  disabled={isPending}
+                  style={{
+                    position: "absolute",
+                    top: 16,
+                    right: 16,
+                    width: 40,
+                    height: 40,
+                    color: "#475569",
+                    background: "#ffffff",
+                    zIndex: 2,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M6 6l12 12M18 6 6 18"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </IconButton>
+
                 <div
                   className="dashboard-modal-header"
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
+                    justifyContent: "flex-start",
                     alignItems: "center",
                     gap: 12,
                     flexWrap: "wrap",
+                    paddingRight: 56,
                   }}
                 >
                   <div style={{ display: "grid", gap: 6 }}>
@@ -825,10 +867,6 @@ export function OwnerCalendarClient({
                         : "Aggiungi un nuovo turno oppure apri quelli esistenti per modificarli o eliminarli."}
                     </span>
                   </div>
-
-                  <PrimaryButton type="button" tone="sand" onClick={closeModal} disabled={isPending}>
-                    Chiudi
-                  </PrimaryButton>
                 </div>
 
                 {feedback ? (
@@ -849,25 +887,6 @@ export function OwnerCalendarClient({
                     {feedback.message}
                   </div>
                 ) : null}
-
-                <div className="dashboard-modal-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <PrimaryButton
-                    type="button"
-                    tone="sand"
-                    onClick={() => setQuickComposer("task")}
-                    disabled={isPending}
-                  >
-                    Aggiungi mansioni
-                  </PrimaryButton>
-                  <PrimaryButton
-                    type="button"
-                    tone="sand"
-                    onClick={() => setQuickComposer("board")}
-                    disabled={isPending}
-                  >
-                    Aggiungi in bacheca
-                  </PrimaryButton>
-                </div>
 
                 <div style={{ display: "grid", gap: 12 }}>
                   <label style={{ display: "grid", gap: 8 }}>
@@ -912,9 +931,25 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
+                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
                       <input
-                        type="datetime-local"
+                        type="date"
+                        value={shiftDate}
+                        onChange={(event) => setShiftDate(event.target.value)}
+                        style={{
+                          borderRadius: 16,
+                          border: "1px solid #dbe3ee",
+                          padding: "12px 14px",
+                          fontSize: 15,
+                          background: "#ffffff",
+                        }}
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
+                      <input
+                        type="time"
                         value={startTime}
                         onChange={(event) => {
                           setSelectedPresetKey("CUSTOM");
@@ -931,9 +966,9 @@ export function OwnerCalendarClient({
                     </label>
 
                     <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
+                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
                       <input
-                        type="datetime-local"
+                        type="time"
                         value={endTime}
                         onChange={(event) => {
                           setSelectedPresetKey("CUSTOM");
@@ -991,7 +1026,13 @@ export function OwnerCalendarClient({
                     <PrimaryButton
                       type="button"
                       onClick={handleCreateShift}
-                      disabled={isPending || selectedMembers.length === 0 || !startTime || !endTime}
+                      disabled={
+                        isPending ||
+                        selectedMembers.length === 0 ||
+                        !shiftDate ||
+                        !startTime ||
+                        !endTime
+                      }
                     >
                       {isPending ? "Salvataggio..." : "Aggiungi turno"}
                     </PrimaryButton>
@@ -1247,7 +1288,31 @@ export function OwnerCalendarClient({
                 </div>
 
                 <div style={{ display: "grid", gap: 10 }}>
-                  <strong style={{ fontSize: 18, color: "#0f172a" }}>Mansioni del giorno</strong>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Mansioni del giorno</strong>
+                    <IconButton
+                      type="button"
+                      onClick={() => setQuickComposer("task")}
+                      aria-label="Aggiungi mansioni"
+                      disabled={isPending}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </IconButton>
+                  </div>
                   {selectedDay.tasks.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessuna mansione collegata a questa giornata.</div>
                   ) : (
@@ -1305,7 +1370,31 @@ export function OwnerCalendarClient({
                 </div>
 
                 <div style={{ display: "grid", gap: 10 }}>
-                  <strong style={{ fontSize: 18, color: "#0f172a" }}>Bacheca del giorno</strong>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Bacheca del giorno</strong>
+                    <IconButton
+                      type="button"
+                      onClick={() => setQuickComposer("board")}
+                      aria-label="Aggiungi in bacheca"
+                      disabled={isPending}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </IconButton>
+                  </div>
                   {selectedDay.notes.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessun messaggio pubblicato in questa giornata.</div>
                   ) : (

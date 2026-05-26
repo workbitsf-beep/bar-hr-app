@@ -2,22 +2,31 @@
 
 import { useRouter } from "next/navigation";
 
+export function scrollToTodayCard(behavior: ScrollBehavior = "smooth") {
+  const candidates = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-calendar-today="true"]')
+  );
+  const visibleTarget =
+    candidates.find((node) => node.offsetParent !== null) ?? candidates[0] ?? null;
+
+  if (!visibleTarget) {
+    return false;
+  }
+
+  visibleTarget.scrollIntoView({
+    behavior,
+    block: "center",
+    inline: "center",
+  });
+
+  return true;
+}
+
 export function ScrollToTodayButton({ fallbackHref }: { fallbackHref: string }) {
   const router = useRouter();
 
   function handleClick() {
-    const candidates = Array.from(
-      document.querySelectorAll<HTMLElement>('[data-calendar-today="true"]')
-    );
-    const visibleTarget =
-      candidates.find((node) => node.offsetParent !== null) ?? candidates[0] ?? null;
-
-    if (visibleTarget) {
-      visibleTarget.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-        inline: "center",
-      });
+    if (scrollToTodayCard()) {
       return;
     }
 

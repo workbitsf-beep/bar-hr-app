@@ -13,9 +13,10 @@ import {
   createTimeOffRequestAction,
   reviewRequestAction,
 } from "../actions";
-import { PrimaryButton, Select, StatusPill, TextArea, TextInput } from "../ui";
+import { IconButton, PrimaryButton, Select, StatusPill, TextArea, TextInput } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
+import { scrollToTodayCard } from "./scroll-to-today-button";
 
 type MemberOption = {
   id: string;
@@ -414,6 +415,18 @@ export function DayActionCalendarClient({
       document.body.style.overflow = previousOverflow;
     };
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (filteredDay || selectedDate) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      scrollToTodayCard("instant");
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [filteredDay, selectedDate]);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
@@ -877,14 +890,41 @@ export function DayActionCalendarClient({
                   zIndex: 1,
                 }}
               >
+                <IconButton
+                  type="button"
+                  onClick={closeModal}
+                  aria-label="Chiudi popup calendario"
+                  disabled={isPending}
+                  style={{
+                    position: "absolute",
+                    top: 16,
+                    right: 16,
+                    width: 40,
+                    height: 40,
+                    color: "#475569",
+                    background: "#ffffff",
+                    zIndex: 2,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M6 6l12 12M18 6 6 18"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </IconButton>
+
                 <div
                   className="dashboard-modal-header"
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
+                    justifyContent: "flex-start",
                     alignItems: "center",
                     gap: 12,
                     flexWrap: "wrap",
+                    paddingRight: 56,
                   }}
                 >
                   <div style={{ display: "grid", gap: 6 }}>
@@ -902,15 +942,6 @@ export function DayActionCalendarClient({
                         : "Gestisci richieste o indisponibilita direttamente da questa giornata."}
                     </span>
                   </div>
-
-                  <PrimaryButton
-                    type="button"
-                    tone="sand"
-                    onClick={closeModal}
-                    disabled={isPending}
-                  >
-                    Chiudi
-                  </PrimaryButton>
                 </div>
 
                 {feedback ? (
@@ -931,27 +962,6 @@ export function DayActionCalendarClient({
                     {feedback.message}
                   </div>
                 ) : null}
-
-                <div className="dashboard-modal-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {canOpenTaskComposer ? (
-                    <PrimaryButton
-                      type="button"
-                      tone="sand"
-                      onClick={() => setQuickComposer("task")}
-                      disabled={isPending}
-                    >
-                      Aggiungi mansioni
-                    </PrimaryButton>
-                  ) : null}
-                  <PrimaryButton
-                    type="button"
-                    tone="sand"
-                    onClick={() => setQuickComposer("board")}
-                    disabled={isPending}
-                  >
-                    Aggiungi in bacheca
-                  </PrimaryButton>
-                </div>
 
                 {canReviewRequests ? (
                   <div style={{ display: "grid", gap: 12 }}>
@@ -1308,59 +1318,143 @@ export function DayActionCalendarClient({
                       {selectedDay.courses.map((course) =>
                         renderCourseCard(course, locale, true)
                       )}
-                      {selectedDay.tasks.map((task) => (
+                      <div style={{ display: "grid", gap: 10 }}>
                         <div
-                          key={task.id}
-                          className="dashboard-list-card"
                           style={{
-                            padding: 14,
-                            borderRadius: 18,
-                            background: "#f8fafc",
-                            border: "1px solid #e2e8f0",
-                            display: "grid",
-                            gap: 8,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
                           }}
                         >
-                          <div style={{ display: "grid", gap: 6 }}>
-                            <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                              {task.title}
-                            </strong>
-                            <span style={{ color: "#475569", fontSize: 14 }}>
-                              {task.assignedLabel}
-                            </span>
-                            {task.completedByLabel ? (
-                              <span style={{ color: "#64748b", fontSize: 13 }}>
-                                Completata da {task.completedByLabel}
-                              </span>
-                            ) : null}
-                          </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <StatusPill
-                              label={task.status}
-                              tone={
-                                task.status === "DONE"
-                                  ? "success"
-                                  : task.isUrgent
-                                    ? "danger"
-                                    : "warning"
-                              }
-                            />
-                          </div>
-                          {task.status !== "DONE" ? (
-                            <div className="dashboard-action-row">
-                              <PrimaryButton
-                                type="button"
-                                tone="green"
-                                onClick={() => submitTaskCompletion(task.id)}
-                                disabled={isPending}
+                          <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                            Mansioni del giorno
+                          </strong>
+                          {canOpenTaskComposer ? (
+                            <IconButton
+                              type="button"
+                              onClick={() => setQuickComposer("task")}
+                              aria-label="Aggiungi mansioni"
+                              disabled={isPending}
+                            >
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
                               >
-                                {isPending ? "Salvataggio..." : "Conferma mansione"}
-                              </PrimaryButton>
-                            </div>
+                                <path
+                                  d="M12 5v14M5 12h14"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </IconButton>
                           ) : null}
                         </div>
-                      ))}
-                      {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
+                        {selectedDay.tasks.length === 0 ? (
+                          <div style={{ color: "#64748b" }}>
+                            Nessuna mansione collegata a questa giornata.
+                          </div>
+                        ) : (
+                          selectedDay.tasks.map((task) => (
+                            <div
+                              key={task.id}
+                              className="dashboard-list-card"
+                              style={{
+                                padding: 14,
+                                borderRadius: 18,
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                display: "grid",
+                                gap: 8,
+                              }}
+                            >
+                              <div style={{ display: "grid", gap: 6 }}>
+                                <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                                  {task.title}
+                                </strong>
+                                <span style={{ color: "#475569", fontSize: 14 }}>
+                                  {task.assignedLabel}
+                                </span>
+                                {task.completedByLabel ? (
+                                  <span style={{ color: "#64748b", fontSize: 13 }}>
+                                    Completata da {task.completedByLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <StatusPill
+                                  label={task.status}
+                                  tone={
+                                    task.status === "DONE"
+                                      ? "success"
+                                      : task.isUrgent
+                                        ? "danger"
+                                        : "warning"
+                                  }
+                                />
+                              </div>
+                              {task.status !== "DONE" ? (
+                                <div className="dashboard-action-row">
+                                  <PrimaryButton
+                                    type="button"
+                                    tone="green"
+                                    onClick={() => submitTaskCompletion(task.id)}
+                                    disabled={isPending}
+                                  >
+                                    {isPending ? "Salvataggio..." : "Conferma mansione"}
+                                  </PrimaryButton>
+                                </div>
+                              ) : null}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                          }}
+                        >
+                          <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                            Bacheca del giorno
+                          </strong>
+                          <IconButton
+                            type="button"
+                            onClick={() => setQuickComposer("board")}
+                            aria-label="Aggiungi in bacheca"
+                            disabled={isPending}
+                          >
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M12 5v14M5 12h14"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </IconButton>
+                        </div>
+                        {selectedDay.notes.length === 0 ? (
+                          <div style={{ color: "#64748b" }}>
+                            Nessun messaggio pubblicato in questa giornata.
+                          </div>
+                        ) : (
+                          selectedDay.notes.map((note) => renderNoteCard(note, locale, true))
+                        )}
+                      </div>
                       {selectedDay.pendingRequests.map((request) =>
                         renderPendingRequestCard(request, true)
                       )}
