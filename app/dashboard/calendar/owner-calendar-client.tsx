@@ -1220,9 +1220,12 @@ export function OwnerCalendarClient({
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                       {selectedDay.shifts.map((shift) => (
-                        <div
+                        <button
+                          type="button"
                           className="dashboard-list-card"
                           key={shift.id}
+                          onClick={() => setEditingShiftId(shift.id)}
+                          disabled={isPending}
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
@@ -1233,6 +1236,8 @@ export function OwnerCalendarClient({
                             borderRadius: 18,
                             background: "#f8fafc",
                             border: "1px solid #e2e8f0",
+                            textAlign: "left",
+                            cursor: isPending ? "default" : "pointer",
                           }}
                         >
                           <div style={{ display: "grid", gap: 6 }}>
@@ -1254,15 +1259,18 @@ export function OwnerCalendarClient({
                             </div>
                           </div>
 
-                          <PrimaryButton
-                            type="button"
-                            tone="sand"
-                            onClick={() => setEditingShiftId(shift.id)}
-                            disabled={isPending}
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              marginLeft: "auto",
+                              color: "#475569",
+                              fontSize: 18,
+                              fontWeight: 700,
+                            }}
                           >
-                            Modifica
-                          </PrimaryButton>
-                        </div>
+                            ›
+                          </span>
+                        </button>
                       ))}
                     </div>
                   )}

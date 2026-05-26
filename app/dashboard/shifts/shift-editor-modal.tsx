@@ -200,7 +200,7 @@ export function ShiftEditorModal({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 2147483646,
+        zIndex: 2147483647,
         display: "grid",
         placeItems: "center",
         padding: 16,
