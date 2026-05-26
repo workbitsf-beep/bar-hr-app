@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
+import { PwaRegister } from "@/app/components/pwa-register";
 import { RuntimeLanguageSync } from "@/app/components/runtime-language-sync";
 import { LANGUAGE_COOKIE_NAME, normalizeLanguage } from "@/lib/language";
 
@@ -10,11 +11,34 @@ type RootLayoutProps = {
 
 export const metadata: Metadata = {
   title: "Workbit",
+  applicationName: "Workbit",
+  manifest: "/manifest.webmanifest",
+  description: "Gestione turni, timbrature, richieste e comunicazioni con Workbit.",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",
     apple: "/logo.png",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Workbit",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f8fafc",
 };
 
 export default async function RootLayout({ children }: RootLayoutProps) {
@@ -64,6 +88,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         }}
       >
         <RuntimeLanguageSync language={htmlLang} />
+        <PwaRegister />
         {children}
       </body>
     </html>
