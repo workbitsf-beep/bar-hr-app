@@ -274,6 +274,10 @@ function normalizeIds(entries: FormDataEntryValue[]): string[] {
   );
 }
 
+function shouldAutoConfirmOwnShift(actorUserId: string, employeeIds: string[]) {
+  return employeeIds.length === 1 && employeeIds[0] === actorUserId;
+}
+
 function splitBulkTextEntries(value: string) {
   return value
     .split(/\r?\n+/)
@@ -1312,12 +1316,15 @@ export async function createShiftAction(formData: FormData) {
   }
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
+  const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
 
   await prisma.shift.create({
     data: {
       title: title || null,
       startTime,
       endTime,
+      confirmedAt: autoConfirm ? new Date() : null,
+      confirmedById: autoConfirm ? session.user.id : null,
       assignedToId: employeeIds[0],
       barId: activeBarId,
       createdById: session.user.id,
@@ -1335,7 +1342,7 @@ export async function createShiftAction(formData: FormData) {
 }
 
 export async function updateShiftAction(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
+  const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
 
   if (!activeBarId) {
@@ -1357,6 +1364,7 @@ export async function updateShiftAction(formData: FormData) {
   }
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
+  const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
 
   await prisma.shift.update({
     where: {
@@ -1368,8 +1376,8 @@ export async function updateShiftAction(formData: FormData) {
       assignedToId: employeeIds[0],
       startTime,
       endTime,
-      confirmedAt: null,
-      confirmedById: null,
+      confirmedAt: autoConfirm ? new Date() : null,
+      confirmedById: autoConfirm ? session.user.id : null,
       assignments: {
         deleteMany: {},
         createMany: {

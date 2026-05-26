@@ -8,19 +8,22 @@ import {
 } from "@simplewebauthn/browser";
 
 type PasskeyLoginButtonProps = {
+  email: string;
   rememberMe: boolean;
   onError: (message: string) => void;
-  onSuccess: (redirectTo: string) => void;
+  onSuccess: (redirectTo: string, authenticatedEmail?: string) => void;
 };
 
 type ApiResponse = {
   ok?: boolean;
   message?: string;
   redirectTo?: string;
+  email?: string;
   options?: Parameters<typeof startAuthentication>[0]["optionsJSON"];
 };
 
 export function PasskeyLoginButton({
+  email,
   rememberMe,
   onError,
   onSuccess,
@@ -66,6 +69,12 @@ export function PasskeyLoginButton({
     try {
       const optionsResponse = await fetch("/api/auth/webauthn/login/options", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase() || undefined,
+        }),
       });
       const optionsPayload = (await optionsResponse.json().catch(() => null)) as ApiResponse | null;
 
@@ -93,7 +102,7 @@ export function PasskeyLoginButton({
         return;
       }
 
-      onSuccess(verifyPayload.redirectTo || "/dashboard");
+      onSuccess(verifyPayload.redirectTo || "/dashboard", verifyPayload.email);
     } catch (err) {
       const cancelled = err instanceof Error && err.name === "NotAllowedError";
       onError(
@@ -127,7 +136,9 @@ export function PasskeyLoginButton({
         ? "Verifica biometrica..."
         : checking
           ? "Controllo biometria..."
-          : "Accedi con Biometria"}
+          : email
+            ? `Accedi con Biometria - ${email}`
+            : "Accedi con Biometria"}
     </button>
   );
 }

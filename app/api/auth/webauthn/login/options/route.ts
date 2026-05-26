@@ -1,3 +1,4 @@
+import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -11,35 +12,83 @@ import {
 
 export const runtime = "nodejs";
 
+type AuthenticationOptionsBody = {
+  email?: string;
+};
+
 export async function POST(req: Request): Promise<Response> {
   try {
     const { rpID } = getWebAuthnConfig(req);
+    const body = (await req.json().catch(() => null)) as AuthenticationOptionsBody | null;
+    const email = String(body?.email ?? "").trim().toLowerCase();
 
     await pruneExpiredWebAuthnChallenges();
 
-    const registeredPasskeyCount = await prisma.webAuthnCredential.count();
+    let allowCredentials:
+      | {
+          id: string;
+          transports: AuthenticatorTransportFuture[];
+        }[]
+      | undefined;
+    let challengeUserId: string | null = null;
 
-    if (registeredPasskeyCount === 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Nessuna biometria e ancora registrata. Accedi con email e password, poi attivala da Impostazioni.",
+    if (email) {
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          webAuthnCredentials: {
+            select: {
+              credentialId: true,
+              transports: true,
+            },
+          },
         },
-        { status: 409 }
-      );
+      });
+
+      if (!user || user.webAuthnCredentials.length === 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Nessuna biometria trovata per questa email. Accedi con email e password, poi attivala da Impostazioni.",
+          },
+          { status: 409 }
+        );
+      }
+
+      challengeUserId = user.id;
+      allowCredentials = user.webAuthnCredentials.map((credential) => ({
+        id: credential.credentialId,
+        transports: credential.transports as AuthenticatorTransportFuture[],
+      }));
+    } else {
+      const registeredPasskeyCount = await prisma.webAuthnCredential.count();
+
+      if (registeredPasskeyCount === 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Nessuna biometria e ancora registrata. Accedi con email e password, poi attivala da Impostazioni.",
+          },
+          { status: 409 }
+        );
+      }
     }
 
     const options = await generateAuthenticationOptions({
       rpID,
       timeout: 60_000,
       userVerification: "required",
+      allowCredentials,
     });
 
     await prisma.webAuthnChallenge.create({
       data: {
         challenge: options.challenge,
         type: WEBAUTHN_AUTHENTICATION_CHALLENGE,
+        userId: challengeUserId,
         expiresAt: getChallengeExpiresAt(),
       },
     });

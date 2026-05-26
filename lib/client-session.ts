@@ -2,6 +2,7 @@
 
 const PERSISTENT_SESSION_KEY = "token";
 const PERSISTENT_SESSION_MARKER = "cookie-session";
+const REMEMBERED_EMAIL_KEY = "remembered-email";
 
 export function markPersistentSession() {
   try {
@@ -24,5 +25,36 @@ export function hasPersistentSessionMarker() {
     return localStorage.getItem(PERSISTENT_SESSION_KEY) === PERSISTENT_SESSION_MARKER;
   } catch {
     return false;
+  }
+}
+
+export function rememberLoginEmail(email: string) {
+  try {
+    const normalized = email.trim().toLowerCase();
+
+    if (!normalized) {
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      return;
+    }
+
+    localStorage.setItem(REMEMBERED_EMAIL_KEY, normalized);
+  } catch {
+    // Keep login working even if storage is unavailable.
+  }
+}
+
+export function clearRememberedLoginEmail() {
+  try {
+    localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+}
+
+export function getRememberedLoginEmail() {
+  try {
+    return localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? "";
+  } catch {
+    return "";
   }
 }

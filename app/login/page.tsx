@@ -5,9 +5,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import {
+  clearRememberedLoginEmail,
   clearPersistentSession,
+  getRememberedLoginEmail,
   hasPersistentSessionMarker,
   markPersistentSession,
+  rememberLoginEmail,
 } from "@/lib/client-session";
 import { PasskeyLoginButton } from "./passkey-login-button";
 
@@ -57,6 +60,14 @@ export default function LoginPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    const rememberedEmail = getRememberedLoginEmail();
+
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+    }
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -79,6 +90,12 @@ export default function LoginPage() {
         return;
       }
 
+      if (rememberMe) {
+        rememberLoginEmail(email);
+      } else {
+        clearRememberedLoginEmail();
+      }
+
       markPersistentSession();
       router.push(data.redirectTo || "/dashboard");
       router.refresh();
@@ -89,7 +106,13 @@ export default function LoginPage() {
     }
   }
 
-  function handlePasskeySuccess(redirectTo: string) {
+  function handlePasskeySuccess(redirectTo: string, authenticatedEmail?: string) {
+    if (rememberMe) {
+      rememberLoginEmail(authenticatedEmail || email);
+    } else {
+      clearRememberedLoginEmail();
+    }
+
     markPersistentSession();
     router.push(redirectTo);
     router.refresh();
@@ -279,6 +302,7 @@ export default function LoginPage() {
             </div>
 
             <PasskeyLoginButton
+              email={email}
               rememberMe={rememberMe}
               onError={setError}
               onSuccess={handlePasskeySuccess}
