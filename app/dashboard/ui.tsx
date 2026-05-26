@@ -323,6 +323,7 @@ function DashboardResponsiveStyles() {
 
       .dashboard-week-strip {
         display: flex;
+        align-items: flex-start;
         gap: 16px;
         width: 100%;
         max-width: 100%;
@@ -341,6 +342,7 @@ function DashboardResponsiveStyles() {
 
       .dashboard-week-card {
         flex: 0 0 min(360px, 100%);
+        align-self: flex-start;
         width: min(360px, 100%);
         max-width: 100%;
         box-sizing: border-box;
@@ -589,6 +591,7 @@ function DashboardResponsiveStyles() {
 
         .dashboard-mobile-only.dashboard-week-strip {
           display: flex !important;
+          align-items: flex-start !important;
           gap: 12px !important;
           width: 100% !important;
           max-width: 100% !important;
@@ -603,6 +606,7 @@ function DashboardResponsiveStyles() {
 
         .dashboard-week-card {
           flex: 0 0 100% !important;
+          align-self: flex-start !important;
           width: 100% !important;
           max-width: 100% !important;
           min-width: 0 !important;

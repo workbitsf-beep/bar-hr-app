@@ -30,7 +30,14 @@ export function CalendarWeekStrip({
   }, [children]);
 
   return (
-    <div ref={stripRef} className={className} style={style}>
+    <div
+      ref={stripRef}
+      className={className}
+      style={{
+        alignItems: "flex-start",
+        ...style,
+      }}
+    >
       {children}
     </div>
   );

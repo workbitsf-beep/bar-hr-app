@@ -174,6 +174,10 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Operazione non riuscita.";
 }
 
+function formatAssignmentNames(assignments: ShiftAssignment[]) {
+  return assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ");
+}
+
 function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
   return (
     <div
@@ -183,33 +187,36 @@ function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
         borderRadius: mobile ? 18 : 16,
         background: "#eff6ff",
         border: "1px solid #dbeafe",
-        display: "grid",
-        gap: mobile ? 8 : 4,
+        display: "block",
       }}
     >
-      <strong style={{ color: "#0f172a", fontSize: mobile ? 16 : 14 }}>
-        {shift.title || "Turno"}
-      </strong>
-      <div style={{ color: "#334155", fontWeight: 600, fontSize: mobile ? 15 : 13 }}>
-        {formatRange(shift.startTime, shift.endTime, locale)}
-      </div>
-      <div style={{ display: "grid", gap: mobile ? 6 : 4 }}>
-        {shift.assignments.map((assignment) => (
-          <span
-            key={`${shift.id}-${assignment.id}`}
-            style={{ color: "#475569", lineHeight: 1.5, fontSize: mobile ? 14 : 12 }}
-          >
-            {assignment.firstName} {assignment.lastName}
-            {mobile ? ` - ${formatRoleLabel(assignment.role)}` : ""}
-          </span>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {shift.confirmedAt ? (
-          <StatusPill label="Confermato" tone="success" />
-        ) : (
-          <StatusPill label="Da confermare" tone="warning" />
-        )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          lineHeight: 1.5,
+        }}
+      >
+        <strong style={{ color: "#0f172a", fontSize: mobile ? 15 : 13 }}>
+          {formatRange(shift.startTime, shift.endTime, locale)}
+        </strong>
+        <span style={{ color: "#475569", fontSize: mobile ? 14 : 12 }}>
+          {formatAssignmentNames(shift.assignments)}
+        </span>
+        <span
+          title={shift.confirmedAt ? "Confermato" : "In attesa"}
+          aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
+          style={{
+            marginLeft: "auto",
+            color: shift.confirmedAt ? "#16a34a" : "#f59e0b",
+            fontWeight: 700,
+            fontSize: mobile ? 16 : 14,
+          }}
+        >
+          {shift.confirmedAt ? "✓" : "○"}
+        </span>
       </div>
     </div>
   );

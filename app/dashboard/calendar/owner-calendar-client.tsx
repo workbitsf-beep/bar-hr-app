@@ -131,6 +131,54 @@ function formatRequestTypeLabel(type: string) {
   return "Ferie";
 }
 
+function formatAssignmentNames(assignments: ShiftAssignment[]) {
+  return assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ");
+}
+
+function renderCompactShiftCard(shift: ShiftItem, locale: string, mobile = false) {
+  return (
+    <div
+      key={shift.id}
+      style={{
+        padding: mobile ? "12px 14px" : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#eff6ff",
+        border: "1px solid #dbeafe",
+        color: "#0f172a",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          lineHeight: 1.5,
+        }}
+      >
+        <strong style={{ color: "#0f172a", fontSize: mobile ? 15 : 13 }}>
+          {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
+        </strong>
+        <span style={{ color: "#475569", fontSize: mobile ? 14 : 12 }}>
+          {formatAssignmentNames(shift.assignments)}
+        </span>
+        <span
+          title={shift.confirmedAt ? "Confermato" : "In attesa"}
+          aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
+          style={{
+            marginLeft: "auto",
+            color: shift.confirmedAt ? "#16a34a" : "#f59e0b",
+            fontWeight: 700,
+            fontSize: mobile ? 16 : 14,
+          }}
+        >
+          {shift.confirmedAt ? "✓" : "○"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function toDateTimeLocal(dateIso: string, hour: number, minute: number) {
   const date = new Date(dateIso);
   const year = date.getFullYear();
@@ -466,37 +514,7 @@ export function OwnerCalendarClient({
                   <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
                 ) : null}
 
-                {day.shifts.map((shift) => (
-                  <div
-                    key={shift.id}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 16,
-                      background: "#eff6ff",
-                      border: "1px solid #dbeafe",
-                      color: "#0f172a",
-                      display: "grid",
-                      gap: 4,
-                    }}
-                  >
-                    <strong style={{ fontSize: 14 }}>{shift.title || "Turno"}</strong>
-                    <span style={{ color: "#475569", fontSize: 13 }}>
-                      {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
-                    </span>
-                    <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                      {shift.assignments
-                        .map((assignment) => `${assignment.firstName} ${assignment.lastName}`)
-                        .join(", ")}
-                    </span>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {shift.confirmedAt ? (
-                        <StatusPill label="Confermato" tone="success" />
-                      ) : (
-                        <StatusPill label="Da confermare" tone="warning" />
-                      )}
-                    </div>
-                  </div>
-                ))}
+                {day.shifts.map((shift) => renderCompactShiftCard(shift, locale))}
 
                 {day.availabilities.map((availability) => (
                   <div
@@ -664,44 +682,7 @@ export function OwnerCalendarClient({
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
-                    {day.shifts.map((shift) => (
-                      <div
-                        key={shift.id}
-                        style={{
-                          padding: 14,
-                          borderRadius: 18,
-                          background: "#eff6ff",
-                          border: "1px solid #dbeafe",
-                          display: "grid",
-                          gap: 8,
-                        }}
-                      >
-                        <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                          {shift.title || "Turno"}
-                        </strong>
-                        <div style={{ color: "#334155", fontWeight: 600, fontSize: 15 }}>
-                          {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
-                        </div>
-                        <div style={{ display: "grid", gap: 6 }}>
-                          {shift.assignments.map((assignment) => (
-                            <div
-                              key={`${shift.id}-${assignment.id}`}
-                              style={{ color: "#475569", lineHeight: 1.5 }}
-                            >
-                              {assignment.firstName} {assignment.lastName} -{" "}
-                              {formatRoleLabel(assignment.role)}
-                            </div>
-                          ))}
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {shift.confirmedAt ? (
-                            <StatusPill label="Confermato" tone="success" />
-                          ) : (
-                            <StatusPill label="Da confermare" tone="warning" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                    {day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true))}
 
                     {day.availabilities.map((availability) => (
                       <div
