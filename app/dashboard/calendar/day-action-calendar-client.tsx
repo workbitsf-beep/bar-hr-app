@@ -178,6 +178,25 @@ function formatAssignmentNames(assignments: ShiftAssignment[]) {
   return assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ");
 }
 
+function renderShiftStateIcon(confirmed: boolean, size = 16) {
+  return confirmed ? (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 12.5l4 4 8-9"
+        stroke="#16a34a"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ) : (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" stroke="#f59e0b" strokeWidth="2" />
+      <path d="M12 8v4l2.5 2.5" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
   return (
     <div
@@ -210,11 +229,13 @@ function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
           aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
           style={{
             marginLeft: "auto",
-            color: shift.confirmedAt ? "#16a34a" : "#f59e0b",
-            fontWeight: 700,
-            fontSize: mobile ? 16 : 14,
+            fontSize: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
+          {renderShiftStateIcon(Boolean(shift.confirmedAt), mobile ? 18 : 16)}
           {shift.confirmedAt ? "✓" : "○"}
         </span>
       </div>
@@ -599,126 +620,11 @@ export function DayActionCalendarClient({
 
   return (
     <>
-      <div className="dashboard-desktop-only">
-        <div className="dashboard-calendar-scroll">
-          <div
-            className="dashboard-calendar-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-              gap: 12,
-            }}
-          >
-            {weekdayLabels.map((label) => (
-              <div
-                key={label}
-                className="dashboard-calendar-weekday"
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 16,
-                  background: "#e2e8f0",
-                  color: "#334155",
-                  fontWeight: 700,
-                  textTransform: "capitalize",
-                  textAlign: "center",
-                }}
-              >
-                {label}
-              </div>
-            ))}
-
-            {days.map((day) => (
-              <button
-                key={day.date}
-                type="button"
-                onClick={() => openDay(day)}
-                className="dashboard-calendar-day"
-                data-calendar-today={day.isToday ? "true" : undefined}
-                style={{
-                  minHeight: 220,
-                  padding: 14,
-                  borderRadius: 20,
-                  background: day.inCurrentMonth ? "#ffffff" : "#f8fafc",
-                  border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
-                  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-                  display: "grid",
-                  alignContent: "start",
-                  gap: 10,
-                  opacity: day.inCurrentMonth ? 1 : 0.72,
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                    {new Date(day.date).getDate()}
-                  </strong>
-                  {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
-                </div>
-
-                {day.shifts.length === 0 &&
-                day.availabilities.length === 0 &&
-                day.requests.length === 0 &&
-                day.pendingRequests.length === 0 &&
-                day.courses.length === 0 &&
-                day.tasks.length === 0 &&
-                day.notes.length === 0 ? (
-                  <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
-                ) : null}
-
-                {day.shifts.map((shift) => renderShiftCard(shift, locale))}
-                {day.courses.map((course) => renderCourseCard(course, locale))}
-                {day.pendingRequests.map((request) => renderPendingRequestCard(request))}
-                {day.availabilities.map((availability) => renderAvailabilityCard(availability))}
-                {day.requests.map((request) => renderApprovedRequestCard(request))}
-                {day.tasks.length > 0 ? (
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 16,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      color: "#334155",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Mansioni: {day.tasks.length}
-                  </div>
-                ) : null}
-                {day.notes.length > 0 ? (
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 16,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      color: "#334155",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Bacheca: {day.notes.length}
-                  </div>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <CalendarWeekStrip
-        className="dashboard-mobile-only dashboard-week-strip"
+        className="dashboard-week-strip"
         style={{
           display: "flex",
-          gap: 12,
+          gap: 14,
           width: "100%",
           maxWidth: "100%",
           boxSizing: "border-box",
@@ -735,7 +641,8 @@ export function DayActionCalendarClient({
               style={{
                 display: "grid",
                 gap: 12,
-                width: "100%",
+                flex: "0 0 min(100%, 420px)",
+                width: "min(100%, 420px)",
                 maxWidth: "100%",
                 boxSizing: "border-box",
                 padding: 14,

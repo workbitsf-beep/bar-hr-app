@@ -27,11 +27,11 @@ export function DashboardNavMenu({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
   const [position, setPosition] = useState<MenuPosition>({
     top: 0,
     left: 0,
-    width: 280,
+    width: 320,
   });
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function DashboardNavMenu({
 
   useEffect(() => {
     function syncViewportMode() {
-      setIsMobile(window.innerWidth <= 900);
+      setIsCompact(window.innerWidth <= 1180);
     }
 
     syncViewportMode();
@@ -71,16 +71,23 @@ export function DashboardNavMenu({
 
     function syncPosition() {
       const rect = buttonRef.current?.getBoundingClientRect();
-      setIsMobile(window.innerWidth <= 900);
+      const compactMode = window.innerWidth <= 1180;
+      setIsCompact(compactMode);
 
       if (!rect) {
         return;
       }
 
+      const nextWidth = Math.max(300, Math.min(360, rect.width + 112));
+      const nextLeft = Math.min(
+        window.innerWidth - nextWidth - 18,
+        Math.max(18, rect.right - nextWidth)
+      );
+
       setPosition({
         top: rect.bottom + 12,
-        left: Math.max(18, rect.left),
-        width: Math.max(260, rect.width + 96),
+        left: nextLeft,
+        width: nextWidth,
       });
     }
 
@@ -197,21 +204,21 @@ export function DashboardNavMenu({
                   inset: 0,
                   zIndex: 9999,
                   overflow: "hidden",
-                  display: isMobile ? "grid" : "block",
-                  placeItems: isMobile ? "center" : undefined,
-                  padding: isMobile ? 16 : 0,
+                  display: isCompact ? "grid" : "block",
+                  placeItems: isCompact ? "center" : undefined,
+                  padding: isCompact ? 16 : 0,
                 }}
               >
                 <nav
                   aria-label="Navigazione dashboard"
                   style={{
-                    position: isMobile ? "relative" : "absolute",
-                    top: isMobile ? undefined : position.top,
-                    left: isMobile ? undefined : position.left,
-                    width: isMobile
+                    position: isCompact ? "relative" : "absolute",
+                    top: isCompact ? undefined : position.top,
+                    left: isCompact ? undefined : position.left,
+                    width: isCompact
                       ? "min(100%, 420px)"
                       : `min(${Math.max(320, Math.min(position.width, 360))}px, calc(100vw - 36px))`,
-                    maxWidth: isMobile ? "min(420px, calc(100vw - 32px))" : undefined,
+                    maxWidth: isCompact ? "min(420px, calc(100vw - 32px))" : undefined,
                     maxHeight: "calc(100dvh - 32px)",
                     overflowY: "auto",
                     padding: 14,
@@ -256,12 +263,20 @@ export function DashboardNavMenu({
                         border: "1px solid #e2e8f0",
                         background: "#f8fafc",
                         color: "#0f172a",
-                        fontSize: 20,
-                        fontWeight: 700,
                         cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
-                      ×
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M6 6l12 12M18 6 6 18"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
                     </button>
                   </div>
 

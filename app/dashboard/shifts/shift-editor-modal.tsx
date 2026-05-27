@@ -56,6 +56,10 @@ function formatRoleLabel(role: string) {
   return "Dipendente";
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Operazione non riuscita.";
+}
+
 export function ShiftEditorModal({
   open,
   locale,
@@ -82,6 +86,10 @@ export function ShiftEditorModal({
   const [endTime, setEndTime] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
+  const [feedback, setFeedback] = useState<{
+    tone: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -105,6 +113,7 @@ export function ShiftEditorModal({
       return;
     }
 
+    setFeedback(null);
     setTitle(shift.title ?? "");
     setShiftDate(toDateInputValue(shift.startTime));
     setStartTime(toTimeInputValue(shift.startTime));
@@ -169,9 +178,14 @@ export function ShiftEditorModal({
     }
 
     startTransition(async () => {
-      await updateShiftAction(formData);
-      onClose();
-      router.refresh();
+      try {
+        await updateShiftAction(formData);
+        setFeedback(null);
+        onClose();
+        router.refresh();
+      } catch (error) {
+        setFeedback({ tone: "danger", message: getErrorMessage(error) });
+      }
     });
   }
 
@@ -184,9 +198,14 @@ export function ShiftEditorModal({
     formData.set("shiftId", shift.id);
 
     startTransition(async () => {
-      await deleteShiftAction(formData);
-      onClose();
-      router.refresh();
+      try {
+        await deleteShiftAction(formData);
+        setFeedback(null);
+        onClose();
+        router.refresh();
+      } catch (error) {
+        setFeedback({ tone: "danger", message: getErrorMessage(error) });
+      }
     });
   }
 
@@ -292,6 +311,20 @@ export function ShiftEditorModal({
         {canManage ? (
           <>
             <div style={{ display: "grid", gap: 12 }}>
+              {feedback ? (
+                <div
+                  style={{
+                    borderRadius: 18,
+                    padding: "12px 14px",
+                    background: feedback.tone === "danger" ? "#fee2e2" : "#dcfce7",
+                    color: feedback.tone === "danger" ? "#991b1b" : "#166534",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {feedback.message}
+                </div>
+              ) : null}
+
               <label style={{ display: "grid", gap: 8 }}>
                 <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo turno</span>
                 <input

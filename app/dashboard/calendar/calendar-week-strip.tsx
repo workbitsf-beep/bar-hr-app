@@ -13,8 +13,13 @@ export function CalendarWeekStrip({
   style?: CSSProperties;
 }) {
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const hasAutoScrolledRef = useRef(false);
 
   useEffect(() => {
+    if (hasAutoScrolledRef.current) {
+      return;
+    }
+
     const strip = stripRef.current;
     const currentWeek = strip?.querySelector<HTMLElement>('[data-current-week="true"]');
 
@@ -22,6 +27,7 @@ export function CalendarWeekStrip({
       return;
     }
 
+    hasAutoScrolledRef.current = true;
     currentWeek.scrollIntoView({
       behavior: "instant",
       block: "nearest",

@@ -278,6 +278,115 @@ function shouldAutoConfirmOwnShift(actorUserId: string, employeeIds: string[]) {
   return employeeIds.length === 1 && employeeIds[0] === actorUserId;
 }
 
+function getShiftConflictLabel(type: "AVAILABILITY" | RequestType) {
+  if (type === "AVAILABILITY") {
+    return "indisponibilita";
+  }
+
+  if (type === RequestType.PERMISSION) {
+    return "permesso";
+  }
+
+  if (type === RequestType.SICKNESS) {
+    return "malattia";
+  }
+
+  return "ferie";
+}
+
+async function assertNoShiftAssignmentConflicts(input: {
+  barId: string;
+  employeeIds: string[];
+  startTime: Date;
+  endTime: Date;
+}) {
+  const [availabilityConflicts, requestConflicts] = await Promise.all([
+    prisma.availability.findMany({
+      where: {
+        barId: input.barId,
+        userId: {
+          in: input.employeeIds,
+        },
+        startsAt: {
+          lt: input.endTime,
+        },
+        endsAt: {
+          gt: input.startTime,
+        },
+      },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    }),
+    prisma.request.findMany({
+      where: {
+        barId: input.barId,
+        employeeId: {
+          in: input.employeeIds,
+        },
+        status: RequestStatus.APPROVED,
+        type: {
+          in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+        },
+        startsAt: {
+          not: null,
+          lt: input.endTime,
+        },
+        endsAt: {
+          not: null,
+          gt: input.startTime,
+        },
+      },
+      select: {
+        employeeId: true,
+        type: true,
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const conflicts = new Map<string, { name: string; reasons: Set<string> }>();
+
+  for (const availability of availabilityConflicts) {
+    conflicts.set(availability.userId, {
+      name: `${availability.user.firstName} ${availability.user.lastName}`.trim(),
+      reasons:
+        conflicts.get(availability.userId)?.reasons ?? new Set<string>([getShiftConflictLabel("AVAILABILITY")]),
+    });
+    conflicts.get(availability.userId)?.reasons.add(getShiftConflictLabel("AVAILABILITY"));
+  }
+
+  for (const request of requestConflicts) {
+    conflicts.set(request.employeeId, {
+      name: `${request.employee.firstName} ${request.employee.lastName}`.trim(),
+      reasons:
+        conflicts.get(request.employeeId)?.reasons ?? new Set<string>([getShiftConflictLabel(request.type)]),
+    });
+    conflicts.get(request.employeeId)?.reasons.add(getShiftConflictLabel(request.type));
+  }
+
+  if (conflicts.size === 0) {
+    return;
+  }
+
+  const details = Array.from(conflicts.values()).map(
+    (entry) => `${entry.name} (${Array.from(entry.reasons).join(", ")})`
+  );
+
+  throw new Error(`Non puoi assegnare questo turno a: ${details.join("; ")}`);
+}
+
 function splitBulkTextEntries(value: string) {
   return value
     .split(/\r?\n+/)
@@ -1316,6 +1425,12 @@ export async function createShiftAction(formData: FormData) {
   }
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
+  await assertNoShiftAssignmentConflicts({
+    barId: activeBarId,
+    employeeIds,
+    startTime,
+    endTime,
+  });
   const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
 
   await prisma.shift.create({
@@ -1364,6 +1479,12 @@ export async function updateShiftAction(formData: FormData) {
   }
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
+  await assertNoShiftAssignmentConflicts({
+    barId: activeBarId,
+    employeeIds,
+    startTime,
+    endTime,
+  });
   const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
 
   await prisma.shift.update({

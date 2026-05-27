@@ -225,6 +225,7 @@ export default async function DashboardCalendarPage({
             },
             select: {
               id: true,
+              userId: true,
               startsAt: true,
               endsAt: true,
               user: {
@@ -256,6 +257,7 @@ export default async function DashboardCalendarPage({
         select: {
           id: true,
           type: true,
+          employeeId: true,
           startsAt: true,
           endsAt: true,
           reviewedBy: {
@@ -565,14 +567,20 @@ export default async function DashboardCalendarPage({
     })),
     availabilities: day.availabilities.map((availability) => ({
       id: availability.id,
+      userId: availability.userId,
       firstName: availability.user.firstName,
       lastName: availability.user.lastName,
+      startsAt: availability.startsAt.toISOString(),
+      endsAt: availability.endsAt.toISOString(),
     })),
     requests: day.requests.map((request) => ({
       id: request.id,
       type: request.type,
+      userId: request.employeeId,
       firstName: request.employee.firstName,
       lastName: request.employee.lastName,
+      startsAt: request.startsAt?.toISOString() ?? day.date.toISOString(),
+      endsAt: request.endsAt?.toISOString() ?? day.date.toISOString(),
       approvedBy: request.reviewedBy
         ? `${request.reviewedBy.firstName} ${request.reviewedBy.lastName}`.trim()
         : request.type === RequestType.SICKNESS

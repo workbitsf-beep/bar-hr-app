@@ -45,15 +45,21 @@ type ShiftItem = {
 
 type AvailabilityItem = {
   id: string;
+  userId: string;
   firstName: string;
   lastName: string;
+  startsAt: string;
+  endsAt: string;
 };
 
 type RequestItem = {
   id: string;
   type: string;
+  userId: string;
   firstName: string;
   lastName: string;
+  startsAt: string;
+  endsAt: string;
 };
 
 type TaskItem = {
@@ -135,6 +141,29 @@ function formatAssignmentNames(assignments: ShiftAssignment[]) {
   return assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ");
 }
 
+function hasTimeOverlap(rangeStart: string, rangeEnd: string, shiftStart: string, shiftEnd: string) {
+  return new Date(rangeStart) < new Date(shiftEnd) && new Date(rangeEnd) > new Date(shiftStart);
+}
+
+function renderShiftStateIcon(confirmed: boolean, size = 16) {
+  return confirmed ? (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 12.5l4 4 8-9"
+        stroke="#16a34a"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ) : (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" stroke="#f59e0b" strokeWidth="2" />
+      <path d="M12 8v4l2.5 2.5" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function renderCompactShiftCard(shift: ShiftItem, locale: string, mobile = false) {
   return (
     <div
@@ -167,12 +196,12 @@ function renderCompactShiftCard(shift: ShiftItem, locale: string, mobile = false
           aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
           style={{
             marginLeft: "auto",
-            color: shift.confirmedAt ? "#16a34a" : "#f59e0b",
-            fontWeight: 700,
-            fontSize: mobile ? 16 : 14,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          {shift.confirmedAt ? "✓" : "○"}
+          {renderShiftStateIcon(Boolean(shift.confirmedAt), mobile ? 18 : 16)}
         </span>
       </div>
     </div>
@@ -288,7 +317,46 @@ export function OwnerCalendarClient({
         : weeks,
     [filteredDay, weeks]
   );
+  const blockedMemberReasons = useMemo(() => {
+    if (!selectedDay || !shiftDate || !startTime || !endTime) {
+      return new Map<string, string>();
+    }
+
+    const selectedDayKey = selectedDay.date.slice(0, 10);
+
+    if (selectedDayKey !== shiftDate) {
+      return new Map<string, string>();
+    }
+
+    const nextShiftStart = combineDateAndTime(shiftDate, startTime);
+    const nextShiftEnd = combineDateAndTime(shiftDate, endTime);
+    const blocked = new Map<string, string>();
+
+    for (const availability of selectedDay.availabilities) {
+      if (hasTimeOverlap(availability.startsAt, availability.endsAt, nextShiftStart, nextShiftEnd)) {
+        blocked.set(availability.userId, "Indisponibile");
+      }
+    }
+
+    for (const request of selectedDay.requests) {
+      if (hasTimeOverlap(request.startsAt, request.endsAt, nextShiftStart, nextShiftEnd)) {
+        blocked.set(request.userId, formatRequestTypeLabel(request.type));
+      }
+    }
+
+    return blocked;
+  }, [selectedDay, shiftDate, startTime, endTime]);
   const canCreatePersonalEntries = role === "MANAGER";
+
+  useEffect(() => {
+    if (blockedMemberReasons.size === 0) {
+      return;
+    }
+
+    setSelectedMembers((current) =>
+      current.filter((memberId) => !blockedMemberReasons.has(memberId))
+    );
+  }, [blockedMemberReasons]);
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
@@ -442,156 +510,11 @@ export function OwnerCalendarClient({
 
   return (
     <>
-      <div className="dashboard-desktop-only">
-        <div className="dashboard-calendar-scroll">
-          <div
-            className="dashboard-calendar-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-              gap: 12,
-            }}
-          >
-            {weekdayLabels.map((label) => (
-              <div
-                key={label}
-                className="dashboard-calendar-weekday"
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 16,
-                  background: "#e2e8f0",
-                  color: "#334155",
-                  fontWeight: 700,
-                  textTransform: "capitalize",
-                  textAlign: "center",
-                }}
-              >
-                {label}
-              </div>
-            ))}
-
-            {days.map((day) => (
-              <button
-                key={day.date}
-                type="button"
-                onClick={() => openDay(day)}
-                className="dashboard-calendar-day"
-                data-calendar-today={day.isToday ? "true" : undefined}
-                style={{
-                  minHeight: 220,
-                  padding: 14,
-                  borderRadius: 20,
-                  background: day.inCurrentMonth ? "#ffffff" : "#f8fafc",
-                  border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
-                  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-                  display: "grid",
-                  alignContent: "start",
-                  gap: 10,
-                  opacity: day.inCurrentMonth ? 1 : 0.72,
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                    {new Date(day.date).getDate()}
-                  </strong>
-                  {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
-                </div>
-
-                {day.shifts.length === 0 &&
-                day.availabilities.length === 0 &&
-                day.requests.length === 0 &&
-                day.tasks.length === 0 &&
-                day.notes.length === 0 ? (
-                  <div style={{ color: "#94a3b8", fontSize: 14 }}>Nessun evento</div>
-                ) : null}
-
-                {day.shifts.map((shift) => renderCompactShiftCard(shift, locale))}
-
-                {day.availabilities.map((availability) => (
-                  <div
-                    key={availability.id}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 16,
-                      background: "#fef2f2",
-                      border: "1px solid #fecaca",
-                      color: "#991b1b",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Indisponibilita: {availability.firstName} {availability.lastName}
-                  </div>
-                ))}
-
-                {day.requests.map((request) => (
-                  <div
-                    key={request.id}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 16,
-                      background: "#fef2f2",
-                      border: "1px solid #fecaca",
-                      color: "#991b1b",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
-                  </div>
-                ))}
-
-                {day.tasks.length > 0 ? (
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 16,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      color: "#334155",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Mansioni: {day.tasks.length}
-                  </div>
-                ) : null}
-
-                {day.notes.length > 0 ? (
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 16,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      color: "#334155",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Bacheca: {day.notes.length}
-                  </div>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <CalendarWeekStrip
-        className="dashboard-mobile-only dashboard-week-strip"
+        className="dashboard-week-strip"
         style={{
           display: "flex",
-          gap: 12,
+          gap: 14,
           width: "100%",
           maxWidth: "100%",
           boxSizing: "border-box",
@@ -608,7 +531,8 @@ export function OwnerCalendarClient({
               style={{
                 display: "grid",
                 gap: 12,
-                width: "100%",
+                flex: "0 0 min(100%, 420px)",
+                width: "min(100%, 420px)",
                 maxWidth: "100%",
                 boxSizing: "border-box",
                 padding: 14,
@@ -987,14 +911,26 @@ export function OwnerCalendarClient({
                             borderRadius: 16,
                             border: "1px solid #e2e8f0",
                             background: selectedMembers.includes(member.id) ? "#e2e8f0" : "#f8fafc",
+                            color: blockedMemberReasons.has(member.id) ? "#94a3b8" : "#0f172a",
+                            opacity: blockedMemberReasons.has(member.id) ? 0.6 : 1,
                           }}
                         >
                           <input
                             type="checkbox"
                             checked={selectedMembers.includes(member.id)}
+                            disabled={blockedMemberReasons.has(member.id)}
                             onChange={() => toggleMember(member.id)}
                           />
-                          {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
+                          <span style={{ display: "grid", gap: 2 }}>
+                            <span>
+                              {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
+                            </span>
+                            {blockedMemberReasons.has(member.id) ? (
+                              <span style={{ fontSize: 12, color: "#b45309" }}>
+                                {blockedMemberReasons.get(member.id)}
+                              </span>
+                            ) : null}
+                          </span>
                         </label>
                       ))}
                     </div>
@@ -1264,10 +1200,21 @@ export function OwnerCalendarClient({
                             style={{
                               marginLeft: "auto",
                               color: "#475569",
-                              fontSize: 18,
-                              fontWeight: 700,
+                              fontSize: 0,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                             }}
                           >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="m9 6 6 6-6 6"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
                             ›
                           </span>
                         </button>
