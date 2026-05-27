@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -13,6 +13,20 @@ type MenuPosition = {
   left: number;
   width: number;
 };
+
+function ArrowIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="m9 6 6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function DashboardNavMenu({
   navItems,
@@ -78,7 +92,7 @@ export function DashboardNavMenu({
         return;
       }
 
-      const nextWidth = Math.max(300, Math.min(360, rect.width + 112));
+      const nextWidth = Math.max(304, Math.min(360, rect.width + 116));
       const nextLeft = Math.min(
         window.innerWidth - nextWidth - 18,
         Math.max(18, rect.right - nextWidth)
@@ -115,6 +129,16 @@ export function DashboardNavMenu({
     };
   }, [open]);
 
+  function closeMenu() {
+    setOpen(false);
+  }
+
+  function handleOutsidePointerDown(event: MouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) {
+      closeMenu();
+    }
+  }
+
   return (
     <>
       <button
@@ -124,34 +148,25 @@ export function DashboardNavMenu({
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={menuLabel}
         style={{
           width: 44,
           height: 44,
           borderRadius: 999,
           padding: 0,
-          background: "#f8fafc",
+          background: open ? "#e2e8f0" : "#f8fafc",
           color: "#0f172a",
           border: "1px solid #e2e8f0",
           fontWeight: 700,
-          boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
+          boxShadow: open
+            ? "0 10px 24px rgba(15, 23, 42, 0.10)"
+            : "0 6px 16px rgba(15, 23, 42, 0.04)",
           cursor: "pointer",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <span
-          style={{
-            position: "absolute",
-            width: 1,
-            height: 1,
-            overflow: "hidden",
-            clip: "rect(0 0 0 0)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {menuLabel}
-        </span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M4 7h16M4 12h16M4 17h16"
@@ -182,28 +197,16 @@ export function DashboardNavMenu({
                 }}
               />
 
-              <button
-                type="button"
-                aria-label="Chiudi menu"
-                onClick={() => setOpen(false)}
-                style={{
-                  position: "fixed",
-                  inset: 0,
-                  border: 0,
-                  background: "rgba(15, 23, 42, 0.22)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
-                  zIndex: 9998,
-                  cursor: "default",
-                }}
-              />
-
               <div
+                onMouseDown={handleOutsidePointerDown}
                 style={{
                   position: "fixed",
                   inset: 0,
                   zIndex: 9999,
                   overflow: "hidden",
+                  background: isCompact ? "rgba(15, 23, 42, 0.22)" : "rgba(15, 23, 42, 0.12)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
                   display: isCompact ? "grid" : "block",
                   placeItems: isCompact ? "center" : undefined,
                   padding: isCompact ? 16 : 0,
@@ -211,6 +214,7 @@ export function DashboardNavMenu({
               >
                 <nav
                   aria-label="Navigazione dashboard"
+                  onMouseDown={(event) => event.stopPropagation()}
                   style={{
                     position: isCompact ? "relative" : "absolute",
                     top: isCompact ? undefined : position.top,
@@ -221,13 +225,15 @@ export function DashboardNavMenu({
                     maxWidth: isCompact ? "min(420px, calc(100vw - 32px))" : undefined,
                     maxHeight: "calc(100dvh - 32px)",
                     overflowY: "auto",
-                    padding: 14,
-                    borderRadius: 28,
-                    border: "1px solid #e2e8f0",
+                    padding: isCompact ? 14 : 16,
+                    borderRadius: isCompact ? 28 : 24,
+                    border: "1px solid rgba(226, 232, 240, 0.96)",
                     background: "rgba(255,255,255,0.98)",
-                    boxShadow: "0 28px 60px rgba(15, 23, 42, 0.20)",
+                    boxShadow: isCompact
+                      ? "0 28px 60px rgba(15, 23, 42, 0.20)"
+                      : "0 20px 44px rgba(15, 23, 42, 0.16)",
                     display: "grid",
-                    gap: 12,
+                    gap: 14,
                     animation: "dashboardMenuEnter 180ms cubic-bezier(0.22, 1, 0.36, 1)",
                     touchAction: "pan-y",
                     overscrollBehavior: "contain",
@@ -239,9 +245,8 @@ export function DashboardNavMenu({
                       alignItems: "center",
                       justifyContent: "space-between",
                       gap: 12,
-                      padding: "10px 10px 12px",
+                      padding: "8px 8px 12px",
                       borderBottom: "1px solid #e2e8f0",
-                      marginBottom: 4,
                     }}
                   >
                     <BrandLogo
@@ -254,7 +259,7 @@ export function DashboardNavMenu({
 
                     <button
                       type="button"
-                      onClick={() => setOpen(false)}
+                      onClick={closeMenu}
                       aria-label="Chiudi menu"
                       style={{
                         width: 40,
@@ -280,7 +285,20 @@ export function DashboardNavMenu({
                     </button>
                   </div>
 
-                  <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <span
+                      style={{
+                        paddingInline: 8,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        color: "#64748b",
+                      }}
+                    >
+                      Navigazione
+                    </span>
+
                     {navItems.map((item) => {
                       const active =
                         pathname === item.href ||
@@ -290,7 +308,7 @@ export function DashboardNavMenu({
                         <Link
                           key={item.href}
                           href={item.href}
-                          onClick={() => setOpen(false)}
+                          onClick={closeMenu}
                           data-dashboard-menu-close="true"
                           style={{
                             textDecoration: "none",
@@ -298,13 +316,20 @@ export function DashboardNavMenu({
                             padding: "14px 16px",
                             background: active ? "#e2e8f0" : "#f8fafc",
                             color: "#0f172a",
-                            border: "1px solid #e2e8f0",
+                            border: active ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
                             fontWeight: 700,
                             fontSize: 16,
                             lineHeight: 1.35,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
                           }}
                         >
-                          {item.label}
+                          <span>{item.label}</span>
+                          <span style={{ color: active ? "#0f172a" : "#64748b", display: "inline-flex" }}>
+                            <ArrowIcon />
+                          </span>
                         </Link>
                       );
                     })}
