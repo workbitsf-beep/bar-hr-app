@@ -60,14 +60,8 @@ export type OwnerDirectoryItem = {
   restaurantCount: number;
   companyCount: number;
   estimatedMonthlyRevenue: number;
-  activities: Array<{
-    id: string;
-    name: string;
-    activityType: ActivityTypeValue;
-    city: string | null;
-    status: SubscriptionStatusValue;
-    planType: PlanTypeValue;
-  }>;
+  searchText: string;
+  activityPreview: string[];
 };
 
 export type StaffDirectoryItem = {
@@ -77,13 +71,8 @@ export type StaffDirectoryItem = {
   email: string;
   roles: RoleValue[];
   activityCount: number;
-  activities: Array<{
-    id: string;
-    name: string;
-    activityType: ActivityTypeValue;
-    city: string | null;
-    role: RoleValue;
-  }>;
+  searchText: string;
+  activityPreview: string[];
 };
 
 export type SuperAdminOverviewSummary = {
@@ -745,14 +734,7 @@ export function SuperAdminOverviewClient({
   const filteredOwners = useMemo(
     () =>
       owners.filter((owner) => {
-        const haystack = [
-          owner.firstName,
-          owner.lastName,
-          owner.email,
-          ...owner.activities.map((activity) => `${activity.name} ${activity.city ?? ""}`),
-        ].join(" ");
-
-        return matchesText(haystack, ownerQuery);
+        return matchesText(owner.searchText, ownerQuery);
       }),
     [ownerQuery, owners]
   );
@@ -760,18 +742,7 @@ export function SuperAdminOverviewClient({
   const filteredStaff = useMemo(
     () =>
       staff.filter((member) => {
-        const haystack = [
-          member.firstName,
-          member.lastName,
-          member.email,
-          ...member.roles.map(getRoleLabel),
-          ...member.activities.map(
-            (activity) =>
-              `${activity.name} ${activity.city ?? ""} ${getRoleLabel(activity.role)}`
-          ),
-        ].join(" ");
-
-        return matchesText(haystack, staffQuery);
+        return matchesText(member.searchText, staffQuery);
       }),
     [staff, staffQuery]
   );
@@ -1086,7 +1057,7 @@ export function SuperAdminOverviewClient({
                 `${owner.activityCount} attivita collegate`,
                 `${owner.restaurantCount} ristorazione, ${owner.companyCount} aziende`,
                 `Ricavo stimato gestito: ${formatCurrency(owner.estimatedMonthlyRevenue)} / mese`,
-                owner.activities.map((activity) => activity.name).slice(0, 3).join(", ") ||
+                owner.activityPreview.join(", ") ||
                   "Nessuna attivita",
               ]}
             />
@@ -1146,10 +1117,7 @@ export function SuperAdminOverviewClient({
               lines={[
                 `${member.activityCount} attivita collegate`,
                 `Ruoli: ${member.roles.map(getRoleLabel).join(", ")}`,
-                member.activities
-                  .map((activity) => `${activity.name} (${getRoleLabel(activity.role)})`)
-                  .slice(0, 3)
-                  .join(", "),
+                member.activityPreview.join(", "),
               ]}
             />
           ))}

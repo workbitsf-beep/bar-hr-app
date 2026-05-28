@@ -77,19 +77,17 @@ function buildOwnerDirectory(activities: ActivityItem[]) {
         restaurantCount: 0,
         companyCount: 0,
         estimatedMonthlyRevenue: 0,
-        activities: [],
+        searchText: `${activity.owner.firstName} ${activity.owner.lastName} ${activity.owner.email}`,
+        activityPreview: [],
       } satisfies OwnerDirectoryItem);
 
     current.activityCount += 1;
     current.estimatedMonthlyRevenue += getEstimatedMonthlyRevenue(activity);
-    current.activities.push({
-      id: activity.id,
-      name: activity.name,
-      activityType: activity.activityType,
-      city: activity.city,
-      status: activity.subscription.status,
-      planType: activity.subscription.planType,
-    });
+    current.searchText = `${current.searchText} ${activity.name} ${activity.city ?? ""} ${activity.activityType}`;
+
+    if (current.activityPreview.length < 3) {
+      current.activityPreview.push(activity.name);
+    }
 
     if (activity.activityType === "COMPANY") {
       current.companyCount += 1;
@@ -133,7 +131,8 @@ function buildStaffDirectory(activities: ActivityWithMemberships[]) {
           email: membership.user.email,
           roles: [],
           activityCount: 0,
-          activities: [],
+          searchText: `${membership.user.firstName} ${membership.user.lastName} ${membership.user.email}`,
+          activityPreview: [],
         } satisfies StaffDirectoryItem);
 
       if (!current.roles.includes(membershipRole)) {
@@ -141,13 +140,11 @@ function buildStaffDirectory(activities: ActivityWithMemberships[]) {
       }
 
       current.activityCount += 1;
-      current.activities.push({
-        id: activity.id,
-        name: activity.name,
-        activityType: activity.activityType,
-        city: activity.city,
-        role: membershipRole,
-      });
+      current.searchText = `${current.searchText} ${activity.name} ${activity.city ?? ""} ${membershipRole}`;
+
+      if (current.activityPreview.length < 3) {
+        current.activityPreview.push(`${activity.name} (${membershipRole === "MANAGER" ? "Manager" : "Dipendente"})`);
+      }
 
       staffMap.set(membership.user.id, current);
     }
