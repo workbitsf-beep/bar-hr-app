@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardContext } from "./context";
+import { KpiDashboard } from "./kpi-dashboard";
 import { OwnerRequestCards } from "./owner-request-cards";
 import { ClockActionsPanel } from "./timelogs/timelogs-client";
 import {
@@ -243,6 +244,14 @@ export default async function DashboardPage() {
             subtitle={`Ore reali ${ownHours.realHours.toFixed(2)} - aggiornate in tempo reale`}
           />
         </Panel>
+      ) : null}
+
+      {canManagePeople ? (
+        <KpiDashboard
+          activeBarId={activeBarId}
+          role={role}
+          activityType={activeBarActivityType}
+        />
       ) : null}
 
       {isRestaurant ? (
