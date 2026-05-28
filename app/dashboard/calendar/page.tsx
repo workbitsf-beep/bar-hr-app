@@ -142,7 +142,10 @@ export default async function DashboardCalendarPage({
     999
   );
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
-  const canManageShifts = isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
+  const canManageRestaurantShifts =
+    isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
+  const canManageCompanyShifts =
+    !isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
   const canReviewCompanyRequests = !isRestaurant && role === Role.OWNER;
   const canAssignCompanyCourses = !isRestaurant && role === Role.OWNER;
 
@@ -177,8 +180,7 @@ export default async function DashboardCalendarPage({
             },
           })
         : Promise.resolve(null),
-      isRestaurant
-        ? prisma.shift.findMany({
+      prisma.shift.findMany({
             where: {
               barId: activeBarId,
               startTime: {
@@ -210,8 +212,7 @@ export default async function DashboardCalendarPage({
                 },
               },
             },
-          })
-        : Promise.resolve([]),
+          }),
       isRestaurant
         ? prisma.availability.findMany({
             where: {
@@ -282,7 +283,12 @@ export default async function DashboardCalendarPage({
             where: {
               barId: activeBarId,
               type: {
-                in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+                in: [
+                  RequestType.VACATION,
+                  RequestType.PERMISSION,
+                  RequestType.SICKNESS,
+                  RequestType.OVERTIME,
+                ],
               },
               status: RequestStatus.PENDING,
               startsAt: {
@@ -346,7 +352,7 @@ export default async function DashboardCalendarPage({
             },
           })
         : Promise.resolve([]),
-      canManageShifts
+      canManageRestaurantShifts || canManageCompanyShifts || canAssignCompanyCourses
         ? prisma.employeeBar.findMany({
             where: {
               barId: activeBarId,
@@ -646,7 +652,7 @@ export default async function DashboardCalendarPage({
       shift.startTime <= currentMonthEnd &&
       shift.endTime >= currentMonthStart
   ).length;
-  const canPublishShifts = canManageShifts;
+  const canPublishShifts = role === Role.OWNER || role === Role.MANAGER;
 
   return (
     <Stack columns="minmax(0, 1fr)">
@@ -697,7 +703,7 @@ export default async function DashboardCalendarPage({
           </div>
         }
       >
-        {canManageShifts ? (
+        {canManageRestaurantShifts ? (
           <OwnerCalendarClient
             locale={locale}
             weekdayLabels={weekdayLabels}
@@ -716,6 +722,7 @@ export default async function DashboardCalendarPage({
             role={String(role)}
             activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
             members={memberOptions}
+            presets={shiftPresets}
           />
         )}
       </Panel>

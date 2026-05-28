@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { StatusPill, TextInput } from "../ui";
 import type {
@@ -21,6 +21,8 @@ const surfaceStyle = {
   borderRadius: 28,
   boxShadow: "0 18px 40px rgba(15, 23, 42, 0.07)",
 };
+
+type DirectorySection = "owners" | "staff" | "activities";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("it-IT", {
@@ -539,9 +541,14 @@ export function SuperAdminOverviewClient({
   const [ownerQuery, setOwnerQuery] = useState("");
   const [staffQuery, setStaffQuery] = useState("");
   const [activityQuery, setActivityQuery] = useState("");
+  const [activeDirectorySection, setActiveDirectorySection] =
+    useState<DirectorySection>("activities");
   const [activityTypeFilter, setActivityTypeFilter] = useState<
     "ALL" | ActivityTypeValue
   >("ALL");
+  const deferredOwnerQuery = useDeferredValue(ownerQuery);
+  const deferredStaffQuery = useDeferredValue(staffQuery);
+  const deferredActivityQuery = useDeferredValue(activityQuery);
 
   const revenueSummary = useMemo(() => {
     let activeMonthly = 0;
@@ -655,17 +662,17 @@ export function SuperAdminOverviewClient({
   const filteredOwners = useMemo(
     () =>
       owners.filter((owner) => {
-        return matchesText(owner.searchText, ownerQuery);
+        return matchesText(owner.searchText, deferredOwnerQuery);
       }),
-    [ownerQuery, owners]
+    [deferredOwnerQuery, owners]
   );
 
   const filteredStaff = useMemo(
     () =>
       staff.filter((member) => {
-        return matchesText(member.searchText, staffQuery);
+        return matchesText(member.searchText, deferredStaffQuery);
       }),
-    [staff, staffQuery]
+    [deferredStaffQuery, staff]
   );
 
   const filteredActivities = useMemo(
@@ -688,9 +695,9 @@ export function SuperAdminOverviewClient({
           getStatusLabel(activity),
         ].join(" ");
 
-        return matchesText(haystack, activityQuery);
+        return matchesText(haystack, deferredActivityQuery);
       }),
-    [activities, activityQuery, activityTypeFilter]
+    [activities, activityTypeFilter, deferredActivityQuery]
   );
 
   return (
@@ -934,11 +941,61 @@ export function SuperAdminOverviewClient({
       <section
         style={{
           ...surfaceStyle,
-          padding: 22,
+          padding: 18,
           display: "grid",
-          gap: 16,
+          gap: 12,
         }}
       >
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          {[
+            ["activities", `Attivita (${activities.length})`],
+            ["owners", `Titolari (${owners.length})`],
+            ["staff", `Staff (${staff.length})`],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setActiveDirectorySection(value as DirectorySection)}
+              style={{
+                borderRadius: 999,
+                border:
+                  activeDirectorySection === value
+                    ? "1px solid #0f172a"
+                    : "1px solid #dbe3ee",
+                background:
+                  activeDirectorySection === value ? "#0f172a" : "#ffffff",
+                color: activeDirectorySection === value ? "#ffffff" : "#334155",
+                padding: "10px 14px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span style={{ color: "#64748b", lineHeight: 1.6 }}>
+          La console completa resta disponibile, ma mostro una directory pesante per volta per
+          rendere il caricamento piu fluido.
+        </span>
+      </section>
+
+      {activeDirectorySection === "owners" ? (
+        <section
+          style={{
+            ...surfaceStyle,
+            padding: 22,
+            display: "grid",
+            gap: 16,
+          }}
+        >
         <div
           style={{
             display: "flex",
@@ -990,16 +1047,18 @@ export function SuperAdminOverviewClient({
             Nessun titolare trovato con i filtri attuali.
           </div>
         ) : null}
-      </section>
+        </section>
+      ) : null}
 
-      <section
-        style={{
-          ...surfaceStyle,
-          padding: 22,
-          display: "grid",
-          gap: 16,
-        }}
-      >
+      {activeDirectorySection === "staff" ? (
+        <section
+          style={{
+            ...surfaceStyle,
+            padding: 22,
+            display: "grid",
+            gap: 16,
+          }}
+        >
         <div
           style={{
             display: "flex",
@@ -1049,16 +1108,18 @@ export function SuperAdminOverviewClient({
             Nessun membro dello staff trovato con i filtri attuali.
           </div>
         ) : null}
-      </section>
+        </section>
+      ) : null}
 
-      <section
-        style={{
-          ...surfaceStyle,
-          padding: 22,
-          display: "grid",
-          gap: 16,
-        }}
-      >
+      {activeDirectorySection === "activities" ? (
+        <section
+          style={{
+            ...surfaceStyle,
+            padding: 22,
+            display: "grid",
+            gap: 16,
+          }}
+        >
         <div
           style={{
             display: "flex",
@@ -1220,7 +1281,8 @@ export function SuperAdminOverviewClient({
             Nessuna attivita trovata con i filtri attuali.
           </div>
         ) : null}
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 }

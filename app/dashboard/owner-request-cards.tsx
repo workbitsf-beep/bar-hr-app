@@ -60,6 +60,14 @@ function requestLabel(type: RequestType) {
     return "Permesso";
   }
 
+  if (type === RequestType.SICKNESS) {
+    return "Malattia";
+  }
+
+  if (type === RequestType.OVERTIME) {
+    return "Straordinario";
+  }
+
   return "Cambio turno";
 }
 

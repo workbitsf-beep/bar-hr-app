@@ -69,6 +69,7 @@ enum RequestType {
   PERMISSION
   SHIFT_CHANGE
   SICKNESS
+  OVERTIME
 }
 
 enum RequestStatus {

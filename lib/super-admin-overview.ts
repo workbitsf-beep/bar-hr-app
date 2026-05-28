@@ -11,6 +11,9 @@ import type {
 } from "@/lib/super-admin-overview-types";
 
 type ActivityMembership = {
+  barId: string;
+  barName: string;
+  barCity: string | null;
   role: Role;
   user: {
     id: string;
@@ -18,10 +21,6 @@ type ActivityMembership = {
     lastName: string;
     email: string;
   };
-};
-
-type ActivityWithMemberships = ActivityItem & {
-  memberships: ActivityMembership[];
 };
 
 const MONTHLY_PRICE = 29.99;
@@ -101,46 +100,44 @@ function buildOwnerDirectory(activities: ActivityItem[]) {
   });
 }
 
-function buildStaffDirectory(activities: ActivityWithMemberships[]) {
+function buildStaffDirectory(memberships: ActivityMembership[]) {
   const staffMap = new Map<string, StaffDirectoryItem>();
 
-  for (const activity of activities) {
-    for (const membership of activity.memberships) {
-      if (membership.role === Role.OWNER || membership.role === Role.SUPER_ADMIN) {
-        continue;
-      }
-
-      const membershipRole =
-        membership.role === Role.MANAGER ? "MANAGER" : "EMPLOYEE";
-
-      const current =
-        staffMap.get(membership.user.id) ??
-        ({
-          id: membership.user.id,
-          firstName: membership.user.firstName,
-          lastName: membership.user.lastName,
-          email: membership.user.email,
-          roles: [],
-          activityCount: 0,
-          searchText: `${membership.user.firstName} ${membership.user.lastName} ${membership.user.email}`,
-          activityPreview: [],
-        } satisfies StaffDirectoryItem);
-
-      if (!current.roles.includes(membershipRole)) {
-        current.roles.push(membershipRole);
-      }
-
-      current.activityCount += 1;
-      current.searchText = `${current.searchText} ${activity.name} ${activity.city ?? ""} ${membershipRole}`;
-
-      if (current.activityPreview.length < 3) {
-        current.activityPreview.push(
-          `${activity.name} (${membershipRole === "MANAGER" ? "Manager" : "Dipendente"})`
-        );
-      }
-
-      staffMap.set(membership.user.id, current);
+  for (const membership of memberships) {
+    if (membership.role === Role.OWNER || membership.role === Role.SUPER_ADMIN) {
+      continue;
     }
+
+    const membershipRole =
+      membership.role === Role.MANAGER ? "MANAGER" : "EMPLOYEE";
+
+    const current =
+      staffMap.get(membership.user.id) ??
+      ({
+        id: membership.user.id,
+        firstName: membership.user.firstName,
+        lastName: membership.user.lastName,
+        email: membership.user.email,
+        roles: [],
+        activityCount: 0,
+        searchText: `${membership.user.firstName} ${membership.user.lastName} ${membership.user.email}`,
+        activityPreview: [],
+      } satisfies StaffDirectoryItem);
+
+    if (!current.roles.includes(membershipRole)) {
+      current.roles.push(membershipRole);
+    }
+
+    current.activityCount += 1;
+    current.searchText = `${current.searchText} ${membership.barName} ${membership.barCity ?? ""} ${membershipRole}`;
+
+    if (current.activityPreview.length < 3) {
+      current.activityPreview.push(
+        `${membership.barName} (${membershipRole === "MANAGER" ? "Manager" : "Dipendente"})`
+      );
+    }
+
+    staffMap.set(membership.user.id, current);
   }
 
   return [...staffMap.values()].sort((left, right) => {
@@ -224,7 +221,7 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
   const last30Days = new Date();
   last30Days.setDate(last30Days.getDate() - 30);
 
-  const [bars, pendingRequests, openTasks, last30Timelogs] = await Promise.all([
+  const [bars, memberships, pendingRequests, openTasks, last30Timelogs] = await Promise.all([
     prisma.bar.findMany({
       orderBy: [{ createdAt: "desc" }],
       select: {
@@ -252,31 +249,38 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
             trialEndsAt: true,
           },
         },
-        memberships: {
-          where: {
-            isActive: true,
-            role: {
-              in: [Role.OWNER, Role.MANAGER, Role.EMPLOYEE],
-            },
-          },
-          select: {
-            role: true,
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
         _count: {
           select: {
             shifts: true,
             timeLogs: true,
             requests: true,
             tasks: true,
+          },
+        },
+      },
+    }),
+    prisma.employeeBar.findMany({
+      where: {
+        isActive: true,
+        role: {
+          in: [Role.OWNER, Role.MANAGER, Role.EMPLOYEE],
+        },
+      },
+      select: {
+        barId: true,
+        role: true,
+        bar: {
+          select: {
+            name: true,
+            city: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           },
         },
       },
@@ -302,63 +306,100 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
     }),
   ]);
 
-  const activities: ActivityWithMemberships[] = bars.map(
-    (bar) =>
-      ({
-        id: bar.id,
-        name: bar.name,
-        activityType: bar.activityType,
-        city: bar.city,
-        email: bar.email,
-        createdAt: bar.createdAt.toISOString(),
-        owner: {
-          id: bar.owner.id,
-          firstName: bar.owner.firstName,
-          lastName: bar.owner.lastName,
-          email: bar.owner.email,
-        },
-        memberships: bar.memberships.map((membership) => ({
-          role: membership.role,
-          user: {
-            id: membership.user.id,
-            firstName: membership.user.firstName,
-            lastName: membership.user.lastName,
-            email: membership.user.email,
-          },
-        })),
-        staffCounts: {
-          owners: bar.memberships.filter((membership) => membership.role === Role.OWNER)
-            .length,
-          managers: bar.memberships.filter((membership) => membership.role === Role.MANAGER)
-            .length,
-          employees: bar.memberships.filter(
-            (membership) => membership.role === Role.EMPLOYEE
-          ).length,
-          total: bar.memberships.length,
-        },
-        operations: {
-          shifts: bar._count.shifts,
-          timeLogs: bar._count.timeLogs,
-          requests: bar._count.requests,
-          tasks: bar._count.tasks,
-        },
-        subscription: {
-          planType: bar.subscription?.planType ?? "PAID",
-          status: bar.subscription?.status ?? "INACTIVE",
-          billingInterval: bar.subscription?.billingInterval ?? null,
-          monthlyDiscountPercent: bar.subscription?.monthlyDiscountPercent ?? 0,
-          currentPeriodEnd: bar.subscription?.currentPeriodEnd?.toISOString() ?? null,
-          trialEndsAt: bar.subscription?.trialEndsAt?.toISOString() ?? null,
-        },
-      } satisfies ActivityWithMemberships)
-  );
+  const membershipsByBarId = new Map<string, ActivityMembership[]>();
+  const staffCountsByBarId = new Map<
+    string,
+    {
+      owners: number;
+      managers: number;
+      employees: number;
+      total: number;
+    }
+  >();
 
-  const activitiesForClient: ActivityItem[] = activities.map(
-    ({ memberships, ...activity }) => activity
+  for (const membership of memberships) {
+    const currentMemberships = membershipsByBarId.get(membership.barId) ?? [];
+    currentMemberships.push({
+      barId: membership.barId,
+      barName: membership.bar.name,
+      barCity: membership.bar.city,
+      role: membership.role,
+      user: {
+        id: membership.user.id,
+        firstName: membership.user.firstName,
+        lastName: membership.user.lastName,
+        email: membership.user.email,
+      },
+    });
+    membershipsByBarId.set(membership.barId, currentMemberships);
+
+    const currentCounts =
+      staffCountsByBarId.get(membership.barId) ?? {
+        owners: 0,
+        managers: 0,
+        employees: 0,
+        total: 0,
+      };
+
+    currentCounts.total += 1;
+
+    if (membership.role === Role.OWNER) {
+      currentCounts.owners += 1;
+    } else if (membership.role === Role.MANAGER) {
+      currentCounts.managers += 1;
+    } else if (membership.role === Role.EMPLOYEE) {
+      currentCounts.employees += 1;
+    }
+
+    staffCountsByBarId.set(membership.barId, currentCounts);
+  }
+
+  const activities: ActivityItem[] = bars.map((bar) => {
+    const staffCounts =
+      staffCountsByBarId.get(bar.id) ?? {
+        owners: 0,
+        managers: 0,
+        employees: 0,
+        total: 0,
+      };
+
+    return {
+      id: bar.id,
+      name: bar.name,
+      activityType: bar.activityType,
+      city: bar.city,
+      email: bar.email,
+      createdAt: bar.createdAt.toISOString(),
+      owner: {
+        id: bar.owner.id,
+        firstName: bar.owner.firstName,
+        lastName: bar.owner.lastName,
+        email: bar.owner.email,
+      },
+      staffCounts,
+      operations: {
+        shifts: bar._count.shifts,
+        timeLogs: bar._count.timeLogs,
+        requests: bar._count.requests,
+        tasks: bar._count.tasks,
+      },
+      subscription: {
+        planType: bar.subscription?.planType ?? "PAID",
+        status: bar.subscription?.status ?? "INACTIVE",
+        billingInterval: bar.subscription?.billingInterval ?? null,
+        monthlyDiscountPercent: bar.subscription?.monthlyDiscountPercent ?? 0,
+        currentPeriodEnd: bar.subscription?.currentPeriodEnd?.toISOString() ?? null,
+        trialEndsAt: bar.subscription?.trialEndsAt?.toISOString() ?? null,
+      },
+    } satisfies ActivityItem;
+  });
+
+  const owners = buildOwnerDirectory(activities);
+  const flattenedMemberships = Array.from(membershipsByBarId.values()).flatMap(
+    (value) => value
   );
-  const owners = buildOwnerDirectory(activitiesForClient);
-  const staff = buildStaffDirectory(activities);
-  const summary = buildSummary(activitiesForClient, owners, staff, {
+  const staff = buildStaffDirectory(flattenedMemberships);
+  const summary = buildSummary(activities, owners, staff, {
     last30Timelogs,
     pendingRequests,
     openTasks,
@@ -366,7 +407,7 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
 
   return {
     summary,
-    activities: activitiesForClient,
+    activities,
     owners,
     staff,
   };

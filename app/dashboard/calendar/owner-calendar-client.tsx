@@ -126,6 +126,10 @@ function formatRoleLabel(role: string) {
 }
 
 function formatRequestTypeLabel(type: string) {
+  if (type === RequestType.OVERTIME) {
+    return "Straordinario";
+  }
+
   if (type === RequestType.PERMISSION) {
     return "Permesso";
   }
@@ -985,6 +989,7 @@ export function OwnerCalendarClient({
                             <option value={RequestType.VACATION}>Ferie</option>
                             <option value={RequestType.PERMISSION}>Permesso</option>
                             <option value={RequestType.SICKNESS}>Malattia</option>
+                            <option value={RequestType.OVERTIME}>Straordinario</option>
                           </select>
                         </label>
 

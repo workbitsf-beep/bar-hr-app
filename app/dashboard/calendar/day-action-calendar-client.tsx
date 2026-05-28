@@ -4,15 +4,19 @@ import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { combineDateAndTime } from "@/lib/shift-datetime";
+import type { ShiftPreset } from "@/lib/shift-presets";
 import {
   completeTaskAction,
   createAvailabilityAction,
   createBoardNoteAction,
   createCourseAction,
+  createShiftAction,
   createTaskAction,
   createTimeOffRequestAction,
   reviewRequestAction,
 } from "../actions";
+import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { IconButton, PrimaryButton, Select, StatusPill, TextArea, TextInput } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
@@ -43,15 +47,21 @@ type ShiftItem = {
 
 type AvailabilityItem = {
   id: string;
+  userId: string;
   firstName: string;
   lastName: string;
+  startsAt: string;
+  endsAt: string;
 };
 
 type RequestItem = {
   id: string;
   type: string;
+  userId: string;
   firstName: string;
   lastName: string;
+  startsAt: string;
+  endsAt: string;
   approvedBy: string | null;
 };
 
@@ -138,6 +148,10 @@ function formatRange(start: string, end: string, locale: string) {
   return `${formatTime(start, locale)} - ${formatTime(end, locale)}`;
 }
 
+function hasTimeOverlap(rangeStart: string, rangeEnd: string, shiftStart: string, shiftEnd: string) {
+  return new Date(rangeStart) < new Date(shiftEnd) && new Date(rangeEnd) > new Date(shiftStart);
+}
+
 function formatRoleLabel(role: string) {
   if (role === Role.MANAGER) {
     return "Manager";
@@ -151,6 +165,10 @@ function formatRoleLabel(role: string) {
 }
 
 function formatRequestTypeLabel(type: string) {
+  if (type === RequestType.OVERTIME) {
+    return "Straordinario";
+  }
+
   if (type === RequestType.PERMISSION) {
     return "Permesso";
   }
@@ -396,6 +414,7 @@ export function DayActionCalendarClient({
   role,
   activityType,
   members,
+  presets,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -404,13 +423,22 @@ export function DayActionCalendarClient({
   role: string;
   activityType: ActivityType;
   members: MemberOption[];
+  presets: ShiftPreset[];
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+  const [showShiftComposer, setShowShiftComposer] = useState(false);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [shiftTitle, setShiftTitle] = useState("");
+  const [shiftDate, setShiftDate] = useState("");
+  const [shiftStart, setShiftStart] = useState("09:00");
+  const [shiftEnd, setShiftEnd] = useState("17:00");
+  const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [requestStart, setRequestStart] = useState("");
   const [requestEnd, setRequestEnd] = useState("");
@@ -460,6 +488,10 @@ export function DayActionCalendarClient({
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
   );
+  const editingShift = useMemo(
+    () => selectedDay?.shifts.find((shift) => shift.id === editingShiftId) ?? null,
+    [editingShiftId, selectedDay]
+  );
   const weeks = useMemo(() => chunkByWeek(days), [days]);
   const visibleWeeks = useMemo(
     () =>
@@ -470,16 +502,65 @@ export function DayActionCalendarClient({
   );
 
   const isCompany = activityType === ActivityType.COMPANY;
+  const canManageOptionalShifts =
+    isCompany && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateRequest = role !== Role.OWNER;
   const canCreateAvailability = !isCompany;
   const canCreateCourse = isCompany && role === Role.OWNER;
   const canReviewRequests = isCompany && role === Role.OWNER;
   const canOpenTaskComposer = role === Role.OWNER || role === Role.MANAGER;
+  const blockedMemberReasons = useMemo(() => {
+    if (!selectedDay || !shiftDate || !shiftStart || !shiftEnd) {
+      return new Map<string, string>();
+    }
+
+    const selectedDayKey = selectedDay.date.slice(0, 10);
+
+    if (selectedDayKey !== shiftDate) {
+      return new Map<string, string>();
+    }
+
+    const nextShiftStart = combineDateAndTime(shiftDate, shiftStart);
+    const nextShiftEnd = combineDateAndTime(shiftDate, shiftEnd);
+    const blocked = new Map<string, string>();
+
+    for (const availability of selectedDay.availabilities) {
+      if (hasTimeOverlap(availability.startsAt, availability.endsAt, nextShiftStart, nextShiftEnd)) {
+        blocked.set(availability.userId, "Indisponibile");
+      }
+    }
+
+    for (const request of selectedDay.requests) {
+      if (hasTimeOverlap(request.startsAt, request.endsAt, nextShiftStart, nextShiftEnd)) {
+        blocked.set(request.userId, formatRequestTypeLabel(request.type));
+      }
+    }
+
+    return blocked;
+  }, [selectedDay, shiftDate, shiftStart, shiftEnd]);
+
+  useEffect(() => {
+    if (blockedMemberReasons.size === 0) {
+      return;
+    }
+
+    setSelectedMembers((current) =>
+      current.filter((memberId) => !blockedMemberReasons.has(memberId))
+    );
+  }, [blockedMemberReasons]);
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
+    setEditingShiftId(null);
+    setShowShiftComposer(false);
     setQuickComposer(null);
     setFeedback(null);
+    setShiftTitle("");
+    setShiftDate(toDateTimeLocal(day.date, 0, 0).slice(0, 10));
+    setShiftStart("09:00");
+    setShiftEnd("17:00");
+    setSelectedPresetKey("CUSTOM");
+    setSelectedMembers([]);
     setRequestType(RequestType.VACATION);
     setRequestStart(toDateTimeLocal(day.date, 9, 0));
     setRequestEnd(toDateTimeLocal(day.date, 18, 0));
@@ -502,9 +583,36 @@ export function DayActionCalendarClient({
       return;
     }
 
+    setEditingShiftId(null);
+    setShowShiftComposer(false);
     setSelectedDate(null);
     setQuickComposer(null);
     setFeedback(null);
+  }
+
+  function toggleMember(memberId: string) {
+    setSelectedMembers((current) =>
+      current.includes(memberId)
+        ? current.filter((id) => id !== memberId)
+        : current.concat(memberId)
+    );
+  }
+
+  function applyPresetByKey(nextKey: string) {
+    setSelectedPresetKey(nextKey);
+
+    if (nextKey === "CUSTOM") {
+      return;
+    }
+
+    const preset = presets.find((entry) => entry.key === nextKey);
+
+    if (!preset) {
+      return;
+    }
+
+    setShiftStart(preset.startTime);
+    setShiftEnd(preset.endTime);
   }
 
   function runAction(task: () => Promise<void>, successMessage: string) {
@@ -536,6 +644,29 @@ export function DayActionCalendarClient({
       setRequestReason("");
       setCertificateCode("");
     }, "Richiesta salvata.");
+  }
+
+  function submitShift() {
+    if (!selectedDay || !shiftDate || !shiftStart || !shiftEnd || selectedMembers.length === 0) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("title", shiftTitle);
+    formData.set("startTime", combineDateAndTime(shiftDate, shiftStart));
+    formData.set("endTime", combineDateAndTime(shiftDate, shiftEnd));
+
+    for (const memberId of selectedMembers) {
+      formData.append("employeeIds", memberId);
+    }
+
+    runAction(
+      async () => {
+        await createShiftAction(formData);
+        setShowShiftComposer(false);
+      },
+      "Turno aggiunto."
+    );
   }
 
   function submitAvailability() {
@@ -877,6 +1008,207 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
+                {canManageOptionalShifts ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>
+                      <IconButton
+                        type="button"
+                        onClick={() => setShowShiftComposer((current) => !current)}
+                        aria-label="Aggiungi turno"
+                        disabled={isPending}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </IconButton>
+                    </div>
+
+                    {showShiftComposer ? (
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 12,
+                          padding: 16,
+                          borderRadius: 20,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo turno</span>
+                          <TextInput
+                            value={shiftTitle}
+                            onChange={(event) => setShiftTitle(event.target.value)}
+                            placeholder="Turno ufficio, presidio, supporto"
+                          />
+                        </label>
+
+                        {presets.length > 0 ? (
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario standard</span>
+                            <Select
+                              value={selectedPresetKey}
+                              onChange={(event) => applyPresetByKey(event.target.value)}
+                            >
+                              <option value="CUSTOM">Personalizzato</option>
+                              {presets.map((preset) => (
+                                <option key={preset.key} value={preset.key}>
+                                  {preset.label} - {preset.startTime} / {preset.endTime}
+                                </option>
+                              ))}
+                            </Select>
+                          </label>
+                        ) : null}
+
+                        <div
+                          className="dashboard-modal-body-grid"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            gap: 12,
+                          }}
+                        >
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
+                            <TextInput
+                              type="date"
+                              value={shiftDate}
+                              onChange={(event) => setShiftDate(event.target.value)}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
+                            <TextInput
+                              type="time"
+                              value={shiftStart}
+                              onChange={(event) => {
+                                setSelectedPresetKey("CUSTOM");
+                                setShiftStart(event.target.value);
+                              }}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
+                            <TextInput
+                              type="time"
+                              value={shiftEnd}
+                              onChange={(event) => {
+                                setSelectedPresetKey("CUSTOM");
+                                setShiftEnd(event.target.value);
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
+                          <div
+                            className="dashboard-modal-members-grid"
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                              gap: 10,
+                            }}
+                          >
+                            {members.map((member) => (
+                              <label
+                                key={member.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  padding: "12px 14px",
+                                  borderRadius: 16,
+                                  border: "1px solid #e2e8f0",
+                                  background: selectedMembers.includes(member.id) ? "#e2e8f0" : "#ffffff",
+                                  color: blockedMemberReasons.has(member.id) ? "#94a3b8" : "#0f172a",
+                                  opacity: blockedMemberReasons.has(member.id) ? 0.6 : 1,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMembers.includes(member.id)}
+                                  disabled={blockedMemberReasons.has(member.id)}
+                                  onChange={() => toggleMember(member.id)}
+                                />
+                                <span style={{ display: "grid", gap: 2 }}>
+                                  <span>
+                                    {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
+                                  </span>
+                                  {blockedMemberReasons.has(member.id) ? (
+                                    <span style={{ fontSize: 12, color: "#b45309" }}>
+                                      {blockedMemberReasons.get(member.id)}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="dashboard-modal-actions" style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <PrimaryButton
+                            type="button"
+                            onClick={submitShift}
+                            disabled={isPending || !shiftDate || !shiftStart || !shiftEnd || selectedMembers.length === 0}
+                          >
+                            {isPending ? "Salvataggio..." : "Salva turno"}
+                          </PrimaryButton>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {selectedDay.shifts.length === 0 ? (
+                      <div style={{ color: "#64748b" }}>Nessun turno presente in questa giornata.</div>
+                    ) : (
+                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                        {selectedDay.shifts.map((shift) => (
+                          <button
+                            key={shift.id}
+                            type="button"
+                            className="dashboard-list-card"
+                            onClick={() => setEditingShiftId(shift.id)}
+                            disabled={isPending}
+                            style={{
+                              width: "100%",
+                              padding: 14,
+                              borderRadius: 18,
+                              border: "1px solid #e2e8f0",
+                              background: "#f8fafc",
+                              textAlign: "left",
+                              display: "grid",
+                              gap: 6,
+                              cursor: isPending ? "default" : "pointer",
+                            }}
+                          >
+                            <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                              {formatRange(shift.startTime, shift.endTime, locale)}
+                            </strong>
+                            <span style={{ color: "#475569" }}>
+                              {formatAssignmentNames(shift.assignments)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
                 {canReviewRequests ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
@@ -979,6 +1311,7 @@ export function DayActionCalendarClient({
                           <option value={RequestType.VACATION}>Ferie</option>
                           <option value={RequestType.PERMISSION}>Permesso</option>
                           <option value={RequestType.SICKNESS}>Malattia</option>
+                          <option value={RequestType.OVERTIME}>Straordinario</option>
                         </Select>
                       </label>
 
@@ -1228,7 +1561,9 @@ export function DayActionCalendarClient({
                     </div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.shifts.map((shift) => renderShiftCard(shift, locale, true))}
+                      {!canManageOptionalShifts
+                        ? selectedDay.shifts.map((shift) => renderShiftCard(shift, locale, true))
+                        : null}
                       {selectedDay.courses.map((course) =>
                         renderCourseCard(course, locale, true)
                       )}
@@ -1396,6 +1731,15 @@ export function DayActionCalendarClient({
         onClose={() => setQuickComposer(null)}
         onSubmitTask={submitQuickTask}
         onSubmitBoard={submitQuickBoard}
+      />
+      <ShiftEditorModal
+        open={Boolean(editingShift)}
+        locale={locale}
+        canManage
+        shift={editingShift}
+        members={members}
+        presets={presets}
+        onClose={() => setEditingShiftId(null)}
       />
     </>
   );

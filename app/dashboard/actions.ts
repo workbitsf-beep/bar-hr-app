@@ -86,6 +86,10 @@ function getFullName(user: { firstName: string; lastName: string }) {
 }
 
 function getLeaveTypeLabel(type: RequestType) {
+  if (type === RequestType.OVERTIME) {
+    return "straordinario";
+  }
+
   if (type === RequestType.PERMISSION) {
     return "permesso";
   }
@@ -281,6 +285,10 @@ function shouldAutoConfirmOwnShift(actorUserId: string, employeeIds: string[]) {
 function getShiftConflictLabel(type: "AVAILABILITY" | RequestType) {
   if (type === "AVAILABILITY") {
     return "indisponibilita";
+  }
+
+  if (type === RequestType.OVERTIME) {
+    return "straordinario";
   }
 
   if (type === RequestType.PERMISSION) {
@@ -2081,21 +2089,35 @@ export async function createManualTimeLogAction(formData: FormData) {
 export async function createTimeOffRequestAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
-  if (!activeBarId || role === Role.OWNER) {
-    throw new Error("Unauthorized");
-  }
-
   const typeRaw = String(formData.get("type") ?? "").trim();
+  const targetEmployeeId = String(formData.get("employeeId") ?? "").trim();
   const startsAt = parseRequiredDate(formData.get("startsAt"));
   const endsAt = parseRequiredDate(formData.get("endsAt"));
   const reason = String(formData.get("reason") ?? "").trim();
   const certificateCode = String(formData.get("certificateCode") ?? "").trim();
   const type =
-    typeRaw === RequestType.PERMISSION
-      ? RequestType.PERMISSION
-      : typeRaw === RequestType.SICKNESS
-        ? RequestType.SICKNESS
-        : RequestType.VACATION;
+    typeRaw === RequestType.OVERTIME
+      ? RequestType.OVERTIME
+      : typeRaw === RequestType.PERMISSION
+        ? RequestType.PERMISSION
+        : typeRaw === RequestType.SICKNESS
+          ? RequestType.SICKNESS
+          : RequestType.VACATION;
+  const isOwnerOvertimeRequest = role === Role.OWNER && type === RequestType.OVERTIME;
+
+  if (!activeBarId || (role === Role.OWNER && !isOwnerOvertimeRequest)) {
+    throw new Error("Unauthorized");
+  }
+
+  const employeeId = isOwnerOvertimeRequest ? targetEmployeeId : session.user.id;
+
+  if (!employeeId) {
+    throw new Error("Missing employee");
+  }
+
+  if (isOwnerOvertimeRequest) {
+    await ensureUsersBelongToBar(activeBarId, [employeeId]);
+  }
 
   if (endsAt <= startsAt) {
     throw new Error("Invalid date range");
@@ -2105,12 +2127,12 @@ export async function createTimeOffRequestAction(formData: FormData) {
     throw new Error("Missing certificate code");
   }
 
-  const autoApproved = type === RequestType.SICKNESS;
+  const autoApproved = type === RequestType.SICKNESS || isOwnerOvertimeRequest;
 
   await prisma.request.create({
     data: {
       barId: activeBarId,
-      employeeId: session.user.id,
+      employeeId,
       type,
       status: autoApproved ? RequestStatus.APPROVED : RequestStatus.PENDING,
       ownerStatus: autoApproved ? RequestStatus.APPROVED : RequestStatus.PENDING,
@@ -2120,6 +2142,7 @@ export async function createTimeOffRequestAction(formData: FormData) {
       endsAt,
       ...(autoApproved
         ? {
+            reviewedById: isOwnerOvertimeRequest ? session.user.id : null,
             reviewedAt: new Date(),
           }
         : {}),
@@ -2130,6 +2153,10 @@ export async function createTimeOffRequestAction(formData: FormData) {
     const notificationContext = await getBarNotificationContext(activeBarId);
 
     if (!notificationContext) {
+      return;
+    }
+
+    if (isOwnerOvertimeRequest) {
       return;
     }
 
@@ -2150,6 +2177,7 @@ export async function createTimeOffRequestAction(formData: FormData) {
     );
   });
 
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard/export");
   revalidatePath("/dashboard/calendar");
@@ -2479,6 +2507,7 @@ export async function reviewRequestAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/requests");
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/export");
   revalidatePath("/dashboard/shifts");
   revalidatePath("/dashboard/calendar");

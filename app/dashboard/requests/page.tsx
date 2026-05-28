@@ -35,6 +35,26 @@ function requestTone(status: RequestStatus) {
   return "warning" as const;
 }
 
+function requestLabel(type: RequestType | string) {
+  if (type === RequestType.VACATION) {
+    return "Ferie";
+  }
+
+  if (type === RequestType.PERMISSION) {
+    return "Permesso";
+  }
+
+  if (type === RequestType.SICKNESS) {
+    return "Malattia";
+  }
+
+  if (type === RequestType.OVERTIME) {
+    return "Straordinario";
+  }
+
+  return "Cambio turno";
+}
+
 function getReviewerName(
   reviewer:
     | {
@@ -69,7 +89,7 @@ export default async function DashboardRequestsPage() {
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
   const canCreateRequests = role !== Role.OWNER;
-  const [requests, ownShifts, teammates, availabilities] = await Promise.all([
+  const [requests, ownShifts, teammates, availabilities, overtimeMembers] = await Promise.all([
     prisma.request.findMany({
       where: {
         barId: activeBarId,
@@ -188,6 +208,24 @@ export default async function DashboardRequestsPage() {
             },
           },
         }),
+    role === Role.OWNER
+      ? prisma.employeeBar.findMany({
+          where: {
+            barId: activeBarId,
+            isActive: true,
+          },
+          orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -195,7 +233,7 @@ export default async function DashboardRequestsPage() {
       <Stack>
         {canCreateRequests ? (
           <>
-            <Panel title="Richiedi ferie, permesso o malattia">
+            <Panel title="Richiedi ferie, permesso, malattia o straordinario">
               <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
                 <div
                   className="dashboard-inline-grid"
@@ -210,6 +248,7 @@ export default async function DashboardRequestsPage() {
                       <option value="VACATION">Ferie</option>
                       <option value="PERMISSION">Permesso</option>
                       <option value="SICKNESS">Malattia</option>
+                      <option value="OVERTIME">Straordinario</option>
                     </Select>
                   </FormField>
 
@@ -223,7 +262,7 @@ export default async function DashboardRequestsPage() {
                 </div>
 
                 <FormField label="Motivo">
-                  <TextArea name="reason" placeholder="Spiega brevemente la richiesta" />
+                  <TextArea name="reason" placeholder="Spiega brevemente la richiesta o le ore extra svolte" />
                 </FormField>
 
                 <FormField label="Codice certificato malattia">
@@ -283,6 +322,52 @@ export default async function DashboardRequestsPage() {
               </Panel>
             ) : null}
           </>
+        ) : null}
+
+        {role === Role.OWNER ? (
+          <Panel title="Registra straordinario">
+            <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+              <input type="hidden" name="type" value="OVERTIME" />
+
+              <div
+                className="dashboard-inline-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <FormField label="Persona">
+                  <Select name="employeeId" required defaultValue="">
+                    <option value="" disabled>
+                      Seleziona una persona
+                    </option>
+                    {overtimeMembers.map((member) => (
+                      <option key={member.user.id} value={member.user.id}>
+                        {member.user.firstName} {member.user.lastName} - {member.role}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+
+                <FormField label="Da">
+                  <TextInput name="startsAt" type="datetime-local" required />
+                </FormField>
+
+                <FormField label="A">
+                  <TextInput name="endsAt" type="datetime-local" required />
+                </FormField>
+              </div>
+
+              <FormField label="Dettaglio">
+                <TextArea name="reason" placeholder="Motivo o descrizione dello straordinario" />
+              </FormField>
+
+              <div className="dashboard-form-actions">
+                <PrimaryButton type="submit">Registra straordinario</PrimaryButton>
+              </div>
+            </form>
+          </Panel>
         ) : null}
 
         {!isCompany ? (
@@ -364,13 +449,7 @@ export default async function DashboardRequestsPage() {
                   <ItemCard
                     key={request.id}
                     title={
-                      request.type === "VACATION"
-                        ? "Ferie"
-                        : request.type === "PERMISSION"
-                          ? "Permesso"
-                          : request.type === "SICKNESS"
-                            ? "Malattia"
-                            : "Cambio turno"
+                      requestLabel(request.type)
                     }
                     subtitle={`${request.employee.firstName} ${request.employee.lastName}`}
                     meta={
