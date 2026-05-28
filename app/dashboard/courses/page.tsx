@@ -1,4 +1,4 @@
-import { ActivityType, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createCourseAction, deleteCourseAction } from "../actions";
 import { getDashboardContext } from "../context";
@@ -18,21 +18,13 @@ import {
 } from "../ui";
 
 export default async function DashboardCoursesPage() {
-  const { session, role, activeBarId, activeBarActivityType, billingStatus } =
+  const { session, role, activeBarId, billingStatus } =
     await getDashboardContext();
 
   if (!activeBarId) {
     return (
       <Panel title="Corsi">
         <EmptyState message="Seleziona un locale attivo per gestire i corsi." />
-      </Panel>
-    );
-  }
-
-  if (activeBarActivityType !== ActivityType.COMPANY) {
-    return (
-      <Panel title="Corsi">
-        <EmptyState message="I corsi sono disponibili solo per attivita di tipo azienda." />
       </Panel>
     );
   }

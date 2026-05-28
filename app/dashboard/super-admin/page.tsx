@@ -1,9 +1,7 @@
 import { getDashboardContext } from "../context";
-import { Panel } from "../ui";
 import {
   SuperAdminForbidden,
   SuperAdminFrame,
-  SuperAdminMenuGrid,
 } from "./super-admin-ui";
 import { SuperAdminOverviewLoader } from "./overview-loader";
 
@@ -20,10 +18,6 @@ export default async function SuperAdminPage() {
       description="Una regia centrale per attivita, titolari, staff associato, pagamenti e ricavo stimato."
     >
       <SuperAdminOverviewLoader />
-
-      <Panel title="Azioni rapide">
-        <SuperAdminMenuGrid />
-      </Panel>
     </SuperAdminFrame>
   );
 }

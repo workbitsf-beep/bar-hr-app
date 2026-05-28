@@ -254,7 +254,7 @@ export default async function DashboardPage() {
         />
       ) : null}
 
-      {isRestaurant ? (
+      {!canManagePeople && isRestaurant ? (
         <Panel title="Turni in arrivo" action={<ArrowLinkButton href="/dashboard/shifts" />}>
           {shifts.length === 0 ? (
             <EmptyState message="Nessun turno schedulato al momento." />
@@ -273,6 +273,7 @@ export default async function DashboardPage() {
         </Panel>
       ) : null}
 
+      {!canManagePeople ? (
       <Panel title="Mansioni aperte" action={<ArrowLinkButton href="/dashboard/tasks" />}>
         {tasks.length === 0 ? (
           <EmptyState message="Nessuna mansione aperta per il locale." />
@@ -295,7 +296,9 @@ export default async function DashboardPage() {
           </ItemList>
         )}
       </Panel>
+      ) : null}
 
+      {!canManagePeople ? (
       <Panel title="Bacheca" action={<ArrowLinkButton href="/dashboard/tasks" />}>
         {notes.length === 0 ? (
           <EmptyState message="Nessun messaggio in bacheca." />
@@ -312,7 +315,9 @@ export default async function DashboardPage() {
           </ItemList>
         )}
       </Panel>
+      ) : null}
 
+      {!canManagePeople ? (
       <Panel title="Richieste in sospeso" action={<ArrowLinkButton href="/dashboard/requests" />}>
         {isOwner ? (
           requestCount === 0 ? (
@@ -370,27 +375,8 @@ export default async function DashboardPage() {
           />
         )}
       </Panel>
-
-      {canManagePeople ? (
-        <Panel
-          title={isOwner ? "Personale" : "Team attivo"}
-          action={<ArrowLinkButton href={isOwner ? "/dashboard/people" : "/dashboard/shifts"} />}
-        >
-          {teamMembers.length === 0 ? (
-            <EmptyState message="Nessun membro attivo collegato al locale." />
-          ) : (
-            <ItemList>
-              {teamMembers.map((member) => (
-                <ItemCard
-                  key={member.id}
-                  title={`${member.user.firstName} ${member.user.lastName}`}
-                  meta={member.role}
-                />
-              ))}
-            </ItemList>
-          )}
-        </Panel>
       ) : null}
+
     </Stack>
   );
 }

@@ -713,6 +713,201 @@ export function SuperAdminOverviewClient({
         }}
       >
         <SectionTitle
+          eyebrow="Ricavi"
+          title="Ricavo annuo stimato"
+          subtitle="Valore calcolato sugli abbonamenti attivi, annuali e mensili, includendo gli sconti impostati."
+        />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <TinyStat
+            label="Ricavo annuo"
+            value={formatCurrency(revenueSummary.activeAnnual)}
+            tone="green"
+          />
+          <TinyStat
+            label="Ricavo mensile"
+            value={formatCurrency(revenueSummary.activeMonthly)}
+            tone="dark"
+          />
+          <TinyStat
+            label="Attivita"
+            value={String(summary.totalActivities)}
+            tone="slate"
+          />
+        </div>
+      </section>
+
+      <section
+        style={{
+          ...surfaceStyle,
+          padding: 22,
+          display: "grid",
+          gap: 16,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <SectionTitle
+            eyebrow="Attivita"
+            title="Clienti e strutture"
+            subtitle="Ricerca rapida per attivita, titolare, citta e stato abbonamento."
+          />
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ width: "min(320px, 100%)" }}>
+              <TextInput
+                value={activityQuery}
+                onChange={(event) => setActivityQuery(event.target.value)}
+                placeholder="Cerca attivita, citta o titolare"
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                ["ALL", "Tutte"],
+                ["RESTAURANT", "Ristorazione"],
+                ["COMPANY", "Aziende"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    setActivityTypeFilter(value as "ALL" | ActivityTypeValue)
+                  }
+                  style={{
+                    borderRadius: 999,
+                    border:
+                      activityTypeFilter === value
+                        ? "1px solid #0f172a"
+                        : "1px solid #dbe3ee",
+                    background:
+                      activityTypeFilter === value ? "#0f172a" : "#ffffff",
+                    color: activityTypeFilter === value ? "#ffffff" : "#334155",
+                    padding: "10px 14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 12 }}>
+          {filteredActivities.slice(0, 24).map((activity) => (
+            <div
+              key={activity.id}
+              style={{
+                padding: 18,
+                borderRadius: 24,
+                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                boxShadow: "0 12px 28px rgba(15, 23, 42, 0.05)",
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <strong style={{ color: "#0f172a", fontSize: 18 }}>{activity.name}</strong>
+                    <StatusPill label={getActivityTypeLabel(activity.activityType)} tone="neutral" />
+                    <StatusPill label={getStatusLabel(activity)} tone={getStatusTone(activity)} />
+                  </div>
+                  <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                    {activity.owner.firstName} {activity.owner.lastName} - {activity.city || "Citta non indicata"}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <ActionLink href="/dashboard/super-admin/bars" label="Struttura" tone="sand" />
+                  <ActionLink href="/dashboard/super-admin/billing" label="Abbonamento" />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <TinyStat
+                  label="Ricavo anno"
+                  value={formatCurrency(getEstimatedAnnualRevenue(activity))}
+                  tone="green"
+                />
+                <TinyStat
+                  label="Ricavo mese"
+                  value={formatCurrency(getEstimatedMonthlyRevenue(activity))}
+                  tone="dark"
+                />
+                <TinyStat
+                  label="Staff"
+                  value={String(activity.staffCounts.total)}
+                  tone="slate"
+                />
+                <TinyStat
+                  label="Sconto"
+                  value={`${activity.subscription.monthlyDiscountPercent}%`}
+                  tone="amber"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredActivities.length === 0 ? (
+          <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+            Nessuna attivita trovata con i filtri attuali.
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "grid", gap: 18 }}>
+      <section
+        style={{
+          ...surfaceStyle,
+          padding: 22,
+          display: "grid",
+          gap: 16,
+          background:
+            "linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96))",
+        }}
+      >
+        <SectionTitle
           eyebrow="Dashboard"
           title="Controllo completo delle attivita"
           subtitle="Monitora strutture, staff associato, stato pagamenti e ricavo stimato senza uscire dalla console centrale."

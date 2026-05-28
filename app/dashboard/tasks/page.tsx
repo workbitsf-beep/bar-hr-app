@@ -4,6 +4,8 @@ import {
   createBoardNoteAction,
   completeTaskAction,
   createTaskAction,
+  deleteAllBoardNotesAction,
+  deleteAllCompletedTasksAction,
   deleteBoardNoteAction,
   deleteCompletedTaskAction,
 } from "../actions";
@@ -157,7 +159,20 @@ export default async function DashboardTasksPage() {
         </div>
       ) : null}
 
-      <Panel title="Bacheca" action={`${notes.length} messaggi`}>
+      <Panel
+        title="Bacheca"
+        action={
+          canManage && notes.length > 0 ? (
+            <form action={deleteAllBoardNotesAction}>
+              <PrimaryButton type="submit" tone="red">
+                Pulisci bacheca
+              </PrimaryButton>
+            </form>
+          ) : (
+            `${notes.length} messaggi`
+          )
+        }
+      >
         {notes.length === 0 ? (
           <EmptyState message="Nessun messaggio pubblicato al momento." />
         ) : (
@@ -182,7 +197,20 @@ export default async function DashboardTasksPage() {
         )}
       </Panel>
 
-      <Panel title="Elenco mansioni" action={`${tasks.length} risultati`}>
+      <Panel
+        title="Elenco mansioni"
+        action={
+          canManage && tasks.some((task) => task.status === "DONE") ? (
+            <form action={deleteAllCompletedTasksAction}>
+              <PrimaryButton type="submit" tone="red">
+                Elimina completate
+              </PrimaryButton>
+            </form>
+          ) : (
+            `${tasks.length} risultati`
+          )
+        }
+      >
         {tasks.length === 0 ? (
           <EmptyState message="Nessuna mansione disponibile." />
         ) : (

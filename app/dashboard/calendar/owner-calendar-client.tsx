@@ -10,6 +10,8 @@ import {
   completeTaskAction,
   createAvailabilityAction,
   createBoardNoteAction,
+  createCalendarClosureAction,
+  createCourseAction,
   createShiftAction,
   createTaskAction,
   createTimeOffRequestAction,
@@ -80,6 +82,23 @@ type NoteItem = {
   authorName: string;
 };
 
+type CourseItem = {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  audienceLabel: string;
+};
+
+type ClosureItem = {
+  id: string;
+  title: string;
+  type: string;
+  startTime: string;
+  endTime: string;
+};
+
 type DayItem = {
   date: string;
   isToday: boolean;
@@ -87,6 +106,8 @@ type DayItem = {
   shifts: ShiftItem[];
   availabilities: AvailabilityItem[];
   requests: RequestItem[];
+  courses: CourseItem[];
+  closures: ClosureItem[];
   tasks: TaskItem[];
   notes: NoteItem[];
 };
@@ -260,6 +281,7 @@ export function OwnerCalendarClient({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
+  const [showCourseComposer, setShowCourseComposer] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [title, setTitle] = useState("");
   const [shiftDate, setShiftDate] = useState("");
@@ -275,6 +297,18 @@ export function OwnerCalendarClient({
   const [availabilityStart, setAvailabilityStart] = useState("");
   const [availabilityEnd, setAvailabilityEnd] = useState("");
   const [availabilityReason, setAvailabilityReason] = useState("");
+  const [courseTitle, setCourseTitle] = useState("");
+  const [courseDescription, setCourseDescription] = useState("");
+  const [courseLocation, setCourseLocation] = useState("");
+  const [courseStart, setCourseStart] = useState("");
+  const [courseEnd, setCourseEnd] = useState("");
+  const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
+  const [courseAssignedToId, setCourseAssignedToId] = useState("");
+  const [showClosureComposer, setShowClosureComposer] = useState(false);
+  const [closureTitle, setClosureTitle] = useState("");
+  const [closureType, setClosureType] = useState("CLOSURE");
+  const [closureStart, setClosureStart] = useState("");
+  const [closureEnd, setClosureEnd] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -366,13 +400,15 @@ export function OwnerCalendarClient({
     setSelectedDate(day.date);
     setEditingShiftId(null);
     setQuickComposer(null);
+    setShowCourseComposer(false);
+    setShowClosureComposer(false);
     setFeedback(null);
     setTitle("");
     setShiftDate(toDateInputValue(day.date));
     setStartTime("09:00");
     setEndTime("17:00");
     setSelectedPresetKey("CUSTOM");
-    setSelectedMembers(day.shifts[0]?.assignments.map((assignment) => assignment.id) ?? []);
+    setSelectedMembers([]);
     setRequestType(RequestType.VACATION);
     setRequestStart(toDateTimeLocal(day.date, 9, 0));
     setRequestEnd(toDateTimeLocal(day.date, 18, 0));
@@ -381,6 +417,17 @@ export function OwnerCalendarClient({
     setAvailabilityStart(toDateTimeLocal(day.date, 9, 0));
     setAvailabilityEnd(toDateTimeLocal(day.date, 18, 0));
     setAvailabilityReason("");
+    setCourseTitle("");
+    setCourseDescription("");
+    setCourseLocation("");
+    setCourseStart(toDateTimeLocal(day.date, 9, 0));
+    setCourseEnd(toDateTimeLocal(day.date, 13, 0));
+    setCourseAssignedToAll(true);
+    setCourseAssignedToId("");
+    setClosureTitle("");
+    setClosureType("CLOSURE");
+    setClosureStart(toDateTimeLocal(day.date, 0, 0));
+    setClosureEnd(toDateTimeLocal(day.date, 23, 59));
   }
 
   function closeModal() {
@@ -390,6 +437,8 @@ export function OwnerCalendarClient({
 
     setEditingShiftId(null);
     setQuickComposer(null);
+    setShowCourseComposer(false);
+    setShowClosureComposer(false);
     setSelectedDate(null);
     setFeedback(null);
   }
@@ -451,7 +500,10 @@ export function OwnerCalendarClient({
 
     runAction(async () => {
       await createShiftAction(formData);
-    }, "Turno aggiunto.", true);
+      setTitle("");
+      setSelectedPresetKey("CUSTOM");
+      setSelectedMembers([]);
+    }, "Turno aggiunto.");
   }
 
   function handleCreateRequest() {
@@ -487,6 +539,53 @@ export function OwnerCalendarClient({
       await createAvailabilityAction(formData);
       setAvailabilityReason("");
     }, "Indisponibilita salvata.");
+  }
+
+  function handleCreateCourse() {
+    if (!selectedDay || !courseTitle.trim() || !courseStart || !courseEnd) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("title", courseTitle);
+    formData.set("description", courseDescription);
+    formData.set("location", courseLocation);
+    formData.set("startsAt", courseStart);
+    formData.set("endsAt", courseEnd);
+
+    if (courseAssignedToAll) {
+      formData.set("assignedToAll", "on");
+    } else if (courseAssignedToId) {
+      formData.set("assignedToId", courseAssignedToId);
+    }
+
+    runAction(async () => {
+      await createCourseAction(formData);
+      setCourseTitle("");
+      setCourseDescription("");
+      setCourseLocation("");
+      setCourseAssignedToAll(true);
+      setCourseAssignedToId("");
+      setShowCourseComposer(false);
+    }, "Corso aggiunto.");
+  }
+
+  function handleCreateClosure() {
+    if (!selectedDay || !closureStart || !closureEnd) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("title", closureTitle);
+    formData.set("type", closureType);
+    formData.set("startsAt", closureStart);
+    formData.set("endsAt", closureEnd);
+
+    runAction(async () => {
+      await createCalendarClosureAction(formData);
+      setClosureTitle("");
+      setShowClosureComposer(false);
+    }, "Giorno speciale aggiunto.");
   }
 
   function handleCompleteTask(taskId: string) {
@@ -605,12 +704,45 @@ export function OwnerCalendarClient({
                     {day.shifts.length === 0 &&
                     day.availabilities.length === 0 &&
                     day.requests.length === 0 &&
+                    day.courses.length === 0 &&
+                    day.closures.length === 0 &&
                     day.tasks.length === 0 &&
                     day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
                     {day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true))}
+
+                    {day.closures.map((closure) => (
+                      <div
+                        key={closure.id}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#fff7ed",
+                          border: "1px solid #fed7aa",
+                          color: "#9a3412",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {closure.title}
+                      </div>
+                    ))}
+
+                    {day.courses.length > 0 ? (
+                      <div
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#eef2ff",
+                          border: "1px solid #c7d2fe",
+                          color: "#3730a3",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Corsi: {day.courses.length}
+                      </div>
+                    ) : null}
 
                     {day.availabilities.map((availability) => (
                       <div
@@ -963,7 +1095,31 @@ export function OwnerCalendarClient({
                 {canCreatePersonalEntries ? (
                   <>
                     <div style={{ display: "grid", gap: 12 }}>
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuova richiesta</strong>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                        }}
+                      >
+                        <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuova richiesta</strong>
+                        <IconButton
+                          type="button"
+                          onClick={() => setRequestType(RequestType.OVERTIME)}
+                          aria-label="Aggiungi straordinario"
+                          disabled={isPending}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M12 5v14M5 12h14"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      </div>
 
                       <div
                         className="dashboard-modal-body-grid"
@@ -1223,6 +1379,344 @@ export function OwnerCalendarClient({
                             ›
                           </span>
                         </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Chiusure e festivita</strong>
+                    <IconButton
+                      type="button"
+                      onClick={() => setShowClosureComposer((current) => !current)}
+                      aria-label="Aggiungi chiusura o festivita"
+                      disabled={isPending}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </IconButton>
+                  </div>
+
+                  {showClosureComposer ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                        padding: 16,
+                        borderRadius: 20,
+                        background: "#fff7ed",
+                        border: "1px solid #fed7aa",
+                      }}
+                    >
+                      <div
+                        className="dashboard-modal-body-grid"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Tipo</span>
+                          <Select value={closureType} onChange={(event) => setClosureType(event.target.value)}>
+                            <option value="CLOSURE">Chiusura</option>
+                            <option value="HOLIDAY">Festivita</option>
+                            <option value="VACATION">Ferie</option>
+                          </Select>
+                        </label>
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo</span>
+                          <input
+                            value={closureTitle}
+                            onChange={(event) => setClosureTitle(event.target.value)}
+                            placeholder="Chiuso per festivita"
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
+                          <input
+                            type="datetime-local"
+                            value={closureStart}
+                            onChange={(event) => setClosureStart(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
+                          <input
+                            type="datetime-local"
+                            value={closureEnd}
+                            onChange={(event) => setClosureEnd(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div className="dashboard-modal-actions">
+                        <PrimaryButton
+                          type="button"
+                          onClick={handleCreateClosure}
+                          disabled={isPending || !closureStart || !closureEnd}
+                        >
+                          {isPending ? "Salvataggio..." : "Salva"}
+                        </PrimaryButton>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedDay.closures.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>Nessuna chiusura o festivita in questa giornata.</div>
+                  ) : (
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {selectedDay.closures.map((closure) => (
+                        <div
+                          key={closure.id}
+                          className="dashboard-list-card"
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#fff7ed",
+                            border: "1px solid #fed7aa",
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <strong style={{ color: "#9a3412" }}>{closure.title}</strong>
+                          <span style={{ color: "#b45309" }}>
+                            {formatDayTime(closure.startTime, locale)} - {formatDayTime(closure.endTime, locale)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Corsi del giorno</strong>
+                    <IconButton
+                      type="button"
+                      onClick={() => setShowCourseComposer((current) => !current)}
+                      aria-label="Aggiungi corso"
+                      disabled={isPending}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </IconButton>
+                  </div>
+
+                  {showCourseComposer ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                        padding: 16,
+                        borderRadius: 20,
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      <label style={{ display: "grid", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo corso</span>
+                        <input
+                          value={courseTitle}
+                          onChange={(event) => setCourseTitle(event.target.value)}
+                          placeholder="Formazione HACCP"
+                          style={{
+                            borderRadius: 16,
+                            border: "1px solid #dbe3ee",
+                            padding: "12px 14px",
+                            fontSize: 15,
+                            background: "#ffffff",
+                          }}
+                        />
+                      </label>
+
+                      <div
+                        className="dashboard-modal-body-grid"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
+                          <input
+                            type="datetime-local"
+                            value={courseStart}
+                            onChange={(event) => setCourseStart(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
+                          <input
+                            type="datetime-local"
+                            value={courseEnd}
+                            onChange={(event) => setCourseEnd(event.target.value)}
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Luogo</span>
+                          <input
+                            value={courseLocation}
+                            onChange={(event) => setCourseLocation(event.target.value)}
+                            placeholder="Sala, sede o link"
+                            style={{
+                              borderRadius: 16,
+                              border: "1px solid #dbe3ee",
+                              padding: "12px 14px",
+                              fontSize: 15,
+                              background: "#ffffff",
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <label style={{ display: "grid", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Informazioni</span>
+                        <textarea
+                          value={courseDescription}
+                          onChange={(event) => setCourseDescription(event.target.value)}
+                          placeholder="Dettagli opzionali"
+                          style={{
+                            minHeight: 90,
+                            resize: "vertical",
+                            borderRadius: 16,
+                            border: "1px solid #dbe3ee",
+                            padding: "12px 14px",
+                            fontSize: 15,
+                            background: "#ffffff",
+                          }}
+                        />
+                      </label>
+
+                      <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+                        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={courseAssignedToAll}
+                            onChange={(event) => {
+                              setCourseAssignedToAll(event.target.checked);
+                              if (event.target.checked) {
+                                setCourseAssignedToId("");
+                              }
+                            }}
+                          />
+                          Tutto il team
+                        </label>
+                        {!courseAssignedToAll ? (
+                          <Select
+                            value={courseAssignedToId}
+                            onChange={(event) => setCourseAssignedToId(event.target.value)}
+                          >
+                            <option value="">Seleziona persona</option>
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.firstName} {member.lastName}
+                              </option>
+                            ))}
+                          </Select>
+                        ) : null}
+                      </div>
+
+                      <div className="dashboard-modal-actions">
+                        <PrimaryButton
+                          type="button"
+                          onClick={handleCreateCourse}
+                          disabled={isPending || !courseTitle.trim() || !courseStart || !courseEnd}
+                        >
+                          {isPending ? "Salvataggio..." : "Salva corso"}
+                        </PrimaryButton>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedDay.courses.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>Nessun corso presente in questa giornata.</div>
+                  ) : (
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {selectedDay.courses.map((course) => (
+                        <div
+                          key={course.id}
+                          className="dashboard-list-card"
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#eef2ff",
+                            border: "1px solid #c7d2fe",
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>{course.title}</strong>
+                          <span style={{ color: "#475569" }}>
+                            {formatDayTime(course.startTime, locale)} - {formatDayTime(course.endTime, locale)}
+                          </span>
+                          <span style={{ color: "#64748b" }}>
+                            {course.audienceLabel}
+                            {course.location ? ` - ${course.location}` : ""}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   )}

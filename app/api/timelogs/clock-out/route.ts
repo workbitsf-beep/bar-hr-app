@@ -125,7 +125,7 @@ export const POST = withBar(
         latitude,
         longitude,
         timestamp: outTimestamp,
-        note: accuracy > 0 ? `Precisione GPS: +/-${Math.round(accuracy)} m` : null,
+        note: null,
       },
     });
 

@@ -77,45 +77,43 @@ export const POST = withBar(
       );
     }
 
-    const openClockIn = await prisma.timeLog.findFirst({
-      where: {
-        userId: session.user.id,
-        barId: session.activeBarId,
-        type: ClockType.IN,
-      },
-      orderBy: {
-        timestamp: "desc",
-      },
-    });
+    const now = new Date();
+    const shiftWindowStart = new Date(now);
+    shiftWindowStart.setHours(0, 0, 0, 0);
 
-    if (openClockIn) {
-      const matchingClockOut = await prisma.timeLog.findFirst({
-        where: {
-          userId: session.user.id,
-          barId: session.activeBarId,
-          type: ClockType.OUT,
-          timestamp: {
-            gte: openClockIn.timestamp,
+    const activeShift = await prisma.shift.findFirst({
+      where: {
+        barId: session.activeBarId,
+        startTime: {
+          lte: now,
+        },
+        endTime: {
+          gte: shiftWindowStart,
+        },
+        assignments: {
+          some: {
+            userId: session.user.id,
           },
         },
-      });
-
-      if (!matchingClockOut) {
-        return Response.json(
-          { ok: false, message: "A clock-in is already open" },
-          { status: 400 }
-        );
-      }
-    }
+      },
+      orderBy: {
+        startTime: "asc",
+      },
+      select: {
+        id: true,
+        endTime: true,
+      },
+    });
 
     const log = await prisma.timeLog.create({
       data: {
         type: ClockType.IN,
         userId: session.user.id,
         barId: session.activeBarId,
+        shiftId: activeShift?.id ?? null,
         latitude,
         longitude,
-        note: accuracy > 0 ? `Precisione GPS: +/-${Math.round(accuracy)} m` : null,
+        note: activeShift ? `Turno previsto fino alle ${activeShift.endTime.toISOString()}` : null,
       },
     });
 

@@ -85,6 +85,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: t.dashboard, href: "/dashboard" },
           { label: t.shifts, href: "/dashboard/shifts" },
           { label: t.tasks, href: "/dashboard/tasks" },
+          { label: "Corsi", href: "/dashboard/courses" },
           { label: t.timelogs, href: "/dashboard/timelogs" },
           { label: t.requests, href: "/dashboard/requests" },
         ];

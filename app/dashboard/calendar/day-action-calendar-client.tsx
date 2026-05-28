@@ -10,6 +10,7 @@ import {
   completeTaskAction,
   createAvailabilityAction,
   createBoardNoteAction,
+  createCalendarClosureAction,
   createCourseAction,
   createShiftAction,
   createTaskAction,
@@ -85,6 +86,14 @@ type CourseItem = {
   audienceLabel: string;
 };
 
+type ClosureItem = {
+  id: string;
+  title: string;
+  type: string;
+  startTime: string;
+  endTime: string;
+};
+
 type TaskItem = {
   id: string;
   title: string;
@@ -112,6 +121,7 @@ type DayItem = {
   requests: RequestItem[];
   pendingRequests: PendingRequestItem[];
   courses: CourseItem[];
+  closures: ClosureItem[];
   tasks: TaskItem[];
   notes: NoteItem[];
 };
@@ -454,6 +464,11 @@ export function DayActionCalendarClient({
   const [courseEnd, setCourseEnd] = useState("");
   const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
   const [courseAssignedToId, setCourseAssignedToId] = useState("");
+  const [showClosureComposer, setShowClosureComposer] = useState(false);
+  const [closureTitle, setClosureTitle] = useState("");
+  const [closureType, setClosureType] = useState("CLOSURE");
+  const [closureStart, setClosureStart] = useState("");
+  const [closureEnd, setClosureEnd] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -506,7 +521,8 @@ export function DayActionCalendarClient({
     isCompany && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateRequest = role !== Role.OWNER;
   const canCreateAvailability = !isCompany;
-  const canCreateCourse = isCompany && role === Role.OWNER;
+  const canCreateCourse = role === Role.OWNER || role === Role.MANAGER;
+  const canCreateClosure = role === Role.OWNER || role === Role.MANAGER;
   const canReviewRequests = isCompany && role === Role.OWNER;
   const canOpenTaskComposer = role === Role.OWNER || role === Role.MANAGER;
   const blockedMemberReasons = useMemo(() => {
@@ -553,6 +569,7 @@ export function DayActionCalendarClient({
     setSelectedDate(day.date);
     setEditingShiftId(null);
     setShowShiftComposer(false);
+    setShowClosureComposer(false);
     setQuickComposer(null);
     setFeedback(null);
     setShiftTitle("");
@@ -576,6 +593,10 @@ export function DayActionCalendarClient({
     setCourseEnd(toDateTimeLocal(day.date, 13, 0));
     setCourseAssignedToAll(true);
     setCourseAssignedToId("");
+    setClosureTitle("");
+    setClosureType("CLOSURE");
+    setClosureStart(toDateTimeLocal(day.date, 0, 0));
+    setClosureEnd(toDateTimeLocal(day.date, 23, 59));
   }
 
   function closeModal() {
@@ -585,6 +606,7 @@ export function DayActionCalendarClient({
 
     setEditingShiftId(null);
     setShowShiftComposer(false);
+    setShowClosureComposer(false);
     setSelectedDate(null);
     setQuickComposer(null);
     setFeedback(null);
@@ -663,7 +685,9 @@ export function DayActionCalendarClient({
     runAction(
       async () => {
         await createShiftAction(formData);
-        setShowShiftComposer(false);
+        setShiftTitle("");
+        setSelectedPresetKey("CUSTOM");
+        setSelectedMembers([]);
       },
       "Turno aggiunto."
     );
@@ -711,6 +735,24 @@ export function DayActionCalendarClient({
       setCourseAssignedToAll(true);
       setCourseAssignedToId("");
     }, "Corso inserito.");
+  }
+
+  function submitClosure() {
+    if (!selectedDay || !closureStart || !closureEnd) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("title", closureTitle);
+    formData.set("type", closureType);
+    formData.set("startsAt", closureStart);
+    formData.set("endsAt", closureEnd);
+
+    runAction(async () => {
+      await createCalendarClosureAction(formData);
+      setClosureTitle("");
+      setShowClosureComposer(false);
+    }, "Giorno speciale salvato.");
   }
 
   function submitReview(requestId: string, decision: RequestStatus) {
@@ -844,12 +886,28 @@ export function DayActionCalendarClient({
                     day.requests.length === 0 &&
                     day.pendingRequests.length === 0 &&
                     day.courses.length === 0 &&
+                    day.closures.length === 0 &&
                     day.tasks.length === 0 &&
                     day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
                     {day.shifts.map((shift) => renderShiftCard(shift, locale, true))}
+                    {day.closures.map((closure) => (
+                      <div
+                        key={closure.id}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 18,
+                          background: "#fff7ed",
+                          border: "1px solid #fed7aa",
+                          color: "#9a3412",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {closure.title}
+                      </div>
+                    ))}
                     {day.courses.map((course) => renderCourseCard(course, locale, true))}
                     {day.pendingRequests.map((request) => renderPendingRequestCard(request, true))}
                     {day.availabilities.map((availability) =>
@@ -1290,9 +1348,33 @@ export function DayActionCalendarClient({
 
                 {canCreateRequest ? (
                   <div style={{ display: "grid", gap: 12 }}>
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      Nuova richiesta
-                    </strong>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Nuova richiesta
+                      </strong>
+                      <IconButton
+                        type="button"
+                        onClick={() => setRequestType(RequestType.OVERTIME)}
+                        aria-label="Aggiungi straordinario"
+                        disabled={isPending}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </IconButton>
+                    </div>
 
                     <div
                       className="dashboard-modal-body-grid"
@@ -1423,6 +1505,130 @@ export function DayActionCalendarClient({
                         {isPending ? "Salvataggio..." : "Salva indisponibilita"}
                       </PrimaryButton>
                     </div>
+                  </div>
+                ) : null}
+
+                {canCreateClosure ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Chiusure e festivita
+                      </strong>
+                      <IconButton
+                        type="button"
+                        onClick={() => setShowClosureComposer((current) => !current)}
+                        aria-label="Aggiungi chiusura o festivita"
+                        disabled={isPending}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </IconButton>
+                    </div>
+
+                    {showClosureComposer ? (
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 12,
+                          padding: 16,
+                          borderRadius: 20,
+                          background: "#fff7ed",
+                          border: "1px solid #fed7aa",
+                        }}
+                      >
+                        <div
+                          className="dashboard-modal-body-grid"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            gap: 12,
+                          }}
+                        >
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Tipo</span>
+                            <Select value={closureType} onChange={(event) => setClosureType(event.target.value)}>
+                              <option value="CLOSURE">Chiusura</option>
+                              <option value="HOLIDAY">Festivita</option>
+                              <option value="VACATION">Ferie</option>
+                            </Select>
+                          </label>
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo</span>
+                            <TextInput
+                              value={closureTitle}
+                              onChange={(event) => setClosureTitle(event.target.value)}
+                              placeholder="Chiuso per festivita"
+                            />
+                          </label>
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
+                            <TextInput
+                              type="datetime-local"
+                              value={closureStart}
+                              onChange={(event) => setClosureStart(event.target.value)}
+                            />
+                          </label>
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
+                            <TextInput
+                              type="datetime-local"
+                              value={closureEnd}
+                              onChange={(event) => setClosureEnd(event.target.value)}
+                            />
+                          </label>
+                        </div>
+                        <div className="dashboard-modal-actions">
+                          <PrimaryButton
+                            type="button"
+                            onClick={submitClosure}
+                            disabled={isPending || !closureStart || !closureEnd}
+                          >
+                            {isPending ? "Salvataggio..." : "Salva"}
+                          </PrimaryButton>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {selectedDay.closures.length === 0 ? (
+                      <div style={{ color: "#64748b" }}>
+                        Nessuna chiusura o festivita in questa giornata.
+                      </div>
+                    ) : (
+                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                        {selectedDay.closures.map((closure) => (
+                          <div
+                            key={closure.id}
+                            className="dashboard-list-card"
+                            style={{
+                              padding: 14,
+                              borderRadius: 18,
+                              background: "#fff7ed",
+                              border: "1px solid #fed7aa",
+                              display: "grid",
+                              gap: 6,
+                            }}
+                          >
+                            <strong style={{ color: "#9a3412" }}>{closure.title}</strong>
+                            <span style={{ color: "#b45309" }}>
+                              {formatRange(closure.startTime, closure.endTime, locale)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : null}
 

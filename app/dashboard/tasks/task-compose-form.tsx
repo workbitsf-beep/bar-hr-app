@@ -13,6 +13,9 @@ function createEmptyEntry() {
   return {
     id: crypto.randomUUID(),
     value: "",
+    assignedToAll: true,
+    assignedToId: "",
+    isUrgent: false,
   };
 }
 
@@ -25,9 +28,12 @@ export function TaskComposeForm({
 }) {
   const [entries, setEntries] = useState([createEmptyEntry()]);
 
-  function updateEntry(id: string, value: string) {
+  function updateEntry(
+    id: string,
+    value: Partial<ReturnType<typeof createEmptyEntry>>
+  ) {
     setEntries((current) =>
-      current.map((entry) => (entry.id === id ? { ...entry, value } : entry))
+      current.map((entry) => (entry.id === id ? { ...entry, ...value } : entry))
     );
   }
 
@@ -96,12 +102,66 @@ export function TaskComposeForm({
               </div>
 
               <TextInput
-                name="title"
+                name={`title_${entry.id}`}
                 required={index === 0}
                 value={entry.value}
-                onChange={(event) => updateEntry(entry.id, event.target.value)}
+                onChange={(event) => updateEntry(entry.id, { value: event.target.value })}
                 placeholder="Scrivi la mansione"
               />
+
+              <input type="hidden" name="taskEntryId" value={entry.id} />
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    name={`assignedToAll_${entry.id}`}
+                    checked={entry.assignedToAll}
+                    onChange={(event) =>
+                      updateEntry(entry.id, {
+                        assignedToAll: event.target.checked,
+                        assignedToId: event.target.checked ? "" : entry.assignedToId,
+                      })
+                    }
+                  />
+                  Tutto il team
+                </label>
+
+                {!entry.assignedToAll ? (
+                  <Select
+                    name={`assignedToId_${entry.id}`}
+                    value={entry.assignedToId}
+                    onChange={(event) =>
+                      updateEntry(entry.id, { assignedToId: event.target.value })
+                    }
+                  >
+                    <option value="">Seleziona persona</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName}
+                      </option>
+                    ))}
+                  </Select>
+                ) : null}
+
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    name={`isUrgent_${entry.id}`}
+                    checked={entry.isUrgent}
+                    onChange={(event) =>
+                      updateEntry(entry.id, { isUrgent: event.target.checked })
+                    }
+                  />
+                  Urgente
+                </label>
+              </div>
             </div>
           ))}
 
@@ -135,31 +195,10 @@ export function TaskComposeForm({
           <TextInput name="dueDate" type="date" required />
         </FormField>
 
-        <FormField label="Assegna a">
-          <Select name="assignedToId" defaultValue="">
-            <option value="">Nessun singolo assegnatario</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.firstName} {member.lastName}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-      </div>
-
-      <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input type="checkbox" name="assignedToAll" />
-          Assegna a tutto il team
-        </label>
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input type="checkbox" name="isUrgent" />
-          Segna come urgente
-        </label>
       </div>
 
       <div>
-        <PrimaryButton type="submit">Salva mansione</PrimaryButton>
+        <PrimaryButton type="submit">Conferma mansioni</PrimaryButton>
       </div>
     </form>
   );

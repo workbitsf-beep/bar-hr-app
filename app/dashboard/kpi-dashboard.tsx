@@ -462,53 +462,63 @@ export function KpiDashboard({ activeBarId, role, activityType }: KpiDashboardPr
             tone={data.training.expiring > 0 ? "warning" : "neutral"}
           />
         </div>
-      </Panel>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: 18,
-          alignItems: "start",
-        }}
-      >
-        <Panel title="Mansioni ultimi 7 giorni" action={<ArrowLinkButton href="/dashboard/tasks" />}>
-          <MiniBarChart
-            items={data.charts.tasksLast7Days}
-            valueKey="total"
-            secondaryKey="completed"
-            emptyMessage="Nessuna mansione oggi o negli ultimi 7 giorni."
-          />
-        </Panel>
-
-        <Panel title="Richieste del mese" action={<ArrowLinkButton href="/dashboard/requests" />}>
-          {hasRequestChart ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 18,
+            alignItems: "start",
+            marginTop: 18,
+          }}
+        >
+          <section style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <strong style={{ color: "#0f172a" }}>Mansioni ultimi 7 giorni</strong>
+              <ArrowLinkButton href="/dashboard/tasks" />
+            </div>
             <MiniBarChart
-              items={data.charts.requestsCurrentMonth}
-              emptyMessage="Nessuna richiesta aperta nel mese corrente."
+              items={data.charts.tasksLast7Days}
+              valueKey="total"
+              secondaryKey="completed"
+              emptyMessage="Nessuna mansione oggi o negli ultimi 7 giorni."
             />
-          ) : (
-            <EmptyState message="Nessuna richiesta aperta nel mese corrente." />
-          )}
-        </Panel>
+          </section>
 
-        <Panel title="Turni della settimana" action={<ArrowLinkButton href="/dashboard/shifts" />}>
-          {hasShiftChart ? (
-            <MiniBarChart
-              items={data.charts.shiftsCurrentWeek}
-              emptyMessage="Nessun turno programmato per questa settimana."
-            />
-          ) : (
-            <EmptyState message="Nessun turno programmato per questa settimana." />
-          )}
-        </Panel>
-      </div>
+          <section style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <strong style={{ color: "#0f172a" }}>Richieste del mese</strong>
+              <ArrowLinkButton href="/dashboard/requests" />
+            </div>
+            {hasRequestChart ? (
+              <MiniBarChart
+                items={data.charts.requestsCurrentMonth}
+                emptyMessage="Nessuna richiesta aperta nel mese corrente."
+              />
+            ) : (
+              <EmptyState message="Nessuna richiesta aperta nel mese corrente." />
+            )}
+          </section>
 
-      <Panel
-        title="Bacheca recente"
-        action={
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <span>{data.board.last7DaysCount} ultimi 7 giorni</span>
+          <section style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <strong style={{ color: "#0f172a" }}>Turni della settimana</strong>
+              <ArrowLinkButton href="/dashboard/shifts" />
+            </div>
+            {hasShiftChart ? (
+              <MiniBarChart
+                items={data.charts.shiftsCurrentWeek}
+                emptyMessage="Nessun turno programmato per questa settimana."
+              />
+            ) : (
+              <EmptyState message="Nessun turno programmato per questa settimana." />
+            )}
+          </section>
+        </div>
+
+        <section style={{ display: "grid", gap: 12, marginTop: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+            <strong style={{ color: "#0f172a" }}>Bacheca recente</strong>
             <Link
               href="/dashboard/board"
               style={{ color: "#0f172a", textDecoration: "none", fontWeight: 700 }}
@@ -516,46 +526,45 @@ export function KpiDashboard({ activeBarId, role, activityType }: KpiDashboardPr
               Apri
             </Link>
           </div>
-        }
-      >
-        {data.board.recent.length === 0 ? (
-          <EmptyState message="Nessun messaggio pubblicato di recente." />
-        ) : (
-          <div style={{ display: "grid", gap: 12 }}>
-            {data.board.recent.map((note) => (
-              <div
-                key={note.id}
-                style={{
-                  padding: 16,
-                  borderRadius: 18,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  display: "grid",
-                  gap: 6,
-                }}
-              >
+          {data.board.recent.length === 0 ? (
+            <EmptyState message="Nessun messaggio pubblicato di recente." />
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {data.board.recent.map((note) => (
                 <div
+                  key={note.id}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    flexWrap: "wrap",
+                    padding: 16,
+                    borderRadius: 18,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    display: "grid",
+                    gap: 6,
                   }}
                 >
-                  <strong style={{ color: "#0f172a" }}>{note.authorName}</strong>
-                  {note.isPinned ? (
-                    <StatusPill tone="neutral" label="In evidenza" />
-                  ) : null}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "flex-start",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <strong style={{ color: "#0f172a" }}>{note.authorName}</strong>
+                    {note.isPinned ? (
+                      <StatusPill tone="neutral" label="In evidenza" />
+                    ) : null}
+                  </div>
+                  <div style={{ color: "#334155", lineHeight: 1.6 }}>{note.content}</div>
+                  <div style={{ color: "#64748b", fontSize: 13 }}>
+                    {formatDateTime(note.createdAt)}
+                  </div>
                 </div>
-                <div style={{ color: "#334155", lineHeight: 1.6 }}>{note.content}</div>
-                <div style={{ color: "#64748b", fontSize: 13 }}>
-                  {formatDateTime(note.createdAt)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </section>
       </Panel>
 
       <style

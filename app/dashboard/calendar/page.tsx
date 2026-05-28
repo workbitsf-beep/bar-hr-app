@@ -147,7 +147,7 @@ export default async function DashboardCalendarPage({
   const canManageCompanyShifts =
     !isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
   const canReviewCompanyRequests = !isRestaurant && role === Role.OWNER;
-  const canAssignCompanyCourses = !isRestaurant && role === Role.OWNER;
+  const canAssignCourses = role === Role.OWNER || role === Role.MANAGER;
 
   const [
     settings,
@@ -156,6 +156,7 @@ export default async function DashboardCalendarPage({
     approvedRequests,
     pendingRequests,
     courses,
+    closures,
     calendarMembers,
     tasks,
     notes,
@@ -317,8 +318,7 @@ export default async function DashboardCalendarPage({
             },
           })
         : Promise.resolve([]),
-      !isRestaurant
-        ? prisma.course.findMany({
+      prisma.course.findMany({
             where: {
               barId: activeBarId,
               startsAt: {
@@ -350,9 +350,29 @@ export default async function DashboardCalendarPage({
             orderBy: {
               startsAt: "asc",
             },
-          })
-        : Promise.resolve([]),
-      canManageRestaurantShifts || canManageCompanyShifts || canAssignCompanyCourses
+          }),
+      prisma.calendarClosure.findMany({
+        where: {
+          barId: activeBarId,
+          startsAt: {
+            lte: calendarEnd,
+          },
+          endsAt: {
+            gte: calendarStart,
+          },
+        },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          startsAt: true,
+          endsAt: true,
+        },
+        orderBy: {
+          startsAt: "asc",
+        },
+      }),
+      canManageRestaurantShifts || canManageCompanyShifts || canAssignCourses
         ? prisma.employeeBar.findMany({
             where: {
               barId: activeBarId,
@@ -370,7 +390,7 @@ export default async function DashboardCalendarPage({
               },
             },
           })
-        : canAssignCompanyCourses
+        : canAssignCourses
           ? prisma.employeeBar.findMany({
               where: {
                 barId: activeBarId,
@@ -456,6 +476,7 @@ export default async function DashboardCalendarPage({
   const requestsByDay = new Map<string, typeof approvedRequests>();
   const pendingRequestsByDay = new Map<string, typeof pendingRequests>();
   const coursesByDay = new Map<string, typeof courses>();
+  const closuresByDay = new Map<string, typeof closures>();
   const tasksByDay = new Map<string, typeof tasks>();
   const notesByDay = new Map<string, typeof notes>();
 
@@ -515,6 +536,21 @@ export default async function DashboardCalendarPage({
       const dayCourses = coursesByDay.get(dayKey) ?? [];
       dayCourses.push(course);
       coursesByDay.set(dayKey, dayCourses);
+    }
+  }
+
+  for (const closure of closures) {
+    const cursor = new Date(closure.startsAt);
+    cursor.setHours(0, 0, 0, 0);
+    const closureEnd = new Date(closure.endsAt);
+    closureEnd.setHours(0, 0, 0, 0);
+
+    while (cursor <= closureEnd) {
+      const dayKey = toLocalDateKey(cursor);
+      const dayClosures = closuresByDay.get(dayKey) ?? [];
+      dayClosures.push(closure);
+      closuresByDay.set(dayKey, dayClosures);
+      cursor.setDate(cursor.getDate() + 1);
     }
   }
 
@@ -613,7 +649,14 @@ export default async function DashboardCalendarPage({
         ? "Assegnato a tutto il team"
         : course.assignedTo
           ? `Assegnato a ${course.assignedTo.firstName} ${course.assignedTo.lastName}`
-          : "Corso interno",
+        : "Corso interno",
+    })),
+    closures: (closuresByDay.get(toLocalDateKey(day.date)) ?? []).map((closure) => ({
+      id: closure.id,
+      title: closure.title,
+      type: closure.type,
+      startTime: closure.startsAt.toISOString(),
+      endTime: closure.endsAt.toISOString(),
     })),
     tasks: (tasksByDay.get(toLocalDateKey(day.date)) ?? []).map((task) => ({
       id: task.id,

@@ -5,6 +5,7 @@ import {
   ActivityType,
   AppLanguage,
   BillingInterval,
+  CalendarClosureType,
   PlanType,
   Prisma,
   RequestStatus,
@@ -268,6 +269,19 @@ function parseRequestStatus(value: FormDataEntryValue | null): RequestStatus {
     : RequestStatus.APPROVED;
 }
 
+function parseCalendarClosureType(value: FormDataEntryValue | null): CalendarClosureType {
+  const raw = String(value ?? "");
+
+  if (
+    raw === CalendarClosureType.HOLIDAY ||
+    raw === CalendarClosureType.VACATION
+  ) {
+    return raw;
+  }
+
+  return CalendarClosureType.CLOSURE;
+}
+
 function normalizeIds(entries: FormDataEntryValue[]): string[] {
   return Array.from(
     new Set(
@@ -406,6 +420,77 @@ function collectBulkTextEntries(formData: FormData, fieldName: string) {
   return formData
     .getAll(fieldName)
     .flatMap((entry) => splitBulkTextEntries(String(entry ?? "")));
+}
+
+type ParsedTaskDraft = {
+  title: string;
+  assignedToAll: boolean;
+  assignedToId: string;
+  isUrgent: boolean;
+};
+
+function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
+  const entryIds = formData
+    .getAll("taskEntryId")
+    .map((entry) => String(entry).trim())
+    .filter(Boolean);
+
+  if (entryIds.length === 0) {
+    const assignedToId = String(formData.get("assignedToId") ?? "").trim();
+    const assignedToAll = formData.get("assignedToAll") === "on";
+    const isUrgent = formData.get("isUrgent") === "on";
+
+    return collectBulkTextEntries(formData, "title").map((title) => ({
+      title,
+      assignedToAll,
+      assignedToId,
+      isUrgent,
+    }));
+  }
+
+  return entryIds
+    .map((entryId) => {
+      const title = String(formData.get(`title_${entryId}`) ?? "").trim();
+      const assignedToAll = formData.get(`assignedToAll_${entryId}`) === "on";
+      const assignedToId = String(formData.get(`assignedToId_${entryId}`) ?? "").trim();
+      const isUrgent = formData.get(`isUrgent_${entryId}`) === "on";
+
+      return {
+        title,
+        assignedToAll,
+        assignedToId,
+        isUrgent,
+      };
+    })
+    .filter((entry) => entry.title.length > 0);
+}
+
+type ParsedBoardDraft = {
+  content: string;
+  isPinned: boolean;
+};
+
+function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft[] {
+  const entryIds = formData
+    .getAll("boardEntryId")
+    .map((entry) => String(entry).trim())
+    .filter(Boolean);
+
+  if (entryIds.length === 0) {
+    const isPinned = canPin && formData.get("isPinned") === "on";
+
+    return collectBulkTextEntries(formData, "content").map((content) => ({
+      content,
+      isPinned,
+    }));
+  }
+
+  return entryIds
+    .map((entryId) => ({
+      content: String(formData.get(`content_${entryId}`) ?? "").trim(),
+      isPinned: canPin && formData.get(`isPinned_${entryId}`) === "on",
+    }))
+    .filter((entry) => entry.content.length > 0);
 }
 
 function ensureOperationRole(role: Role) {
@@ -1227,12 +1312,9 @@ export async function createTaskAction(formData: FormData) {
 
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = parseTaskDueDate(String(formData.get("dueDate") ?? ""));
-  const assignedToId = String(formData.get("assignedToId") ?? "").trim();
-  const assignedToAll = formData.get("assignedToAll") === "on";
-  const isUrgent = formData.get("isUrgent") === "on";
-  const taskTitles = collectBulkTextEntries(formData, "title");
+  const taskDrafts = parseTaskDrafts(formData);
 
-  if (taskTitles.length === 0) {
+  if (taskDrafts.length === 0) {
     throw new Error("Missing title");
   }
 
@@ -1240,21 +1322,27 @@ export async function createTaskAction(formData: FormData) {
     throw new Error("Invalid due date");
   }
 
-  if (!assignedToAll && assignedToId) {
-    await ensureUsersBelongToBar(activeBarId, [assignedToId]);
+  const assignedUserIds = normalizeIds(
+    taskDrafts
+      .filter((draft) => !draft.assignedToAll && draft.assignedToId)
+      .map((draft) => draft.assignedToId)
+  );
+
+  if (assignedUserIds.length > 0) {
+    await ensureUsersBelongToBar(activeBarId, assignedUserIds);
   }
 
   await prisma.task.createMany({
-    data: taskTitles.map((taskTitle) => ({
-      title: taskTitle,
+    data: taskDrafts.map((taskDraft) => ({
+      title: taskDraft.title,
       description: description || null,
       dueDate,
-      assignedToAll,
-      assignedToId: assignedToAll ? null : assignedToId || null,
+      assignedToAll: taskDraft.assignedToAll,
+      assignedToId: taskDraft.assignedToAll ? null : taskDraft.assignedToId || null,
       barId: activeBarId,
       createdById: session.user.id,
       status: TaskStatus.TODO,
-      isUrgent,
+      isUrgent: taskDraft.isUrgent,
     })),
   });
 
@@ -1265,19 +1353,29 @@ export async function createTaskAction(formData: FormData) {
       return;
     }
 
-    const recipients = assignedToAll
-      ? excludeActorFromUsers(
-          notificationContext.users.filter((user) => user.role !== Role.OWNER),
-          session.user.id
-        )
-      : excludeActorFromUsers(
-          notificationContext.users.filter((user) => user.id === assignedToId),
-          session.user.id
-        );
+    const tasksByRecipientId = new Map<string, string[]>();
+
+    for (const taskDraft of taskDrafts) {
+      const recipients = taskDraft.assignedToAll
+        ? notificationContext.users.filter((user) => user.role !== Role.OWNER)
+        : notificationContext.users.filter((user) => user.id === taskDraft.assignedToId);
+
+      for (const recipient of excludeActorFromUsers(recipients, session.user.id)) {
+        const current = tasksByRecipientId.get(recipient.id) ?? [];
+        current.push(taskDraft.title);
+        tasksByRecipientId.set(recipient.id, current);
+      }
+    }
 
     await Promise.all(
-      recipients.map((recipient) =>
-        taskTitles.length === 1
+      Array.from(tasksByRecipientId.entries()).map(([recipientId, taskTitles]) => {
+        const recipient = notificationContext.users.find((user) => user.id === recipientId);
+
+        if (!recipient) {
+          return Promise.resolve();
+        }
+
+        return taskTitles.length === 1
           ? sendTaskAssignedEmail(
               recipient.email,
               recipient.firstName,
@@ -1289,8 +1387,8 @@ export async function createTaskAction(formData: FormData) {
               recipient.firstName,
               taskTitles,
               notificationContext.barName
-            )
-      )
+            );
+      })
     );
   });
 
@@ -1410,6 +1508,26 @@ export async function deleteCompletedTaskAction(formData: FormData) {
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/tasks");
   }
+
+export async function deleteAllCompletedTasksAction() {
+  const { role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  await prisma.task.deleteMany({
+    where: {
+      barId: activeBarId,
+      status: TaskStatus.DONE,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/tasks");
+}
 
 export async function createShiftAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
@@ -1554,8 +1672,7 @@ export async function createBoardNoteAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const isPinned = canManageOperations(role) && formData.get("isPinned") === "on";
-  const noteEntries = collectBulkTextEntries(formData, "content");
+  const noteEntries = parseBoardDrafts(formData, canManageOperations(role));
 
   if (noteEntries.length === 0) {
     throw new Error("Missing content");
@@ -1565,8 +1682,8 @@ export async function createBoardNoteAction(formData: FormData) {
     data: noteEntries.map((entry) => ({
       barId: activeBarId,
       authorId: session.user.id,
-      content: entry,
-      isPinned,
+      content: entry.content,
+      isPinned: entry.isPinned,
     })),
   });
 
@@ -1603,6 +1720,25 @@ export async function createBoardNoteAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/tasks");
+}
+
+export async function deleteAllBoardNotesAction() {
+  const { role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  await prisma.note.deleteMany({
+    where: {
+      barId: activeBarId,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/tasks");
 }
 
@@ -1693,7 +1829,7 @@ export async function createAvailabilityAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function createCourseAction(formData: FormData) {
+export async function createCalendarClosureAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
 
@@ -1701,13 +1837,43 @@ export async function createCourseAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const bar = await prisma.bar.findUnique({
-    where: { id: activeBarId },
-    select: { activityType: true },
+  const type = parseCalendarClosureType(formData.get("type"));
+  const titleRaw = String(formData.get("title") ?? "").trim();
+  const startsAt = parseRequiredDate(formData.get("startsAt"));
+  const endsAt = parseRequiredDate(formData.get("endsAt"));
+
+  if (endsAt <= startsAt) {
+    throw new Error("Invalid date range");
+  }
+
+  const fallbackTitle =
+    type === CalendarClosureType.HOLIDAY
+      ? "Festivita"
+      : type === CalendarClosureType.VACATION
+        ? "Ferie aziendali"
+        : "Chiusura";
+
+  await prisma.calendarClosure.create({
+    data: {
+      barId: activeBarId,
+      createdById: session.user.id,
+      title: titleRaw || fallbackTitle,
+      type,
+      startsAt,
+      endsAt,
+    },
   });
 
-  if (bar?.activityType !== ActivityType.COMPANY) {
-    throw new Error("Courses are available only for company activity type");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function createCourseAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
   }
 
   const title = String(formData.get("title") ?? "").trim();

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
-import { LOW_ACCURACY_WARNING_METERS, startPreciseGeolocationWatch } from "@/lib/browser-gps";
+import { startPreciseGeolocationWatch } from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
 import {
   EmptyState,
@@ -58,6 +58,14 @@ function formatDayLabel(value: string) {
     month: "long",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function getVisibleLogNote(note: string | null) {
+  if (!note || note.toLowerCase().includes("precisione gps")) {
+    return null;
+  }
+
+  return note;
 }
 
 export function ClockActionsPanel({
@@ -271,7 +279,7 @@ export function ClockActionsPanel({
   return (
     <Panel
       title={compact ? "Timbratura veloce" : "Entrata / uscita"}
-      action={gpsConfigured ? "GPS attivo" : "GPS non configurato"}
+      action={gpsConfigured ? "Pronta" : "Da impostare"}
     >
       <div style={{ display: "grid", gap: 16 }}>
         <div
@@ -287,17 +295,6 @@ export function ClockActionsPanel({
           }}
         >
           <div>{locationSummary}</div>
-          {weakAccuracy !== null ? (
-            <div>
-              Segnale GPS debole. Aspetto una posizione piu stabile vicino al punto impostato dal titolare.
-            </div>
-          ) : null}
-          {accuracy !== null &&
-          weakAccuracy === null &&
-          accuracy > LOW_ACCURACY_WARNING_METERS &&
-          !insideRadius ? (
-            <div>Posizione poco precisa. Aggiorna la posizione vicino al punto impostato.</div>
-          ) : null}
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div>
               Arrotondamento attivo al quarto d'ora.
@@ -555,15 +552,13 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                         subtitle={`${log.type} - ${formatDateTime(log.timestamp)}`}
                         meta={
                           <>
-                            {log.latitude !== null && log.longitude !== null
-                              ? `Lat ${log.latitude.toFixed(5)} - Lon ${log.longitude.toFixed(5)}`
-                              : "Coordinate non salvate"}
-                            {log.note ? (
+                            {getVisibleLogNote(log.note) ? (
                               <>
-                                <br />
-                                {log.note}
+                                {getVisibleLogNote(log.note)}
                               </>
-                            ) : null}
+                            ) : (
+                              "Registrazione salvata"
+                            )}
                           </>
                         }
                         footer={
@@ -629,15 +624,13 @@ function PersonalTimeLogsPanel({
                 subtitle={`${log.type} - ${log.isManual ? "manuale" : "ufficiale"}`}
                 meta={
                   <>
-                    {log.latitude !== null && log.longitude !== null
-                      ? `Lat ${log.latitude.toFixed(5)} - Lon ${log.longitude.toFixed(5)}`
-                      : "Coordinate non salvate"}
-                    {log.note ? (
+                    {getVisibleLogNote(log.note) ? (
                       <>
-                        <br />
-                        {log.note}
+                        {getVisibleLogNote(log.note)}
                       </>
-                    ) : null}
+                    ) : (
+                      "Registrazione salvata"
+                    )}
                   </>
                 }
                 footer={

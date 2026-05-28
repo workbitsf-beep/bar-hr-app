@@ -14,12 +14,20 @@ type MemberOption = {
 type EntryItem = {
   id: string;
   value: string;
+  assignedToAll: boolean;
+  assignedToId: string;
+  isUrgent: boolean;
+  isPinned: boolean;
 };
 
 function createEmptyEntry(): EntryItem {
   return {
     id: crypto.randomUUID(),
     value: "",
+    assignedToAll: true,
+    assignedToId: "",
+    isUrgent: false,
+    isPinned: false,
   };
 }
 
@@ -51,11 +59,7 @@ export function QuickCalendarEntryModal({
   const [taskEntries, setTaskEntries] = useState<EntryItem[]>([createEmptyEntry()]);
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
-  const [taskAssignedToAll, setTaskAssignedToAll] = useState(true);
-  const [taskAssignedToId, setTaskAssignedToId] = useState("");
-  const [taskIsUrgent, setTaskIsUrgent] = useState(false);
   const [boardEntries, setBoardEntries] = useState<EntryItem[]>([createEmptyEntry()]);
-  const [boardIsPinned, setBoardIsPinned] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -65,11 +69,7 @@ export function QuickCalendarEntryModal({
     setTaskEntries([createEmptyEntry()]);
     setTaskDescription("");
     setTaskDueDate(toDateInputValue(dateIso));
-    setTaskAssignedToAll(true);
-    setTaskAssignedToId("");
-    setTaskIsUrgent(false);
     setBoardEntries([createEmptyEntry()]);
-    setBoardIsPinned(false);
   }, [dateIso, open, mode]);
 
   if (!open || !mode) {
@@ -79,10 +79,10 @@ export function QuickCalendarEntryModal({
   function updateEntries(
     setter: Dispatch<SetStateAction<EntryItem[]>>,
     id: string,
-    value: string
+    value: Partial<EntryItem>
   ) {
     setter((current) =>
-      current.map((entry) => (entry.id === id ? { ...entry, value } : entry))
+      current.map((entry) => (entry.id === id ? { ...entry, ...value } : entry))
     );
   }
 
@@ -103,21 +103,22 @@ export function QuickCalendarEntryModal({
     const formData = new FormData();
 
     for (const entry of taskEntries) {
-      formData.append("title", entry.value);
+      formData.append("taskEntryId", entry.id);
+      formData.set(`title_${entry.id}`, entry.value);
+
+      if (entry.assignedToAll) {
+        formData.set(`assignedToAll_${entry.id}`, "on");
+      } else if (entry.assignedToId) {
+        formData.set(`assignedToId_${entry.id}`, entry.assignedToId);
+      }
+
+      if (entry.isUrgent) {
+        formData.set(`isUrgent_${entry.id}`, "on");
+      }
     }
 
     formData.set("description", taskDescription);
     formData.set("dueDate", taskDueDate);
-
-    if (taskAssignedToAll) {
-      formData.set("assignedToAll", "on");
-    } else if (taskAssignedToId) {
-      formData.set("assignedToId", taskAssignedToId);
-    }
-
-    if (taskIsUrgent) {
-      formData.set("isUrgent", "on");
-    }
 
     onSubmitTask(formData);
   }
@@ -126,11 +127,12 @@ export function QuickCalendarEntryModal({
     const formData = new FormData();
 
     for (const entry of boardEntries) {
-      formData.append("content", entry.value);
-    }
+      formData.append("boardEntryId", entry.id);
+      formData.set(`content_${entry.id}`, entry.value);
 
-    if (boardIsPinned) {
-      formData.set("isPinned", "on");
+      if (entry.isPinned) {
+        formData.set(`isPinned_${entry.id}`, "on");
+      }
     }
 
     onSubmitBoard(formData);
@@ -187,9 +189,64 @@ export function QuickCalendarEntryModal({
               <TextInput
                 value={entry.value}
                 required={index === 0}
-                onChange={(event) => updateEntries(setTaskEntries, entry.id, event.target.value)}
+                onChange={(event) =>
+                  updateEntries(setTaskEntries, entry.id, { value: event.target.value })
+                }
                 placeholder="Scrivi la mansione"
               />
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={entry.assignedToAll}
+                    onChange={(event) =>
+                      updateEntries(setTaskEntries, entry.id, {
+                        assignedToAll: event.target.checked,
+                        assignedToId: event.target.checked ? "" : entry.assignedToId,
+                      })
+                    }
+                  />
+                  Tutto il team
+                </label>
+
+                {!entry.assignedToAll ? (
+                  <Select
+                    value={entry.assignedToId}
+                    onChange={(event) =>
+                      updateEntries(setTaskEntries, entry.id, {
+                        assignedToId: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Seleziona persona</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName}
+                      </option>
+                    ))}
+                  </Select>
+                ) : null}
+
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={entry.isUrgent}
+                    onChange={(event) =>
+                      updateEntries(setTaskEntries, entry.id, {
+                        isUrgent: event.target.checked,
+                      })
+                    }
+                  />
+                  Urgente
+                </label>
+              </div>
             </div>
           ))}
 
@@ -233,46 +290,6 @@ export function QuickCalendarEntryModal({
             />
           </label>
 
-          {!taskAssignedToAll ? (
-            <label style={{ display: "grid", gap: 8 }}>
-              <span style={{ fontWeight: 600, color: "#1e293b" }}>Assegna a</span>
-              <Select
-                value={taskAssignedToId}
-                onChange={(event) => setTaskAssignedToId(event.target.value)}
-              >
-                <option value="">Nessun singolo assegnatario</option>
-                {members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.firstName} {member.lastName}
-                  </option>
-                ))}
-              </Select>
-            </label>
-          ) : null}
-        </div>
-
-        <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              type="checkbox"
-              checked={taskAssignedToAll}
-              onChange={(event) => {
-                setTaskAssignedToAll(event.target.checked);
-                if (event.target.checked) {
-                  setTaskAssignedToId("");
-                }
-              }}
-            />
-            Assegna a tutto il team
-          </label>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              type="checkbox"
-              checked={taskIsUrgent}
-              onChange={(event) => setTaskIsUrgent(event.target.checked)}
-            />
-            Segna come urgente
-          </label>
         </div>
 
         <div className="dashboard-modal-actions">
@@ -281,7 +298,7 @@ export function QuickCalendarEntryModal({
             onClick={handleTaskSubmit}
             disabled={isPending || !taskDueDate}
           >
-            {isPending ? "Salvataggio..." : "Salva mansioni"}
+            {isPending ? "Salvataggio..." : "Conferma mansioni"}
           </PrimaryButton>
         </div>
       </div>
@@ -335,10 +352,27 @@ export function QuickCalendarEntryModal({
               <TextArea
                 value={entry.value}
                 required={index === 0}
-                onChange={(event) => updateEntries(setBoardEntries, entry.id, event.target.value)}
+                onChange={(event) =>
+                  updateEntries(setBoardEntries, entry.id, { value: event.target.value })
+                }
                 placeholder="Scrivi il messaggio da pubblicare"
                 style={{ minHeight: 96 }}
               />
+
+              {canPinBoard ? (
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={entry.isPinned}
+                    onChange={(event) =>
+                      updateEntries(setBoardEntries, entry.id, {
+                        isPinned: event.target.checked,
+                      })
+                    }
+                  />
+                  In evidenza
+                </label>
+              ) : null}
             </div>
           ))}
 
@@ -356,20 +390,9 @@ export function QuickCalendarEntryModal({
           </div>
         </div>
 
-        {canPinBoard ? (
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              type="checkbox"
-              checked={boardIsPinned}
-              onChange={(event) => setBoardIsPinned(event.target.checked)}
-            />
-            Metti in evidenza
-          </label>
-        ) : null}
-
         <div className="dashboard-modal-actions">
           <PrimaryButton type="button" onClick={handleBoardSubmit} disabled={isPending}>
-            {isPending ? "Pubblicazione..." : "Pubblica"}
+            {isPending ? "Pubblicazione..." : "Conferma pubblicazione"}
           </PrimaryButton>
         </div>
       </div>

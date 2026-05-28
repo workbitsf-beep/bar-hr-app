@@ -7,6 +7,7 @@ function createEmptyEntry() {
   return {
     id: crypto.randomUUID(),
     value: "",
+    isPinned: false,
   };
 }
 
@@ -19,9 +20,12 @@ export function BoardComposeForm({
 }) {
   const [entries, setEntries] = useState([createEmptyEntry()]);
 
-  function updateEntry(id: string, value: string) {
+  function updateEntry(
+    id: string,
+    value: Partial<ReturnType<typeof createEmptyEntry>>
+  ) {
     setEntries((current) =>
-      current.map((entry) => (entry.id === id ? { ...entry, value } : entry))
+      current.map((entry) => (entry.id === id ? { ...entry, ...value } : entry))
     );
   }
 
@@ -90,13 +94,29 @@ export function BoardComposeForm({
               </div>
 
               <TextArea
-                name="content"
+                name={`content_${entry.id}`}
                 required={index === 0}
                 value={entry.value}
-                onChange={(event) => updateEntry(entry.id, event.target.value)}
+                onChange={(event) => updateEntry(entry.id, { value: event.target.value })}
                 placeholder="Scrivi il messaggio da pubblicare"
                 style={{ minHeight: 96 }}
               />
+
+              <input type="hidden" name="boardEntryId" value={entry.id} />
+
+              {canManage ? (
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    name={`isPinned_${entry.id}`}
+                    checked={entry.isPinned}
+                    onChange={(event) =>
+                      updateEntry(entry.id, { isPinned: event.target.checked })
+                    }
+                  />
+                  In evidenza
+                </label>
+              ) : null}
             </div>
           ))}
 
@@ -115,15 +135,8 @@ export function BoardComposeForm({
         </div>
       </FormField>
 
-      {canManage ? (
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input type="checkbox" name="isPinned" />
-          Metti in evidenza
-        </label>
-      ) : null}
-
       <div>
-        <PrimaryButton type="submit">Pubblica</PrimaryButton>
+        <PrimaryButton type="submit">Conferma pubblicazione</PrimaryButton>
       </div>
     </form>
   );
