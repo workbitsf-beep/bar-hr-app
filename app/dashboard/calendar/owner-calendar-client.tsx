@@ -322,6 +322,7 @@ export function OwnerCalendarClient({
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
+  const [showShiftComposer, setShowShiftComposer] = useState(false);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [showCourseComposer, setShowCourseComposer] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -426,6 +427,7 @@ export function OwnerCalendarClient({
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
     setEditingShiftId(null);
+    setShowShiftComposer(false);
     setQuickComposer(null);
     setShowCourseComposer(false);
     setShowClosureComposer(false);
@@ -458,6 +460,7 @@ export function OwnerCalendarClient({
     }
 
     setEditingShiftId(null);
+    setShowShiftComposer(false);
     setQuickComposer(null);
     setShowCourseComposer(false);
     setShowClosureComposer(false);
@@ -575,6 +578,7 @@ export function OwnerCalendarClient({
       }
 
       setShiftDrafts([createShiftDraft(selectedDay.date)]);
+      setShowShiftComposer(false);
     }, validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.");
   }
 
@@ -1001,7 +1005,25 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                <div style={{ display: "grid", gap: 12 }}>
+                <div
+                  style={{
+                    position: "fixed",
+                    left: "50%",
+                    top: "50%",
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 2147483647,
+                    display: showShiftComposer ? "grid" : "none",
+                    gap: 12,
+                    width: "min(720px, calc(100vw - 32px))",
+                    maxHeight: "calc(100dvh - 32px)",
+                    overflowY: "auto",
+                    padding: 18,
+                    borderRadius: 28,
+                    background: "rgba(255,255,255,0.98)",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
+                  }}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -1011,21 +1033,38 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuovi turni</strong>
-                    <IconButton
-                      type="button"
-                      onClick={addShiftDraft}
-                      aria-label="Aggiungi un altro turno"
-                      disabled={isPending}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M12 5v14M5 12h14"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </IconButton>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <IconButton
+                        type="button"
+                        onClick={addShiftDraft}
+                        aria-label="Aggiungi un altro turno"
+                        disabled={isPending}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </IconButton>
+                      <IconButton
+                        type="button"
+                        onClick={() => setShowShiftComposer(false)}
+                        aria-label="Chiudi inserimento turni"
+                        disabled={isPending}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M6 6l12 12M18 6 6 18"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </IconButton>
+                    </div>
                   </div>
 
                   {shiftDrafts.map((draft, index) => {
@@ -1448,7 +1487,31 @@ export function OwnerCalendarClient({
                 ) : null}
 
                 <div style={{ display: "grid", gap: 10 }}>
-                  <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>
+                    <IconButton
+                      type="button"
+                      onClick={() => setShowShiftComposer(true)}
+                      aria-label="Aggiungi turni"
+                      disabled={isPending}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </IconButton>
+                  </div>
                   {selectedDay.shifts.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessun turno presente in questa giornata.</div>
                   ) : (
@@ -1543,14 +1606,48 @@ export function OwnerCalendarClient({
                   {showClosureComposer ? (
                     <div
                       style={{
+                        position: "fixed",
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                        zIndex: 2147483647,
                         display: "grid",
                         gap: 12,
-                        padding: 16,
-                        borderRadius: 20,
+                        width: "min(640px, calc(100vw - 32px))",
+                        maxHeight: "calc(100dvh - 32px)",
+                        overflowY: "auto",
+                        padding: 18,
+                        borderRadius: 28,
                         background: "#fff7ed",
                         border: "1px solid #fed7aa",
+                        boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
                       }}
                     >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                        }}
+                      >
+                        <strong style={{ color: "#0f172a", fontSize: 18 }}>Nuovo inserimento</strong>
+                        <IconButton
+                          type="button"
+                          onClick={() => setShowClosureComposer(false)}
+                          aria-label="Chiudi inserimento"
+                          disabled={isPending}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M6 6l12 12M18 6 6 18"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      </div>
                       <div
                         className="dashboard-modal-body-grid"
                         style={{
@@ -1683,14 +1780,48 @@ export function OwnerCalendarClient({
                   {showCourseComposer ? (
                     <div
                       style={{
+                        position: "fixed",
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                        zIndex: 2147483647,
                         display: "grid",
                         gap: 12,
-                        padding: 16,
-                        borderRadius: 20,
+                        width: "min(680px, calc(100vw - 32px))",
+                        maxHeight: "calc(100dvh - 32px)",
+                        overflowY: "auto",
+                        padding: 18,
+                        borderRadius: 28,
                         background: "#f8fafc",
                         border: "1px solid #e2e8f0",
+                        boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
                       }}
                     >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                        }}
+                      >
+                        <strong style={{ color: "#0f172a", fontSize: 18 }}>Nuovo corso</strong>
+                        <IconButton
+                          type="button"
+                          onClick={() => setShowCourseComposer(false)}
+                          aria-label="Chiudi corso"
+                          disabled={isPending}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M6 6l12 12M18 6 6 18"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      </div>
                       <label style={{ display: "grid", gap: 8 }}>
                         <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo corso</span>
                         <input
