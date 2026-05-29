@@ -24,7 +24,7 @@ export type ExportEntry = {
 
 export type CompanyReportItem = {
   id: string;
-  type: "Indisponibilita" | "Ferie" | "Permesso" | "Malattia" | "Corso";
+  type: "Indisponibilita" | "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Corso" | "Chiusura";
   title: string;
   startsAt: string;
   endsAt: string;
@@ -47,7 +47,9 @@ export type CompanyMonthlySummary = {
   vacation: number;
   permission: number;
   sickness: number;
+  overtime: number;
   courses: number;
+  closures: number;
   total: number;
 };
 
@@ -112,7 +114,7 @@ function getRoundedTimestamp(
   return applyRounding(timestamp, roundingMode, roundingMinutes);
 }
 
-function requestLabel(type: RequestType): "Ferie" | "Permesso" | "Malattia" | "Richiesta" {
+function requestLabel(type: RequestType): "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Richiesta" {
   if (type === RequestType.VACATION) {
     return "Ferie";
   }
@@ -123,6 +125,10 @@ function requestLabel(type: RequestType): "Ferie" | "Permesso" | "Malattia" | "R
 
   if (type === RequestType.SICKNESS) {
     return "Malattia";
+  }
+
+  if (type === RequestType.OVERTIME) {
+    return "Straordinario";
   }
 
   return "Richiesta";
@@ -384,7 +390,7 @@ async function buildCompanyMonthlyDataset(
   monthStart: Date,
   monthEnd: Date
 ): Promise<MonthlyDataset> {
-  const [availabilities, approvedRequests, courses] = await Promise.all([
+  const [availabilities, approvedRequests, courses, closures] = await Promise.all([
     prisma.availability.findMany({
       where: {
         barId,
@@ -411,7 +417,12 @@ async function buildCompanyMonthlyDataset(
         barId,
         employeeId: userId,
         type: {
-          in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+          in: [
+            RequestType.VACATION,
+            RequestType.PERMISSION,
+            RequestType.SICKNESS,
+            RequestType.OVERTIME,
+          ],
         },
         status: RequestStatus.APPROVED,
         startsAt: {
@@ -462,6 +473,27 @@ async function buildCompanyMonthlyDataset(
         startsAt: "asc",
       },
     }),
+    prisma.calendarClosure.findMany({
+      where: {
+        barId,
+        startsAt: {
+          lt: monthEnd,
+        },
+        endsAt: {
+          gte: monthStart,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        startsAt: true,
+        endsAt: true,
+      },
+      orderBy: {
+        startsAt: "asc",
+      },
+    }),
   ]);
 
   const groupedMap = new Map<string, GroupedDay>();
@@ -470,7 +502,9 @@ async function buildCompanyMonthlyDataset(
     vacation: 0,
     permission: 0,
     sickness: 0,
+    overtime: 0,
     courses: 0,
+    closures: 0,
     total: 0,
   };
 
@@ -511,6 +545,8 @@ async function buildCompanyMonthlyDataset(
       summary.permission += 1;
     } else if (request.type === RequestType.SICKNESS) {
       summary.sickness += 1;
+    } else if (request.type === RequestType.OVERTIME) {
+      summary.overtime += 1;
     }
 
     summary.total += 1;
@@ -530,6 +566,21 @@ async function buildCompanyMonthlyDataset(
     });
 
     summary.courses += 1;
+    summary.total += 1;
+  }
+
+  for (const closure of closures) {
+    const dayKey = getClampedDayKey(closure.startsAt, monthStart, monthEnd);
+
+    upsertCompanyDayItem(groupedMap, dayKey, {
+      id: closure.id,
+      type: "Chiusura",
+      title: closure.title || (closure.type === "HOLIDAY" ? "Festivita" : "Chiusura"),
+      startsAt: closure.startsAt.toISOString(),
+      endsAt: closure.endsAt.toISOString(),
+    });
+
+    summary.closures += 1;
     summary.total += 1;
   }
 

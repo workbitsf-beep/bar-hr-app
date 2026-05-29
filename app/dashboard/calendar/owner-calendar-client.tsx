@@ -119,6 +119,26 @@ type FeedbackState =
     }
   | null;
 
+type ShiftDraft = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  presetKey: string;
+  memberIds: string[];
+};
+
+function createShiftDraft(dateIso: string): ShiftDraft {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    date: toDateInputValue(dateIso),
+    startTime: "09:00",
+    endTime: "17:00",
+    presetKey: "CUSTOM",
+    memberIds: [],
+  };
+}
+
 function formatDayTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
@@ -258,6 +278,28 @@ function formatNoteTime(value: string, locale: string) {
   }).format(new Date(value));
 }
 
+function CountBadge({ count }: { count: number }) {
+  return (
+    <span
+      style={{
+        minWidth: 28,
+        height: 28,
+        padding: "0 9px",
+        borderRadius: 999,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: count > 0 ? "#0f172a" : "#e2e8f0",
+        color: count > 0 ? "#ffffff" : "#64748b",
+        fontSize: 13,
+        fontWeight: 700,
+      }}
+    >
+      {count}
+    </span>
+  );
+}
+
 export function OwnerCalendarClient({
   locale,
   weekdayLabels,
@@ -283,12 +325,7 @@ export function OwnerCalendarClient({
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [showCourseComposer, setShowCourseComposer] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
-  const [title, setTitle] = useState("");
-  const [shiftDate, setShiftDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [requestStart, setRequestStart] = useState("");
   const [requestEnd, setRequestEnd] = useState("");
@@ -355,19 +392,19 @@ export function OwnerCalendarClient({
         : weeks,
     [filteredDay, weeks]
   );
-  const blockedMemberReasons = useMemo(() => {
-    if (!selectedDay || !shiftDate || !startTime || !endTime) {
+  function getBlockedMemberReasons(draft: ShiftDraft) {
+    if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
       return new Map<string, string>();
     }
 
     const selectedDayKey = selectedDay.date.slice(0, 10);
 
-    if (selectedDayKey !== shiftDate) {
+    if (selectedDayKey !== draft.date) {
       return new Map<string, string>();
     }
 
-    const nextShiftStart = combineDateAndTime(shiftDate, startTime);
-    const nextShiftEnd = combineDateAndTime(shiftDate, endTime);
+    const nextShiftStart = combineDateAndTime(draft.date, draft.startTime);
+    const nextShiftEnd = combineDateAndTime(draft.date, draft.endTime);
     const blocked = new Map<string, string>();
 
     for (const availability of selectedDay.availabilities) {
@@ -383,18 +420,8 @@ export function OwnerCalendarClient({
     }
 
     return blocked;
-  }, [selectedDay, shiftDate, startTime, endTime]);
+  }
   const canCreatePersonalEntries = role === "MANAGER";
-
-  useEffect(() => {
-    if (blockedMemberReasons.size === 0) {
-      return;
-    }
-
-    setSelectedMembers((current) =>
-      current.filter((memberId) => !blockedMemberReasons.has(memberId))
-    );
-  }, [blockedMemberReasons]);
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
@@ -403,12 +430,7 @@ export function OwnerCalendarClient({
     setShowCourseComposer(false);
     setShowClosureComposer(false);
     setFeedback(null);
-    setTitle("");
-    setShiftDate(toDateInputValue(day.date));
-    setStartTime("09:00");
-    setEndTime("17:00");
-    setSelectedPresetKey("CUSTOM");
-    setSelectedMembers([]);
+    setShiftDrafts([createShiftDraft(day.date)]);
     setRequestType(RequestType.VACATION);
     setRequestStart(toDateTimeLocal(day.date, 9, 0));
     setRequestEnd(toDateTimeLocal(day.date, 18, 0));
@@ -443,18 +465,56 @@ export function OwnerCalendarClient({
     setFeedback(null);
   }
 
-  function toggleMember(memberId: string) {
-    setSelectedMembers((current) =>
-      current.includes(memberId)
-        ? current.filter((id) => id !== memberId)
-        : current.concat(memberId)
+  function addShiftDraft() {
+    if (!selectedDay) {
+      return;
+    }
+
+    setShiftDrafts((current) => current.concat(createShiftDraft(selectedDay.date)));
+  }
+
+  function removeShiftDraft(draftId: string) {
+    setShiftDrafts((current) =>
+      current.length <= 1 ? current : current.filter((draft) => draft.id !== draftId)
     );
   }
 
-  function applyPresetByKey(nextKey: string) {
-    setSelectedPresetKey(nextKey);
+  function updateShiftDraft(draftId: string, patch: Partial<ShiftDraft>) {
+    setShiftDrafts((current) =>
+      current.map((draft) => {
+        if (draft.id !== draftId) {
+          return draft;
+        }
 
-    if (!selectedDay || nextKey === "CUSTOM") {
+        const next = { ...draft, ...patch };
+        const blocked = getBlockedMemberReasons(next);
+
+        return {
+          ...next,
+          memberIds: next.memberIds.filter((memberId) => !blocked.has(memberId)),
+        };
+      })
+    );
+  }
+
+  function toggleDraftMember(draftId: string, memberId: string) {
+    setShiftDrafts((current) =>
+      current.map((draft) =>
+        draft.id === draftId
+          ? {
+              ...draft,
+              memberIds: draft.memberIds.includes(memberId)
+                ? draft.memberIds.filter((id) => id !== memberId)
+                : draft.memberIds.concat(memberId),
+            }
+          : draft
+      )
+    );
+  }
+
+  function applyPresetByKey(draftId: string, nextKey: string) {
+    if (nextKey === "CUSTOM") {
+      updateShiftDraft(draftId, { presetKey: nextKey });
       return;
     }
 
@@ -464,8 +524,11 @@ export function OwnerCalendarClient({
       return;
     }
 
-    setStartTime(preset.startTime);
-    setEndTime(preset.endTime);
+    updateShiftDraft(draftId, {
+      presetKey: nextKey,
+      startTime: preset.startTime,
+      endTime: preset.endTime,
+    });
   }
 
   function runAction(task: () => Promise<void>, successMessage: string, closeOnSuccess = false) {
@@ -484,26 +547,35 @@ export function OwnerCalendarClient({
     });
   }
 
-  function handleCreateShift() {
-    if (!selectedDay || !shiftDate || !startTime || !endTime || selectedMembers.length === 0) {
+  function handleCreateShifts() {
+    if (!selectedDay) {
       return;
     }
 
-    const formData = new FormData();
-    formData.set("title", title);
-    formData.set("startTime", combineDateAndTime(shiftDate, startTime));
-    formData.set("endTime", combineDateAndTime(shiftDate, endTime));
+    const validDrafts = shiftDrafts.filter(
+      (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
+    );
 
-    for (const memberId of selectedMembers) {
-      formData.append("employeeIds", memberId);
+    if (validDrafts.length === 0) {
+      return;
     }
 
     runAction(async () => {
-      await createShiftAction(formData);
-      setTitle("");
-      setSelectedPresetKey("CUSTOM");
-      setSelectedMembers([]);
-    }, "Turno aggiunto.");
+      for (const draft of validDrafts) {
+        const formData = new FormData();
+        formData.set("title", "");
+        formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
+        formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
+
+        for (const memberId of draft.memberIds) {
+          formData.append("employeeIds", memberId);
+        }
+
+        await createShiftAction(formData);
+      }
+
+      setShiftDrafts([createShiftDraft(selectedDay.date)]);
+    }, validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.");
   }
 
   function handleCreateRequest() {
@@ -930,147 +1002,209 @@ export function OwnerCalendarClient({
                 ) : null}
 
                 <div style={{ display: "grid", gap: 12 }}>
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo turno</span>
-                    <input
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      placeholder="Servizio pranzo"
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                    />
-                  </label>
-
-                  {presets.length > 0 ? (
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario standard</span>
-                      <Select
-                        value={selectedPresetKey}
-                        onChange={(event) => applyPresetByKey(event.target.value)}
-                      >
-                        <option value="CUSTOM">Personalizzato</option>
-                        {presets.map((preset) => (
-                          <option key={preset.key} value={preset.key}>
-                            {preset.label} - {preset.startTime} / {preset.endTime}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                  ) : null}
-
                   <div
-                    className="dashboard-modal-body-grid"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
                       gap: 12,
                     }}
                   >
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
-                      <input
-                        type="date"
-                        value={shiftDate}
-                        onChange={(event) => setShiftDate(event.target.value)}
-                        style={{
-                          borderRadius: 16,
-                          border: "1px solid #dbe3ee",
-                          padding: "12px 14px",
-                          fontSize: 15,
-                          background: "#ffffff",
-                        }}
-                      />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
-                      <input
-                        type="time"
-                        value={startTime}
-                        onChange={(event) => {
-                          setSelectedPresetKey("CUSTOM");
-                          setStartTime(event.target.value);
-                        }}
-                        style={{
-                          borderRadius: 16,
-                          border: "1px solid #dbe3ee",
-                          padding: "12px 14px",
-                          fontSize: 15,
-                          background: "#ffffff",
-                        }}
-                      />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
-                      <input
-                        type="time"
-                        value={endTime}
-                        onChange={(event) => {
-                          setSelectedPresetKey("CUSTOM");
-                          setEndTime(event.target.value);
-                        }}
-                        style={{
-                          borderRadius: 16,
-                          border: "1px solid #dbe3ee",
-                          padding: "12px 14px",
-                          fontSize: 15,
-                          background: "#ffffff",
-                        }}
-                      />
-                    </label>
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuovi turni</strong>
+                    <IconButton
+                      type="button"
+                      onClick={addShiftDraft}
+                      aria-label="Aggiungi un altro turno"
+                      disabled={isPending}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </IconButton>
                   </div>
 
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
-                    <div
-                      className="dashboard-modal-members-grid"
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: 10,
-                      }}
-                    >
-                      {members.map((member) => (
-                        <label
-                          key={member.id}
+                  {shiftDrafts.map((draft, index) => {
+                    const blockedMemberReasons = getBlockedMemberReasons(draft);
+
+                    return (
+                      <div
+                        key={draft.id}
+                        style={{
+                          display: "grid",
+                          gap: 12,
+                          padding: 16,
+                          borderRadius: 22,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            padding: "12px 14px",
-                            borderRadius: 16,
-                            border: "1px solid #e2e8f0",
-                            background: selectedMembers.includes(member.id) ? "#e2e8f0" : "#f8fafc",
-                            color: blockedMemberReasons.has(member.id) ? "#94a3b8" : "#0f172a",
-                            opacity: blockedMemberReasons.has(member.id) ? 0.6 : 1,
+                            justifyContent: "space-between",
+                            gap: 12,
                           }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={selectedMembers.includes(member.id)}
-                            disabled={blockedMemberReasons.has(member.id)}
-                            onChange={() => toggleMember(member.id)}
-                          />
-                          <span style={{ display: "grid", gap: 2 }}>
-                            <span>
-                              {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
-                            </span>
-                            {blockedMemberReasons.has(member.id) ? (
-                              <span style={{ fontSize: 12, color: "#b45309" }}>
-                                {blockedMemberReasons.get(member.id)}
-                              </span>
-                            ) : null}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                          <strong style={{ color: "#0f172a" }}>Turno {index + 1}</strong>
+                          {shiftDrafts.length > 1 ? (
+                            <IconButton
+                              type="button"
+                              onClick={() => removeShiftDraft(draft.id)}
+                              aria-label="Rimuovi turno"
+                              disabled={isPending}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path
+                                  d="M6 6l12 12M18 6 6 18"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </IconButton>
+                          ) : null}
+                        </div>
+
+                        {presets.length > 0 ? (
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario standard</span>
+                            <Select
+                              value={draft.presetKey}
+                              onChange={(event) => applyPresetByKey(draft.id, event.target.value)}
+                            >
+                              <option value="CUSTOM">Personalizzato</option>
+                              {presets.map((preset) => (
+                                <option key={preset.key} value={preset.key}>
+                                  {preset.label} - {preset.startTime} / {preset.endTime}
+                                </option>
+                              ))}
+                            </Select>
+                          </label>
+                        ) : null}
+
+                        <div
+                          className="dashboard-modal-body-grid"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            gap: 12,
+                          }}
+                        >
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
+                            <input
+                              type="date"
+                              value={draft.date}
+                              onChange={(event) =>
+                                updateShiftDraft(draft.id, { date: event.target.value })
+                              }
+                              style={{
+                                borderRadius: 16,
+                                border: "1px solid #dbe3ee",
+                                padding: "12px 14px",
+                                fontSize: 15,
+                                background: "#ffffff",
+                              }}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
+                            <input
+                              type="time"
+                              value={draft.startTime}
+                              onChange={(event) =>
+                                updateShiftDraft(draft.id, {
+                                  presetKey: "CUSTOM",
+                                  startTime: event.target.value,
+                                })
+                              }
+                              style={{
+                                borderRadius: 16,
+                                border: "1px solid #dbe3ee",
+                                padding: "12px 14px",
+                                fontSize: 15,
+                                background: "#ffffff",
+                              }}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
+                            <input
+                              type="time"
+                              value={draft.endTime}
+                              onChange={(event) =>
+                                updateShiftDraft(draft.id, {
+                                  presetKey: "CUSTOM",
+                                  endTime: event.target.value,
+                                })
+                              }
+                              style={{
+                                borderRadius: 16,
+                                border: "1px solid #dbe3ee",
+                                padding: "12px 14px",
+                                fontSize: 15,
+                                background: "#ffffff",
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
+                          <div
+                            className="dashboard-modal-members-grid"
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                              gap: 10,
+                            }}
+                          >
+                            {members.map((member) => (
+                              <label
+                                key={member.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  padding: "12px 14px",
+                                  borderRadius: 16,
+                                  border: "1px solid #e2e8f0",
+                                  background: draft.memberIds.includes(member.id) ? "#e2e8f0" : "#ffffff",
+                                  color: blockedMemberReasons.has(member.id) ? "#94a3b8" : "#0f172a",
+                                  opacity: blockedMemberReasons.has(member.id) ? 0.6 : 1,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={draft.memberIds.includes(member.id)}
+                                  disabled={blockedMemberReasons.has(member.id)}
+                                  onChange={() => toggleDraftMember(draft.id, member.id)}
+                                />
+                                <span style={{ display: "grid", gap: 2 }}>
+                                  <span>
+                                    {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
+                                  </span>
+                                  {blockedMemberReasons.has(member.id) ? (
+                                    <span style={{ fontSize: 12, color: "#b45309" }}>
+                                      {blockedMemberReasons.get(member.id)}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
 
                   <div
                     className="dashboard-modal-actions"
@@ -1078,16 +1212,19 @@ export function OwnerCalendarClient({
                   >
                     <PrimaryButton
                       type="button"
-                      onClick={handleCreateShift}
+                      onClick={handleCreateShifts}
                       disabled={
                         isPending ||
-                        selectedMembers.length === 0 ||
-                        !shiftDate ||
-                        !startTime ||
-                        !endTime
+                        !shiftDrafts.some(
+                          (draft) =>
+                            draft.memberIds.length > 0 &&
+                            draft.date &&
+                            draft.startTime &&
+                            draft.endTime
+                        )
                       }
                     >
-                      {isPending ? "Salvataggio..." : "Aggiungi turno"}
+                      {isPending ? "Salvataggio..." : "Salva turni"}
                     </PrimaryButton>
                   </div>
                 </div>
@@ -1338,22 +1475,12 @@ export function OwnerCalendarClient({
                           }}
                         >
                           <div style={{ display: "grid", gap: 6 }}>
-                            <strong style={{ color: "#0f172a" }}>{shift.title || "Turno"}</strong>
-                            <span style={{ color: "#475569" }}>
+                            <strong style={{ color: "#0f172a" }}>
                               {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
-                            </span>
+                            </strong>
                             <span style={{ color: "#64748b", fontSize: 14 }}>
-                              {shift.assignments
-                                .map((assignment) => `${assignment.firstName} ${assignment.lastName}`)
-                                .join(", ")}
+                              {formatAssignmentNames(shift.assignments)}
                             </span>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              {shift.confirmedAt ? (
-                                <StatusPill label="Confermato" tone="success" />
-                              ) : (
-                                <StatusPill label="Da confermare" tone="warning" />
-                              )}
-                            </div>
                           </div>
 
                           <span
@@ -1367,6 +1494,7 @@ export function OwnerCalendarClient({
                               justifyContent: "center",
                             }}
                           >
+                            {renderShiftStateIcon(Boolean(shift.confirmedAt), 18)}
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                               <path
                                 d="m9 6 6 6-6 6"
@@ -1393,7 +1521,8 @@ export function OwnerCalendarClient({
                       gap: 12,
                     }}
                   >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Chiusure e festivita</strong>
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Inserimenti speciali</strong>
+                    <CountBadge count={selectedDay.closures.length} />
                     <IconButton
                       type="button"
                       onClick={() => setShowClosureComposer((current) => !current)}
@@ -1533,6 +1662,7 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Corsi del giorno</strong>
+                    <CountBadge count={selectedDay.courses.length} />
                     <IconButton
                       type="button"
                       onClick={() => setShowCourseComposer((current) => !current)}
@@ -1732,6 +1862,7 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Mansioni del giorno</strong>
+                    <CountBadge count={selectedDay.tasks.length} />
                     <IconButton
                       type="button"
                       onClick={() => setQuickComposer("task")}
@@ -1814,6 +1945,7 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Bacheca del giorno</strong>
+                    <CountBadge count={selectedDay.notes.length} />
                     <IconButton
                       type="button"
                       onClick={() => setQuickComposer("board")}

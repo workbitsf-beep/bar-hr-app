@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { ActivityType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { BillingRequiredState, EmptyState, Panel } from "../ui";
@@ -20,11 +20,15 @@ export default async function DashboardExportPage() {
     return <BillingRequiredState role={String(role)} />;
   }
 
+  const canSelectEmployees =
+    role === Role.OWNER ||
+    (role === Role.MANAGER && activeBarActivityType === ActivityType.COMPANY);
+
   const employees = await prisma.employeeBar.findMany({
     where: {
       barId: activeBarId,
       isActive: true,
-      ...(role === Role.OWNER ? {} : { userId: session.user.id }),
+      ...(canSelectEmployees ? {} : { userId: session.user.id }),
     },
     orderBy: {
       hiredAt: "desc",
@@ -54,7 +58,8 @@ export default async function DashboardExportPage() {
         activityType={activeBarActivityType}
         defaultMonth={now.getMonth() + 1}
         defaultYear={now.getFullYear()}
-        allowEmployeeSelection={role === Role.OWNER}
+        allowEmployeeSelection={canSelectEmployees}
+        allowGeneralReport={canSelectEmployees && activeBarActivityType === ActivityType.COMPANY}
       />
     </>
   );

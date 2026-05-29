@@ -31,7 +31,7 @@ type ExportEntry = {
 
 type CompanyReportItem = {
   id: string;
-  type: "Indisponibilita" | "Ferie" | "Permesso" | "Malattia" | "Corso";
+  type: "Indisponibilita" | "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Corso" | "Chiusura";
   title: string;
   startsAt: string;
   endsAt: string;
@@ -62,7 +62,9 @@ type ExportPayload = {
     vacation: number;
     permission: number;
     sickness: number;
+    overtime: number;
     courses: number;
+    closures: number;
     total: number;
   };
 };
@@ -73,14 +75,16 @@ export function ExportClient({
   defaultMonth,
   defaultYear,
   allowEmployeeSelection,
+  allowGeneralReport,
 }: {
   employees: EmployeeOption[];
   activityType: ActivityType | null;
   defaultMonth: number;
   defaultYear: number;
   allowEmployeeSelection: boolean;
+  allowGeneralReport?: boolean;
 }) {
-  const [userId, setUserId] = useState(employees[0]?.id ?? "");
+  const [userId, setUserId] = useState(allowGeneralReport ? "__ALL__" : employees[0]?.id ?? "");
   const [month, setMonth] = useState(String(defaultMonth));
   const [year, setYear] = useState(String(defaultYear));
   const [loading, setLoading] = useState<"preview" | "pdf" | null>(null);
@@ -188,6 +192,7 @@ export function ExportClient({
                   onChange={(event) => setUserId(event.target.value)}
                   disabled={!allowEmployeeSelection}
                 >
+                  {allowGeneralReport ? <option value="__ALL__">Report generale</option> : null}
                   {employees.map((employee) => (
                     <option key={employee.id} value={employee.id}>
                       {employee.label}
@@ -251,7 +256,9 @@ export function ExportClient({
                 <ItemCard title="Indisponibilita" meta={String(result.summary?.availability ?? 0)} />
                 <ItemCard title="Ferie" meta={String(result.summary?.vacation ?? 0)} />
                 <ItemCard title="Permessi" meta={String(result.summary?.permission ?? 0)} />
+                <ItemCard title="Straordinari" meta={String(result.summary?.overtime ?? 0)} />
                 <ItemCard title="Corsi" meta={String(result.summary?.courses ?? 0)} />
+                <ItemCard title="Chiusure" meta={String(result.summary?.closures ?? 0)} />
               </div>
             ) : (
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

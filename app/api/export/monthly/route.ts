@@ -20,6 +20,8 @@ type SessionWithBar = {
   };
 };
 
+type MonthlyDataset = Awaited<ReturnType<typeof buildMonthlyDataset>>;
+
 function formatTime(dateIso: string): string {
   return new Date(dateIso).toLocaleTimeString("it-IT", {
     hour: "2-digit",
@@ -104,7 +106,7 @@ async function createMonthlyPdfBuffer(input: {
       doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
       doc.moveDown(0.6);
       doc.font("Helvetica-Bold").text(
-        `Riepilogo mese: indisponibilita ${input.dataset.summary.availability} | ferie ${input.dataset.summary.vacation} | permessi ${input.dataset.summary.permission} | malattie ${input.dataset.summary.sickness} | corsi ${input.dataset.summary.courses}`
+        `Riepilogo mese: indisponibilita ${input.dataset.summary.availability} | ferie ${input.dataset.summary.vacation} | permessi ${input.dataset.summary.permission} | malattie ${input.dataset.summary.sickness} | straordinari ${input.dataset.summary.overtime} | corsi ${input.dataset.summary.courses} | chiusure ${input.dataset.summary.closures}`
       );
       doc.end();
       return;
@@ -159,6 +161,74 @@ async function createMonthlyPdfBuffer(input: {
   });
 }
 
+function mergeCompanyDatasets(
+  datasets: Array<{ userLabel: string; dataset: MonthlyDataset }>
+): MonthlyDataset {
+  const groupedMap = new Map<string, MonthlyDataset["groupedLogs"][number]>();
+  const summary = {
+    availability: 0,
+    vacation: 0,
+    permission: 0,
+    sickness: 0,
+    overtime: 0,
+    courses: 0,
+    closures: 0,
+    total: 0,
+  };
+
+  for (const { userLabel, dataset } of datasets) {
+    if (dataset.mode !== "company") {
+      continue;
+    }
+
+    summary.availability += dataset.summary.availability;
+    summary.vacation += dataset.summary.vacation;
+    summary.permission += dataset.summary.permission;
+    summary.sickness += dataset.summary.sickness;
+    summary.overtime += dataset.summary.overtime;
+    summary.courses += dataset.summary.courses;
+    summary.closures += dataset.summary.closures;
+    summary.total += dataset.summary.total;
+
+    for (const day of dataset.groupedLogs) {
+      const current =
+        groupedMap.get(day.date) ?? {
+          date: day.date,
+          entries: [],
+          totals: {
+            realHours: 0,
+            roundedHours: 0,
+          },
+          labels: [],
+          items: [],
+        };
+
+      current.items = [
+        ...(current.items ?? []),
+        ...(day.items ?? []).map((item) => ({
+          ...item,
+          id: `${userLabel}-${item.id}`,
+          title: `${userLabel} - ${item.title}`,
+        })),
+      ].sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
+
+      groupedMap.set(day.date, current);
+    }
+  }
+
+  return {
+    mode: "company",
+    groupedLogs: Array.from(groupedMap.values()).sort((left, right) =>
+      left.date.localeCompare(right.date)
+    ),
+    totals: {
+      realHours: 0,
+      roundedHours: 0,
+    },
+    summary,
+  };
+}
+
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     const body = (await req.json()) as ExportBody;
@@ -168,6 +238,9 @@ export const POST = withBar(
     const access = await getActiveBarAccess(session as never);
     const activityType = access.activeBar?.activityType ?? ActivityType.RESTAURANT;
     const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
+    const canExportAll =
+      access.role === Role.OWNER ||
+      (access.role === Role.MANAGER && activityType === ActivityType.COMPANY);
 
     if (
       Number.isNaN(month) ||
@@ -183,11 +256,76 @@ export const POST = withBar(
       );
     }
 
-    if (access.role !== Role.OWNER && requestedUserId !== session.user.id) {
+    if (!canExportAll && requestedUserId !== session.user.id) {
       return Response.json(
         { ok: false, message: "Non autorizzato" },
         { status: 403 }
       );
+    }
+
+    if (requestedUserId === "__ALL__") {
+      if (!canExportAll || activityType !== ActivityType.COMPANY) {
+        return Response.json(
+          { ok: false, message: "Non autorizzato" },
+          { status: 403 }
+        );
+      }
+
+      const memberships = await prisma.employeeBar.findMany({
+        where: {
+          barId: session.activeBarId,
+          isActive: true,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      const datasets = await Promise.all(
+        memberships.map(async (membership) => ({
+          userLabel: `${membership.user.firstName} ${membership.user.lastName}`,
+          dataset: await buildMonthlyDataset(
+            session.activeBarId,
+            membership.user.id,
+            month,
+            year,
+            activityType
+          ),
+        }))
+      );
+
+      const dataset = mergeCompanyDatasets(datasets);
+
+      if (format === "pdf") {
+        const pdfBuffer = await createMonthlyPdfBuffer({
+          userLabel: "Report generale",
+          month,
+          year,
+          dataset,
+        });
+
+        return new Response(new Uint8Array(pdfBuffer), {
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename="report-generale-${year}-${String(month).padStart(2, "0")}.pdf"`,
+          },
+        });
+      }
+
+      return Response.json({
+        ok: true,
+        mode: dataset.mode,
+        data: dataset.groupedLogs,
+        totals: dataset.totals,
+        summary: dataset.summary,
+      });
     }
 
     const membership = await prisma.employeeBar.findFirst({

@@ -80,6 +80,7 @@ export default async function DashboardPage() {
                 select: {
                   user: {
                     select: {
+                      id: true,
                       firstName: true,
                       lastName: true,
                     },
@@ -201,7 +202,13 @@ export default async function DashboardPage() {
         : prisma.request.count({
             where: {
               barId: activeBarId,
-              status: RequestStatus.PENDING,
+              ...(canManagePeople
+                ? {
+                    status: RequestStatus.PENDING,
+                  }
+                : {
+                    employeeId: session.user.id,
+                  }),
             },
           }),
       canManagePeople
@@ -232,17 +239,51 @@ export default async function DashboardPage() {
     ]);
 
   const requestCount = isOwner ? pendingRequests.length : pendingRequestCount ?? 0;
+  const personalShiftCount = shifts.filter((shift) =>
+    shift.assignments.some((entry) => entry.user.id === session.user.id)
+  ).length;
 
   return (
     <Stack>
       {isRestaurant && !isOwner ? <ClockActionsPanel role={role} settings={settings} /> : null}
 
-      {isRestaurant && !isOwner && ownHours ? (
-        <Panel title="Ore del mese" action={<ArrowLinkButton href="/dashboard/timelogs" />}>
-          <ItemCard
-            title={`${ownHours.roundedHours.toFixed(2)} ore arrotondate`}
-            subtitle={`Ore reali ${ownHours.realHours.toFixed(2)} - aggiornate in tempo reale`}
-          />
+      {!canManagePeople ? (
+        <Panel title="Il tuo riepilogo" action={<ArrowLinkButton href="/dashboard/calendar" />}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {isRestaurant && ownHours ? (
+              <ItemCard
+                title={`${ownHours.roundedHours.toFixed(2)} h`}
+                subtitle={`Ore reali ${ownHours.realHours.toFixed(2)} h`}
+                meta="Ore mese"
+              />
+            ) : null}
+            <ItemCard
+              title={`${personalShiftCount} turni`}
+              subtitle="Prossimi turni assegnati"
+              meta="Calendario"
+            />
+            <ItemCard
+              title={`${tasks.length} mansioni`}
+              subtitle={tasks.length === 0 ? "Tutto completato" : "Da gestire"}
+              meta="Mansioni"
+            />
+            <ItemCard
+              title={`${requestCount} richieste`}
+              subtitle={requestCount === 0 ? "Nessuna richiesta aperta" : "Controlla lo stato"}
+              meta="Richieste"
+            />
+            <ItemCard
+              title={`${notes.length} messaggi`}
+              subtitle="Ultime comunicazioni"
+              meta="Bacheca"
+            />
+          </div>
         </Panel>
       ) : null}
 
