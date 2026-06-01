@@ -7,22 +7,22 @@ const superAdminItems = [
   {
     href: "/dashboard/super-admin/owners",
     title: "Nuovi titolari",
-    description: "Crea titolari, assegna l'accesso iniziale e prepara nuovi clienti.",
+    description: "Crea titolari e gestisci l'accesso iniziale.",
   },
   {
     href: "/dashboard/super-admin/bars",
-    title: "Nuove attività",
-    description: "Apri aziende o ristorazione, collega il titolare e i dati base.",
+    title: "Nuove attivita",
+    description: "Apri aziende o ristorazione e collega il responsabile.",
   },
   {
     href: "/dashboard/super-admin/billing",
     title: "Abbonamenti",
-    description: "Monitora stati, scadenze, sconti e situazione economica di ogni cliente.",
+    description: "Controlla stati, scadenze e sconti.",
   },
   {
     href: "/dashboard/super-admin/gps",
     title: "GPS globale",
-    description: "Definisci il range globale usato da tutte le attivita per le timbrature.",
+    description: "Imposta il range globale per le timbrature.",
   },
 ];
 
@@ -47,8 +47,7 @@ export function SuperAdminFrame({
     <div style={{ display: "grid", gap: 18, minWidth: 0, width: "100%", overflowX: "hidden" }}>
       <section
         style={{
-          background:
-            "linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96))",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96))",
           border: "1px solid rgba(15, 23, 42, 0.08)",
           borderRadius: 28,
           boxShadow: "0 18px 40px rgba(15, 23, 42, 0.07)",
@@ -59,23 +58,23 @@ export function SuperAdminFrame({
           width: "100%",
           overflow: "hidden",
         }}
-        >
-          <BrandLogo size={44} showIcon style={{ gap: 12 }} />
-          <div style={{ display: "grid", gap: 6 }}>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "#64748b",
-              }}
-            >
-              Super Admin
-            </span>
-            <strong style={{ color: "#0f172a", fontSize: 24 }}>{title}</strong>
-            <span style={{ color: "#64748b", lineHeight: 1.6, overflowWrap: "anywhere" }}>{description}</span>
-          </div>
+      >
+        <BrandLogo size={44} showIcon style={{ gap: 12 }} />
+        <div style={{ display: "grid", gap: 6 }}>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "#64748b",
+            }}
+          >
+            Super Admin
+          </span>
+          <strong style={{ color: "#0f172a", fontSize: 24 }}>{title}</strong>
+          <span style={{ color: "#64748b", lineHeight: 1.6, overflowWrap: "anywhere" }}>{description}</span>
+        </div>
       </section>
 
       {children}

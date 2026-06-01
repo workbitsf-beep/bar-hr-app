@@ -21,11 +21,11 @@ export default function Loading() {
   return (
     <SuperAdminFrame
       title="Hub super admin"
-      description="Caricamento vista leggera per titolari, attività, abbonamenti e utenti."
+      description="Caricamento vista leggera per monitoraggio e pagine dedicate."
     >
       <div style={{ display: "grid", gap: 18 }}>
         <Stack columns="repeat(auto-fit, minmax(220px, 1fr))">
-          {Array.from({ length: 4 }, (_, index) => (
+          {Array.from({ length: 5 }, (_, index) => (
             <Panel key={index} title="Caricamento">
               <div style={{ display: "grid", gap: 10 }}>
                 <SkeletonBlock width="45%" />
@@ -36,30 +36,12 @@ export default function Loading() {
           ))}
         </Stack>
 
-        <Panel title="Ricerca rapida">
+        <Panel title="Azioni rapide">
           <div style={{ display: "grid", gap: 12 }}>
-            <SkeletonBlock width="60%" height={18} />
-            <SkeletonBlock width="100%" height={42} />
-            <SkeletonBlock width="40%" height={18} />
+            <SkeletonBlock width="55%" height={18} />
+            <SkeletonBlock width="100%" height={90} />
           </div>
         </Panel>
-
-        <Stack columns="minmax(0, 1.1fr) minmax(0, 0.9fr)">
-          <Panel title="Strutture">
-            <div style={{ display: "grid", gap: 12 }}>
-              <SkeletonBlock width="55%" height={18} />
-              <SkeletonBlock width="100%" height={80} />
-              <SkeletonBlock width="100%" height={80} />
-            </div>
-          </Panel>
-          <Panel title="Utenti">
-            <div style={{ display: "grid", gap: 12 }}>
-              <SkeletonBlock width="45%" height={18} />
-              <SkeletonBlock width="100%" height={72} />
-              <SkeletonBlock width="100%" height={72} />
-            </div>
-          </Panel>
-        </Stack>
       </div>
 
       <style

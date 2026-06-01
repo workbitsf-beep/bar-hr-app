@@ -984,6 +984,7 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
 
 export async function createBarBySuperAdminAction(formData: FormData) {
   await getSuperAdminContext();
+  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/bars");
 
   const ownerId = String(formData.get("ownerId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -1077,6 +1078,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   revalidatePath("/dashboard/super-admin/bars");
   revalidatePath("/dashboard/super-admin/billing");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
+  redirect(appendStatusToPath(returnPath, { success: "bar-created" }));
 }
 
 export async function updateBarSubscriptionAction(formData: FormData) {
