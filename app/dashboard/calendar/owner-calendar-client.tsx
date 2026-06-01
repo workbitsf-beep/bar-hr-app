@@ -471,7 +471,7 @@ export function OwnerCalendarClient({
 
     return blocked;
   }
-  const canCreatePersonalEntries = role === "OWNER" || role === "MANAGER";
+  const canCreatePersonalEntries = role === "MANAGER";
 
   function openRequestComposer() {
     setShowShiftComposer(false);
