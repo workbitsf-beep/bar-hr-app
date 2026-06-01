@@ -164,7 +164,7 @@ export default async function DashboardSettingsPage() {
             </div>
 
             <div className="dashboard-form-actions">
-              <PrimaryButton type="submit">Salva impostazioni ristorante</PrimaryButton>
+              <PrimaryButton type="submit">Salva orari</PrimaryButton>
             </div>
             </form>
           </Panel>

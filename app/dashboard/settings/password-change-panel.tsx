@@ -101,7 +101,7 @@ export function PasswordChangePanel() {
         title="Aggiorna password"
         action={
           <PrimaryButton type="button" onClick={() => setOpen(true)}>
-            Apri
+            Aggiorna
           </PrimaryButton>
         }
       >
