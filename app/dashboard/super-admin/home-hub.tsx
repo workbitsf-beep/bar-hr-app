@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { Panel, Stack } from "../ui";
 import { SuperAdminMenuGrid } from "./super-admin-ui";
 
+const MONTHLY_PRICE = 29.99;
+const YEARLY_PRICE = 299;
+
 function StatCard({
   value,
   label,
@@ -40,12 +43,87 @@ function getActivityCount(
     };
   }[],
   activityType: ActivityType
-) {
+  ) {
   return counts.find((entry) => entry.activityType === activityType)?._count._all ?? 0;
 }
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function getDiscountMultiplier(discountPercent: number) {
+  const normalizedDiscount = Math.max(0, Math.min(100, discountPercent));
+  return 1 - normalizedDiscount / 100;
+}
+
+type RevenueBar = {
+  subscription: {
+    planType: "FREE" | "TRIAL" | "PAID" | "LIFETIME";
+    status: "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INACTIVE";
+    billingInterval: "MONTHLY" | "YEARLY" | null;
+    monthlyDiscountPercent: number;
+  } | null;
+};
+
+function isRevenueActive(bar: RevenueBar) {
+  return (
+    bar.subscription?.planType === "PAID" &&
+    (bar.subscription.status === "ACTIVE" || bar.subscription.status === "TRIALING")
+  );
+}
+
+function isTrialPending(bar: RevenueBar) {
+  return bar.subscription?.planType === "TRIAL";
+}
+
+function getEstimatedMonthlyRevenue(bar: RevenueBar) {
+  if (!isRevenueActive(bar)) {
+    return 0;
+  }
+
+  const multiplier = getDiscountMultiplier(bar.subscription?.monthlyDiscountPercent ?? 0);
+
+  if (bar.subscription?.billingInterval === "YEARLY") {
+    return (YEARLY_PRICE * multiplier) / 12;
+  }
+
+  return MONTHLY_PRICE * multiplier;
+}
+
+function getEstimatedAnnualRevenue(bar: RevenueBar) {
+  if (!isRevenueActive(bar)) {
+    return 0;
+  }
+
+  const multiplier = getDiscountMultiplier(bar.subscription?.monthlyDiscountPercent ?? 0);
+
+  if (bar.subscription?.billingInterval === "YEARLY") {
+    return YEARLY_PRICE * multiplier;
+  }
+
+  return MONTHLY_PRICE * 12 * multiplier;
+}
+
+function getTrialPipelineMonthly(bar: RevenueBar) {
+  if (!isTrialPending(bar)) {
+    return 0;
+  }
+
+  const multiplier = getDiscountMultiplier(bar.subscription?.monthlyDiscountPercent ?? 0);
+
+  if (bar.subscription?.billingInterval === "YEARLY") {
+    return (YEARLY_PRICE * multiplier) / 12;
+  }
+
+  return MONTHLY_PRICE * multiplier;
+}
+
 export async function SuperAdminHomeHub() {
-  const [activityCounts, activeBillingCount, ownerCount, staffCount] = await Promise.all([
+  const [activityCounts, activeBillingCount, ownerCount, staffCount, revenueBars] = await Promise.all([
     prisma.bar.groupBy({
       by: ["activityType"],
       _count: {
@@ -71,12 +149,27 @@ export async function SuperAdminHomeHub() {
         },
       },
     }),
+    prisma.bar.findMany({
+      select: {
+        subscription: {
+          select: {
+            planType: true,
+            status: true,
+            billingInterval: true,
+            monthlyDiscountPercent: true,
+          },
+        },
+      },
+    }),
   ]);
 
   const companyCount = getActivityCount(activityCounts, ActivityType.COMPANY);
   const restaurantCount = getActivityCount(activityCounts, ActivityType.RESTAURANT);
   const totalBars = companyCount + restaurantCount;
   const totalUsers = ownerCount + staffCount;
+  const activeMonthly = revenueBars.reduce((sum, bar) => sum + getEstimatedMonthlyRevenue(bar), 0);
+  const activeAnnual = revenueBars.reduce((sum, bar) => sum + getEstimatedAnnualRevenue(bar), 0);
+  const trialPipeline = revenueBars.reduce((sum, bar) => sum + getTrialPipelineMonthly(bar), 0);
 
   return (
     <div style={{ display: "grid", gap: 18, minWidth: 0 }}>
@@ -86,6 +179,11 @@ export async function SuperAdminHomeHub() {
         <StatCard value={String(restaurantCount)} label="Ristorazione" detail="Sezione separata" />
         <StatCard value={String(totalUsers)} label="Utenti" detail={`${ownerCount} titolari - ${staffCount} staff`} />
         <StatCard value={String(activeBillingCount)} label="Abbonamenti attivi" detail="Clienti sbloccati" />
+        <StatCard
+          value={formatCurrency(activeMonthly)}
+          label="Conto economico"
+          detail={`Annuale stimato ${formatCurrency(activeAnnual)} · Trial ${formatCurrency(trialPipeline)}`}
+        />
       </Stack>
 
       <Panel title="Azioni rapide" action="Apri le pagine dedicate">
