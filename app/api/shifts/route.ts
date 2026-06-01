@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
@@ -61,8 +62,8 @@ export const POST = withBar(
       );
     }
 
-    const startTime = new Date(body.startTime);
-    const endTime = new Date(body.endTime);
+    const startTime = parseDateTimeLocal(body.startTime);
+    const endTime = parseDateTimeLocal(body.endTime);
 
     if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
       return Response.json({ ok: false, message: "Invalid shift range" }, { status: 400 });

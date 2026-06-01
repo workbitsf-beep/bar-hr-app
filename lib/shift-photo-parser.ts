@@ -1,3 +1,5 @@
+import { parseDateTimeLocal } from "@/lib/date-time-local";
+
 export type ShiftPhotoMember = {
   id: string;
   firstName: string;
@@ -39,14 +41,18 @@ function pad2(value: number) {
 }
 
 function parseDateKey(value: string) {
-  const parsed = new Date(`${value}T00:00:00`);
+  try {
+    const parsed = parseDateTimeLocal(value);
 
-  if (Number.isNaN(parsed.getTime())) {
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
+  } catch {
     return null;
   }
-
-  parsed.setHours(0, 0, 0, 0);
-  return parsed;
 }
 
 function formatDateKey(date: Date) {

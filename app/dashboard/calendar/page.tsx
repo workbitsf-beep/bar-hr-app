@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildShiftPresets } from "@/lib/shift-presets";
+import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { getDashboardContext } from "../context";
 import { ClockActionsPanel } from "../timelogs/timelogs-client";
 import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, TextInput } from "../ui";
@@ -58,16 +59,21 @@ function parseAnchorDate(searchParams?: Record<string, string | string[] | undef
     return today;
   }
 
-  const parsed = new Date(`${raw}T00:00:00`);
+  try {
+    const parsed = parseDateTimeLocal(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return today;
+    }
 
-  if (Number.isNaN(parsed.getTime())) {
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
+  } catch {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today;
   }
-
-  parsed.setHours(0, 0, 0, 0);
-  return parsed;
 }
 
 function toLocalDateKey(date: Date) {

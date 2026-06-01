@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { sendWeeklyShiftsPublishedEmail } from "@/lib/email/notifications";
+import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
@@ -18,26 +19,22 @@ function parseStartDate(value: unknown) {
     return null;
   }
 
-  const parsed = new Date(`${value.trim()}T00:00:00`);
+  const parsed = parseDateTimeLocal(`${value.trim()}T00:00:00`);
 
   if (Number.isNaN(parsed.getTime())) {
     return null;
   }
 
-  parsed.setHours(0, 0, 0, 0);
-
   return parsed;
 }
 
 function parseEndDate(value: unknown) {
-  const parsed = parseStartDate(value);
-
-  if (!parsed) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
     return null;
   }
 
-  parsed.setHours(23, 59, 59, 999);
-  return parsed;
+  const endOfDay = parseDateTimeLocal(`${value.trim()}T23:59:59.999`);
+  return Number.isNaN(endOfDay.getTime()) ? null : endOfDay;
 }
 
 function getRangeLabel(rangeStart: Date, rangeEnd: Date) {

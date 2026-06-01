@@ -38,6 +38,7 @@ import {
   invalidateBillingStatusCache,
 } from "@/lib/billing";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
+import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { requireStripe } from "@/lib/stripe";
@@ -202,13 +203,7 @@ async function getBarNotificationContext(
 }
 
 function parseRequiredDate(value: FormDataEntryValue | null): Date {
-  const date = new Date(String(value ?? ""));
-
-  if (Number.isNaN(date.getTime())) {
-    throw new Error("Invalid date");
-  }
-
-  return date;
+  return parseDateTimeLocal(String(value ?? ""));
 }
 
 function parseOptionalNumber(value: FormDataEntryValue | null): number | null {

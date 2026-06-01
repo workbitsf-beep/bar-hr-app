@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { withBar } from "@/lib/withBar";
@@ -53,8 +54,8 @@ export const PATCH = withBar(
       return Response.json({ ok: false, message: "Shift not found" }, { status: 404 });
     }
 
-    const nextStartTime = body.startTime ? new Date(body.startTime) : shift.startTime;
-    const nextEndTime = body.endTime ? new Date(body.endTime) : shift.endTime;
+    const nextStartTime = body.startTime ? parseDateTimeLocal(body.startTime) : shift.startTime;
+    const nextEndTime = body.endTime ? parseDateTimeLocal(body.endTime) : shift.endTime;
     const employeeIds =
       body.employeeIds && body.employeeIds.length > 0
         ? Array.from(new Set(body.employeeIds.filter(Boolean)))
