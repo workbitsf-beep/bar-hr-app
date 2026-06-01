@@ -484,6 +484,8 @@ export function DayActionCalendarClient({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
+  const [showRequestComposer, setShowRequestComposer] = useState(false);
+  const [showAvailabilityComposer, setShowAvailabilityComposer] = useState(false);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
@@ -564,6 +566,25 @@ export function DayActionCalendarClient({
   const canCreateClosure = role === Role.OWNER || role === Role.MANAGER;
   const canReviewRequests = isCompany && role === Role.OWNER;
   const canOpenTaskComposer = role === Role.OWNER || role === Role.MANAGER;
+
+  function openRequestComposer() {
+    setShowShiftComposer(false);
+    setShowAvailabilityComposer(false);
+    setShowCourseComposer(false);
+    setShowClosureComposer(false);
+    setQuickComposer(null);
+    setShowRequestComposer(true);
+  }
+
+  function openAvailabilityComposer() {
+    setShowShiftComposer(false);
+    setShowRequestComposer(false);
+    setShowCourseComposer(false);
+    setShowClosureComposer(false);
+    setQuickComposer(null);
+    setShowAvailabilityComposer(true);
+  }
+
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
       return new Map<string, string>();
@@ -598,6 +619,8 @@ export function DayActionCalendarClient({
     setSelectedDate(day.date);
     setEditingShiftId(null);
     setShowShiftComposer(false);
+    setShowRequestComposer(false);
+    setShowAvailabilityComposer(false);
     setShowCourseComposer(false);
     setShowClosureComposer(false);
     setQuickComposer(null);
@@ -631,6 +654,8 @@ export function DayActionCalendarClient({
 
     setEditingShiftId(null);
     setShowShiftComposer(false);
+    setShowRequestComposer(false);
+    setShowAvailabilityComposer(false);
     setShowCourseComposer(false);
     setShowClosureComposer(false);
     setSelectedDate(null);
@@ -743,6 +768,7 @@ export function DayActionCalendarClient({
       await createTimeOffRequestAction(formData);
       setRequestReason("");
       setCertificateCode("");
+      setShowRequestComposer(false);
     }, "Richiesta salvata.");
   }
 
@@ -795,6 +821,7 @@ export function DayActionCalendarClient({
     runAction(async () => {
       await createAvailabilityAction(formData);
       setAvailabilityReason("");
+      setShowAvailabilityComposer(false);
     }, "Indisponibilita salvata.");
   }
 
@@ -1555,165 +1582,329 @@ export function DayActionCalendarClient({
                 ) : null}
 
                 {canCreateAvailability ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                        Nuova richiesta
-                      </strong>
-                      <IconButton
-                        type="button"
-                        onClick={() => setRequestType(RequestType.OVERTIME)}
-                        aria-label="Aggiungi straordinario"
-                        disabled={isPending}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M12 5v14M5 12h14"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                    </div>
-
-                    <div
-                      className="dashboard-modal-body-grid"
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Tipo</span>
-                        <Select
-                          value={requestType}
-                          onChange={(event) => setRequestType(event.target.value)}
+                  <>
+                    {(selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0) > 0 ? (
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                          }}
                         >
-                          <option value={RequestType.VACATION}>Ferie</option>
-                          <option value={RequestType.PERMISSION}>Permesso</option>
-                          <option value={RequestType.SICKNESS}>Malattia</option>
-                          <option value={RequestType.OVERTIME}>Straordinario</option>
-                        </Select>
-                      </label>
+                          <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                            Mancanze del giorno
+                          </strong>
+                          <CountBadge
+                            count={
+                              (selectedDay?.availabilities.length ?? 0) +
+                              (selectedDay?.requests.length ?? 0)
+                            }
+                          />
+                        </div>
 
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                        <TextInput
-                          type="datetime-local"
-                          value={requestStart}
-                          onChange={(event) => setRequestStart(event.target.value)}
-                        />
-                      </label>
+                        <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                          {(selectedDay?.availabilities ?? []).map((availability) =>
+                            renderAvailabilityCard(availability, true)
+                          )}
+                          {(selectedDay?.requests ?? []).map((request) =>
+                            renderApprovedRequestCard(request, true)
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ color: "#64748b" }}>
+                        Nessuna mancanza registrata in questa giornata.
+                      </div>
+                    )}
 
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                        <TextInput
-                          type="datetime-local"
-                          value={requestEnd}
-                          onChange={(event) => setRequestEnd(event.target.value)}
-                        />
-                      </label>
-                    </div>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
-                      <TextArea
-                        value={requestReason}
-                        onChange={(event) => setRequestReason(event.target.value)}
-                        placeholder="Aggiungi un dettaglio utile per il titolare"
-                      />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>
-                        Codice certificato
-                      </span>
-                      <TextInput
-                        value={certificateCode}
-                        onChange={(event) => setCertificateCode(event.target.value)}
-                        placeholder="Obbligatorio solo per malattia"
-                      />
-                    </label>
-
-                    <div
-                      className="dashboard-modal-actions"
-                      style={{ display: "flex", justifyContent: "flex-end" }}
-                    >
-                      <PrimaryButton
-                        type="button"
-                        onClick={submitRequest}
-                        disabled={isPending || !requestStart || !requestEnd}
+                    <div style={{ display: "grid", gap: 12 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                        }}
                       >
-                        {isPending ? "Invio..." : "Invia richiesta"}
-                      </PrimaryButton>
-                    </div>
-                  </div>
-                ) : null}
-
-                {canCreateAvailability ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      Nuova indisponibilita
-                    </strong>
-
-                    <div
-                      className="dashboard-modal-body-grid"
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                        <TextInput
-                          type="datetime-local"
-                          value={availabilityStart}
-                          onChange={(event) => setAvailabilityStart(event.target.value)}
-                        />
-                      </label>
-
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                        <TextInput
-                          type="datetime-local"
-                          value={availabilityEnd}
-                          onChange={(event) => setAvailabilityEnd(event.target.value)}
-                        />
-                      </label>
+                        <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                          Nuova richiesta
+                        </strong>
+                        <IconButton
+                          type="button"
+                          onClick={openRequestComposer}
+                          aria-label="Apri nuova richiesta"
+                          disabled={isPending}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M12 5v14M5 12h14"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      </div>
+                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
+                        Apri il popup per inserire ferie, permessi o straordinari.
+                      </div>
                     </div>
 
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
-                      <TextArea
-                        value={availabilityReason}
-                        onChange={(event) => setAvailabilityReason(event.target.value)}
-                        placeholder="Facoltativo"
-                      />
-                    </label>
-
-                    <div
-                      className="dashboard-modal-actions"
-                      style={{ display: "flex", justifyContent: "flex-end" }}
-                    >
-                      <PrimaryButton
-                        type="button"
-                        onClick={submitAvailability}
-                        disabled={isPending || !availabilityStart || !availabilityEnd}
+                    <div style={{ display: "grid", gap: 12 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                        }}
                       >
-                        {isPending ? "Salvataggio..." : "Salva indisponibilita"}
-                      </PrimaryButton>
+                        <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                          Nuova indisponibilita
+                        </strong>
+                        <IconButton
+                          type="button"
+                          onClick={openAvailabilityComposer}
+                          aria-label="Apri indisponibilita"
+                          disabled={isPending}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M12 5v14M5 12h14"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      </div>
+                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
+                        Apri il popup per segnalare un periodo non disponibile.
+                      </div>
                     </div>
-                  </div>
+
+                    {showRequestComposer ? (
+                      <div
+                        style={{
+                          position: "fixed",
+                          left: "50%",
+                          top: "50%",
+                          transform: "translate(-50%, -50%)",
+                          zIndex: 2147483647,
+                          display: "grid",
+                          gap: 12,
+                          width: "min(640px, calc(100vw - 32px))",
+                          maxHeight: "calc(100dvh - 32px)",
+                          overflowY: "auto",
+                          padding: 18,
+                          borderRadius: 28,
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                          }}
+                        >
+                          <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuova richiesta</strong>
+                          <IconButton
+                            type="button"
+                            onClick={() => setShowRequestComposer(false)}
+                            aria-label="Chiudi richiesta"
+                            disabled={isPending}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="M6 6l12 12M18 6 6 18"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </IconButton>
+                        </div>
+
+                        <div
+                          className="dashboard-modal-body-grid"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            gap: 12,
+                          }}
+                        >
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Tipo</span>
+                            <Select
+                              value={requestType}
+                              onChange={(event) => setRequestType(event.target.value)}
+                            >
+                              <option value={RequestType.VACATION}>Ferie</option>
+                              <option value={RequestType.PERMISSION}>Permesso</option>
+                              <option value={RequestType.SICKNESS}>Malattia</option>
+                              <option value={RequestType.OVERTIME}>Straordinario</option>
+                            </Select>
+                          </label>
+
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
+                            <TextInput
+                              type="datetime-local"
+                              value={requestStart}
+                              onChange={(event) => setRequestStart(event.target.value)}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
+                            <TextInput
+                              type="datetime-local"
+                              value={requestEnd}
+                              onChange={(event) => setRequestEnd(event.target.value)}
+                            />
+                          </label>
+                        </div>
+
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
+                          <TextArea
+                            value={requestReason}
+                            onChange={(event) => setRequestReason(event.target.value)}
+                            placeholder="Aggiungi un dettaglio utile per il titolare"
+                          />
+                        </label>
+
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>
+                            Codice certificato
+                          </span>
+                          <TextInput
+                            value={certificateCode}
+                            onChange={(event) => setCertificateCode(event.target.value)}
+                            placeholder="Obbligatorio solo per malattia"
+                          />
+                        </label>
+
+                        <div
+                          className="dashboard-modal-actions"
+                          style={{ display: "flex", justifyContent: "flex-end" }}
+                        >
+                          <PrimaryButton
+                            type="button"
+                            onClick={submitRequest}
+                            disabled={isPending || !requestStart || !requestEnd}
+                          >
+                            {isPending ? "Invio..." : "Invia richiesta"}
+                          </PrimaryButton>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {showAvailabilityComposer ? (
+                      <div
+                        style={{
+                          position: "fixed",
+                          left: "50%",
+                          top: "50%",
+                          transform: "translate(-50%, -50%)",
+                          zIndex: 2147483647,
+                          display: "grid",
+                          gap: 12,
+                          width: "min(640px, calc(100vw - 32px))",
+                          maxHeight: "calc(100dvh - 32px)",
+                          overflowY: "auto",
+                          padding: 18,
+                          borderRadius: 28,
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                          }}
+                        >
+                          <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                            Nuova indisponibilita
+                          </strong>
+                          <IconButton
+                            type="button"
+                            onClick={() => setShowAvailabilityComposer(false)}
+                            aria-label="Chiudi indisponibilita"
+                            disabled={isPending}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="M6 6l12 12M18 6 6 18"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </IconButton>
+                        </div>
+
+                        <div
+                          className="dashboard-modal-body-grid"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            gap: 12,
+                          }}
+                        >
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
+                            <TextInput
+                              type="datetime-local"
+                              value={availabilityStart}
+                              onChange={(event) => setAvailabilityStart(event.target.value)}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
+                            <TextInput
+                              type="datetime-local"
+                              value={availabilityEnd}
+                              onChange={(event) => setAvailabilityEnd(event.target.value)}
+                            />
+                          </label>
+                        </div>
+
+                        <label style={{ display: "grid", gap: 8 }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
+                          <TextArea
+                            value={availabilityReason}
+                            onChange={(event) => setAvailabilityReason(event.target.value)}
+                            placeholder="Facoltativo"
+                          />
+                        </label>
+
+                        <div
+                          className="dashboard-modal-actions"
+                          style={{ display: "flex", justifyContent: "flex-end" }}
+                        >
+                          <PrimaryButton
+                            type="button"
+                            onClick={submitAvailability}
+                            disabled={isPending || !availabilityStart || !availabilityEnd}
+                          >
+                            {isPending ? "Salvataggio..." : "Salva indisponibilita"}
+                          </PrimaryButton>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
 
                 <div style={{ display: "none" }}>
