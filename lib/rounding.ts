@@ -1,19 +1,19 @@
 import { RoundingMode } from "@prisma/client";
 
 function getQuarterHourMinute(minutes: number) {
-  if (minutes <= 7) {
+  if (minutes <= 5) {
     return 0;
   }
 
-  if (minutes <= 17) {
+  if (minutes <= 20) {
     return 15;
   }
 
-  if (minutes <= 37) {
+  if (minutes <= 35) {
     return 30;
   }
 
-  if (minutes <= 52) {
+  if (minutes <= 50) {
     return 45;
   }
 

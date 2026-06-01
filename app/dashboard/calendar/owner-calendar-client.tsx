@@ -979,7 +979,7 @@ export function OwnerCalendarClient({
                       }).format(new Date(selectedDay.date))}
                     </strong>
                     <span style={{ color: "#64748b" }}>
-                      {canCreatePersonalEntries
+                      {false
                         ? "Gestisci turni, richieste e indisponibilita da questa giornata."
                         : "Aggiungi un nuovo turno oppure apri quelli esistenti per modificarli o eliminarli."}
                     </span>
@@ -1156,7 +1156,11 @@ export function OwnerCalendarClient({
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
                             <input
-                              type="time"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]{2}:[0-9]{2}"
+                              placeholder="08:30"
+                              autoComplete="off"
                               value={draft.startTime}
                               onChange={(event) =>
                                 updateShiftDraft(draft.id, {
@@ -1177,7 +1181,11 @@ export function OwnerCalendarClient({
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
                             <input
-                              type="time"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]{2}:[0-9]{2}"
+                              placeholder="17:30"
+                              autoComplete="off"
                               value={draft.endTime}
                               onChange={(event) =>
                                 updateShiftDraft(draft.id, {
@@ -1268,7 +1276,7 @@ export function OwnerCalendarClient({
                   </div>
                 </div>
 
-                {canCreatePersonalEntries ? (
+                {false ? (
                   <>
                     <div style={{ display: "grid", gap: 12 }}>
                       <div
@@ -1603,7 +1611,7 @@ export function OwnerCalendarClient({
                     </IconButton>
                   </div>
 
-                  {showClosureComposer ? (
+                  {false ? (
                     <div
                       style={{
                         position: "fixed",
@@ -1777,7 +1785,7 @@ export function OwnerCalendarClient({
                     </IconButton>
                   </div>
 
-                  {showCourseComposer ? (
+                  {false ? (
                     <div
                       style={{
                         position: "fixed",

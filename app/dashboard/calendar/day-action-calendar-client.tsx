@@ -1321,7 +1321,11 @@ export function DayActionCalendarClient({
                                 <label style={{ display: "grid", gap: 8 }}>
                                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
                                   <TextInput
-                                    type="time"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]{2}:[0-9]{2}"
+                                    placeholder="08:30"
+                                    autoComplete="off"
                                     value={draft.startTime}
                                     onChange={(event) =>
                                       updateShiftDraft(draft.id, {
@@ -1335,7 +1339,11 @@ export function DayActionCalendarClient({
                                 <label style={{ display: "grid", gap: 8 }}>
                                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
                                   <TextInput
-                                    type="time"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]{2}:[0-9]{2}"
+                                    placeholder="17:30"
+                                    autoComplete="off"
                                     value={draft.endTime}
                                     onChange={(event) =>
                                       updateShiftDraft(draft.id, {
@@ -1467,19 +1475,19 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canReviewRequests ? (
+                {false ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
                       Richieste da approvare
                     </strong>
 
-                    {selectedDay.pendingRequests.length === 0 ? (
+                    {(selectedDay?.pendingRequests?.length ?? 0) === 0 ? (
                       <div style={{ color: "#64748b" }}>
                         Nessuna richiesta in attesa per questa giornata.
                       </div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                        {selectedDay.pendingRequests.map((request) => (
+                        {(selectedDay?.pendingRequests ?? []).map((request) => (
                           <div
                             key={request.id}
                             className="dashboard-list-card"
@@ -1546,7 +1554,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canCreateRequest ? (
+                {false ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -1651,7 +1659,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canCreateAvailability ? (
+                {false ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
                       Nuova indisponibilita
@@ -1708,7 +1716,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canCreateClosure ? (
+                {false ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -1721,7 +1729,7 @@ export function DayActionCalendarClient({
                       <strong style={{ fontSize: 18, color: "#0f172a" }}>
                         Inserimenti speciali
                       </strong>
-                      <CountBadge count={selectedDay.closures.length} />
+                      <CountBadge count={selectedDay?.closures?.length ?? 0} />
                       <IconButton
                         type="button"
                         onClick={() => setShowClosureComposer((current) => !current)}
@@ -1739,7 +1747,7 @@ export function DayActionCalendarClient({
                       </IconButton>
                     </div>
 
-                    {showClosureComposer ? (
+                    {false ? (
                       <div
                         style={{
                           position: "fixed",
@@ -1837,13 +1845,13 @@ export function DayActionCalendarClient({
                       </div>
                     ) : null}
 
-                    {selectedDay.closures.length === 0 ? (
+                    {(selectedDay?.closures?.length ?? 0) === 0 ? (
                       <div style={{ color: "#64748b" }}>
                         Nessuna chiusura o festivita in questa giornata.
                       </div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                        {selectedDay.closures.map((closure) => (
+                        {(selectedDay?.closures ?? []).map((closure) => (
                           <div
                             key={closure.id}
                             className="dashboard-list-card"
@@ -1867,7 +1875,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canCreateCourse ? (
+                {false ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -1878,7 +1886,7 @@ export function DayActionCalendarClient({
                       }}
                     >
                       <strong style={{ fontSize: 18, color: "#0f172a" }}>Corsi del giorno</strong>
-                      <CountBadge count={selectedDay.courses.length} />
+                      <CountBadge count={selectedDay?.courses?.length ?? 0} />
                       <IconButton
                         type="button"
                         onClick={() => setShowCourseComposer(true)}
@@ -1898,7 +1906,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canCreateCourse && showCourseComposer ? (
+                {false ? (
                   <div
                     style={{
                       position: "fixed",

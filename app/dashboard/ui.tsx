@@ -45,16 +45,13 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
     "/dashboard/calendar",
     "/dashboard",
     "/dashboard/tasks",
-    "/dashboard/courses",
-    "/dashboard/requests",
-    "/dashboard/settings",
   ];
   const preferred = preferredHrefs
     .map((href) => navItems.find((item) => item.href === href))
     .filter((item): item is DashboardNavItem => Boolean(item));
   const fill = navItems.filter((item) => !preferred.some((selected) => selected.href === item.href));
 
-  return [...preferred, ...fill].slice(0, 5);
+  return [...preferred, ...fill].slice(0, 3);
 }
 
 function BottomNavIcon({ href }: { href: string }) {

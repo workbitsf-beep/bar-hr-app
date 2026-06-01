@@ -18,6 +18,7 @@ import {
   TextInput,
   formatDateTime,
 } from "../ui";
+import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-format";
 
 type LogItem = {
   id: string;
@@ -245,8 +246,9 @@ export function ClockActionsPanel({
       }
 
       if (endpoint === "clock-out" && typeof payload?.duration === "number") {
-        const hours = Math.round((payload.duration / 3600000) * 100) / 100;
-        setActionMessage(`Uscita registrata. Durata ${hours} ore.`);
+        setActionMessage(
+          `Uscita registrata. Durata ${formatDurationFromMilliseconds(payload.duration)}.`
+        );
       } else {
         setActionMessage("Entrata registrata.");
       }
@@ -302,7 +304,7 @@ export function ClockActionsPanel({
           ) : null}
         </div>
 
-        <div className="dashboard-clock-actions" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <div className="dashboard-clock-actions" style={{ display: "grid", gap: 12 }}>
           <PrimaryButton
             type="button"
             tone="sand"
@@ -311,22 +313,27 @@ export function ClockActionsPanel({
           >
             {locating ? "Aggiornamento posizione..." : compact ? "Verifica posizione" : "Aggiorna posizione"}
           </PrimaryButton>
-          <PrimaryButton
-            type="button"
-            tone="green"
-            onClick={() => runClockAction("clock-in")}
-            disabled={submitting !== null || !insideRadius || !geoReady}
+          <div
+            className="dashboard-clock-actions-row"
+            style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
           >
-            {submitting === "in" ? "Registrazione..." : "Entrata"}
-          </PrimaryButton>
-          <PrimaryButton
-            type="button"
-            tone="red"
-            onClick={() => runClockAction("clock-out")}
-            disabled={submitting !== null || !insideRadius || !geoReady}
-          >
-            {submitting === "out" ? "Registrazione..." : "Uscita"}
-          </PrimaryButton>
+            <PrimaryButton
+              type="button"
+              tone="green"
+              onClick={() => runClockAction("clock-in")}
+              disabled={submitting !== null || !insideRadius || !geoReady}
+            >
+              {submitting === "in" ? "Registrazione..." : "Entrata"}
+            </PrimaryButton>
+            <PrimaryButton
+              type="button"
+              tone="red"
+              onClick={() => runClockAction("clock-out")}
+              disabled={submitting !== null || !insideRadius || !geoReady}
+            >
+              {submitting === "out" ? "Registrazione..." : "Uscita"}
+            </PrimaryButton>
+          </div>
         </div>
 
         {actionMessage ? (
@@ -667,11 +674,11 @@ export function TimeLogsClient({
       {totals ? (
         <Panel title="Totale ore personale">
           <div className="dashboard-summary-grid" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <ItemCard className="dashboard-summary-card" title="Ore reali" meta={`${totals.realHours.toFixed(2)} h`} />
+            <ItemCard className="dashboard-summary-card" title="Ore reali" meta={formatDurationClock(totals.realHours)} />
             <ItemCard
               className="dashboard-summary-card"
               title="Ore arrotondate"
-              meta={`${totals.roundedHours.toFixed(2)} h`}
+              meta={formatDurationClock(totals.roundedHours)}
             />
           </div>
         </Panel>

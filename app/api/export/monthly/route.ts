@@ -3,6 +3,7 @@ import { ActivityType, Role } from "@prisma/client";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
+import { formatDurationClock } from "@/lib/time-format";
 import { withBar } from "@/lib/withBar";
 
 type ExportBody = {
@@ -136,7 +137,7 @@ async function createMonthlyPdfBuffer(input: {
         doc
           .fontSize(10)
           .text(
-            `${formatTime(entry.clockIn)} - ${formatTime(entry.clockOut)} | ore reali ${entry.realHours.toFixed(2)} | ore arrotondate ${entry.roundedHours.toFixed(2)}`
+            `${formatTime(entry.clockIn)} - ${formatTime(entry.clockOut)} | ore reali ${formatDurationClock(entry.realHours)} | ore arrotondate ${formatDurationClock(entry.roundedHours)}`
           );
       }
 
@@ -144,7 +145,7 @@ async function createMonthlyPdfBuffer(input: {
       doc
         .font("Helvetica-Oblique")
         .text(
-          `Totale giorno: reali ${day.totals.realHours.toFixed(2)}h | arrotondate ${day.totals.roundedHours.toFixed(2)}h`
+          `Totale giorno: reali ${formatDurationClock(day.totals.realHours)} | arrotondate ${formatDurationClock(day.totals.roundedHours)}`
         );
       doc.font("Helvetica").moveDown(0.6);
     }
@@ -155,7 +156,7 @@ async function createMonthlyPdfBuffer(input: {
     doc
       .font("Helvetica-Bold")
       .text(
-        `Totale mese: ore reali ${input.dataset.totals.realHours.toFixed(2)}h | ore arrotondate ${input.dataset.totals.roundedHours.toFixed(2)}h`
+        `Totale mese: ore reali ${formatDurationClock(input.dataset.totals.realHours)} | ore arrotondate ${formatDurationClock(input.dataset.totals.roundedHours)}`
       );
     doc.end();
   });

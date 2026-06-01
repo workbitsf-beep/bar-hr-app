@@ -13,6 +13,7 @@ import {
   Stack,
   TextInput,
 } from "../ui";
+import { formatDurationClock } from "@/lib/time-format";
 
 type EmployeeOption = {
   id: string;
@@ -262,10 +263,10 @@ export function ExportClient({
               </div>
             ) : (
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <ItemCard title="Ore reali" meta={`${result.totals.realHours.toFixed(2)} h`} />
+                <ItemCard title="Ore reali" meta={formatDurationClock(result.totals.realHours)} />
                 <ItemCard
                   title="Ore arrotondate"
-                  meta={`${result.totals.roundedHours.toFixed(2)} h`}
+                  meta={formatDurationClock(result.totals.roundedHours)}
                 />
               </div>
             )}
@@ -287,7 +288,7 @@ export function ExportClient({
                     subtitle={
                       result.mode === "company"
                         ? `${day.items?.length ?? 0} registrazioni`
-                        : `Ore reali ${day.totals.realHours.toFixed(2)} - Ore arrotondate ${day.totals.roundedHours.toFixed(2)}`
+                        : `Ore reali ${formatDurationClock(day.totals.realHours)} - Ore arrotondate ${formatDurationClock(day.totals.roundedHours)}`
                     }
                     meta={
                       result.mode === "company"
@@ -340,17 +341,17 @@ export function ExportClient({
                                 key={`${entry.inLogId}-${entry.outLogId}`}
                                 style={{ color: "#334155", fontSize: 14 }}
                               >
-                                {new Date(entry.clockIn).toLocaleTimeString("it-IT", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}{" "}
-                                -{" "}
+                              {new Date(entry.clockIn).toLocaleTimeString("it-IT", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}{" "}
+                              -{" "}
                                 {new Date(entry.clockOut).toLocaleTimeString("it-IT", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}{" "}
-                                - reali {entry.realHours.toFixed(2)} h - arrotondate{" "}
-                                {entry.roundedHours.toFixed(2)} h
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}{" "}
+                                - reali {formatDurationClock(entry.realHours)} - arrotondate{" "}
+                                {formatDurationClock(entry.roundedHours)}
                               </div>
                             ))
                           )}

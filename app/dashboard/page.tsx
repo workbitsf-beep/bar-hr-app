@@ -17,6 +17,7 @@ import {
   formatDate,
   formatDateTime,
 } from "./ui";
+import { formatDurationClock } from "@/lib/time-format";
 
 export default async function DashboardPage() {
   const { session, role, activeBarId, activeBarActivityType, billingStatus } =
@@ -258,8 +259,8 @@ export default async function DashboardPage() {
           >
             {isRestaurant && ownHours ? (
               <ItemCard
-                title={`${ownHours.roundedHours.toFixed(2)} h`}
-                subtitle={`Ore reali ${ownHours.realHours.toFixed(2)} h`}
+                title={formatDurationClock(ownHours.roundedHours)}
+                subtitle={`Ore reali ${formatDurationClock(ownHours.realHours)}`}
                 meta="Ore mese"
               />
             ) : null}

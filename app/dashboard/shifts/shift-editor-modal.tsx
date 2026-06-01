@@ -385,7 +385,11 @@ export function ShiftEditorModal({
                 <label style={{ display: "grid", gap: 8 }}>
                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
                   <input
-                    type="time"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    placeholder="08:30"
+                    autoComplete="off"
                     value={startTime}
                     onChange={(event) => {
                       setSelectedPresetKey("CUSTOM");
@@ -404,7 +408,11 @@ export function ShiftEditorModal({
                 <label style={{ display: "grid", gap: 8 }}>
                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
                   <input
-                    type="time"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    placeholder="17:30"
+                    autoComplete="off"
                     value={endTime}
                     onChange={(event) => {
                       setSelectedPresetKey("CUSTOM");
