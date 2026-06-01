@@ -1523,7 +1523,7 @@ export function OwnerCalendarClient({
                   </>
                 ) : null}
 
-                {false ? (
+                {selectedDay ? (
                   <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
