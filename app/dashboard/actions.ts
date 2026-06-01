@@ -1213,6 +1213,11 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
     select: {
       id: true,
       ownerId: true,
+      memberships: {
+        select: {
+          userId: true,
+        },
+      },
       subscription: {
         select: {
           stripeSubscriptionId: true,
@@ -1239,35 +1244,55 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
     }
   }
 
-  await prisma.bar.delete({
-    where: { id: bar.id },
-  });
+  const userIdsToCheck = Array.from(
+    new Set([bar.ownerId, ...bar.memberships.map((membership) => membership.userId)])
+  );
 
-  const [remainingOwnedBars, remainingMemberships] = await Promise.all([
-    prisma.bar.count({
-      where: {
-        ownerId: bar.ownerId,
-      },
-    }),
-    prisma.employeeBar.count({
-      where: {
-        userId: bar.ownerId,
-        isActive: true,
-      },
-    }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.bar.delete({
+      where: { id: bar.id },
+    });
 
-  if (remainingOwnedBars === 0 && remainingMemberships === 0) {
-    await prisma.user.delete({
+    const remainingUsers = await tx.user.findMany({
       where: {
-        id: bar.ownerId,
+        id: {
+          in: userIdsToCheck,
+        },
+      },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            ownedBars: true,
+            barMemberships: true,
+          },
+        },
       },
     });
-  }
+
+    const usersToDelete = remainingUsers
+      .filter(
+        (user) =>
+          user._count.ownedBars === 0 && user._count.barMemberships === 0
+      )
+      .map((user) => user.id);
+
+    if (usersToDelete.length > 0) {
+      await tx.user.deleteMany({
+        where: {
+          id: {
+            in: usersToDelete,
+          },
+        },
+      });
+    }
+  });
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/owners");
   revalidatePath("/dashboard/super-admin/billing");
+  revalidatePath("/dashboard/super-admin/bars");
 }
 
 export async function confirmVisibleShiftsAction(formData: FormData) {
