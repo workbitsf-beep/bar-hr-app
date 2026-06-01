@@ -1864,38 +1864,6 @@ export function DayActionCalendarClient({
                   </div>
                 </div>
 
-                <div style={{ display: "none" }}>
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>Corsi del giorno</strong>
-                      <CountBadge count={selectedDay?.courses?.length ?? 0} />
-                      <IconButton
-                        type="button"
-                        onClick={() => setShowCourseComposer(true)}
-                        aria-label="Aggiungi corso"
-                        disabled={isPending}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M12 5v14M5 12h14"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                    </div>
-                  </div>
-                  </div>
-
-
                 <div style={{ display: "grid", gap: 12 }}>
                   <strong style={{ fontSize: 18, color: "#0f172a" }}>
                     Eventi della giornata
