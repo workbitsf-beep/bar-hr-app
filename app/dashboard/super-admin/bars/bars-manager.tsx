@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { createBarBySuperAdminAction } from "../../actions";
+import { useRouter } from "next/navigation";
+import { createBarBySuperAdminAction, updateBarSubscriptionAction } from "../../actions";
 import {
   EmptyState,
   FormField,
@@ -41,6 +42,9 @@ type BarItem = {
     monthlyDiscountPercent: number;
     currentPeriodEnd: Date | null;
     trialEndsAt: Date | null;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
+    stripePriceId?: string | null;
   } | null;
 };
 
@@ -116,6 +120,27 @@ function getSubscriptionDetail(subscription: NonNullable<BarItem["subscription"]
   return `Scadenza: ${formatDateLabel(subscription.currentPeriodEnd)}`;
 }
 
+function formatDateInput(value: Date | string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Date(date).toISOString().slice(0, 10);
+}
+
+function getDefaultStatus(planType: "FREE" | "TRIAL" | "PAID" | "LIFETIME") {
+  if (planType === "TRIAL") {
+    return "TRIALING" as const;
+  }
+
+  if (planType === "FREE" || planType === "LIFETIME") {
+    return "ACTIVE" as const;
+  }
+
+  return "INACTIVE" as const;
+}
+
 function StatusBanner({
   kind,
   text,
@@ -161,8 +186,20 @@ export function BarsManager({
   error?: string;
   success?: string;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [selectedBarId, setSelectedBarId] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState("");
+  const [planType, setPlanType] = useState<"FREE" | "TRIAL" | "PAID" | "LIFETIME">("PAID");
+  const [status, setStatus] = useState<
+    "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INACTIVE"
+  >("INACTIVE");
+  const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "YEARLY" | "">("");
+  const [monthlyDiscountPercent, setMonthlyDiscountPercent] = useState("0");
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState("");
+  const [trialEndsAt, setTrialEndsAt] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -181,7 +218,99 @@ export function BarsManager({
     };
   }, [open]);
 
+  const selectedBar = useMemo(() => bars.find((bar) => bar.id === selectedBarId) ?? null, [bars, selectedBarId]);
+  const selectedSubscription =
+    selectedBar?.subscription ??
+    {
+      planType: "PAID" as const,
+      status: "INACTIVE" as const,
+      billingInterval: null,
+      monthlyDiscountPercent: 0,
+      currentPeriodEnd: null,
+      trialEndsAt: null,
+    };
+
+  useEffect(() => {
+    if (!selectedBar) {
+      return;
+    }
+
+    setOwnerId(selectedBar.owner.id);
+    setPlanType(selectedSubscription.planType);
+    setStatus(selectedSubscription.status);
+    setBillingInterval(selectedSubscription.billingInterval ?? "");
+    setMonthlyDiscountPercent(String(selectedSubscription.monthlyDiscountPercent ?? 0));
+    setCurrentPeriodEnd(formatDateInput(selectedSubscription.currentPeriodEnd));
+    setTrialEndsAt(formatDateInput(selectedSubscription.trialEndsAt));
+  }, [selectedBar, selectedSubscription]);
+
+  useEffect(() => {
+    if (!selectedBarId) {
+      return;
+    }
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [selectedBarId]);
+
   const hasOwners = owners.length > 0;
+
+  function closeDetailsModal() {
+    if (isPending) {
+      return;
+    }
+
+    setSelectedBarId(null);
+  }
+
+  function applyPlan(nextPlan: "FREE" | "TRIAL" | "PAID" | "LIFETIME") {
+    setPlanType(nextPlan);
+    setStatus(getDefaultStatus(nextPlan));
+
+    if (nextPlan !== "PAID") {
+      setBillingInterval("");
+      setCurrentPeriodEnd("");
+    }
+
+    if (nextPlan !== "TRIAL") {
+      setTrialEndsAt("");
+    }
+  }
+
+  async function saveSubscription() {
+    if (!selectedBar) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("barId", selectedBar.id);
+    formData.set("ownerId", ownerId);
+    formData.set("planType", planType);
+    formData.set("status", status);
+    formData.set("monthlyDiscountPercent", monthlyDiscountPercent || "0");
+
+    if (billingInterval) {
+      formData.set("billingInterval", billingInterval);
+    }
+
+    if (currentPeriodEnd) {
+      formData.set("currentPeriodEnd", currentPeriodEnd);
+    }
+
+    if (trialEndsAt) {
+      formData.set("trialEndsAt", trialEndsAt);
+    }
+
+    startTransition(async () => {
+      await updateBarSubscriptionAction(formData);
+      setSelectedBarId(null);
+      router.refresh();
+    });
+  }
 
   return (
     <>
@@ -249,27 +378,39 @@ export function BarsManager({
                 const subscription = bar.subscription;
 
                 return (
-                  <ItemCard
+                  <button
                     key={bar.id}
-                    title={bar.name}
-                    subtitle={`${bar.owner.firstName} ${bar.owner.lastName} - ${bar.city ?? "Senza citta"}`}
-                    meta={`${getActivityLabel(bar.activityType)}${bar.legalName ? ` - ${bar.legalName}` : ""}`}
-                    footer={
-                      subscription ? (
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <StatusPill
-                            label={getSubscriptionLabel(subscription)}
-                            tone={getSubscriptionTone(subscription)}
-                          />
-                          <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                            {getSubscriptionDetail(subscription)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span style={{ color: "#64748b", fontSize: 13 }}>Nessun abbonamento collegato</span>
-                      )
-                    }
-                  />
+                    type="button"
+                    onClick={() => setSelectedBarId(bar.id)}
+                    style={{
+                      border: 0,
+                      padding: 0,
+                      background: "transparent",
+                      textAlign: "left",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <ItemCard
+                      title={bar.name}
+                      subtitle={`${bar.owner.firstName} ${bar.owner.lastName} - ${bar.city ?? "Senza citta"}`}
+                      meta={`${getActivityLabel(bar.activityType)}${bar.legalName ? ` - ${bar.legalName}` : ""}`}
+                      footer={
+                        subscription ? (
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <StatusPill
+                              label={getSubscriptionLabel(subscription)}
+                              tone={getSubscriptionTone(subscription)}
+                            />
+                            <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                              {getSubscriptionDetail(subscription)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: "#64748b", fontSize: 13 }}>Nessun abbonamento collegato</span>
+                        )
+                      }
+                    />
+                  </button>
                 );
               })}
             </ItemList>
@@ -421,6 +562,292 @@ export function BarsManager({
                     </PrimaryButton>
                   </div>
                 </form>
+              </section>
+            </div>,
+            document.body
+          )
+        : null}
+
+      {mounted && selectedBar
+        ? createPortal(
+            <div
+              className="dashboard-modal-wrap"
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 2147483647,
+                display: "grid",
+                placeItems: "center",
+                padding: 16,
+              }}
+            >
+              <button
+                type="button"
+                aria-label="Chiudi popup struttura"
+                onClick={closeDetailsModal}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  border: 0,
+                  background: "rgba(15, 23, 42, 0.28)",
+                  backdropFilter: "blur(6px)",
+                }}
+              />
+
+              <section
+                className="dashboard-modal-panel"
+                style={{
+                  position: "relative",
+                  width: "min(820px, calc(100vw - 32px))",
+                  maxHeight: "calc(100dvh - 32px)",
+                  overflowY: "auto",
+                  background: "rgba(255,255,255,0.98)",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 28,
+                  boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
+                  padding: 24,
+                  display: "grid",
+                  gap: 18,
+                  zIndex: 1,
+                }}
+              >
+                <div
+                  className="dashboard-modal-header"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedBar.name}</strong>
+                    <span style={{ color: "#475569" }}>
+                      Responsabile: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
+                    </span>
+                  </div>
+
+                  <PrimaryButton type="button" tone="sand" onClick={closeDetailsModal} disabled={isPending}>
+                    X
+                  </PrimaryButton>
+                </div>
+
+                <div className="dashboard-inline-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("FREE")} disabled={isPending}>
+                    FREE
+                  </PrimaryButton>
+                  <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("LIFETIME")} disabled={isPending}>
+                    LIFETIME
+                  </PrimaryButton>
+                  <PrimaryButton type="button" onClick={() => applyPlan("PAID")} disabled={isPending}>
+                    PAID
+                  </PrimaryButton>
+                  <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("TRIAL")} disabled={isPending}>
+                    TRIAL
+                  </PrimaryButton>
+                </div>
+
+                <div
+                  className="dashboard-modal-body-grid"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Responsabile</span>
+                    <select
+                      value={ownerId}
+                      onChange={(event) => setOwnerId(event.target.value)}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                    >
+                      {owners.map((owner) => (
+                        <option key={owner.id} value={owner.id}>
+                          {owner.firstName} {owner.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Piano</span>
+                    <select
+                      value={planType}
+                      onChange={(event) => applyPlan(event.target.value as typeof planType)}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                    >
+                      <option value="FREE">FREE</option>
+                      <option value="TRIAL">TRIAL</option>
+                      <option value="PAID">PAID</option>
+                      <option value="LIFETIME">LIFETIME</option>
+                    </select>
+                  </label>
+
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Stato</span>
+                    <select
+                      value={status}
+                      onChange={(event) =>
+                        setStatus(event.target.value as typeof status)
+                      }
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                      disabled={planType !== "PAID"}
+                    >
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="TRIALING">TRIALING</option>
+                      <option value="PAST_DUE">PAST_DUE</option>
+                      <option value="CANCELED">CANCELED</option>
+                      <option value="UNPAID">UNPAID</option>
+                      <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                  </label>
+
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Intervallo</span>
+                    <select
+                      value={billingInterval}
+                      onChange={(event) =>
+                        setBillingInterval(event.target.value as "MONTHLY" | "YEARLY" | "")
+                      }
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                      disabled={planType !== "PAID"}
+                    >
+                      <option value="">Non impostato</option>
+                      <option value="MONTHLY">MONTHLY</option>
+                      <option value="YEARLY">YEARLY</option>
+                    </select>
+                  </label>
+
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Sconto mensile %</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={monthlyDiscountPercent}
+                      onChange={(event) => setMonthlyDiscountPercent(event.target.value)}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                    />
+                  </label>
+
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Scadenza periodo</span>
+                    <input
+                      type="date"
+                      value={currentPeriodEnd}
+                      onChange={(event) => setCurrentPeriodEnd(event.target.value)}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                      disabled={planType !== "PAID"}
+                    />
+                  </label>
+
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine trial</span>
+                    <input
+                      type="date"
+                      value={trialEndsAt}
+                      onChange={(event) => setTrialEndsAt(event.target.value)}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        fontSize: 15,
+                        background: "#ffffff",
+                      }}
+                      disabled={planType !== "TRIAL"}
+                    />
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 10,
+                    padding: 18,
+                    borderRadius: 20,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ color: "#64748b", fontSize: 14 }}>Dettagli</div>
+                  <div style={{ color: "#334155", lineHeight: 1.7 }}>
+                    Customer id: {selectedBar.subscription?.stripeCustomerId ?? "—"}
+                    <br />
+                    Subscription id: {selectedBar.subscription?.stripeSubscriptionId ?? "—"}
+                    <br />
+                    Price id: {selectedBar.subscription?.stripePriceId ?? "—"}
+                    <br />
+                    Sconto mensile: {selectedSubscription.monthlyDiscountPercent}%
+                    <br />
+                    Accesso attuale:{" "}
+                    {selectedSubscription.planType === "FREE" ||
+                    selectedSubscription.planType === "LIFETIME" ||
+                    (selectedSubscription.planType === "TRIAL" &&
+                      selectedSubscription.trialEndsAt &&
+                      new Date(selectedSubscription.trialEndsAt).getTime() > Date.now()) ||
+                    (selectedSubscription.planType === "PAID" &&
+                      (selectedSubscription.status === "ACTIVE" ||
+                        selectedSubscription.status === "TRIALING"))
+                      ? "Sbloccato"
+                      : "Bloccato"}
+                  </div>
+                </div>
+
+                <div
+                  className="dashboard-modal-actions"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <PrimaryButton type="button" onClick={closeDetailsModal} tone="sand" disabled={isPending}>
+                    Annulla
+                  </PrimaryButton>
+
+                  <PrimaryButton type="button" onClick={() => void saveSubscription()} disabled={isPending}>
+                    {isPending ? "Salvataggio..." : "Salva abbonamento"}
+                  </PrimaryButton>
+                </div>
               </section>
             </div>,
             document.body

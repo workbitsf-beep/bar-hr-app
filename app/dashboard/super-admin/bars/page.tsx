@@ -106,6 +106,9 @@ export default async function SuperAdminBarsPage({
             monthlyDiscountPercent: true,
             currentPeriodEnd: true,
             trialEndsAt: true,
+            stripeCustomerId: true,
+            stripeSubscriptionId: true,
+            stripePriceId: true,
           },
         },
       },
@@ -114,7 +117,7 @@ export default async function SuperAdminBarsPage({
 
   return (
     <SuperAdminFrame
-      title="Nuove attività"
+      title="Nuove attivita"
       description="Lista compatta di aziende e ristorazione con creazione rapida."
     >
       <BarsManager
