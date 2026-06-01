@@ -674,7 +674,7 @@ export default async function OnboardingPage({
                 type="checkbox"
                 defaultChecked={Boolean(activeBar.settings?.roundingEnabled)}
               />
-              Abilita arrotondamento al quarto d'ora
+              Abilita arrotondamento con tolleranza di 5 minuti
             </label>
 
             <input type="hidden" name="roundingMinutes" value="15" />

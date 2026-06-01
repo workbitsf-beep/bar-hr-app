@@ -299,7 +299,7 @@ export function ClockActionsPanel({
           <div>{locationSummary}</div>
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div>
-              Arrotondamento attivo al quarto d'ora.
+            Arrotondamento attivo con tolleranza di 5 minuti.
             </div>
           ) : null}
         </div>

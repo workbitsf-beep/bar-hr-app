@@ -95,7 +95,14 @@ export function applyScheduledRounding(
   }
 
   if (kind === ClockType.OUT && referenceEnd) {
-    return roundWithTolerance(referenceEnd, date, kind);
+    const toleranceMs = 5 * 60 * 1000;
+    const delta = date.getTime() - referenceEnd.getTime();
+
+    if (Math.abs(delta) <= toleranceMs) {
+      return new Date(referenceEnd);
+    }
+
+    return floorToQuarterHour(date);
   }
 
   return applyRounding(date, RoundingMode.NEAREST, 15);

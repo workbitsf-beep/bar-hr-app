@@ -907,19 +907,17 @@ export function DayActionCalendarClient({
               }}
             >
               <div style={{ display: "grid", gap: 4 }}>
-                {week[0] && week[week.length - 1] ? (
-                  <span style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    {new Intl.DateTimeFormat(locale, {
-                      day: "numeric",
-                      month: "long",
-                    }).format(new Date(week[0].date))}
-                    {" - "}
-                    {new Intl.DateTimeFormat(locale, {
-                      day: "numeric",
-                      month: "long",
-                    }).format(new Date(week[week.length - 1].date))}
-                  </span>
-                ) : null}
+                <span style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  {new Intl.DateTimeFormat(locale, {
+                    day: "numeric",
+                    month: "long",
+                  }).format(new Date(week[0].date))}
+                  {" - "}
+                  {new Intl.DateTimeFormat(locale, {
+                    day: "numeric",
+                    month: "long",
+                  }).format(new Date(week[week.length - 1].date))}
+                </span>
               </div>
 
               <div style={{ display: "grid", gap: 12 }}>
@@ -1466,7 +1464,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {false ? (
+                {canCreateRequest ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
                       Richieste da approvare
@@ -1545,7 +1543,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {false ? (
+                {canCreateAvailability ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -1650,7 +1648,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {false ? (
+                <div style={{ display: "none" }}>
                   <div style={{ display: "grid", gap: 12 }}>
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
                       Nuova indisponibilita
@@ -1705,9 +1703,9 @@ export function DayActionCalendarClient({
                       </PrimaryButton>
                     </div>
                   </div>
-                ) : null}
+                </div>
 
-                {false ? (
+                <div style={{ display: "none" }}>
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -1864,9 +1862,9 @@ export function DayActionCalendarClient({
                       </div>
                     )}
                   </div>
-                ) : null}
+                </div>
 
-                {false ? (
+                <div style={{ display: "none" }}>
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -1895,169 +1893,8 @@ export function DayActionCalendarClient({
                       </IconButton>
                     </div>
                   </div>
-                ) : null}
-
-                {false ? (
-                  <div
-                    style={{
-                      position: "fixed",
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                      zIndex: 2147483647,
-                      display: "grid",
-                      gap: 12,
-                      width: "min(680px, calc(100vw - 32px))",
-                      maxHeight: "calc(100dvh - 32px)",
-                      overflowY: "auto",
-                      padding: 18,
-                      borderRadius: 28,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <strong style={{ color: "#0f172a", fontSize: 18 }}>Nuovo corso</strong>
-                      <IconButton
-                        type="button"
-                        onClick={() => setShowCourseComposer(false)}
-                        aria-label="Chiudi corso"
-                        disabled={isPending}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M6 6l12 12M18 6 6 18"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                    </div>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo</span>
-                      <TextInput
-                        value={courseTitle}
-                        onChange={(event) => setCourseTitle(event.target.value)}
-                        placeholder="Formazione sicurezza"
-                      />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Dettagli</span>
-                      <TextArea
-                        value={courseDescription}
-                        onChange={(event) => setCourseDescription(event.target.value)}
-                        placeholder="Argomenti, materiali, note operative"
-                      />
-                    </label>
-
-                    <div
-                      className="dashboard-modal-body-grid"
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
-                        <TextInput
-                          type="datetime-local"
-                          value={courseStart}
-                          onChange={(event) => setCourseStart(event.target.value)}
-                        />
-                      </label>
-
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
-                        <TextInput
-                          type="datetime-local"
-                          value={courseEnd}
-                          onChange={(event) => setCourseEnd(event.target.value)}
-                        />
-                      </label>
-
-                      <label style={{ display: "grid", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Luogo</span>
-                        <TextInput
-                          value={courseLocation}
-                          onChange={(event) => setCourseLocation(event.target.value)}
-                          placeholder="Sala riunioni o link"
-                        />
-                      </label>
-                    </div>
-
-                    <div style={{ display: "grid", gap: 10 }}>
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          color: "#1e293b",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={courseAssignedToAll}
-                          onChange={(event) => setCourseAssignedToAll(event.target.checked)}
-                        />
-                        Assegna a tutto il team
-                      </label>
-
-                      {!courseAssignedToAll ? (
-                        <label style={{ display: "grid", gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>
-                            Persona coinvolta
-                          </span>
-                          <Select
-                            value={courseAssignedToId}
-                            onChange={(event) => setCourseAssignedToId(event.target.value)}
-                          >
-                            <option value="">Seleziona una persona</option>
-                            {members.map((member) => (
-                              <option key={member.id} value={member.id}>
-                                {member.firstName} {member.lastName} -{" "}
-                                {activityType === ActivityType.COMPANY && member.role === Role.MANAGER
-                                  ? "Ufficio personale"
-                                  : formatRoleLabel(member.role)}
-                              </option>
-                            ))}
-                          </Select>
-                        </label>
-                      ) : null}
-                    </div>
-
-                    <div
-                      className="dashboard-modal-actions"
-                      style={{ display: "flex", justifyContent: "flex-end" }}
-                    >
-                      <PrimaryButton
-                        type="button"
-                        onClick={submitCourse}
-                        disabled={
-                          isPending ||
-                          !courseTitle.trim() ||
-                          !courseStart ||
-                          !courseEnd ||
-                          (!courseAssignedToAll && !courseAssignedToId)
-                        }
-                      >
-                        {isPending ? "Salvataggio..." : "Salva corso"}
-                      </PrimaryButton>
-                    </div>
                   </div>
-                ) : null}
+
 
                 <div style={{ display: "grid", gap: 12 }}>
                   <strong style={{ fontSize: 18, color: "#0f172a" }}>
@@ -2067,7 +1904,6 @@ export function DayActionCalendarClient({
                   {selectedDay.shifts.length === 0 &&
                   selectedDay.availabilities.length === 0 &&
                   selectedDay.requests.length === 0 &&
-                  selectedDay.courses.length === 0 &&
                   selectedDay.pendingRequests.length === 0 &&
                   selectedDay.tasks.length === 0 &&
                   selectedDay.notes.length === 0 ? (
@@ -2079,9 +1915,6 @@ export function DayActionCalendarClient({
                       {!canManageOptionalShifts
                         ? selectedDay.shifts.map((shift) => renderShiftCard(shift, locale, true))
                         : null}
-                      {selectedDay.courses.map((course) =>
-                        renderCourseCard(course, locale, true)
-                      )}
                       <div style={{ display: "grid", gap: 10 }}>
                         <div
                           style={{

@@ -98,7 +98,7 @@ export default async function DashboardSettingsPage() {
                 name="roundingEnabled"
                 defaultChecked={Boolean(settings?.roundingEnabled)}
               />
-              Abilita arrotondamento al quarto d'ora
+              Abilita arrotondamento con tolleranza di 5 minuti
             </label>
 
             <input type="hidden" name="roundingMinutes" value="15" />
@@ -114,8 +114,8 @@ export default async function DashboardSettingsPage() {
                 lineHeight: 1.6,
               }}
             >
-              Regola unica: 00-07 va a 00, 08-17 va a 15, 18-37 va a 30,
-              38-52 va a 45, 53-59 va all'ora successiva.
+              Regola: entro 5 minuti dall'orario richiesto resta invariato, oltre i 5 minuti
+              si arrotonda al quarto d'ora utile.
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>

@@ -743,6 +743,7 @@ export default async function DashboardCalendarPage({
                 rangeStart={toLocalDateKey(currentMonthStart)}
                 rangeEnd={toLocalDateKey(currentMonthEnd)}
                 pendingCount={unconfirmedShiftCount}
+                members={memberOptions}
               />
             ) : (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

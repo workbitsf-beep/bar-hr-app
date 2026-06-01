@@ -63,6 +63,7 @@ type RequestItem = {
   lastName: string;
   startsAt: string;
   endsAt: string;
+  approvedBy: string | null;
 };
 
 type TaskItem = {
@@ -249,6 +250,51 @@ function renderCompactShiftCard(shift: ShiftItem, locale: string, mobile = false
         >
           {renderShiftStateIcon(Boolean(shift.confirmedAt), mobile ? 18 : 16)}
         </span>
+      </div>
+    </div>
+  );
+}
+
+function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) {
+  return (
+    <div
+      key={availability.id}
+      style={{
+        padding: mobile ? "12px 14px" : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#fef2f2",
+        border: "1px solid #fecaca",
+        color: "#991b1b",
+        lineHeight: 1.6,
+        fontSize: mobile ? 14 : 13,
+      }}
+    >
+      Indisponibilita: {availability.firstName} {availability.lastName}
+    </div>
+  );
+}
+
+function renderApprovedRequestCard(request: RequestItem, mobile = false) {
+  return (
+    <div
+      key={request.id}
+      style={{
+        padding: mobile ? "12px 14px" : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#fef2f2",
+        border: "1px solid #fecaca",
+        color: "#991b1b",
+        lineHeight: 1.6,
+        fontSize: mobile ? 14 : 13,
+      }}
+    >
+      <div style={{ display: "grid", gap: 4 }}>
+        <strong style={{ color: "#991b1b", fontSize: mobile ? 14 : 13 }}>
+          {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
+        </strong>
+        {request.approvedBy ? (
+          <span style={{ color: "#b91c1c" }}>Approvata da: {request.approvedBy}</span>
+        ) : null}
       </div>
     </div>
   );
@@ -688,6 +734,12 @@ export function OwnerCalendarClient({
     }, "Messaggio pubblicato.");
   }
 
+  if (!selectedDay) {
+    return null;
+  }
+
+  const day = selectedDay;
+
   return (
     <>
       <CalendarWeekStrip
@@ -977,7 +1029,7 @@ export function OwnerCalendarClient({
                         day: "numeric",
                         month: "long",
                         year: "numeric",
-                      }).format(new Date(selectedDay.date))}
+                      }).format(new Date(day.date))}
                     </strong>
                     <span style={{ color: "#64748b" }}>
                       {false
@@ -1253,7 +1305,7 @@ export function OwnerCalendarClient({
                   </div>
                 </div>
 
-                {false ? (
+                {canCreatePersonalEntries ? (
                   <>
                     <div style={{ display: "grid", gap: 12 }}>
                       <div
@@ -1471,7 +1523,8 @@ export function OwnerCalendarClient({
                   </>
                 ) : null}
 
-                <div style={{ display: "grid", gap: 10 }}>
+                {false ? (
+                  <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
                       display: "flex",
@@ -1497,11 +1550,11 @@ export function OwnerCalendarClient({
                       </svg>
                     </IconButton>
                   </div>
-                  {selectedDay.shifts.length === 0 ? (
+                  {day.shifts.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessun turno presente in questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.shifts.map((shift) => (
+                      {day.shifts.map((shift) => (
                         <button
                           type="button"
                           className="dashboard-list-card"
@@ -1558,9 +1611,10 @@ export function OwnerCalendarClient({
                       ))}
                     </div>
                   )}
-                </div>
+                  </div>
+                ) : null}
 
-                <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "none" }}>
                   <div
                     style={{
                       display: "flex",
@@ -1569,167 +1623,22 @@ export function OwnerCalendarClient({
                       gap: 12,
                     }}
                   >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Inserimenti speciali</strong>
-                    <CountBadge count={selectedDay.closures.length} />
-                    <IconButton
-                      type="button"
-                      onClick={() => setShowClosureComposer((current) => !current)}
-                      aria-label="Aggiungi chiusura o festivita"
-                      disabled={isPending}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M12 5v14M5 12h14"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </IconButton>
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Mancanze del giorno</strong>
+                    <CountBadge count={day.availabilities.length + day.requests.length} />
                   </div>
 
-                  {false ? (
-                    <div
-                      style={{
-                        position: "fixed",
-                        left: "50%",
-                        top: "50%",
-                        transform: "translate(-50%, -50%)",
-                        zIndex: 2147483647,
-                        display: "grid",
-                        gap: 12,
-                        width: "min(640px, calc(100vw - 32px))",
-                        maxHeight: "calc(100dvh - 32px)",
-                        overflowY: "auto",
-                        padding: 18,
-                        borderRadius: 28,
-                        background: "#fff7ed",
-                        border: "1px solid #fed7aa",
-                        boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 12,
-                        }}
-                      >
-                        <strong style={{ color: "#0f172a", fontSize: 18 }}>Nuovo inserimento</strong>
-                        <IconButton
-                          type="button"
-                          onClick={() => setShowClosureComposer(false)}
-                          aria-label="Chiudi inserimento"
-                          disabled={isPending}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path
-                              d="M6 6l12 12M18 6 6 18"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </IconButton>
-                      </div>
-                      <div
-                        className="dashboard-modal-body-grid"
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                          gap: 12,
-                        }}
-                      >
-                        <label style={{ display: "grid", gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Tipo</span>
-                          <Select value={closureType} onChange={(event) => setClosureType(event.target.value)}>
-                            <option value="CLOSURE">Chiusura</option>
-                            <option value="HOLIDAY">Festivita</option>
-                            <option value="VACATION">Ferie</option>
-                          </Select>
-                        </label>
-                        <label style={{ display: "grid", gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo</span>
-                          <input
-                            value={closureTitle}
-                            onChange={(event) => setClosureTitle(event.target.value)}
-                            placeholder="Chiuso per festivita"
-                            style={{
-                              borderRadius: 16,
-                              border: "1px solid #dbe3ee",
-                              padding: "12px 14px",
-                              fontSize: 15,
-                              background: "#ffffff",
-                            }}
-                          />
-                        </label>
-                        <label style={{ display: "grid", gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                          <input
-                            type="datetime-local"
-                            value={closureStart}
-                            onChange={(event) => setClosureStart(event.target.value)}
-                            style={{
-                              borderRadius: 16,
-                              border: "1px solid #dbe3ee",
-                              padding: "12px 14px",
-                              fontSize: 15,
-                              background: "#ffffff",
-                            }}
-                          />
-                        </label>
-                        <label style={{ display: "grid", gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                          <input
-                            type="datetime-local"
-                            value={closureEnd}
-                            onChange={(event) => setClosureEnd(event.target.value)}
-                            style={{
-                              borderRadius: 16,
-                              border: "1px solid #dbe3ee",
-                              padding: "12px 14px",
-                              fontSize: 15,
-                              background: "#ffffff",
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <div className="dashboard-modal-actions">
-                        <PrimaryButton
-                          type="button"
-                          onClick={handleCreateClosure}
-                          disabled={isPending || !closureStart || !closureEnd}
-                        >
-                          {isPending ? "Salvataggio..." : "Salva"}
-                        </PrimaryButton>
-                      </div>
+                  {day.availabilities.length === 0 && day.requests.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>
+                      Nessuna mancanza registrata in questa giornata.
                     </div>
-                  ) : null}
-
-                  {selectedDay.closures.length === 0 ? (
-                    <div style={{ color: "#64748b" }}>Nessuna chiusura o festivita in questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.closures.map((closure) => (
-                        <div
-                          key={closure.id}
-                          className="dashboard-list-card"
-                          style={{
-                            padding: 14,
-                            borderRadius: 18,
-                            background: "#fff7ed",
-                            border: "1px solid #fed7aa",
-                            display: "grid",
-                            gap: 6,
-                          }}
-                        >
-                          <strong style={{ color: "#9a3412" }}>{closure.title}</strong>
-                          <span style={{ color: "#b45309" }}>
-                            {formatDayTime(closure.startTime, locale)} - {formatDayTime(closure.endTime, locale)}
-                          </span>
-                        </div>
-                      ))}
+                      {day.availabilities.map((availability) =>
+                        renderAvailabilityCard(availability, true)
+                      )}
+                      {day.requests.map((request) =>
+                        renderApprovedRequestCard(request, true)
+                      )}
                     </div>
                   )}
                 </div>
@@ -1744,7 +1653,7 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Corsi del giorno</strong>
-                    <CountBadge count={selectedDay.courses.length} />
+                    <CountBadge count={day.courses.length} />
                     <IconButton
                       type="button"
                       onClick={() => setShowCourseComposer((current) => !current)}
@@ -1937,11 +1846,11 @@ export function OwnerCalendarClient({
                     </div>
                   ) : null}
 
-                  {selectedDay.courses.length === 0 ? (
+                  {day.courses.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessun corso presente in questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.courses.map((course) => (
+                      {day.courses.map((course) => (
                         <div
                           key={course.id}
                           className="dashboard-list-card"
@@ -1978,7 +1887,7 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Mansioni del giorno</strong>
-                    <CountBadge count={selectedDay.tasks.length} />
+                    <CountBadge count={day.tasks.length} />
                     <IconButton
                       type="button"
                       onClick={() => setQuickComposer("task")}
@@ -1995,11 +1904,11 @@ export function OwnerCalendarClient({
                       </svg>
                     </IconButton>
                   </div>
-                  {selectedDay.tasks.length === 0 ? (
+                  {day.tasks.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessuna mansione collegata a questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.tasks.map((task) => (
+                      {day.tasks.map((task) => (
                         <div
                           key={task.id}
                           className="dashboard-list-card"
@@ -2061,7 +1970,7 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Bacheca del giorno</strong>
-                    <CountBadge count={selectedDay.notes.length} />
+                    <CountBadge count={day.notes.length} />
                     <IconButton
                       type="button"
                       onClick={() => setQuickComposer("board")}
@@ -2078,11 +1987,11 @@ export function OwnerCalendarClient({
                       </svg>
                     </IconButton>
                   </div>
-                  {selectedDay.notes.length === 0 ? (
+                  {day.notes.length === 0 ? (
                     <div style={{ color: "#64748b" }}>Nessun messaggio pubblicato in questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.notes.map((note) => (
+                      {day.notes.map((note) => (
                         <div
                           key={note.id}
                           className="dashboard-list-card"
@@ -2125,7 +2034,7 @@ export function OwnerCalendarClient({
       <QuickCalendarEntryModal
         open={Boolean(selectedDay && quickComposer)}
         mode={quickComposer}
-        dateIso={selectedDay?.date ?? null}
+        dateIso={day.date ?? null}
         members={members}
         canPinBoard
         isPending={isPending}

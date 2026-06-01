@@ -11,7 +11,6 @@ import {
   PrimaryButton,
   Select,
   Stack,
-  TextInput,
 } from "../ui";
 import { formatDurationClock } from "@/lib/time-format";
 
@@ -172,6 +171,18 @@ export function ExportClient({
     activityType === ActivityType.COMPANY
       ? "Genera un'anteprima per vedere indisponibilita, ferie, permessi e corsi registrati nel mese."
       : "Genera un'anteprima per vedere ore reali, ore arrotondate e ferie o permessi.";
+  const monthOptions = Array.from({ length: 12 }, (_, index) => {
+    const value = String(index + 1);
+    const label = new Intl.DateTimeFormat("it-IT", { month: "long" }).format(
+      new Date(2026, index, 1)
+    );
+
+    return { value, label };
+  });
+  const yearOptions = Array.from({ length: 21 }, (_, index) => {
+    const value = String(defaultYear - 10 + index);
+    return { value, label: value };
+  });
 
   return (
     <Stack>
@@ -203,22 +214,29 @@ export function ExportClient({
               </FormField>
 
               <FormField label="Mese">
-                <TextInput
-                  type="number"
-                  min={1}
-                  max={12}
+                <Select
                   value={month}
                   onChange={(event) => setMonth(event.target.value)}
-                />
+                >
+                  {monthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
               </FormField>
 
               <FormField label="Anno">
-                <TextInput
-                  type="number"
-                  min={2000}
+                <Select
                   value={year}
                   onChange={(event) => setYear(event.target.value)}
-                />
+                >
+                  {yearOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
               </FormField>
             </div>
 
