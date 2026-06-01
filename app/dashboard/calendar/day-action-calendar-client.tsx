@@ -1154,11 +1154,6 @@ export function DayActionCalendarClient({
                         year: "numeric",
                       }).format(new Date(selectedDay.date))}
                     </strong>
-                    <span style={{ color: "#64748b" }}>
-                      {isCompany
-                        ? "Gestisci turni, richieste, indisponibilita, mansioni e bacheca direttamente da questa giornata."
-                        : "Gestisci richieste, indisponibilita, mansioni e bacheca direttamente da questa giornata."}
-                    </span>
                   </div>
                 </div>
 
@@ -1647,9 +1642,6 @@ export function DayActionCalendarClient({
                           </svg>
                         </IconButton>
                       </div>
-                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
-                        Apri il popup per inserire ferie, permessi o straordinari.
-                      </div>
                     </div>
 
                     <div style={{ display: "grid", gap: 12 }}>
@@ -1679,9 +1671,6 @@ export function DayActionCalendarClient({
                             />
                           </svg>
                         </IconButton>
-                      </div>
-                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
-                        Apri il popup per segnalare un periodo non disponibile.
                       </div>
                     </div>
 
@@ -1776,7 +1765,6 @@ export function DayActionCalendarClient({
                           <TextArea
                             value={requestReason}
                             onChange={(event) => setRequestReason(event.target.value)}
-                            placeholder="Aggiungi un dettaglio utile per il titolare"
                           />
                         </label>
 
@@ -1787,7 +1775,6 @@ export function DayActionCalendarClient({
                           <TextInput
                             value={certificateCode}
                             onChange={(event) => setCertificateCode(event.target.value)}
-                            placeholder="Obbligatorio solo per malattia"
                           />
                         </label>
 
@@ -1886,7 +1873,6 @@ export function DayActionCalendarClient({
                           <TextArea
                             value={availabilityReason}
                             onChange={(event) => setAvailabilityReason(event.target.value)}
-                            placeholder="Facoltativo"
                           />
                         </label>
 
@@ -2004,7 +1990,6 @@ export function DayActionCalendarClient({
                             <TextInput
                               value={closureTitle}
                               onChange={(event) => setClosureTitle(event.target.value)}
-                              placeholder="Chiuso per festivita"
                             />
                           </label>
                           <label style={{ display: "grid", gap: 8 }}>

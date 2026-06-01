@@ -198,7 +198,6 @@ export function QuickCalendarEntryModal({
                 onChange={(event) =>
                   updateEntries(setTaskEntries, entry.id, { value: event.target.value })
                 }
-                placeholder="Scrivi la mansione"
               />
 
               <div
@@ -275,7 +274,6 @@ export function QuickCalendarEntryModal({
           <TextArea
             value={taskDescription}
             onChange={(event) => setTaskDescription(event.target.value)}
-            placeholder="Dettagli operativi opzionali"
           />
         </label>
 
@@ -361,7 +359,6 @@ export function QuickCalendarEntryModal({
                 onChange={(event) =>
                   updateEntries(setBoardEntries, entry.id, { value: event.target.value })
                 }
-                placeholder="Scrivi il messaggio da pubblicare"
                 style={{ minHeight: 96 }}
               />
 

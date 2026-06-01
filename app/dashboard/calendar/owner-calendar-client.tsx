@@ -1059,9 +1059,6 @@ export function OwnerCalendarClient({
                         year: "numeric",
                       }).format(new Date(day.date))}
                     </strong>
-                    <span style={{ color: "#64748b" }}>
-                      Gestisci turni, richieste, indisponibilita, mansioni e bacheca direttamente da questa giornata.
-                    </span>
                   </div>
                 </div>
 
@@ -1359,9 +1356,6 @@ export function OwnerCalendarClient({
                           </svg>
                         </IconButton>
                       </div>
-                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
-                        Apri il popup per inserire ferie, permessi o straordinari.
-                      </div>
                     </div>
 
                     <div style={{ display: "grid", gap: 12 }}>
@@ -1391,9 +1385,6 @@ export function OwnerCalendarClient({
                             />
                           </svg>
                         </IconButton>
-                      </div>
-                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>
-                        Apri il popup per segnalare un periodo non disponibile.
                       </div>
                     </div>
 
@@ -1509,7 +1500,6 @@ export function OwnerCalendarClient({
                           <textarea
                             value={requestReason}
                             onChange={(event) => setRequestReason(event.target.value)}
-                            placeholder="Aggiungi un dettaglio utile per il titolare"
                             style={{
                               minHeight: 120,
                               resize: "vertical",
@@ -1527,7 +1517,6 @@ export function OwnerCalendarClient({
                           <input
                             value={certificateCode}
                             onChange={(event) => setCertificateCode(event.target.value)}
-                            placeholder="Obbligatorio solo per malattia"
                             style={{
                               borderRadius: 16,
                               border: "1px solid #dbe3ee",
@@ -1642,15 +1631,14 @@ export function OwnerCalendarClient({
                           </label>
                         </div>
 
-                        <label style={{ display: "grid", gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
-                          <textarea
-                            value={availabilityReason}
-                            onChange={(event) => setAvailabilityReason(event.target.value)}
-                            placeholder="Facoltativo"
-                            style={{
-                              minHeight: 100,
-                              resize: "vertical",
+                      <label style={{ display: "grid", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "#1e293b" }}>Motivo</span>
+                        <textarea
+                          value={availabilityReason}
+                          onChange={(event) => setAvailabilityReason(event.target.value)}
+                          style={{
+                            minHeight: 100,
+                            resize: "vertical",
                               borderRadius: 16,
                               border: "1px solid #dbe3ee",
                               padding: "12px 14px",
