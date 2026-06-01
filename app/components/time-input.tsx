@@ -39,6 +39,13 @@ export function TimeInput({
   }, [value]);
 
   function commit(nextHours = hours, nextMinutes = minutes) {
+    if (!nextHours && !nextMinutes) {
+      setHours("");
+      setMinutes("");
+      onChange("");
+      return;
+    }
+
     const finalValue = buildTimeValue(nextHours, nextMinutes);
     setHours(sanitizePart(nextHours).padStart(2, "0"));
     setMinutes(sanitizePart(nextMinutes).padStart(2, "0"));

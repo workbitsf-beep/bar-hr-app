@@ -147,8 +147,8 @@ function createShiftDraft(dateIso: string): ShiftDraft {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     date: toDateTimeLocal(dateIso, 0, 0).slice(0, 10),
-    startTime: "09:00",
-    endTime: "17:00",
+    startTime: "",
+    endTime: "",
     presetKey: "CUSTOM",
     memberIds: [],
   };

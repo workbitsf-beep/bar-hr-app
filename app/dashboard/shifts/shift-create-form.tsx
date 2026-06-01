@@ -43,8 +43,8 @@ export function ShiftCreateForm({
   const defaultShiftDate = useMemo(() => toDateInputValue(new Date()), []);
   const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
   const [shiftDate, setShiftDate] = useState(defaultShiftDate);
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("17:00");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [feedback, setFeedback] = useState<{
     tone: "success" | "danger";
     message: string;
@@ -80,8 +80,8 @@ export function ShiftCreateForm({
         formElement.reset();
         setSelectedPresetKey("CUSTOM");
         setShiftDate(defaultShiftDate);
-        setStartTime("09:00");
-        setEndTime("17:00");
+        setStartTime("");
+        setEndTime("");
         router.refresh();
       } catch (error) {
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
