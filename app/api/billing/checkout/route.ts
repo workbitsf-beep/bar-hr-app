@@ -10,12 +10,34 @@ type CheckoutBody = {
   interval?: "MONTHLY" | "YEARLY";
 };
 
-function getPriceId(interval: BillingInterval) {
-  if (interval === BillingInterval.MONTHLY) {
-    return process.env.STRIPE_PRICE_MONTHLY || "";
+function getRequiredAppUrl() {
+  const appUrl = process.env.APP_URL?.trim().replace(/\/$/, "");
+
+  if (!appUrl) {
+    throw new Error("Missing APP_URL environment variable.");
   }
 
-  return process.env.STRIPE_PRICE_YEARLY || "";
+  return appUrl;
+}
+
+function getPriceId(interval: BillingInterval) {
+  if (interval === BillingInterval.MONTHLY) {
+    const priceId = process.env.STRIPE_PRICE_MONTHLY?.trim();
+
+    if (!priceId) {
+      throw new Error("Missing STRIPE_PRICE_MONTHLY environment variable.");
+    }
+
+    return priceId;
+  }
+
+  const priceId = process.env.STRIPE_PRICE_YEARLY?.trim();
+
+  if (!priceId) {
+    throw new Error("Missing STRIPE_PRICE_YEARLY environment variable.");
+  }
+
+  return priceId;
 }
 
 function normalizeDiscountPercent(value: number | null | undefined) {
@@ -90,16 +112,57 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, message: "Invalid interval" }, { status: 400 });
   }
 
-  const priceId = getPriceId(interval);
+  let stripe;
 
-  if (!priceId) {
+  try {
+    stripe = requireStripe();
+  } catch (error) {
     return Response.json(
-      { ok: false, message: "Missing Stripe price configuration" },
+      {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Missing STRIPE_SECRET_KEY environment variable.",
+      },
       { status: 500 }
     );
   }
 
-  const stripe = requireStripe();
+  let priceId: string;
+
+  try {
+    priceId = getPriceId(interval);
+  } catch (error) {
+    return Response.json(
+      {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Missing Stripe price configuration.",
+      },
+      { status: 500 }
+    );
+  }
+
+  let baseUrl: string;
+
+  try {
+    baseUrl = getRequiredAppUrl();
+  } catch (error) {
+    return Response.json(
+      {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Missing APP_URL environment variable.",
+      },
+      { status: 500 }
+    );
+  }
+
   const [bar, subscription] = await Promise.all([
     prisma.bar.findUnique({
       where: { id: activeBar.id },
@@ -107,6 +170,7 @@ export async function POST(req: Request) {
         id: true,
         name: true,
         email: true,
+        legalName: true,
         owner: {
           select: {
             id: true,
@@ -147,8 +211,8 @@ export async function POST(req: Request) {
 
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({
-      email: bar.owner.email,
-      name: `${bar.owner.firstName} ${bar.owner.lastName}`.trim(),
+      email: bar.email || bar.owner.email,
+      name: bar.legalName?.trim() || bar.name,
       metadata: {
         barId: bar.id,
         ownerId: bar.owner.id,
@@ -185,7 +249,6 @@ export async function POST(req: Request) {
     invalidateBillingStatusCache(bar.id);
   }
 
-  const baseUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
   const monthlyDiscountPercent = normalizeDiscountPercent(subscription?.monthlyDiscountPercent);
   const monthlyCouponId =
     interval === BillingInterval.MONTHLY
@@ -201,7 +264,18 @@ export async function POST(req: Request) {
     customer: stripeCustomerId,
     client_reference_id: bar.id,
     payment_method_collection: "always",
-    payment_method_types: ["card"],
+    billing_address_collection: "required",
+    phone_number_collection: {
+      enabled: true,
+    },
+    tax_id_collection: {
+      enabled: true,
+    },
+    customer_update: {
+      name: "auto",
+      address: "auto",
+    },
+    payment_method_types: ["card", "sepa_debit"],
     line_items: [
       {
         price: priceId,

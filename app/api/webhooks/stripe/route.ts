@@ -153,6 +153,23 @@ async function getLocalSubscriptionStatus(barId: string) {
   });
 }
 
+async function customerHasTaxId(stripe: Stripe, customerId: string | null) {
+  if (!customerId) {
+    return false;
+  }
+
+  try {
+    const taxIds = await stripe.customers.listTaxIds(customerId, { limit: 1 });
+    return taxIds.data.length > 0;
+  } catch (error) {
+    console.error("[stripe-webhook] Failed to inspect customer tax IDs.", {
+      customerId,
+      error,
+    });
+    return false;
+  }
+}
+
 async function findBarIdForSubscription(input: {
   stripeSubscriptionId?: string | null;
   stripeCustomerId?: string | null;
@@ -248,6 +265,16 @@ export async function POST(req: Request) {
         const nextStatus = subscriptionDetails
           ? mapStripeStatus(subscriptionDetails.status)
           : SubscriptionStatus.ACTIVE;
+        const hasTaxId = await customerHasTaxId(stripe, stripeCustomerId);
+
+        if (!hasTaxId) {
+          console.warn("[stripe-webhook] Missing tax id after checkout.", {
+            barId: metadataBarId,
+            stripeCustomerId,
+            stripeSubscriptionId,
+          });
+        }
+
         await upsertSubscriptionFromStripe({
           barId: metadataBarId,
           planType:
@@ -262,14 +289,14 @@ export async function POST(req: Request) {
             (typeof session.line_items === "object"
               ? session.line_items?.data?.[0]?.price?.id ?? null
               : null),
-          status: nextStatus,
+          status: hasTaxId ? nextStatus : SubscriptionStatus.INACTIVE,
           billingInterval:
             interval ?? mapInterval(subscriptionDetails?.items.data[0]?.price.recurring?.interval),
           currentPeriodEnd: getSubscriptionPeriodEnd(subscriptionDetails),
           trialEndsAt: toDateFromUnix(subscriptionDetails?.trial_end),
         });
 
-        if (previous?.status !== SubscriptionStatus.ACTIVE) {
+        if (hasTaxId && previous?.status !== SubscriptionStatus.ACTIVE) {
           await sendOwnerBillingEmail({
             barId: metadataBarId,
             kind: "activated",
@@ -294,6 +321,18 @@ export async function POST(req: Request) {
 
         const previous = await getLocalSubscriptionStatus(barId);
         const nextStatus = mapStripeStatus(subscription.status);
+        const stripeCustomerId =
+          typeof subscription.customer === "string" ? subscription.customer : null;
+        const hasTaxId = await customerHasTaxId(stripe, stripeCustomerId);
+
+        if (!hasTaxId) {
+          console.warn("[stripe-webhook] Missing tax id on subscription update.", {
+            barId,
+            stripeCustomerId,
+            stripeSubscriptionId: subscription.id,
+          });
+        }
+
         await upsertSubscriptionFromStripe({
           barId,
           planType:
@@ -301,17 +340,17 @@ export async function POST(req: Request) {
             previous?.planType === PlanType.TRIAL
               ? PlanType.TRIAL
               : PlanType.PAID,
-          stripeCustomerId:
-            typeof subscription.customer === "string" ? subscription.customer : null,
+          stripeCustomerId,
           stripeSubscriptionId: subscription.id,
           stripePriceId: subscription.items.data[0]?.price.id ?? null,
-          status: nextStatus,
+          status: hasTaxId ? nextStatus : SubscriptionStatus.INACTIVE,
           billingInterval: mapInterval(subscription.items.data[0]?.price.recurring?.interval),
           currentPeriodEnd: getSubscriptionPeriodEnd(subscription),
           trialEndsAt: toDateFromUnix(subscription.trial_end),
         });
         if (
           event.type === "customer.subscription.created" &&
+          hasTaxId &&
           previous?.status !== SubscriptionStatus.ACTIVE &&
           mapStripeStatus(subscription.status) === SubscriptionStatus.ACTIVE
         ) {
@@ -384,13 +423,23 @@ export async function POST(req: Request) {
           : null;
 
         const previous = await getLocalSubscriptionStatus(barId);
+        const hasTaxId = await customerHasTaxId(stripe, stripeCustomerId);
+
+        if (!hasTaxId) {
+          console.warn("[stripe-webhook] Missing tax id on paid invoice.", {
+            barId,
+            stripeCustomerId,
+            stripeSubscriptionId,
+          });
+        }
+
         await upsertSubscriptionFromStripe({
           barId,
           planType: PlanType.PAID,
           stripeCustomerId,
           stripeSubscriptionId,
           stripePriceId: stripeSubscription?.items.data[0]?.price.id ?? null,
-          status: SubscriptionStatus.ACTIVE,
+          status: hasTaxId ? SubscriptionStatus.ACTIVE : SubscriptionStatus.INACTIVE,
           billingInterval: mapInterval(
             stripeSubscription?.items.data[0]?.price.recurring?.interval
           ),
@@ -398,7 +447,7 @@ export async function POST(req: Request) {
           trialEndsAt: toDateFromUnix(stripeSubscription?.trial_end),
         });
 
-        if (previous?.status !== SubscriptionStatus.ACTIVE) {
+        if (hasTaxId && previous?.status !== SubscriptionStatus.ACTIVE) {
           await sendOwnerBillingEmail({
             barId,
             kind: "activated",
