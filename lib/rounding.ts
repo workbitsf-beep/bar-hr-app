@@ -1,4 +1,4 @@
-import { RoundingMode } from "@prisma/client";
+import { ClockType, RoundingMode } from "@prisma/client";
 
 function getQuarterHourMinute(minutes: number) {
   if (minutes <= 5) {
@@ -37,4 +37,66 @@ export function applyRounding(
 
   rounded.setUTCMinutes(roundedMinutes, 0, 0);
   return rounded;
+}
+
+function floorToQuarterHour(date: Date): Date {
+  const rounded = new Date(date);
+  const minutes = rounded.getUTCMinutes();
+  const flooredMinutes = Math.floor(minutes / 15) * 15;
+
+  rounded.setUTCSeconds(0, 0);
+  rounded.setUTCMinutes(flooredMinutes, 0, 0);
+  return rounded;
+}
+
+function ceilToQuarterHour(date: Date): Date {
+  const rounded = new Date(date);
+  const minutes = rounded.getUTCMinutes();
+  const ceiledMinutes = Math.ceil(minutes / 15) * 15;
+
+  rounded.setUTCSeconds(0, 0);
+
+  if (ceiledMinutes === 60) {
+    rounded.setUTCHours(rounded.getUTCHours() + 1, 0, 0, 0);
+    return rounded;
+  }
+
+  rounded.setUTCMinutes(ceiledMinutes, 0, 0);
+  return rounded;
+}
+
+function roundWithTolerance(reference: Date, actual: Date, kind: ClockType): Date {
+  const toleranceMs = 5 * 60 * 1000;
+  const delta = actual.getTime() - reference.getTime();
+
+  if (Math.abs(delta) <= toleranceMs) {
+    return new Date(reference);
+  }
+
+  if (delta > 0) {
+    return ceilToQuarterHour(actual);
+  }
+
+  if (kind === ClockType.OUT) {
+    return floorToQuarterHour(actual);
+  }
+
+  return floorToQuarterHour(actual);
+}
+
+export function applyScheduledRounding(
+  date: Date,
+  kind: ClockType,
+  referenceStart: Date | null,
+  referenceEnd: Date | null
+): Date {
+  if (kind === ClockType.IN && referenceStart) {
+    return roundWithTolerance(referenceStart, date, kind);
+  }
+
+  if (kind === ClockType.OUT && referenceEnd) {
+    return roundWithTolerance(referenceEnd, date, kind);
+  }
+
+  return applyRounding(date, RoundingMode.NEAREST, 15);
 }

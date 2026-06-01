@@ -8,7 +8,7 @@ import {
   RoundingMode,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { applyRounding } from "@/lib/rounding";
+import { applyRounding, applyScheduledRounding } from "@/lib/rounding";
 import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 
 export type ExportEntry = {
@@ -82,6 +82,10 @@ type MinimalTimeLog = {
   id: string;
   type: ClockType;
   timestamp: Date;
+  shift: {
+    startTime: Date;
+    endTime: Date;
+  } | null;
 };
 
 type MinimalRoundingSettings = {
@@ -102,16 +106,21 @@ function toHours(durationMs: number): number {
 }
 
 function getRoundedTimestamp(
-  timestamp: Date,
+  log: MinimalTimeLog,
   roundingEnabled: boolean,
   roundingMode: RoundingMode | null,
   roundingMinutes: number | null
 ): Date {
   if (!roundingEnabled || !roundingMode || !roundingMinutes) {
-    return timestamp;
+    return log.timestamp;
   }
 
-  return applyRounding(timestamp, roundingMode, roundingMinutes);
+  return applyScheduledRounding(
+    log.timestamp,
+    log.type,
+    log.shift?.startTime ?? null,
+    log.shift?.endTime ?? null
+  );
 }
 
 function requestLabel(type: RequestType): "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Richiesta" {
@@ -170,13 +179,13 @@ function calculateMonthlyTotals(
 
     const realDurationMs = Math.max(0, log.timestamp.getTime() - pendingIn.timestamp.getTime());
     const roundedIn = getRoundedTimestamp(
-      pendingIn.timestamp,
+      pendingIn,
       settings?.roundingEnabled ?? false,
       settings?.roundingMode ?? null,
       settings?.roundingMinutes ?? null
     );
     const roundedOut = getRoundedTimestamp(
-      log.timestamp,
+      log,
       settings?.roundingEnabled ?? false,
       settings?.roundingMode ?? null,
       settings?.roundingMinutes ?? null
@@ -242,6 +251,12 @@ async function buildRestaurantMonthlyDataset(
         id: true,
         type: true,
         timestamp: true,
+        shift: {
+          select: {
+            startTime: true,
+            endTime: true,
+          },
+        },
       },
       orderBy: {
         timestamp: "asc",
@@ -320,13 +335,13 @@ async function buildRestaurantMonthlyDataset(
 
     const realDurationMs = Math.max(0, log.timestamp.getTime() - pendingIn.timestamp.getTime());
     const roundedIn = getRoundedTimestamp(
-      pendingIn.timestamp,
+      pendingIn,
       settings?.roundingEnabled ?? false,
       settings?.roundingMode ?? null,
       settings?.roundingMinutes ?? null
     );
     const roundedOut = getRoundedTimestamp(
-      log.timestamp,
+      log,
       settings?.roundingEnabled ?? false,
       settings?.roundingMode ?? null,
       settings?.roundingMinutes ?? null
@@ -624,6 +639,12 @@ export async function buildMonthlyTotals(
             id: true,
             type: true,
             timestamp: true,
+            shift: {
+              select: {
+                startTime: true,
+                endTime: true,
+              },
+            },
           },
           orderBy: {
             timestamp: "asc",

@@ -1,0 +1,102 @@
+"use client";
+
+import { useEffect, useState, type CSSProperties } from "react";
+
+function sanitizePart(value: string) {
+  return value.replace(/\D/g, "").slice(0, 2);
+}
+
+function splitTimeValue(value: string) {
+  const [hours = "", minutes = ""] = String(value ?? "").split(":");
+  return {
+    hours: sanitizePart(hours),
+    minutes: sanitizePart(minutes),
+  };
+}
+
+function buildTimeValue(hours: string, minutes: string) {
+  return `${sanitizePart(hours).padStart(2, "0")}:${sanitizePart(minutes).padStart(2, "0")}`;
+}
+
+export function TimeInput({
+  value,
+  onChange,
+  disabled,
+  style,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  style?: CSSProperties;
+}) {
+  const [hours, setHours] = useState(() => splitTimeValue(value).hours);
+  const [minutes, setMinutes] = useState(() => splitTimeValue(value).minutes);
+
+  useEffect(() => {
+    const next = splitTimeValue(value);
+    setHours(next.hours);
+    setMinutes(next.minutes);
+  }, [value]);
+
+  function commit(nextHours = hours, nextMinutes = minutes) {
+    const finalValue = buildTimeValue(nextHours, nextMinutes);
+    setHours(sanitizePart(nextHours).padStart(2, "0"));
+    setMinutes(sanitizePart(nextMinutes).padStart(2, "0"));
+    onChange(finalValue);
+  }
+
+  const inputStyle: CSSProperties = {
+    flex: "1 1 0",
+    width: "100%",
+    minWidth: 0,
+    borderRadius: 16,
+    border: "1px solid #dbe3ee",
+    padding: "12px 14px",
+    fontSize: 15,
+    background: "#ffffff",
+    textAlign: "center",
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        width: "100%",
+        minWidth: 0,
+        ...style,
+      }}
+    >
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={2}
+        autoComplete="off"
+        disabled={disabled}
+        value={hours}
+        onChange={(event) => {
+          setHours(sanitizePart(event.target.value));
+        }}
+        onBlur={() => commit()}
+        style={inputStyle}
+      />
+      <span style={{ color: "#94a3b8", fontSize: 20, fontWeight: 700, lineHeight: 1 }}>:</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={2}
+        autoComplete="off"
+        disabled={disabled}
+        value={minutes}
+        onChange={(event) => {
+          setMinutes(sanitizePart(event.target.value));
+        }}
+        onBlur={() => commit()}
+        style={inputStyle}
+      />
+    </div>
+  );
+}

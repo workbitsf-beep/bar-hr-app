@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { combineDateAndTime } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import { TimeInput } from "@/app/components/time-input";
 import {
   completeTaskAction,
   createAvailabilityAction,
@@ -1320,17 +1321,12 @@ export function DayActionCalendarClient({
 
                                 <label style={{ display: "grid", gap: 8 }}>
                                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
-                                  <TextInput
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]{2}:[0-9]{2}"
-                                    placeholder="08:30"
-                                    autoComplete="off"
+                                  <TimeInput
                                     value={draft.startTime}
-                                    onChange={(event) =>
+                                    onChange={(value) =>
                                       updateShiftDraft(draft.id, {
                                         presetKey: "CUSTOM",
-                                        startTime: event.target.value,
+                                        startTime: value,
                                       })
                                     }
                                   />
@@ -1338,17 +1334,12 @@ export function DayActionCalendarClient({
 
                                 <label style={{ display: "grid", gap: 8 }}>
                                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
-                                  <TextInput
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]{2}:[0-9]{2}"
-                                    placeholder="17:30"
-                                    autoComplete="off"
+                                  <TimeInput
                                     value={draft.endTime}
-                                    onChange={(event) =>
+                                    onChange={(value) =>
                                       updateShiftDraft(draft.id, {
                                         presetKey: "CUSTOM",
-                                        endTime: event.target.value,
+                                        endTime: value,
                                       })
                                     }
                                   />

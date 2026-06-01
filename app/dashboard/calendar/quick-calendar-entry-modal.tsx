@@ -130,6 +130,12 @@ export function QuickCalendarEntryModal({
       formData.append("boardEntryId", entry.id);
       formData.set(`content_${entry.id}`, entry.value);
 
+      if (entry.assignedToAll) {
+        formData.set(`assignedToAll_${entry.id}`, "on");
+      } else if (entry.assignedToId) {
+        formData.set(`assignedToId_${entry.id}`, entry.assignedToId);
+      }
+
       if (entry.isPinned) {
         formData.set(`isPinned_${entry.id}`, "on");
       }
@@ -358,6 +364,46 @@ export function QuickCalendarEntryModal({
                 placeholder="Scrivi il messaggio da pubblicare"
                 style={{ minHeight: 96 }}
               />
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={entry.assignedToAll}
+                    onChange={(event) =>
+                      updateEntries(setBoardEntries, entry.id, {
+                        assignedToAll: event.target.checked,
+                        assignedToId: event.target.checked ? "" : entry.assignedToId,
+                      })
+                    }
+                  />
+                  Tutto il team
+                </label>
+
+                {!entry.assignedToAll ? (
+                  <Select
+                    value={entry.assignedToId}
+                    onChange={(event) =>
+                      updateEntries(setBoardEntries, entry.id, {
+                        assignedToId: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Seleziona persona</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName}
+                      </option>
+                    ))}
+                  </Select>
+                ) : null}
+              </div>
 
               {canPinBoard ? (
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>

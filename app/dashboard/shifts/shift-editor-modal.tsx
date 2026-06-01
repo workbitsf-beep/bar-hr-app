@@ -8,6 +8,7 @@ import {
   toDateInputValue,
   toTimeInputValue,
 } from "@/lib/shift-datetime";
+import { TimeInput } from "@/app/components/time-input";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import { deleteShiftAction, updateShiftAction } from "../actions";
 import { IconButton, PrimaryButton, Select } from "../ui";
@@ -384,46 +385,22 @@ export function ShiftEditorModal({
 
                 <label style={{ display: "grid", gap: 8 }}>
                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{2}:[0-9]{2}"
-                    placeholder="08:30"
-                    autoComplete="off"
+                  <TimeInput
                     value={startTime}
-                    onChange={(event) => {
+                    onChange={(value) => {
                       setSelectedPresetKey("CUSTOM");
-                      setStartTime(event.target.value);
-                    }}
-                    style={{
-                      borderRadius: 16,
-                      border: "1px solid #dbe3ee",
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      background: "#ffffff",
+                      setStartTime(value);
                     }}
                   />
                 </label>
 
                 <label style={{ display: "grid", gap: 8 }}>
                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{2}:[0-9]{2}"
-                    placeholder="17:30"
-                    autoComplete="off"
+                  <TimeInput
                     value={endTime}
-                    onChange={(event) => {
+                    onChange={(value) => {
                       setSelectedPresetKey("CUSTOM");
-                      setEndTime(event.target.value);
-                    }}
-                    style={{
-                      borderRadius: 16,
-                      border: "1px solid #dbe3ee",
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      background: "#ffffff",
+                      setEndTime(value);
                     }}
                   />
                 </label>

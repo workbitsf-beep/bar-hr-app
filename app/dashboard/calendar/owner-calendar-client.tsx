@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import { TimeInput } from "@/app/components/time-input";
 import {
   completeTaskAction,
   createAvailabilityAction,
@@ -1155,51 +1156,27 @@ export function OwnerCalendarClient({
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]{2}:[0-9]{2}"
-                              placeholder="08:30"
-                              autoComplete="off"
+                            <TimeInput
                               value={draft.startTime}
-                              onChange={(event) =>
+                              onChange={(value) =>
                                 updateShiftDraft(draft.id, {
                                   presetKey: "CUSTOM",
-                                  startTime: event.target.value,
+                                  startTime: value,
                                 })
                               }
-                              style={{
-                                borderRadius: 16,
-                                border: "1px solid #dbe3ee",
-                                padding: "12px 14px",
-                                fontSize: 15,
-                                background: "#ffffff",
-                              }}
                             />
                           </label>
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di fine</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]{2}:[0-9]{2}"
-                              placeholder="17:30"
-                              autoComplete="off"
+                            <TimeInput
                               value={draft.endTime}
-                              onChange={(event) =>
+                              onChange={(value) =>
                                 updateShiftDraft(draft.id, {
                                   presetKey: "CUSTOM",
-                                  endTime: event.target.value,
+                                  endTime: value,
                                 })
                               }
-                              style={{
-                                borderRadius: 16,
-                                border: "1px solid #dbe3ee",
-                                padding: "12px 14px",
-                                fontSize: 15,
-                                background: "#ffffff",
-                              }}
                             />
                           </label>
                         </div>

@@ -454,6 +454,11 @@ export default async function DashboardCalendarPage({
             gte: calendarStart,
             lte: calendarEnd,
           },
+          ...(role === Role.EMPLOYEE
+            ? {
+                OR: [{ employeeId: null }, { employeeId: session.user.id }],
+              }
+            : {}),
         },
         orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
         select: {
@@ -461,6 +466,7 @@ export default async function DashboardCalendarPage({
           content: true,
           isPinned: true,
           createdAt: true,
+          employeeId: true,
           author: {
             select: {
               firstName: true,

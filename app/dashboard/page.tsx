@@ -129,6 +129,11 @@ export default async function DashboardPage() {
       prisma.note.findMany({
         where: {
           barId: activeBarId,
+          ...(role === Role.EMPLOYEE
+            ? {
+                OR: [{ employeeId: null }, { employeeId: session.user.id }],
+              }
+            : {}),
         },
         orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
         take: 4,
@@ -137,6 +142,7 @@ export default async function DashboardPage() {
           content: true,
           isPinned: true,
           createdAt: true,
+          employeeId: true,
           author: {
             select: {
               firstName: true,

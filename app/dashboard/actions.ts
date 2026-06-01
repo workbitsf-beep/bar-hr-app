@@ -468,6 +468,8 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
 type ParsedBoardDraft = {
   content: string;
   isPinned: boolean;
+  assignedToAll: boolean;
+  assignedToId: string;
 };
 
 function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft[] {
@@ -477,11 +479,15 @@ function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft
     .filter(Boolean);
 
   if (entryIds.length === 0) {
+    const assignedToAll = formData.get("assignedToAll") === "on";
+    const assignedToId = String(formData.get("assignedToId") ?? "").trim();
     const isPinned = canPin && formData.get("isPinned") === "on";
 
     return collectBulkTextEntries(formData, "content").map((content) => ({
       content,
       isPinned,
+      assignedToAll,
+      assignedToId,
     }));
   }
 
@@ -489,6 +495,8 @@ function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft
     .map((entryId) => ({
       content: String(formData.get(`content_${entryId}`) ?? "").trim(),
       isPinned: canPin && formData.get(`isPinned_${entryId}`) === "on",
+      assignedToAll: formData.get(`assignedToAll_${entryId}`) === "on",
+      assignedToId: String(formData.get(`assignedToId_${entryId}`) ?? "").trim(),
     }))
     .filter((entry) => entry.content.length > 0);
 }
@@ -1678,12 +1686,24 @@ export async function createBoardNoteAction(formData: FormData) {
     throw new Error("Missing content");
   }
 
+  if (noteEntries.some((entry) => !entry.assignedToAll && !entry.assignedToId)) {
+    throw new Error("Missing board recipient");
+  }
+
+  await ensureUsersBelongToBar(
+    activeBarId,
+    noteEntries
+      .filter((entry) => !entry.assignedToAll && entry.assignedToId)
+      .map((entry) => entry.assignedToId)
+  );
+
   await prisma.note.createMany({
     data: noteEntries.map((entry) => ({
       barId: activeBarId,
       authorId: session.user.id,
       content: entry.content,
       isPinned: entry.isPinned,
+      employeeId: entry.assignedToAll ? null : entry.assignedToId,
     })),
   });
 
@@ -1695,13 +1715,37 @@ export async function createBoardNoteAction(formData: FormData) {
     }
 
     const authorName = getFullName(session.user);
-    const recipients = notificationContext.users.filter(
-      (user) => user.id !== session.user.id
-    );
+    const recipientsByEmail = new Map<
+      string,
+      { email: string; firstName: string; count: number }
+    >();
+
+    for (const entry of noteEntries) {
+      const recipients = entry.assignedToAll
+        ? notificationContext.users.filter((user) => user.id !== session.user.id)
+        : notificationContext.users.filter(
+            (user) => user.id === entry.assignedToId && user.id !== session.user.id
+          );
+
+      for (const recipient of recipients) {
+        const current = recipientsByEmail.get(recipient.email);
+
+        if (current) {
+          current.count += 1;
+          continue;
+        }
+
+        recipientsByEmail.set(recipient.email, {
+          email: recipient.email,
+          firstName: recipient.firstName,
+          count: 1,
+        });
+      }
+    }
 
     await Promise.all(
-      recipients.map((recipient) =>
-        noteEntries.length === 1
+      Array.from(recipientsByEmail.values()).map((recipient) =>
+        recipient.count === 1
           ? sendNoticeBoardEmail(
               recipient.email,
               recipient.firstName,
@@ -1713,7 +1757,7 @@ export async function createBoardNoteAction(formData: FormData) {
               recipient.firstName,
               authorName,
               notificationContext.barName,
-              noteEntries.length
+              recipient.count
             )
       )
     );
