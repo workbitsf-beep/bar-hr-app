@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 
 export const DEFAULT_TRIAL_DAYS = 30;
+export const BILLING_GRACE_PERIOD_DAYS = 7;
 
 export type BillingStatusResult = {
   planType: PlanType;
@@ -18,6 +19,8 @@ export type BillingStatusResult = {
   billingInterval: BillingInterval | null;
   monthlyDiscountPercent: number;
   currentPeriodEnd: Date | null;
+  gracePeriodEndsAt: Date | null;
+  isInGracePeriod: boolean;
   trialEndsAt: Date | null;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
@@ -39,24 +42,46 @@ export function requiresSubscriptionActivation(input: {
   );
 }
 
+export function getBillingGracePeriodEndsAt(currentPeriodEnd: Date | null) {
+  if (!currentPeriodEnd) {
+    return null;
+  }
+
+  return new Date(
+    currentPeriodEnd.getTime() + BILLING_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
+  );
+}
+
 function computeCanAccess(input: {
   planType: PlanType;
   status: SubscriptionStatus;
   currentPeriodEnd: Date | null;
   trialEndsAt: Date | null;
 }) {
+  const now = Date.now();
+
   if (input.planType === PlanType.FREE || input.planType === PlanType.LIFETIME) {
     return true;
   }
 
   if (input.planType === PlanType.TRIAL) {
-    return Boolean(input.trialEndsAt && input.trialEndsAt.getTime() > Date.now());
+    return Boolean(input.trialEndsAt && input.trialEndsAt.getTime() > now);
+  }
+
+  const gracePeriodEndsAt = getBillingGracePeriodEndsAt(input.currentPeriodEnd);
+  const isWithinGracePeriod = Boolean(
+    gracePeriodEndsAt && gracePeriodEndsAt.getTime() >= now
+  );
+
+  if (isWithinGracePeriod) {
+    return true;
   }
 
   return (
     input.planType === PlanType.PAID &&
     (input.status === SubscriptionStatus.ACTIVE ||
-      input.status === SubscriptionStatus.TRIALING)
+      input.status === SubscriptionStatus.TRIALING) &&
+    (!input.currentPeriodEnd || input.currentPeriodEnd.getTime() >= now)
   );
 }
 
@@ -89,6 +114,8 @@ export const getBillingStatus = cache(async function getBillingStatus(
     billingInterval: subscription?.billingInterval ?? null,
     monthlyDiscountPercent: subscription?.monthlyDiscountPercent ?? 0,
     currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
+    gracePeriodEndsAt: getBillingGracePeriodEndsAt(subscription?.currentPeriodEnd ?? null),
+    isInGracePeriod: false,
     trialEndsAt: subscription?.trialEndsAt ?? null,
     stripeCustomerId: subscription?.stripeCustomerId ?? null,
     stripeSubscriptionId: subscription?.stripeSubscriptionId ?? null,
@@ -99,6 +126,13 @@ export const getBillingStatus = cache(async function getBillingStatus(
 
   result.requiresActivation = requiresSubscriptionActivation(result);
   result.canAccess = computeCanAccess(result);
+  result.isInGracePeriod = Boolean(
+    result.planType === PlanType.PAID &&
+      result.currentPeriodEnd &&
+      result.gracePeriodEndsAt &&
+      Date.now() > result.currentPeriodEnd.getTime() &&
+      Date.now() <= result.gracePeriodEndsAt.getTime()
+  );
   return result;
 });
 

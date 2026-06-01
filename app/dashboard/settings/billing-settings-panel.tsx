@@ -147,6 +147,13 @@ export function BillingSettingsPanel({
           </div>
         )}
 
+        {status.isInGracePeriod ? (
+          <div style={{ color: "#166534", lineHeight: 1.7 }}>
+            Periodo di tolleranza attivo: il locale resta operativo fino al{" "}
+            {formatNullableDate(status.gracePeriodEndsAt)} in attesa dell'accredito.
+          </div>
+        ) : null}
+
         {status.monthlyDiscountPercent > 0 ? (
           <div style={{ color: "#166534", lineHeight: 1.7 }}>
             Per questo locale e attivo uno sconto mensile del {status.monthlyDiscountPercent}% sul piano mensile.
