@@ -6,13 +6,13 @@ import { EmptyState, Panel } from "../ui";
 const superAdminItems = [
   {
     href: "/dashboard/super-admin/owners",
-    title: "Responsabili",
-    description: "Crea titolari, assegna accessi iniziali e monitora chi gestisce le attivita.",
+    title: "Nuovi titolari",
+    description: "Crea titolari, assegna l'accesso iniziale e prepara nuovi clienti.",
   },
   {
     href: "/dashboard/super-admin/bars",
-    title: "Strutture",
-    description: "Apri nuove attivita, collega i titolari corretti e controlla i dati principali.",
+    title: "Nuove attività",
+    description: "Apri aziende o ristorazione, collega il titolare e i dati base.",
   },
   {
     href: "/dashboard/super-admin/billing",
