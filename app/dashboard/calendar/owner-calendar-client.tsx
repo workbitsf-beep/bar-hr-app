@@ -469,7 +469,7 @@ export function OwnerCalendarClient({
 
     return blocked;
   }
-  const canCreatePersonalEntries = role === "MANAGER";
+  const canCreatePersonalEntries = role === "OWNER" || role === "MANAGER";
 
   function openDay(day: DayItem) {
     setSelectedDate(day.date);
@@ -1034,9 +1034,7 @@ export function OwnerCalendarClient({
                       }).format(new Date(day.date))}
                     </strong>
                     <span style={{ color: "#64748b" }}>
-                      {false
-                        ? "Gestisci turni, richieste e indisponibilita da questa giornata."
-                        : "Aggiungi un nuovo turno oppure apri quelli esistenti per modificarli o eliminarli."}
+                      Gestisci turni, richieste, indisponibilita, mansioni e bacheca direttamente da questa giornata.
                     </span>
                   </div>
                 </div>

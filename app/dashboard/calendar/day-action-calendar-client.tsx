@@ -559,7 +559,7 @@ export function DayActionCalendarClient({
   const canManageOptionalShifts =
     isCompany && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateRequest = role !== Role.OWNER;
-  const canCreateAvailability = !isCompany;
+  const canCreateAvailability = role !== Role.OWNER;
   const canCreateCourse = role === Role.OWNER || role === Role.MANAGER;
   const canCreateClosure = role === Role.OWNER || role === Role.MANAGER;
   const canReviewRequests = isCompany && role === Role.OWNER;
@@ -1129,8 +1129,8 @@ export function DayActionCalendarClient({
                     </strong>
                     <span style={{ color: "#64748b" }}>
                       {isCompany
-                        ? "Gestisci turni, richieste, mansioni e bacheca direttamente da questa giornata."
-                        : "Gestisci richieste o indisponibilita direttamente da questa giornata."}
+                        ? "Gestisci turni, richieste, indisponibilita, mansioni e bacheca direttamente da questa giornata."
+                        : "Gestisci richieste, indisponibilita, mansioni e bacheca direttamente da questa giornata."}
                     </span>
                   </div>
                 </div>
@@ -1659,7 +1659,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                <div style={{ display: "none" }}>
+                {canCreateAvailability ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
                       Nuova indisponibilita
@@ -1714,7 +1714,7 @@ export function DayActionCalendarClient({
                       </PrimaryButton>
                     </div>
                   </div>
-                </div>
+                ) : null}
 
                 <div style={{ display: "none" }}>
                   <div style={{ display: "grid", gap: 12 }}>
