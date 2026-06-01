@@ -50,6 +50,9 @@ type BarItem = {
 
 type ActivityFilter = "ALL" | "COMPANY" | "RESTAURANT";
 
+const MONTHLY_PRICE = 29.99;
+const YEARLY_PRICE = 299;
+
 function formatDateLabel(value: Date | string | null) {
   if (!value) {
     return "Nessuna data";
@@ -118,6 +121,78 @@ function getSubscriptionDetail(subscription: NonNullable<BarItem["subscription"]
   }
 
   return `Scadenza: ${formatDateLabel(subscription.currentPeriodEnd)}`;
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function getDiscountMultiplier(discountPercent: number) {
+  const normalizedDiscount = Math.max(0, Math.min(100, discountPercent));
+  return 1 - normalizedDiscount / 100;
+}
+
+function isRevenueEligible(subscription: NonNullable<BarItem["subscription"]>) {
+  return subscription.planType === "PAID" && (subscription.status === "ACTIVE" || subscription.status === "TRIALING");
+}
+
+function getEstimatedMonthlyRevenue(subscription: NonNullable<BarItem["subscription"]>) {
+  if (!isRevenueEligible(subscription)) {
+    return 0;
+  }
+
+  const multiplier = getDiscountMultiplier(subscription.monthlyDiscountPercent ?? 0);
+
+  if (subscription.billingInterval === "YEARLY") {
+    return (YEARLY_PRICE * multiplier) / 12;
+  }
+
+  return MONTHLY_PRICE * multiplier;
+}
+
+function getEstimatedAnnualRevenue(subscription: NonNullable<BarItem["subscription"]>) {
+  if (!isRevenueEligible(subscription)) {
+    return 0;
+  }
+
+  const multiplier = getDiscountMultiplier(subscription.monthlyDiscountPercent ?? 0);
+
+  if (subscription.billingInterval === "YEARLY") {
+    return YEARLY_PRICE * multiplier;
+  }
+
+  return MONTHLY_PRICE * 12 * multiplier;
+}
+
+function getRevenueSummary(subscription: BarItem["subscription"]) {
+  if (!subscription) {
+    return {
+      title: "Ricavo",
+      value: "Nessun piano collegato",
+      detail: "Aggiungi un abbonamento per vedere il valore economico.",
+    };
+  }
+
+  if (subscription.planType === "FREE" || subscription.planType === "LIFETIME") {
+    return {
+      title: "Ricavo",
+      value: "Gestione manuale",
+      detail: "Il piano non genera un canone automatico.",
+    };
+  }
+
+  const monthlyRevenue = getEstimatedMonthlyRevenue(subscription);
+  const annualRevenue = getEstimatedAnnualRevenue(subscription);
+
+  return {
+    title: subscription.planType === "TRIAL" ? "Ricavo potenziale" : "Ricavo stimato",
+    value: `${formatCurrency(monthlyRevenue)}/mese`,
+    detail: `${formatCurrency(annualRevenue)}/anno`,
+  };
 }
 
 function formatDateInput(value: Date | string | null) {
@@ -376,6 +451,7 @@ export function BarsManager({
             <ItemList scrollable maxHeight={540}>
               {bars.map((bar) => {
                 const subscription = bar.subscription;
+                const revenue = getRevenueSummary(subscription);
 
                 return (
                   <button
@@ -395,19 +471,44 @@ export function BarsManager({
                       subtitle={`${bar.owner.firstName} ${bar.owner.lastName} - ${bar.city ?? "Senza citta"}`}
                       meta={`${getActivityLabel(bar.activityType)}${bar.legalName ? ` - ${bar.legalName}` : ""}`}
                       footer={
-                        subscription ? (
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <StatusPill
-                              label={getSubscriptionLabel(subscription)}
-                              tone={getSubscriptionTone(subscription)}
-                            />
-                            <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                              {getSubscriptionDetail(subscription)}
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {subscription ? (
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                              <StatusPill
+                                label={getSubscriptionLabel(subscription)}
+                                tone={getSubscriptionTone(subscription)}
+                              />
+                              <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                                {getSubscriptionDetail(subscription)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ color: "#64748b", fontSize: 13 }}>
+                              Nessun abbonamento collegato
+                            </span>
+                          )}
+
+                          <div
+                            style={{
+                              display: "grid",
+                              gap: 2,
+                              padding: "10px 12px",
+                              borderRadius: 16,
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+                              {revenue.title}
+                            </span>
+                            <strong style={{ color: "#0f172a", fontSize: 14, lineHeight: 1.4 }}>
+                              {revenue.value}
+                            </strong>
+                            <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+                              {revenue.detail}
                             </span>
                           </div>
-                        ) : (
-                          <span style={{ color: "#64748b", fontSize: 13 }}>Nessun abbonamento collegato</span>
-                        )
+                        </div>
                       }
                     />
                   </button>
@@ -816,6 +917,16 @@ export function BarsManager({
                     Price id: {selectedBar.subscription?.stripePriceId ?? "—"}
                     <br />
                     Sconto mensile: {selectedSubscription.monthlyDiscountPercent}%
+                    <br />
+                    Ricavo mensile stimato:{" "}
+                    {selectedSubscription && isRevenueEligible(selectedSubscription)
+                      ? formatCurrency(getEstimatedMonthlyRevenue(selectedSubscription))
+                      : "€0,00"}
+                    <br />
+                    Ricavo annuale stimato:{" "}
+                    {selectedSubscription && isRevenueEligible(selectedSubscription)
+                      ? formatCurrency(getEstimatedAnnualRevenue(selectedSubscription))
+                      : "€0,00"}
                     <br />
                     Accesso attuale:{" "}
                     {selectedSubscription.planType === "FREE" ||
