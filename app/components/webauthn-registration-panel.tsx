@@ -122,20 +122,12 @@ export function WebAuthnRegistrationPanel({
         <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
           Passkey registrate: {passkeyCount}
         </strong>
-        Usa Face ID, Touch ID o impronta digitale sul dispositivo. Workbit salva solo la chiave
-        pubblica, mai dati biometrici.
       </div>
 
-      {checking ? (
-        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-          Verifica supporto biometria...
-        </p>
-      ) : null}
+      {checking ? <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Controllo...</p> : null}
 
       {!checking && !available ? (
-        <p style={{ margin: 0, color: "#b45309", lineHeight: 1.6 }}>
-          Questo browser o dispositivo non espone un autenticatore biometrico compatibile.
-        </p>
+        <p style={{ margin: 0, color: "#b45309", lineHeight: 1.6 }}>Biometria non disponibile.</p>
       ) : null}
 
       {error ? <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p> : null}

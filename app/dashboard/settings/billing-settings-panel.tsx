@@ -115,48 +115,31 @@ export function BillingSettingsPanel({
         </div>
 
         {isManagedOutsideStripe ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>
-            Questo locale e sbloccato da un piano gestito manualmente dal super admin.
-          </div>
+          <div style={{ color: "#166534", lineHeight: 1.7 }}>Piano gestito manualmente.</div>
         ) : requiresTrialCardSetup ? (
-          <div style={{ color: "#92400e", lineHeight: 1.7 }}>
-            Per attivare il periodo di prova devi inserire una carta su Stripe. La prova
-            dura sempre 30 giorni: non verra addebitato nulla adesso.
-          </div>
+          <div style={{ color: "#92400e", lineHeight: 1.7 }}>Serve una carta per avviare la prova.</div>
         ) : isTrialReady ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>
-            Carta salvata correttamente. Il locale e in prova e il piano scelto si
-            rinnovera automaticamente alla fine del periodo indicato.
-          </div>
+          <div style={{ color: "#166534", lineHeight: 1.7 }}>Prova attiva.</div>
         ) : isPaidActive ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>
-            Abbonamento attivo. Il locale e sbloccato e operativo.
-          </div>
+          <div style={{ color: "#166534", lineHeight: 1.7 }}>Abbonamento attivo.</div>
         ) : status.status === SubscriptionStatus.CANCELED ? (
-          <div style={{ color: "#991b1b", lineHeight: 1.7 }}>
-            Abbonamento disattivato. Il locale resta bloccato finche non attivi un nuovo piano.
-          </div>
+          <div style={{ color: "#991b1b", lineHeight: 1.7 }}>Abbonamento disattivato.</div>
         ) : status.status === SubscriptionStatus.PAST_DUE ||
           status.status === SubscriptionStatus.UNPAID ? (
-          <div style={{ color: "#991b1b", lineHeight: 1.7 }}>
-            Il pagamento non risulta valido. Rinnova l'abbonamento per sbloccare il locale.
-          </div>
+          <div style={{ color: "#991b1b", lineHeight: 1.7 }}>Pagamento non valido.</div>
         ) : (
-          <div style={{ color: "#475569", lineHeight: 1.7 }}>
-            L'abbonamento non e attivo. Per usare turni, timbrature, mansioni, richieste e report serve un piano attivo.
-          </div>
+          <div style={{ color: "#475569", lineHeight: 1.7 }}>Piano non attivo.</div>
         )}
 
         {status.isInGracePeriod ? (
           <div style={{ color: "#166534", lineHeight: 1.7 }}>
-            Periodo di tolleranza attivo: il locale resta operativo fino al{" "}
-            {formatNullableDate(status.gracePeriodEndsAt)} in attesa dell'accredito.
+            Tolleranza attiva fino al {formatNullableDate(status.gracePeriodEndsAt)}.
           </div>
         ) : null}
 
         {status.monthlyDiscountPercent > 0 ? (
           <div style={{ color: "#166534", lineHeight: 1.7 }}>
-            Per questo locale e attivo uno sconto mensile del {status.monthlyDiscountPercent}% sul piano mensile.
+            Sconto mensile attivo: {status.monthlyDiscountPercent}%.
           </div>
         ) : null}
 

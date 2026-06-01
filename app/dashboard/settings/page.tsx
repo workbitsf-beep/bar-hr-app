@@ -15,6 +15,7 @@ import {
   TextInput,
 } from "../ui";
 import { BillingSettingsPanel } from "./billing-settings-panel";
+import { PasswordChangePanel } from "./password-change-panel";
 
 async function getPasskeyCount(userId: string) {
   try {
@@ -46,17 +47,19 @@ export default async function DashboardSettingsPage() {
       <WebAuthnRegistrationPanel initialPasskeyCount={passkeyCount} />
     </Panel>
   );
+  const passwordPanel = <PasswordChangePanel />;
 
   if (role !== Role.OWNER) {
-    return <Stack columns="minmax(0, 760px)">{securityPanel}</Stack>;
+    return <Stack columns="minmax(0, 760px)">{passwordPanel}{securityPanel}</Stack>;
   }
 
   if (!activeBarId) {
     return (
       <Stack columns="minmax(0, 760px)">
+        {passwordPanel}
         {securityPanel}
         <Panel title="Impostazioni locale">
-          <EmptyState message="Seleziona un locale attivo per gestire le impostazioni." />
+          <EmptyState message="Locale non selezionato." />
         </Panel>
       </Stack>
     );
@@ -75,6 +78,7 @@ export default async function DashboardSettingsPage() {
   return (
     <>
       <Stack columns="minmax(0, 760px)">
+        {passwordPanel}
         {securityPanel}
 
         <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
@@ -98,25 +102,11 @@ export default async function DashboardSettingsPage() {
                 name="roundingEnabled"
                 defaultChecked={Boolean(settings?.roundingEnabled)}
               />
-              Abilita arrotondamento con tolleranza di 5 minuti
+              Arrotondamento attivo
             </label>
 
             <input type="hidden" name="roundingMinutes" value="15" />
             <input type="hidden" name="roundingMode" value="NEAREST" />
-
-            <div
-              style={{
-                padding: "12px 14px",
-                borderRadius: 18,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                color: "#475569",
-                lineHeight: 1.6,
-              }}
-            >
-              Regola: entro 5 minuti dall'orario richiesto resta invariato, oltre i 5 minuti
-              si arrotonda al quarto d'ora utile.
-            </div>
 
             <div style={{ display: "grid", gap: 12 }}>
               <strong style={{ color: "#0f172a", fontSize: 18 }}>Orari standard turni</strong>
@@ -180,7 +170,7 @@ export default async function DashboardSettingsPage() {
           </Panel>
         ) : (
           <Panel title="Impostazioni azienda">
-            <EmptyState message="Per le aziende il GPS e le timbrature non sono necessari. Restano attivi abbonamento, corsi, mansioni, bacheca, calendario e richieste." />
+            <EmptyState message="Configurazione azienda pronta." />
           </Panel>
         )}
       </Stack>

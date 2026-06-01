@@ -90,10 +90,6 @@ export default function ChangePasswordPage() {
         <h1 style={{ margin: "12px 0 8px", fontSize: 32, color: "#0f172a" }}>
           Cambia password
         </h1>
-        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          Per continuare devi impostare una nuova password personale.
-        </p>
-
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16, marginTop: 24 }}>
           <label style={{ display: "grid", gap: 8 }}>
             <span style={{ fontWeight: 600, color: "#1e293b" }}>Nuova password</span>
