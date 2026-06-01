@@ -1129,7 +1129,7 @@ export function DayActionCalendarClient({
                     </strong>
                     <span style={{ color: "#64748b" }}>
                       {isCompany
-                        ? "Gestisci richieste e corsi direttamente da questa giornata."
+                        ? "Gestisci turni, richieste, mansioni e bacheca direttamente da questa giornata."
                         : "Gestisci richieste o indisponibilita direttamente da questa giornata."}
                     </span>
                   </div>
@@ -1874,174 +1874,92 @@ export function DayActionCalendarClient({
                     )}
                   </div>
                 </div>
-
-                <div style={{ display: "grid", gap: 12 }}>
-                  <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                    Eventi della giornata
-                  </strong>
-
-                  {selectedDay.shifts.length === 0 &&
-                  selectedDay.availabilities.length === 0 &&
-                  selectedDay.requests.length === 0 &&
-                  selectedDay.pendingRequests.length === 0 &&
-                  selectedDay.tasks.length === 0 &&
-                  selectedDay.notes.length === 0 ? (
-                    <div style={{ color: "#64748b" }}>
-                      Nessun evento registrato in questa giornata.
-                    </div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                      Mansioni del giorno
+                    </strong>
+                    <CountBadge count={selectedDay.tasks.length} />
+                    {canOpenTaskComposer ? (
+                      <IconButton
+                        type="button"
+                        onClick={() => setQuickComposer("task")}
+                        aria-label="Aggiungi mansioni"
+                        disabled={isPending}
+                      >
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </IconButton>
+                    ) : null}
+                  </div>
+                  {selectedDay.tasks.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>Nessuna mansione collegata a questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {!canManageOptionalShifts
-                        ? selectedDay.shifts.map((shift) => renderShiftCard(shift, locale, true))
-                        : null}
-                      <div style={{ display: "grid", gap: 10 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                          }}
-                        >
-                          <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                            Mansioni del giorno
-                          </strong>
-                          <CountBadge count={selectedDay.tasks.length} />
-                          {canOpenTaskComposer ? (
-                            <IconButton
-                              type="button"
-                              onClick={() => setQuickComposer("task")}
-                              aria-label="Aggiungi mansioni"
-                              disabled={isPending}
-                            >
-                              <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  d="M12 5v14M5 12h14"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                />
-                              </svg>
-                            </IconButton>
-                          ) : null}
-                        </div>
-                        {selectedDay.tasks.length === 0 ? (
-                          <div style={{ color: "#64748b" }}>
-                            Nessuna mansione collegata a questa giornata.
-                          </div>
-                        ) : (
-                          selectedDay.tasks.map((task) => (
-                            <div
-                              key={task.id}
-                              className="dashboard-list-card"
-                              style={{
-                                padding: 14,
-                                borderRadius: 18,
-                                background: "#f8fafc",
-                                border: "1px solid #e2e8f0",
-                                display: "grid",
-                                gap: 8,
-                              }}
-                            >
-                              <div style={{ display: "grid", gap: 6 }}>
-                                <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                                  {task.title}
-                                </strong>
-                                <span style={{ color: "#475569", fontSize: 14 }}>
-                                  {task.assignedLabel}
-                                </span>
-                                {task.completedByLabel ? (
-                                  <span style={{ color: "#64748b", fontSize: 13 }}>
-                                    Completata da {task.completedByLabel}
-                                  </span>
-                                ) : null}
-                              </div>
-                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                <StatusPill
-                                  label={task.status}
-                                  tone={
-                                    task.status === "DONE"
-                                      ? "success"
-                                      : task.isUrgent
-                                        ? "danger"
-                                        : "warning"
-                                  }
-                                />
-                              </div>
-                              {task.status !== "DONE" ? (
-                                <div className="dashboard-action-row">
-                                  <PrimaryButton
-                                    type="button"
-                                    tone="green"
-                                    onClick={() => submitTaskCompletion(task.id)}
-                                    disabled={isPending}
-                                  >
-                                    {isPending ? "Salvataggio..." : "Conferma mansione"}
-                                  </PrimaryButton>
-                                </div>
-                              ) : null}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      <div style={{ display: "grid", gap: 10 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                          }}
-                        >
-                          <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                            Bacheca del giorno
-                          </strong>
-                          <CountBadge count={selectedDay.notes.length} />
-                          <IconButton
-                            type="button"
-                            onClick={() => setQuickComposer("board")}
-                            aria-label="Aggiungi in bacheca"
-                            disabled={isPending}
-                          >
-                            <svg
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M12 5v14M5 12h14"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          </IconButton>
-                        </div>
-                        {selectedDay.notes.length === 0 ? (
-                          <div style={{ color: "#64748b" }}>
-                            Nessun messaggio pubblicato in questa giornata.
-                          </div>
-                        ) : (
-                          selectedDay.notes.map((note) => renderNoteCard(note, locale, true))
-                        )}
-                      </div>
-                      {selectedDay.pendingRequests.map((request) =>
-                        renderPendingRequestCard(request, true)
-                      )}
-                      {selectedDay.availabilities.map((availability) =>
-                        renderAvailabilityCard(availability, true)
-                      )}
-                      {selectedDay.requests.map((request) =>
-                        renderApprovedRequestCard(request, true)
-                      )}
+                      {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                      Bacheca del giorno
+                    </strong>
+                    <CountBadge count={selectedDay.notes.length} />
+                    <IconButton
+                      type="button"
+                      onClick={() => setQuickComposer("board")}
+                      aria-label="Aggiungi in bacheca"
+                      disabled={isPending}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </IconButton>
+                  </div>
+                  {selectedDay.notes.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>Nessun messaggio pubblicato in questa giornata.</div>
+                  ) : (
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
                     </div>
                   )}
                 </div>
