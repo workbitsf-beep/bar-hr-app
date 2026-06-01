@@ -183,7 +183,9 @@ export function ShiftEditorModal({
         await updateShiftAction(formData);
         setFeedback(null);
         onClose();
-        router.refresh();
+        window.setTimeout(() => {
+          router.refresh();
+        }, 0);
       } catch (error) {
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
       }
@@ -203,7 +205,9 @@ export function ShiftEditorModal({
         await deleteShiftAction(formData);
         setFeedback(null);
         onClose();
-        router.refresh();
+        window.setTimeout(() => {
+          router.refresh();
+        }, 0);
       } catch (error) {
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
       }

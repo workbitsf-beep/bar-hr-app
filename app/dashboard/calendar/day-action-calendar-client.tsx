@@ -705,12 +705,22 @@ export function DayActionCalendarClient({
     });
   }
 
-  function runAction(task: () => Promise<void>, successMessage: string) {
+  function runAction(
+    task: () => Promise<void>,
+    successMessage: string,
+    closeOnSuccess = false
+  ) {
     startTransition(async () => {
       try {
         await task();
         setFeedback({ tone: "success", message: successMessage });
-        router.refresh();
+        if (closeOnSuccess) {
+          setEditingShiftId(null);
+          setSelectedDate(null);
+        }
+        window.setTimeout(() => {
+          router.refresh();
+        }, 0);
       } catch (error) {
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
       }
@@ -767,7 +777,8 @@ export function DayActionCalendarClient({
         setShiftDrafts([createShiftDraft(selectedDay.date)]);
         setShowShiftComposer(false);
       },
-      validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti."
+      validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.",
+      true
     );
   }
 

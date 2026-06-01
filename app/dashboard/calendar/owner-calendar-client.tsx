@@ -590,7 +590,9 @@ export function OwnerCalendarClient({
           setEditingShiftId(null);
           setSelectedDate(null);
         }
-        router.refresh();
+        window.setTimeout(() => {
+          router.refresh();
+        }, 0);
       } catch (error) {
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
       }
@@ -626,7 +628,7 @@ export function OwnerCalendarClient({
 
       setShiftDrafts([createShiftDraft(selectedDay.date)]);
       setShowShiftComposer(false);
-    }, validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.");
+    }, validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.", true);
   }
 
   function handleCreateRequest() {
