@@ -16,7 +16,7 @@ import {
 } from "@prisma/client";
 import type Stripe from "stripe";
 import { cookies, headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   sendEmployeeWelcomeEmail,
@@ -58,6 +58,7 @@ import {
 import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { createTemporaryPassword } from "@/lib/temporary-password";
+import { SUPER_ADMIN_OVERVIEW_CACHE_TAG } from "@/lib/super-admin-overview";
 
 type PlanTypeValue = "FREE" | "TRIAL" | "PAID" | "LIFETIME";
 type BillingIntervalValue = "MONTHLY" | "YEARLY";
@@ -973,6 +974,7 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
   revalidatePath("/dashboard/super-admin/owners");
   revalidatePath("/dashboard/super-admin/bars");
   revalidatePath("/dashboard/super-admin/billing");
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
   redirect(
     appendStatusToPath(returnPath, {
       success: welcomeEmailSent ? "owner-created" : "owner-created-email-failed",
@@ -1074,6 +1076,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/bars");
   revalidatePath("/dashboard/super-admin/billing");
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
 }
 
 export async function updateBarSubscriptionAction(formData: FormData) {
@@ -1197,6 +1200,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/billing");
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
 }
 
 export async function deleteBarBySuperAdminAction(formData: FormData) {
@@ -1293,6 +1297,7 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
   revalidatePath("/dashboard/super-admin/owners");
   revalidatePath("/dashboard/super-admin/billing");
   revalidatePath("/dashboard/super-admin/bars");
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
 }
 
 export async function confirmVisibleShiftsAction(formData: FormData) {

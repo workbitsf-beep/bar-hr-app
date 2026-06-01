@@ -15,8 +15,6 @@ export type ActivityItem = {
   name: string;
   activityType: ActivityTypeValue;
   city: string | null;
-  email: string | null;
-  createdAt: string;
   owner: {
     id: string;
     firstName: string;

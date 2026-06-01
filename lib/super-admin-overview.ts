@@ -1,6 +1,7 @@
 import "server-only";
 
 import { RequestStatus, Role, TaskStatus } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type {
   ActivityItem,
@@ -9,6 +10,8 @@ import type {
   SuperAdminOverviewPayload,
   SuperAdminOverviewSummary,
 } from "@/lib/super-admin-overview-types";
+
+export const SUPER_ADMIN_OVERVIEW_CACHE_TAG = "super-admin-overview";
 
 type ActivityMembership = {
   barId: string;
@@ -217,11 +220,21 @@ function buildSummary(
   return summary;
 }
 
-export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> {
+async function loadSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> {
   const last30Days = new Date();
   last30Days.setDate(last30Days.getDate() - 30);
 
-  const [bars, memberships, pendingRequests, openTasks, last30Timelogs] = await Promise.all([
+  const [
+    bars,
+    memberships,
+    shiftCounts,
+    timeLogCounts,
+    requestCounts,
+    taskCounts,
+    pendingRequests,
+    openTasks,
+    last30Timelogs,
+  ] = await Promise.all([
     prisma.bar.findMany({
       orderBy: [{ createdAt: "desc" }],
       select: {
@@ -229,8 +242,6 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
         name: true,
         activityType: true,
         city: true,
-        email: true,
-        createdAt: true,
         owner: {
           select: {
             id: true,
@@ -247,14 +258,6 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
             monthlyDiscountPercent: true,
             currentPeriodEnd: true,
             trialEndsAt: true,
-          },
-        },
-        _count: {
-          select: {
-            shifts: true,
-            timeLogs: true,
-            requests: true,
-            tasks: true,
           },
         },
       },
@@ -285,6 +288,30 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
         },
       },
     }),
+    prisma.shift.groupBy({
+      by: ["barId"],
+      _count: {
+        _all: true,
+      },
+    }),
+    prisma.timeLog.groupBy({
+      by: ["barId"],
+      _count: {
+        _all: true,
+      },
+    }),
+    prisma.request.groupBy({
+      by: ["barId"],
+      _count: {
+        _all: true,
+      },
+    }),
+    prisma.task.groupBy({
+      by: ["barId"],
+      _count: {
+        _all: true,
+      },
+    }),
     prisma.request.count({
       where: {
         status: RequestStatus.PENDING,
@@ -305,6 +332,19 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
       },
     }),
   ]);
+
+  const shiftCountsByBarId = new Map(
+    shiftCounts.map((entry) => [entry.barId, entry._count._all] as const)
+  );
+  const timeLogCountsByBarId = new Map(
+    timeLogCounts.map((entry) => [entry.barId, entry._count._all] as const)
+  );
+  const requestCountsByBarId = new Map(
+    requestCounts.map((entry) => [entry.barId, entry._count._all] as const)
+  );
+  const taskCountsByBarId = new Map(
+    taskCounts.map((entry) => [entry.barId, entry._count._all] as const)
+  );
 
   const membershipsByBarId = new Map<string, ActivityMembership[]>();
   const staffCountsByBarId = new Map<
@@ -368,8 +408,6 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
       name: bar.name,
       activityType: bar.activityType,
       city: bar.city,
-      email: bar.email,
-      createdAt: bar.createdAt.toISOString(),
       owner: {
         id: bar.owner.id,
         firstName: bar.owner.firstName,
@@ -378,10 +416,10 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
       },
       staffCounts,
       operations: {
-        shifts: bar._count.shifts,
-        timeLogs: bar._count.timeLogs,
-        requests: bar._count.requests,
-        tasks: bar._count.tasks,
+        shifts: shiftCountsByBarId.get(bar.id) ?? 0,
+        timeLogs: timeLogCountsByBarId.get(bar.id) ?? 0,
+        requests: requestCountsByBarId.get(bar.id) ?? 0,
+        tasks: taskCountsByBarId.get(bar.id) ?? 0,
       },
       subscription: {
         planType: bar.subscription?.planType ?? "PAID",
@@ -412,3 +450,14 @@ export async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPay
     staff,
   };
 }
+
+export const getSuperAdminOverviewData = unstable_cache(
+  async function getSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> {
+    return loadSuperAdminOverviewData();
+  },
+  ["super-admin-overview"],
+  {
+    revalidate: 45,
+    tags: [SUPER_ADMIN_OVERVIEW_CACHE_TAG],
+  }
+);
