@@ -1,17 +1,10 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { EmptyState, Panel } from "../ui";
+import { getSuperAdminOverviewData } from "@/lib/super-admin-overview";
 import { SuperAdminOverviewClient } from "./overview-client";
-import type { SuperAdminOverviewPayload } from "@/lib/super-admin-overview-types";
 
-type OverviewResponse =
-  | { ok: true; data: SuperAdminOverviewPayload }
-  | { ok: false; message?: string };
-
-function OverviewSkeleton() {
+export function OverviewSkeleton() {
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div style={{ display: "grid", gap: 18, minWidth: 0, width: "100%" }}>
       <Panel title="Panoramica centrale">
         <div
           style={{
@@ -30,6 +23,7 @@ function OverviewSkeleton() {
                 border: "1px solid rgba(148, 163, 184, 0.18)",
                 display: "grid",
                 gap: 12,
+                minWidth: 0,
               }}
             >
               <div
@@ -83,83 +77,25 @@ function OverviewSkeleton() {
   );
 }
 
-export function SuperAdminOverviewLoader() {
-  const [data, setData] = useState<SuperAdminOverviewPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export async function SuperAdminOverviewLoader() {
+  try {
+    const data = await getSuperAdminOverviewData();
 
-  useEffect(() => {
-    let cancelled = false;
+    return (
+      <SuperAdminOverviewClient
+        summary={data.summary}
+        activities={data.activities}
+        owners={data.owners}
+        staff={data.staff}
+      />
+    );
+  } catch (error) {
+    console.error("[super-admin-overview] load failed", error);
 
-    async function load() {
-      setLoading(true);
-      try {
-        const response = await fetch("/api/dashboard/super-admin/overview", {
-          method: "GET",
-          credentials: "same-origin",
-          cache: "no-store",
-        });
-        const payload = (await response.json()) as OverviewResponse;
-
-        if (!response.ok || !payload.ok) {
-          throw new Error(
-            payload.ok
-              ? "Impossibile caricare la dashboard super admin."
-              : payload.message || "Impossibile caricare la dashboard super admin."
-          );
-        }
-
-        if (!cancelled) {
-          setData(payload.data);
-          setError(null);
-        }
-      } catch (fetchError) {
-        if (!cancelled) {
-          setError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : "Impossibile caricare la dashboard super admin."
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (loading && !data) {
-    return <OverviewSkeleton />;
-  }
-
-  if (error && !data) {
     return (
       <Panel title="Panoramica centrale">
-        <EmptyState message={error} />
+        <EmptyState message="Impossibile caricare la dashboard super admin." />
       </Panel>
     );
   }
-
-  if (!data) {
-    return (
-      <Panel title="Panoramica centrale">
-        <EmptyState message="Nessun dato disponibile." />
-      </Panel>
-    );
-  }
-
-  return (
-    <SuperAdminOverviewClient
-      summary={data.summary}
-      activities={data.activities}
-      owners={data.owners}
-      staff={data.staff}
-    />
-  );
 }

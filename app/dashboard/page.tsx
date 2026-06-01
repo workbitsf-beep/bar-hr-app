@@ -2,6 +2,7 @@ import { ActivityType, RequestStatus, RequestType, Role, TaskStatus } from "@pri
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
+import { getDashboardKpiData } from "@/lib/dashboard-kpi";
 import { getDashboardContext } from "./context";
 import { KpiDashboard } from "./kpi-dashboard";
 import { OwnerRequestCards } from "./owner-request-cards";
@@ -44,8 +45,12 @@ export default async function DashboardPage() {
   const isOwner = role === Role.OWNER;
   const isEmployee = role === Role.EMPLOYEE;
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
+  const kpiDataPromise =
+    canManagePeople && activeBarId
+      ? getDashboardKpiData(activeBarId, activeBarActivityType)
+      : Promise.resolve(null);
 
-  const [settings, shifts, tasks, notes, pendingRequests, pendingRequestCount, teamMembers, ownHours] =
+  const [settings, shifts, tasks, notes, pendingRequests, pendingRequestCount, teamMembers, ownHours, kpiData] =
     await Promise.all([
       isOwner || !isRestaurant
         ? Promise.resolve(null)
@@ -243,6 +248,7 @@ export default async function DashboardPage() {
       isOwner || !isRestaurant
         ? Promise.resolve(null)
         : buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear()),
+      kpiDataPromise,
     ]);
 
   const requestCount = isOwner ? pendingRequests.length : pendingRequestCount ?? 0;
@@ -299,6 +305,7 @@ export default async function DashboardPage() {
           activeBarId={activeBarId}
           role={role}
           activityType={activeBarActivityType}
+          initialData={kpiData}
         />
       ) : null}
 

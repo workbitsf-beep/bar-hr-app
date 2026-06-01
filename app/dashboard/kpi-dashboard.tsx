@@ -20,6 +20,7 @@ type KpiDashboardProps = {
   activeBarId: string;
   role: Role | string;
   activityType: ActivityType | null;
+  initialData?: DashboardKpiData | null;
 };
 
 const CACHE_TTL_MS = 45_000;
@@ -191,17 +192,42 @@ function MiniBarChart({
   );
 }
 
-export function KpiDashboard({ activeBarId, role, activityType }: KpiDashboardProps) {
+export function KpiDashboard({
+  activeBarId,
+  role,
+  activityType,
+  initialData,
+}: KpiDashboardProps) {
+  const cached = kpiCache.get(activeBarId);
   const [data, setData] = useState<DashboardKpiData | null>(() => {
-    const cached = kpiCache.get(activeBarId);
-    return cached && Date.now() - cached.updatedAt < CACHE_TTL_MS ? cached.data : null;
+    if (cached && Date.now() - cached.updatedAt < CACHE_TTL_MS) {
+      return cached.data;
+    }
+
+    return initialData ?? null;
   });
   const [loading, setLoading] = useState(data === null);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(() => {
-    const cached = kpiCache.get(activeBarId);
-    return cached?.updatedAt ?? null;
+    if (cached && Date.now() - cached.updatedAt < CACHE_TTL_MS) {
+      return cached.updatedAt;
+    }
+
+    return initialData ? Date.now() : null;
   });
+
+  useEffect(() => {
+    if (!initialData) {
+      return;
+    }
+
+    const cachedEntry = kpiCache.get(activeBarId);
+    if (!cachedEntry || Date.now() - cachedEntry.updatedAt >= CACHE_TTL_MS) {
+      const seededAt = Date.now();
+      kpiCache.set(activeBarId, { data: initialData, updatedAt: seededAt });
+      setUpdatedAt(seededAt);
+    }
+  }, [activeBarId, initialData]);
 
   useEffect(() => {
     let cancelled = false;

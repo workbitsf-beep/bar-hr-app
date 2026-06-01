@@ -1,9 +1,10 @@
+import { Suspense } from "react";
 import { getDashboardContext } from "../context";
 import {
   SuperAdminForbidden,
   SuperAdminFrame,
 } from "./super-admin-ui";
-import { SuperAdminOverviewLoader } from "./overview-loader";
+import { OverviewSkeleton, SuperAdminOverviewLoader } from "./overview-loader";
 
 export default async function SuperAdminPage() {
   const { role } = await getDashboardContext();
@@ -17,7 +18,9 @@ export default async function SuperAdminPage() {
       title="Dashboard super admin"
       description="Una regia centrale per attivita, titolari, staff associato, pagamenti e ricavo stimato."
     >
-      <SuperAdminOverviewLoader />
+      <Suspense fallback={<OverviewSkeleton />}>
+        <SuperAdminOverviewLoader />
+      </Suspense>
     </SuperAdminFrame>
   );
 }

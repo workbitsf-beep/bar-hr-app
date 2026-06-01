@@ -20,6 +20,10 @@ const surfaceStyle = {
   border: "1px solid rgba(15, 23, 42, 0.08)",
   borderRadius: 28,
   boxShadow: "0 18px 40px rgba(15, 23, 42, 0.07)",
+  width: "100%",
+  minWidth: 0,
+  boxSizing: "border-box" as const,
+  overflow: "hidden",
 };
 
 type DirectorySection = "owners" | "staff" | "activities";
@@ -223,7 +227,7 @@ function SectionTitle({
   subtitle: string;
 }) {
   return (
-    <div style={{ display: "grid", gap: 6 }}>
+    <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
       <span
         style={{
           fontSize: 12,
@@ -231,12 +235,13 @@ function SectionTitle({
           letterSpacing: "0.08em",
           textTransform: "uppercase",
           color: "#64748b",
+          minWidth: 0,
         }}
       >
         {eyebrow}
       </span>
-      <strong style={{ color: "#0f172a", fontSize: 22 }}>{title}</strong>
-      <span style={{ color: "#64748b", lineHeight: 1.6 }}>{subtitle}</span>
+      <strong style={{ color: "#0f172a", fontSize: 22, overflowWrap: "anywhere" }}>{title}</strong>
+      <span style={{ color: "#64748b", lineHeight: 1.6, overflowWrap: "anywhere" }}>{subtitle}</span>
     </div>
   );
 }
@@ -257,6 +262,7 @@ function MetricCard({
         padding: 18,
         display: "grid",
         gap: 8,
+        minWidth: 0,
       }}
     >
       <span
@@ -270,8 +276,8 @@ function MetricCard({
       >
         {label}
       </span>
-      <strong style={{ color: "#0f172a", fontSize: 28, lineHeight: 1.05 }}>{value}</strong>
-      <span style={{ color: "#64748b", lineHeight: 1.5 }}>{hint}</span>
+      <strong style={{ color: "#0f172a", fontSize: 28, lineHeight: 1.05, overflowWrap: "anywhere" }}>{value}</strong>
+      <span style={{ color: "#64748b", lineHeight: 1.5, overflowWrap: "anywhere" }}>{hint}</span>
     </div>
   );
 }
@@ -302,10 +308,11 @@ function TinyStat({
         color: palette[tone].color,
         display: "grid",
         gap: 4,
+        minWidth: 0,
       }}
     >
       <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>{label}</span>
-      <strong style={{ fontSize: 18 }}>{value}</strong>
+      <strong style={{ fontSize: 18, overflowWrap: "anywhere" }}>{value}</strong>
     </div>
   );
 }
@@ -335,7 +342,7 @@ function HorizontalBarChart({
               flexWrap: "wrap",
             }}
           >
-            <strong style={{ color: "#0f172a" }}>{item.label}</strong>
+            <strong style={{ color: "#0f172a", overflowWrap: "anywhere" }}>{item.label}</strong>
             <span style={{ color: "#475569" }}>{item.meta}</span>
           </div>
           <div
@@ -459,6 +466,7 @@ function DirectoryCard({
         boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
         display: "grid",
         gap: 10,
+        minWidth: 0,
       }}
     >
       <div
@@ -471,14 +479,14 @@ function DirectoryCard({
         }}
       >
         <div style={{ display: "grid", gap: 4 }}>
-          <strong style={{ color: "#0f172a", fontSize: 17 }}>{title}</strong>
-          <span style={{ color: "#475569", lineHeight: 1.5 }}>{subtitle}</span>
+          <strong style={{ color: "#0f172a", fontSize: 17, overflowWrap: "anywhere" }}>{title}</strong>
+          <span style={{ color: "#475569", lineHeight: 1.5, overflowWrap: "anywhere" }}>{subtitle}</span>
         </div>
         {status ? <StatusPill label={status.label} tone={status.tone} /> : null}
       </div>
       <div style={{ display: "grid", gap: 6 }}>
         {lines.map((line) => (
-          <span key={line} style={{ color: "#64748b", lineHeight: 1.5 }}>
+          <span key={line} style={{ color: "#64748b", lineHeight: 1.5, overflowWrap: "anywhere" }}>
             {line}
           </span>
         ))}
@@ -519,6 +527,7 @@ function ActionLink({
         padding: "12px 16px",
         fontWeight: 700,
         boxShadow: "0 10px 20px rgba(15, 23, 42, 0.12)",
+        minWidth: 0,
         ...palette[tone],
       }}
     >
@@ -701,7 +710,7 @@ export function SuperAdminOverviewClient({
   );
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div style={{ display: "grid", gap: 18, minWidth: 0, width: "100%", overflowX: "hidden" }}>
       <section
         style={{
           ...surfaceStyle,

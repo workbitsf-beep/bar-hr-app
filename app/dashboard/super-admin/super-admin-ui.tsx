@@ -44,7 +44,7 @@ export function SuperAdminFrame({
   children: ReactNode;
 }) {
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div style={{ display: "grid", gap: 18, minWidth: 0, width: "100%", overflowX: "hidden" }}>
       <section
         style={{
           background:
@@ -55,6 +55,9 @@ export function SuperAdminFrame({
           padding: 22,
           display: "grid",
           gap: 16,
+          minWidth: 0,
+          width: "100%",
+          overflow: "hidden",
         }}
         >
           <BrandLogo size={44} showIcon style={{ gap: 12 }} />
@@ -71,7 +74,7 @@ export function SuperAdminFrame({
               Super Admin
             </span>
             <strong style={{ color: "#0f172a", fontSize: 24 }}>{title}</strong>
-            <span style={{ color: "#64748b", lineHeight: 1.6 }}>{description}</span>
+            <span style={{ color: "#64748b", lineHeight: 1.6, overflowWrap: "anywhere" }}>{description}</span>
           </div>
       </section>
 
@@ -87,6 +90,8 @@ export function SuperAdminMenuGrid() {
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
         gap: 14,
+        minWidth: 0,
+        width: "100%",
       }}
     >
       {superAdminItems.map((item) => (
@@ -104,6 +109,8 @@ export function SuperAdminMenuGrid() {
             border: "1px solid #e2e8f0",
             textDecoration: "none",
             boxShadow: "0 14px 34px rgba(15, 23, 42, 0.06)",
+            minWidth: 0,
+            overflow: "hidden",
           }}
         >
           <span
@@ -117,8 +124,8 @@ export function SuperAdminMenuGrid() {
           >
             Apri
           </span>
-          <strong style={{ fontSize: 18 }}>{item.title}</strong>
-          <span style={{ color: "#64748b", lineHeight: 1.6 }}>{item.description}</span>
+          <strong style={{ fontSize: 18, overflowWrap: "anywhere" }}>{item.title}</strong>
+          <span style={{ color: "#64748b", lineHeight: 1.6, overflowWrap: "anywhere" }}>{item.description}</span>
         </Link>
       ))}
     </div>
