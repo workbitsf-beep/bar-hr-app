@@ -734,11 +734,11 @@ export function OwnerCalendarClient({
     }, "Messaggio pubblicato.");
   }
 
-  if (!selectedDay) {
+  if (!days.length) {
     return null;
   }
 
-  const day = selectedDay;
+  const day = selectedDay ?? days[0];
 
   return (
     <>
