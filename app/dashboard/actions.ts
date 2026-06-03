@@ -1321,6 +1321,7 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
     where: {
       barId: activeBarId,
       confirmedAt: null,
+      isOnCall: false,
       startTime: {
         gte: rangeStart,
         lte: rangeEnd,
@@ -1576,6 +1577,7 @@ export async function createShiftAction(formData: FormData) {
   const startTime = parseRequiredDate(formData.get("startTime"));
   const endTime = parseRequiredDate(formData.get("endTime"));
   const employeeIds = normalizeIds(formData.getAll("employeeIds"));
+  const isOnCall = formData.get("isOnCall") === "on";
 
   if (employeeIds.length === 0) {
     throw new Error("Select at least one employee");
@@ -1599,8 +1601,9 @@ export async function createShiftAction(formData: FormData) {
       title: title || null,
       startTime,
       endTime,
-      confirmedAt: autoConfirm ? new Date() : null,
-      confirmedById: autoConfirm ? session.user.id : null,
+      isOnCall,
+      confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
+      confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
       assignedToId: employeeIds[0],
       barId: activeBarId,
       createdById: session.user.id,
@@ -1630,6 +1633,7 @@ export async function updateShiftAction(formData: FormData) {
   const startTime = parseRequiredDate(formData.get("startTime"));
   const endTime = parseRequiredDate(formData.get("endTime"));
   const employeeIds = normalizeIds(formData.getAll("employeeIds"));
+  const isOnCall = formData.get("isOnCall") === "on";
 
   if (!shiftId || employeeIds.length === 0) {
     throw new Error("Missing shift data");
@@ -1651,21 +1655,82 @@ export async function updateShiftAction(formData: FormData) {
   await prisma.shift.update({
     where: {
       id: shiftId,
-      barId: activeBarId,
     },
     data: {
       title: title || null,
       assignedToId: employeeIds[0],
       startTime,
       endTime,
-      confirmedAt: autoConfirm ? new Date() : null,
-      confirmedById: autoConfirm ? session.user.id : null,
+      isOnCall,
+      confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
+      confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
       assignments: {
         deleteMany: {},
         createMany: {
           data: employeeIds.map((userId) => ({ userId })),
         },
       },
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/shifts");
+}
+
+export async function confirmShiftAction(formData: FormData) {
+  const { session, activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const shiftId = String(formData.get("shiftId") ?? "").trim();
+
+  if (!shiftId) {
+    throw new Error("Missing shift id");
+  }
+
+  const shift = await prisma.shift.findFirst({
+    where: {
+      id: shiftId,
+      barId: activeBarId,
+    },
+    select: {
+      id: true,
+      isOnCall: true,
+      confirmedAt: true,
+      assignments: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
+  if (!shift) {
+    throw new Error("Shift not found");
+  }
+
+  if (!shift.isOnCall) {
+    throw new Error("Reperibilita non richiesta per questo turno");
+  }
+
+  if (shift.confirmedAt) {
+    return;
+  }
+
+  const isAssigned = shift.assignments.some((assignment) => assignment.userId === session.user.id);
+
+  if (!isAssigned) {
+    throw new Error("Non puoi approvare questo turno");
+  }
+
+  await prisma.shift.update({
+    where: { id: shift.id },
+    data: {
+      confirmedAt: new Date(),
+      confirmedById: session.user.id,
     },
   });
 

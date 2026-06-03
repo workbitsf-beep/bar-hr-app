@@ -43,6 +43,7 @@ type ShiftItem = {
   startTime: string;
   endTime: string;
   confirmedAt: string | null;
+  isOnCall: boolean;
   assignments: ShiftAssignment[];
 };
 
@@ -128,6 +129,7 @@ type ShiftDraft = {
   endTime: string;
   presetKey: string;
   memberIds: string[];
+  isOnCall: boolean;
 };
 
 function createShiftDraft(dateIso: string): ShiftDraft {
@@ -138,6 +140,7 @@ function createShiftDraft(dateIso: string): ShiftDraft {
     endTime: "",
     presetKey: "CUSTOM",
     memberIds: [],
+    isOnCall: false,
   };
 }
 
@@ -231,10 +234,15 @@ function renderCompactShiftCard(shift: ShiftItem, locale: string, mobile = false
           flexWrap: "wrap",
           lineHeight: 1.5,
         }}
-      >
+        >
         <strong style={{ color: "#0f172a", fontSize: mobile ? 15 : 13 }}>
           {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
         </strong>
+        {shift.isOnCall ? (
+          <span style={{ color: "#b45309", fontSize: mobile ? 13 : 12, fontWeight: 600 }}>
+            Reperibilita
+          </span>
+        ) : null}
         <span style={{ color: "#475569", fontSize: mobile ? 14 : 12 }}>
           {formatAssignmentNames(shift.assignments)}
         </span>
@@ -642,6 +650,9 @@ export function OwnerCalendarClient({
         formData.set("title", "");
         formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
         formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
+        if (draft.isOnCall) {
+          formData.set("isOnCall", "on");
+        }
 
         for (const memberId of draft.memberIds) {
           formData.append("employeeIds", memberId);
@@ -1203,11 +1214,11 @@ export function OwnerCalendarClient({
                           </label>
                         ) : null}
 
-                        <div
-                          className="dashboard-modal-body-grid"
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                              <div
+                                className="dashboard-modal-body-grid"
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                             gap: 12,
                           }}
                         >
@@ -1252,12 +1263,31 @@ export function OwnerCalendarClient({
                                   endTime: value,
                                 })
                               }
-                            />
-                          </label>
-                        </div>
+                                  />
+                                </label>
+                              </div>
 
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  color: "#334155",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={draft.isOnCall}
+                                  onChange={(event) =>
+                                    updateShiftDraft(draft.id, { isOnCall: event.target.checked })
+                                  }
+                                />
+                                Reperibilita
+                              </label>
+
+                              <div style={{ display: "grid", gap: 10 }}>
+                                <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
                           <div
                             className="dashboard-modal-members-grid"
                             style={{

@@ -211,6 +211,7 @@ export const POST = withBar(
           },
           barId: session.activeBarId,
           confirmedAt: null,
+          isOnCall: false,
         },
         data: {
           confirmedAt: new Date(),

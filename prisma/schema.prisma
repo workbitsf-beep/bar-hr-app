@@ -278,6 +278,7 @@ model Shift {
   title        String?
   startTime    DateTime
   endTime      DateTime
+  isOnCall     Boolean           @default(false)
   barId        String            @db.Uuid
   bar          Bar               @relation(fields: [barId], references: [id], onDelete: Cascade)
   assignedToId String?           @db.Uuid

@@ -31,6 +31,7 @@ type ShiftOption = {
   title: string | null;
   startTime: string;
   endTime: string;
+  isOnCall: boolean;
   assignments: ShiftAssignment[];
   createdBy?: {
     firstName: string;
@@ -85,6 +86,7 @@ export function ShiftEditorModal({
   const [shiftDate, setShiftDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [isOnCall, setIsOnCall] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [selectedPresetKey, setSelectedPresetKey] = useState("CUSTOM");
   const [feedback, setFeedback] = useState<{
@@ -119,6 +121,7 @@ export function ShiftEditorModal({
     setShiftDate(toDateInputValue(shift.startTime));
     setStartTime(toTimeInputValue(shift.startTime));
     setEndTime(toTimeInputValue(shift.endTime));
+    setIsOnCall(shift.isOnCall);
     setSelectedMembers(shift.assignments.map((assignment) => assignment.id));
     setSelectedPresetKey("CUSTOM");
   }, [shift]);
@@ -173,6 +176,9 @@ export function ShiftEditorModal({
     formData.set("title", title);
     formData.set("startTime", combineDateAndTime(shiftDate, startTime));
     formData.set("endTime", combineDateAndTime(shiftDate, endTime));
+    if (isOnCall) {
+      formData.set("isOnCall", "on");
+    }
 
     for (const memberId of selectedMembers) {
       formData.append("employeeIds", memberId);
@@ -410,6 +416,24 @@ export function ShiftEditorModal({
                 </label>
               </div>
 
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  color: "#334155",
+                  fontWeight: 600,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isOnCall}
+                  onChange={(event) => setIsOnCall(event.target.checked)}
+                  disabled={!canManage || isPending}
+                />
+                Reperibilita
+              </label>
+
               <div style={{ display: "grid", gap: 10 }}>
                 <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
                 <div
@@ -485,13 +509,16 @@ export function ShiftEditorModal({
               border: "1px solid #e2e8f0",
             }}
           >
-            <div style={{ color: "#64748b", fontSize: 14 }}>Persone nel turno</div>
-            <div style={{ color: "#0f172a", fontWeight: 600 }}>
-              {shift.assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ")}
-            </div>
-            {shift.createdBy ? (
-              <div style={{ color: "#64748b", fontSize: 14 }}>
-                Creato da {shift.createdBy.firstName} {shift.createdBy.lastName}
+              <div style={{ color: "#64748b", fontSize: 14 }}>Persone nel turno</div>
+              <div style={{ color: "#0f172a", fontWeight: 600 }}>
+                {shift.assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ")}
+              </div>
+              {shift.isOnCall ? (
+                <div style={{ color: "#b45309", fontSize: 14, fontWeight: 600 }}>Reperibilita</div>
+              ) : null}
+              {shift.createdBy ? (
+                <div style={{ color: "#64748b", fontSize: 14 }}>
+                  Creato da {shift.createdBy.firstName} {shift.createdBy.lastName}
               </div>
             ) : null}
           </div>

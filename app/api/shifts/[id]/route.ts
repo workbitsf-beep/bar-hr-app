@@ -42,6 +42,7 @@ export const PATCH = withBar(
       startTime?: string;
       endTime?: string;
       employeeIds?: string[];
+      isOnCall?: boolean;
     };
     const shift = await prisma.shift.findFirst({
       where: {
@@ -77,6 +78,7 @@ export const PATCH = withBar(
         assignedToId: employeeIds[0],
         startTime: nextStartTime,
         endTime: nextEndTime,
+        isOnCall: typeof body.isOnCall === "boolean" ? body.isOnCall : shift.isOnCall,
         confirmedAt: null,
         confirmedById: null,
         assignments: {

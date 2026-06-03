@@ -45,6 +45,7 @@ export function ShiftCreateForm({
   const [shiftDate, setShiftDate] = useState(defaultShiftDate);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [isOnCall, setIsOnCall] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "danger";
     message: string;
@@ -82,6 +83,7 @@ export function ShiftCreateForm({
         setShiftDate(defaultShiftDate);
         setStartTime("");
         setEndTime("");
+        setIsOnCall(false);
         router.refresh();
       } catch (error) {
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
@@ -188,6 +190,25 @@ export function ShiftCreateForm({
           ))}
         </div>
       </FormField>
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          color: "#334155",
+          fontWeight: 600,
+        }}
+      >
+        <input
+          type="checkbox"
+          name="isOnCall"
+          checked={isOnCall}
+          onChange={(event) => setIsOnCall(event.target.checked)}
+          disabled={isPending}
+        />
+        Reperibilita
+      </label>
 
       <div className="dashboard-form-actions">
         <PrimaryButton type="submit" disabled={isPending}>

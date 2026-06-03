@@ -31,6 +31,37 @@ function hasCompletedRoundingSetup(
   );
 }
 
+type OnboardingBar = {
+  activityType: ActivityType;
+  settings: {
+    gpsLatitude: number | null;
+    gpsLongitude: number | null;
+    gpsRadius: number | null;
+    roundingMinutes: number | null;
+    roundingMode: RoundingMode | null;
+  } | null;
+} | null;
+
+function barNeedsSetup(bar: OnboardingBar) {
+  if (!bar) {
+    return false;
+  }
+
+  const needsGps =
+    bar.activityType === ActivityType.RESTAURANT &&
+    (!bar.settings ||
+      bar.settings.gpsLatitude === null ||
+      bar.settings.gpsLongitude === null ||
+      bar.settings.gpsRadius === null);
+
+  return Boolean(
+    !bar.settings ||
+      needsGps ||
+      bar.settings.roundingMinutes === null ||
+      bar.settings.roundingMode === null
+  );
+}
+
 function parseNumber(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || value.trim() === "") {
     return null;
@@ -38,6 +69,10 @@ function parseNumber(value: FormDataEntryValue | null): number | null {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseActivityType(value: FormDataEntryValue | null) {
+  return value === "COMPANY" ? ActivityType.COMPANY : ActivityType.RESTAURANT;
 }
 
 async function getOwnerContext() {
@@ -86,7 +121,10 @@ async function getOwnerContext() {
   });
 
   const activeBar =
-    ownedBars.find((bar) => bar.id === session.activeBarId) ?? ownedBars[0] ?? null;
+    ownedBars.find((bar) => barNeedsSetup(bar)) ??
+    ownedBars.find((bar) => bar.id === session.activeBarId) ??
+    ownedBars[0] ??
+    null;
 
   return { session, ownedBars, activeBar };
 }
@@ -125,6 +163,7 @@ async function createBarAction(formData: FormData) {
   }
 
   const name = String(formData.get("name") ?? "").trim();
+  const activityType = parseActivityType(formData.get("activityType"));
 
   if (!name) {
     redirect("/onboarding?error=missing-bar-name");
@@ -142,6 +181,7 @@ async function createBarAction(formData: FormData) {
       entryToleranceMin: 5,
       roundingStepMin: 15,
       exitToleranceMin: 13,
+      activityType,
       ownerId: session.user.id,
       settings: {
         create: {
@@ -166,6 +206,28 @@ async function createBarAction(formData: FormData) {
 
   revalidatePath("/onboarding");
   redirect("/onboarding?step=2");
+}
+
+async function updateActivityTypeAction(formData: FormData) {
+  "use server";
+
+  const { activeBar } = await getOwnerContext();
+
+  if (!activeBar) {
+    redirect("/onboarding");
+  }
+
+  const activityType = parseActivityType(formData.get("activityType"));
+
+  await prisma.bar.update({
+    where: { id: activeBar.id },
+    data: {
+      activityType,
+    },
+  });
+
+  revalidatePath("/onboarding");
+  redirect("/onboarding");
 }
 
 async function saveGpsAction(formData: FormData) {
@@ -629,8 +691,52 @@ export default async function OnboardingPage({
               label="Nome locale"
               placeholder="Nome del locale"
             />
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600 }}>Attività</span>
+              <select
+                name="activityType"
+                defaultValue="RESTAURANT"
+                style={{
+                  borderRadius: 14,
+                  border: "1px solid #d9cdb8",
+                  padding: "12px 14px",
+                  fontSize: 15,
+                  background: "#fff",
+                }}
+              >
+                <option value="RESTAURANT">Ristorazione</option>
+                <option value="COMPANY">Azienda</option>
+              </select>
+            </label>
             <div>
               <SubmitButton label="Continua" />
+            </div>
+          </form>
+        </Card>
+      ) : null}
+
+      {activeBar ? (
+        <Card title="Attività">
+          <form action={updateActivityTypeAction} style={{ display: "grid", gap: 16 }}>
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600 }}>Tipo attività</span>
+              <select
+                name="activityType"
+                defaultValue={activeBar.activityType}
+                style={{
+                  borderRadius: 14,
+                  border: "1px solid #d9cdb8",
+                  padding: "12px 14px",
+                  fontSize: 15,
+                  background: "#fff",
+                }}
+              >
+                <option value="RESTAURANT">Ristorazione</option>
+                <option value="COMPANY">Azienda</option>
+              </select>
+            </label>
+            <div>
+              <SubmitButton label="Aggiorna attività" />
             </div>
           </form>
         </Card>

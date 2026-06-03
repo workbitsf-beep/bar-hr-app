@@ -58,6 +58,8 @@ export default async function DashboardShiftsPage() {
         title: true,
         startTime: true,
         endTime: true,
+        confirmedAt: true,
+        isOnCall: true,
         assignments: {
           select: {
             user: {
@@ -203,6 +205,8 @@ export default async function DashboardShiftsPage() {
               title: shift.title,
               startTime: shift.startTime.toISOString(),
               endTime: shift.endTime.toISOString(),
+              confirmedAt: shift.confirmedAt?.toISOString() ?? null,
+              isOnCall: shift.isOnCall,
               assignments: shift.assignments.map((entry) => ({
                 id: entry.user.id,
                 firstName: entry.user.firstName,

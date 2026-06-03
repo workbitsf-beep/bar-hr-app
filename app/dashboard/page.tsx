@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
+import { confirmShiftAction } from "./actions";
 import { getDashboardContext } from "./context";
 import { KpiDashboard } from "./kpi-dashboard";
 import { OwnerRequestCards } from "./owner-request-cards";
@@ -14,6 +15,7 @@ import {
   ItemCard,
   ItemList,
   Panel,
+  PrimaryButton,
   Stack,
   formatDate,
   formatDateTime,
@@ -50,7 +52,18 @@ export default async function DashboardPage() {
       ? getDashboardKpiData(activeBarId, activeBarActivityType)
       : Promise.resolve(null);
 
-  const [settings, shifts, tasks, notes, pendingRequests, pendingRequestCount, teamMembers, ownHours, kpiData] =
+  const [
+    settings,
+    shifts,
+    pendingOnCallShifts,
+    tasks,
+    notes,
+    pendingRequests,
+    pendingRequestCount,
+    teamMembers,
+    ownHours,
+    kpiData,
+  ] =
     await Promise.all([
       isOwner || !isRestaurant
         ? Promise.resolve(null)
@@ -82,6 +95,8 @@ export default async function DashboardPage() {
               title: true,
               startTime: true,
               endTime: true,
+              confirmedAt: true,
+              isOnCall: true,
               assignments: {
                 select: {
                   user: {
@@ -96,6 +111,41 @@ export default async function DashboardPage() {
             },
           })
         : Promise.resolve([]),
+      prisma.shift.findMany({
+        where: {
+          barId: activeBarId,
+          confirmedAt: null,
+          isOnCall: true,
+          assignments: {
+            some: {
+              userId: session.user.id,
+            },
+          },
+        },
+        orderBy: {
+          startTime: "asc",
+        },
+        take: 6,
+        select: {
+          id: true,
+          title: true,
+          startTime: true,
+          endTime: true,
+          confirmedAt: true,
+          isOnCall: true,
+          assignments: {
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+        },
+      }),
       prisma.task.findMany({
         where: {
           barId: activeBarId,
@@ -320,11 +370,43 @@ export default async function DashboardPage() {
                   key={shift.id}
                   title={shift.title || "Turno condiviso"}
                   subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
-                  meta={shift.assignments.map((entry) => `${entry.user.firstName} ${entry.user.lastName}`).join(", ")}
+                  meta={shift.assignments
+                    .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
+                    .join(", ")}
+                  footer={
+                    shift.isOnCall ? (
+                      <span style={{ color: "#b45309", fontSize: 13, fontWeight: 600 }}>
+                        Reperibilita {shift.confirmedAt ? "confermata" : "in attesa"}
+                      </span>
+                    ) : null
+                  }
                 />
               ))}
             </ItemList>
           )}
+        </Panel>
+      ) : null}
+
+      {pendingOnCallShifts.length > 0 ? (
+        <Panel title="Reperibilita da approvare">
+          <ItemList>
+            {pendingOnCallShifts.map((shift) => (
+              <ItemCard
+                key={shift.id}
+                title={shift.title || "Reperibilita"}
+                subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
+                meta={shift.assignments
+                  .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
+                  .join(", ")}
+                footer={
+                  <form action={confirmShiftAction}>
+                    <input type="hidden" name="shiftId" value={shift.id} />
+                    <PrimaryButton type="submit">Approva reperibilita</PrimaryButton>
+                  </form>
+                }
+              />
+            ))}
+          </ItemList>
         </Panel>
       ) : null}
 

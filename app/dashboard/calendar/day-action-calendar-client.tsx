@@ -44,6 +44,7 @@ type ShiftItem = {
   startTime: string;
   endTime: string;
   confirmedAt: string | null;
+  isOnCall: boolean;
   assignments: ShiftAssignment[];
 };
 
@@ -141,6 +142,7 @@ type ShiftDraft = {
   endTime: string;
   presetKey: string;
   memberIds: string[];
+  isOnCall: boolean;
 };
 
 function createShiftDraft(dateIso: string): ShiftDraft {
@@ -151,6 +153,7 @@ function createShiftDraft(dateIso: string): ShiftDraft {
     endTime: "",
     presetKey: "CUSTOM",
     memberIds: [],
+    isOnCall: false,
   };
 }
 
@@ -292,6 +295,11 @@ function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
         <strong style={{ color: "#0f172a", fontSize: mobile ? 15 : 13 }}>
           {formatRange(shift.startTime, shift.endTime, locale)}
         </strong>
+        {shift.isOnCall ? (
+          <span style={{ color: "#b45309", fontSize: mobile ? 13 : 12, fontWeight: 600 }}>
+            Reperibilita
+          </span>
+        ) : null}
         <span style={{ color: "#475569", fontSize: mobile ? 14 : 12 }}>
           {formatAssignmentNames(shift.assignments)}
         </span>
@@ -788,14 +796,17 @@ export function DayActionCalendarClient({
     runAction(
       async () => {
         for (const draft of validDrafts) {
-          const formData = new FormData();
-          formData.set("title", "");
-          formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
-          formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
+        const formData = new FormData();
+        formData.set("title", "");
+        formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
+        formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
+        if (draft.isOnCall) {
+          formData.set("isOnCall", "on");
+        }
 
-          for (const memberId of draft.memberIds) {
-            formData.append("employeeIds", memberId);
-          }
+        for (const memberId of draft.memberIds) {
+          formData.append("employeeIds", memberId);
+        }
 
           await createShiftAction(formData);
         }
@@ -1376,6 +1387,25 @@ export function DayActionCalendarClient({
                                   />
                                 </label>
                               </div>
+
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  color: "#334155",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={draft.isOnCall}
+                                  onChange={(event) =>
+                                    updateShiftDraft(draft.id, { isOnCall: event.target.checked })
+                                  }
+                                />
+                                Reperibilita
+                              </label>
 
                               <div style={{ display: "grid", gap: 10 }}>
                                 <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>

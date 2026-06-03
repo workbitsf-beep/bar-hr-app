@@ -206,6 +206,7 @@ export default async function DashboardCalendarPage({
               startTime: true,
               endTime: true,
               confirmedAt: true,
+              isOnCall: true,
               assignments: {
                 select: {
                   user: {
@@ -606,12 +607,13 @@ export default async function DashboardCalendarPage({
     date: day.date.toISOString(),
     isToday: day.date.toDateString() === today.toDateString(),
     inCurrentMonth: true,
-    shifts: day.shifts.map((shift) => ({
+      shifts: day.shifts.map((shift) => ({
       id: shift.id,
       title: shift.title,
       startTime: shift.startTime.toISOString(),
       endTime: shift.endTime.toISOString(),
       confirmedAt: shift.confirmedAt?.toISOString() ?? null,
+      isOnCall: shift.isOnCall,
       assignments: shift.assignments.map((assignment) => ({
         id: assignment.user.id,
         firstName: assignment.user.firstName,

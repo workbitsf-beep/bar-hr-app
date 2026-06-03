@@ -18,6 +18,31 @@ export type ActiveBarAccess = {
   role: Role;
 };
 
+function barNeedsSetup(input: {
+  activityType: ActivityType;
+  settings: {
+    gpsLatitude: number | null;
+    gpsLongitude: number | null;
+    gpsRadius: number | null;
+    roundingMinutes: number | null;
+    roundingMode: string | null;
+  } | null;
+}) {
+  const needsGps =
+    input.activityType === ActivityType.RESTAURANT &&
+    (!input.settings ||
+      input.settings.gpsLatitude === null ||
+      input.settings.gpsLongitude === null ||
+      input.settings.gpsRadius === null);
+
+  return Boolean(
+    !input.settings ||
+      needsGps ||
+      input.settings.roundingMinutes === null ||
+      input.settings.roundingMode === null
+  );
+}
+
 export const getAccessibleBarsForUser = cache(async function getAccessibleBarsForUser(
   userId: string,
   userRole?: Role
@@ -175,23 +200,11 @@ export async function ownerNeedsOnboarding(userId: string): Promise<boolean> {
     return true;
   }
 
-  const needsGps =
-    ownedBar.activityType === ActivityType.RESTAURANT &&
-    (!ownedBar.settings ||
-      ownedBar.settings.gpsLatitude === null ||
-      ownedBar.settings.gpsLongitude === null ||
-      ownedBar.settings.gpsRadius === null);
-
-  return Boolean(
-    !ownedBar.settings ||
-      needsGps ||
-      ownedBar.settings.roundingMinutes === null ||
-      ownedBar.settings.roundingMode === null
-  );
+  return barNeedsSetup(ownedBar);
 }
 
 const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(userId: string) {
-  return prisma.bar.findFirst({
+  const ownedBars = await prisma.bar.findMany({
     where: {
       OR: [
         { ownerId: userId },
@@ -207,9 +220,10 @@ const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(use
       ],
     },
     orderBy: {
-      createdAt: "asc",
+      createdAt: "desc",
     },
     select: {
+      createdAt: true,
       activityType: true,
       settings: {
         select: {
@@ -229,6 +243,8 @@ const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(use
       },
     },
   });
+
+  return ownedBars.find(barNeedsSetup) ?? ownedBars[0] ?? null;
 });
 
 export async function getPostLoginDestination(input: {
@@ -251,20 +267,7 @@ export async function getPostLoginDestination(input: {
       return "/onboarding";
     }
 
-    const needsGps =
-      ownedBar.activityType === ActivityType.RESTAURANT &&
-      (!ownedBar.settings ||
-        ownedBar.settings.gpsLatitude === null ||
-        ownedBar.settings.gpsLongitude === null ||
-        ownedBar.settings.gpsRadius === null);
-    const needsOnboarding = Boolean(
-      !ownedBar.settings ||
-        needsGps ||
-        ownedBar.settings.roundingMinutes === null ||
-        ownedBar.settings.roundingMode === null
-    );
-
-    if (needsOnboarding) {
+    if (barNeedsSetup(ownedBar)) {
       return "/onboarding";
     }
 

@@ -16,6 +16,8 @@ type ShiftOption = {
   title: string | null;
   startTime: string;
   endTime: string;
+  confirmedAt: string | null;
+  isOnCall: boolean;
   assignments: {
     id: string;
     firstName: string;
@@ -88,6 +90,11 @@ export function PlannedShiftsList({
                   .map((assignment) => `${assignment.firstName} ${assignment.lastName}`)
                   .join(", ")}
               </span>
+              {shift.isOnCall ? (
+                <span style={{ color: "#b45309", fontSize: 12, fontWeight: 600 }}>
+                  Reperibilita {shift.confirmedAt ? "confermata" : "da approvare"}
+                </span>
+              ) : null}
             </div>
 
             <span
