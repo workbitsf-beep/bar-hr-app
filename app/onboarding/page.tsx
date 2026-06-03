@@ -21,10 +21,10 @@ import {
 type StepNumber = 1 | 2 | 3 | 4;
 
 function hasCompletedRoundingSetup(
-  settings:
-    | Awaited<ReturnType<typeof getOwnerContext>>["activeBar"]["settings"]
-    | null
-    | undefined
+  settings: {
+    roundingMinutes: number | null;
+    roundingMode: RoundingMode | null;
+  } | null | undefined
 ) {
   return Boolean(
     settings &&
@@ -88,44 +88,111 @@ async function getOwnerContext() {
     redirect("/dashboard");
   }
 
-  const ownedBars = await prisma.bar.findMany({
-    where: {
-      OR: [
-        { ownerId: session.user.id },
-        {
-          memberships: {
-            some: {
-              userId: session.user.id,
-              role: Role.OWNER,
-              isActive: true,
-            },
-          },
-        },
-      ],
-    },
-    include: {
-      settings: true,
-      memberships: {
-        where: { isActive: true },
-        include: {
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+  const ownershipFilter = {
+    OR: [
+      { ownerId: session.user.id },
+      {
+        memberships: {
+          some: {
+            userId: session.user.id,
+            role: Role.OWNER,
+            isActive: true,
           },
         },
       },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+    ],
+  };
+
+  const [ownedBars, activeBarCandidate] = await Promise.all([
+    prisma.bar.findMany({
+      where: ownershipFilter,
+      select: {
+        id: true,
+        name: true,
+        activityType: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    session.activeBarId
+      ? prisma.bar.findFirst({
+          where: {
+            id: session.activeBarId,
+            ...ownershipFilter,
+          },
+          select: {
+            id: true,
+            name: true,
+            activityType: true,
+            settings: {
+              select: {
+                gpsLatitude: true,
+                gpsLongitude: true,
+                gpsRadius: true,
+                roundingMinutes: true,
+                roundingMode: true,
+                roundingEnabled: true,
+              },
+            },
+            memberships: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                role: true,
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+      : Promise.resolve(null),
+  ]);
 
   const activeBar =
-    ownedBars.find((bar) => bar.id === session.activeBarId) ??
-    ownedBars[0] ??
-    null;
+    activeBarCandidate ??
+    (ownedBars[0]
+      ? await prisma.bar.findFirst({
+          where: {
+            id: ownedBars[0].id,
+            ...ownershipFilter,
+          },
+          select: {
+            id: true,
+            name: true,
+            activityType: true,
+            settings: {
+              select: {
+                gpsLatitude: true,
+                gpsLongitude: true,
+                gpsRadius: true,
+                roundingMinutes: true,
+                roundingMode: true,
+                roundingEnabled: true,
+              },
+            },
+            memberships: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                role: true,
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+      : null);
 
   return { session, ownedBars, activeBar };
 }
@@ -249,13 +316,6 @@ async function switchBarAction(formData: FormData) {
           gpsRadius: true,
           roundingMinutes: true,
           roundingMode: true,
-        },
-      },
-      subscription: {
-        select: {
-          planType: true,
-          trialEndsAt: true,
-          stripeSubscriptionId: true,
         },
       },
     },
@@ -722,6 +782,9 @@ export default async function OnboardingPage({
   const invitedMembers =
     activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
   const ownerMembers = teamMembers.filter((membership) => membership.role === Role.OWNER);
+  const alternateBar = activeBar
+    ? ownedBars.find((bar) => bar.id !== activeBar.id) ?? null
+    : null;
   const computedStep = getCurrentStep(activeBar);
   const requestedStepRaw = Array.isArray(params.step) ? params.step[0] : params.step;
   const requestedStep = requestedStepRaw ? Number(requestedStepRaw) : computedStep;
@@ -783,6 +846,12 @@ export default async function OnboardingPage({
               label: `${bar.name} - ${bar.activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione"}`,
             }))}
           />
+          {alternateBar ? (
+            <form action={switchBarAction} style={{ marginTop: 12 }}>
+              <input type="hidden" name="barId" value={alternateBar.id} />
+              <SubmitButton label={`Torna a ${alternateBar.name}`} />
+            </form>
+          ) : null}
           <div style={{ marginTop: 12, color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
             Puoi tornare all'altra attivita quando vuoi e riprendere la configurazione in seguito.
           </div>
