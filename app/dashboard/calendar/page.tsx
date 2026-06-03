@@ -770,6 +770,7 @@ export default async function DashboardCalendarPage({
             presets={shiftPresets}
             filteredDay={dayFilter}
             role={String(role)}
+            currentUserId={session.user.id}
           />
         ) : (
           <DayActionCalendarClient
@@ -781,6 +782,7 @@ export default async function DashboardCalendarPage({
             activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
             members={memberOptions}
             presets={shiftPresets}
+            currentUserId={session.user.id}
           />
         )}
       </Panel>

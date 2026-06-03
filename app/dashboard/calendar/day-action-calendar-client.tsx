@@ -476,6 +476,7 @@ export function DayActionCalendarClient({
   activityType,
   members,
   presets,
+  currentUserId,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -485,6 +486,7 @@ export function DayActionCalendarClient({
   activityType: ActivityType;
   members: MemberOption[];
   presets: ShiftPreset[];
+  currentUserId: string;
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -2189,6 +2191,7 @@ export function DayActionCalendarClient({
         open={Boolean(editingShift)}
         locale={locale}
         canManage
+        currentUserId={currentUserId}
         shift={editingShift}
         members={members}
         presets={presets}

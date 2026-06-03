@@ -220,6 +220,7 @@ export default async function DashboardShiftsPage() {
                 role === Role.EMPLOYEE &&
                 shift.assignments.some((entry) => entry.user.id === session.user.id),
             }))}
+            currentUserId={session.user.id}
           />
         )}
       </Panel>

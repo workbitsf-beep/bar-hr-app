@@ -43,12 +43,14 @@ export function PlannedShiftsList({
   shifts,
   members,
   presets,
+  currentUserId,
 }: {
   locale: string;
   canManage: boolean;
   shifts: ShiftOption[];
   members: MemberOption[];
   presets: ShiftPreset[];
+  currentUserId: string;
 }) {
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
 
@@ -116,6 +118,7 @@ export function PlannedShiftsList({
         open={Boolean(selectedShift)}
         locale={locale}
         canManage={canManage}
+        currentUserId={currentUserId}
         shift={selectedShift}
         members={members}
         presets={presets}

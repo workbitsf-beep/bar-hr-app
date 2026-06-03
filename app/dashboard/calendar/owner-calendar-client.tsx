@@ -363,6 +363,7 @@ export function OwnerCalendarClient({
   presets,
   filteredDay,
   role,
+  currentUserId,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -371,6 +372,7 @@ export function OwnerCalendarClient({
   presets: ShiftPreset[];
   filteredDay?: string | null;
   role: string;
+  currentUserId: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -1964,6 +1966,7 @@ export function OwnerCalendarClient({
         open={Boolean(editingShift)}
         locale={locale}
         canManage
+        currentUserId={currentUserId}
         shift={editingShift}
         members={members}
         presets={presets}

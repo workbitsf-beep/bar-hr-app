@@ -10,7 +10,7 @@ import {
 } from "@/lib/shift-datetime";
 import { TimeInput } from "@/app/components/time-input";
 import type { ShiftPreset } from "@/lib/shift-presets";
-import { deleteShiftAction, updateShiftAction } from "../actions";
+import { confirmShiftAction, deleteShiftAction, updateShiftAction } from "../actions";
 import { IconButton, PrimaryButton, Select } from "../ui";
 
 type MemberOption = {
@@ -31,6 +31,7 @@ type ShiftOption = {
   title: string | null;
   startTime: string;
   endTime: string;
+  confirmedAt: string | null;
   isOnCall: boolean;
   assignments: ShiftAssignment[];
   createdBy?: {
@@ -66,6 +67,7 @@ export function ShiftEditorModal({
   open,
   locale,
   canManage,
+  currentUserId,
   shift,
   members,
   presets,
@@ -74,6 +76,7 @@ export function ShiftEditorModal({
   open: boolean;
   locale: string;
   canManage: boolean;
+  currentUserId: string;
   shift: ShiftOption | null;
   members: MemberOption[];
   presets: ShiftPreset[];
@@ -210,6 +213,34 @@ export function ShiftEditorModal({
       try {
         await deleteShiftAction(formData);
         setFeedback(null);
+        onClose();
+        window.setTimeout(() => {
+          router.refresh();
+        }, 0);
+      } catch (error) {
+        setFeedback({ tone: "danger", message: getErrorMessage(error) });
+      }
+    });
+  }
+
+  async function handleConfirmReperibility() {
+    if (!shift || canManage || shift.confirmedAt) {
+      return;
+    }
+
+    const isAssigned = shift.assignments.some((assignment) => assignment.id === currentUserId);
+
+    if (!isAssigned || !shift.isOnCall) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("shiftId", shift.id);
+
+    startTransition(async () => {
+      try {
+        await confirmShiftAction(formData);
+        setFeedback({ tone: "success", message: "Reperibilita confermata." });
         onClose();
         window.setTimeout(() => {
           router.refresh();
@@ -513,12 +544,25 @@ export function ShiftEditorModal({
               <div style={{ color: "#0f172a", fontWeight: 600 }}>
                 {shift.assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ")}
               </div>
-              {shift.isOnCall ? (
-                <div style={{ color: "#b45309", fontSize: 14, fontWeight: 600 }}>Reperibilita</div>
-              ) : null}
-              {shift.createdBy ? (
-                <div style={{ color: "#64748b", fontSize: 14 }}>
-                  Creato da {shift.createdBy.firstName} {shift.createdBy.lastName}
+            {shift.isOnCall ? (
+              <div style={{ color: "#b45309", fontSize: 14, fontWeight: 600 }}>Reperibilita</div>
+            ) : null}
+            {!canManage &&
+            shift.isOnCall &&
+            !shift.confirmedAt &&
+            shift.assignments.some((assignment) => assignment.id === currentUserId) ? (
+              <PrimaryButton type="button" onClick={handleConfirmReperibility} disabled={isPending}>
+                {isPending ? "Conferma..." : "Approva reperibilita"}
+              </PrimaryButton>
+            ) : null}
+            {!canManage && shift.isOnCall && shift.confirmedAt ? (
+              <div style={{ color: "#166534", fontSize: 14, fontWeight: 600 }}>
+                Reperibilita confermata
+              </div>
+            ) : null}
+            {shift.createdBy ? (
+              <div style={{ color: "#64748b", fontSize: 14 }}>
+                Creato da {shift.createdBy.firstName} {shift.createdBy.lastName}
               </div>
             ) : null}
           </div>

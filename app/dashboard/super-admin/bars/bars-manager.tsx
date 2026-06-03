@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { createBarBySuperAdminAction, updateBarSubscriptionAction } from "../../actions";
+import {
+  createBarBySuperAdminAction,
+  deleteBarBySuperAdminAction,
+  updateBarSubscriptionAction,
+} from "../../actions";
 import {
   EmptyState,
   FormField,
@@ -387,6 +391,39 @@ export function BarsManager({
     });
   }
 
+  async function deleteBar(inputBarId?: string) {
+    const targetBar = inputBarId ? bars.find((bar) => bar.id === inputBarId) ?? null : selectedBar;
+
+    if (!targetBar) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Vuoi eliminare definitivamente ${targetBar.name}? Questa azione rimuove la struttura e i dati collegati.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("barId", targetBar.id);
+
+    startTransition(async () => {
+      try {
+        await deleteBarBySuperAdminAction(formData);
+
+        if (!inputBarId) {
+          setSelectedBarId(null);
+        }
+
+        router.refresh();
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : "Eliminazione non riuscita.");
+      }
+    });
+  }
+
   return (
     <>
       <Panel
@@ -508,6 +545,17 @@ export function BarsManager({
                               {revenue.detail}
                             </span>
                           </div>
+
+                          <PrimaryButton
+                            type="button"
+                            tone="red"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void deleteBar(bar.id);
+                            }}
+                          >
+                            Elimina
+                          </PrimaryButton>
                         </div>
                       }
                     />
@@ -746,6 +794,9 @@ export function BarsManager({
                   </PrimaryButton>
                   <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("TRIAL")} disabled={isPending}>
                     TRIAL
+                  </PrimaryButton>
+                  <PrimaryButton type="button" tone="red" onClick={() => void deleteBar()} disabled={isPending}>
+                    Elimina
                   </PrimaryButton>
                 </div>
 
