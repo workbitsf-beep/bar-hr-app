@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
-import { requireStripe } from "@/lib/stripe";
+import { cancelStripeSubscriptionSafely } from "@/lib/stripe";
 
 export async function POST() {
   const session = await getSession();
@@ -45,10 +45,8 @@ export async function POST() {
   }
 
   if (subscription.stripeSubscriptionId) {
-    const stripe = requireStripe();
-
     try {
-      await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+      await cancelStripeSubscriptionSafely(subscription.stripeSubscriptionId);
     } catch (error) {
       return Response.json(
         {

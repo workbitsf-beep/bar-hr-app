@@ -41,7 +41,7 @@ import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
-import { requireStripe } from "@/lib/stripe";
+import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
 import { parseTaskDueDate } from "@/lib/task-dates";
 import {
   canManageOperations,
@@ -1237,10 +1237,8 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
   }
 
   if (bar.subscription?.stripeSubscriptionId) {
-    const stripe = requireStripe();
-
     try {
-      await stripe.subscriptions.cancel(bar.subscription.stripeSubscriptionId);
+      await cancelStripeSubscriptionSafely(bar.subscription.stripeSubscriptionId);
     } catch (error) {
       throw new Error(
         error instanceof Error
