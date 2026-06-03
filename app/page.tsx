@@ -14,6 +14,7 @@ export default async function Home() {
       userId: session.user.id,
       role: session.user.role,
       mustChangePwd: session.user.mustChangePwd,
+      activeBarId: session.activeBarId,
     })
   );
 }

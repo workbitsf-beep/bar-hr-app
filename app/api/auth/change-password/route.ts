@@ -76,6 +76,7 @@ export async function POST(req: Request): Promise<Response> {
       userId: session.user.id,
       role: session.user.role,
       mustChangePwd: false,
+      activeBarId: session.activeBarId,
     }),
   });
 }

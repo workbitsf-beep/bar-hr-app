@@ -85,6 +85,7 @@ export async function POST(req: Request): Promise<Response> {
       userId: user.id,
       role: user.role,
       mustChangePwd: user.mustChangePwd,
+      activeBarId,
     }),
   });
 }

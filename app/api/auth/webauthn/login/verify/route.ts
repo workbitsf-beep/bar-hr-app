@@ -155,6 +155,7 @@ export async function POST(req: Request): Promise<Response> {
         userId: credentialRecord.user.id,
         role: credentialRecord.user.role,
         mustChangePwd: credentialRecord.user.mustChangePwd,
+        activeBarId,
       }),
     });
   } catch (error) {

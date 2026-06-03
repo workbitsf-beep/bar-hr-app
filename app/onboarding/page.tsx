@@ -5,7 +5,9 @@ import { ActivityType, RoundingMode, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import { PendingButton } from "@/app/components/pending-button";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
+import { AutoSubmitSelectForm } from "@/app/dashboard/auto-submit-select-form";
 import { getSession } from "@/lib/auth";
+import { barNeedsSubscriptionActivation } from "@/lib/billing";
 import {
   sendEmployeeWelcomeEmail,
   sendOwnerWelcomeEmail,
@@ -121,7 +123,6 @@ async function getOwnerContext() {
   });
 
   const activeBar =
-    ownedBars.find((bar) => barNeedsSetup(bar)) ??
     ownedBars.find((bar) => bar.id === session.activeBarId) ??
     ownedBars[0] ??
     null;
@@ -208,26 +209,80 @@ async function createBarAction(formData: FormData) {
   redirect("/onboarding?step=2");
 }
 
-async function updateActivityTypeAction(formData: FormData) {
+async function switchBarAction(formData: FormData) {
   "use server";
 
-  const { activeBar } = await getOwnerContext();
+  const session = await getSession();
 
-  if (!activeBar) {
+  if (!session || session.user.role !== Role.OWNER) {
+    redirect("/dashboard");
+  }
+
+  const barId = String(formData.get("barId") ?? "").trim();
+
+  if (!barId) {
     redirect("/onboarding");
   }
 
-  const activityType = parseActivityType(formData.get("activityType"));
-
-  await prisma.bar.update({
-    where: { id: activeBar.id },
-    data: {
-      activityType,
+  const selectedBar = await prisma.bar.findFirst({
+    where: {
+      id: barId,
+      OR: [
+        { ownerId: session.user.id },
+        {
+          memberships: {
+            some: {
+              userId: session.user.id,
+              role: Role.OWNER,
+              isActive: true,
+            },
+          },
+        },
+      ],
+    },
+    select: {
+      activityType: true,
+      settings: {
+        select: {
+          gpsLatitude: true,
+          gpsLongitude: true,
+          gpsRadius: true,
+          roundingMinutes: true,
+          roundingMode: true,
+        },
+      },
+      subscription: {
+        select: {
+          planType: true,
+          trialEndsAt: true,
+          stripeSubscriptionId: true,
+        },
+      },
     },
   });
 
+  if (!selectedBar) {
+    redirect("/onboarding");
+  }
+
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { activeBarId: barId },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
   revalidatePath("/onboarding");
-  redirect("/onboarding");
+
+  if (await barNeedsSubscriptionActivation(barId)) {
+    redirect("/dashboard/settings");
+  }
+
+  if (barNeedsSetup(selectedBar)) {
+    redirect("/onboarding");
+  }
+
+  redirect("/dashboard/calendar");
 }
 
 async function saveGpsAction(formData: FormData) {
@@ -648,7 +703,7 @@ export default async function OnboardingPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
-  const { activeBar } = await getOwnerContext();
+  const { activeBar, ownedBars } = await getOwnerContext();
   const globalGpsRadius = await getGlobalGpsRadius();
   const showGpsStep = activeBar?.activityType !== ActivityType.COMPANY;
   const onboardingSteps = showGpsStep
@@ -715,30 +770,22 @@ export default async function OnboardingPage({
         </Card>
       ) : null}
 
-      {activeBar ? (
-        <Card title="Attività">
-          <form action={updateActivityTypeAction} style={{ display: "grid", gap: 16 }}>
-            <label style={{ display: "grid", gap: 8 }}>
-              <span style={{ fontWeight: 600 }}>Tipo attività</span>
-              <select
-                name="activityType"
-                defaultValue={activeBar.activityType}
-                style={{
-                  borderRadius: 14,
-                  border: "1px solid #d9cdb8",
-                  padding: "12px 14px",
-                  fontSize: 15,
-                  background: "#fff",
-                }}
-              >
-                <option value="RESTAURANT">Ristorazione</option>
-                <option value="COMPANY">Azienda</option>
-              </select>
-            </label>
-            <div>
-              <SubmitButton label="Aggiorna attività" />
-            </div>
-          </form>
+      {activeBar && ownedBars.length > 1 ? (
+        <Card title="Cambia attivita">
+          <AutoSubmitSelectForm
+            action={switchBarAction}
+            name="barId"
+            defaultValue={activeBar.id}
+            ariaLabel="Cambia attivita"
+            label="Attivita attiva"
+            options={ownedBars.map((bar) => ({
+              value: bar.id,
+              label: `${bar.name} - ${bar.activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione"}`,
+            }))}
+          />
+          <div style={{ marginTop: 12, color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
+            Puoi tornare all'altra attivita quando vuoi e riprendere la configurazione in seguito.
+          </div>
         </Card>
       ) : null}
 

@@ -203,7 +203,55 @@ export async function ownerNeedsOnboarding(userId: string): Promise<boolean> {
   return barNeedsSetup(ownedBar);
 }
 
-const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(userId: string) {
+const ownerBarSelection = {
+  activityType: true,
+  settings: {
+    select: {
+      gpsLatitude: true,
+      gpsLongitude: true,
+      gpsRadius: true,
+      roundingMinutes: true,
+      roundingMode: true,
+    },
+  },
+  subscription: {
+    select: {
+      planType: true,
+      trialEndsAt: true,
+      stripeSubscriptionId: true,
+    },
+  },
+} as const;
+
+const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(
+  userId: string,
+  preferredBarId?: string | null
+) {
+  if (preferredBarId) {
+    const preferredBar = await prisma.bar.findFirst({
+      where: {
+        id: preferredBarId,
+        OR: [
+          { ownerId: userId },
+          {
+            memberships: {
+              some: {
+                userId,
+                role: Role.OWNER,
+                isActive: true,
+              },
+            },
+          },
+        ],
+      },
+      select: ownerBarSelection,
+    });
+
+    if (preferredBar) {
+      return preferredBar;
+    }
+  }
+
   const ownedBars = await prisma.bar.findMany({
     where: {
       OR: [
@@ -222,35 +270,17 @@ const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(use
     orderBy: {
       createdAt: "desc",
     },
-    select: {
-      createdAt: true,
-      activityType: true,
-      settings: {
-        select: {
-          gpsLatitude: true,
-          gpsLongitude: true,
-          gpsRadius: true,
-          roundingMinutes: true,
-          roundingMode: true,
-        },
-      },
-      subscription: {
-        select: {
-          planType: true,
-          trialEndsAt: true,
-          stripeSubscriptionId: true,
-        },
-      },
-    },
+    select: ownerBarSelection,
   });
 
-  return ownedBars.find(barNeedsSetup) ?? ownedBars[0] ?? null;
+  return ownedBars[0] ?? null;
 });
 
 export async function getPostLoginDestination(input: {
   userId: string;
   role: Role;
   mustChangePwd: boolean;
+  activeBarId?: string | null;
 }): Promise<string> {
   if (input.mustChangePwd) {
     return "/change-password";
@@ -261,7 +291,7 @@ export async function getPostLoginDestination(input: {
   }
 
   if (input.role === Role.OWNER) {
-    const ownedBar = await getOwnerPrimaryBarState(input.userId);
+    const ownedBar = await getOwnerPrimaryBarState(input.userId, input.activeBarId ?? null);
 
     if (!ownedBar) {
       return "/onboarding";

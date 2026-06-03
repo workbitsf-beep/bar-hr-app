@@ -43,6 +43,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
     userId: session.user.id,
     role: session.user.role,
     mustChangePwd: session.user.mustChangePwd,
+    activeBarId: session.activeBarId,
   });
 
   if (
