@@ -1,4 +1,6 @@
 import PDFDocument from "pdfkit";
+import fs from "node:fs";
+import path from "node:path";
 import { ActivityType, Role } from "@prisma/client";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +28,30 @@ type SessionWithBar = {
 
 type MonthlyDataset = Awaited<ReturnType<typeof buildMonthlyDataset>>;
 
+const WORKBIT_FONT_CANDIDATES = [
+  path.join(process.cwd(), "public", "fonts", "Workbit-Regular.ttf"),
+  path.join(
+    process.cwd(),
+    "node_modules",
+    "next",
+    "dist",
+    "compiled",
+    "@vercel",
+    "og",
+    "Geist-Regular.ttf"
+  ),
+];
+
+function resolvePdfFontPath() {
+  const fontPath = WORKBIT_FONT_CANDIDATES.find((candidate) => fs.existsSync(candidate));
+
+  if (!fontPath) {
+    throw new Error("Missing PDF font asset");
+  }
+
+  return fontPath;
+}
+
 function formatTime(dateIso: string): string {
   return new Date(dateIso).toLocaleTimeString("it-IT", {
     hour: "2-digit",
@@ -50,9 +76,11 @@ async function createMonthlyPdfBuffer(input: {
   dataset: Awaited<ReturnType<typeof buildMonthlyDataset>>;
 }): Promise<Buffer> {
   return new Promise((resolve, reject) => {
+    const pdfFontPath = resolvePdfFontPath();
     const doc = new PDFDocument({
       margin: 40,
       size: "A4",
+      font: pdfFontPath,
     });
     const chunks: Buffer[] = [];
 
@@ -67,6 +95,7 @@ async function createMonthlyPdfBuffer(input: {
     doc.on("error", reject);
 
     doc
+      .font(pdfFontPath)
       .fontSize(18)
       .text(
         input.dataset.mode === "company"
@@ -74,7 +103,7 @@ async function createMonthlyPdfBuffer(input: {
           : "Report mensile dipendente"
       );
     doc.moveDown(0.5);
-    doc.fontSize(12).text(`Profilo: ${input.userLabel}`);
+    doc.font(pdfFontPath).fontSize(12).text(`Profilo: ${input.userLabel}`);
     doc.text(`Mese: ${String(input.month).padStart(2, "0")}/${input.year}`);
     doc.moveDown();
 
@@ -87,8 +116,7 @@ async function createMonthlyPdfBuffer(input: {
 
       for (const day of input.dataset.groupedLogs) {
         ensureSpace(64);
-        doc.font("Helvetica-Bold").fontSize(11).text(day.date);
-        doc.font("Helvetica");
+        doc.font(pdfFontPath).fontSize(11).text(day.date);
 
         for (const item of day.items ?? []) {
           ensureSpace(34);
@@ -109,7 +137,7 @@ async function createMonthlyPdfBuffer(input: {
       ensureSpace(34);
       doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
       doc.moveDown(0.6);
-      doc.font("Helvetica-Bold").text(
+      doc.font(pdfFontPath).text(
         `Riepilogo mese: indisponibilita ${input.dataset.summary.availability} | ferie ${input.dataset.summary.vacation} | permessi ${input.dataset.summary.permission} | malattie ${input.dataset.summary.sickness} | straordinari ${input.dataset.summary.overtime} | corsi ${input.dataset.summary.courses} | chiusure ${input.dataset.summary.closures}`
       );
       doc.end();
@@ -118,8 +146,7 @@ async function createMonthlyPdfBuffer(input: {
 
     for (const day of input.dataset.groupedLogs) {
       ensureSpace(56);
-      doc.font("Helvetica-Bold").fontSize(11).text(day.date);
-      doc.font("Helvetica");
+      doc.font(pdfFontPath).fontSize(11).text(day.date);
 
       if (day.labels.length > 0) {
         doc
@@ -146,21 +173,18 @@ async function createMonthlyPdfBuffer(input: {
 
       ensureSpace(22);
       doc
-        .font("Helvetica-Oblique")
         .text(
           `Totale giorno: reali ${formatDurationClock(day.totals.realHours)} | arrotondate ${formatDurationClock(day.totals.roundedHours)}`
         );
-      doc.font("Helvetica").moveDown(0.6);
+      doc.font(pdfFontPath).moveDown(0.6);
     }
 
     ensureSpace(30);
     doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
     doc.moveDown(0.6);
-    doc
-      .font("Helvetica-Bold")
-      .text(
-        `Totale mese: ore reali ${formatDurationClock(input.dataset.totals.realHours)} | ore arrotondate ${formatDurationClock(input.dataset.totals.roundedHours)}`
-      );
+    doc.font(pdfFontPath).text(
+      `Totale mese: ore reali ${formatDurationClock(input.dataset.totals.realHours)} | ore arrotondate ${formatDurationClock(input.dataset.totals.roundedHours)}`
+    );
     doc.end();
   });
 }

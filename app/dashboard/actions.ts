@@ -227,23 +227,18 @@ function parseOptionalTime(value: FormDataEntryValue | null): string | null {
     return null;
   }
 
-  if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(normalized)) {
-    throw new Error("Invalid time value");
-  }
-
-  return normalized;
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(normalized) ? normalized : null;
 }
 
 function parseShiftPresetPair(
-  label: string,
   startValue: FormDataEntryValue | null,
   endValue: FormDataEntryValue | null
 ) {
   const startTime = parseOptionalTime(startValue);
   const endTime = parseOptionalTime(endValue);
 
-  if (Boolean(startTime) !== Boolean(endTime)) {
-    throw new Error(`Complete both times for ${label.toLowerCase()}`);
+  if (!startTime || !endTime) {
+    return { startTime: null, endTime: null };
   }
 
   return { startTime, endTime };
@@ -2248,22 +2243,29 @@ export async function updateSettingsAction(formData: FormData) {
   const roundingMinutes = 15;
   const roundingMode = "NEAREST";
   const morningPreset = parseShiftPresetPair(
-    "Mattina",
     formData.get("morningStartTime"),
     formData.get("morningEndTime")
   );
   const afternoonPreset = parseShiftPresetPair(
-    "Pomeriggio",
     formData.get("afternoonStartTime"),
     formData.get("afternoonEndTime")
   );
   const eveningPreset = parseShiftPresetPair(
-    "Sera",
     formData.get("eveningStartTime"),
     formData.get("eveningEndTime")
   );
+  const currentBar = await prisma.bar.findUnique({
+    where: { id: activeBarId },
+    select: {
+      latitude: true,
+      longitude: true,
+    },
+  });
 
-  if (gpsLatitude === null || gpsLongitude === null) {
+  const resolvedLatitude = gpsLatitude ?? currentBar?.latitude ?? null;
+  const resolvedLongitude = gpsLongitude ?? currentBar?.longitude ?? null;
+
+  if (resolvedLatitude === null || resolvedLongitude === null) {
     throw new Error("Missing GPS settings");
   }
 
@@ -2271,8 +2273,8 @@ export async function updateSettingsAction(formData: FormData) {
     prisma.bar.update({
       where: { id: activeBarId },
       data: {
-        latitude: gpsLatitude,
-        longitude: gpsLongitude,
+        latitude: resolvedLatitude,
+        longitude: resolvedLongitude,
         radiusMeters: Math.round(gpsRadius),
         roundingEnabled,
         roundingStepMin: roundingMinutes,
@@ -2281,8 +2283,8 @@ export async function updateSettingsAction(formData: FormData) {
     prisma.barSettings.upsert({
       where: { barId: activeBarId },
       update: {
-        gpsLatitude,
-        gpsLongitude,
+        gpsLatitude: resolvedLatitude,
+        gpsLongitude: resolvedLongitude,
         gpsRadius: Math.round(gpsRadius),
         roundingEnabled,
         roundingMinutes,
@@ -2296,8 +2298,8 @@ export async function updateSettingsAction(formData: FormData) {
       },
       create: {
         barId: activeBarId,
-        gpsLatitude,
-        gpsLongitude,
+        gpsLatitude: resolvedLatitude,
+        gpsLongitude: resolvedLongitude,
         gpsRadius: Math.round(gpsRadius),
         roundingEnabled,
         roundingMinutes,
