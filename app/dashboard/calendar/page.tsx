@@ -746,13 +746,12 @@ export default async function DashboardCalendarPage({
             </form>
 
             {canPublishShifts ? (
-              <PublishWeekPanel
-                before={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
-                rangeStart={toLocalDateKey(currentMonthStart)}
-                rangeEnd={toLocalDateKey(currentMonthEnd)}
-                pendingCount={unconfirmedShiftCount}
-                members={memberOptions}
-              />
+            <PublishWeekPanel
+              before={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
+              rangeStart={toLocalDateKey(currentMonthStart)}
+              rangeEnd={toLocalDateKey(currentMonthEnd)}
+              pendingCount={unconfirmedShiftCount}
+            />
             ) : (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <ScrollToTodayButton fallbackHref="/dashboard/calendar" />

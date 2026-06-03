@@ -100,7 +100,7 @@ export function ShiftEditorModal({
     shift &&
       shift.isOnCall &&
       !shift.confirmedAt &&
-      shift.assignments.some((assignment) => assignment.id === currentUserId)
+      (canManage || shift.assignments.some((assignment) => assignment.id === currentUserId))
   );
 
   useEffect(() => {

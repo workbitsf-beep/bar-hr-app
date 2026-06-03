@@ -1672,7 +1672,7 @@ export async function updateShiftAction(formData: FormData) {
 }
 
 export async function confirmShiftAction(formData: FormData) {
-  const { session, activeBarId } = await getActionContext();
+  const { session, role, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -1714,8 +1714,9 @@ export async function confirmShiftAction(formData: FormData) {
   }
 
   const isAssigned = shift.assignments.some((assignment) => assignment.userId === session.user.id);
+  const canManage = role === Role.OWNER || role === Role.MANAGER;
 
-  if (!isAssigned) {
+  if (!isAssigned && !canManage) {
     throw new Error("Non puoi approvare questo turno");
   }
 
