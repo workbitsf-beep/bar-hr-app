@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { DateTimeInput } from "@/app/components/date-time-input";
 import { createCourseAction, deleteCourseAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -111,11 +112,11 @@ export default async function DashboardCoursesPage() {
               }}
             >
               <FormField label="Inizio">
-                <TextInput name="startsAt" type="datetime-local" required />
+                <DateTimeInput name="startsAt" required />
               </FormField>
 
               <FormField label="Fine">
-                <TextInput name="endsAt" type="datetime-local" required />
+                <DateTimeInput name="endsAt" required />
               </FormField>
 
               <FormField label="Luogo">

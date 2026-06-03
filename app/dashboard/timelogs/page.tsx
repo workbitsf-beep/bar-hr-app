@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
+import { DateTimeInput } from "@/app/components/date-time-input";
 import { createManualTimeLogAction } from "../actions";
 import { getDashboardContext } from "../context";
 import { BillingRequiredState, EmptyState, FormField, Panel, PrimaryButton, Select, Stack, TextInput } from "../ui";
@@ -124,7 +125,7 @@ export default async function DashboardTimeLogsPage() {
                 </FormField>
 
                 <FormField label="Timestamp">
-                  <TextInput name="timestamp" type="datetime-local" required />
+                  <DateTimeInput name="timestamp" required />
                 </FormField>
 
                 <FormField label="Nota">

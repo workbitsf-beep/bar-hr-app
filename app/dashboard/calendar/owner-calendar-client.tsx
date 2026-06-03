@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import { DateTimeInput } from "@/app/components/date-time-input";
 import { TimeInput } from "@/app/components/time-input";
 import {
   completeTaskAction,
   createAvailabilityAction,
   createBoardNoteAction,
-  createCalendarClosureAction,
   createCourseAction,
   createShiftAction,
   createTaskAction,
@@ -401,11 +401,6 @@ export function OwnerCalendarClient({
   const [courseEnd, setCourseEnd] = useState("");
   const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
   const [courseAssignedToId, setCourseAssignedToId] = useState("");
-  const [showClosureComposer, setShowClosureComposer] = useState(false);
-  const [closureTitle, setClosureTitle] = useState("");
-  const [closureType, setClosureType] = useState("CLOSURE");
-  const [closureStart, setClosureStart] = useState("");
-  const [closureEnd, setClosureEnd] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -487,7 +482,6 @@ export function OwnerCalendarClient({
     setShowShiftComposer(false);
     setShowAvailabilityComposer(false);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setQuickComposer(null);
     setShowRequestComposer(true);
   }
@@ -496,7 +490,6 @@ export function OwnerCalendarClient({
     setShowShiftComposer(false);
     setShowRequestComposer(false);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setQuickComposer(null);
     setShowAvailabilityComposer(true);
   }
@@ -509,7 +502,6 @@ export function OwnerCalendarClient({
     setShowAvailabilityComposer(false);
     setQuickComposer(null);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setFeedback(null);
     setShiftDrafts([createShiftDraft(day.date)]);
     setRequestType(RequestType.VACATION);
@@ -527,10 +519,6 @@ export function OwnerCalendarClient({
     setCourseEnd(toDateTimeLocal(day.date, 13, 0));
     setCourseAssignedToAll(true);
     setCourseAssignedToId("");
-    setClosureTitle("");
-    setClosureType("CLOSURE");
-    setClosureStart(toDateTimeLocal(day.date, 0, 0));
-    setClosureEnd(toDateTimeLocal(day.date, 23, 59));
   }
 
   function closeModal() {
@@ -544,7 +532,6 @@ export function OwnerCalendarClient({
     setShowAvailabilityComposer(false);
     setQuickComposer(null);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setSelectedDate(null);
     setFeedback(null);
   }
@@ -732,24 +719,6 @@ export function OwnerCalendarClient({
       setCourseAssignedToId("");
       setShowCourseComposer(false);
     }, "Corso aggiunto.");
-  }
-
-  function handleCreateClosure() {
-    if (!selectedDay || !closureStart || !closureEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("title", closureTitle);
-    formData.set("type", closureType);
-    formData.set("startsAt", closureStart);
-    formData.set("endsAt", closureEnd);
-
-    runAction(async () => {
-      await createCalendarClosureAction(formData);
-      setClosureTitle("");
-      setShowClosureComposer(false);
-    }, "Giorno speciale aggiunto.");
   }
 
   function handleCompleteTask(taskId: string) {
@@ -1496,34 +1465,12 @@ export function OwnerCalendarClient({
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                            <input
-                              type="datetime-local"
-                              value={requestStart}
-                              onChange={(event) => setRequestStart(event.target.value)}
-                              style={{
-                                borderRadius: 16,
-                                border: "1px solid #dbe3ee",
-                                padding: "12px 14px",
-                                fontSize: 15,
-                                background: "#ffffff",
-                              }}
-                            />
+                            <DateTimeInput value={requestStart} onChange={setRequestStart} />
                           </label>
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                            <input
-                              type="datetime-local"
-                              value={requestEnd}
-                              onChange={(event) => setRequestEnd(event.target.value)}
-                              style={{
-                                borderRadius: 16,
-                                border: "1px solid #dbe3ee",
-                                padding: "12px 14px",
-                                fontSize: 15,
-                                background: "#ffffff",
-                              }}
-                            />
+                            <DateTimeInput value={requestEnd} onChange={setRequestEnd} />
                           </label>
                         </div>
 
@@ -1632,34 +1579,12 @@ export function OwnerCalendarClient({
                         >
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                            <input
-                              type="datetime-local"
-                              value={availabilityStart}
-                              onChange={(event) => setAvailabilityStart(event.target.value)}
-                              style={{
-                                borderRadius: 16,
-                                border: "1px solid #dbe3ee",
-                                padding: "12px 14px",
-                                fontSize: 15,
-                                background: "#ffffff",
-                              }}
-                            />
+                            <DateTimeInput value={availabilityStart} onChange={setAvailabilityStart} />
                           </label>
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                            <input
-                              type="datetime-local"
-                              value={availabilityEnd}
-                              onChange={(event) => setAvailabilityEnd(event.target.value)}
-                              style={{
-                                borderRadius: 16,
-                                border: "1px solid #dbe3ee",
-                                padding: "12px 14px",
-                                fontSize: 15,
-                                background: "#ffffff",
-                              }}
-                            />
+                            <DateTimeInput value={availabilityEnd} onChange={setAvailabilityEnd} />
                           </label>
                         </div>
 

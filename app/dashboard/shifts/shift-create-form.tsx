@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import { TimeInput } from "@/app/components/time-input";
 import { FormField, PrimaryButton, Select, TextInput } from "../ui";
 
 type MemberOption = {
@@ -148,25 +149,23 @@ export function ShiftCreateForm({
         }}
       >
         <FormField label="Orario di inizio">
-          <TextInput
-            type="time"
+          <TimeInput
             required
             value={startTime}
-            onChange={(event) => {
+            onChange={(nextValue) => {
               setSelectedPresetKey("CUSTOM");
-              setStartTime(event.target.value);
+              setStartTime(nextValue);
             }}
           />
         </FormField>
 
         <FormField label="Orario di fine">
-          <TextInput
-            type="time"
+          <TimeInput
             required
             value={endTime}
-            onChange={(event) => {
+            onChange={(nextValue) => {
               setSelectedPresetKey("CUSTOM");
-              setEndTime(event.target.value);
+              setEndTime(nextValue);
             }}
           />
         </FormField>

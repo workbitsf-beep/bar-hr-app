@@ -1,5 +1,7 @@
-import { ActivityType, CalendarClosureType, RequestStatus, RequestType, Role } from "@prisma/client";
+import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
+import { DateTimeInput } from "@/app/components/date-time-input";
 import {
   createCalendarClosureAction,
   createAvailabilityAction,
@@ -21,6 +23,7 @@ import {
   StatusPill,
   TextArea,
   TextInput,
+  formatDate,
   formatDateTime,
 } from "../ui";
 
@@ -70,18 +73,6 @@ function getReviewerName(
   }
 
   return `${reviewer.firstName} ${reviewer.lastName}`.trim();
-}
-
-function closureTypeLabel(type: CalendarClosureType) {
-  if (type === CalendarClosureType.HOLIDAY) {
-    return "Festivita";
-  }
-
-  if (type === CalendarClosureType.VACATION) {
-    return "Ferie";
-  }
-
-  return "Chiusura";
 }
 
 export default async function DashboardRequestsPage() {
@@ -291,11 +282,11 @@ export default async function DashboardRequestsPage() {
                   </FormField>
 
                   <FormField label="Da">
-                    <TextInput name="startsAt" type="datetime-local" required />
+                    <DateTimeInput name="startsAt" required />
                   </FormField>
 
                   <FormField label="A">
-                    <TextInput name="endsAt" type="datetime-local" required />
+                    <DateTimeInput name="endsAt" required />
                   </FormField>
                 </div>
 
@@ -389,11 +380,11 @@ export default async function DashboardRequestsPage() {
                 </FormField>
 
                 <FormField label="Da">
-                  <TextInput name="startsAt" type="datetime-local" required />
+                  <DateTimeInput name="startsAt" required />
                 </FormField>
 
                 <FormField label="A">
-                  <TextInput name="endsAt" type="datetime-local" required />
+                  <DateTimeInput name="endsAt" required />
                 </FormField>
               </div>
 
@@ -411,34 +402,17 @@ export default async function DashboardRequestsPage() {
         {canManageClosures ? (
           <Panel title="Chiusure">
             <form action={createCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
-              <div
-                className="dashboard-inline-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <FormField label="Tipo">
-                  <Select name="type" defaultValue="CLOSURE">
-                    <option value="CLOSURE">Chiusura</option>
-                    <option value="HOLIDAY">Festivita</option>
-                    <option value="VACATION">Ferie</option>
-                  </Select>
-                </FormField>
+              <input type="hidden" name="type" value="CLOSURE" />
 
-                <FormField label="Titolo">
-                  <TextInput name="title" placeholder="Chiusura, festivita o ferie" />
-                </FormField>
+              <FormField label="Titolo">
+                <TextInput name="title" placeholder="Chiusura locale" />
+              </FormField>
 
-                <FormField label="Da">
-                  <TextInput name="startsAt" type="datetime-local" required />
-                </FormField>
-
-                <FormField label="A">
-                  <TextInput name="endsAt" type="datetime-local" required />
-                </FormField>
-              </div>
+              <ClosureDateRangeInput
+                startName="startsAt"
+                endName="endsAt"
+                required
+              />
 
               <div className="dashboard-form-actions">
                 <PrimaryButton type="submit">Salva chiusura</PrimaryButton>
@@ -454,8 +428,8 @@ export default async function DashboardRequestsPage() {
                     <ItemCard
                       key={closure.id}
                       title={closure.title}
-                      subtitle={closureTypeLabel(closure.type)}
-                      meta={`${formatDateTime(closure.startsAt)} - ${formatDateTime(closure.endsAt)}`}
+                      subtitle="Chiusura"
+                      meta={`${formatDate(closure.startsAt)} - ${formatDate(closure.endsAt)}`}
                       footer={
                         closure.createdBy ? (
                           <span>
@@ -483,11 +457,11 @@ export default async function DashboardRequestsPage() {
                   }}
                 >
                   <FormField label="Da">
-                    <TextInput name="startsAt" type="datetime-local" required />
+                    <DateTimeInput name="startsAt" required />
                   </FormField>
 
                   <FormField label="A">
-                    <TextInput name="endsAt" type="datetime-local" required />
+                    <DateTimeInput name="endsAt" required />
                   </FormField>
                 </div>
 

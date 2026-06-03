@@ -23,12 +23,14 @@ export function TimeInput({
   onChange,
   name,
   disabled,
+  required,
   style,
 }: {
   value: string;
   onChange?: (value: string) => void;
   name?: string;
   disabled?: boolean;
+  required?: boolean;
   style?: CSSProperties;
 }) {
   const [hours, setHours] = useState(() => splitTimeValue(value).hours);
@@ -85,6 +87,7 @@ export function TimeInput({
         maxLength={2}
         autoComplete="off"
         disabled={disabled}
+        required={required}
         value={hours}
         onChange={(event) => {
           setHours(sanitizePart(event.target.value));
@@ -100,6 +103,7 @@ export function TimeInput({
         maxLength={2}
         autoComplete="off"
         disabled={disabled}
+        required={required}
         value={minutes}
         onChange={(event) => {
           setMinutes(sanitizePart(event.target.value));

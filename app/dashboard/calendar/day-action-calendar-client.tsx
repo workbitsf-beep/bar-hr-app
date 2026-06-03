@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { combineDateAndTime } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import { DateTimeInput } from "@/app/components/date-time-input";
 import { TimeInput } from "@/app/components/time-input";
 import {
   completeTaskAction,
@@ -1743,20 +1744,12 @@ export function DayActionCalendarClient({
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                            <TextInput
-                              type="datetime-local"
-                              value={requestStart}
-                              onChange={(event) => setRequestStart(event.target.value)}
-                            />
+                            <DateTimeInput value={requestStart} onChange={setRequestStart} />
                           </label>
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                            <TextInput
-                              type="datetime-local"
-                              value={requestEnd}
-                              onChange={(event) => setRequestEnd(event.target.value)}
-                            />
+                            <DateTimeInput value={requestEnd} onChange={setRequestEnd} />
                           </label>
                         </div>
 
@@ -1851,20 +1844,12 @@ export function DayActionCalendarClient({
                         >
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                            <TextInput
-                              type="datetime-local"
-                              value={availabilityStart}
-                              onChange={(event) => setAvailabilityStart(event.target.value)}
-                            />
+                            <DateTimeInput value={availabilityStart} onChange={setAvailabilityStart} />
                           </label>
 
                           <label style={{ display: "grid", gap: 8 }}>
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                            <TextInput
-                              type="datetime-local"
-                              value={availabilityEnd}
-                              onChange={(event) => setAvailabilityEnd(event.target.value)}
-                            />
+                            <DateTimeInput value={availabilityEnd} onChange={setAvailabilityEnd} />
                           </label>
                         </div>
 
