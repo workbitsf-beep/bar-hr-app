@@ -147,7 +147,7 @@ function getStatusLabel(activity: ActivityItem) {
   }
 
   if (activity.subscription.planType === "TRIAL") {
-    return "Trial";
+    return "In prova";
   }
 
   if (isPastDue(activity)) {
@@ -158,7 +158,7 @@ function getStatusLabel(activity: ActivityItem) {
     return "Inactive";
   }
 
-  return "Active";
+  return "Attivo";
 }
 
 function getStatusTone(activity: ActivityItem) {
@@ -209,7 +209,7 @@ function getExpiryLabel(activity: ActivityItem) {
   }
 
   return activity.subscription.planType === "TRIAL"
-    ? `Trial fino al ${formatDateLabel(referenceDate)}`
+    ? `In prova fino al ${formatDateLabel(referenceDate)}`
     : `Prossimo rinnovo ${formatDateLabel(referenceDate)}`;
 }
 
@@ -595,13 +595,13 @@ export function SuperAdminOverviewClient({
     () => [
       {
         key: "active",
-        label: "Active",
+        label: "Attivi",
         value: summary.activeCount,
         color: "#16a34a",
       },
       {
         key: "trial",
-        label: "Trial",
+        label: "In prova",
         value: summary.trialCount,
         color: "#f59e0b",
       },
@@ -965,7 +965,7 @@ export function SuperAdminOverviewClient({
           hint="Attivita con piano pagante attivo"
         />
         <MetricCard
-          label="Trial"
+          label="In prova"
           value={String(summary.trialCount)}
           hint="Account in prova da convertire"
         />
@@ -1113,7 +1113,7 @@ export function SuperAdminOverviewClient({
         >
           <SectionTitle
             eyebrow="Scadenze"
-            title="Trial e rinnovi vicini"
+            title="In prova e rinnovi vicini"
             subtitle="Attivita che meritano un follow-up rapido nei prossimi giorni."
           />
           <div style={{ display: "grid", gap: 10 }}>

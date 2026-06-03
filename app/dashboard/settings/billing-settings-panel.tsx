@@ -9,7 +9,7 @@ function formatPlan(planType: PlanType) {
   }
 
   if (planType === PlanType.TRIAL) {
-    return "Trial";
+    return "In prova";
   }
 
   if (planType === PlanType.LIFETIME) {
@@ -36,7 +36,7 @@ function formatStatus(status: SubscriptionStatus) {
     case SubscriptionStatus.ACTIVE:
       return "Attivo";
     case SubscriptionStatus.TRIALING:
-      return "In trial";
+      return "In prova";
     case SubscriptionStatus.PAST_DUE:
       return "Pagamento fallito";
     case SubscriptionStatus.CANCELED:

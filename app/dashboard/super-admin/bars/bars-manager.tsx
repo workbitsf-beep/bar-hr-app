@@ -81,7 +81,7 @@ function getSubscriptionLabel(subscription: NonNullable<BarItem["subscription"]>
   }
 
   if (subscription.planType === "TRIAL") {
-    return "Trial";
+    return "In prova";
   }
 
   if (subscription.status === "PAST_DUE" || subscription.status === "UNPAID") {
@@ -117,7 +117,7 @@ function getSubscriptionTone(subscription: NonNullable<BarItem["subscription"]>)
 
 function getSubscriptionDetail(subscription: NonNullable<BarItem["subscription"]>) {
   if (subscription.planType === "TRIAL") {
-    return `Fine trial: ${formatDateLabel(subscription.trialEndsAt)}`;
+    return `Fine prova: ${formatDateLabel(subscription.trialEndsAt)}`;
   }
 
   if (subscription.planType === "FREE" || subscription.planType === "LIFETIME") {
@@ -843,7 +843,7 @@ export function BarsManager({
                       }}
                     >
                       <option value="FREE">FREE</option>
-                      <option value="TRIAL">TRIAL</option>
+                      <option value="TRIAL">In prova</option>
                       <option value="PAID">PAID</option>
                       <option value="LIFETIME">LIFETIME</option>
                     </select>
@@ -865,8 +865,8 @@ export function BarsManager({
                       }}
                       disabled={planType !== "PAID"}
                     >
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="TRIALING">TRIALING</option>
+                      <option value="ACTIVE">Attivo</option>
+                      <option value="TRIALING">In prova</option>
                       <option value="PAST_DUE">PAST_DUE</option>
                       <option value="CANCELED">CANCELED</option>
                       <option value="UNPAID">UNPAID</option>

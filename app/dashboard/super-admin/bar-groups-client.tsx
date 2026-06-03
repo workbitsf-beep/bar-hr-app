@@ -144,7 +144,7 @@ function getBadgeMeta(bar: BarAdminItem) {
 
   if (bar.subscription.planType === "TRIAL") {
     return {
-      label: "Trial",
+      label: "In prova",
       background: "#fef3c7",
       color: "#92400e",
       border: "#fde68a",
@@ -179,7 +179,7 @@ function getBadgeMeta(bar: BarAdminItem) {
   }
 
   return {
-    label: "Active",
+    label: "Attivo",
     background: "#dcfce7",
     color: "#166534",
     border: "#bbf7d0",
@@ -369,10 +369,10 @@ export function BarGroupsClient({
       <div className="dashboard-compact-filters" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         {[
           ["ALL", "Tutti"],
-          ["ACTIVE", "Active"],
+          ["ACTIVE", "Attivo"],
           ["PAST_DUE", "Past due"],
           ["INACTIVE", "Inactive"],
-          ["TRIAL", "Trial"],
+          ["TRIAL", "In prova"],
           ["FREE_LIFETIME", "Free / Lifetime"],
         ].map(([value, label]) => (
           <button
@@ -758,7 +758,7 @@ export function BarGroupsClient({
                       }}
                     >
                       <option value="FREE">FREE</option>
-                      <option value="TRIAL">TRIAL</option>
+                      <option value="TRIAL">In prova</option>
                       <option value="PAID">PAID</option>
                       <option value="LIFETIME">LIFETIME</option>
                     </select>
@@ -778,8 +778,8 @@ export function BarGroupsClient({
                       }}
                       disabled={planType !== "PAID"}
                     >
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="TRIALING">TRIALING</option>
+                      <option value="ACTIVE">Attivo</option>
+                      <option value="TRIALING">In prova</option>
                       <option value="PAST_DUE">PAST_DUE</option>
                       <option value="CANCELED">CANCELED</option>
                       <option value="UNPAID">UNPAID</option>
