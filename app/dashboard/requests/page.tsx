@@ -90,8 +90,8 @@ export default async function DashboardRequestsPage() {
 
   if (!activeBarId) {
     return (
-      <Panel title="Richieste e indisponibilita">
-        <EmptyState message="Seleziona un locale attivo per vedere richieste e indisponibilita." />
+      <Panel title="Richieste e chiusure">
+        <EmptyState message="Seleziona un locale attivo per vedere richieste e chiusure." />
       </Panel>
     );
   }
@@ -409,7 +409,7 @@ export default async function DashboardRequestsPage() {
         ) : null}
 
         {canManageClosures ? (
-          <Panel title="Straordinari e chiusure">
+          <Panel title="Chiusure">
             <form action={createCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
               <div
                 className="dashboard-inline-grid"

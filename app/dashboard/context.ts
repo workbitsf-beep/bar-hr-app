@@ -79,7 +79,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: t.dashboard, href: "/dashboard" },
           { label: t.tasks, href: "/dashboard/tasks" },
           { label: "Corsi", href: "/dashboard/courses" },
-          { label: t.requests, href: "/dashboard/requests" },
+          { label: "Richieste e chiusure", href: "/dashboard/requests" },
         ]
         : [
           { label: t.calendar, href: "/dashboard/calendar" },
@@ -88,7 +88,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: t.tasks, href: "/dashboard/tasks" },
           { label: "Corsi", href: "/dashboard/courses" },
           { label: t.timelogs, href: "/dashboard/timelogs" },
-          { label: t.requests, href: "/dashboard/requests" },
+          { label: "Richieste e chiusure", href: "/dashboard/requests" },
         ];
 
   if (role === Role.OWNER) {
