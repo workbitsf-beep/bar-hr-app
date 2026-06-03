@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { updateGlobalGpsRadiusAction } from "../actions";
+import { SuccessCallout } from "../ui";
 
 export function GlobalGpsRadiusForm({
   initialRadius,
@@ -67,18 +68,35 @@ export function GlobalGpsRadiusForm({
         />
       </label>
 
-      <div
-        style={{
-          padding: "12px 14px",
-          borderRadius: 18,
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          color: "#475569",
-          lineHeight: 1.6,
-        }}
-      >
-        {isPending ? "Aggiornamento in corso..." : feedback ?? "Il valore viene applicato automaticamente a tutte le strutture."}
-      </div>
+      {isPending ? (
+        <div
+          style={{
+            padding: "12px 14px",
+            borderRadius: 18,
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            color: "#475569",
+            lineHeight: 1.6,
+          }}
+        >
+          Aggiornamento in corso...
+        </div>
+      ) : feedback ? (
+        <SuccessCallout>{feedback}</SuccessCallout>
+      ) : (
+        <div
+          style={{
+            padding: "12px 14px",
+            borderRadius: 18,
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            color: "#475569",
+            lineHeight: 1.6,
+          }}
+        >
+          Il valore viene applicato automaticamente a tutte le strutture.
+        </div>
+      )}
     </div>
   );
 }

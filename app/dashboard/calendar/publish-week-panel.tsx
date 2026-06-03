@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "../ui";
+import { PrimaryButton, SuccessCallout } from "../ui";
 
 export function PublishWeekPanel({
   before,
@@ -84,7 +84,7 @@ export function PublishWeekPanel({
         </span>
       </div>
 
-      {feedback ? <div style={{ color: "#334155", fontSize: 14 }}>{feedback}</div> : null}
+      {feedback ? <SuccessCallout style={{ fontSize: 14 }}>{feedback}</SuccessCallout> : null}
     </div>
   );
 }

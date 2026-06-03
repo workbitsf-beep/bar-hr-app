@@ -18,6 +18,7 @@ import {
   PrimaryButton,
   Select,
   StatusPill,
+  SuccessCallout,
   TextInput,
 } from "../../ui";
 
@@ -227,12 +228,14 @@ function StatusBanner({
   kind: "success" | "warning" | "error";
   text: string;
 }) {
+  if (kind === "success") {
+    return <SuccessCallout style={{ fontSize: 14 }}>{text}</SuccessCallout>;
+  }
+
   const palette =
-    kind === "success"
-      ? { background: "#f0fdf4", border: "#bbf7d0", color: "#166534" }
-      : kind === "warning"
-        ? { background: "#fff7ed", border: "#fed7aa", color: "#c2410c" }
-        : { background: "#fef2f2", border: "#fecaca", color: "#b91c1c" };
+    kind === "warning"
+      ? { background: "#fff7ed", border: "#fed7aa", color: "#c2410c" }
+      : { background: "#fef2f2", border: "#fecaca", color: "#b91c1c" };
 
   return (
     <div

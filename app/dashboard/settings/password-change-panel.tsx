@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Panel, PrimaryButton, TextInput } from "../ui";
+import { Panel, PrimaryButton, SuccessCallout, TextInput } from "../ui";
 
 export function PasswordChangePanel() {
   const [mounted, setMounted] = useState(false);
@@ -105,7 +105,7 @@ export function PasswordChangePanel() {
           </PrimaryButton>
         }
       >
-        {success ? <p style={{ margin: 0, color: "#166534", fontSize: 14 }}>{success}</p> : null}
+        {success ? <SuccessCallout style={{ fontSize: 14 }}>{success}</SuccessCallout> : null}
       </Panel>
 
       {mounted && open

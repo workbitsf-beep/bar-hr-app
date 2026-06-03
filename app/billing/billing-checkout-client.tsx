@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "@/app/dashboard/ui";
+import { PrimaryButton, SuccessCallout } from "@/app/dashboard/ui";
 
 type IntervalValue = "MONTHLY" | "YEARLY";
 
@@ -149,7 +149,7 @@ export function BillingCheckoutClient({
 
       {error ? <div style={{ color: "#991b1b", fontSize: 14 }}>{error}</div> : null}
       {successMessage ? (
-        <div style={{ color: "#166534", fontSize: 14 }}>{successMessage}</div>
+        <SuccessCallout style={{ fontSize: 14 }}>{successMessage}</SuccessCallout>
       ) : null}
     </div>
   );

@@ -18,7 +18,7 @@ import {
   createTimeOffRequestAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
-import { IconButton, PrimaryButton, Select, StatusPill } from "../ui";
+import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 import { scrollToTodayCard } from "./scroll-to-today-button";
@@ -1045,22 +1045,22 @@ export function OwnerCalendarClient({
                 </div>
 
                 {feedback ? (
-                  <div
-                    style={{
-                      padding: "12px 14px",
-                      borderRadius: 16,
-                      border:
-                        feedback.tone === "success"
-                          ? "1px solid #bbf7d0"
-                          : "1px solid #fecaca",
-                      background:
-                        feedback.tone === "success" ? "#f0fdf4" : "#fef2f2",
-                      color: feedback.tone === "success" ? "#166534" : "#b91c1c",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {feedback.message}
-                  </div>
+                  feedback.tone === "success" ? (
+                    <SuccessCallout>{feedback.message}</SuccessCallout>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: 16,
+                        border: "1px solid #fecaca",
+                        background: "#fef2f2",
+                        color: "#b91c1c",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {feedback.message}
+                    </div>
+                  )
                 ) : null}
 
                 <div

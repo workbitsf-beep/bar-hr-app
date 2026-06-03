@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import { TimeInput } from "@/app/components/time-input";
-import { FormField, PrimaryButton, Select, TextInput } from "../ui";
+import { FormField, PrimaryButton, Select, SuccessCallout, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -98,17 +98,21 @@ export function ShiftCreateForm({
       <input type="hidden" name="endTime" value={combineDateAndTime(shiftDate, endTime)} />
 
       {feedback ? (
-        <div
-          style={{
-            borderRadius: 18,
-            padding: "12px 14px",
-            background: feedback.tone === "danger" ? "#fee2e2" : "#dcfce7",
-            color: feedback.tone === "danger" ? "#991b1b" : "#166534",
-            lineHeight: 1.6,
-          }}
-        >
-          {feedback.message}
-        </div>
+        feedback.tone === "success" ? (
+          <SuccessCallout>{feedback.message}</SuccessCallout>
+        ) : (
+          <div
+            style={{
+              borderRadius: 18,
+              padding: "12px 14px",
+              background: "#fee2e2",
+              color: "#991b1b",
+              lineHeight: 1.6,
+            }}
+          >
+            {feedback.message}
+          </div>
+        )
       ) : null}
 
       <FormField label="Titolo turno">

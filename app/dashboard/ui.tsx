@@ -1114,6 +1114,7 @@ export function StatusPill({
       style={{
         display: "inline-flex",
         alignItems: "center",
+        gap: tone === "success" ? 6 : 0,
         borderRadius: 999,
         padding: "6px 10px",
         fontSize: 12,
@@ -1123,8 +1124,71 @@ export function StatusPill({
         ...palette[tone],
       }}
     >
+      {tone === "success" ? (
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path
+            d="M2.25 6.25 4.75 8.75 9.75 3.75"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : null}
       {label}
     </span>
+  );
+}
+
+export function SuccessCallout({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: CSSProperties;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        padding: "12px 14px",
+        borderRadius: 18,
+        background: "#dcfce7",
+        border: "1px solid #bbf7d0",
+        color: "#166534",
+        lineHeight: 1.6,
+        ...style,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 999,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flex: "0 0 auto",
+          background: "#bbf7d0",
+          color: "#166534",
+          marginTop: 1,
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+          <path
+            d="M2.25 6.25 4.75 8.75 9.75 3.75"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <div style={{ minWidth: 0 }}>{children}</div>
+    </div>
   );
 }
 
