@@ -113,6 +113,7 @@ export function ShiftPhotoImportButton({
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -123,6 +124,19 @@ export function ShiftPhotoImportButton({
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const updateLayout = () => {
+      setIsMobileLayout(window.innerWidth < 760);
+    };
+
+    updateLayout();
+    window.addEventListener("resize", updateLayout);
+
+    return () => {
+      window.removeEventListener("resize", updateLayout);
+    };
   }, []);
 
   useEffect(() => {
@@ -377,11 +391,11 @@ export function ShiftPhotoImportButton({
           style={{
             position: "relative",
             width: "100%",
-            maxWidth: "min(92vw, 980px)",
+            maxWidth: isMobileLayout ? "min(96vw, 520px)" : "min(92vw, 980px)",
             background: "rgba(255,255,255,0.98)",
             border: "1px solid rgba(226,232,240,0.9)",
-            borderRadius: 28,
-            padding: 22,
+            borderRadius: isMobileLayout ? 24 : 28,
+            padding: isMobileLayout ? 16 : 22,
             boxShadow: "0 20px 48px rgba(15, 23, 42, 0.16)",
             overflow: "hidden",
           }}
@@ -413,34 +427,51 @@ export function ShiftPhotoImportButton({
             </svg>
           </IconButton>
 
-          <div style={{ display: "grid", gap: 18, minWidth: 0 }}>
-            <div style={{ display: "grid", gap: 6, paddingRight: 52 }}>
-              <strong style={{ fontSize: 22, color: "#0f172a" }}>Importa da foto</strong>
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                Carica o scatta una foto del foglio turni, poi controlla l&apos;anteprima prima di importare.
-              </p>
+          <div style={{ display: "grid", gap: isMobileLayout ? 14 : 18, minWidth: 0 }}>
+            <div style={{ display: "grid", gap: 4, paddingRight: 52 }}>
+              <strong style={{ fontSize: isMobileLayout ? 18 : 22, color: "#0f172a" }}>
+                Importa da foto
+              </strong>
+              {!isMobileLayout ? (
+                <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                  Carica o scatta una foto del foglio turni, poi controlla l&apos;anteprima prima di importare.
+                </p>
+              ) : null}
             </div>
 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 1fr)",
-                gap: 16,
+                gridTemplateColumns: isMobileLayout
+                  ? "minmax(0, 1fr)"
+                  : "minmax(0, 1.15fr) minmax(0, 1fr)",
+                gap: isMobileLayout ? 12 : 16,
                 alignItems: "start",
               }}
             >
               <div
                 style={{
                   display: "grid",
-                  gap: 12,
-                  padding: 16,
+                  gap: isMobileLayout ? 10 : 12,
+                  padding: isMobileLayout ? 12 : 16,
                   borderRadius: 24,
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <strong style={{ color: "#0f172a", fontSize: 15 }}>Foto caricata</strong>
+                {!isMobileLayout ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <strong style={{ color: "#0f172a", fontSize: 15 }}>Foto caricata</strong>
+                    <PrimaryButton
+                      type="button"
+                      tone="sand"
+                      onClick={() => inputRef.current?.click()}
+                      disabled={busy}
+                    >
+                      Cambia foto
+                    </PrimaryButton>
+                  </div>
+                ) : (
                   <PrimaryButton
                     type="button"
                     tone="sand"
@@ -449,7 +480,7 @@ export function ShiftPhotoImportButton({
                   >
                     Cambia foto
                   </PrimaryButton>
-                </div>
+                )}
 
                 {previewUrl ? (
                   <div
@@ -469,7 +500,7 @@ export function ShiftPhotoImportButton({
                       style={{
                         width: "100%",
                         height: "100%",
-                        maxHeight: 360,
+                        maxHeight: isMobileLayout ? 240 : 360,
                         objectFit: "contain",
                         display: "block",
                         background: "#ffffff",
@@ -504,9 +535,11 @@ export function ShiftPhotoImportButton({
                         />
                       </svg>
                       <strong style={{ color: "#0f172a" }}>Nessuna foto caricata</strong>
-                      <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                        Carica o scatta una foto del foglio turni per continuare.
-                      </span>
+                      {!isMobileLayout ? (
+                        <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                          Carica o scatta una foto del foglio turni per continuare.
+                        </span>
+                      ) : null}
                       <PrimaryButton type="button" tone="sand" onClick={() => inputRef.current?.click()} disabled={busy}>
                         Scegli foto
                       </PrimaryButton>
@@ -523,9 +556,11 @@ export function ShiftPhotoImportButton({
                   >
                     Analizza foto
                   </PrimaryButton>
-                  <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                    File supportati: PNG, JPG, WEBP, GIF. Limite massimo 8MB.
-                  </span>
+                  {!isMobileLayout ? (
+                    <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                      File supportati: PNG, JPG, WEBP, GIF. Limite massimo 8MB.
+                    </span>
+                  ) : null}
                 </div>
 
                 {error ? (
@@ -562,8 +597,8 @@ export function ShiftPhotoImportButton({
               <div
                 style={{
                   display: "grid",
-                  gap: 12,
-                  padding: 16,
+                  gap: isMobileLayout ? 10 : 12,
+                  padding: isMobileLayout ? 12 : 16,
                   borderRadius: 24,
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
@@ -571,7 +606,9 @@ export function ShiftPhotoImportButton({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <strong style={{ color: "#0f172a", fontSize: 15 }}>Anteprima modificabile</strong>
+                  <strong style={{ color: "#0f172a", fontSize: 15 }}>
+                    {isMobileLayout ? "Turni" : "Anteprima modificabile"}
+                  </strong>
                   <IconButton type="button" onClick={addManualRow} aria-label="Aggiungi turno">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path
@@ -587,8 +624,8 @@ export function ShiftPhotoImportButton({
                 <div
                   style={{
                     display: "grid",
-                    gap: 12,
-                    maxHeight: "60vh",
+                    gap: 10,
+                    maxHeight: isMobileLayout ? "38vh" : "60vh",
                     overflowY: "auto",
                     paddingRight: 4,
                     overscrollBehavior: "contain",
@@ -597,7 +634,7 @@ export function ShiftPhotoImportButton({
                   {rows.length === 0 ? (
                     <div
                       style={{
-                        padding: 16,
+                        padding: 14,
                         borderRadius: 18,
                         background: "#f8fafc",
                         border: "1px dashed #cbd5e1",
@@ -605,7 +642,7 @@ export function ShiftPhotoImportButton({
                         lineHeight: 1.5,
                       }}
                     >
-                      Nessun turno ancora importato. Premi <strong>Analizza foto</strong> per iniziare.
+                      Nessun turno ancora importato.
                     </div>
                   ) : (
                     rows.map((row, index) => {
@@ -616,40 +653,44 @@ export function ShiftPhotoImportButton({
                           key={row.id}
                           style={{
                             display: "grid",
-                            gap: 12,
-                            padding: 14,
+                            gap: isMobileLayout ? 10 : 12,
+                            padding: isMobileLayout ? 12 : 14,
                             borderRadius: 20,
                             background: "#f8fafc",
                             border: `1px solid ${rowErrors.length > 0 ? "#fecaca" : "#e2e8f0"}`,
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                            <div style={{ display: "grid", gap: 2 }}>
-                              <strong style={{ color: "#0f172a", fontSize: 14 }}>Turno {index + 1}</strong>
-                              <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                                {row.employeeName || "Dipendente da assegnare"}
-                              </span>
+                            <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
+                              <strong style={{ color: "#0f172a", fontSize: 14 }}>
+                                {row.employeeName || `Turno ${index + 1}`}
+                              </strong>
+                              {!isMobileLayout ? (
+                                <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
+                                  {row.matchStatus === "matched" ? "Dipendente abbinato" : "Dipendente da correggere"}
+                                </span>
+                              ) : null}
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                               <span
                                 style={{
-                                  padding: "6px 10px",
+                                  padding: "5px 8px",
                                   borderRadius: 999,
                                   background: row.matchStatus === "matched" ? "#dcfce7" : "#fef3c7",
                                   color: row.matchStatus === "matched" ? "#166534" : "#92400e",
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: 700,
                                 }}
                               >
-                                {row.matchStatus === "matched" ? "Abbinato" : "Da correggere"}
+                                {row.matchStatus === "matched" ? "OK" : "!"}
                               </span>
                               <span
                                 style={{
-                                  padding: "6px 10px",
+                                  padding: "5px 8px",
                                   borderRadius: 999,
                                   background: "#e2e8f0",
                                   color: "#334155",
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: 700,
                                 }}
                               >
@@ -659,7 +700,7 @@ export function ShiftPhotoImportButton({
                                 type="button"
                                 onClick={() => removeRow(row.id)}
                                 aria-label={`Rimuovi turno ${index + 1}`}
-                                style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
+                                style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none", flexShrink: 0 }}
                               >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                   <path
@@ -677,7 +718,9 @@ export function ShiftPhotoImportButton({
                             style={{
                               display: "grid",
                               gap: 10,
-                              gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr)",
+                              gridTemplateColumns: isMobileLayout
+                                ? "minmax(0, 1fr)"
+                                : "minmax(0, 1.1fr) minmax(0, 0.9fr)",
                             }}
                           >
                             <Select
@@ -715,7 +758,9 @@ export function ShiftPhotoImportButton({
                             style={{
                               display: "grid",
                               gap: 10,
-                              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+                              gridTemplateColumns: isMobileLayout
+                                ? "minmax(0, 1fr)"
+                                : "minmax(0, 1fr) minmax(0, 1fr)",
                             }}
                           >
                             <TimeInput
@@ -740,7 +785,9 @@ export function ShiftPhotoImportButton({
                           </div>
 
                           <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>Note</span>
+                            {!isMobileLayout ? (
+                              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>Note</span>
+                            ) : null}
                             <TextInput
                               value={row.notes}
                               onChange={(event) => updateRow(row.id, { notes: event.target.value })}
