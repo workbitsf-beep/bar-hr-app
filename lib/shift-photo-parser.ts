@@ -137,20 +137,20 @@ function getNextMatchingWeekdayDate(
   }
 }
 
-function normalizeName(value: string) {
+export function normalizeShiftPhotoName(value: string) {
   return normalizeText(value).replace(/[^a-z0-9 ]/g, " ");
 }
 
-function findMember(line: string, members: ShiftPhotoMember[]) {
-  const normalizedLine = normalizeName(line);
+export function matchShiftPhotoMember(line: string, members: ShiftPhotoMember[]) {
+  const normalizedLine = normalizeShiftPhotoName(line);
   let bestMember: ShiftPhotoMember | null = null;
   let bestScore = 0;
 
   for (const member of members) {
-    const firstName = normalizeName(member.firstName);
-    const lastName = normalizeName(member.lastName);
-    const fullName = normalizeName(`${member.firstName} ${member.lastName}`);
-    const reversedName = normalizeName(`${member.lastName} ${member.firstName}`);
+    const firstName = normalizeShiftPhotoName(member.firstName);
+    const lastName = normalizeShiftPhotoName(member.lastName);
+    const fullName = normalizeShiftPhotoName(`${member.firstName} ${member.lastName}`);
+    const reversedName = normalizeShiftPhotoName(`${member.lastName} ${member.firstName}`);
     let score = 0;
 
     if (normalizedLine.includes(fullName) || normalizedLine.includes(reversedName)) {
@@ -224,7 +224,7 @@ export function parseShiftPhotoText(
       continue;
     }
 
-    const member = findMember(normalizedLine, members);
+    const member = matchShiftPhotoMember(normalizedLine, members);
 
     if (!member) {
       continue;

@@ -2,10 +2,11 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { createShiftAction } from "../actions";
 import { PrimaryButton } from "../ui";
-import { ShiftPhotoImportButton } from "./shift-photo-import-button";
-import { combineDateAndTime } from "@/lib/shift-datetime";
+import {
+  ShiftPhotoImportButton,
+  type ShiftPhotoImportRow,
+} from "./shift-photo-import-button";
 
 type MemberOption = {
   id: string;
@@ -73,31 +74,48 @@ export function PublishWeekPanel({
     });
   }
 
-  async function handlePhotoImport(drafts: Array<{
-    date: string;
-    startTime: string;
-    endTime: string;
-    employeeId: string;
-  }>) {
-    if (drafts.length === 0) {
+  async function handlePhotoImport(drafts: ShiftPhotoImportRow[]) {
+    const payload = drafts
+      .filter((draft) => Boolean(draft.employeeId))
+      .map((draft) => ({
+        employeeId: draft.employeeId,
+        employeeName: draft.employeeName,
+        date: draft.date,
+        startTime: draft.startTime,
+        endTime: draft.endTime,
+        confidence: draft.confidence,
+        notes: draft.notes,
+      }));
+
+    if (payload.length === 0) {
       return 0;
     }
 
-    let importedCount = 0;
+    const response = await fetch("/api/shifts/import-confirm", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        shifts: payload,
+      }),
+    });
 
-    for (const draft of drafts) {
-      const formData = new FormData();
-      formData.set("title", "");
-      formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
-      formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
-      formData.append("employeeIds", draft.employeeId);
+    const result = (await response.json().catch(() => null)) as
+      | {
+          ok?: boolean;
+          createdCount?: number;
+          skippedCount?: number;
+          message?: string;
+        }
+      | null;
 
-      await createShiftAction(formData);
-      importedCount += 1;
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.message || "Impossibile importare i turni.");
     }
 
     router.refresh();
-    return importedCount;
+    return result.createdCount ?? payload.length;
   }
 
   return (
