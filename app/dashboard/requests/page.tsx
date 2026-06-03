@@ -1,6 +1,7 @@
-import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
+import { ActivityType, CalendarClosureType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
+  createCalendarClosureAction,
   createAvailabilityAction,
   createShiftChangeRequestAction,
   createTimeOffRequestAction,
@@ -71,6 +72,18 @@ function getReviewerName(
   return `${reviewer.firstName} ${reviewer.lastName}`.trim();
 }
 
+function closureTypeLabel(type: CalendarClosureType) {
+  if (type === CalendarClosureType.HOLIDAY) {
+    return "Festivita";
+  }
+
+  if (type === CalendarClosureType.VACATION) {
+    return "Ferie";
+  }
+
+  return "Chiusura";
+}
+
 export default async function DashboardRequestsPage() {
   const { session, role, activeBarId, activeBarActivityType, billingStatus } =
     await getDashboardContext();
@@ -89,7 +102,8 @@ export default async function DashboardRequestsPage() {
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
   const canCreateRequests = role !== Role.OWNER;
-  const [requests, ownShifts, teammates, availabilities, overtimeMembers] = await Promise.all([
+  const canManageClosures = role === Role.OWNER || role === Role.MANAGER;
+  const [requests, ownShifts, teammates, availabilities, overtimeMembers, closures] = await Promise.all([
     prisma.request.findMany({
       where: {
         barId: activeBarId,
@@ -219,6 +233,30 @@ export default async function DashboardRequestsPage() {
             user: {
               select: {
                 id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
+    canManageClosures
+      ? prisma.calendarClosure.findMany({
+          where: {
+            barId: activeBarId,
+          },
+          orderBy: {
+            startsAt: "desc",
+          },
+          take: 20,
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            startsAt: true,
+            endsAt: true,
+            createdBy: {
+              select: {
                 firstName: true,
                 lastName: true,
               },
@@ -367,6 +405,69 @@ export default async function DashboardRequestsPage() {
                 <PrimaryButton type="submit">Registra straordinario</PrimaryButton>
               </div>
             </form>
+          </Panel>
+        ) : null}
+
+        {canManageClosures ? (
+          <Panel title="Straordinari e chiusure">
+            <form action={createCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
+              <div
+                className="dashboard-inline-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <FormField label="Tipo">
+                  <Select name="type" defaultValue="CLOSURE">
+                    <option value="CLOSURE">Chiusura</option>
+                    <option value="HOLIDAY">Festivita</option>
+                    <option value="VACATION">Ferie</option>
+                  </Select>
+                </FormField>
+
+                <FormField label="Titolo">
+                  <TextInput name="title" placeholder="Chiusura, festivita o ferie" />
+                </FormField>
+
+                <FormField label="Da">
+                  <TextInput name="startsAt" type="datetime-local" required />
+                </FormField>
+
+                <FormField label="A">
+                  <TextInput name="endsAt" type="datetime-local" required />
+                </FormField>
+              </div>
+
+              <div className="dashboard-form-actions">
+                <PrimaryButton type="submit">Salva chiusura</PrimaryButton>
+              </div>
+            </form>
+
+            <div style={{ marginTop: 16 }}>
+              {closures.length === 0 ? (
+                <EmptyState message="Nessuna chiusura registrata." />
+              ) : (
+                <ItemList scrollable>
+                  {closures.map((closure) => (
+                    <ItemCard
+                      key={closure.id}
+                      title={closure.title}
+                      subtitle={closureTypeLabel(closure.type)}
+                      meta={`${formatDateTime(closure.startsAt)} - ${formatDateTime(closure.endsAt)}`}
+                      footer={
+                        closure.createdBy ? (
+                          <span>
+                            Inserita da {closure.createdBy.firstName} {closure.createdBy.lastName}
+                          </span>
+                        ) : null
+                      }
+                    />
+                  ))}
+                </ItemList>
+              )}
+            </div>
           </Panel>
         ) : null}
 

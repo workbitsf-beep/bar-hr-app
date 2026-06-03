@@ -11,7 +11,6 @@ import {
   completeTaskAction,
   createAvailabilityAction,
   createBoardNoteAction,
-  createCalendarClosureAction,
   createCourseAction,
   createShiftAction,
   createTaskAction,
@@ -515,11 +514,6 @@ export function DayActionCalendarClient({
   const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
   const [courseAssignedToId, setCourseAssignedToId] = useState("");
   const [showCourseComposer, setShowCourseComposer] = useState(false);
-  const [showClosureComposer, setShowClosureComposer] = useState(false);
-  const [closureTitle, setClosureTitle] = useState("");
-  const [closureType, setClosureType] = useState("CLOSURE");
-  const [closureStart, setClosureStart] = useState("");
-  const [closureEnd, setClosureEnd] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -581,7 +575,6 @@ export function DayActionCalendarClient({
     setShowShiftComposer(false);
     setShowAvailabilityComposer(false);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setQuickComposer(null);
     setShowRequestComposer(true);
   }
@@ -590,7 +583,6 @@ export function DayActionCalendarClient({
     setShowShiftComposer(false);
     setShowRequestComposer(false);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setQuickComposer(null);
     setShowAvailabilityComposer(true);
   }
@@ -632,7 +624,6 @@ export function DayActionCalendarClient({
     setShowRequestComposer(false);
     setShowAvailabilityComposer(false);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setQuickComposer(null);
     setFeedback(null);
     setShiftDrafts([createShiftDraft(day.date)]);
@@ -651,10 +642,6 @@ export function DayActionCalendarClient({
     setCourseEnd(toDateTimeLocal(day.date, 13, 0));
     setCourseAssignedToAll(true);
     setCourseAssignedToId("");
-    setClosureTitle("");
-    setClosureType("CLOSURE");
-    setClosureStart(toDateTimeLocal(day.date, 0, 0));
-    setClosureEnd(toDateTimeLocal(day.date, 23, 59));
   }
 
   function closeModal() {
@@ -667,7 +654,6 @@ export function DayActionCalendarClient({
     setShowRequestComposer(false);
     setShowAvailabilityComposer(false);
     setShowCourseComposer(false);
-    setShowClosureComposer(false);
     setSelectedDate(null);
     setQuickComposer(null);
     setFeedback(null);
@@ -865,24 +851,6 @@ export function DayActionCalendarClient({
       setCourseAssignedToId("");
       setShowCourseComposer(false);
     }, "Corso inserito.");
-  }
-
-  function submitClosure() {
-    if (!selectedDay || !closureStart || !closureEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("title", closureTitle);
-    formData.set("type", closureType);
-    formData.set("startsAt", closureStart);
-    formData.set("endsAt", closureEnd);
-
-    runAction(async () => {
-      await createCalendarClosureAction(formData);
-      setClosureTitle("");
-      setShowClosureComposer(false);
-    }, "Giorno speciale salvato.");
   }
 
   function submitReview(requestId: string, decision: RequestStatus) {
@@ -1925,163 +1893,6 @@ export function DayActionCalendarClient({
                   </>
                 ) : null}
 
-                <div style={{ display: "none" }}>
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                        Inserimenti speciali
-                      </strong>
-                      <CountBadge count={selectedDay?.closures?.length ?? 0} />
-                      <IconButton
-                        type="button"
-                        onClick={() => setShowClosureComposer((current) => !current)}
-                        aria-label="Aggiungi chiusura o festivita"
-                        disabled={isPending}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M12 5v14M5 12h14"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                    </div>
-
-                    {false ? (
-                      <div
-                        style={{
-                          position: "fixed",
-                          left: "50%",
-                          top: "50%",
-                          transform: "translate(-50%, -50%)",
-                          zIndex: 2147483647,
-                          display: "grid",
-                          gap: 12,
-                          width: "min(640px, calc(100vw - 32px))",
-                          maxHeight: "calc(100dvh - 32px)",
-                          overflowY: "auto",
-                          padding: 18,
-                          borderRadius: 28,
-                          background: "#fff7ed",
-                          border: "1px solid #fed7aa",
-                          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                          }}
-                        >
-                          <strong style={{ color: "#0f172a", fontSize: 18 }}>Nuovo inserimento</strong>
-                          <IconButton
-                            type="button"
-                            onClick={() => setShowClosureComposer(false)}
-                            aria-label="Chiudi inserimento"
-                            disabled={isPending}
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                              <path
-                                d="M6 6l12 12M18 6 6 18"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          </IconButton>
-                        </div>
-                        <div
-                          className="dashboard-modal-body-grid"
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                            gap: 12,
-                          }}
-                        >
-                          <label style={{ display: "grid", gap: 8 }}>
-                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Tipo</span>
-                            <Select value={closureType} onChange={(event) => setClosureType(event.target.value)}>
-                              <option value="CLOSURE">Chiusura</option>
-                              <option value="HOLIDAY">Festivita</option>
-                              <option value="VACATION">Ferie</option>
-                            </Select>
-                          </label>
-                          <label style={{ display: "grid", gap: 8 }}>
-                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Titolo</span>
-                            <TextInput
-                              value={closureTitle}
-                              onChange={(event) => setClosureTitle(event.target.value)}
-                            />
-                          </label>
-                          <label style={{ display: "grid", gap: 8 }}>
-                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Da</span>
-                            <TextInput
-                              type="datetime-local"
-                              value={closureStart}
-                              onChange={(event) => setClosureStart(event.target.value)}
-                            />
-                          </label>
-                          <label style={{ display: "grid", gap: 8 }}>
-                            <span style={{ fontWeight: 600, color: "#1e293b" }}>A</span>
-                            <TextInput
-                              type="datetime-local"
-                              value={closureEnd}
-                              onChange={(event) => setClosureEnd(event.target.value)}
-                            />
-                          </label>
-                        </div>
-                        <div className="dashboard-modal-actions">
-                          <PrimaryButton
-                            type="button"
-                            onClick={submitClosure}
-                            disabled={isPending || !closureStart || !closureEnd}
-                          >
-                            {isPending ? "Salvataggio..." : "Salva"}
-                          </PrimaryButton>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {(selectedDay?.closures?.length ?? 0) === 0 ? (
-                      <div style={{ color: "#64748b" }}>
-                        Nessuna chiusura o festivita in questa giornata.
-                      </div>
-                    ) : (
-                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                        {(selectedDay?.closures ?? []).map((closure) => (
-                          <div
-                            key={closure.id}
-                            className="dashboard-list-card"
-                            style={{
-                              padding: 14,
-                              borderRadius: 18,
-                              background: "#fff7ed",
-                              border: "1px solid #fed7aa",
-                              display: "grid",
-                              gap: 6,
-                            }}
-                          >
-                            <strong style={{ color: "#9a3412" }}>{closure.title}</strong>
-                            <span style={{ color: "#b45309" }}>
-                              {formatRange(closure.startTime, closure.endTime, locale)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
                 <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{

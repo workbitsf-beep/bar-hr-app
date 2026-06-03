@@ -123,42 +123,36 @@ export default async function DashboardSettingsPage() {
                   <TimeInput
                     name="morningStartTime"
                     value={settings?.morningStartTime ?? ""}
-                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Mattina - fine">
                   <TimeInput
                     name="morningEndTime"
                     value={settings?.morningEndTime ?? ""}
-                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Pomeriggio - inizio">
                   <TimeInput
                     name="afternoonStartTime"
                     value={settings?.afternoonStartTime ?? ""}
-                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Pomeriggio - fine">
                   <TimeInput
                     name="afternoonEndTime"
                     value={settings?.afternoonEndTime ?? ""}
-                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Sera - inizio">
                   <TimeInput
                     name="eveningStartTime"
                     value={settings?.eveningStartTime ?? ""}
-                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Sera - fine">
                   <TimeInput
                     name="eveningEndTime"
                     value={settings?.eveningEndTime ?? ""}
-                    onChange={() => undefined}
                   />
                 </FormField>
               </div>

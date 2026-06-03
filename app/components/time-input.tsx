@@ -26,7 +26,7 @@ export function TimeInput({
   style,
 }: {
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   name?: string;
   disabled?: boolean;
   style?: CSSProperties;
@@ -44,14 +44,14 @@ export function TimeInput({
     if (!nextHours && !nextMinutes) {
       setHours("");
       setMinutes("");
-      onChange("");
+      onChange?.("");
       return;
     }
 
     const finalValue = buildTimeValue(nextHours, nextMinutes);
     setHours(sanitizePart(nextHours).padStart(2, "0"));
     setMinutes(sanitizePart(nextMinutes).padStart(2, "0"));
-    onChange(finalValue);
+    onChange?.(finalValue);
   }
 
   const inputStyle: CSSProperties = {
