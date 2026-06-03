@@ -2190,7 +2190,7 @@ export function DayActionCalendarClient({
       <ShiftEditorModal
         open={Boolean(editingShift)}
         locale={locale}
-        canManage
+        canManage={canManageOptionalShifts}
         currentUserId={currentUserId}
         shift={editingShift}
         members={members}

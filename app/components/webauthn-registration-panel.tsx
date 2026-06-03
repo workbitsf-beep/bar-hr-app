@@ -25,6 +25,7 @@ export function WebAuthnRegistrationPanel({
   const [available, setAvailable] = useState(false);
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -58,7 +59,7 @@ export function WebAuthnRegistrationPanel({
     };
   }, []);
 
-  async function handleRegister() {
+  async function registerPasskey() {
     setError("");
     setMessage("");
     setLoading(true);
@@ -107,6 +108,45 @@ export function WebAuthnRegistrationPanel({
     }
   }
 
+  async function handleUpdatePasskey() {
+    setError("");
+    setMessage("");
+
+    if (passkeyCount > 0) {
+      const confirmed = window.confirm(
+        "Vuoi sostituire la passkey biometrica registrata? Le passkey esistenti verranno rimosse prima di registrare la nuova."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setUpdating(true);
+
+      try {
+        const resetResponse = await fetch("/api/auth/webauthn/passkeys/reset", {
+          method: "POST",
+        });
+        const resetPayload = (await resetResponse.json().catch(() => null)) as ApiResponse | null;
+
+        if (!resetResponse.ok || resetPayload?.ok !== true) {
+          setError(resetPayload?.message || "Impossibile aggiornare la passkey biometrica.");
+          return;
+        }
+
+        setPasskeyCount(0);
+        setMessage(resetPayload.message || "Passkey biometrica rimossa. Registra la nuova versione.");
+      } catch {
+        setError("Impossibile aggiornare la passkey biometrica in questo momento.");
+        return;
+      } finally {
+        setUpdating(false);
+      }
+    }
+
+    await registerPasskey();
+  }
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div
@@ -133,13 +173,17 @@ export function WebAuthnRegistrationPanel({
       {error ? <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p> : null}
       {message ? <p style={{ margin: 0, color: "#166534", fontSize: 14 }}>{message}</p> : null}
 
-      <div className="dashboard-form-actions">
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <PrimaryButton
           type="button"
-          onClick={handleRegister}
-          disabled={loading || checking || !available}
+          onClick={handleUpdatePasskey}
+          disabled={loading || checking || updating || !available}
         >
-          {loading ? "Attivazione..." : "Attiva Face ID / Touch ID"}
+          {loading || updating
+            ? "Aggiornamento..."
+            : passkeyCount > 0
+              ? "Aggiorna passkey biometrica"
+              : "Attiva Face ID / Touch ID"}
         </PrimaryButton>
       </div>
     </div>
