@@ -21,11 +21,13 @@ function buildTimeValue(hours: string, minutes: string) {
 export function TimeInput({
   value,
   onChange,
+  name,
   disabled,
   style,
 }: {
   value: string;
   onChange: (value: string) => void;
+  name?: string;
   disabled?: boolean;
   style?: CSSProperties;
 }) {
@@ -63,6 +65,7 @@ export function TimeInput({
     background: "#ffffff",
     textAlign: "center",
   };
+  const hiddenValue = hours || minutes ? buildTimeValue(hours, minutes) : "";
 
   return (
     <div
@@ -104,6 +107,7 @@ export function TimeInput({
         onBlur={() => commit()}
         style={inputStyle}
       />
+      {name ? <input type="hidden" name={name} value={hiddenValue} /> : null}
     </div>
   );
 }

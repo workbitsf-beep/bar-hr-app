@@ -1,5 +1,6 @@
 import { ActivityType, Prisma, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
+import { TimeInput } from "@/app/components/time-input";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
@@ -119,45 +120,45 @@ export default async function DashboardSettingsPage() {
                 }}
               >
                 <FormField label="Mattina - inizio">
-                  <TextInput
+                  <TimeInput
                     name="morningStartTime"
-                    type="time"
-                    defaultValue={settings?.morningStartTime ?? ""}
+                    value={settings?.morningStartTime ?? ""}
+                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Mattina - fine">
-                  <TextInput
+                  <TimeInput
                     name="morningEndTime"
-                    type="time"
-                    defaultValue={settings?.morningEndTime ?? ""}
+                    value={settings?.morningEndTime ?? ""}
+                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Pomeriggio - inizio">
-                  <TextInput
+                  <TimeInput
                     name="afternoonStartTime"
-                    type="time"
-                    defaultValue={settings?.afternoonStartTime ?? ""}
+                    value={settings?.afternoonStartTime ?? ""}
+                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Pomeriggio - fine">
-                  <TextInput
+                  <TimeInput
                     name="afternoonEndTime"
-                    type="time"
-                    defaultValue={settings?.afternoonEndTime ?? ""}
+                    value={settings?.afternoonEndTime ?? ""}
+                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Sera - inizio">
-                  <TextInput
+                  <TimeInput
                     name="eveningStartTime"
-                    type="time"
-                    defaultValue={settings?.eveningStartTime ?? ""}
+                    value={settings?.eveningStartTime ?? ""}
+                    onChange={() => undefined}
                   />
                 </FormField>
                 <FormField label="Sera - fine">
-                  <TextInput
+                  <TimeInput
                     name="eveningEndTime"
-                    type="time"
-                    defaultValue={settings?.eveningEndTime ?? ""}
+                    value={settings?.eveningEndTime ?? ""}
+                    onChange={() => undefined}
                   />
                 </FormField>
               </div>

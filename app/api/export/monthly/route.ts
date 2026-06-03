@@ -6,6 +6,9 @@ import { getActiveBarAccess } from "@/lib/permissions";
 import { formatDurationClock } from "@/lib/time-format";
 import { withBar } from "@/lib/withBar";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 type ExportBody = {
   userId?: string;
   month?: number;
@@ -232,55 +235,105 @@ function mergeCompanyDatasets(
 
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
-    const body = (await req.json()) as ExportBody;
-    const month = Number(body.month);
-    const year = Number(body.year);
-    const format = body.format === "pdf" ? "pdf" : "json";
-    const access = await getActiveBarAccess(session as never);
-    const activityType = access.activeBar?.activityType ?? ActivityType.RESTAURANT;
-    const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
-    const canExportAll =
-      access.role === Role.OWNER ||
-      (access.role === Role.MANAGER && activityType === ActivityType.COMPANY);
+    try {
+      const body = (await req.json()) as ExportBody;
+      const month = Number(body.month);
+      const year = Number(body.year);
+      const format = body.format === "pdf" ? "pdf" : "json";
+      const access = await getActiveBarAccess(session as never);
+      const activityType = access.activeBar?.activityType ?? ActivityType.RESTAURANT;
+      const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
+      const canExportAll =
+        access.role === Role.OWNER ||
+        (access.role === Role.MANAGER && activityType === ActivityType.COMPANY);
 
-    if (
-      Number.isNaN(month) ||
-      Number.isNaN(year) ||
-      !Number.isInteger(month) ||
-      !Number.isInteger(year) ||
-      month < 1 ||
-      month > 12
-    ) {
-      return Response.json(
-        { ok: false, message: "Input non valido" },
-        { status: 400 }
-      );
-    }
-
-    if (!canExportAll && requestedUserId !== session.user.id) {
-      return Response.json(
-        { ok: false, message: "Non autorizzato" },
-        { status: 403 }
-      );
-    }
-
-    if (requestedUserId === "__ALL__") {
-      if (!canExportAll || activityType !== ActivityType.COMPANY) {
-        return Response.json(
-          { ok: false, message: "Non autorizzato" },
-          { status: 403 }
-        );
+      if (
+        Number.isNaN(month) ||
+        Number.isNaN(year) ||
+        !Number.isInteger(month) ||
+        !Number.isInteger(year) ||
+        month < 1 ||
+        month > 12
+      ) {
+        return Response.json({ ok: false, message: "Input non valido" }, { status: 400 });
       }
 
-      const memberships = await prisma.employeeBar.findMany({
+      if (!canExportAll && requestedUserId !== session.user.id) {
+        return Response.json({ ok: false, message: "Non autorizzato" }, { status: 403 });
+      }
+
+      if (requestedUserId === "__ALL__") {
+        if (!canExportAll || activityType !== ActivityType.COMPANY) {
+          return Response.json({ ok: false, message: "Non autorizzato" }, { status: 403 });
+        }
+
+        const memberships = await prisma.employeeBar.findMany({
+          where: {
+            barId: session.activeBarId,
+            isActive: true,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        });
+
+        const datasets = await Promise.all(
+          memberships.map(async (membership) => ({
+            userLabel: `${membership.user.firstName} ${membership.user.lastName}`,
+            dataset: await buildMonthlyDataset(
+              session.activeBarId,
+              membership.user.id,
+              month,
+              year,
+              activityType
+            ),
+          }))
+        );
+
+        const dataset = mergeCompanyDatasets(datasets);
+
+        if (format === "pdf") {
+          const pdfBuffer = await createMonthlyPdfBuffer({
+            userLabel: "Report generale",
+            month,
+            year,
+            dataset,
+          });
+
+          return new Response(new Uint8Array(pdfBuffer), {
+            headers: {
+              "Content-Type": "application/pdf",
+              "Content-Disposition": `attachment; filename="report-generale-${year}-${String(month).padStart(2, "0")}.pdf"`,
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+
+        return Response.json({
+          ok: true,
+          mode: dataset.mode,
+          data: dataset.groupedLogs,
+          totals: dataset.totals,
+          summary: dataset.summary,
+        });
+      }
+
+      const membership = await prisma.employeeBar.findFirst({
         where: {
           barId: session.activeBarId,
+          userId: requestedUserId,
           isActive: true,
         },
         include: {
           user: {
             select: {
-              id: true,
               firstName: true,
               lastName: true,
               email: true,
@@ -289,24 +342,21 @@ export const POST = withBar(
         },
       });
 
-      const datasets = await Promise.all(
-        memberships.map(async (membership) => ({
-          userLabel: `${membership.user.firstName} ${membership.user.lastName}`,
-          dataset: await buildMonthlyDataset(
-            session.activeBarId,
-            membership.user.id,
-            month,
-            year,
-            activityType
-          ),
-        }))
-      );
+      if (!membership) {
+        return Response.json({ ok: false, message: "Dipendente non trovato" }, { status: 404 });
+      }
 
-      const dataset = mergeCompanyDatasets(datasets);
+      const dataset = await buildMonthlyDataset(
+        session.activeBarId,
+        requestedUserId,
+        month,
+        year,
+        activityType
+      );
 
       if (format === "pdf") {
         const pdfBuffer = await createMonthlyPdfBuffer({
-          userLabel: "Report generale",
+          userLabel: `${membership.user.firstName} ${membership.user.lastName} (${membership.user.email})`,
           month,
           year,
           dataset,
@@ -315,7 +365,8 @@ export const POST = withBar(
         return new Response(new Uint8Array(pdfBuffer), {
           headers: {
             "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="report-generale-${year}-${String(month).padStart(2, "0")}.pdf"`,
+            "Content-Disposition": `attachment; filename="report-${year}-${String(month).padStart(2, "0")}.pdf"`,
+            "Cache-Control": "no-store",
           },
         });
       }
@@ -325,64 +376,17 @@ export const POST = withBar(
         mode: dataset.mode,
         data: dataset.groupedLogs,
         totals: dataset.totals,
-        summary: dataset.summary,
+        summary: dataset.mode === "company" ? dataset.summary : undefined,
       });
-    }
+    } catch (error) {
+      console.error("[export-monthly] failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
 
-    const membership = await prisma.employeeBar.findFirst({
-      where: {
-        barId: session.activeBarId,
-        userId: requestedUserId,
-        isActive: true,
-      },
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-      },
-    });
-
-    if (!membership) {
       return Response.json(
-        { ok: false, message: "Dipendente non trovato" },
-        { status: 404 }
+        { ok: false, message: "PDF non disponibile in questo momento." },
+        { status: 500 }
       );
     }
-
-    const dataset = await buildMonthlyDataset(
-      session.activeBarId,
-      requestedUserId,
-      month,
-      year,
-      activityType
-    );
-
-    if (format === "pdf") {
-      const pdfBuffer = await createMonthlyPdfBuffer({
-        userLabel: `${membership.user.firstName} ${membership.user.lastName} (${membership.user.email})`,
-        month,
-        year,
-        dataset,
-      });
-
-      return new Response(new Uint8Array(pdfBuffer), {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="report-${year}-${String(month).padStart(2, "0")}.pdf"`,
-        },
-      });
-    }
-
-    return Response.json({
-      ok: true,
-      mode: dataset.mode,
-      data: dataset.groupedLogs,
-      totals: dataset.totals,
-      summary: dataset.mode === "company" ? dataset.summary : undefined,
-    });
   }
 );
