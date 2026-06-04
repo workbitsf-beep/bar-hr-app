@@ -178,7 +178,7 @@ export default async function DashboardSettingsPage() {
             </form>
           </Panel>
         ) : (
-          <Panel title="Impostazioni azienda">
+          <Panel title="Turni aziendali">
             <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
               <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 600 }}>
                 <input
@@ -189,7 +189,7 @@ export default async function DashboardSettingsPage() {
                 Turni attivi
               </label>
               <div className="dashboard-form-actions">
-                <PrimaryButton type="submit">Salva</PrimaryButton>
+                <PrimaryButton type="submit">Salva turni</PrimaryButton>
               </div>
             </form>
           </Panel>
