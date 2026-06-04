@@ -63,6 +63,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
+  const requestsNavLabel = role === Role.EMPLOYEE ? "Richieste" : "Richieste e chiusure";
 
   const navItems: DashboardNavItem[] =
     String(role) === "SUPER_ADMIN"
@@ -79,7 +80,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: t.dashboard, href: "/dashboard" },
           { label: t.tasks, href: "/dashboard/tasks" },
           { label: "Corsi", href: "/dashboard/courses" },
-          { label: "Richieste e chiusure", href: "/dashboard/requests" },
+          { label: requestsNavLabel, href: "/dashboard/requests" },
         ]
         : [
           { label: t.calendar, href: "/dashboard/calendar" },
@@ -88,7 +89,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: t.tasks, href: "/dashboard/tasks" },
           { label: "Corsi", href: "/dashboard/courses" },
           { label: t.timelogs, href: "/dashboard/timelogs" },
-          { label: "Richieste e chiusure", href: "/dashboard/requests" },
+          { label: requestsNavLabel, href: "/dashboard/requests" },
         ];
 
   if (role === Role.OWNER) {

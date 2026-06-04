@@ -336,7 +336,7 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
         fontSize: mobile ? 14 : 13,
       }}
     >
-      Indisponibilita: {availability.firstName} {availability.lastName}
+      Indisponibilita segnalata: {availability.firstName} {availability.lastName}
     </div>
   );
 }
@@ -474,6 +474,7 @@ export function DayActionCalendarClient({
   filteredDay,
   role,
   activityType,
+  companyShiftsEnabled,
   members,
   presets,
   currentUserId,
@@ -484,6 +485,7 @@ export function DayActionCalendarClient({
   filteredDay?: string | null;
   role: string;
   activityType: ActivityType;
+  companyShiftsEnabled: boolean;
   members: MemberOption[];
   presets: ShiftPreset[];
   currentUserId: string;
@@ -564,9 +566,9 @@ export function DayActionCalendarClient({
 
   const isCompany = activityType === ActivityType.COMPANY;
   const canManageOptionalShifts =
-    isCompany && (role === Role.OWNER || role === Role.MANAGER);
+    isCompany && companyShiftsEnabled && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateRequest = role !== Role.OWNER;
-  const canCreateAvailability = role !== Role.OWNER;
+  const canCreateAvailability = !isCompany && role !== Role.OWNER;
   const canCreateCourse = role === Role.OWNER || role === Role.MANAGER;
   const canCreateClosure = role === Role.OWNER || role === Role.MANAGER;
   const canReviewRequests = isCompany && role === Role.OWNER;
@@ -1169,29 +1171,31 @@ export function DayActionCalendarClient({
                       }}
                     >
                       <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>
-                      <IconButton
-                        type="button"
-                        onClick={() => {
-                          setShowShiftComposer(true);
-                          if (shiftDrafts.length === 0) {
-                            addShiftDraft();
-                          }
-                        }}
-                        aria-label="Aggiungi turno"
-                        disabled={isPending}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M12 5v14M5 12h14"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
+                      {canManageOptionalShifts ? (
+                        <IconButton
+                          type="button"
+                          onClick={() => {
+                            setShowShiftComposer(true);
+                            if (shiftDrafts.length === 0) {
+                              addShiftDraft();
+                            }
+                          }}
+                          aria-label="Aggiungi turno"
+                          disabled={isPending}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M12 5v14M5 12h14"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      ) : null}
                     </div>
 
-                    {showShiftComposer ? (
+                    {showShiftComposer && canManageOptionalShifts ? (
                       <div
                         style={{
                           position: "fixed",
@@ -1576,106 +1580,107 @@ export function DayActionCalendarClient({
                     )}
                   </div>
                 ) : null}
+                {(selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0) > 0 ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Mancanze del giorno
+                      </strong>
+                      <CountBadge
+                        count={
+                          (selectedDay?.availabilities.length ?? 0) +
+                          (selectedDay?.requests.length ?? 0)
+                        }
+                      />
+                    </div>
+
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {(selectedDay?.availabilities ?? []).map((availability) =>
+                        renderAvailabilityCard(availability, true)
+                      )}
+                      {(selectedDay?.requests ?? []).map((request) =>
+                        renderApprovedRequestCard(request, true)
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ color: "#64748b" }}>
+                    Nessuna mancanza registrata in questa giornata.
+                  </div>
+                )}
+
+                {canCreateRequest ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Nuova richiesta
+                      </strong>
+                      <IconButton
+                        type="button"
+                        onClick={openRequestComposer}
+                        aria-label="Apri nuova richiesta"
+                        disabled={isPending}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </IconButton>
+                    </div>
+                  </div>
+                ) : null}
 
                 {canCreateAvailability ? (
-                  <>
-                    {(selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0) > 0 ? (
-                      <div style={{ display: "grid", gap: 12 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                          }}
-                        >
-                          <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                            Mancanze del giorno
-                          </strong>
-                          <CountBadge
-                            count={
-                              (selectedDay?.availabilities.length ?? 0) +
-                              (selectedDay?.requests.length ?? 0)
-                            }
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Nuova indisponibilita
+                      </strong>
+                      <IconButton
+                        type="button"
+                        onClick={openAvailabilityComposer}
+                        aria-label="Apri indisponibilita"
+                        disabled={isPending}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
                           />
-                        </div>
-
-                        <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                          {(selectedDay?.availabilities ?? []).map((availability) =>
-                            renderAvailabilityCard(availability, true)
-                          )}
-                          {(selectedDay?.requests ?? []).map((request) =>
-                            renderApprovedRequestCard(request, true)
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ color: "#64748b" }}>
-                        Nessuna mancanza registrata in questa giornata.
-                      </div>
-                    )}
-
-                    <div style={{ display: "grid", gap: 12 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 12,
-                        }}
-                      >
-                        <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                          Nuova richiesta
-                        </strong>
-                        <IconButton
-                          type="button"
-                          onClick={openRequestComposer}
-                          aria-label="Apri nuova richiesta"
-                          disabled={isPending}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path
-                              d="M12 5v14M5 12h14"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </IconButton>
-                      </div>
+                        </svg>
+                      </IconButton>
                     </div>
+                  </div>
+                ) : null}
 
-                    <div style={{ display: "grid", gap: 12 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 12,
-                        }}
-                      >
-                        <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                          Nuova indisponibilita
-                        </strong>
-                        <IconButton
-                          type="button"
-                          onClick={openAvailabilityComposer}
-                          aria-label="Apri indisponibilita"
-                          disabled={isPending}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path
-                              d="M12 5v14M5 12h14"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </IconButton>
-                      </div>
-                    </div>
-
-                    {showRequestComposer ? (
+                {showRequestComposer ? (
                       <div
                         style={{
                           position: "fixed",
@@ -1786,7 +1791,7 @@ export function DayActionCalendarClient({
                       </div>
                     ) : null}
 
-                    {showAvailabilityComposer ? (
+                {showAvailabilityComposer && canCreateAvailability ? (
                       <div
                         style={{
                           position: "fixed",
@@ -1875,8 +1880,6 @@ export function DayActionCalendarClient({
                         </div>
                       </div>
                     ) : null}
-                  </>
-                ) : null}
 
                 <div style={{ display: "grid", gap: 10 }}>
                   <div

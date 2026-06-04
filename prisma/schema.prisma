@@ -242,6 +242,7 @@ model BarSettings {
   gpsLatitude     Float?
   gpsLongitude    Float?
   gpsRadius       Int?
+  companyShiftsEnabled Boolean?
   roundingEnabled Boolean       @default(false)
   roundingMinutes Int?
   roundingMode    RoundingMode?

@@ -1,4 +1,4 @@
-import { RequestStatus, RequestType, Role } from "@prisma/client";
+import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { createShiftAction } from "../actions";
@@ -32,7 +32,14 @@ function getLocale(language: string) {
 }
 
 export default async function DashboardShiftsPage() {
-  const { session, role, activeBarId, language, billingStatus } = await getDashboardContext();
+  const {
+    session,
+    role,
+    activeBarId,
+    activeBarActivityType,
+    language,
+    billingStatus,
+  } = await getDashboardContext();
 
   if (!activeBarId) {
     return (
@@ -46,6 +53,7 @@ export default async function DashboardShiftsPage() {
     return <BillingRequiredState role={String(role)} />;
   }
 
+  const isCompany = activeBarActivityType === ActivityType.COMPANY;
   const canManage = role === Role.OWNER || role === Role.MANAGER;
   const [shifts, members, availabilities, approvedTimeOff, settings] = await Promise.all([
     prisma.shift.findMany({
@@ -163,15 +171,18 @@ export default async function DashboardShiftsPage() {
             afternoonEndTime: true,
             eveningStartTime: true,
             eveningEndTime: true,
+            companyShiftsEnabled: true,
           },
         })
       : Promise.resolve(null),
   ]);
   const shiftPresets = buildShiftPresets(settings);
+  const shiftsEnabled = !isCompany || Boolean(settings?.companyShiftsEnabled);
+  const canManageShifts = canManage && shiftsEnabled;
 
   return (
     <Stack>
-      {canManage ? (
+      {canManageShifts ? (
         <Panel title="Crea turno condiviso">
           <ShiftCreateForm
             action={createShiftAction}
@@ -184,6 +195,10 @@ export default async function DashboardShiftsPage() {
             }))}
           />
         </Panel>
+      ) : isCompany ? (
+        <Panel title="Turni aziendali">
+          <EmptyState message="Attiva i turni nelle impostazioni per gestirli." />
+        </Panel>
       ) : null}
 
       <Panel title="Turni pianificati" action={`${shifts.length} turni`}>
@@ -192,7 +207,7 @@ export default async function DashboardShiftsPage() {
         ) : (
           <PlannedShiftsList
             locale={getLocale(language)}
-            canManage={canManage}
+            canManage={canManageShifts}
             members={members.map((member) => ({
               id: member.user.id,
               firstName: member.user.firstName,

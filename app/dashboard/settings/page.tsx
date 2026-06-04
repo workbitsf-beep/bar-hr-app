@@ -13,7 +13,6 @@ import {
   Panel,
   PrimaryButton,
   Stack,
-  TextInput,
 } from "../ui";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { PasswordChangePanel } from "./password-change-panel";
@@ -70,6 +69,21 @@ export default async function DashboardSettingsPage() {
     prisma.barSettings.findUnique({
       where: {
         barId: activeBarId,
+      },
+      select: {
+        gpsLatitude: true,
+        gpsLongitude: true,
+        gpsRadius: true,
+        roundingEnabled: true,
+        roundingMinutes: true,
+        roundingMode: true,
+        morningStartTime: true,
+        morningEndTime: true,
+        afternoonStartTime: true,
+        afternoonEndTime: true,
+        eveningStartTime: true,
+        eveningEndTime: true,
+        companyShiftsEnabled: true,
       },
     }),
     getGlobalGpsRadius(),
@@ -165,7 +179,19 @@ export default async function DashboardSettingsPage() {
           </Panel>
         ) : (
           <Panel title="Impostazioni azienda">
-            <EmptyState message="Configurazione azienda pronta." />
+            <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+              <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  name="companyShiftsEnabled"
+                  defaultChecked={Boolean(settings?.companyShiftsEnabled)}
+                />
+                Turni attivi
+              </label>
+              <div className="dashboard-form-actions">
+                <PrimaryButton type="submit">Salva</PrimaryButton>
+              </div>
+            </form>
           </Panel>
         )}
       </Stack>

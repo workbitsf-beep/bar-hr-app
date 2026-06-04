@@ -168,25 +168,24 @@ export default async function DashboardCalendarPage({
     notes,
   ] =
     await Promise.all([
-      isRestaurant
-        ? prisma.barSettings.findUnique({
-            where: { barId: activeBarId },
-            select: {
-              gpsLatitude: true,
-              gpsLongitude: true,
-              gpsRadius: true,
-              roundingEnabled: true,
-              roundingMinutes: true,
-              roundingMode: true,
-              morningStartTime: true,
-              morningEndTime: true,
-              afternoonStartTime: true,
-              afternoonEndTime: true,
-              eveningStartTime: true,
-              eveningEndTime: true,
-            },
-          })
-        : Promise.resolve(null),
+      prisma.barSettings.findUnique({
+        where: { barId: activeBarId },
+        select: {
+          gpsLatitude: true,
+          gpsLongitude: true,
+          gpsRadius: true,
+          companyShiftsEnabled: true,
+          roundingEnabled: true,
+          roundingMinutes: true,
+          roundingMode: true,
+          morningStartTime: true,
+          morningEndTime: true,
+          afternoonStartTime: true,
+          afternoonEndTime: true,
+          eveningStartTime: true,
+          eveningEndTime: true,
+        },
+      }),
       prisma.shift.findMany({
             where: {
               barId: activeBarId,
@@ -221,34 +220,32 @@ export default async function DashboardCalendarPage({
               },
             },
           }),
-      isRestaurant
-        ? prisma.availability.findMany({
-            where: {
-              barId: activeBarId,
-              startsAt: {
-                lte: calendarEnd,
-              },
-              endsAt: {
-                gte: calendarStart,
-              },
-            },
+      prisma.availability.findMany({
+        where: {
+          barId: activeBarId,
+          startsAt: {
+            lte: calendarEnd,
+          },
+          endsAt: {
+            gte: calendarStart,
+          },
+        },
+        select: {
+          id: true,
+          userId: true,
+          startsAt: true,
+          endsAt: true,
+          user: {
             select: {
-              id: true,
-              userId: true,
-              startsAt: true,
-              endsAt: true,
-              user: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                },
-              },
+              firstName: true,
+              lastName: true,
             },
-            orderBy: {
-              startsAt: "asc",
-            },
-          })
-        : Promise.resolve([]),
+          },
+        },
+        orderBy: {
+          startsAt: "asc",
+        },
+      }),
       prisma.request.findMany({
         where: {
           barId: activeBarId,
@@ -379,46 +376,23 @@ export default async function DashboardCalendarPage({
           startsAt: "asc",
         },
       }),
-      canManageRestaurantShifts || canManageCompanyShifts || canAssignCourses
-        ? prisma.employeeBar.findMany({
-            where: {
-              barId: activeBarId,
-              isActive: true,
-            },
-            orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
+      prisma.employeeBar.findMany({
+        where: {
+          barId: activeBarId,
+          isActive: true,
+        },
+        orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
+        select: {
+          role: true,
+          user: {
             select: {
-              role: true,
-              user: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                },
-              },
+              id: true,
+              firstName: true,
+              lastName: true,
             },
-          })
-        : canAssignCourses
-          ? prisma.employeeBar.findMany({
-              where: {
-                barId: activeBarId,
-                isActive: true,
-                role: {
-                  not: Role.OWNER,
-                },
-              },
-              orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-              select: {
-                role: true,
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                  },
-                },
-              },
-            })
-          : Promise.resolve([]),
+          },
+        },
+      }),
       prisma.task.findMany({
         where: {
           barId: activeBarId,
@@ -709,7 +683,9 @@ export default async function DashboardCalendarPage({
       shift.startTime <= currentMonthEnd &&
       shift.endTime >= currentMonthStart
   ).length;
-  const canPublishShifts = role === Role.OWNER || role === Role.MANAGER;
+  const canPublishShifts =
+    (role === Role.OWNER || role === Role.MANAGER) &&
+    (isRestaurant || Boolean(settings?.companyShiftsEnabled));
 
   return (
     <Stack columns="minmax(0, 1fr)">
@@ -779,6 +755,7 @@ export default async function DashboardCalendarPage({
             filteredDay={dayFilter}
             role={String(role)}
             activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
+            companyShiftsEnabled={Boolean(settings?.companyShiftsEnabled)}
             members={memberOptions}
             presets={shiftPresets}
             currentUserId={session.user.id}

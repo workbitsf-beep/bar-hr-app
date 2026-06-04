@@ -24,22 +24,33 @@ function barNeedsSetup(input: {
     gpsLatitude: number | null;
     gpsLongitude: number | null;
     gpsRadius: number | null;
+    companyShiftsEnabled: boolean | null;
     roundingMinutes: number | null;
     roundingMode: string | null;
   } | null;
 }) {
+  if (!input.settings) {
+    return true;
+  }
+
+  if (
+    input.activityType === ActivityType.COMPANY &&
+    input.settings.companyShiftsEnabled === null
+  ) {
+    return true;
+  }
+
   const needsGps =
     input.activityType === ActivityType.RESTAURANT &&
-    (!input.settings ||
-      input.settings.gpsLatitude === null ||
+    (input.settings.gpsLatitude === null ||
       input.settings.gpsLongitude === null ||
       input.settings.gpsRadius === null);
 
   return Boolean(
-    !input.settings ||
-      needsGps ||
-      input.settings.roundingMinutes === null ||
-      input.settings.roundingMode === null
+    needsGps ||
+      (input.activityType === ActivityType.RESTAURANT &&
+        (input.settings.roundingMinutes === null ||
+          input.settings.roundingMode === null))
   );
 }
 
@@ -210,6 +221,7 @@ const ownerBarSelection = {
       gpsLatitude: true,
       gpsLongitude: true,
       gpsRadius: true,
+      companyShiftsEnabled: true,
       roundingMinutes: true,
       roundingMode: true,
     },

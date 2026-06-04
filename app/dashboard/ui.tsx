@@ -45,7 +45,7 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
     "/dashboard/calendar",
     "/dashboard",
     "/dashboard/tasks",
-    "/dashboard/settings",
+    "/dashboard/requests",
   ];
   const preferred = preferredHrefs
     .map((href) => navItems.find((item) => item.href === href))

@@ -6,6 +6,7 @@ import { GpsLocationField } from "@/app/components/gps-location-field";
 import { PendingButton } from "@/app/components/pending-button";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { AutoSubmitSelectForm } from "@/app/dashboard/auto-submit-select-form";
+import { updateSettingsAction } from "@/app/dashboard/actions";
 import { getSession } from "@/lib/auth";
 import { barNeedsSubscriptionActivation } from "@/lib/billing";
 import {
@@ -39,6 +40,7 @@ type OnboardingBar = {
     gpsLatitude: number | null;
     gpsLongitude: number | null;
     gpsRadius: number | null;
+    companyShiftsEnabled: boolean | null;
     roundingMinutes: number | null;
     roundingMode: RoundingMode | null;
   } | null;
@@ -47,6 +49,10 @@ type OnboardingBar = {
 function barNeedsSetup(bar: OnboardingBar) {
   if (!bar) {
     return false;
+  }
+
+  if (bar.activityType === ActivityType.COMPANY) {
+    return bar.settings?.companyShiftsEnabled === null;
   }
 
   const needsGps =
@@ -123,15 +129,16 @@ async function getOwnerContext() {
             id: true,
             name: true,
             activityType: true,
-            settings: {
-              select: {
-                gpsLatitude: true,
-                gpsLongitude: true,
-                gpsRadius: true,
-                roundingMinutes: true,
-                roundingMode: true,
-                roundingEnabled: true,
-              },
+              settings: {
+                select: {
+                  gpsLatitude: true,
+                  gpsLongitude: true,
+                  gpsRadius: true,
+                  companyShiftsEnabled: true,
+                  roundingMinutes: true,
+                  roundingMode: true,
+                  roundingEnabled: true,
+                },
             },
             memberships: {
               where: { isActive: true },
@@ -170,6 +177,7 @@ async function getOwnerContext() {
                 gpsLatitude: true,
                 gpsLongitude: true,
                 gpsRadius: true,
+                companyShiftsEnabled: true,
                 roundingMinutes: true,
                 roundingMode: true,
                 roundingEnabled: true,
@@ -202,10 +210,8 @@ function getCurrentStep(activeBar: Awaited<ReturnType<typeof getOwnerContext>>["
     return 1;
   }
 
-  const requiresGps = activeBar.activityType === ActivityType.RESTAURANT;
-
   if (
-    requiresGps &&
+    activeBar.activityType === ActivityType.RESTAURANT &&
     (!activeBar.settings ||
       activeBar.settings.gpsLatitude === null ||
       activeBar.settings.gpsLongitude === null ||
@@ -214,11 +220,21 @@ function getCurrentStep(activeBar: Awaited<ReturnType<typeof getOwnerContext>>["
     return 2;
   }
 
-  if (!hasCompletedRoundingSetup(activeBar.settings)) {
+  if (
+    activeBar.activityType === ActivityType.COMPANY &&
+    activeBar.settings?.companyShiftsEnabled === null
+  ) {
+    return 2;
+  }
+
+  if (
+    activeBar.activityType === ActivityType.RESTAURANT &&
+    !hasCompletedRoundingSetup(activeBar.settings)
+  ) {
     return 3;
   }
 
-  return 4;
+  return activeBar.activityType === ActivityType.RESTAURANT ? 4 : 3;
 }
 
 async function createBarAction(formData: FormData) {
@@ -309,15 +325,16 @@ async function switchBarAction(formData: FormData) {
     },
     select: {
       activityType: true,
-      settings: {
-        select: {
-          gpsLatitude: true,
-          gpsLongitude: true,
-          gpsRadius: true,
-          roundingMinutes: true,
-          roundingMode: true,
-        },
-      },
+            settings: {
+              select: {
+                gpsLatitude: true,
+                gpsLongitude: true,
+                gpsRadius: true,
+                companyShiftsEnabled: true,
+                roundingMinutes: true,
+                roundingMode: true,
+              },
+            },
     },
   });
 
@@ -775,8 +792,8 @@ export default async function OnboardingPage({
       ] as const)
     : ([
         { id: 1 as StepNumber, title: "Locale" },
-        { id: 3 as StepNumber, title: "Arrotondamento" },
-        { id: 4 as StepNumber, title: "Team" },
+        { id: 2 as StepNumber, title: "Turni" },
+        { id: 3 as StepNumber, title: "Team" },
       ] as const);
   const teamMembers = activeBar?.memberships ?? [];
   const invitedMembers =
@@ -786,14 +803,15 @@ export default async function OnboardingPage({
     ? ownedBars.find((bar) => bar.id !== activeBar.id) ?? null
     : null;
   const computedStep = getCurrentStep(activeBar);
+  const finalStep = showGpsStep ? 4 : 3;
   const requestedStepRaw = Array.isArray(params.step) ? params.step[0] : params.step;
   const requestedStep = requestedStepRaw ? Number(requestedStepRaw) : computedStep;
   const currentStep =
-    requestedStep >= computedStep && requestedStep <= 4
+    requestedStep >= computedStep && requestedStep <= finalStep
       ? (requestedStep as StepNumber)
       : computedStep;
 
-  if (computedStep === 4 && activeBar && invitedMembers.length > 0 && requestedStepRaw === "done") {
+  if (computedStep === finalStep && activeBar && invitedMembers.length > 0 && requestedStepRaw === "done") {
     redirect("/dashboard");
   }
 
@@ -878,7 +896,33 @@ export default async function OnboardingPage({
         </Card>
       ) : null}
 
-      {currentStep === 3 && activeBar ? (
+      {currentStep === 2 && activeBar && !showGpsStep ? (
+        <Card title="Attiva i turni">
+          <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                fontWeight: 600,
+              }}
+            >
+              <input
+                name="companyShiftsEnabled"
+                type="checkbox"
+                defaultChecked={Boolean(activeBar.settings?.companyShiftsEnabled)}
+              />
+              Turni attivi
+            </label>
+
+            <div>
+              <SubmitButton label="Continua" />
+            </div>
+          </form>
+        </Card>
+      ) : null}
+
+      {currentStep === 3 && activeBar && showGpsStep ? (
         <Card
           title="Imposta l'arrotondamento"
         >
@@ -909,7 +953,7 @@ export default async function OnboardingPage({
         </Card>
       ) : null}
 
-      {currentStep === 4 && activeBar ? (
+      {currentStep === (showGpsStep ? 4 : 3) && activeBar ? (
         <div
           style={{
             display: "grid",

@@ -510,6 +510,26 @@ function ensureSuperAdminRole(role: Role | string) {
   }
 }
 
+async function ensureCompanyShiftsEnabled(
+  activeBarId: string,
+  activityType: ActivityType | null
+) {
+  if (activityType !== ActivityType.COMPANY) {
+    return;
+  }
+
+  const settings = await prisma.barSettings.findUnique({
+    where: { barId: activeBarId },
+    select: {
+      companyShiftsEnabled: true,
+    },
+  });
+
+  if (!settings?.companyShiftsEnabled) {
+    throw new Error("Shifts not enabled");
+  }
+}
+
 async function getActionContext() {
   const session = await getSession();
 
@@ -531,6 +551,7 @@ async function getActionContext() {
     session,
     role,
     activeBarId: activeBar?.id ?? null,
+    activeBarActivityType: activeBar?.activityType ?? null,
   };
 }
 
@@ -1559,12 +1580,14 @@ export async function deleteAllCompletedTasksAction() {
 }
 
 export async function createShiftAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
   ensureOperationRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
   }
+
+  await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
   const title = String(formData.get("title") ?? "").trim();
   const startTime = parseRequiredDate(formData.get("startTime"));
@@ -1614,12 +1637,14 @@ export async function createShiftAction(formData: FormData) {
 }
 
 export async function updateShiftAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
   ensureOperationRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
   }
+
+  await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
   const shiftId = String(formData.get("shiftId") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
@@ -1734,12 +1759,14 @@ export async function confirmShiftAction(formData: FormData) {
 }
 
 export async function deleteShiftAction(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
+  const { role, activeBarId, activeBarActivityType } = await getActionContext();
   ensureOperationRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
   }
+
+  await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
   const shiftId = String(formData.get("shiftId") ?? "").trim();
 
@@ -1897,10 +1924,14 @@ export async function deleteBoardNoteAction(formData: FormData) {
 }
 
 export async function createAvailabilityAction(formData: FormData) {
-  const { session, activeBarId } = await getActionContext();
+  const { session, activeBarId, activeBarActivityType } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
+  }
+
+  if (activeBarActivityType === ActivityType.COMPANY) {
+    throw new Error("Availability not allowed");
   }
 
   const startsAt = parseRequiredDate(formData.get("startsAt"));
@@ -2237,88 +2268,110 @@ export async function updateSettingsAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
-  const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
-  const gpsRadius = await getGlobalGpsRadius();
-  const roundingEnabled = formData.get("roundingEnabled") === "on";
-  const roundingMinutes = 15;
-  const roundingMode = "NEAREST";
-  const morningPreset = parseShiftPresetPair(
-    formData.get("morningStartTime"),
-    formData.get("morningEndTime")
-  );
-  const afternoonPreset = parseShiftPresetPair(
-    formData.get("afternoonStartTime"),
-    formData.get("afternoonEndTime")
-  );
-  const eveningPreset = parseShiftPresetPair(
-    formData.get("eveningStartTime"),
-    formData.get("eveningEndTime")
-  );
   const currentBar = await prisma.bar.findUnique({
     where: { id: activeBarId },
     select: {
+      activityType: true,
       latitude: true,
       longitude: true,
     },
   });
 
-  const resolvedLatitude = gpsLatitude ?? currentBar?.latitude ?? null;
-  const resolvedLongitude = gpsLongitude ?? currentBar?.longitude ?? null;
-
-  if (resolvedLatitude === null || resolvedLongitude === null) {
-    throw new Error("Missing GPS settings");
+  if (!currentBar) {
+    throw new Error("Bar not found");
   }
 
-  await prisma.$transaction([
-    prisma.bar.update({
-      where: { id: activeBarId },
-      data: {
-        latitude: resolvedLatitude,
-        longitude: resolvedLongitude,
-        radiusMeters: Math.round(gpsRadius),
-        roundingEnabled,
-        roundingStepMin: roundingMinutes,
-      },
-    }),
-    prisma.barSettings.upsert({
+  if (currentBar.activityType === ActivityType.COMPANY) {
+    const companyShiftsEnabled = formData.get("companyShiftsEnabled") === "on";
+
+    await prisma.barSettings.upsert({
       where: { barId: activeBarId },
       update: {
-        gpsLatitude: resolvedLatitude,
-        gpsLongitude: resolvedLongitude,
-        gpsRadius: Math.round(gpsRadius),
-        roundingEnabled,
-        roundingMinutes,
-        roundingMode,
-        morningStartTime: morningPreset.startTime,
-        morningEndTime: morningPreset.endTime,
-        afternoonStartTime: afternoonPreset.startTime,
-        afternoonEndTime: afternoonPreset.endTime,
-        eveningStartTime: eveningPreset.startTime,
-        eveningEndTime: eveningPreset.endTime,
+        companyShiftsEnabled,
       },
       create: {
         barId: activeBarId,
-        gpsLatitude: resolvedLatitude,
-        gpsLongitude: resolvedLongitude,
-        gpsRadius: Math.round(gpsRadius),
-        roundingEnabled,
-        roundingMinutes,
-        roundingMode,
-        morningStartTime: morningPreset.startTime,
-        morningEndTime: morningPreset.endTime,
-        afternoonStartTime: afternoonPreset.startTime,
-        afternoonEndTime: afternoonPreset.endTime,
-        eveningStartTime: eveningPreset.startTime,
-        eveningEndTime: eveningPreset.endTime,
+        companyShiftsEnabled,
       },
-    }),
-  ]);
+    });
+  } else {
+    const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
+    const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
+    const gpsRadius = await getGlobalGpsRadius();
+    const roundingEnabled = formData.get("roundingEnabled") === "on";
+    const roundingMinutes = 15;
+    const roundingMode = "NEAREST";
+    const morningPreset = parseShiftPresetPair(
+      formData.get("morningStartTime"),
+      formData.get("morningEndTime")
+    );
+    const afternoonPreset = parseShiftPresetPair(
+      formData.get("afternoonStartTime"),
+      formData.get("afternoonEndTime")
+    );
+    const eveningPreset = parseShiftPresetPair(
+      formData.get("eveningStartTime"),
+      formData.get("eveningEndTime")
+    );
+
+    const resolvedLatitude = gpsLatitude ?? currentBar.latitude ?? null;
+    const resolvedLongitude = gpsLongitude ?? currentBar.longitude ?? null;
+
+    if (resolvedLatitude === null || resolvedLongitude === null) {
+      throw new Error("Missing GPS settings");
+    }
+
+    await prisma.$transaction([
+      prisma.bar.update({
+        where: { id: activeBarId },
+        data: {
+          latitude: resolvedLatitude,
+          longitude: resolvedLongitude,
+          radiusMeters: Math.round(gpsRadius),
+          roundingEnabled,
+          roundingStepMin: roundingMinutes,
+        },
+      }),
+      prisma.barSettings.upsert({
+        where: { barId: activeBarId },
+        update: {
+          gpsLatitude: resolvedLatitude,
+          gpsLongitude: resolvedLongitude,
+          gpsRadius: Math.round(gpsRadius),
+          roundingEnabled,
+          roundingMinutes,
+          roundingMode,
+          morningStartTime: morningPreset.startTime,
+          morningEndTime: morningPreset.endTime,
+          afternoonStartTime: afternoonPreset.startTime,
+          afternoonEndTime: afternoonPreset.endTime,
+          eveningStartTime: eveningPreset.startTime,
+          eveningEndTime: eveningPreset.endTime,
+        },
+        create: {
+          barId: activeBarId,
+          gpsLatitude: resolvedLatitude,
+          gpsLongitude: resolvedLongitude,
+          gpsRadius: Math.round(gpsRadius),
+          roundingEnabled,
+          roundingMinutes,
+          roundingMode,
+          morningStartTime: morningPreset.startTime,
+          morningEndTime: morningPreset.endTime,
+          afternoonStartTime: afternoonPreset.startTime,
+          afternoonEndTime: afternoonPreset.endTime,
+          eveningStartTime: eveningPreset.startTime,
+          eveningEndTime: eveningPreset.endTime,
+        },
+      }),
+    ]);
+  }
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/timelogs");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/shifts");
+  revalidatePath("/onboarding");
 }
 
 export async function updateGlobalGpsRadiusAction(nextRadius: number) {
