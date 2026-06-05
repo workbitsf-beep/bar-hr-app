@@ -16,6 +16,7 @@ import {
   createShiftAction,
   createTaskAction,
   createTimeOffRequestAction,
+  confirmShiftAction,
   reviewRequestAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
@@ -119,6 +120,7 @@ type DayItem = {
   isToday: boolean;
   inCurrentMonth: boolean;
   shifts: ShiftItem[];
+  pendingOnCallShifts: ShiftItem[];
   availabilities: AvailabilityItem[];
   requests: RequestItem[];
   pendingRequests: PendingRequestItem[];
@@ -297,7 +299,7 @@ function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
         </strong>
         {shift.isOnCall ? (
           <span style={{ color: "#b45309", fontSize: mobile ? 13 : 12, fontWeight: 600 }}>
-            Reperibilita
+            {shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
           </span>
         ) : null}
         <span style={{ color: "#475569", fontSize: mobile ? 14 : 12 }}>
@@ -407,6 +409,31 @@ function renderPendingRequestCard(request: PendingRequestItem, mobile = false) {
       }}
     >
       Da approvare: {request.firstName} {request.lastName}
+    </div>
+  );
+}
+
+function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = false) {
+  return (
+    <div
+      key={shift.id}
+      style={{
+        padding: mobile ? "12px 14px" : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#fff7ed",
+        border: "1px solid #fed7aa",
+        color: "#9a3412",
+        lineHeight: 1.6,
+        fontSize: mobile ? 14 : 13,
+        display: "grid",
+        gap: 6,
+      }}
+    >
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 14 : 13 }}>
+        Reperibilita da approvare
+      </strong>
+      <span style={{ color: "#334155" }}>{formatRange(shift.startTime, shift.endTime, locale)}</span>
+      <span style={{ color: "#475569" }}>{formatAssignmentNames(shift.assignments)}</span>
     </div>
   );
 }
@@ -567,6 +594,7 @@ export function DayActionCalendarClient({
   const isCompany = activityType === ActivityType.COMPANY;
   const canManageOptionalShifts =
     isCompany && companyShiftsEnabled && (role === Role.OWNER || role === Role.MANAGER);
+  const canManageOnCall = role === Role.OWNER || role === Role.MANAGER;
   const canCreateRequest = role !== Role.OWNER;
   const canCreateAvailability = !isCompany && role !== Role.OWNER;
   const canCreateCourse = role === Role.OWNER || role === Role.MANAGER;
@@ -867,6 +895,15 @@ export function DayActionCalendarClient({
       },
       decision === RequestStatus.APPROVED ? "Richiesta approvata." : "Richiesta rifiutata."
     );
+  }
+
+  function submitOnCallApproval(shiftId: string) {
+    const formData = new FormData();
+    formData.set("shiftId", shiftId);
+
+    runAction(async () => {
+      await confirmShiftAction(formData);
+    }, "Reperibilita approvata.");
   }
 
   function submitTaskCompletion(taskId: string) {
@@ -1499,6 +1536,76 @@ export function DayActionCalendarClient({
                         ))}
                       </div>
                     )}
+                  </div>
+                ) : null}
+
+                {(selectedDay?.pendingOnCallShifts ?? []).filter(
+                  (shift) =>
+                    canManageOnCall ||
+                    shift.assignments.some((assignment) => assignment.id === currentUserId)
+                ).length > 0 ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Reperibilita da approvare
+                      </strong>
+                      <CountBadge
+                        count={
+                          (selectedDay?.pendingOnCallShifts ?? []).filter(
+                            (shift) =>
+                              canManageOnCall ||
+                              shift.assignments.some(
+                                (assignment) => assignment.id === currentUserId
+                              )
+                          ).length
+                        }
+                      />
+                    </div>
+
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {(selectedDay?.pendingOnCallShifts ?? [])
+                        .filter(
+                          (shift) =>
+                            canManageOnCall ||
+                            shift.assignments.some(
+                              (assignment) => assignment.id === currentUserId
+                            )
+                        )
+                        .map((shift) => (
+                          <div
+                            key={shift.id}
+                            className="dashboard-list-card"
+                            style={{
+                              padding: 14,
+                              borderRadius: 18,
+                              background: "#fff7ed",
+                              border: "1px solid #fed7aa",
+                              display: "grid",
+                              gap: 10,
+                            }}
+                          >
+                            {renderPendingOnCallCard(shift, locale, true)}
+
+                            <div className="dashboard-action-row">
+                              <PrimaryButton
+                                type="button"
+                                tone="green"
+                                onClick={() => submitOnCallApproval(shift.id)}
+                                disabled={isPending}
+                              >
+                                Approva
+                              </PrimaryButton>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 ) : null}
 

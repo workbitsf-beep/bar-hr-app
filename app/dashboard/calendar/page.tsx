@@ -581,7 +581,7 @@ export default async function DashboardCalendarPage({
     date: day.date.toISOString(),
     isToday: day.date.toDateString() === today.toDateString(),
     inCurrentMonth: true,
-      shifts: day.shifts.map((shift) => ({
+    shifts: day.shifts.map((shift) => ({
       id: shift.id,
       title: shift.title,
       startTime: shift.startTime.toISOString(),
@@ -593,8 +593,24 @@ export default async function DashboardCalendarPage({
         firstName: assignment.user.firstName,
         lastName: assignment.user.lastName,
         role: assignment.user.role,
+        })),
       })),
-    })),
+      pendingOnCallShifts: day.shifts
+        .filter((shift) => shift.isOnCall && !shift.confirmedAt)
+        .map((shift) => ({
+          id: shift.id,
+          title: shift.title,
+          startTime: shift.startTime.toISOString(),
+          endTime: shift.endTime.toISOString(),
+          confirmedAt: shift.confirmedAt?.toISOString() ?? null,
+          isOnCall: shift.isOnCall,
+          assignments: shift.assignments.map((assignment) => ({
+            id: assignment.user.id,
+            firstName: assignment.user.firstName,
+            lastName: assignment.user.lastName,
+            role: assignment.user.role,
+          })),
+        })),
     availabilities: day.availabilities.map((availability) => ({
       id: availability.id,
       userId: availability.userId,

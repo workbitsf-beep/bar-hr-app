@@ -16,6 +16,7 @@ import {
   createShiftAction,
   createTaskAction,
   createTimeOffRequestAction,
+  confirmShiftAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout } from "../ui";
@@ -107,6 +108,7 @@ type DayItem = {
   isToday: boolean;
   inCurrentMonth: boolean;
   shifts: ShiftItem[];
+  pendingOnCallShifts: ShiftItem[];
   availabilities: AvailabilityItem[];
   requests: RequestItem[];
   courses: CourseItem[];
@@ -157,6 +159,10 @@ function formatDayLabel(value: string, locale: string) {
     day: "numeric",
     month: "long",
   }).format(new Date(value));
+}
+
+function formatRange(start: string, end: string, locale: string) {
+  return `${formatDayTime(start, locale)} - ${formatDayTime(end, locale)}`;
 }
 
 function formatRoleLabel(role: string) {
@@ -240,7 +246,7 @@ function renderCompactShiftCard(shift: ShiftItem, locale: string, mobile = false
         </strong>
         {shift.isOnCall ? (
           <span style={{ color: "#b45309", fontSize: mobile ? 13 : 12, fontWeight: 600 }}>
-            Reperibilita
+            {shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
           </span>
         ) : null}
         <span style={{ color: "#475569", fontSize: mobile ? 14 : 12 }}>
@@ -304,6 +310,31 @@ function renderApprovedRequestCard(request: RequestItem, mobile = false) {
           <span style={{ color: "#b91c1c" }}>Approvata da: {request.approvedBy}</span>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = false) {
+  return (
+    <div
+      key={shift.id}
+      style={{
+        padding: mobile ? "12px 14px" : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#fff7ed",
+        border: "1px solid #fed7aa",
+        color: "#9a3412",
+        lineHeight: 1.6,
+        fontSize: mobile ? 14 : 13,
+        display: "grid",
+        gap: 6,
+      }}
+    >
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 14 : 13 }}>
+        Reperibilita da approvare
+      </strong>
+      <span style={{ color: "#334155" }}>{formatRange(shift.startTime, shift.endTime, locale)}</span>
+      <span style={{ color: "#475569" }}>{formatAssignmentNames(shift.assignments)}</span>
     </div>
   );
 }
@@ -447,6 +478,7 @@ export function OwnerCalendarClient({
         : weeks,
     [filteredDay, weeks]
   );
+  const canManageOnCall = role === "OWNER" || role === "MANAGER";
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
       return new Map<string, string>();
@@ -728,6 +760,15 @@ export function OwnerCalendarClient({
     runAction(async () => {
       await completeTaskAction(formData);
     }, "Mansione completata.");
+  }
+
+  function handleConfirmOnCall(shiftId: string) {
+    const formData = new FormData();
+    formData.set("shiftId", shiftId);
+
+    runAction(async () => {
+      await confirmShiftAction(formData);
+    }, "Reperibilita approvata.");
   }
 
   function handleQuickTaskCreate(formData: FormData) {
@@ -1710,6 +1751,76 @@ export function OwnerCalendarClient({
                       ))}
                     </div>
                   )}
+                  </div>
+                ) : null}
+
+                {(selectedDay?.pendingOnCallShifts ?? []).filter(
+                  (shift) =>
+                    canManageOnCall ||
+                    shift.assignments.some((assignment) => assignment.id === currentUserId)
+                ).length > 0 ? (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Reperibilita da approvare
+                      </strong>
+                      <CountBadge
+                        count={
+                          (selectedDay?.pendingOnCallShifts ?? []).filter(
+                            (shift) =>
+                              canManageOnCall ||
+                              shift.assignments.some(
+                                (assignment) => assignment.id === currentUserId
+                              )
+                          ).length
+                        }
+                      />
+                    </div>
+
+                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                      {(selectedDay?.pendingOnCallShifts ?? [])
+                        .filter(
+                          (shift) =>
+                            canManageOnCall ||
+                            shift.assignments.some(
+                              (assignment) => assignment.id === currentUserId
+                            )
+                        )
+                        .map((shift) => (
+                          <div
+                            key={shift.id}
+                            className="dashboard-list-card"
+                            style={{
+                              padding: 14,
+                              borderRadius: 18,
+                              background: "#fff7ed",
+                              border: "1px solid #fed7aa",
+                              display: "grid",
+                              gap: 10,
+                            }}
+                          >
+                            {renderPendingOnCallCard(shift, locale, true)}
+
+                            <div className="dashboard-action-row">
+                              <PrimaryButton
+                                type="button"
+                                tone="green"
+                                onClick={() => handleConfirmOnCall(shift.id)}
+                                disabled={isPending}
+                              >
+                                Approva
+                              </PrimaryButton>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 ) : null}
 
