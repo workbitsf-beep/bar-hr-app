@@ -315,13 +315,27 @@ export function ClockActionsPanel({
           </PrimaryButton>
           <div
             className="dashboard-clock-actions-row"
-            style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 0,
+              borderRadius: 18,
+              overflow: "hidden",
+              border: "1px solid #dbe3ee",
+              background: "#ffffff",
+            }}
           >
             <PrimaryButton
               type="button"
               tone="green"
               onClick={() => runClockAction("clock-in")}
               disabled={submitting !== null || !insideRadius || !geoReady}
+              style={{
+                borderRadius: 0,
+                borderTopLeftRadius: 18,
+                borderBottomLeftRadius: 18,
+                boxShadow: "none",
+              }}
             >
               {submitting === "in" ? "Registrazione..." : "Entrata"}
             </PrimaryButton>
@@ -330,6 +344,12 @@ export function ClockActionsPanel({
               tone="red"
               onClick={() => runClockAction("clock-out")}
               disabled={submitting !== null || !insideRadius || !geoReady}
+              style={{
+                borderRadius: 0,
+                borderTopRightRadius: 18,
+                borderBottomRightRadius: 18,
+                boxShadow: "none",
+              }}
             >
               {submitting === "out" ? "Registrazione..." : "Uscita"}
             </PrimaryButton>
