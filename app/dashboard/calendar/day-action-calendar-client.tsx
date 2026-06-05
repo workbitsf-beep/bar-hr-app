@@ -594,7 +594,6 @@ export function DayActionCalendarClient({
   const isCompany = activityType === ActivityType.COMPANY;
   const canManageOptionalShifts =
     isCompany && companyShiftsEnabled && (role === Role.OWNER || role === Role.MANAGER);
-  const canManageOnCall = role === Role.OWNER || role === Role.MANAGER;
   const canCreateRequest = role !== Role.OWNER;
   const canCreateAvailability = !isCompany && role !== Role.OWNER;
   const canCreateCourse = role === Role.OWNER || role === Role.MANAGER;
@@ -1540,9 +1539,7 @@ export function DayActionCalendarClient({
                 ) : null}
 
                 {(selectedDay?.pendingOnCallShifts ?? []).filter(
-                  (shift) =>
-                    canManageOnCall ||
-                    shift.assignments.some((assignment) => assignment.id === currentUserId)
+                  (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
@@ -1560,7 +1557,6 @@ export function DayActionCalendarClient({
                         count={
                           (selectedDay?.pendingOnCallShifts ?? []).filter(
                             (shift) =>
-                              canManageOnCall ||
                               shift.assignments.some(
                                 (assignment) => assignment.id === currentUserId
                               )
@@ -1573,10 +1569,7 @@ export function DayActionCalendarClient({
                       {(selectedDay?.pendingOnCallShifts ?? [])
                         .filter(
                           (shift) =>
-                            canManageOnCall ||
-                            shift.assignments.some(
-                              (assignment) => assignment.id === currentUserId
-                            )
+                            shift.assignments.some((assignment) => assignment.id === currentUserId)
                         )
                         .map((shift) => (
                           <div

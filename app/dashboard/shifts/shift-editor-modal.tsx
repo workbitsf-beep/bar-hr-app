@@ -100,7 +100,7 @@ export function ShiftEditorModal({
     shift &&
       shift.isOnCall &&
       !shift.confirmedAt &&
-      (canManage || shift.assignments.some((assignment) => assignment.id === currentUserId))
+      shift.assignments.some((assignment) => assignment.id === currentUserId)
   );
 
   useEffect(() => {
@@ -550,35 +550,24 @@ export function ShiftEditorModal({
           >
               <div style={{ color: "#64748b", fontSize: 14 }}>Persone nel turno</div>
               <div style={{ color: "#0f172a", fontWeight: 600 }}>
-                {shift.assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ")}
+                {shift.assignments
+                  .map((assignment) => `${assignment.firstName} ${assignment.lastName}`)
+                  .join(", ")}
               </div>
-            {shift.isOnCall ? (
-              <div style={{ color: "#b45309", fontSize: 14, fontWeight: 600 }}>Reperibilita</div>
-            ) : null}
-            {canApproveReperibility ? (
-              <PrimaryButton type="button" onClick={handleConfirmReperibility} disabled={isPending}>
-                {isPending ? "Conferma..." : "Approva reperibilita"}
-              </PrimaryButton>
-            ) : null}
-            {!canManage && shift.isOnCall && shift.confirmedAt ? (
-              <div style={{ color: "#166534", fontSize: 14, fontWeight: 600 }}>
-                Reperibilita confermata
-              </div>
-            ) : null}
+              {shift.isOnCall ? (
+                <div style={{ color: "#b45309", fontSize: 14, fontWeight: 600 }}>
+                  {shift.confirmedAt ? "Reperibilita confermata" : "Reperibilita da approvare"}
+                </div>
+              ) : null}
               {shift.createdBy ? (
                 <div style={{ color: "#64748b", fontSize: 14 }}>
                   Creato da {shift.createdBy.firstName} {shift.createdBy.lastName}
                 </div>
               ) : null}
-              {canManage && canApproveReperibility ? (
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div style={{ color: "#b45309", fontSize: 14, fontWeight: 600 }}>
-                    Reperibilita da approvare
-                  </div>
-                  <PrimaryButton type="button" onClick={handleConfirmReperibility} disabled={isPending}>
-                    {isPending ? "Conferma..." : "Approva reperibilita"}
-                  </PrimaryButton>
-                </div>
+              {canApproveReperibility ? (
+                <PrimaryButton type="button" onClick={handleConfirmReperibility} disabled={isPending}>
+                  {isPending ? "Conferma..." : "Approva reperibilita"}
+                </PrimaryButton>
               ) : null}
             </div>
         )}

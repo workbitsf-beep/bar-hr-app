@@ -1752,10 +1752,9 @@ export async function confirmShiftAction(formData: FormData) {
   }
 
   const isAssigned = shift.assignments.some((assignment) => assignment.userId === session.user.id);
-  const canManage = role === Role.OWNER || role === Role.MANAGER;
 
-  if (!isAssigned && !canManage) {
-    throw new Error("Non puoi approvare questo turno");
+  if (!isAssigned) {
+    throw new Error("Puoi approvare solo la reperibilita assegnata a te");
   }
 
   await prisma.shift.update({

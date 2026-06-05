@@ -478,7 +478,6 @@ export function OwnerCalendarClient({
         : weeks,
     [filteredDay, weeks]
   );
-  const canManageOnCall = role === "OWNER" || role === "MANAGER";
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
       return new Map<string, string>();
@@ -1755,9 +1754,7 @@ export function OwnerCalendarClient({
                 ) : null}
 
                 {(selectedDay?.pendingOnCallShifts ?? []).filter(
-                  (shift) =>
-                    canManageOnCall ||
-                    shift.assignments.some((assignment) => assignment.id === currentUserId)
+                  (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
                   <div style={{ display: "grid", gap: 10 }}>
                     <div
@@ -1775,7 +1772,6 @@ export function OwnerCalendarClient({
                         count={
                           (selectedDay?.pendingOnCallShifts ?? []).filter(
                             (shift) =>
-                              canManageOnCall ||
                               shift.assignments.some(
                                 (assignment) => assignment.id === currentUserId
                               )
@@ -1788,10 +1784,7 @@ export function OwnerCalendarClient({
                       {(selectedDay?.pendingOnCallShifts ?? [])
                         .filter(
                           (shift) =>
-                            canManageOnCall ||
-                            shift.assignments.some(
-                              (assignment) => assignment.id === currentUserId
-                            )
+                            shift.assignments.some((assignment) => assignment.id === currentUserId)
                         )
                         .map((shift) => (
                           <div
