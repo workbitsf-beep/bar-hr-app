@@ -454,6 +454,12 @@ export function OwnerCalendarClient({
   }, [selectedDate]);
 
   useEffect(() => {
+    if (!features.overtime && requestType === RequestType.OVERTIME) {
+      setRequestType(RequestType.VACATION);
+    }
+  }, [features.overtime, requestType]);
+
+  useEffect(() => {
     if (filteredDay || selectedDate) {
       return;
     }
@@ -1508,7 +1514,9 @@ export function OwnerCalendarClient({
                               <option value={RequestType.VACATION}>Ferie</option>
                               <option value={RequestType.PERMISSION}>Permesso</option>
                               <option value={RequestType.SICKNESS}>Malattia</option>
-                              <option value={RequestType.OVERTIME}>Straordinario</option>
+                              {features.overtime ? (
+                                <option value={RequestType.OVERTIME}>Straordinario</option>
+                              ) : null}
                             </select>
                           </label>
 

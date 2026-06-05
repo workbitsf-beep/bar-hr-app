@@ -93,6 +93,7 @@ type OnboardingBar = {
     timeTrackingEnabled?: boolean | null;
     shiftsEnabled?: boolean | null;
     requestsEnabled?: boolean | null;
+    overtimeEnabled?: boolean | null;
     tasksEnabled?: boolean | null;
     noticeBoardEnabled?: boolean | null;
     coursesEnabled?: boolean | null;
@@ -197,6 +198,7 @@ async function getOwnerContext() {
                   timeTrackingEnabled: true,
                   shiftsEnabled: true,
                   requestsEnabled: true,
+                  overtimeEnabled: true,
                   tasksEnabled: true,
                   noticeBoardEnabled: true,
                   coursesEnabled: true,
@@ -247,6 +249,7 @@ async function getOwnerContext() {
                 timeTrackingEnabled: true,
                 shiftsEnabled: true,
                 requestsEnabled: true,
+                overtimeEnabled: true,
                 tasksEnabled: true,
                 noticeBoardEnabled: true,
                 coursesEnabled: true,
@@ -404,6 +407,7 @@ async function switchBarAction(formData: FormData) {
                 timeTrackingEnabled: true,
                 shiftsEnabled: true,
                 requestsEnabled: true,
+                overtimeEnabled: true,
                 tasksEnabled: true,
                 noticeBoardEnabled: true,
                 coursesEnabled: true,

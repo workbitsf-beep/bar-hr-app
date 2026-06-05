@@ -531,6 +531,16 @@ async function ensureCompanyShiftsEnabled(
   }
 }
 
+async function getRequestFeatureSettings(activeBarId: string) {
+  return prisma.barSettings.findUnique({
+    where: { barId: activeBarId },
+    select: {
+      requestsEnabled: true,
+      overtimeEnabled: true,
+    },
+  });
+}
+
 async function getActionContext() {
   const session = await getSession();
 
@@ -1963,6 +1973,12 @@ export async function createAvailabilityAction(formData: FormData) {
     throw new Error("Availability not allowed");
   }
 
+  const requestFeatures = await getRequestFeatureSettings(activeBarId);
+
+  if (requestFeatures?.requestsEnabled === false) {
+    throw new Error("Requests not enabled");
+  }
+
   const startsAt = parseRequiredDate(formData.get("startsAt"));
   const endsAt = parseRequiredDate(formData.get("endsAt"));
   const reason = String(formData.get("reason") ?? "").trim();
@@ -2034,6 +2050,12 @@ export async function createCalendarClosureAction(formData: FormData) {
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
+  }
+
+  const requestFeatures = await getRequestFeatureSettings(activeBarId);
+
+  if (requestFeatures?.requestsEnabled === false) {
+    throw new Error("Requests not enabled");
   }
 
   const type = parseCalendarClosureType(formData.get("type"));
@@ -2542,6 +2564,16 @@ export async function createTimeOffRequestAction(formData: FormData) {
     throw new Error("Unauthorized");
   }
 
+  const requestFeatures = await getRequestFeatureSettings(activeBarId);
+
+  if (requestFeatures?.requestsEnabled === false) {
+    throw new Error("Requests not enabled");
+  }
+
+  if (type === RequestType.OVERTIME && requestFeatures?.overtimeEnabled === false) {
+    throw new Error("Overtime not enabled");
+  }
+
   const employeeId = isOwnerOvertimeRequest ? targetEmployeeId : session.user.id;
 
   if (!employeeId) {
@@ -2631,6 +2663,12 @@ export async function createShiftChangeRequestAction(formData: FormData) {
 
   if (!activeBarId || role === Role.OWNER) {
     throw new Error("Unauthorized");
+  }
+
+  const requestFeatures = await getRequestFeatureSettings(activeBarId);
+
+  if (requestFeatures?.requestsEnabled === false) {
+    throw new Error("Requests not enabled");
   }
 
   const shiftId = String(formData.get("shiftId") ?? "").trim();

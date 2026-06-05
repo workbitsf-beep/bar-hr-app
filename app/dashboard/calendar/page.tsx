@@ -292,7 +292,7 @@ export default async function DashboardCalendarPage({
                   RequestType.VACATION,
                   RequestType.PERMISSION,
                   RequestType.SICKNESS,
-                  RequestType.OVERTIME,
+                  ...(features.overtime ? [RequestType.OVERTIME] : []),
                 ],
               },
               status: RequestStatus.PENDING,

@@ -70,6 +70,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
             timeTrackingEnabled: true,
             shiftsEnabled: true,
             requestsEnabled: true,
+            overtimeEnabled: true,
             tasksEnabled: true,
             noticeBoardEnabled: true,
             coursesEnabled: true,

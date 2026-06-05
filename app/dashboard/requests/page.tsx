@@ -110,6 +110,10 @@ export default async function DashboardRequestsPage({
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
   const canCreateRequests = role !== Role.OWNER;
   const canManageClosures = role === Role.OWNER || role === Role.MANAGER;
+  const canUseOvertime = features.overtime;
+  const requestPanelTitle = canUseOvertime
+    ? "Richiedi ferie, permesso, malattia o straordinario"
+    : "Richiedi ferie, permesso o malattia";
   const successMessage =
     success === "request-created"
       ? "Richiesta salvata correttamente."
@@ -196,7 +200,7 @@ export default async function DashboardRequestsPage({
           },
         })
       : Promise.resolve([]),
-    canCreateRequests && !isCompany
+    canCreateRequests && !isCompany && canUseOvertime
       ? prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
@@ -292,7 +296,7 @@ export default async function DashboardRequestsPage({
         {canCreateRequests ? (
           <>
             <Panel
-              title="Richiedi ferie, permesso, malattia o straordinario"
+              title={requestPanelTitle}
               action={
                 <PopupAction title="Nuova richiesta" ariaLabel="Aggiungi richiesta">
                   <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
@@ -309,7 +313,7 @@ export default async function DashboardRequestsPage({
                           <option value="VACATION">Ferie</option>
                           <option value="PERMISSION">Permesso</option>
                           <option value="SICKNESS">Malattia</option>
-                          <option value="OVERTIME">Straordinario</option>
+                          {canUseOvertime ? <option value="OVERTIME">Straordinario</option> : null}
                         </Select>
                       </FormField>
 
@@ -408,7 +412,7 @@ export default async function DashboardRequestsPage({
           </>
         ) : null}
 
-        {role === Role.OWNER ? (
+        {role === Role.OWNER && canUseOvertime ? (
           <Panel
             title="Registra straordinario"
             action={

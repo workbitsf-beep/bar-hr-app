@@ -2,6 +2,7 @@ export type FeatureKey =
   | "timeTracking"
   | "shifts"
   | "requests"
+  | "overtime"
   | "tasks"
   | "noticeBoard"
   | "courses"
@@ -13,6 +14,7 @@ export type FeatureSettingsInput = Partial<{
   timeTrackingEnabled: boolean | null;
   shiftsEnabled: boolean | null;
   requestsEnabled: boolean | null;
+  overtimeEnabled: boolean | null;
   tasksEnabled: boolean | null;
   noticeBoardEnabled: boolean | null;
   coursesEnabled: boolean | null;
@@ -32,7 +34,7 @@ export const featureDefinitions: Array<{
     field: "timeTrackingEnabled",
     label: "Timbrature",
     shortLabel: "Timbrature",
-    description: "Entrata, uscita e controllo GPS.",
+    description: "Entrata, uscita e GPS.",
     emoji: "⏱️",
   },
   {
@@ -48,8 +50,16 @@ export const featureDefinitions: Array<{
     field: "requestsEnabled",
     label: "Richieste e chiusure",
     shortLabel: "Richieste",
-    description: "Ferie, permessi, chiusure e approvazioni.",
+    description: "Ferie, permessi e chiusure.",
     emoji: "📝",
+  },
+  {
+    key: "overtime",
+    field: "overtimeEnabled",
+    label: "Straordinari",
+    shortLabel: "Straordinari",
+    description: "Ore extra da approvare.",
+    emoji: "⏳",
   },
   {
     key: "tasks",
@@ -89,6 +99,7 @@ export const defaultFeatureFlags: FeatureFlags = {
   timeTracking: true,
   shifts: true,
   requests: true,
+  overtime: true,
   tasks: true,
   noticeBoard: true,
   courses: true,
