@@ -33,12 +33,31 @@ export function formatDateTimeLocal(value: Date | string): string {
 }
 
 const shellCardStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.92)",
-  border: "1px solid rgba(15, 23, 42, 0.08)",
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,244,255,0.95) 100%)",
+  border: "1px solid rgba(124, 58, 237, 0.08)",
   borderRadius: 28,
-  boxShadow: "0 18px 40px rgba(15, 23, 42, 0.07)",
+  boxShadow: "0 18px 40px rgba(88, 28, 135, 0.06)",
   backdropFilter: "blur(16px)",
 };
+
+function resolveEmoji(title: string) {
+  const normalized = title.toLowerCase();
+
+  if (normalized.includes("calend")) return "📅";
+  if (normalized.includes("turn")) return "⏱️";
+  if (normalized.includes("richiest") || normalized.includes("chius")) return "📝";
+  if (normalized.includes("mansion")) return "✅";
+  if (normalized.includes("bacheca")) return "📢";
+  if (normalized.includes("cors")) return "🎓";
+  if (normalized.includes("timbr")) return "⏱️";
+  if (normalized.includes("impost")) return "⚙️";
+  if (normalized.includes("export") || normalized.includes("report")) return "📄";
+  if (normalized.includes("sicurezza")) return "🔒";
+  if (normalized.includes("dashboard")) return "✨";
+
+  return "•";
+}
 
 function getBottomNavItems(navItems: DashboardNavItem[]) {
   const preferredHrefs = [
@@ -86,6 +105,55 @@ function BottomNavIcon({ href }: { href: string }) {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M6 4h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2Z" {...common} />
         <path d="M8 9h8M8 13h5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href === "/dashboard") {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h5A1.5 1.5 0 0 1 12 5.5v4A1.5 1.5 0 0 1 10.5 11h-5A1.5 1.5 0 0 1 4 9.5v-4Z" {...common} />
+        <path d="M12.5 5.5A1.5 1.5 0 0 1 14 4h5A1.5 1.5 0 0 1 20.5 5.5v4A1.5 1.5 0 0 1 19 11h-5a1.5 1.5 0 0 1-1.5-1.5v-4Z" {...common} />
+        <path d="M4 14.5A1.5 1.5 0 0 1 5.5 13h5A1.5 1.5 0 0 1 12 14.5v4A1.5 1.5 0 0 1 10.5 20h-5A1.5 1.5 0 0 1 4 18.5v-4Z" {...common} />
+        <path d="M12.5 14.5A1.5 1.5 0 0 1 14 13h5a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 19 20h-5a1.5 1.5 0 0 1-1.5-1.5v-4Z" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/people")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" {...common} />
+        <path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" {...common} />
+        <path d="M20 19v-1a4 4 0 0 0-3-3.87" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/timelogs")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" {...common} />
+        <path d="M12 8v4l2.5 2.5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/export")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" {...common} />
+        <path d="M14 3.5V8h4" {...common} />
+        <path d="M12 11v6m0 0-2-2m2 2 2-2" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/board")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h10" {...common} />
+        <path d="M6 4.5h12A1.5 1.5 0 0 1 19.5 6v12A1.5 1.5 0 0 1 18 19.5H6A1.5 1.5 0 0 1 4.5 18V6A1.5 1.5 0 0 1 6 4.5Z" {...common} />
       </svg>
     );
   }
@@ -158,7 +226,9 @@ function BottomNavIcon({ href }: { href: string }) {
 
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" {...common} />
+      <path d="M5 12h14" {...common} />
+      <path d="M12 5v14" {...common} />
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -184,9 +254,9 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
         gap: 8,
         padding: 10,
         borderRadius: 999,
-        border: "1px solid rgba(226, 232, 240, 0.96)",
-        background: "rgba(255,255,255,0.94)",
-        boxShadow: "0 18px 44px rgba(15, 23, 42, 0.16)",
+        border: "1px solid rgba(124, 58, 237, 0.12)",
+        background: "rgba(255,255,255,0.95)",
+        boxShadow: "0 18px 44px rgba(88, 28, 135, 0.12)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
       }}
@@ -204,9 +274,9 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#0f172a",
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
+            color: "#4c1d95",
+            background: "linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%)",
+            border: "1px solid rgba(124, 58, 237, 0.1)",
             textDecoration: "none",
           }}
         >
@@ -654,7 +724,7 @@ export function DashboardShell({
       style={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top left, rgba(241,245,249,0.98), rgba(255,255,255,0.95) 45%, rgba(248,250,252,1) 100%)",
+          "radial-gradient(circle at top left, rgba(237,233,254,0.65), rgba(255,255,255,0.95) 42%, rgba(248,250,252,1) 100%)",
         padding: 18,
       }}
     >
@@ -771,18 +841,36 @@ export function PageHero({
       }}
     >
       <div style={{ display: "grid", gap: 8 }}>
-        <p
-          style={{
-            margin: 0,
-            color: "#64748b",
-            fontSize: 12,
-            textTransform: "uppercase",
-            fontWeight: 700,
-            letterSpacing: "0.16em",
-          }}
-        >
-          {eyebrow ?? "Workspace"}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(124, 58, 237, 0.12)",
+              color: "#6d28d9",
+              fontSize: 15,
+            }}
+          >
+            {resolveEmoji(title)}
+          </span>
+          <p
+            style={{
+              margin: 0,
+              color: "#64748b",
+              fontSize: 12,
+              textTransform: "uppercase",
+              fontWeight: 700,
+              letterSpacing: "0.16em",
+            }}
+          >
+            {eyebrow ?? "Workspace"}
+          </p>
+        </div>
         <h2 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>{title}</h2>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{subtitle}</p>
       </div>
@@ -821,9 +909,28 @@ export function Panel({
           flexWrap: "wrap",
         }}
       >
-        <h3 className="dashboard-panel-title" style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>
-          {title}
-        </h3>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(124, 58, 237, 0.12)",
+              color: "#6d28d9",
+              fontSize: 13,
+              flex: "0 0 auto",
+            }}
+          >
+            {resolveEmoji(title)}
+          </span>
+          <h3 className="dashboard-panel-title" style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>
+            {title}
+          </h3>
+        </div>
         {action ? <div style={{ color: "#64748b", fontWeight: 600 }}>{action}</div> : null}
       </div>
       {children}
@@ -910,8 +1017,8 @@ export function ItemCard({
       style={{
         padding: 16,
         borderRadius: 20,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        background: "linear-gradient(180deg, #ffffff 0%, #f8f5ff 100%)",
+        border: "1px solid rgba(124, 58, 237, 0.08)",
         display: "grid",
         gap: 6,
       }}
@@ -946,7 +1053,7 @@ export function FormField({
 
 const fieldStyle: CSSProperties = {
   borderRadius: 16,
-  border: "1px solid #dbe3ee",
+  border: "1px solid rgba(124, 58, 237, 0.14)",
   padding: "12px 14px",
   fontSize: 15,
   background: "#ffffff",

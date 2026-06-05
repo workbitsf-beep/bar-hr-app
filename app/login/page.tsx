@@ -126,7 +126,7 @@ export default function LoginPage() {
         placeItems: "center",
         padding: 20,
         background:
-          "radial-gradient(circle at top, rgba(241,245,249,0.95), rgba(255,255,255,1) 52%, rgba(248,250,252,1) 100%)",
+          "radial-gradient(circle at top, rgba(237,233,254,0.75), rgba(255,255,255,1) 54%, rgba(248,250,252,1) 100%)",
       }}
     >
       <section
@@ -142,10 +142,10 @@ export default function LoginPage() {
             gap: 26,
             padding: 28,
             borderRadius: 30,
-            background: "rgba(255,255,255,0.9)",
-            border: "1px solid rgba(226,232,240,0.9)",
-            boxShadow: "0 24px 48px rgba(15, 23, 42, 0.06)",
-            backdropFilter: "blur(12px)",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,244,255,0.96))",
+            border: "1px solid rgba(124, 58, 237, 0.08)",
+            boxShadow: "0 24px 48px rgba(88, 28, 135, 0.08)",
+            backdropFilter: "blur(14px)",
           }}
         >
           <div style={{ display: "grid", justifyItems: "center", gap: 14, textAlign: "center" }}>
@@ -154,8 +154,8 @@ export default function LoginPage() {
               <h1 style={{ margin: 0, fontSize: 34, color: "#0f172a", letterSpacing: "-0.03em" }}>
                 Accedi
               </h1>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                Turni, timbrature e richieste in uno spazio semplice e pulito.
+              <p style={{ margin: 0, color: "#6d28d9", lineHeight: 1.7, fontWeight: 700 }}>
+                ✨ Turni, timbrature e richieste in uno spazio semplice e pulito.
               </p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function LoginPage() {
                 placeholder="nome@locale.it"
                 style={{
                   borderRadius: 18,
-                  border: "1px solid #dbe3ee",
+                  border: "1px solid rgba(124, 58, 237, 0.15)",
                   padding: "14px 16px",
                   fontSize: 16,
                   background: "#fff",
@@ -188,7 +188,7 @@ export default function LoginPage() {
                   placeholder="Inserisci la password"
                   style={{
                     borderRadius: 18,
-                    border: "1px solid #dbe3ee",
+                    border: "1px solid rgba(124, 58, 237, 0.15)",
                     padding: "14px 16px",
                     fontSize: 16,
                     background: "#fff",
@@ -199,9 +199,9 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((current) => !current)}
                   style={{
                     width: "fit-content",
-                    border: "1px solid #dbe3ee",
-                    background: "#f8fafc",
-                    color: "#334155",
+                    border: "1px solid rgba(124, 58, 237, 0.14)",
+                    background: "linear-gradient(180deg, #ffffff, #f5f0ff)",
+                    color: "#4c1d95",
                     borderRadius: 999,
                     padding: "9px 13px",
                     fontWeight: 700,
@@ -224,8 +224,8 @@ export default function LoginPage() {
                 gap: 10,
                 padding: "12px 14px",
                 borderRadius: 18,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                background: "#f8f5ff",
+                border: "1px solid rgba(124, 58, 237, 0.1)",
                 color: "#334155",
               }}
             >

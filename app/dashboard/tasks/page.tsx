@@ -56,6 +56,13 @@ export default async function DashboardTasksPage({
     );
   }
 
+  const pageTitle =
+    features.tasks && features.noticeBoard
+      ? "Mansioni e bacheca"
+      : features.tasks
+        ? "Mansioni"
+        : "Bacheca";
+
   const canManage = role === Role.OWNER || role === Role.MANAGER;
   const successMessage =
     success === "task-created"
@@ -170,7 +177,7 @@ export default async function DashboardTasksPage({
 
       {features.noticeBoard ? (
       <Panel
-        title="Bacheca"
+        title={features.noticeBoard ? "Bacheca" : pageTitle}
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {canManage && notes.length > 0 ? (
@@ -217,7 +224,7 @@ export default async function DashboardTasksPage({
 
       {features.tasks ? (
       <Panel
-        title="Elenco mansioni"
+        title={features.noticeBoard ? "Elenco mansioni" : pageTitle}
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {canManage && tasks.some((task) => task.status === "DONE") ? (

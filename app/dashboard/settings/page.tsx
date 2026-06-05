@@ -28,7 +28,7 @@ function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | nul
         className="dashboard-inline-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
           gap: 10,
         }}
       >
@@ -38,7 +38,7 @@ function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | nul
             style={{
               display: "grid",
               gap: 8,
-              padding: 14,
+              padding: 12,
               borderRadius: 18,
               border: features[feature.key]
                 ? "1px solid rgba(124, 58, 237, 0.28)"
@@ -48,7 +48,23 @@ function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | nul
                 : "#f8fafc",
             }}
           >
-            <span style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 700 }}>
+            <span style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 700 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 999,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(124, 58, 237, 0.12)",
+                  color: "#6d28d9",
+                  fontSize: 14,
+                }}
+              >
+                +
+              </span>
               <input
                 type="checkbox"
                 name={feature.field}
@@ -56,9 +72,6 @@ function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | nul
               />
               <span aria-hidden="true">{feature.emoji}</span>
               {feature.shortLabel}
-            </span>
-            <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
-              {feature.description}
             </span>
           </label>
         ))}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { combineDateAndTime } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import type { FeatureFlags } from "@/lib/features";
 import { DateTimeInput } from "@/app/components/date-time-input";
 import { TimeInput } from "@/app/components/time-input";
 import {
@@ -505,6 +506,7 @@ export function DayActionCalendarClient({
   members,
   presets,
   currentUserId,
+  features,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -516,6 +518,7 @@ export function DayActionCalendarClient({
   members: MemberOption[];
   presets: ShiftPreset[];
   currentUserId: string;
+  features: FeatureFlags;
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -593,13 +596,46 @@ export function DayActionCalendarClient({
 
   const isCompany = activityType === ActivityType.COMPANY;
   const canManageOptionalShifts =
-    isCompany && companyShiftsEnabled && (role === Role.OWNER || role === Role.MANAGER);
-  const canCreateRequest = role !== Role.OWNER;
-  const canCreateAvailability = !isCompany && role !== Role.OWNER;
-  const canCreateCourse = role === Role.OWNER || role === Role.MANAGER;
-  const canCreateClosure = role === Role.OWNER || role === Role.MANAGER;
-  const canReviewRequests = isCompany && role === Role.OWNER;
-  const canOpenTaskComposer = role === Role.OWNER || role === Role.MANAGER;
+    features.shifts && isCompany && companyShiftsEnabled && (role === Role.OWNER || role === Role.MANAGER);
+  const canCreateRequest = features.requests && role !== Role.OWNER;
+  const canCreateAvailability = features.requests && !isCompany && role !== Role.OWNER;
+  const canCreateCourse = features.courses && (role === Role.OWNER || role === Role.MANAGER);
+  const canCreateClosure = features.requests && (role === Role.OWNER || role === Role.MANAGER);
+  const canReviewRequests = features.requests && isCompany && role === Role.OWNER;
+  const canOpenTaskComposer = features.tasks && (role === Role.OWNER || role === Role.MANAGER);
+  const hasDayMancanze =
+    features.requests &&
+    ((selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0) > 0);
+  const dayMancanzeSection = features.requests ? (
+    hasDayMancanze ? (
+      <div style={{ display: "grid", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <strong style={{ fontSize: 18, color: "#0f172a" }}>Mancanze del giorno</strong>
+          <CountBadge
+            count={
+              (selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0)
+            }
+          />
+        </div>
+
+        <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+          {(selectedDay?.availabilities ?? []).map((availability) =>
+            renderAvailabilityCard(availability, true)
+          )}
+          {(selectedDay?.requests ?? []).map((request) => renderApprovedRequestCard(request, true))}
+        </div>
+      </div>
+    ) : (
+      <div style={{ color: "#64748b" }}>Nessuna mancanza registrata in questa giornata.</div>
+    )
+  ) : null;
 
   function openRequestComposer() {
     setShowShiftComposer(false);
@@ -1027,10 +1063,11 @@ export function DayActionCalendarClient({
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
-                    {day.shifts.map((shift) => renderShiftCard(shift, locale, true))}
-                    {day.closures.map((closure) => (
-                      <div
-                        key={closure.id}
+                    {features.shifts ? day.shifts.map((shift) => renderShiftCard(shift, locale, true)) : null}
+                    {features.requests
+                      ? day.closures.map((closure) => (
+                        <div
+                          key={closure.id}
                         style={{
                           padding: "12px 14px",
                           borderRadius: 18,
@@ -1042,14 +1079,21 @@ export function DayActionCalendarClient({
                       >
                         {closure.title}
                       </div>
-                    ))}
-                    {day.courses.map((course) => renderCourseCard(course, locale, true))}
-                    {day.pendingRequests.map((request) => renderPendingRequestCard(request, true))}
-                    {day.availabilities.map((availability) =>
-                      renderAvailabilityCard(availability, true)
-                    )}
-                    {day.requests.map((request) => renderApprovedRequestCard(request, true))}
-                    {day.tasks.length > 0 ? (
+                    ))
+                      : null}
+                    {features.courses ? day.courses.map((course) => renderCourseCard(course, locale, true)) : null}
+                    {features.requests
+                      ? day.pendingRequests.map((request) => renderPendingRequestCard(request, true))
+                      : null}
+                    {features.requests
+                      ? day.availabilities.map((availability) =>
+                          renderAvailabilityCard(availability, true)
+                        )
+                      : null}
+                    {features.requests
+                      ? day.requests.map((request) => renderApprovedRequestCard(request, true))
+                      : null}
+                    {features.tasks && day.tasks.length > 0 ? (
                       <div
                         style={{
                           padding: "12px 14px",
@@ -1063,7 +1107,7 @@ export function DayActionCalendarClient({
                         Mansioni: {day.tasks.length}
                       </div>
                     ) : null}
-                    {day.notes.length > 0 ? (
+                    {features.noticeBoard && day.notes.length > 0 ? (
                       <div
                         style={{
                           padding: "12px 14px",
@@ -1680,41 +1724,7 @@ export function DayActionCalendarClient({
                     )}
                   </div>
                 ) : null}
-                {(selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0) > 0 ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                        Mancanze del giorno
-                      </strong>
-                      <CountBadge
-                        count={
-                          (selectedDay?.availabilities.length ?? 0) +
-                          (selectedDay?.requests.length ?? 0)
-                        }
-                      />
-                    </div>
-
-                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {(selectedDay?.availabilities ?? []).map((availability) =>
-                        renderAvailabilityCard(availability, true)
-                      )}
-                      {(selectedDay?.requests ?? []).map((request) =>
-                        renderApprovedRequestCard(request, true)
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ color: "#64748b" }}>
-                    Nessuna mancanza registrata in questa giornata.
-                  </div>
-                )}
+                {dayMancanzeSection}
 
                 {canCreateRequest ? (
                   <div style={{ display: "grid", gap: 12 }}>
@@ -1981,24 +1991,72 @@ export function DayActionCalendarClient({
                       </div>
                     ) : null}
 
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                    }}
-                  >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      Mansioni del giorno
-                    </strong>
-                    <CountBadge count={selectedDay.tasks.length} />
-                    {canOpenTaskComposer ? (
+                {features.tasks ? (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Mansioni del giorno
+                      </strong>
+                      <CountBadge count={selectedDay.tasks.length} />
+                      {canOpenTaskComposer ? (
+                        <IconButton
+                          type="button"
+                          onClick={() => setQuickComposer("task")}
+                          aria-label="Aggiungi mansioni"
+                          disabled={isPending}
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M12 5v14M5 12h14"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </IconButton>
+                      ) : null}
+                    </div>
+                    {selectedDay.tasks.length === 0 ? (
+                      <div style={{ color: "#64748b" }}>Nessuna mansione collegata a questa giornata.</div>
+                    ) : (
+                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                        {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {features.noticeBoard ? (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                        Bacheca del giorno
+                      </strong>
+                      <CountBadge count={selectedDay.notes.length} />
                       <IconButton
                         type="button"
-                        onClick={() => setQuickComposer("task")}
-                        aria-label="Aggiungi mansioni"
+                        onClick={() => setQuickComposer("board")}
+                        aria-label="Aggiungi in bacheca"
                         disabled={isPending}
                       >
                         <svg
@@ -2016,67 +2074,28 @@ export function DayActionCalendarClient({
                           />
                         </svg>
                       </IconButton>
-                    ) : null}
-                  </div>
-                  {selectedDay.tasks.length === 0 ? (
-                    <div style={{ color: "#64748b" }}>Nessuna mansione collegata a questa giornata.</div>
-                  ) : (
-                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
                     </div>
-                  )}
-                </div>
-
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                    }}
-                  >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      Bacheca del giorno
-                    </strong>
-                    <CountBadge count={selectedDay.notes.length} />
-                    <IconButton
-                      type="button"
-                      onClick={() => setQuickComposer("board")}
-                      aria-label="Aggiungi in bacheca"
-                      disabled={isPending}
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M12 5v14M5 12h14"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </IconButton>
+                    {selectedDay.notes.length === 0 ? (
+                      <div style={{ color: "#64748b" }}>Nessun messaggio pubblicato in questa giornata.</div>
+                    ) : (
+                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
+                        {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
+                      </div>
+                    )}
                   </div>
-                  {selectedDay.notes.length === 0 ? (
-                    <div style={{ color: "#64748b" }}>Nessun messaggio pubblicato in questa giornata.</div>
-                  ) : (
-                    <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
-                    </div>
-                  )}
-                </div>
+                ) : null}
               </section>
             </div>,
             document.body
           )
           : null}
       <QuickCalendarEntryModal
-        open={Boolean(selectedDay && quickComposer)}
+        open={Boolean(
+          selectedDay &&
+            quickComposer &&
+            ((quickComposer === "task" && features.tasks) ||
+              (quickComposer === "board" && features.noticeBoard))
+        )}
         mode={quickComposer}
         dateIso={selectedDay?.date ?? null}
         members={members}

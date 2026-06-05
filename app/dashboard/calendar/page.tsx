@@ -753,6 +753,7 @@ export default async function DashboardCalendarPage({
             filteredDay={dayFilter}
             role={String(role)}
             currentUserId={session.user.id}
+            features={features}
           />
         ) : (
           <DayActionCalendarClient
@@ -766,6 +767,7 @@ export default async function DashboardCalendarPage({
             members={memberOptions}
             presets={shiftPresets}
             currentUserId={session.user.id}
+            features={features}
           />
         )}
       </Panel>

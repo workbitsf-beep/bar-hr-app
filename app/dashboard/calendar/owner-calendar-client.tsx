@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import type { FeatureFlags } from "@/lib/features";
 import { DateTimeInput } from "@/app/components/date-time-input";
 import { TimeInput } from "@/app/components/time-input";
 import {
@@ -395,6 +396,7 @@ export function OwnerCalendarClient({
   filteredDay,
   role,
   currentUserId,
+  features,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -404,6 +406,7 @@ export function OwnerCalendarClient({
   filteredDay?: string | null;
   role: string;
   currentUserId: string;
+  features: FeatureFlags;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -890,13 +893,14 @@ export function OwnerCalendarClient({
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
-                    {day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true))}
+                    {features.shifts ? day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true)) : null}
 
-                    {day.closures.map((closure) => (
-                      <div
-                        key={closure.id}
-                        style={{
-                          padding: "12px 14px",
+                    {features.requests
+                      ? day.closures.map((closure) => (
+                        <div
+                          key={closure.id}
+                          style={{
+                            padding: "12px 14px",
                           borderRadius: 18,
                           background: "#fff7ed",
                           border: "1px solid #fed7aa",
@@ -906,9 +910,10 @@ export function OwnerCalendarClient({
                       >
                         {closure.title}
                       </div>
-                    ))}
+                    ))
+                      : null}
 
-                    {day.courses.length > 0 ? (
+                    {features.courses && day.courses.length > 0 ? (
                       <div
                         style={{
                           padding: "12px 14px",
@@ -923,10 +928,11 @@ export function OwnerCalendarClient({
                       </div>
                     ) : null}
 
-                    {day.availabilities.map((availability) => (
-                      <div
-                        key={availability.id}
-                        style={{
+                    {features.requests
+                      ? day.availabilities.map((availability) => (
+                        <div
+                          key={availability.id}
+                          style={{
                           padding: "12px 14px",
                           borderRadius: 18,
                           background: "#fef2f2",
@@ -937,12 +943,14 @@ export function OwnerCalendarClient({
                       >
                         Indisponibilita: {availability.firstName} {availability.lastName}
                       </div>
-                    ))}
+                    ))
+                      : null}
 
-                    {day.requests.map((request) => (
-                      <div
-                        key={request.id}
-                        style={{
+                    {features.requests
+                      ? day.requests.map((request) => (
+                        <div
+                          key={request.id}
+                          style={{
                           padding: "12px 14px",
                           borderRadius: 18,
                           background: "#fef2f2",
@@ -953,9 +961,10 @@ export function OwnerCalendarClient({
                       >
                         {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
                       </div>
-                    ))}
+                    ))
+                      : null}
 
-                    {day.tasks.length > 0 ? (
+                    {features.tasks && day.tasks.length > 0 ? (
                       <div
                         style={{
                           padding: "12px 14px",
@@ -970,7 +979,7 @@ export function OwnerCalendarClient({
                       </div>
                     ) : null}
 
-                    {day.notes.length > 0 ? (
+                    {features.noticeBoard && day.notes.length > 0 ? (
                       <div
                         style={{
                           padding: "12px 14px",
@@ -1110,7 +1119,7 @@ export function OwnerCalendarClient({
                     top: "50%",
                     transform: "translate(-50%, -50%)",
                     zIndex: 2147483647,
-                    display: showShiftComposer ? "grid" : "none",
+                    display: features.shifts && showShiftComposer ? "grid" : "none",
                     gap: 12,
                     width: "min(720px, calc(100vw - 32px))",
                     maxHeight: "calc(100dvh - 32px)",
@@ -1429,7 +1438,7 @@ export function OwnerCalendarClient({
                       </div>
                     </div>
 
-                    {showRequestComposer ? (
+                    {features.requests && showRequestComposer ? (
                       <div
                         style={{
                           position: "fixed",
@@ -1561,7 +1570,7 @@ export function OwnerCalendarClient({
                       </div>
                     ) : null}
 
-                    {showAvailabilityComposer ? (
+                    {features.requests && showAvailabilityComposer ? (
                       <div
                         style={{
                           position: "fixed",
@@ -1662,7 +1671,8 @@ export function OwnerCalendarClient({
                   </>
                 ) : null}
 
-                {selectedDay ? (
+                {selectedDay &&
+                (features.shifts || features.requests || features.tasks || features.noticeBoard) ? (
                   <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
@@ -1753,7 +1763,7 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                {(selectedDay?.pendingOnCallShifts ?? []).filter(
+                {features.shifts && (selectedDay?.pendingOnCallShifts ?? []).filter(
                   (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
                   <div style={{ display: "grid", gap: 10 }}>
@@ -1817,6 +1827,7 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
+                {features.requests ? (
                 <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
@@ -1845,7 +1856,9 @@ export function OwnerCalendarClient({
                     </div>
                   )}
                 </div>
+                ) : null}
 
+                {features.tasks ? (
                 <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
@@ -1928,7 +1941,9 @@ export function OwnerCalendarClient({
                     </div>
                   )}
                 </div>
+                ) : null}
 
+                {features.noticeBoard ? (
                 <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
@@ -1985,6 +2000,7 @@ export function OwnerCalendarClient({
                     </div>
                   )}
                 </div>
+                ) : null}
               </section>
             </div>,
             document.body
@@ -2002,7 +2018,12 @@ export function OwnerCalendarClient({
         onClose={() => setEditingShiftId(null)}
       />
       <QuickCalendarEntryModal
-        open={Boolean(selectedDay && quickComposer)}
+        open={Boolean(
+          selectedDay &&
+            quickComposer &&
+            ((quickComposer === "task" && features.tasks) ||
+              (quickComposer === "board" && features.noticeBoard))
+        )}
         mode={quickComposer}
         dateIso={day.date ?? null}
         members={members}

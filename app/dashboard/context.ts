@@ -87,6 +87,12 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
+  const tasksNavLabel =
+    features.tasks && features.noticeBoard
+      ? t.tasks
+      : features.tasks
+        ? "Mansioni"
+        : "Bacheca";
   const requestsNavLabel = role === Role.EMPLOYEE ? "Richieste" : "Richieste e chiusure";
 
   const navItems: DashboardNavItem[] =
@@ -111,7 +117,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
             ? [{ label: t.shifts, href: "/dashboard/shifts" }]
             : []),
           ...(features.tasks || features.noticeBoard
-            ? [{ label: t.tasks, href: "/dashboard/tasks" }]
+            ? [{ label: tasksNavLabel, href: "/dashboard/tasks" }]
             : []),
           ...(features.courses ? [{ label: "Corsi", href: "/dashboard/courses" }] : []),
           ...(features.timeTracking && !isCompany
