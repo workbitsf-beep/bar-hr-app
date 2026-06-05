@@ -13,12 +13,20 @@ import {
   PrimaryButton,
   Select,
   Stack,
+  SuccessCallout,
   TextArea,
   TextInput,
   formatDateTime,
 } from "../ui";
+import { PopupAction } from "../popup-action";
 
-export default async function DashboardCoursesPage() {
+export default async function DashboardCoursesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, billingStatus } =
     await getDashboardContext();
 
@@ -35,6 +43,7 @@ export default async function DashboardCoursesPage() {
   }
 
   const canManage = role === Role.OWNER || role === Role.MANAGER;
+  const successMessage = success === "course-created" ? "Corso salvato correttamente." : null;
   const [courses, members] = await Promise.all([
     prisma.course.findMany({
       where: {
@@ -89,65 +98,75 @@ export default async function DashboardCoursesPage() {
 
   return (
     <Stack>
-      {canManage ? (
-        <Panel title="Nuovo corso">
-          <form action={createCourseAction} style={{ display: "grid", gap: 16 }}>
-            <FormField label="Titolo corso">
-              <TextInput name="title" required placeholder="Sicurezza sul lavoro" />
-            </FormField>
+      {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
-            <FormField label="Informazioni">
-              <TextArea
-                name="description"
-                placeholder="Dettagli, materiale richiesto, note operative"
-              />
-            </FormField>
+      <Panel
+        title="Corsi pianificati"
+        action={
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <span>{courses.length} corsi</span>
+            {canManage ? (
+              <PopupAction title="Nuovo corso" ariaLabel="Aggiungi corso">
+                <form action={createCourseAction} style={{ display: "grid", gap: 16 }}>
+                  <FormField label="Titolo corso">
+                    <TextInput name="title" required placeholder="Sicurezza sul lavoro" />
+                  </FormField>
 
-            <div
-              className="dashboard-inline-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
-              }}
-            >
-              <FormField label="Inizio">
-                <DateTimeInput name="startsAt" required />
-              </FormField>
+                  <FormField label="Informazioni">
+                    <TextArea
+                      name="description"
+                      placeholder="Dettagli, materiale richiesto, note operative"
+                    />
+                  </FormField>
 
-              <FormField label="Fine">
-                <DateTimeInput name="endsAt" required />
-              </FormField>
+                  <div
+                    className="dashboard-inline-grid"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <FormField label="Inizio">
+                      <DateTimeInput name="startsAt" required />
+                    </FormField>
 
-              <FormField label="Luogo">
-                <TextInput name="location" placeholder="Aula, sede o link" />
-              </FormField>
+                    <FormField label="Fine">
+                      <DateTimeInput name="endsAt" required />
+                    </FormField>
 
-              <FormField label="Assegna a">
-                <Select name="assignedToId" defaultValue="">
-                  <option value="">Nessun singolo assegnatario</option>
-                  {members.map((member) => (
-                    <option key={member.user.id} value={member.user.id}>
-                      {member.user.firstName} {member.user.lastName} - {member.role}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-            </div>
+                    <FormField label="Luogo">
+                      <TextInput name="location" placeholder="Aula, sede o link" />
+                    </FormField>
 
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input type="checkbox" name="assignedToAll" />
-              Assegna a tutto il team
-            </label>
+                    <FormField label="Assegna a">
+                      <Select name="assignedToId" defaultValue="">
+                        <option value="">Nessun singolo assegnatario</option>
+                        {members.map((member) => (
+                          <option key={member.user.id} value={member.user.id}>
+                            {member.user.firstName} {member.user.lastName} - {member.role}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
+                  </div>
 
-            <div className="dashboard-form-actions">
-              <PrimaryButton type="submit">Salva corso</PrimaryButton>
-            </div>
-          </form>
-        </Panel>
-      ) : null}
+                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input type="checkbox" name="assignedToAll" />
+                    Assegna a tutto il team
+                  </label>
 
-      <Panel title="Corsi pianificati" action={`${courses.length} corsi`}>
+                  <input type="hidden" name="notifySuccess" value="1" />
+
+                  <div className="dashboard-form-actions">
+                    <PrimaryButton type="submit">Salva corso</PrimaryButton>
+                  </div>
+                </form>
+              </PopupAction>
+            ) : null}
+          </div>
+        }
+      >
         {courses.length === 0 ? (
           <EmptyState message="Nessun corso pianificato." />
         ) : (

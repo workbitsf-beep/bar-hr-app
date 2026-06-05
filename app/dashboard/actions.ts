@@ -680,6 +680,10 @@ function normalizeMonthlyDiscountPercent(value: FormDataEntryValue | null) {
   return Math.max(0, Math.min(100, Math.round(parsed)));
 }
 
+function wantsSuccessRedirect(formData: FormData) {
+  return String(formData.get("notifySuccess") ?? "") === "1";
+}
+
 async function syncStripeMonthlyDiscount(input: {
   barId: string;
   stripeSubscriptionId: string | null;
@@ -1442,10 +1446,19 @@ export async function createTaskAction(formData: FormData) {
     );
   });
 
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/tasks");
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/tasks");
+    redirect(appendStatusToPath(returnPath, { success: "task-created" }));
   }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/tasks");
+}
 
 export async function completeTaskAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
@@ -1876,6 +1889,14 @@ export async function createBoardNoteAction(formData: FormData) {
     );
   });
 
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/tasks");
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/tasks");
+    redirect(appendStatusToPath(returnPath, { success: "board-created" }));
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/tasks");
 }
@@ -1918,6 +1939,14 @@ export async function deleteBoardNoteAction(formData: FormData) {
       barId: activeBarId,
     },
   });
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/tasks");
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/tasks");
+    redirect(appendStatusToPath(returnPath, { success: "task-completed" }));
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/tasks");
@@ -1985,6 +2014,15 @@ export async function createAvailabilityAction(formData: FormData) {
     );
   });
 
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+    revalidatePath("/dashboard/requests");
+    revalidatePath("/dashboard/shifts");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "availability-created" }));
+  }
+
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard/shifts");
   revalidatePath("/dashboard/calendar");
@@ -2024,6 +2062,14 @@ export async function createCalendarClosureAction(formData: FormData) {
       endsAt,
     },
   });
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "closure-created" }));
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
@@ -2070,6 +2116,15 @@ export async function createCourseAction(formData: FormData) {
       createdById: session.user.id,
     },
   });
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/courses");
+
+    revalidatePath("/dashboard/courses");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard/export");
+    redirect(appendStatusToPath(returnPath, { success: "course-created" }));
+  }
 
   revalidatePath("/dashboard/courses");
   revalidatePath("/dashboard/calendar");
@@ -2438,6 +2493,14 @@ export async function createManualTimeLogAction(formData: FormData) {
 
   invalidateReportingCache(activeBarId, userId);
 
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/timelogs");
+
+    revalidatePath("/dashboard/timelogs");
+    revalidatePath("/dashboard/export");
+    redirect(appendStatusToPath(returnPath, { success: "timelog-created" }));
+  }
+
   revalidatePath("/dashboard/timelogs");
   revalidatePath("/dashboard/export");
 }
@@ -2532,6 +2595,16 @@ export async function createTimeOffRequestAction(formData: FormData) {
       )
     );
   });
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/requests");
+    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "request-created" }));
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/requests");
@@ -2629,6 +2702,13 @@ export async function createShiftChangeRequestAction(formData: FormData) {
       )
     );
   });
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+    revalidatePath("/dashboard/requests");
+    redirect(appendStatusToPath(returnPath, { success: "shift-change-created" }));
+  }
 
   revalidatePath("/dashboard/requests");
 }
@@ -2860,6 +2940,17 @@ export async function reviewRequestAction(formData: FormData) {
         leaveNotification.barName
       );
     });
+  }
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+    revalidatePath("/dashboard/requests");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/shifts");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "request-reviewed" }));
   }
 
   revalidatePath("/dashboard/requests");

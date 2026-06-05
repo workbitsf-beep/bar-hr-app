@@ -19,13 +19,21 @@ import {
   PrimaryButton,
   Stack,
   StatusPill,
+  SuccessCallout,
   formatDate,
   formatDateTime,
 } from "../ui";
+import { PopupAction } from "../popup-action";
 import { BoardComposeForm } from "./board-compose-form";
 import { TaskComposeForm } from "./task-compose-form";
 
-export default async function DashboardTasksPage() {
+export default async function DashboardTasksPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, billingStatus } = await getDashboardContext();
 
   if (!activeBarId) {
@@ -41,6 +49,14 @@ export default async function DashboardTasksPage() {
   }
 
   const canManage = role === Role.OWNER || role === Role.MANAGER;
+  const successMessage =
+    success === "task-created"
+      ? "Mansione salvata correttamente."
+      : success === "board-created"
+        ? "Messaggio pubblicato correttamente."
+        : success === "task-completed"
+          ? "Mansione completata correttamente."
+          : null;
   const [tasks, members, notes] = await Promise.all([
     prisma.task.findMany({
       where: {
@@ -138,39 +154,27 @@ export default async function DashboardTasksPage() {
 
   return (
     <Stack>
-      <div id="board-compose">
-        <Panel title="Nuovo messaggio bacheca">
-          <BoardComposeForm action={createBoardNoteAction} canManage={canManage} />
-        </Panel>
-      </div>
-
-      {canManage ? (
-        <div id="tasks-compose">
-          <Panel title="Crea nuova mansione">
-            <TaskComposeForm
-              action={createTaskAction}
-              members={members.map((member) => ({
-                id: member.user.id,
-                firstName: member.user.firstName,
-                lastName: member.user.lastName,
-              }))}
-            />
-          </Panel>
-        </div>
-      ) : null}
+      {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
       <Panel
         title="Bacheca"
         action={
-          canManage && notes.length > 0 ? (
-            <form action={deleteAllBoardNotesAction}>
-              <PrimaryButton type="submit" tone="red">
-                Pulisci bacheca
-              </PrimaryButton>
-            </form>
-          ) : (
-            `${notes.length} messaggi`
-          )
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            {canManage && notes.length > 0 ? (
+              <form action={deleteAllBoardNotesAction}>
+                <PrimaryButton type="submit" tone="red">
+                  Pulisci bacheca
+                </PrimaryButton>
+              </form>
+            ) : null}
+            <PopupAction title="Nuovo messaggio bacheca" ariaLabel="Aggiungi messaggio">
+              <BoardComposeForm
+                action={createBoardNoteAction}
+                canManage={canManage}
+                notifySuccess
+              />
+            </PopupAction>
+          </div>
         }
       >
         {notes.length === 0 ? (
@@ -200,15 +204,28 @@ export default async function DashboardTasksPage() {
       <Panel
         title="Elenco mansioni"
         action={
-          canManage && tasks.some((task) => task.status === "DONE") ? (
-            <form action={deleteAllCompletedTasksAction}>
-              <PrimaryButton type="submit" tone="red">
-                Elimina completate
-              </PrimaryButton>
-            </form>
-          ) : (
-            `${tasks.length} risultati`
-          )
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            {canManage && tasks.some((task) => task.status === "DONE") ? (
+              <form action={deleteAllCompletedTasksAction}>
+                <PrimaryButton type="submit" tone="red">
+                  Elimina completate
+                </PrimaryButton>
+              </form>
+            ) : null}
+            {canManage ? (
+              <PopupAction title="Crea nuova mansione" ariaLabel="Aggiungi mansione">
+                <TaskComposeForm
+                  action={createTaskAction}
+                  members={members.map((member) => ({
+                    id: member.user.id,
+                    firstName: member.user.firstName,
+                    lastName: member.user.lastName,
+                  }))}
+                  notifySuccess
+                />
+              </PopupAction>
+            ) : null}
+          </div>
         }
       >
         {tasks.length === 0 ? (
@@ -273,6 +290,7 @@ export default async function DashboardTasksPage() {
                           {canComplete ? (
                             <form action={completeTaskAction}>
                               <input type="hidden" name="taskId" value={task.id} />
+                              <input type="hidden" name="notifySuccess" value="1" />
                               <PrimaryButton type="submit" tone="green">
                                 Segna completata
                               </PrimaryButton>

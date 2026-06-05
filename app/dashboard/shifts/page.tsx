@@ -12,6 +12,7 @@ import {
   Stack,
   formatDateTime,
 } from "../ui";
+import { PopupAction } from "../popup-action";
 import { PlannedShiftsList } from "./planned-shifts-list";
 import { ShiftCreateForm } from "./shift-create-form";
 
@@ -183,17 +184,24 @@ export default async function DashboardShiftsPage() {
   return (
     <Stack>
       {canManageShifts ? (
-        <Panel title="Crea turno condiviso">
-          <ShiftCreateForm
-            action={createShiftAction}
-            presets={shiftPresets}
-            members={members.map((member) => ({
-              id: member.user.id,
-              firstName: member.user.firstName,
-              lastName: member.user.lastName,
-              role: member.role,
-            }))}
-          />
+        <Panel
+          title="Crea turno condiviso"
+          action={
+            <PopupAction title="Nuovo turno" ariaLabel="Aggiungi turno">
+              <ShiftCreateForm
+                action={createShiftAction}
+                presets={shiftPresets}
+                members={members.map((member) => ({
+                  id: member.user.id,
+                  firstName: member.user.firstName,
+                  lastName: member.user.lastName,
+                  role: member.role,
+                }))}
+              />
+            </PopupAction>
+          }
+        >
+          <EmptyState message="Apri il popup con il + per creare o modificare un turno." />
         </Panel>
       ) : isCompany ? (
         <Panel title="Turni aziendali">

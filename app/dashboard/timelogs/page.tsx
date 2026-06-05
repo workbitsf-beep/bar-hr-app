@@ -4,10 +4,27 @@ import { buildMonthlyTotals } from "@/lib/reporting";
 import { DateTimeInput } from "@/app/components/date-time-input";
 import { createManualTimeLogAction } from "../actions";
 import { getDashboardContext } from "../context";
-import { BillingRequiredState, EmptyState, FormField, Panel, PrimaryButton, Select, Stack, TextInput } from "../ui";
+import {
+  BillingRequiredState,
+  EmptyState,
+  FormField,
+  Panel,
+  PrimaryButton,
+  Select,
+  Stack,
+  SuccessCallout,
+  TextInput,
+} from "../ui";
+import { PopupAction } from "../popup-action";
 import { TimeLogsClient } from "./timelogs-client";
 
-export default async function DashboardTimeLogsPage() {
+export default async function DashboardTimeLogsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, billingStatus } = await getDashboardContext();
 
   if (!activeBarId) {
@@ -23,6 +40,7 @@ export default async function DashboardTimeLogsPage() {
   }
 
   const isOwner = role === Role.OWNER;
+  const successMessage = success === "timelog-created" ? "Timbratura manuale salvata correttamente." : null;
   const [settings, members, logs, ownTotals] = await Promise.all([
     isOwner
       ? Promise.resolve(null)
@@ -90,53 +108,67 @@ export default async function DashboardTimeLogsPage() {
 
   return (
     <Stack>
+      {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
       {isOwner ? (
-        <Panel title="Aggiungi timbratura manuale">
+        <Panel
+          title="Timbrature manuali"
+          action={
+            <PopupAction title="Aggiungi timbratura manuale" ariaLabel="Aggiungi timbratura manuale">
+              {members.length === 0 ? (
+                <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
+              ) : (
+                <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
+                  <div
+                    className="dashboard-inline-grid"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <FormField label="Dipendente">
+                      <Select name="userId" required defaultValue="">
+                        <option value="" disabled>
+                          Seleziona
+                        </option>
+                        {members.map((member) => (
+                          <option key={member.user.id} value={member.user.id}>
+                            {member.user.firstName} {member.user.lastName}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
+
+                    <FormField label="Tipo">
+                      <Select name="type" defaultValue="IN">
+                        <option value="IN">Entrata</option>
+                        <option value="OUT">Uscita</option>
+                      </Select>
+                    </FormField>
+
+                    <FormField label="Timestamp">
+                      <DateTimeInput name="timestamp" required />
+                    </FormField>
+
+                    <FormField label="Nota">
+                      <TextInput name="note" />
+                    </FormField>
+                  </div>
+
+                  <input type="hidden" name="notifySuccess" value="1" />
+
+                  <div className="dashboard-form-actions">
+                    <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
+                  </div>
+                </form>
+              )}
+            </PopupAction>
+          }
+        >
           {members.length === 0 ? (
             <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
           ) : (
-            <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
-              <div
-                className="dashboard-inline-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <FormField label="Dipendente">
-                  <Select name="userId" required defaultValue="">
-                    <option value="" disabled>
-                      Seleziona
-                    </option>
-                    {members.map((member) => (
-                      <option key={member.user.id} value={member.user.id}>
-                        {member.user.firstName} {member.user.lastName}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-
-                <FormField label="Tipo">
-                  <Select name="type" defaultValue="IN">
-                    <option value="IN">Entrata</option>
-                    <option value="OUT">Uscita</option>
-                  </Select>
-                </FormField>
-
-                <FormField label="Timestamp">
-                  <DateTimeInput name="timestamp" required />
-                </FormField>
-
-                <FormField label="Nota">
-                  <TextInput name="note" />
-                </FormField>
-              </div>
-
-              <div className="dashboard-form-actions">
-                <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
-              </div>
-            </form>
+            <EmptyState message="Usa il tasto + per aggiungere una timbratura manuale." />
           )}
         </Panel>
       ) : null}

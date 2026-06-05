@@ -22,9 +22,11 @@ function createEmptyEntry() {
 export function TaskComposeForm({
   action,
   members,
+  notifySuccess = false,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   members: MemberOption[];
+  notifySuccess?: boolean;
 }) {
   const [entries, setEntries] = useState([createEmptyEntry()]);
 
@@ -49,6 +51,7 @@ export function TaskComposeForm({
 
   return (
     <form action={action} style={{ display: "grid", gap: 16 }}>
+      {notifySuccess ? <input type="hidden" name="notifySuccess" value="1" /> : null}
       <FormField
         label="Mansioni"
         hint="Usa il tasto + per aggiungere altre mansioni. Ogni voce verra salvata separatamente."

@@ -12,8 +12,10 @@ import {
   PrimaryButton,
   Select,
   Stack,
+  SuccessCallout,
   TextInput,
 } from "../ui";
+import { PopupAction } from "../popup-action";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -78,89 +80,72 @@ export default async function DashboardPeoplePage({
   return (
     <>
       <Stack>
-        <Panel title="Nuova persona">
-          <form action={createEmployeeAction} style={{ display: "grid", gap: 16 }}>
-            {error === "employee-exists" ? (
-              <div
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid #fecaca",
-                  background: "#fef2f2",
-                  color: "#b91c1c",
-                  lineHeight: 1.5,
-                }}
-              >
-                Esiste gia un utente con questa email. Usa un indirizzo diverso.
-              </div>
-            ) : null}
-            {success === "employee-created" ? (
-              <div
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid #bbf7d0",
-                  background: "#f0fdf4",
-                  color: "#166534",
-                  lineHeight: 1.5,
-                }}
-              >
-                Account creato correttamente. La password temporanea automatica e stata inviata via email.
-              </div>
-            ) : null}
-            {success === "employee-deleted" ? (
-              <div
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid #bbf7d0",
-                  background: "#f0fdf4",
-                  color: "#166534",
-                  lineHeight: 1.5,
-                }}
-              >
-                Dipendente eliminato definitivamente dal database.
-              </div>
-            ) : null}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
-              }}
-            >
-              <FormField label="Nome">
-                <TextInput name="firstName" required />
-              </FormField>
+        {error === "employee-exists" ? (
+          <SuccessCallout style={{ background: "#fef2f2", borderColor: "#fecaca", color: "#b91c1c" }}>
+            Esiste gia un utente con questa email. Usa un indirizzo diverso.
+          </SuccessCallout>
+        ) : null}
+        {success === "employee-created" ? (
+          <SuccessCallout>Account creato correttamente. La password temporanea automatica e stata inviata via email.</SuccessCallout>
+        ) : null}
+        {success === "employee-deleted" ? (
+          <SuccessCallout>Dipendente eliminato definitivamente dal database.</SuccessCallout>
+        ) : null}
 
-              <FormField label="Cognome">
-                <TextInput name="lastName" required />
-              </FormField>
+        <Panel
+          title="Team attivo"
+          action={
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <span>{members.length} persone</span>
+              <PopupAction title="Nuova persona" ariaLabel="Aggiungi persona">
+                <form action={createEmployeeAction} style={{ display: "grid", gap: 16 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <FormField label="Nome">
+                      <TextInput name="firstName" required />
+                    </FormField>
 
-              <FormField label="Email">
-                <TextInput name="email" type="email" required />
-              </FormField>
+                    <FormField label="Cognome">
+                      <TextInput name="lastName" required />
+                    </FormField>
 
-              <FormField label="Ruolo">
-                <Select name="role" defaultValue="EMPLOYEE">
-                  <option value="OWNER">Titolare</option>
-                  <option value="EMPLOYEE">Dipendente</option>
-                  <option value="MANAGER">Manager</option>
-                </Select>
-              </FormField>
+                    <FormField label="Email">
+                      <TextInput name="email" type="email" required />
+                    </FormField>
 
-              <FormField label="Paga oraria">
-                <TextInput name="hourlyRate" type="number" step="0.01" placeholder="Facoltativa" />
-              </FormField>
+                    <FormField label="Ruolo">
+                      <Select name="role" defaultValue="EMPLOYEE">
+                        <option value="OWNER">Titolare</option>
+                        <option value="EMPLOYEE">Dipendente</option>
+                        <option value="MANAGER">Manager</option>
+                      </Select>
+                    </FormField>
+
+                    <FormField label="Paga oraria">
+                      <TextInput
+                        name="hourlyRate"
+                        type="number"
+                        step="0.01"
+                        placeholder="Facoltativa"
+                      />
+                    </FormField>
+                  </div>
+
+                  <input type="hidden" name="notifySuccess" value="1" />
+
+                  <div>
+                    <PrimaryButton type="submit">Crea account</PrimaryButton>
+                  </div>
+                </form>
+              </PopupAction>
             </div>
-
-            <div>
-              <PrimaryButton type="submit">Crea account</PrimaryButton>
-            </div>
-          </form>
-        </Panel>
-
-        <Panel title="Team attivo" action={`${members.length} persone`}>
+          }
+        >
           {members.length === 0 ? (
             <EmptyState message="Nessuna persona collegata a questo locale." />
           ) : (

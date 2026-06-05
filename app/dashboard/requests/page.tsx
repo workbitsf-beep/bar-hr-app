@@ -21,11 +21,13 @@ import {
   Select,
   Stack,
   StatusPill,
+  SuccessCallout,
   TextArea,
   TextInput,
   formatDate,
   formatDateTime,
 } from "../ui";
+import { PopupAction } from "../popup-action";
 
 function requestTone(status: RequestStatus) {
   if (status === RequestStatus.APPROVED) {
@@ -75,7 +77,13 @@ function getReviewerName(
   return `${reviewer.firstName} ${reviewer.lastName}`.trim();
 }
 
-export default async function DashboardRequestsPage() {
+export default async function DashboardRequestsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, activeBarActivityType, billingStatus } =
     await getDashboardContext();
 
@@ -94,6 +102,18 @@ export default async function DashboardRequestsPage() {
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
   const canCreateRequests = role !== Role.OWNER;
   const canManageClosures = role === Role.OWNER || role === Role.MANAGER;
+  const successMessage =
+    success === "request-created"
+      ? "Richiesta salvata correttamente."
+      : success === "shift-change-created"
+        ? "Cambio turno richiesto correttamente."
+        : success === "request-reviewed"
+          ? "Richiesta confermata correttamente."
+        : success === "availability-created"
+          ? "Indisponibilita salvata correttamente."
+          : success === "closure-created"
+            ? "Chiusura salvata correttamente."
+            : null;
   const [requests, ownShifts, teammates, availabilities, overtimeMembers, closures] = await Promise.all([
     prisma.request.findMany({
       where: {
@@ -260,225 +280,271 @@ export default async function DashboardRequestsPage() {
   return (
     <>
       <Stack>
+        {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
         {canCreateRequests ? (
           <>
-            <Panel title="Richiedi ferie, permesso, malattia o straordinario">
-              <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
-                <div
-                  className="dashboard-inline-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  <FormField label="Tipo">
-                    <Select name="type" defaultValue="VACATION">
-                      <option value="VACATION">Ferie</option>
-                      <option value="PERMISSION">Permesso</option>
-                      <option value="SICKNESS">Malattia</option>
-                      <option value="OVERTIME">Straordinario</option>
-                    </Select>
-                  </FormField>
+            <Panel
+              title="Richiedi ferie, permesso, malattia o straordinario"
+              action={
+                <PopupAction title="Nuova richiesta" ariaLabel="Aggiungi richiesta">
+                  <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                    <div
+                      className="dashboard-inline-grid"
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      <FormField label="Tipo">
+                        <Select name="type" defaultValue="VACATION">
+                          <option value="VACATION">Ferie</option>
+                          <option value="PERMISSION">Permesso</option>
+                          <option value="SICKNESS">Malattia</option>
+                          <option value="OVERTIME">Straordinario</option>
+                        </Select>
+                      </FormField>
 
-                  <FormField label="Da">
-                    <DateTimeInput name="startsAt" required />
-                  </FormField>
+                      <FormField label="Da">
+                        <DateTimeInput name="startsAt" required />
+                      </FormField>
 
-                  <FormField label="A">
-                    <DateTimeInput name="endsAt" required />
-                  </FormField>
-                </div>
+                      <FormField label="A">
+                        <DateTimeInput name="endsAt" required />
+                      </FormField>
+                    </div>
 
-                <FormField label="Motivo">
-                  <TextArea name="reason" placeholder="Spiega brevemente la richiesta o le ore extra svolte" />
-                </FormField>
+                    <FormField label="Motivo">
+                      <TextArea
+                        name="reason"
+                        placeholder="Spiega brevemente la richiesta o le ore extra svolte"
+                      />
+                    </FormField>
 
-                <FormField label="Codice certificato malattia">
-                  <TextInput
-                    name="certificateCode"
-                    placeholder="Obbligatorio solo se scegli Malattia"
-                  />
-                </FormField>
+                    <FormField label="Codice certificato malattia">
+                      <TextInput
+                        name="certificateCode"
+                        placeholder="Obbligatorio solo se scegli Malattia"
+                      />
+                    </FormField>
 
-                <div className="dashboard-form-actions">
-                  <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
-                </div>
-              </form>
+                    <input type="hidden" name="notifySuccess" value="1" />
+
+                    <div className="dashboard-form-actions">
+                      <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
+                    </div>
+                  </form>
+                </PopupAction>
+              }
+            >
+              <EmptyState message="Le richieste inserite compaiono nello storico qui sotto." />
             </Panel>
 
             {!isCompany ? (
-              <Panel title="Richiedi cambio turno">
-              {ownShifts.length === 0 ? (
-                <EmptyState message="Non hai turni futuri disponibili per un cambio." />
-              ) : (
-                <form action={createShiftChangeRequestAction} style={{ display: "grid", gap: 16 }}>
-                  <FormField label="Turno da cambiare">
-                    <Select name="shiftId" required defaultValue="">
-                      <option value="" disabled>
-                        Seleziona un turno
-                      </option>
-                      {ownShifts.map((shift) => (
-                        <option key={shift.id} value={shift.id}>
-                          {(shift.title || "Turno")} · {formatDateTime(shift.startTime)}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormField>
+              <Panel
+                title="Richiedi cambio turno"
+                action={
+                  ownShifts.length === 0 ? null : (
+                    <PopupAction title="Cambio turno" ariaLabel="Aggiungi cambio turno">
+                      <form
+                        action={createShiftChangeRequestAction}
+                        style={{ display: "grid", gap: 16 }}
+                      >
+                        <FormField label="Turno da cambiare">
+                          <Select name="shiftId" required defaultValue="">
+                            <option value="" disabled>
+                              Seleziona un turno
+                            </option>
+                            {ownShifts.map((shift) => (
+                              <option key={shift.id} value={shift.id}>
+                                {(shift.title || "Turno")} - {formatDateTime(shift.startTime)}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormField>
 
-                  <FormField label="Collega coinvolto">
-                    <Select name="swapWithUserId" required defaultValue="">
-                      <option value="" disabled>
-                        Seleziona un collega
-                      </option>
-                      {teammates.map((teammate) => (
-                        <option key={teammate.user.id} value={teammate.user.id}>
-                          {teammate.user.firstName} {teammate.user.lastName}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormField>
+                        <FormField label="Collega coinvolto">
+                          <Select name="swapWithUserId" required defaultValue="">
+                            <option value="" disabled>
+                              Seleziona un collega
+                            </option>
+                            {teammates.map((teammate) => (
+                              <option key={teammate.user.id} value={teammate.user.id}>
+                                {teammate.user.firstName} {teammate.user.lastName}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormField>
 
-                  <FormField label="Motivo">
-                    <TextArea name="reason" placeholder="Spiega il motivo del cambio turno" />
-                  </FormField>
+                        <FormField label="Motivo">
+                          <TextArea name="reason" placeholder="Spiega il motivo del cambio turno" />
+                        </FormField>
 
-                  <div className="dashboard-form-actions">
-                    <PrimaryButton type="submit">Invia cambio turno</PrimaryButton>
-                  </div>
-                </form>
-              )}
+                        <input type="hidden" name="notifySuccess" value="1" />
+
+                        <div className="dashboard-form-actions">
+                          <PrimaryButton type="submit">Invia cambio turno</PrimaryButton>
+                        </div>
+                      </form>
+                    </PopupAction>
+                  )
+                }
+              >
+                {ownShifts.length === 0 ? (
+                  <EmptyState message="Non hai turni futuri disponibili per un cambio." />
+                ) : (
+                  <EmptyState message="Apri il popup con il + per richiedere un cambio turno." />
+                )}
               </Panel>
             ) : null}
           </>
         ) : null}
 
         {role === Role.OWNER ? (
-          <Panel title="Registra straordinario">
-            <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
-              <input type="hidden" name="type" value="OVERTIME" />
+          <Panel
+            title="Registra straordinario"
+            action={
+              <PopupAction title="Straordinario" ariaLabel="Aggiungi straordinario">
+                <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                  <input type="hidden" name="type" value="OVERTIME" />
 
-              <div
-                className="dashboard-inline-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <FormField label="Persona">
-                  <Select name="employeeId" required defaultValue="">
-                    <option value="" disabled>
-                      Seleziona una persona
-                    </option>
-                    {overtimeMembers.map((member) => (
-                      <option key={member.user.id} value={member.user.id}>
-                        {member.user.firstName} {member.user.lastName} - {member.role}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
+                  <div
+                    className="dashboard-inline-grid"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <FormField label="Persona">
+                      <Select name="employeeId" required defaultValue="">
+                        <option value="" disabled>
+                          Seleziona una persona
+                        </option>
+                        {overtimeMembers.map((member) => (
+                          <option key={member.user.id} value={member.user.id}>
+                            {member.user.firstName} {member.user.lastName} - {member.role}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
 
-                <FormField label="Da">
-                  <DateTimeInput name="startsAt" required />
-                </FormField>
+                    <FormField label="Da">
+                      <DateTimeInput name="startsAt" required />
+                    </FormField>
 
-                <FormField label="A">
-                  <DateTimeInput name="endsAt" required />
-                </FormField>
-              </div>
+                    <FormField label="A">
+                      <DateTimeInput name="endsAt" required />
+                    </FormField>
+                  </div>
 
-              <FormField label="Dettaglio">
-                <TextArea name="reason" placeholder="Motivo o descrizione dello straordinario" />
-              </FormField>
+                  <FormField label="Dettaglio">
+                    <TextArea name="reason" placeholder="Motivo o descrizione dello straordinario" />
+                  </FormField>
 
-              <div className="dashboard-form-actions">
-                <PrimaryButton type="submit">Registra straordinario</PrimaryButton>
-              </div>
-            </form>
+                  <input type="hidden" name="notifySuccess" value="1" />
+
+                  <div className="dashboard-form-actions">
+                    <PrimaryButton type="submit">Registra straordinario</PrimaryButton>
+                  </div>
+                </form>
+              </PopupAction>
+            }
+          >
+            <EmptyState message="Apri il popup con il + per registrare uno straordinario." />
           </Panel>
         ) : null}
 
         {canManageClosures ? (
-          <Panel title="Chiusure">
-            <form action={createCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
-              <input type="hidden" name="type" value="CLOSURE" />
+          <Panel
+            title="Chiusure"
+            action={
+              <PopupAction title="Chiusura" ariaLabel="Aggiungi chiusura">
+                <form action={createCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
+                  <input type="hidden" name="type" value="CLOSURE" />
 
-              <FormField label="Titolo">
-                <TextInput name="title" placeholder="Chiusura locale" />
-              </FormField>
+                  <FormField label="Titolo">
+                    <TextInput name="title" placeholder="Chiusura locale" />
+                  </FormField>
 
-              <ClosureDateRangeInput
-                startName="startsAt"
-                endName="endsAt"
-                required
-              />
+                  <ClosureDateRangeInput startName="startsAt" endName="endsAt" required />
 
-              <div className="dashboard-form-actions">
-                <PrimaryButton type="submit">Salva chiusura</PrimaryButton>
-              </div>
-            </form>
+                  <input type="hidden" name="notifySuccess" value="1" />
 
-            <div style={{ marginTop: 16 }}>
-              {closures.length === 0 ? (
-                <EmptyState message="Nessuna chiusura registrata." />
-              ) : (
-                <ItemList scrollable>
-                  {closures.map((closure) => (
-                    <ItemCard
-                      key={closure.id}
-                      title={closure.title}
-                      subtitle="Chiusura"
-                      meta={`${formatDate(closure.startsAt)} - ${formatDate(closure.endsAt)}`}
-                      footer={
-                        closure.createdBy ? (
-                          <span>
-                            Inserita da {closure.createdBy.firstName} {closure.createdBy.lastName}
-                          </span>
-                        ) : null
-                      }
-                    />
-                  ))}
-                </ItemList>
-              )}
-            </div>
+                  <div className="dashboard-form-actions">
+                    <PrimaryButton type="submit">Salva chiusura</PrimaryButton>
+                  </div>
+                </form>
+              </PopupAction>
+            }
+          >
+            {closures.length === 0 ? (
+              <EmptyState message="Nessuna chiusura registrata." />
+            ) : (
+              <ItemList scrollable>
+                {closures.map((closure) => (
+                  <ItemCard
+                    key={closure.id}
+                    title={closure.title}
+                    subtitle="Chiusura"
+                    meta={formatDate(closure.startsAt) + " - " + formatDate(closure.endsAt)}
+                    footer={
+                      closure.createdBy ? (
+                        <span>
+                          Inserita da {closure.createdBy.firstName} {closure.createdBy.lastName}
+                        </span>
+                      ) : null
+                    }
+                  />
+                ))}
+              </ItemList>
+            )}
           </Panel>
         ) : null}
 
         {!isCompany ? (
           <>
-            <Panel title="Nuova indisponibilita">
-              <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  <FormField label="Da">
-                    <DateTimeInput name="startsAt" required />
-                  </FormField>
+            <Panel
+              title="Nuova indisponibilita"
+              action={
+                <PopupAction title="Indisponibilita" ariaLabel="Aggiungi indisponibilita">
+                  <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      <FormField label="Da">
+                        <DateTimeInput name="startsAt" required />
+                      </FormField>
 
-                  <FormField label="A">
-                    <DateTimeInput name="endsAt" required />
-                  </FormField>
-                </div>
+                      <FormField label="A">
+                        <DateTimeInput name="endsAt" required />
+                      </FormField>
+                    </div>
 
-                <FormField label="Motivo">
-                  <TextArea
-                    name="reason"
-                    placeholder="Facoltativo: esame, visita, evento personale"
-                  />
-                </FormField>
+                    <FormField label="Motivo">
+                      <TextArea
+                        name="reason"
+                        placeholder="Facoltativo: esame, visita, evento personale"
+                      />
+                    </FormField>
 
-                <div className="dashboard-form-actions">
-                  <PrimaryButton type="submit">Salva indisponibilita</PrimaryButton>
-                </div>
-              </form>
+                    <input type="hidden" name="notifySuccess" value="1" />
+
+                    <div className="dashboard-form-actions">
+                      <PrimaryButton type="submit">Salva indisponibilita</PrimaryButton>
+                    </div>
+                  </form>
+                </PopupAction>
+              }
+            >
+              <EmptyState message="Apri il popup con il + per segnalare un'indisponibilita." />
             </Panel>
 
-            <Panel title="Calendario indisponibilita" action={`${availabilities.length} elementi`}>
+            <Panel title="Calendario indisponibilita" action={availabilities.length + " elementi"}>
               {availabilities.length === 0 ? (
                 <EmptyState message="Nessuna indisponibilita registrata." />
               ) : (
@@ -489,9 +555,9 @@ export default async function DashboardRequestsPage() {
                       title={
                         availability.user.id === session.user.id
                           ? "La tua indisponibilita"
-                          : `${availability.user.firstName} ${availability.user.lastName}`
+                          : availability.user.firstName + " " + availability.user.lastName
                       }
-                      subtitle={`${formatDateTime(availability.startsAt)} - ${formatDateTime(availability.endsAt)}`}
+                      subtitle={formatDateTime(availability.startsAt) + " - " + formatDateTime(availability.endsAt)}
                       meta={availability.reason || "Nessuna nota aggiuntiva"}
                     />
                   ))}
@@ -500,7 +566,6 @@ export default async function DashboardRequestsPage() {
             </Panel>
           </>
         ) : null}
-
         <Panel title="Storico richieste" action={`${requests.length} elementi`}>
           {requests.length === 0 ? (
             <EmptyState message="Nessuna richiesta presente." />
@@ -533,7 +598,7 @@ export default async function DashboardRequestsPage() {
                         {request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}
                         <br />
                         {request.shift
-                          ? `${request.shift.title || "Turno"} · ${formatDateTime(request.shift.startTime)}`
+                          ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
                           : request.certificateCode
                             ? `Certificato: ${request.certificateCode}${request.reason ? ` - ${request.reason}` : ""}`
                             : request.reason || "Nessun dettaglio aggiuntivo"}
@@ -596,6 +661,7 @@ export default async function DashboardRequestsPage() {
                             <form action={reviewRequestAction}>
                               <input type="hidden" name="requestId" value={request.id} />
                               <input type="hidden" name="decision" value="APPROVED" />
+                              <input type="hidden" name="notifySuccess" value="1" />
                               <PrimaryButton type="submit" tone="green">
                                 Approva
                               </PrimaryButton>
@@ -604,6 +670,7 @@ export default async function DashboardRequestsPage() {
                             <form action={reviewRequestAction}>
                               <input type="hidden" name="requestId" value={request.id} />
                               <input type="hidden" name="decision" value="REJECTED" />
+                              <input type="hidden" name="notifySuccess" value="1" />
                               <PrimaryButton type="submit" tone="red">
                                 Rifiuta
                               </PrimaryButton>
