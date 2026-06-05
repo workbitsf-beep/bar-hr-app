@@ -61,6 +61,13 @@ function formatDayLabel(value: string) {
   }).format(new Date(value));
 }
 
+function formatClockTime(value: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 function getVisibleLogNote(note: string | null) {
   if (!note || note.toLowerCase().includes("precisione gps")) {
     return null;
@@ -313,29 +320,12 @@ export function ClockActionsPanel({
           >
             {locating ? "Aggiornamento posizione..." : compact ? "Verifica posizione" : "Aggiorna posizione"}
           </PrimaryButton>
-          <div
-            className="dashboard-clock-actions-row"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 0,
-              borderRadius: 18,
-              overflow: "hidden",
-              border: "1px solid #dbe3ee",
-              background: "#ffffff",
-            }}
-          >
+          <div className="dashboard-clock-actions-row" style={{ display: "grid", gap: 10 }}>
             <PrimaryButton
               type="button"
               tone="green"
               onClick={() => runClockAction("clock-in")}
               disabled={submitting !== null || !insideRadius || !geoReady}
-              style={{
-                borderRadius: 0,
-                borderTopLeftRadius: 18,
-                borderBottomLeftRadius: 18,
-                boxShadow: "none",
-              }}
             >
               {submitting === "in" ? "Registrazione..." : "Entrata"}
             </PrimaryButton>
@@ -344,12 +334,6 @@ export function ClockActionsPanel({
               tone="red"
               onClick={() => runClockAction("clock-out")}
               disabled={submitting !== null || !insideRadius || !geoReady}
-              style={{
-                borderRadius: 0,
-                borderTopRightRadius: 18,
-                borderBottomRightRadius: 18,
-                boxShadow: "none",
-              }}
             >
               {submitting === "out" ? "Registrazione..." : "Uscita"}
             </PrimaryButton>
@@ -576,22 +560,12 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                       <ItemCard
                         key={log.id}
                         title={formatDayLabel(log.timestamp)}
-                        subtitle={`${log.type} - ${formatDateTime(log.timestamp)}`}
-                        meta={
-                          <>
-                            {getVisibleLogNote(log.note) ? (
-                              <>
-                                {getVisibleLogNote(log.note)}
-                              </>
-                            ) : (
-                              "Registrazione salvata"
-                            )}
-                          </>
-                        }
+                        subtitle={formatClockTime(log.timestamp)}
+                        meta={getVisibleLogNote(log.note) ?? "Registrazione salvata"}
                         footer={
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <StatusPill
-                              label={log.type}
+                              label={log.type === "IN" ? "Entrata" : "Uscita"}
                               tone={log.type === "IN" ? "warning" : "success"}
                             />
                             {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
@@ -647,23 +621,13 @@ function PersonalTimeLogsPanel({
             {filteredLogs.map((log) => (
               <ItemCard
                 key={log.id}
-                title={formatDateTime(log.timestamp)}
-                subtitle={`${log.type} - ${log.isManual ? "manuale" : "ufficiale"}`}
-                meta={
-                  <>
-                    {getVisibleLogNote(log.note) ? (
-                      <>
-                        {getVisibleLogNote(log.note)}
-                      </>
-                    ) : (
-                      "Registrazione salvata"
-                    )}
-                  </>
-                }
+                title={formatDayLabel(log.timestamp)}
+                subtitle={formatClockTime(log.timestamp)}
+                meta={getVisibleLogNote(log.note) ?? "Registrazione salvata"}
                 footer={
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <StatusPill
-                      label={log.type}
+                      label={log.type === "IN" ? "Entrata" : "Uscita"}
                       tone={log.type === "IN" ? "warning" : "success"}
                     />
                     {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
