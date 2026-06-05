@@ -3,7 +3,9 @@ import { ActivityType, AppLanguage, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getBillingStatus, type BillingStatusResult } from "@/lib/billing";
+import { getFeatureFlags, type FeatureFlags } from "@/lib/features";
 import { getActiveBarAccess, getPostLoginDestination } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 import { getTranslation } from "@/lib/i18n";
 
 export type DashboardNavItem = {
@@ -20,6 +22,7 @@ export type DashboardContext = {
   activeBarName: string | null;
   activeBarActivityType: ActivityType | null;
   billingStatus: BillingStatusResult | null;
+  features: FeatureFlags;
   ownerNeedsSubscriptionActivation: boolean;
   navItems: DashboardNavItem[];
   accessibleBars: {
@@ -56,10 +59,31 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const language = session.user.language ?? AppLanguage.it;
   const t = getTranslation(language);
 
-  const billingStatus =
+  const [billingStatus, featureSettings] = await Promise.all([
     activeBar?.id && String(role) !== "SUPER_ADMIN"
-      ? await getBillingStatus(activeBar.id)
-      : null;
+      ? getBillingStatus(activeBar.id)
+      : Promise.resolve(null),
+    activeBar?.id && String(role) !== "SUPER_ADMIN"
+      ? prisma.barSettings.findUnique({
+          where: { barId: activeBar.id },
+          select: {
+            timeTrackingEnabled: true,
+            shiftsEnabled: true,
+            requestsEnabled: true,
+            tasksEnabled: true,
+            noticeBoardEnabled: true,
+            coursesEnabled: true,
+            reportsEnabled: true,
+            companyShiftsEnabled: true,
+          },
+        })
+      : Promise.resolve(null),
+  ]);
+  const rawFeatures = getFeatureFlags(featureSettings);
+  const features =
+    activeBar?.activityType === ActivityType.COMPANY && featureSettings?.companyShiftsEnabled === false
+      ? { ...rawFeatures, shifts: false }
+      : rawFeatures;
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
@@ -74,22 +98,28 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: "Abbonamenti", href: "/dashboard/super-admin/billing" },
           { label: "GPS", href: "/dashboard/super-admin/gps" },
         ]
-      : isCompany
-        ? [
-          { label: t.calendar, href: "/dashboard/calendar" },
+      : [
+          ...(features.shifts ||
+          features.requests ||
+          features.tasks ||
+          features.noticeBoard ||
+          features.courses
+            ? [{ label: t.calendar, href: "/dashboard/calendar" }]
+            : []),
           { label: t.dashboard, href: "/dashboard" },
-          { label: t.tasks, href: "/dashboard/tasks" },
-          { label: "Corsi", href: "/dashboard/courses" },
-          { label: requestsNavLabel, href: "/dashboard/requests" },
-        ]
-        : [
-          { label: t.calendar, href: "/dashboard/calendar" },
-          { label: t.dashboard, href: "/dashboard" },
-          { label: t.shifts, href: "/dashboard/shifts" },
-          { label: t.tasks, href: "/dashboard/tasks" },
-          { label: "Corsi", href: "/dashboard/courses" },
-          { label: t.timelogs, href: "/dashboard/timelogs" },
-          { label: requestsNavLabel, href: "/dashboard/requests" },
+          ...(features.shifts && !isCompany
+            ? [{ label: t.shifts, href: "/dashboard/shifts" }]
+            : []),
+          ...(features.tasks || features.noticeBoard
+            ? [{ label: t.tasks, href: "/dashboard/tasks" }]
+            : []),
+          ...(features.courses ? [{ label: "Corsi", href: "/dashboard/courses" }] : []),
+          ...(features.timeTracking && !isCompany
+            ? [{ label: t.timelogs, href: "/dashboard/timelogs" }]
+            : []),
+          ...(features.requests
+            ? [{ label: requestsNavLabel, href: "/dashboard/requests" }]
+            : []),
         ];
 
   if (role === Role.OWNER) {
@@ -99,9 +129,9 @@ export const getDashboardContext = cache(async function getDashboardContext(
     navItems.push({ label: t.settings, href: "/dashboard/settings" });
   }
 
-  if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") {
+  if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN" && features.reports) {
     navItems.push({ label: t.personalPdf, href: "/dashboard/export" });
-  } else if (role === Role.OWNER) {
+  } else if (role === Role.OWNER && features.reports) {
     navItems.push({ label: t.exportPdf, href: "/dashboard/export" });
   }
 
@@ -114,6 +144,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
     activeBarName: activeBar?.name ?? null,
     activeBarActivityType: activeBar?.activityType ?? null,
     billingStatus,
+    features,
     ownerNeedsSubscriptionActivation,
     navItems,
     accessibleBars,

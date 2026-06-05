@@ -27,7 +27,7 @@ export default async function DashboardCoursesPage({
 }) {
   const params = searchParams ? await searchParams : {};
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
-  const { session, role, activeBarId, billingStatus } =
+  const { session, role, activeBarId, billingStatus, features } =
     await getDashboardContext();
 
   if (!activeBarId) {
@@ -40,6 +40,14 @@ export default async function DashboardCoursesPage({
 
   if (billingStatus && !billingStatus.canAccess) {
     return <BillingRequiredState role={String(role)} />;
+  }
+
+  if (!features.courses) {
+    return (
+      <Panel title="Corsi">
+        <EmptyState message="Modulo corsi disattivato nelle impostazioni." />
+      </Panel>
+    );
   }
 
   const canManage = role === Role.OWNER || role === Role.MANAGER;

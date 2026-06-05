@@ -23,7 +23,7 @@ import {
 import { formatDurationClock } from "@/lib/time-format";
 
 export default async function DashboardPage() {
-  const { session, role, activeBarId, activeBarActivityType, billingStatus } =
+  const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
 
   if (String(role) === "SUPER_ADMIN") {
@@ -47,8 +47,15 @@ export default async function DashboardPage() {
   const isOwner = role === Role.OWNER;
   const isEmployee = role === Role.EMPLOYEE;
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
+  const showKpi =
+    canManagePeople &&
+    (features.shifts ||
+      features.requests ||
+      features.tasks ||
+      features.noticeBoard ||
+      features.courses);
   const kpiDataPromise =
-    canManagePeople && activeBarId
+    showKpi && activeBarId
       ? getDashboardKpiData(activeBarId, activeBarActivityType)
       : Promise.resolve(null);
 
@@ -65,7 +72,7 @@ export default async function DashboardPage() {
     kpiData,
   ] =
     await Promise.all([
-      isOwner || !isRestaurant
+      isOwner || !isRestaurant || !features.timeTracking
         ? Promise.resolve(null)
         : prisma.barSettings.findUnique({
             where: { barId: activeBarId },
@@ -78,7 +85,7 @@ export default async function DashboardPage() {
               roundingMode: true,
             },
           }),
-      isRestaurant
+      isRestaurant && features.shifts
         ? prisma.shift.findMany({
             where: {
               barId: activeBarId,
@@ -111,42 +118,45 @@ export default async function DashboardPage() {
             },
           })
         : Promise.resolve([]),
-      prisma.shift.findMany({
-        where: {
-          barId: activeBarId,
-          confirmedAt: null,
-          isOnCall: true,
-          assignments: {
-            some: {
-              userId: session.user.id,
-            },
-          },
-        },
-        orderBy: {
-          startTime: "asc",
-        },
-        take: 6,
-        select: {
-          id: true,
-          title: true,
-          startTime: true,
-          endTime: true,
-          confirmedAt: true,
-          isOnCall: true,
-          assignments: {
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
+      features.shifts
+        ? prisma.shift.findMany({
+            where: {
+              barId: activeBarId,
+              confirmedAt: null,
+              isOnCall: true,
+              assignments: {
+                some: {
+                  userId: session.user.id,
                 },
               },
             },
-          },
-        },
-      }),
-      prisma.task.findMany({
+            orderBy: {
+              startTime: "asc",
+            },
+            take: 6,
+            select: {
+              id: true,
+              title: true,
+              startTime: true,
+              endTime: true,
+              confirmedAt: true,
+              isOnCall: true,
+              assignments: {
+                select: {
+                  user: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+      features.tasks
+        ? prisma.task.findMany({
         where: {
           barId: activeBarId,
           ...(isEmployee
@@ -180,8 +190,10 @@ export default async function DashboardPage() {
             },
           },
         },
-      }),
-      prisma.note.findMany({
+          })
+        : Promise.resolve([]),
+      features.noticeBoard
+        ? prisma.note.findMany({
         where: {
           barId: activeBarId,
           ...(role === Role.EMPLOYEE
@@ -205,8 +217,9 @@ export default async function DashboardPage() {
             },
           },
         },
-      }),
-      isOwner
+          })
+        : Promise.resolve([]),
+      isOwner && features.requests
         ? prisma.request.findMany({
             where: {
               barId: activeBarId,
@@ -259,7 +272,7 @@ export default async function DashboardPage() {
             },
           })
         : Promise.resolve([]),
-      isOwner
+      isOwner || !features.requests
         ? Promise.resolve(null)
         : prisma.request.count({
             where: {
@@ -295,7 +308,7 @@ export default async function DashboardPage() {
             },
           })
         : Promise.resolve([]),
-      isOwner || !isRestaurant
+      isOwner || !isRestaurant || !features.timeTracking
         ? Promise.resolve(null)
         : buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear()),
       kpiDataPromise,
@@ -308,7 +321,9 @@ export default async function DashboardPage() {
 
   return (
     <Stack>
-      {isRestaurant && !isOwner ? <ClockActionsPanel role={role} settings={settings} /> : null}
+      {isRestaurant && !isOwner && features.timeTracking ? (
+        <ClockActionsPanel role={role} settings={settings} />
+      ) : null}
 
       {!canManagePeople ? (
         <Panel title="Il tuo riepilogo" action={<ArrowLinkButton href="/dashboard/calendar" />}>
@@ -319,47 +334,56 @@ export default async function DashboardPage() {
               gap: 12,
             }}
           >
-            {isRestaurant && ownHours ? (
+            {isRestaurant && features.timeTracking && ownHours ? (
               <ItemCard
                 title={formatDurationClock(ownHours.roundedHours)}
                 subtitle={`Ore reali ${formatDurationClock(ownHours.realHours)}`}
                 meta="Ore mese"
               />
             ) : null}
+            {features.shifts ? (
             <ItemCard
               title={`${personalShiftCount} turni`}
               subtitle="Prossimi turni assegnati"
               meta="Calendario"
             />
+            ) : null}
+            {features.tasks ? (
             <ItemCard
               title={`${tasks.length} mansioni`}
               subtitle={tasks.length === 0 ? "Tutto completato" : "Da gestire"}
               meta="Mansioni"
             />
+            ) : null}
+            {features.requests ? (
             <ItemCard
               title={`${requestCount} richieste`}
               subtitle={requestCount === 0 ? "Nessuna richiesta aperta" : "Controlla lo stato"}
               meta="Richieste"
             />
+            ) : null}
+            {features.noticeBoard ? (
             <ItemCard
               title={`${notes.length} messaggi`}
               subtitle="Ultime comunicazioni"
               meta="Bacheca"
             />
+            ) : null}
           </div>
         </Panel>
       ) : null}
 
-      {canManagePeople ? (
+      {showKpi ? (
         <KpiDashboard
           activeBarId={activeBarId}
           role={role}
           activityType={activeBarActivityType}
+          features={features}
           initialData={kpiData}
         />
       ) : null}
 
-      {!canManagePeople && isRestaurant ? (
+      {!canManagePeople && isRestaurant && features.shifts ? (
         <Panel title="Turni in arrivo" action={<ArrowLinkButton href="/dashboard/shifts" />}>
           {shifts.length === 0 ? (
             <EmptyState message="Nessun turno schedulato al momento." />
@@ -387,7 +411,7 @@ export default async function DashboardPage() {
         </Panel>
       ) : null}
 
-      {pendingOnCallShifts.length > 0 ? (
+      {features.shifts && pendingOnCallShifts.length > 0 ? (
         <Panel title="Reperibilita da approvare">
           <ItemList>
             {pendingOnCallShifts.map((shift) => (
@@ -410,7 +434,7 @@ export default async function DashboardPage() {
         </Panel>
       ) : null}
 
-      {!canManagePeople ? (
+      {!canManagePeople && features.tasks ? (
       <Panel title="Mansioni aperte" action={<ArrowLinkButton href="/dashboard/tasks" />}>
         {tasks.length === 0 ? (
           <EmptyState message="Nessuna mansione aperta per il locale." />
@@ -435,7 +459,7 @@ export default async function DashboardPage() {
       </Panel>
       ) : null}
 
-      {!canManagePeople ? (
+      {!canManagePeople && features.noticeBoard ? (
       <Panel title="Bacheca" action={<ArrowLinkButton href="/dashboard/tasks" />}>
         {notes.length === 0 ? (
           <EmptyState message="Nessun messaggio in bacheca." />
@@ -454,7 +478,7 @@ export default async function DashboardPage() {
       </Panel>
       ) : null}
 
-      {!canManagePeople ? (
+      {!canManagePeople && features.requests ? (
       <Panel title="Richieste in sospeso" action={<ArrowLinkButton href="/dashboard/requests" />}>
         {isOwner ? (
           requestCount === 0 ? (

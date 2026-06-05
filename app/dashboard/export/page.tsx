@@ -5,7 +5,7 @@ import { BillingRequiredState, EmptyState, Panel } from "../ui";
 import { ExportClient } from "./export-client";
 
 export default async function DashboardExportPage() {
-  const { session, role, activeBarId, activeBarActivityType, billingStatus } =
+  const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
 
   if (!activeBarId) {
@@ -18,6 +18,14 @@ export default async function DashboardExportPage() {
 
   if (billingStatus && !billingStatus.canAccess) {
     return <BillingRequiredState role={String(role)} />;
+  }
+
+  if (!features.reports) {
+    return (
+      <Panel title="Export PDF">
+        <EmptyState message="Modulo report disattivato nelle impostazioni." />
+      </Panel>
+    );
   }
 
   const canSelectEmployees =

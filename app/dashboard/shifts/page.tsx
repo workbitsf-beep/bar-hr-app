@@ -40,6 +40,7 @@ export default async function DashboardShiftsPage() {
     activeBarActivityType,
     language,
     billingStatus,
+    features,
   } = await getDashboardContext();
 
   if (!activeBarId) {
@@ -52,6 +53,14 @@ export default async function DashboardShiftsPage() {
 
   if (billingStatus && !billingStatus.canAccess) {
     return <BillingRequiredState role={String(role)} />;
+  }
+
+  if (!features.shifts) {
+    return (
+      <Panel title="Turni">
+        <EmptyState message="Modulo turni disattivato nelle impostazioni." />
+      </Panel>
+    );
   }
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;

@@ -25,7 +25,7 @@ export default async function DashboardTimeLogsPage({
 }) {
   const params = searchParams ? await searchParams : {};
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
-  const { session, role, activeBarId, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
     return (
@@ -37,6 +37,14 @@ export default async function DashboardTimeLogsPage({
 
   if (billingStatus && !billingStatus.canAccess) {
     return <BillingRequiredState role={String(role)} />;
+  }
+
+  if (!features.timeTracking) {
+    return (
+      <Panel title="Timbrature">
+        <EmptyState message="Modulo timbrature disattivato nelle impostazioni." />
+      </Panel>
+    );
   }
 
   const isOwner = role === Role.OWNER;

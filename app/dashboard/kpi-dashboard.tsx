@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import type { ActivityType, Role } from "@prisma/client";
 import type { DashboardKpiData } from "@/lib/dashboard-kpi";
-import { ArrowLinkButton, EmptyState, Panel, StatusPill } from "./ui";
+import type { FeatureFlags } from "@/lib/features";
+import { EmptyState, Panel, StatusPill } from "./ui";
 
 type DashboardKpiResponse =
   | {
@@ -20,18 +20,12 @@ type KpiDashboardProps = {
   activeBarId: string;
   role: Role | string;
   activityType: ActivityType | null;
+  features: FeatureFlags;
   initialData?: DashboardKpiData | null;
 };
 
 const CACHE_TTL_MS = 45_000;
 const kpiCache = new Map<string, { data: DashboardKpiData; updatedAt: number }>();
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function KpiSkeletonCard() {
   return (
@@ -77,16 +71,18 @@ function KpiMetricCard({
   title: string;
   value: string;
   subtitle: string;
-  tone?: "success" | "warning" | "danger" | "neutral";
+  tone?: "success" | "warning" | "danger" | "neutral" | "purple";
   footer?: string;
 }) {
   const accent =
     tone === "success"
       ? "linear-gradient(135deg, rgba(209,250,229,0.9), rgba(255,255,255,0.98))"
       : tone === "warning"
-        ? "linear-gradient(135deg, rgba(254,240,138,0.58), rgba(255,255,255,0.98))"
-        : tone === "danger"
-          ? "linear-gradient(135deg, rgba(254,226,226,0.86), rgba(255,255,255,0.98))"
+      ? "linear-gradient(135deg, rgba(254,240,138,0.58), rgba(255,255,255,0.98))"
+      : tone === "danger"
+        ? "linear-gradient(135deg, rgba(254,226,226,0.86), rgba(255,255,255,0.98))"
+        : tone === "purple"
+          ? "linear-gradient(135deg, rgba(237,233,254,0.9), rgba(255,255,255,0.98))"
           : "linear-gradient(135deg, rgba(241,245,249,0.98), rgba(255,255,255,0.98))";
 
   return (
@@ -110,92 +106,10 @@ function KpiMetricCard({
   );
 }
 
-function MiniBarChart({
-  items,
-  emptyMessage,
-  valueKey = "count",
-  secondaryKey,
-}: {
-  items: Array<Record<string, string | number>>;
-  emptyMessage: string;
-  valueKey?: string;
-  secondaryKey?: string;
-}) {
-  const maxValue = items.reduce((current, item) => {
-    const value = Number(item[valueKey] ?? 0);
-    const secondary = secondaryKey ? Number(item[secondaryKey] ?? 0) : 0;
-    return Math.max(current, value, secondary);
-  }, 0);
-
-  if (items.length === 0 || maxValue === 0) {
-    return <EmptyState message={emptyMessage} />;
-  }
-
-  return (
-    <div style={{ display: "grid", gap: 12 }}>
-      {items.map((item) => {
-        const value = Number(item[valueKey] ?? 0);
-        const secondary = secondaryKey ? Number(item[secondaryKey] ?? 0) : 0;
-        const primaryWidth = maxValue === 0 ? 0 : (value / maxValue) * 100;
-        const secondaryWidth = maxValue === 0 ? 0 : (secondary / maxValue) * 100;
-
-        return (
-          <div key={String(item.date ?? item.key ?? item.label)} style={{ display: "grid", gap: 6 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "baseline",
-              }}
-            >
-              <strong style={{ color: "#0f172a", fontSize: 14 }}>{String(item.label)}</strong>
-              <span style={{ color: "#64748b", fontSize: 13 }}>
-                {secondaryKey ? `${secondary}/${value}` : value}
-              </span>
-            </div>
-            <div
-              style={{
-                position: "relative",
-                height: 10,
-                borderRadius: 999,
-                background: "#e2e8f0",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: `${primaryWidth}%`,
-                  height: "100%",
-                  borderRadius: 999,
-                  background: "linear-gradient(90deg, #0f172a 0%, #475569 100%)",
-                  opacity: secondaryKey ? 0.18 : 1,
-                }}
-              />
-              {secondaryKey ? (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: `${secondaryWidth}%`,
-                    height: "100%",
-                    borderRadius: 999,
-                    background: "linear-gradient(90deg, #16a34a 0%, #22c55e 100%)",
-                  }}
-                />
-              ) : null}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export function KpiDashboard({
   activeBarId,
   role,
-  activityType,
+  features,
   initialData,
 }: KpiDashboardProps) {
   const cached = kpiCache.get(activeBarId);
@@ -352,7 +266,7 @@ export function KpiDashboard({
               gap: 14,
             }}
           >
-            {Array.from({ length: 8 }, (_, index) => (
+            {Array.from({ length: 4 }, (_, index) => (
               <KpiSkeletonCard key={index} />
             ))}
           </div>
@@ -376,13 +290,70 @@ export function KpiDashboard({
     return null;
   }
 
-  const hasRequestChart = data.charts.requestsCurrentMonth.some((entry) => entry.count > 0);
-  const hasShiftChart = data.charts.shiftsCurrentWeek.some((entry) => entry.count > 0);
+  const summaryCards = [
+    features.shifts
+      ? {
+          key: "today",
+          title: "📅 Presenti oggi",
+          value: String(data.today.scheduledUsers),
+          subtitle:
+            data.today.scheduledShifts > 0
+              ? `${data.today.scheduledShifts} turni, ${data.today.confirmedShifts} confermati`
+              : "Nessun turno oggi",
+          footer: `${data.today.pendingShifts} in attesa`,
+          tone: "purple" as const,
+        }
+      : null,
+    features.requests
+      ? {
+          key: "requests",
+          title: "📝 Richieste",
+          value: String(data.requests.totalPending),
+          subtitle:
+            data.requests.totalPending === 0
+              ? "Tutto aggiornato"
+              : "Da controllare",
+          footer: `${data.requests.pendingLeaves} ferie, ${data.requests.pendingPermissions} permessi`,
+          tone: data.requests.totalPending > 0 ? ("warning" as const) : ("neutral" as const),
+        }
+      : null,
+    features.tasks
+      ? {
+          key: "tasks",
+          title: "✅ Mansioni",
+          value: `${data.tasks.completionRate}%`,
+          subtitle:
+            data.tasks.totalToday === 0
+              ? "Nessuna mansione oggi"
+              : `${data.tasks.completedToday}/${data.tasks.totalToday} completate`,
+          footer: `${data.tasks.openToday} aperte`,
+          tone:
+            data.tasks.openToday === 0 && data.tasks.totalToday > 0
+              ? ("success" as const)
+              : ("neutral" as const),
+        }
+      : null,
+    features.noticeBoard || features.courses
+      ? {
+          key: "team",
+          title: "📢 Team",
+          value: String(data.board.last7DaysCount + data.training.pending + data.training.expiring),
+          subtitle:
+            features.noticeBoard && features.courses
+              ? "Bacheca e corsi"
+              : features.noticeBoard
+                ? "Messaggi recenti"
+                : "Corsi da seguire",
+          footer: `${data.board.last7DaysCount} messaggi, ${data.training.pending} corsi aperti`,
+          tone: "purple" as const,
+        }
+      : null,
+  ].filter((card): card is NonNullable<typeof card> => Boolean(card));
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div style={{ display: "grid", gap: 14 }}>
       <Panel
-        title="KPI operative"
+        title="Panoramica rapida"
         action={
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <StatusPill tone="neutral" label={roleLabel} />
@@ -390,207 +361,28 @@ export function KpiDashboard({
           </div>
         }
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 14,
-          }}
-        >
-          <KpiMetricCard
-            title="Presenti oggi"
-            value={String(data.today.scheduledUsers)}
-            subtitle={`${data.today.scheduledShifts} turni previsti oggi`}
-            footer={
-              data.today.scheduledShifts > 0
-                ? `${data.today.confirmedShifts} confermati | ${data.today.pendingShifts} in attesa`
-                : "Nessun turno programmato oggi"
-            }
-            tone="success"
-          />
-          <KpiMetricCard
-            title="Assenti oggi"
-            value={String(data.today.absences)}
-            subtitle={`${data.today.approvedLeaves} ferie | ${data.today.approvedPermissions} permessi`}
-            footer={`${data.today.sickness} malattie | ${data.today.unavailability} indisponibilita`}
-            tone={data.today.absences > 0 ? "warning" : "neutral"}
-          />
-          <KpiMetricCard
-            title="Richieste aperte"
-            value={String(data.requests.totalPending)}
-            subtitle={`${data.requests.pendingLeaves} ferie | ${data.requests.pendingPermissions} permessi`}
-            footer={`${data.requests.pendingShiftSwaps} cambi turno in attesa`}
-            tone={data.requests.totalPending > 0 ? "warning" : "neutral"}
-          />
-          <KpiMetricCard
-            title="Mansioni completate"
-            value={`${data.tasks.completionRate}%`}
-            subtitle={`${data.tasks.completedToday}/${data.tasks.totalToday} completate oggi`}
-            footer={
-              data.tasks.totalToday === 0
-                ? "Nessuna mansione oggi"
-                : `${data.tasks.openToday} ancora aperte`
-            }
-            tone={data.tasks.openToday === 0 && data.tasks.totalToday > 0 ? "success" : "neutral"}
-          />
-          <KpiMetricCard
-            title="Mansioni aperte"
-            value={String(data.tasks.openToday)}
-            subtitle={
-              data.tasks.totalToday === 0
-                ? "Nessuna mansione oggi"
-                : `${data.tasks.totalToday} mansioni totali in giornata`
-            }
-            footer="Include team e assegnazioni individuali"
-            tone={data.tasks.openToday > 0 ? "warning" : "success"}
-          />
-          <KpiMetricCard
-            title="Turni della settimana"
-            value={String(data.shifts.weekTotal)}
-            subtitle={
-              data.shifts.weekTotal === 0
-                ? "Nessun turno programmato"
-                : "Turni programmati nella settimana corrente"
-            }
-            footer={
-              hasShiftChart
-                ? `${data.shifts.byDay.filter((entry) => entry.count > 0).length} giorni con copertura`
-                : "Settimana ancora vuota"
-            }
-            tone="neutral"
-          />
-          <KpiMetricCard
-            title="Bacheca recente"
-            value={String(data.board.last7DaysCount)}
-            subtitle="Messaggi pubblicati negli ultimi 7 giorni"
-            footer={
-              data.board.recent[0]
-                ? `Ultimo: ${data.board.recent[0].authorName}`
-                : "Nessun messaggio recente"
-            }
-            tone="neutral"
-          />
-          <KpiMetricCard
-            title="Corsi / formazione"
-            value={String(data.training.completed)}
-            subtitle={
-              data.training.enabled
-                ? `${data.training.expiring} in scadenza | ${data.training.pending} non completati`
-                : activityType === "COMPANY"
-                  ? "Nessun corso registrato"
-                  : "Modulo corsi non attivo per questa attivita"
-            }
-            footer={
-              data.training.enabled
-                ? "Monitoraggio formazione corrente"
-                : "KPI placeholder sicuro"
-            }
-            tone={data.training.expiring > 0 ? "warning" : "neutral"}
-          />
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 18,
-            alignItems: "start",
-            marginTop: 18,
-          }}
-        >
-          <section style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-              <strong style={{ color: "#0f172a" }}>Mansioni ultimi 7 giorni</strong>
-              <ArrowLinkButton href="/dashboard/tasks" />
-            </div>
-            <MiniBarChart
-              items={data.charts.tasksLast7Days}
-              valueKey="total"
-              secondaryKey="completed"
-              emptyMessage="Nessuna mansione oggi o negli ultimi 7 giorni."
-            />
-          </section>
-
-          <section style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-              <strong style={{ color: "#0f172a" }}>Richieste del mese</strong>
-              <ArrowLinkButton href="/dashboard/requests" />
-            </div>
-            {hasRequestChart ? (
-              <MiniBarChart
-                items={data.charts.requestsCurrentMonth}
-                emptyMessage="Nessuna richiesta aperta nel mese corrente."
+        {summaryCards.length === 0 ? (
+          <EmptyState message="Attiva le funzioni che vuoi monitorare dalle impostazioni." />
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {summaryCards.map((card) => (
+              <KpiMetricCard
+                key={card.key}
+                title={card.title}
+                value={card.value}
+                subtitle={card.subtitle}
+                footer={card.footer}
+                tone={card.tone}
               />
-            ) : (
-              <EmptyState message="Nessuna richiesta aperta nel mese corrente." />
-            )}
-          </section>
-
-          <section style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-              <strong style={{ color: "#0f172a" }}>Turni della settimana</strong>
-              <ArrowLinkButton href="/dashboard/shifts" />
-            </div>
-            {hasShiftChart ? (
-              <MiniBarChart
-                items={data.charts.shiftsCurrentWeek}
-                emptyMessage="Nessun turno programmato per questa settimana."
-              />
-            ) : (
-              <EmptyState message="Nessun turno programmato per questa settimana." />
-            )}
-          </section>
-        </div>
-
-        <section style={{ display: "grid", gap: 12, marginTop: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-            <strong style={{ color: "#0f172a" }}>Bacheca recente</strong>
-            <Link
-              href="/dashboard/board"
-              style={{ color: "#0f172a", textDecoration: "none", fontWeight: 700 }}
-            >
-              Apri
-            </Link>
+            ))}
           </div>
-          {data.board.recent.length === 0 ? (
-            <EmptyState message="Nessun messaggio pubblicato di recente." />
-          ) : (
-            <div style={{ display: "grid", gap: 12 }}>
-              {data.board.recent.map((note) => (
-                <div
-                  key={note.id}
-                  style={{
-                    padding: 16,
-                    borderRadius: 18,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "flex-start",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <strong style={{ color: "#0f172a" }}>{note.authorName}</strong>
-                    {note.isPinned ? (
-                      <StatusPill tone="neutral" label="In evidenza" />
-                    ) : null}
-                  </div>
-                  <div style={{ color: "#334155", lineHeight: 1.6 }}>{note.content}</div>
-                  <div style={{ color: "#64748b", fontSize: 13 }}>
-                    {formatDateTime(note.createdAt)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        )}
       </Panel>
 
       <style

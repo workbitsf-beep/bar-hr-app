@@ -13,6 +13,7 @@ import {
   sendEmployeeWelcomeEmail,
   sendOwnerWelcomeEmail,
 } from "@/lib/email/notifications";
+import { featureDefinitions, getFeatureFlags, parseFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import {
@@ -34,6 +35,54 @@ function hasCompletedRoundingSetup(
   );
 }
 
+function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | null }) {
+  const features = getFeatureFlags(settings);
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <strong style={{ color: "#0f172a", fontSize: 18 }}>Scegli cosa usare</strong>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {featureDefinitions.map((feature) => (
+          <label
+            key={feature.key}
+            style={{
+              display: "grid",
+              gap: 8,
+              padding: 14,
+              borderRadius: 18,
+              border: features[feature.key]
+                ? "1px solid rgba(124, 58, 237, 0.28)"
+                : "1px solid rgba(148, 163, 184, 0.22)",
+              background: features[feature.key]
+                ? "linear-gradient(135deg, rgba(237,233,254,0.82), rgba(255,255,255,0.96))"
+                : "#f8fafc",
+            }}
+          >
+            <span style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 700 }}>
+              <input
+                type="checkbox"
+                name={feature.field}
+                defaultChecked={features[feature.key]}
+              />
+              <span aria-hidden="true">{feature.emoji}</span>
+              {feature.shortLabel}
+            </span>
+            <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+              {feature.description}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 type OnboardingBar = {
   activityType: ActivityType;
   settings: {
@@ -41,6 +90,13 @@ type OnboardingBar = {
     gpsLongitude: number | null;
     gpsRadius: number | null;
     companyShiftsEnabled: boolean | null;
+    timeTrackingEnabled?: boolean | null;
+    shiftsEnabled?: boolean | null;
+    requestsEnabled?: boolean | null;
+    tasksEnabled?: boolean | null;
+    noticeBoardEnabled?: boolean | null;
+    coursesEnabled?: boolean | null;
+    reportsEnabled?: boolean | null;
     roundingMinutes: number | null;
     roundingMode: RoundingMode | null;
   } | null;
@@ -138,6 +194,13 @@ async function getOwnerContext() {
                   roundingMinutes: true,
                   roundingMode: true,
                   roundingEnabled: true,
+                  timeTrackingEnabled: true,
+                  shiftsEnabled: true,
+                  requestsEnabled: true,
+                  tasksEnabled: true,
+                  noticeBoardEnabled: true,
+                  coursesEnabled: true,
+                  reportsEnabled: true,
                 },
             },
             memberships: {
@@ -181,6 +244,13 @@ async function getOwnerContext() {
                 roundingMinutes: true,
                 roundingMode: true,
                 roundingEnabled: true,
+                timeTrackingEnabled: true,
+                shiftsEnabled: true,
+                requestsEnabled: true,
+                tasksEnabled: true,
+                noticeBoardEnabled: true,
+                coursesEnabled: true,
+                reportsEnabled: true,
               },
             },
             memberships: {
@@ -331,6 +401,13 @@ async function switchBarAction(formData: FormData) {
                 gpsLongitude: true,
                 gpsRadius: true,
                 companyShiftsEnabled: true,
+                timeTrackingEnabled: true,
+                shiftsEnabled: true,
+                requestsEnabled: true,
+                tasksEnabled: true,
+                noticeBoardEnabled: true,
+                coursesEnabled: true,
+                reportsEnabled: true,
                 roundingMinutes: true,
                 roundingMode: true,
               },
@@ -428,6 +505,7 @@ async function saveRoundingAction(formData: FormData) {
   const roundingEnabled = formData.get("roundingEnabled") === "on";
   const roundingMinutes = 15;
   const roundingMode = RoundingMode.NEAREST;
+  const featureFlags = parseFeatureFlags(formData);
 
   await prisma.$transaction([
     prisma.bar.update({
@@ -443,12 +521,14 @@ async function saveRoundingAction(formData: FormData) {
         roundingEnabled,
         roundingMinutes,
         roundingMode,
+        ...featureFlags,
       },
       create: {
         barId: activeBar.id,
         roundingEnabled,
         roundingMinutes,
         roundingMode,
+        ...featureFlags,
       },
     }),
   ]);
@@ -787,15 +867,19 @@ export default async function OnboardingPage({
     ? ([
         { id: 1 as StepNumber, title: "Locale" },
         { id: 2 as StepNumber, title: "Posizione" },
-        { id: 3 as StepNumber, title: "Arrotondamento" },
+        { id: 3 as StepNumber, title: "Funzioni" },
         { id: 4 as StepNumber, title: "Team" },
       ] as const)
     : ([
         { id: 1 as StepNumber, title: "Locale" },
-        { id: 2 as StepNumber, title: "Turni" },
+        { id: 2 as StepNumber, title: "Funzioni" },
         { id: 3 as StepNumber, title: "Team" },
       ] as const);
   const teamMembers = activeBar?.memberships ?? [];
+  const featureSettings =
+    activeBar?.activityType === ActivityType.COMPANY && activeBar.settings?.companyShiftsEnabled === false
+      ? { ...activeBar.settings, shiftsEnabled: false }
+      : activeBar?.settings;
   const invitedMembers =
     activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
   const ownerMembers = teamMembers.filter((membership) => membership.role === Role.OWNER);
@@ -897,23 +981,9 @@ export default async function OnboardingPage({
       ) : null}
 
       {currentStep === 2 && activeBar && !showGpsStep ? (
-        <Card title="Attiva i turni">
+        <Card title="Personalizza Workbit">
           <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                fontWeight: 600,
-              }}
-            >
-              <input
-                name="companyShiftsEnabled"
-                type="checkbox"
-                defaultChecked={Boolean(activeBar.settings?.companyShiftsEnabled)}
-              />
-              Turni attivi
-            </label>
+            <FeatureToggleGrid settings={featureSettings} />
 
             <div>
               <SubmitButton label="Continua" />
@@ -924,9 +994,11 @@ export default async function OnboardingPage({
 
       {currentStep === 3 && activeBar && showGpsStep ? (
         <Card
-          title="Imposta l'arrotondamento"
+          title="Personalizza Workbit"
         >
           <form action={saveRoundingAction} style={{ display: "grid", gap: 18 }}>
+            <FeatureToggleGrid settings={featureSettings} />
+
             <label
               style={{
                 display: "flex",

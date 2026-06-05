@@ -34,7 +34,7 @@ export default async function DashboardTasksPage({
 }) {
   const params = searchParams ? await searchParams : {};
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
-  const { session, role, activeBarId, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
     return (
@@ -48,6 +48,14 @@ export default async function DashboardTasksPage({
     return <BillingRequiredState role={String(role)} />;
   }
 
+  if (!features.tasks && !features.noticeBoard) {
+    return (
+      <Panel title="Mansioni e bacheca">
+        <EmptyState message="Moduli mansioni e bacheca disattivati nelle impostazioni." />
+      </Panel>
+    );
+  }
+
   const canManage = role === Role.OWNER || role === Role.MANAGER;
   const successMessage =
     success === "task-created"
@@ -58,62 +66,64 @@ export default async function DashboardTasksPage({
           ? "Mansione completata correttamente."
           : null;
   const [tasks, members, notes] = await Promise.all([
-    prisma.task.findMany({
-      where: {
-        barId: activeBarId,
-        ...(role === Role.EMPLOYEE
-          ? {
-              OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
-            }
-          : {}),
-      },
-      orderBy: [{ status: "asc" }, { isUrgent: "desc" }, { dueDate: "asc" }],
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        dueDate: true,
-        status: true,
-        isUrgent: true,
-        assignedToAll: true,
-        assignedToId: true,
-        assignedTo: {
+    features.tasks
+      ? prisma.task.findMany({
+          where: {
+            barId: activeBarId,
+            ...(role === Role.EMPLOYEE
+              ? {
+                  OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
+                }
+              : {}),
+          },
+          orderBy: [{ status: "asc" }, { isUrgent: "desc" }, { dueDate: "asc" }],
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        createdBy: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-        completedBy: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-        completions: {
-          orderBy: {
-            completedAt: "desc",
-          },
-          select: {
-            id: true,
-            completedAt: true,
-            user: {
+            title: true,
+            description: true,
+            dueDate: true,
+            status: true,
+            isUrgent: true,
+            assignedToAll: true,
+            assignedToId: true,
+            assignedTo: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            createdBy: {
               select: {
                 firstName: true,
                 lastName: true,
               },
             },
+            completedBy: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+            completions: {
+              orderBy: {
+                completedAt: "desc",
+              },
+              select: {
+                id: true,
+                completedAt: true,
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
           },
-        },
-      },
-    }),
-    canManage
+        })
+      : Promise.resolve([]),
+    canManage && features.tasks
       ? prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
@@ -136,26 +146,29 @@ export default async function DashboardTasksPage({
           },
         })
       : Promise.resolve([]),
-    prisma.note.findMany({
-      where: {
-        barId: activeBarId,
-      },
-      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-      include: {
-        author: {
-          select: {
-            firstName: true,
-            lastName: true,
+    features.noticeBoard
+      ? prisma.note.findMany({
+          where: {
+            barId: activeBarId,
           },
-        },
-      },
-    }),
+          orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+          include: {
+            author: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
     <Stack>
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
+      {features.noticeBoard ? (
       <Panel
         title="Bacheca"
         action={
@@ -200,7 +213,9 @@ export default async function DashboardTasksPage({
           </ItemList>
         )}
       </Panel>
+      ) : null}
 
+      {features.tasks ? (
       <Panel
         title="Elenco mansioni"
         action={
@@ -315,6 +330,7 @@ export default async function DashboardTasksPage({
           </ItemList>
         )}
       </Panel>
+      ) : null}
     </Stack>
   );
 }

@@ -59,6 +59,7 @@ import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { createTemporaryPassword } from "@/lib/temporary-password";
 import { SUPER_ADMIN_OVERVIEW_CACHE_TAG } from "@/lib/super-admin-overview";
+import { parseFeatureFlags } from "@/lib/features";
 
 type PlanTypeValue = "FREE" | "TRIAL" | "PAID" | "LIFETIME";
 type BillingIntervalValue = "MONTHLY" | "YEARLY";
@@ -2336,19 +2337,26 @@ export async function updateSettingsAction(formData: FormData) {
   }
 
   if (currentBar.activityType === ActivityType.COMPANY) {
-    const companyShiftsEnabled = formData.get("companyShiftsEnabled") === "on";
+    const featureFlags = parseFeatureFlags(formData);
+    const companyShiftsEnabled =
+      formData.has("shiftsEnabled")
+        ? Boolean(featureFlags.shiftsEnabled)
+        : formData.get("companyShiftsEnabled") === "on";
 
     await prisma.barSettings.upsert({
       where: { barId: activeBarId },
       update: {
         companyShiftsEnabled,
+        ...featureFlags,
       },
       create: {
         barId: activeBarId,
         companyShiftsEnabled,
+        ...featureFlags,
       },
     });
   } else {
+    const featureFlags = parseFeatureFlags(formData);
     const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
     const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
     const gpsRadius = await getGlobalGpsRadius();
@@ -2395,6 +2403,7 @@ export async function updateSettingsAction(formData: FormData) {
           roundingEnabled,
           roundingMinutes,
           roundingMode,
+          ...featureFlags,
           morningStartTime: morningPreset.startTime,
           morningEndTime: morningPreset.endTime,
           afternoonStartTime: afternoonPreset.startTime,
@@ -2410,6 +2419,7 @@ export async function updateSettingsAction(formData: FormData) {
           roundingEnabled,
           roundingMinutes,
           roundingMode,
+          ...featureFlags,
           morningStartTime: morningPreset.startTime,
           morningEndTime: morningPreset.endTime,
           afternoonStartTime: afternoonPreset.startTime,
@@ -2425,6 +2435,11 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/dashboard/timelogs");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/requests");
+  revalidatePath("/dashboard/courses");
+  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard");
   revalidatePath("/onboarding");
 }
 

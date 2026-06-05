@@ -3,6 +3,7 @@ import { GpsLocationField } from "@/app/components/gps-location-field";
 import { TimeInput } from "@/app/components/time-input";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
+import { featureDefinitions, getFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
@@ -16,6 +17,55 @@ import {
 } from "../ui";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { PasswordChangePanel } from "./password-change-panel";
+
+function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | null }) {
+  const features = getFeatureFlags(settings);
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <strong style={{ color: "#0f172a", fontSize: 18 }}>Funzioni attive</strong>
+      <div
+        className="dashboard-inline-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {featureDefinitions.map((feature) => (
+          <label
+            key={feature.key}
+            style={{
+              display: "grid",
+              gap: 8,
+              padding: 14,
+              borderRadius: 18,
+              border: features[feature.key]
+                ? "1px solid rgba(124, 58, 237, 0.28)"
+                : "1px solid rgba(148, 163, 184, 0.22)",
+              background: features[feature.key]
+                ? "linear-gradient(135deg, rgba(237,233,254,0.84), rgba(255,255,255,0.96))"
+                : "#f8fafc",
+            }}
+          >
+            <span style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 700 }}>
+              <input
+                type="checkbox"
+                name={feature.field}
+                defaultChecked={features[feature.key]}
+              />
+              <span aria-hidden="true">{feature.emoji}</span>
+              {feature.shortLabel}
+            </span>
+            <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+              {feature.description}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 async function getPasskeyCount(userId: string) {
   try {
@@ -84,11 +134,22 @@ export default async function DashboardSettingsPage() {
         eveningStartTime: true,
         eveningEndTime: true,
         companyShiftsEnabled: true,
+        timeTrackingEnabled: true,
+        shiftsEnabled: true,
+        requestsEnabled: true,
+        tasksEnabled: true,
+        noticeBoardEnabled: true,
+        coursesEnabled: true,
+        reportsEnabled: true,
       },
     }),
     getGlobalGpsRadius(),
     billingStatus ? Promise.resolve(billingStatus) : getBillingStatus(activeBarId),
   ]);
+  const featureSettings =
+    activeBarActivityType === ActivityType.COMPANY && settings?.companyShiftsEnabled === false
+      ? { ...settings, shiftsEnabled: false }
+      : settings;
 
   return (
     <>
@@ -101,6 +162,8 @@ export default async function DashboardSettingsPage() {
         {activeBarActivityType === ActivityType.RESTAURANT ? (
           <Panel title="Configura locale">
             <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+            <FeatureToggleGrid settings={featureSettings} />
+
             <GpsLocationField
               latitudeName="gpsLatitude"
               longitudeName="gpsLongitude"
@@ -178,18 +241,11 @@ export default async function DashboardSettingsPage() {
             </form>
           </Panel>
         ) : (
-          <Panel title="Turni aziendali">
+          <Panel title="Funzioni azienda">
             <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
-              <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 600 }}>
-                <input
-                  type="checkbox"
-                  name="companyShiftsEnabled"
-                  defaultChecked={Boolean(settings?.companyShiftsEnabled)}
-                />
-                Turni attivi
-              </label>
+              <FeatureToggleGrid settings={featureSettings} />
               <div className="dashboard-form-actions">
-                <PrimaryButton type="submit">Salva turni</PrimaryButton>
+                <PrimaryButton type="submit">Salva funzioni</PrimaryButton>
               </div>
             </form>
           </Panel>

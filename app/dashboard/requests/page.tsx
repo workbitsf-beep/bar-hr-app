@@ -84,7 +84,7 @@ export default async function DashboardRequestsPage({
 }) {
   const params = searchParams ? await searchParams : {};
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
-  const { session, role, activeBarId, activeBarActivityType, billingStatus } =
+  const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
 
   if (!activeBarId) {
@@ -97,6 +97,14 @@ export default async function DashboardRequestsPage({
 
   if (billingStatus && !billingStatus.canAccess) {
     return <BillingRequiredState role={String(role)} />;
+  }
+
+  if (!features.requests) {
+    return (
+      <Panel title="Richieste e chiusure">
+        <EmptyState message="Modulo richieste disattivato nelle impostazioni." />
+      </Panel>
+    );
   }
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
