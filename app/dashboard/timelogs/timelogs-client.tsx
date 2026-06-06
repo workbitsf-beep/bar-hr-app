@@ -68,8 +68,86 @@ function formatClockTime(value: string) {
   }).format(new Date(value));
 }
 
-function formatClockTypeLabel(type: ClockType) {
-  return type === "IN" ? "Entrata" : "Uscita";
+function getClockTypeVisual(type: ClockType) {
+  if (type === "IN") {
+    return {
+      label: "Entrata",
+      arrow: "↑",
+      background: "rgba(220, 252, 231, 0.95)",
+      border: "#bbf7d0",
+      color: "#166534",
+      timeColor: "#14532d",
+    };
+  }
+
+  return {
+    label: "Uscita",
+    arrow: "↓",
+    background: "rgba(254, 226, 226, 0.95)",
+    border: "#fecaca",
+    color: "#b91c1c",
+    timeColor: "#991b1b",
+  };
+}
+
+function ClockLogRow({ log }: { log: LogItem }) {
+  const visual = getClockTypeVisual(log.type);
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 8,
+        padding: 12,
+        borderRadius: 16,
+        background: "#fff",
+        border: "1px solid #e2e8f0",
+        minWidth: 180,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 12px",
+            borderRadius: 999,
+            background: visual.background,
+            border: `1px solid ${visual.border}`,
+            color: visual.color,
+            fontSize: 13,
+            fontWeight: 800,
+            letterSpacing: "0.02em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>
+            {visual.arrow}
+          </span>
+          {visual.label}
+        </span>
+
+        <strong style={{ color: visual.timeColor, fontSize: 18, lineHeight: 1 }}>
+          {formatClockTime(log.timestamp)}
+        </strong>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
+        <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
+          {getVisibleLogNote(log.note) ?? "Registrazione salvata"}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function groupLogsByDay(logs: LogItem[]) {
@@ -609,45 +687,15 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                         footer={
                           <div
                             style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+                              display: "flex",
                               gap: 8,
+                              flexWrap: "nowrap",
+                              overflowX: "auto",
+                              paddingBottom: 4,
                             }}
                           >
                             {dayGroup.logs.map((log) => (
-                              <div
-                                key={log.id}
-                                style={{
-                                  display: "grid",
-                                  gap: 6,
-                                  padding: 12,
-                                  borderRadius: 16,
-                                  background: "#fff",
-                                  border: "1px solid #e2e8f0",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: 10,
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  <StatusPill
-                                    label={formatClockTypeLabel(log.type)}
-                                    tone={log.type === "IN" ? "warning" : "success"}
-                                  />
-                                  <strong style={{ color: "#0f172a" }}>{formatClockTime(log.timestamp)}</strong>
-                                </div>
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                  {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
-                                  <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
-                                    {getVisibleLogNote(log.note) ?? "Registrazione salvata"}
-                                  </span>
-                                </div>
-                              </div>
+                              <ClockLogRow key={log.id} log={log} />
                             ))}
                           </div>
                         }
@@ -708,45 +756,15 @@ function PersonalTimeLogsPanel({
                 footer={
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+                      display: "flex",
                       gap: 8,
+                      flexWrap: "nowrap",
+                      overflowX: "auto",
+                      paddingBottom: 4,
                     }}
                   >
                     {dayGroup.logs.map((log) => (
-                      <div
-                        key={log.id}
-                        style={{
-                          display: "grid",
-                          gap: 6,
-                          padding: 12,
-                          borderRadius: 16,
-                          background: "#fff",
-                          border: "1px solid #e2e8f0",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 10,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <StatusPill
-                            label={formatClockTypeLabel(log.type)}
-                            tone={log.type === "IN" ? "warning" : "success"}
-                          />
-                          <strong style={{ color: "#0f172a" }}>{formatClockTime(log.timestamp)}</strong>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
-                          <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
-                            {getVisibleLogNote(log.note) ?? "Registrazione salvata"}
-                          </span>
-                        </div>
-                      </div>
+                      <ClockLogRow key={log.id} log={log} />
                     ))}
                   </div>
                 }
