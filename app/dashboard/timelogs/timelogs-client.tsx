@@ -97,12 +97,13 @@ function ClockLogRow({ log }: { log: LogItem }) {
     <div
       style={{
         display: "grid",
-        gap: 8,
-        padding: 12,
-        borderRadius: 16,
+        gap: 7,
+        padding: "11px 12px",
+        borderRadius: 18,
         background: "#fff",
         border: "1px solid #e2e8f0",
-        minWidth: 180,
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
       <div
@@ -113,36 +114,37 @@ function ClockLogRow({ log }: { log: LogItem }) {
           gap: 12,
         }}
       >
-        <span
+          <span
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 8,
-            padding: "8px 12px",
+            gap: 7,
+            padding: "7px 11px",
             borderRadius: 999,
             background: visual.background,
             border: `1px solid ${visual.border}`,
             color: visual.color,
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 800,
             letterSpacing: "0.02em",
             textTransform: "uppercase",
+            whiteSpace: "nowrap",
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>
+          <span aria-hidden="true" style={{ fontSize: 13, lineHeight: 1 }}>
             {visual.arrow}
           </span>
           {visual.label}
         </span>
 
-        <strong style={{ color: visual.timeColor, fontSize: 18, lineHeight: 1 }}>
+        <strong style={{ color: visual.timeColor, fontSize: 17, lineHeight: 1 }}>
           {formatClockTime(log.timestamp)}
         </strong>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
-        <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
+        <span style={{ color: "#64748b", fontSize: 12.5, lineHeight: 1.4 }}>
           {getVisibleLogNote(log.note) ?? "Registrazione salvata"}
         </span>
       </div>
@@ -687,11 +689,10 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                         footer={
                           <div
                             style={{
-                              display: "flex",
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))",
                               gap: 8,
-                              flexWrap: "nowrap",
-                              overflowX: "auto",
-                              paddingBottom: 4,
+                              alignItems: "stretch",
                             }}
                           >
                             {dayGroup.logs.map((log) => (
@@ -756,11 +757,10 @@ function PersonalTimeLogsPanel({
                 footer={
                   <div
                     style={{
-                      display: "flex",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))",
                       gap: 8,
-                      flexWrap: "nowrap",
-                      overflowX: "auto",
-                      paddingBottom: 4,
+                      alignItems: "stretch",
                     }}
                   >
                     {dayGroup.logs.map((log) => (
