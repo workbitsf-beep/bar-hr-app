@@ -116,30 +116,32 @@ export default async function DashboardShiftsPage() {
           },
         })
       : Promise.resolve([]),
-    prisma.availability.findMany({
-      where: {
-        barId: activeBarId,
-        endsAt: {
-          gte: new Date(),
-        },
-      },
-      orderBy: {
-        startsAt: "asc",
-      },
-      take: 8,
-      select: {
-        id: true,
-        startsAt: true,
-        endsAt: true,
-        reason: true,
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
+    features.availability
+      ? prisma.availability.findMany({
+          where: {
+            barId: activeBarId,
+            endsAt: {
+              gte: new Date(),
+            },
           },
-        },
-      },
-    }),
+          orderBy: {
+            startsAt: "asc",
+          },
+          take: 8,
+          select: {
+            id: true,
+            startsAt: true,
+            endsAt: true,
+            reason: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
     prisma.request.findMany({
       where: {
         barId: activeBarId,
@@ -257,22 +259,24 @@ export default async function DashboardShiftsPage() {
         )}
       </Panel>
 
-      <Panel title="Indisponibilita registrate">
-        {availabilities.length === 0 ? (
-          <EmptyState message="Nessuna indisponibilita futura registrata." />
-        ) : (
-          <ItemList scrollable>
-            {availabilities.map((availability) => (
-              <ItemCard
-                key={availability.id}
-                title={`${availability.user.firstName} ${availability.user.lastName}`}
-                subtitle={`${formatDateTime(availability.startsAt)} - ${formatDateTime(availability.endsAt)}`}
-                meta={availability.reason || "Nessuna nota aggiuntiva"}
-              />
-            ))}
-          </ItemList>
-        )}
-      </Panel>
+      {features.availability ? (
+        <Panel title="Indisponibilita registrate">
+          {availabilities.length === 0 ? (
+            <EmptyState message="Nessuna indisponibilita futura registrata." />
+          ) : (
+            <ItemList scrollable>
+              {availabilities.map((availability) => (
+                <ItemCard
+                  key={availability.id}
+                  title={`${availability.user.firstName} ${availability.user.lastName}`}
+                  subtitle={`${formatDateTime(availability.startsAt)} - ${formatDateTime(availability.endsAt)}`}
+                  meta={availability.reason || "Nessuna nota aggiuntiva"}
+                />
+              ))}
+            </ItemList>
+          )}
+        </Panel>
+      ) : null}
 
       <Panel title="Assenze approvate">
         {approvedTimeOff.length === 0 ? (

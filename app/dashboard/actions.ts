@@ -536,6 +536,7 @@ async function getRequestFeatureSettings(activeBarId: string) {
     where: { barId: activeBarId },
     select: {
       requestsEnabled: true,
+      availabilityEnabled: true,
       overtimeEnabled: true,
     },
   });
@@ -1975,8 +1976,8 @@ export async function createAvailabilityAction(formData: FormData) {
 
   const requestFeatures = await getRequestFeatureSettings(activeBarId);
 
-  if (requestFeatures?.requestsEnabled === false) {
-    throw new Error("Requests not enabled");
+  if (requestFeatures?.availabilityEnabled === false) {
+    throw new Error("Availability not enabled");
   }
 
   const startsAt = parseRequiredDate(formData.get("startsAt"));

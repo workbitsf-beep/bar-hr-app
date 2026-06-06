@@ -236,6 +236,7 @@ export default async function DashboardSettingsPage() {
         timeTrackingEnabled: true,
         shiftsEnabled: true,
         requestsEnabled: true,
+        availabilityEnabled: true,
         overtimeEnabled: true,
         tasksEnabled: true,
         noticeBoardEnabled: true,
@@ -253,7 +254,7 @@ export default async function DashboardSettingsPage() {
       : settings;
 
   const featurePopup = (
-    <PopupAction title="Funzioni attive" ariaLabel="Modifica funzioni attive">
+    <PopupAction title="Funzioni attive" ariaLabel="Modifica funzioni attive" closeOnSubmit>
       <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
         <FeatureToggleGrid settings={featureSettings} />
         <div className="dashboard-form-actions">

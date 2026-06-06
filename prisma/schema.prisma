@@ -246,6 +246,7 @@ model BarSettings {
   timeTrackingEnabled Boolean @default(true)
   shiftsEnabled       Boolean @default(true)
   requestsEnabled     Boolean @default(true)
+  availabilityEnabled  Boolean @default(true)
   overtimeEnabled     Boolean @default(true)
   tasksEnabled        Boolean @default(true)
   noticeBoardEnabled  Boolean @default(true)

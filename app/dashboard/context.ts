@@ -70,6 +70,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
             timeTrackingEnabled: true,
             shiftsEnabled: true,
             requestsEnabled: true,
+            availabilityEnabled: true,
             overtimeEnabled: true,
             tasksEnabled: true,
             noticeBoardEnabled: true,
@@ -88,13 +89,8 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
-  const tasksNavLabel =
-    features.tasks && features.noticeBoard
-      ? t.tasks
-      : features.tasks
-        ? "Mansioni"
-        : "Bacheca";
-  const requestsNavLabel = role === Role.EMPLOYEE ? "Richieste" : "Richieste e chiusure";
+  const tasksNavLabel = features.tasks ? t.tasks : t.board;
+  const requestsNavLabel = features.requests ? t.requests : t.availability;
 
   const navItems: DashboardNavItem[] =
     String(role) === "SUPER_ADMIN"
@@ -108,6 +104,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
       : [
           ...(features.shifts ||
           features.requests ||
+          features.availability ||
           features.tasks ||
           features.noticeBoard ||
           features.courses
@@ -124,7 +121,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           ...(features.timeTracking && !isCompany
             ? [{ label: t.timelogs, href: "/dashboard/timelogs" }]
             : []),
-          ...(features.requests
+          ...(features.requests || features.availability
             ? [{ label: requestsNavLabel, href: "/dashboard/requests" }]
             : []),
         ];

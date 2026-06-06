@@ -2,6 +2,7 @@ export type FeatureKey =
   | "timeTracking"
   | "shifts"
   | "requests"
+  | "availability"
   | "overtime"
   | "tasks"
   | "noticeBoard"
@@ -14,6 +15,7 @@ export type FeatureSettingsInput = Partial<{
   timeTrackingEnabled: boolean | null;
   shiftsEnabled: boolean | null;
   requestsEnabled: boolean | null;
+  availabilityEnabled: boolean | null;
   overtimeEnabled: boolean | null;
   tasksEnabled: boolean | null;
   noticeBoardEnabled: boolean | null;
@@ -48,10 +50,18 @@ export const featureDefinitions: Array<{
   {
     key: "requests",
     field: "requestsEnabled",
-    label: "Richieste e chiusure",
+    label: "Richieste",
     shortLabel: "Richieste",
-    description: "Ferie, permessi e chiusure.",
+    description: "Ferie, permessi, malattia e cambi turno.",
     emoji: "📝",
+  },
+  {
+    key: "availability",
+    field: "availabilityEnabled",
+    label: "Indisponibilità",
+    shortLabel: "Indisponibilità",
+    description: "Segnalazioni di assenza o indisponibilità.",
+    emoji: "🚫",
   },
   {
     key: "overtime",
@@ -99,6 +109,7 @@ export const defaultFeatureFlags: FeatureFlags = {
   timeTracking: true,
   shifts: true,
   requests: true,
+  availability: true,
   overtime: true,
   tasks: true,
   noticeBoard: true,

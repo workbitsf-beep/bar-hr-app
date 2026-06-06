@@ -86,11 +86,12 @@ export default async function DashboardRequestsPage({
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
+  const pageTitle = features.requests ? "Richieste" : "Indisponibilita";
 
   if (!activeBarId) {
     return (
-      <Panel title="Richieste e chiusure">
-        <EmptyState message="Seleziona un locale attivo per vedere richieste e chiusure." />
+      <Panel title={pageTitle}>
+        <EmptyState message="Seleziona un locale attivo per vedere i moduli operativi." />
       </Panel>
     );
   }
@@ -99,18 +100,19 @@ export default async function DashboardRequestsPage({
     return <BillingRequiredState role={String(role)} />;
   }
 
-  if (!features.requests) {
+  if (!features.requests && !features.availability) {
     return (
-      <Panel title="Richieste e chiusure">
-        <EmptyState message="Modulo richieste disattivato nelle impostazioni." />
+      <Panel title={pageTitle}>
+        <EmptyState message="Moduli operativi disattivati nelle impostazioni." />
       </Panel>
     );
   }
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
-  const canCreateRequests = role !== Role.OWNER;
-  const canManageClosures = role === Role.OWNER || role === Role.MANAGER;
-  const canUseOvertime = features.overtime;
+  const canCreateRequests = features.requests && role !== Role.OWNER;
+  const canCreateAvailability = features.availability && !isCompany && role !== Role.OWNER;
+  const canManageClosures = features.requests && (role === Role.OWNER || role === Role.MANAGER);
+  const canUseOvertime = features.requests && features.overtime;
   const requestPanelTitle = canUseOvertime
     ? "Richiedi ferie, permesso, malattia o straordinario"
     : "Richiedi ferie, permesso o malattia";
@@ -127,7 +129,8 @@ export default async function DashboardRequestsPage({
             ? "Chiusura salvata correttamente."
             : null;
   const [requests, ownShifts, teammates, availabilities, overtimeMembers, closures] = await Promise.all([
-    prisma.request.findMany({
+    features.requests
+      ? prisma.request.findMany({
       where: {
         barId: activeBarId,
         ...(role === Role.OWNER
@@ -175,7 +178,8 @@ export default async function DashboardRequestsPage({
           },
         },
       },
-    }),
+    })
+      : Promise.resolve([]),
     canCreateRequests && !isCompany
       ? prisma.shift.findMany({
           where: {
@@ -226,9 +230,8 @@ export default async function DashboardRequestsPage({
           },
         })
       : Promise.resolve([]),
-    isCompany
-      ? Promise.resolve([])
-      : prisma.availability.findMany({
+    canCreateAvailability
+      ? prisma.availability.findMany({
           where: {
             barId: activeBarId,
           },
@@ -244,7 +247,8 @@ export default async function DashboardRequestsPage({
               },
             },
           },
-        }),
+        })
+      : Promise.resolve([]),
     role === Role.OWNER
       ? prisma.employeeBar.findMany({
           where: {
@@ -514,7 +518,7 @@ export default async function DashboardRequestsPage({
           </Panel>
         ) : null}
 
-        {!isCompany ? (
+        {features.availability && !isCompany ? (
           <>
             <Panel
               title="Nuova indisponibilita"
@@ -578,125 +582,125 @@ export default async function DashboardRequestsPage({
             </Panel>
           </>
         ) : null}
-        <Panel title="Storico richieste" action={`${requests.length} elementi`}>
-          {requests.length === 0 ? (
-            <EmptyState message="Nessuna richiesta presente." />
-          ) : (
-            <ItemList scrollable>
-              {requests.map((request) => {
-                const peerReviewerName = getReviewerName(request.peerReviewedBy);
-                const ownerReviewerName = getReviewerName(request.reviewedBy);
-                const canPeerReview =
-                  request.type === "SHIFT_CHANGE" &&
-                  request.swapWithUserId === session.user.id &&
-                  request.status === RequestStatus.PENDING &&
-                  request.peerStatus !== RequestStatus.REJECTED;
-                const canOwnerReview =
-                  role === Role.OWNER &&
-                  request.status === RequestStatus.PENDING &&
-                  request.type !== RequestType.SICKNESS &&
-                  (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
+        {features.requests ? (
+          <Panel title="Storico richieste" action={`${requests.length} elementi`}>
+            {requests.length === 0 ? (
+              <EmptyState message="Nessuna richiesta presente." />
+            ) : (
+              <ItemList scrollable>
+                {requests.map((request) => {
+                  const peerReviewerName = getReviewerName(request.peerReviewedBy);
+                  const ownerReviewerName = getReviewerName(request.reviewedBy);
+                  const canPeerReview =
+                    request.type === "SHIFT_CHANGE" &&
+                    request.swapWithUserId === session.user.id &&
+                    request.status === RequestStatus.PENDING &&
+                    request.peerStatus !== RequestStatus.REJECTED;
+                  const canOwnerReview =
+                    role === Role.OWNER &&
+                    request.status === RequestStatus.PENDING &&
+                    request.type !== RequestType.SICKNESS &&
+                    (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
 
-                return (
-                  <ItemCard
-                    key={request.id}
-                    title={
-                      requestLabel(request.type)
-                    }
-                    subtitle={`${request.employee.firstName} ${request.employee.lastName}`}
-                    meta={
-                      <>
-                        {request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}
-                        {request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}
-                        <br />
-                        {request.shift
-                          ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
-                          : request.certificateCode
-                            ? `Certificato: ${request.certificateCode}${request.reason ? ` - ${request.reason}` : ""}`
-                            : request.reason || "Nessun dettaglio aggiuntivo"}
-                      </>
-                    }
-                    footer={
-                      <div style={{ display: "grid", gap: 12 }}>
-                        <div className="dashboard-inline-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                          <StatusPill label={request.status} tone={requestTone(request.status)} />
-                          {request.peerStatus ? (
-                            <StatusPill
-                              label={`Collega ${request.peerStatus}`}
-                              tone={requestTone(request.peerStatus)}
-                            />
+                  return (
+                    <ItemCard
+                      key={request.id}
+                      title={requestLabel(request.type)}
+                      subtitle={`${request.employee.firstName} ${request.employee.lastName}`}
+                      meta={
+                        <>
+                          {request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}
+                          {request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}
+                          <br />
+                          {request.shift
+                            ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
+                            : request.certificateCode
+                              ? `Certificato: ${request.certificateCode}${request.reason ? ` - ${request.reason}` : ""}`
+                              : request.reason || "Nessun dettaglio aggiuntivo"}
+                        </>
+                      }
+                      footer={
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <div className="dashboard-inline-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <StatusPill label={request.status} tone={requestTone(request.status)} />
+                            {request.peerStatus ? (
+                              <StatusPill
+                                label={`Collega ${request.peerStatus}`}
+                                tone={requestTone(request.peerStatus)}
+                              />
+                            ) : null}
+                            {request.ownerStatus ? (
+                              <StatusPill
+                                label={`Titolare ${request.ownerStatus}`}
+                                tone={requestTone(request.ownerStatus)}
+                              />
+                            ) : null}
+                          </div>
+
+                          {request.type === "SHIFT_CHANGE" && request.swapWith ? (
+                            <div style={{ color: "#475569" }}>
+                              Collega coinvolto: {request.swapWith.firstName} {request.swapWith.lastName}
+                            </div>
                           ) : null}
-                          {request.ownerStatus ? (
-                            <StatusPill
-                              label={`Titolare ${request.ownerStatus}`}
-                              tone={requestTone(request.ownerStatus)}
-                            />
+
+                          {request.reason ? (
+                            <div style={{ color: "#334155", lineHeight: 1.6 }}>{request.reason}</div>
+                          ) : null}
+
+                          {request.type === "SHIFT_CHANGE" &&
+                          request.peerStatus &&
+                          request.peerStatus !== RequestStatus.PENDING ? (
+                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                              Revisione collega:{" "}
+                              {peerReviewerName
+                                ? `${peerReviewerName} (${request.peerStatus.toLowerCase()})`
+                                : request.peerStatus.toLowerCase()}
+                            </div>
+                          ) : null}
+
+                          {request.ownerStatus &&
+                          request.ownerStatus !== RequestStatus.PENDING ? (
+                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                              Revisione titolare:{" "}
+                              {ownerReviewerName
+                                ? `${ownerReviewerName} (${request.ownerStatus.toLowerCase()})`
+                                : request.type === RequestType.SICKNESS &&
+                                    request.ownerStatus === RequestStatus.APPROVED
+                                  ? "Approvazione automatica"
+                                  : request.ownerStatus.toLowerCase()}
+                            </div>
+                          ) : null}
+
+                          {canPeerReview || canOwnerReview ? (
+                            <div className="dashboard-action-row" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              <form action={reviewRequestAction}>
+                                <input type="hidden" name="requestId" value={request.id} />
+                                <input type="hidden" name="decision" value="APPROVED" />
+                                <input type="hidden" name="notifySuccess" value="1" />
+                                <PrimaryButton type="submit" tone="green">
+                                  Approva
+                                </PrimaryButton>
+                              </form>
+
+                              <form action={reviewRequestAction}>
+                                <input type="hidden" name="requestId" value={request.id} />
+                                <input type="hidden" name="decision" value="REJECTED" />
+                                <input type="hidden" name="notifySuccess" value="1" />
+                                <PrimaryButton type="submit" tone="red">
+                                  Rifiuta
+                                </PrimaryButton>
+                              </form>
+                            </div>
                           ) : null}
                         </div>
-
-                        {request.type === "SHIFT_CHANGE" && request.swapWith ? (
-                          <div style={{ color: "#475569" }}>
-                            Collega coinvolto: {request.swapWith.firstName} {request.swapWith.lastName}
-                          </div>
-                        ) : null}
-
-                        {request.reason ? (
-                          <div style={{ color: "#334155", lineHeight: 1.6 }}>{request.reason}</div>
-                        ) : null}
-
-                        {request.type === "SHIFT_CHANGE" &&
-                        request.peerStatus &&
-                        request.peerStatus !== RequestStatus.PENDING ? (
-                          <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                            Revisione collega:{" "}
-                            {peerReviewerName
-                              ? `${peerReviewerName} (${request.peerStatus.toLowerCase()})`
-                              : request.peerStatus.toLowerCase()}
-                          </div>
-                        ) : null}
-
-                        {request.ownerStatus &&
-                        request.ownerStatus !== RequestStatus.PENDING ? (
-                          <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                            Revisione titolare:{" "}
-                            {ownerReviewerName
-                              ? `${ownerReviewerName} (${request.ownerStatus.toLowerCase()})`
-                              : request.type === RequestType.SICKNESS &&
-                                  request.ownerStatus === RequestStatus.APPROVED
-                                ? "Approvazione automatica"
-                                : request.ownerStatus.toLowerCase()}
-                          </div>
-                        ) : null}
-
-                        {canPeerReview || canOwnerReview ? (
-                          <div className="dashboard-action-row" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                            <form action={reviewRequestAction}>
-                              <input type="hidden" name="requestId" value={request.id} />
-                              <input type="hidden" name="decision" value="APPROVED" />
-                              <input type="hidden" name="notifySuccess" value="1" />
-                              <PrimaryButton type="submit" tone="green">
-                                Approva
-                              </PrimaryButton>
-                            </form>
-
-                            <form action={reviewRequestAction}>
-                              <input type="hidden" name="requestId" value={request.id} />
-                              <input type="hidden" name="decision" value="REJECTED" />
-                              <input type="hidden" name="notifySuccess" value="1" />
-                              <PrimaryButton type="submit" tone="red">
-                                Rifiuta
-                              </PrimaryButton>
-                            </form>
-                          </div>
-                        ) : null}
-                      </div>
-                    }
-                  />
-                );
-              })}
-            </ItemList>
-          )}
-        </Panel>
+                      }
+                    />
+                  );
+                })}
+              </ItemList>
+            )}
+          </Panel>
+        ) : null}
       </Stack>
     </>
   );

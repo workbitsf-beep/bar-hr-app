@@ -38,8 +38,8 @@ export default async function DashboardTasksPage({
 
   if (!activeBarId) {
     return (
-      <Panel title="Mansioni e bacheca">
-        <EmptyState message="Seleziona un locale attivo per gestire mansioni e bacheca." />
+      <Panel title="Contenuti">
+        <EmptyState message="Seleziona un locale attivo per gestire i contenuti." />
       </Panel>
     );
   }
@@ -50,18 +50,11 @@ export default async function DashboardTasksPage({
 
   if (!features.tasks && !features.noticeBoard) {
     return (
-      <Panel title="Mansioni e bacheca">
-        <EmptyState message="Moduli mansioni e bacheca disattivati nelle impostazioni." />
+      <Panel title="Contenuti">
+        <EmptyState message="Moduli contenuti disattivati nelle impostazioni." />
       </Panel>
     );
   }
-
-  const pageTitle =
-    features.tasks && features.noticeBoard
-      ? "Mansioni e bacheca"
-      : features.tasks
-        ? "Mansioni"
-        : "Bacheca";
 
   const canManage = role === Role.OWNER || role === Role.MANAGER;
   const successMessage =
@@ -177,7 +170,7 @@ export default async function DashboardTasksPage({
 
       {features.noticeBoard ? (
       <Panel
-        title={features.noticeBoard ? "Bacheca" : pageTitle}
+        title="Bacheca"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {canManage && notes.length > 0 ? (
@@ -224,7 +217,7 @@ export default async function DashboardTasksPage({
 
       {features.tasks ? (
       <Panel
-        title={features.noticeBoard ? "Elenco mansioni" : pageTitle}
+        title="Mansioni"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {canManage && tasks.some((task) => task.status === "DONE") ? (

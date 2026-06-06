@@ -604,15 +604,16 @@ export function DayActionCalendarClient({
   const canManageOptionalShifts =
     features.shifts && isCompany && companyShiftsEnabled && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateRequest = features.requests && role !== Role.OWNER;
-  const canCreateAvailability = features.requests && !isCompany && role !== Role.OWNER;
+  const canCreateAvailability = features.availability && !isCompany && role !== Role.OWNER;
   const canCreateCourse = features.courses && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateClosure = features.requests && (role === Role.OWNER || role === Role.MANAGER);
   const canReviewRequests = features.requests && isCompany && role === Role.OWNER;
   const canOpenTaskComposer = features.tasks && (role === Role.OWNER || role === Role.MANAGER);
   const hasDayMancanze =
-    features.requests &&
-    ((selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0) > 0);
-  const dayMancanzeSection = features.requests ? (
+    (features.availability ? selectedDay?.availabilities.length ?? 0 : 0) +
+      (features.requests ? selectedDay?.requests.length ?? 0 : 0) >
+    0;
+  const dayMancanzeSection = features.requests || features.availability ? (
     hasDayMancanze ? (
       <div style={{ display: "grid", gap: 12 }}>
         <div
@@ -626,16 +627,21 @@ export function DayActionCalendarClient({
           <strong style={{ fontSize: 18, color: "#0f172a" }}>Mancanze del giorno</strong>
           <CountBadge
             count={
-              (selectedDay?.availabilities.length ?? 0) + (selectedDay?.requests.length ?? 0)
+              (features.availability ? selectedDay?.availabilities.length ?? 0 : 0) +
+              (features.requests ? selectedDay?.requests.length ?? 0 : 0)
             }
           />
         </div>
 
         <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-          {(selectedDay?.availabilities ?? []).map((availability) =>
+          {features.availability
+            ? (selectedDay?.availabilities ?? []).map((availability) =>
             renderAvailabilityCard(availability, true)
-          )}
-          {(selectedDay?.requests ?? []).map((request) => renderApprovedRequestCard(request, true))}
+              )
+            : null}
+          {features.requests
+            ? (selectedDay?.requests ?? []).map((request) => renderApprovedRequestCard(request, true))
+            : null}
         </div>
       </div>
     ) : (
@@ -674,15 +680,19 @@ export function DayActionCalendarClient({
     const nextShiftEnd = combineDateAndTime(draft.date, draft.endTime);
     const blocked = new Map<string, string>();
 
-    for (const availability of selectedDay.availabilities) {
-      if (hasTimeOverlap(availability.startsAt, availability.endsAt, nextShiftStart, nextShiftEnd)) {
-        blocked.set(availability.userId, "Indisponibile");
+    if (features.availability) {
+      for (const availability of selectedDay.availabilities) {
+        if (hasTimeOverlap(availability.startsAt, availability.endsAt, nextShiftStart, nextShiftEnd)) {
+          blocked.set(availability.userId, "Indisponibile");
+        }
       }
     }
 
-    for (const request of selectedDay.requests) {
-      if (hasTimeOverlap(request.startsAt, request.endsAt, nextShiftStart, nextShiftEnd)) {
-        blocked.set(request.userId, formatRequestTypeLabel(request.type));
+    if (features.requests) {
+      for (const request of selectedDay.requests) {
+        if (hasTimeOverlap(request.startsAt, request.endsAt, nextShiftStart, nextShiftEnd)) {
+          blocked.set(request.userId, formatRequestTypeLabel(request.type));
+        }
       }
     }
 
@@ -1059,11 +1069,11 @@ export function DayActionCalendarClient({
                     </div>
 
                     {day.shifts.length === 0 &&
-                    day.availabilities.length === 0 &&
-                    day.requests.length === 0 &&
-                    day.pendingRequests.length === 0 &&
+                    (!features.availability || day.availabilities.length === 0) &&
+                    (!features.requests || day.requests.length === 0) &&
+                    (!features.requests || day.pendingRequests.length === 0) &&
                     day.courses.length === 0 &&
-                    day.closures.length === 0 &&
+                    (!features.requests || day.closures.length === 0) &&
                     day.tasks.length === 0 &&
                     day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
@@ -1091,7 +1101,7 @@ export function DayActionCalendarClient({
                     {features.requests
                       ? day.pendingRequests.map((request) => renderPendingRequestCard(request, true))
                       : null}
-                    {features.requests
+                    {features.availability
                       ? day.availabilities.map((availability) =>
                           renderAvailabilityCard(availability, true)
                         )

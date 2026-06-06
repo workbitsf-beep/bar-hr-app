@@ -133,6 +133,7 @@ export default async function DashboardCalendarPage({
   const hasCalendarModules =
     features.shifts ||
     features.requests ||
+    features.availability ||
     features.tasks ||
     features.noticeBoard ||
     features.courses;
@@ -228,7 +229,7 @@ export default async function DashboardCalendarPage({
             },
           })
         : Promise.resolve([]),
-      features.requests
+      features.availability
         ? prisma.availability.findMany({
             where: {
               barId: activeBarId,

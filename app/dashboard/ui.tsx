@@ -44,6 +44,8 @@ const shellCardStyle: CSSProperties = {
 function resolveEmoji(title: string) {
   const normalized = title.toLowerCase();
 
+  if (normalized.includes("riepilog")) return "📊";
+  if (normalized.includes("gestir")) return "🗂️";
   if (normalized.includes("calend")) return "📅";
   if (normalized.includes("turn")) return "⏱️";
   if (normalized.includes("richiest") || normalized.includes("chius")) return "📝";

@@ -502,15 +502,19 @@ export function OwnerCalendarClient({
     const nextShiftEnd = combineDateAndTime(draft.date, draft.endTime);
     const blocked = new Map<string, string>();
 
-    for (const availability of selectedDay.availabilities) {
-      if (hasTimeOverlap(availability.startsAt, availability.endsAt, nextShiftStart, nextShiftEnd)) {
-        blocked.set(availability.userId, "Indisponibile");
+    if (features.availability) {
+      for (const availability of selectedDay.availabilities) {
+        if (hasTimeOverlap(availability.startsAt, availability.endsAt, nextShiftStart, nextShiftEnd)) {
+          blocked.set(availability.userId, "Indisponibile");
+        }
       }
     }
 
-    for (const request of selectedDay.requests) {
-      if (hasTimeOverlap(request.startsAt, request.endsAt, nextShiftStart, nextShiftEnd)) {
-        blocked.set(request.userId, formatRequestTypeLabel(request.type));
+    if (features.requests) {
+      for (const request of selectedDay.requests) {
+        if (hasTimeOverlap(request.startsAt, request.endsAt, nextShiftStart, nextShiftEnd)) {
+          blocked.set(request.userId, formatRequestTypeLabel(request.type));
+        }
       }
     }
 
@@ -890,10 +894,10 @@ export function OwnerCalendarClient({
                     </div>
 
                     {day.shifts.length === 0 &&
-                    day.availabilities.length === 0 &&
-                    day.requests.length === 0 &&
+                    (!features.availability || day.availabilities.length === 0) &&
+                    (!features.requests || day.requests.length === 0) &&
                     day.courses.length === 0 &&
-                    day.closures.length === 0 &&
+                    (!features.requests || day.closures.length === 0) &&
                     day.tasks.length === 0 &&
                     day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
@@ -934,7 +938,7 @@ export function OwnerCalendarClient({
                       </div>
                     ) : null}
 
-                    {features.requests
+                    {features.availability
                       ? day.availabilities.map((availability) => (
                         <div
                           key={availability.id}
@@ -1578,7 +1582,7 @@ export function OwnerCalendarClient({
                       </div>
                     ) : null}
 
-                    {features.requests && showAvailabilityComposer ? (
+                    {features.availability && showAvailabilityComposer ? (
                       <div
                         style={{
                           position: "fixed",
@@ -1846,21 +1850,31 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Mancanze del giorno</strong>
-                    <CountBadge count={day.availabilities.length + day.requests.length} />
+                    <CountBadge
+                      count={
+                        (features.availability ? day.availabilities.length : 0) +
+                        (features.requests ? day.requests.length : 0)
+                      }
+                    />
                   </div>
 
-                  {day.availabilities.length === 0 && day.requests.length === 0 ? (
+                  {((features.availability ? day.availabilities.length : 0) +
+                    (features.requests ? day.requests.length : 0)) === 0 ? (
                     <div style={{ color: "#64748b" }}>
                       Nessuna mancanza registrata in questa giornata.
                     </div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {day.availabilities.map((availability) =>
-                        renderAvailabilityCard(availability, true)
-                      )}
-                      {day.requests.map((request) =>
-                        renderApprovedRequestCard(request, true)
-                      )}
+                      {features.availability
+                        ? day.availabilities.map((availability) =>
+                            renderAvailabilityCard(availability, true)
+                          )
+                        : null}
+                      {features.requests
+                        ? day.requests.map((request) =>
+                            renderApprovedRequestCard(request, true)
+                          )
+                        : null}
                     </div>
                   )}
                 </div>

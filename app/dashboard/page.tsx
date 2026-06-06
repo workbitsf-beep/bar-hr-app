@@ -47,10 +47,12 @@ export default async function DashboardPage() {
   const isOwner = role === Role.OWNER;
   const isEmployee = role === Role.EMPLOYEE;
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
+  const isCompany = activeBarActivityType === ActivityType.COMPANY;
   const showKpi =
     canManagePeople &&
     (features.shifts ||
       features.requests ||
+      features.availability ||
       features.tasks ||
       features.noticeBoard ||
       features.courses);
@@ -318,6 +320,45 @@ export default async function DashboardPage() {
   const personalShiftCount = shifts.filter((shift) =>
     shift.assignments.some((entry) => entry.user.id === session.user.id)
   ).length;
+  const personalActionItems = [
+    features.tasks
+      ? {
+          title: "Mansioni",
+          subtitle: tasks.length === 0 ? "Tutto completato" : `${tasks.length} da controllare`,
+          meta: "Apri la pagina",
+          href: "/dashboard/tasks",
+        }
+      : null,
+    features.noticeBoard
+      ? {
+          title: "Bacheca",
+          subtitle: notes.length === 0 ? "Nessun messaggio" : `${notes.length} messaggi recenti`,
+          meta: "Apri la pagina",
+          href: "/dashboard/board",
+        }
+      : null,
+    features.requests
+      ? {
+          title: "Richieste",
+          subtitle: requestCount === 0 ? "Nessuna richiesta aperta" : `${requestCount} in sospeso`,
+          meta: "Apri la pagina",
+          href: "/dashboard/requests",
+        }
+      : null,
+    features.availability && !isOwner && !isCompany
+      ? {
+          title: "Indisponibilità",
+          subtitle: "Segnala quando non puoi lavorare",
+          meta: "Apri la pagina",
+          href: "/dashboard/availability",
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    title: string;
+    subtitle: string;
+    meta: string;
+    href: string;
+  }>;
 
   return (
     <Stack>
@@ -383,8 +424,8 @@ export default async function DashboardPage() {
         />
       ) : null}
 
-      {!canManagePeople && isRestaurant && features.shifts ? (
-        <Panel title="Turni in arrivo" action={<ArrowLinkButton href="/dashboard/shifts" />}>
+      {!canManagePeople && features.shifts ? (
+        <Panel title="Turni e reperibilità" action={<ArrowLinkButton href="/dashboard/shifts" />}>
           {shifts.length === 0 ? (
             <EmptyState message="Nessun turno schedulato al momento." />
           ) : (
@@ -408,134 +449,57 @@ export default async function DashboardPage() {
               ))}
             </ItemList>
           )}
+
+          {pendingOnCallShifts.length > 0 ? (
+            <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
+              <h4 style={{ margin: 0, fontSize: 16, color: "#0f172a" }}>Reperibilita da approvare</h4>
+              <ItemList>
+                {pendingOnCallShifts.map((shift) => (
+                  <ItemCard
+                    key={shift.id}
+                    title={shift.title || "Reperibilita"}
+                    subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
+                    meta={shift.assignments
+                      .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
+                      .join(", ")}
+                    footer={
+                      <form action={confirmShiftAction}>
+                        <input type="hidden" name="shiftId" value={shift.id} />
+                        <PrimaryButton type="submit">Approva reperibilita</PrimaryButton>
+                      </form>
+                    }
+                  />
+                ))}
+              </ItemList>
+            </div>
+          ) : null}
         </Panel>
       ) : null}
 
-      {features.shifts && pendingOnCallShifts.length > 0 ? (
-        <Panel title="Reperibilita da approvare">
-          <ItemList>
-            {pendingOnCallShifts.map((shift) => (
+      {!canManagePeople && personalActionItems.length > 0 ? (
+        <Panel title="Da gestire">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {personalActionItems.map((item) => (
               <ItemCard
-                key={shift.id}
-                title={shift.title || "Reperibilita"}
-                subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
-                meta={shift.assignments
-                  .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
-                  .join(", ")}
+                key={item.title}
+                title={item.title}
+                subtitle={item.subtitle}
+                meta={item.meta}
                 footer={
-                  <form action={confirmShiftAction}>
-                    <input type="hidden" name="shiftId" value={shift.id} />
-                    <PrimaryButton type="submit">Approva reperibilita</PrimaryButton>
-                  </form>
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <ArrowLinkButton href={item.href} />
+                  </div>
                 }
               />
             ))}
-          </ItemList>
+          </div>
         </Panel>
-      ) : null}
-
-      {!canManagePeople && features.tasks ? (
-      <Panel title="Mansioni aperte" action={<ArrowLinkButton href="/dashboard/tasks" />}>
-        {tasks.length === 0 ? (
-          <EmptyState message="Nessuna mansione aperta per il locale." />
-        ) : (
-          <ItemList>
-            {tasks.map((task) => (
-              <ItemCard
-                key={task.id}
-                title={task.title}
-                subtitle={`Scadenza ${formatDate(task.dueDate)}`}
-                meta={
-                  task.completions[0]
-                    ? `Ultimo completamento: ${task.completions[0].user.firstName} ${task.completions[0].user.lastName}`
-                    : task.assignedToAll
-                      ? "Assegnata a tutto il team"
-                      : "In attesa di completamento"
-                }
-              />
-            ))}
-          </ItemList>
-        )}
-      </Panel>
-      ) : null}
-
-      {!canManagePeople && features.noticeBoard ? (
-      <Panel title="Bacheca" action={<ArrowLinkButton href="/dashboard/tasks" />}>
-        {notes.length === 0 ? (
-          <EmptyState message="Nessun messaggio in bacheca." />
-        ) : (
-          <ItemList>
-            {notes.map((note) => (
-              <ItemCard
-                key={note.id}
-                title={note.isPinned ? "Messaggio in evidenza" : "Messaggio interno"}
-                subtitle={note.content}
-                meta={`${note.author.firstName} ${note.author.lastName} - ${formatDateTime(note.createdAt)}`}
-              />
-            ))}
-          </ItemList>
-        )}
-      </Panel>
-      ) : null}
-
-      {!canManagePeople && features.requests ? (
-      <Panel title="Richieste in sospeso" action={<ArrowLinkButton href="/dashboard/requests" />}>
-        {isOwner ? (
-          requestCount === 0 ? (
-            <ItemCard
-              title="Tutto aggiornato"
-              subtitle="Nessuna richiesta in sospeso da gestire."
-            />
-          ) : (
-            <OwnerRequestCards
-              requests={pendingRequests.map((request) => ({
-                id: request.id,
-                type: request.type as RequestType,
-                status: request.status,
-                peerStatus: request.peerStatus,
-                ownerStatus: request.ownerStatus,
-                reason: request.reason,
-                startsAt: request.startsAt?.toISOString() ?? null,
-                endsAt: request.endsAt?.toISOString() ?? null,
-                employee: {
-                  firstName: request.employee.firstName,
-                  lastName: request.employee.lastName,
-                },
-                reviewedBy: request.reviewedBy
-                  ? {
-                      firstName: request.reviewedBy.firstName,
-                      lastName: request.reviewedBy.lastName,
-                    }
-                  : null,
-                peerReviewedBy: request.peerReviewedBy
-                  ? {
-                      firstName: request.peerReviewedBy.firstName,
-                      lastName: request.peerReviewedBy.lastName,
-                    }
-                  : null,
-                swapWith: request.swapWith
-                  ? {
-                      firstName: request.swapWith.firstName,
-                      lastName: request.swapWith.lastName,
-                    }
-                  : null,
-                shift: request.shift
-                  ? {
-                      title: request.shift.title,
-                      startTime: request.shift.startTime.toISOString(),
-                      endTime: request.shift.endTime.toISOString(),
-                    }
-                  : null,
-              }))}
-            />
-          )
-        ) : (
-          <ItemCard
-            title={requestCount === 0 ? "Tutto aggiornato" : `${requestCount} richieste da gestire`}
-            subtitle="Controlla lo stato delle tue richieste e dei cambi turno."
-          />
-        )}
-      </Panel>
       ) : null}
 
     </Stack>

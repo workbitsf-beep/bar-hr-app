@@ -8,11 +8,13 @@ export function PopupAction({
   ariaLabel,
   children,
   className,
+  closeOnSubmit = false,
 }: {
   title: string;
   ariaLabel: string;
   children: ReactNode;
   className?: string;
+  closeOnSubmit?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -108,11 +110,11 @@ export function PopupAction({
                 aria-label={title}
                 className="dashboard-modal-panel"
                 style={{
-                  position: "relative",
-                  zIndex: 1,
-                  width: "min(92vw, 720px)",
-                  maxWidth: "100%",
-                  maxHeight: "calc(100dvh - 32px)",
+                position: "relative",
+                zIndex: 1,
+                width: "min(92vw, 720px)",
+                maxWidth: "100%",
+                maxHeight: "calc(100dvh - 32px)",
                   overflowY: "auto",
                   overflowX: "hidden",
                   padding: 18,
@@ -120,10 +122,19 @@ export function PopupAction({
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
                   boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
-                  display: "grid",
-                  gap: 16,
-                }}
-              >
+                display: "grid",
+                gap: 16,
+              }}
+              onSubmitCapture={
+                closeOnSubmit
+                  ? () => {
+                      window.setTimeout(() => {
+                        setOpen(false);
+                      }, 0);
+                    }
+                  : undefined
+              }
+            >
                 <div
                   style={{
                     display: "flex",
