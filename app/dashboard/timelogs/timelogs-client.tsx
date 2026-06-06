@@ -14,7 +14,6 @@ import {
   Panel,
   PrimaryButton,
   Stack,
-  StatusPill,
   TextInput,
   formatDateTime,
 } from "../ui";
@@ -71,7 +70,6 @@ function formatClockTime(value: string) {
 function getClockTypeVisual(type: ClockType) {
   if (type === "IN") {
     return {
-      label: "Entrata",
       arrow: "↑",
       background: "rgba(220, 252, 231, 0.95)",
       border: "#bbf7d0",
@@ -81,7 +79,6 @@ function getClockTypeVisual(type: ClockType) {
   }
 
   return {
-    label: "Uscita",
     arrow: "↓",
     background: "rgba(254, 226, 226, 0.95)",
     border: "#fecaca",
@@ -97,9 +94,9 @@ function ClockLogRow({ log }: { log: LogItem }) {
     <div
       style={{
         display: "grid",
-        gap: 7,
-        padding: "11px 12px",
-        borderRadius: 18,
+        gap: 6,
+        padding: "10px 12px",
+        borderRadius: 16,
         background: "#fff",
         border: "1px solid #e2e8f0",
         width: "100%",
@@ -114,7 +111,7 @@ function ClockLogRow({ log }: { log: LogItem }) {
           gap: 12,
         }}
       >
-          <span
+        <span
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -134,19 +131,11 @@ function ClockLogRow({ log }: { log: LogItem }) {
           <span aria-hidden="true" style={{ fontSize: 13, lineHeight: 1 }}>
             {visual.arrow}
           </span>
-          {visual.label}
         </span>
 
         <strong style={{ color: visual.timeColor, fontSize: 17, lineHeight: 1 }}>
           {formatClockTime(log.timestamp)}
         </strong>
-      </div>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
-        <span style={{ color: "#64748b", fontSize: 12.5, lineHeight: 1.4 }}>
-          {getVisibleLogNote(log.note) ?? "Registrazione salvata"}
-        </span>
       </div>
     </div>
   );
@@ -189,14 +178,6 @@ function groupLogsByDay(logs: LogItem[]) {
       logs: group.logs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
     }))
     .sort((a, b) => new Date(b.latest).getTime() - new Date(a.latest).getTime());
-}
-
-function getVisibleLogNote(note: string | null) {
-  if (!note || note.toLowerCase().includes("precisione gps")) {
-    return null;
-  }
-
-  return note;
 }
 
 export function ClockActionsPanel({
@@ -443,24 +424,29 @@ export function ClockActionsPanel({
           >
             {locating ? "Aggiornamento posizione..." : compact ? "Verifica posizione" : "Aggiorna posizione"}
           </PrimaryButton>
-          <div className="dashboard-clock-actions-row" style={{ display: "grid", gap: 10 }}>
-            <PrimaryButton
-              type="button"
-              tone="green"
-              onClick={() => runClockAction("clock-in")}
-              disabled={submitting !== null || !insideRadius || !geoReady}
-            >
-              {submitting === "in" ? "Registrazione..." : "Entrata"}
-            </PrimaryButton>
-            <PrimaryButton
-              type="button"
-              tone="red"
-              onClick={() => runClockAction("clock-out")}
-              disabled={submitting !== null || !insideRadius || !geoReady}
-            >
-              {submitting === "out" ? "Registrazione..." : "Uscita"}
-            </PrimaryButton>
-          </div>
+        <div
+          className="dashboard-clock-actions-row"
+          style={{ display: "flex", gap: 10, alignItems: "stretch" }}
+        >
+          <PrimaryButton
+            type="button"
+            tone="green"
+            onClick={() => runClockAction("clock-in")}
+            disabled={submitting !== null || !insideRadius || !geoReady}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            {submitting === "in" ? "Registrazione..." : "Entrata"}
+          </PrimaryButton>
+          <PrimaryButton
+            type="button"
+            tone="red"
+            onClick={() => runClockAction("clock-out")}
+            disabled={submitting !== null || !insideRadius || !geoReady}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            {submitting === "out" ? "Registrazione..." : "Uscita"}
+          </PrimaryButton>
+        </div>
         </div>
 
         {actionMessage ? (
@@ -690,7 +676,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(128px, 1fr))",
                               gap: 8,
                               alignItems: "stretch",
                             }}
@@ -758,7 +744,7 @@ function PersonalTimeLogsPanel({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(128px, 1fr))",
                       gap: 8,
                       alignItems: "stretch",
                     }}

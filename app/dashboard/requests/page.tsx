@@ -61,22 +61,6 @@ function requestLabel(type: RequestType | string) {
   return "Cambio turno";
 }
 
-function getReviewerName(
-  reviewer:
-    | {
-        firstName: string;
-        lastName: string;
-      }
-    | null
-    | undefined
-) {
-  if (!reviewer) {
-    return null;
-  }
-
-  return `${reviewer.firstName} ${reviewer.lastName}`.trim();
-}
-
 export default async function DashboardRequestsPage({
   searchParams,
 }: {
@@ -300,7 +284,7 @@ export default async function DashboardRequestsPage({
         {canCreateRequests ? (
           <>
             <Panel
-              title={requestPanelTitle}
+              title="Nuova richiesta"
               action={
                 <PopupAction title="Nuova richiesta" ariaLabel="Aggiungi richiesta">
                   <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
@@ -353,12 +337,12 @@ export default async function DashboardRequestsPage({
                 </PopupAction>
               }
             >
-              <EmptyState message="Le richieste inserite compaiono nello storico qui sotto." />
+              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{requestPanelTitle}.</p>
             </Panel>
 
             {!isCompany ? (
               <Panel
-                title="Richiedi cambio turno"
+                title="Cambio turno"
                 action={
                   ownShifts.length === 0 ? null : (
                     <PopupAction title="Cambio turno" ariaLabel="Aggiungi cambio turno">
@@ -407,9 +391,11 @@ export default async function DashboardRequestsPage({
                 }
               >
                 {ownShifts.length === 0 ? (
-                  <EmptyState message="Non hai turni futuri disponibili per un cambio." />
+                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Nessun turno disponibile.</p>
                 ) : (
-                  <EmptyState message="Apri il popup con il + per richiedere un cambio turno." />
+                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                    Apri il popup per richiedere un cambio.
+                  </p>
                 )}
               </Panel>
             ) : null}
@@ -418,7 +404,7 @@ export default async function DashboardRequestsPage({
 
         {role === Role.OWNER && canUseOvertime ? (
           <Panel
-            title="Registra straordinario"
+            title="Straordinari"
             action={
               <PopupAction title="Straordinario" ariaLabel="Aggiungi straordinario">
                 <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
@@ -467,7 +453,7 @@ export default async function DashboardRequestsPage({
               </PopupAction>
             }
           >
-            <EmptyState message="Apri il popup con il + per registrare uno straordinario." />
+            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Apri il popup per aggiungerne uno.</p>
           </Panel>
         ) : null}
 
@@ -502,12 +488,12 @@ export default async function DashboardRequestsPage({
                   <ItemCard
                     key={closure.id}
                     title={closure.title}
-                    subtitle="Chiusura"
+                    subtitle="Chiusura registrata"
                     meta={formatDate(closure.startsAt) + " - " + formatDate(closure.endsAt)}
                     footer={
                       closure.createdBy ? (
-                        <span>
-                          Inserita da {closure.createdBy.firstName} {closure.createdBy.lastName}
+                        <span style={{ color: "#64748b" }}>
+                          Da {closure.createdBy.firstName} {closure.createdBy.lastName}
                         </span>
                       ) : null
                     }
@@ -557,10 +543,12 @@ export default async function DashboardRequestsPage({
                 </PopupAction>
               }
             >
-              <EmptyState message="Apri il popup con il + per segnalare un'indisponibilita." />
+              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                Segnala quando non puoi lavorare.
+              </p>
             </Panel>
 
-            <Panel title="Calendario indisponibilita" action={availabilities.length + " elementi"}>
+            <Panel title="Indisponibilita" action={availabilities.length + " elementi"}>
               {availabilities.length === 0 ? (
                 <EmptyState message="Nessuna indisponibilita registrata." />
               ) : (
@@ -589,8 +577,6 @@ export default async function DashboardRequestsPage({
             ) : (
               <ItemList scrollable>
                 {requests.map((request) => {
-                  const peerReviewerName = getReviewerName(request.peerReviewedBy);
-                  const ownerReviewerName = getReviewerName(request.reviewedBy);
                   const canPeerReview =
                     request.type === "SHIFT_CHANGE" &&
                     request.swapWithUserId === session.user.id &&
@@ -602,6 +588,12 @@ export default async function DashboardRequestsPage({
                     request.type !== RequestType.SICKNESS &&
                     (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
 
+                  const requestSummary = request.shift
+                    ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
+                    : request.certificateCode
+                      ? `Certificato: ${request.certificateCode}`
+                      : request.reason || "Nessun dettaglio aggiuntivo";
+
                   return (
                     <ItemCard
                       key={request.id}
@@ -611,68 +603,24 @@ export default async function DashboardRequestsPage({
                         <>
                           {request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}
                           {request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}
-                          <br />
-                          {request.shift
-                            ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
-                            : request.certificateCode
-                              ? `Certificato: ${request.certificateCode}${request.reason ? ` - ${request.reason}` : ""}`
-                              : request.reason || "Nessun dettaglio aggiuntivo"}
                         </>
                       }
                       footer={
-                        <div style={{ display: "grid", gap: 12 }}>
-                          <div className="dashboard-inline-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <StatusPill label={request.status} tone={requestTone(request.status)} />
                             {request.peerStatus ? (
-                              <StatusPill
-                                label={`Collega ${request.peerStatus}`}
-                                tone={requestTone(request.peerStatus)}
-                              />
+                              <StatusPill label={request.peerStatus} tone={requestTone(request.peerStatus)} />
                             ) : null}
                             {request.ownerStatus ? (
-                              <StatusPill
-                                label={`Titolare ${request.ownerStatus}`}
-                                tone={requestTone(request.ownerStatus)}
-                              />
+                              <StatusPill label={request.ownerStatus} tone={requestTone(request.ownerStatus)} />
                             ) : null}
                           </div>
 
-                          {request.type === "SHIFT_CHANGE" && request.swapWith ? (
-                            <div style={{ color: "#475569" }}>
-                              Collega coinvolto: {request.swapWith.firstName} {request.swapWith.lastName}
-                            </div>
-                          ) : null}
-
-                          {request.reason ? (
-                            <div style={{ color: "#334155", lineHeight: 1.6 }}>{request.reason}</div>
-                          ) : null}
-
-                          {request.type === "SHIFT_CHANGE" &&
-                          request.peerStatus &&
-                          request.peerStatus !== RequestStatus.PENDING ? (
-                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                              Revisione collega:{" "}
-                              {peerReviewerName
-                                ? `${peerReviewerName} (${request.peerStatus.toLowerCase()})`
-                                : request.peerStatus.toLowerCase()}
-                            </div>
-                          ) : null}
-
-                          {request.ownerStatus &&
-                          request.ownerStatus !== RequestStatus.PENDING ? (
-                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                              Revisione titolare:{" "}
-                              {ownerReviewerName
-                                ? `${ownerReviewerName} (${request.ownerStatus.toLowerCase()})`
-                                : request.type === RequestType.SICKNESS &&
-                                    request.ownerStatus === RequestStatus.APPROVED
-                                  ? "Approvazione automatica"
-                                  : request.ownerStatus.toLowerCase()}
-                            </div>
-                          ) : null}
+                          <div style={{ color: "#64748b", lineHeight: 1.5 }}>{requestSummary}</div>
 
                           {canPeerReview || canOwnerReview ? (
-                            <div className="dashboard-action-row" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                               <form action={reviewRequestAction}>
                                 <input type="hidden" name="requestId" value={request.id} />
                                 <input type="hidden" name="decision" value="APPROVED" />
