@@ -68,6 +68,49 @@ function formatClockTime(value: string) {
   }).format(new Date(value));
 }
 
+function formatClockTypeLabel(type: ClockType) {
+  return type === "IN" ? "Entrata" : "Uscita";
+}
+
+function groupLogsByDay(logs: LogItem[]) {
+  const groups = new Map<
+    string,
+    {
+      dayKey: string;
+      dayLabel: string;
+      latest: string;
+      logs: LogItem[];
+    }
+  >();
+
+  for (const log of logs) {
+    const dayKey = getDayKey(log.timestamp);
+    const current = groups.get(dayKey);
+
+    if (!current) {
+      groups.set(dayKey, {
+        dayKey,
+        dayLabel: formatDayLabel(log.timestamp),
+        latest: log.timestamp,
+        logs: [log],
+      });
+      continue;
+    }
+
+    current.logs.push(log);
+    if (new Date(log.timestamp).getTime() > new Date(current.latest).getTime()) {
+      current.latest = log.timestamp;
+    }
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      logs: group.logs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+    }))
+    .sort((a, b) => new Date(b.latest).getTime() - new Date(a.latest).getTime());
+}
+
 function getVisibleLogNote(note: string | null) {
   if (!note || note.toLowerCase().includes("precisione gps")) {
     return null;
@@ -421,6 +464,8 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
     );
   }, [dayFilter, selectedGroup]);
 
+  const selectedDayGroups = useMemo(() => groupLogsByDay(filteredSelectedLogs), [filteredSelectedLogs]);
+
   function closeModal() {
     setSelectedUser(null);
     setDayFilter("");
@@ -552,23 +597,58 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                   />
                 </FormField>
 
-                {filteredSelectedLogs.length === 0 ? (
+                {selectedDayGroups.length === 0 ? (
                   <EmptyState message="Nessuna timbratura trovata per il giorno selezionato." />
                 ) : (
-                  <ItemList scrollable={filteredSelectedLogs.length > 4}>
-                    {filteredSelectedLogs.map((log) => (
+                  <ItemList scrollable={selectedDayGroups.length > 4}>
+                    {selectedDayGroups.map((dayGroup) => (
                       <ItemCard
-                        key={log.id}
-                        title={formatDayLabel(log.timestamp)}
-                        subtitle={formatClockTime(log.timestamp)}
-                        meta={getVisibleLogNote(log.note) ?? "Registrazione salvata"}
+                        key={dayGroup.dayKey}
+                        title={dayGroup.dayLabel}
+                        subtitle={`${dayGroup.logs.length} timbrature`}
                         footer={
-                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                            <StatusPill
-                              label={log.type === "IN" ? "Entrata" : "Uscita"}
-                              tone={log.type === "IN" ? "warning" : "success"}
-                            />
-                            {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+                              gap: 8,
+                            }}
+                          >
+                            {dayGroup.logs.map((log) => (
+                              <div
+                                key={log.id}
+                                style={{
+                                  display: "grid",
+                                  gap: 6,
+                                  padding: 12,
+                                  borderRadius: 16,
+                                  background: "#fff",
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 10,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <StatusPill
+                                    label={formatClockTypeLabel(log.type)}
+                                    tone={log.type === "IN" ? "warning" : "success"}
+                                  />
+                                  <strong style={{ color: "#0f172a" }}>{formatClockTime(log.timestamp)}</strong>
+                                </div>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
+                                  <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
+                                    {getVisibleLogNote(log.note) ?? "Registrazione salvata"}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         }
                       />
@@ -598,6 +678,8 @@ function PersonalTimeLogsPanel({
     [dayFilter, initialLogs]
   );
 
+  const dayGroups = useMemo(() => groupLogsByDay(filteredLogs), [filteredLogs]);
+
   return (
     <Panel
       title={role === "OWNER" ? "Timbrature del team" : "Le tue timbrature"}
@@ -612,25 +694,60 @@ function PersonalTimeLogsPanel({
           />
         </FormField>
 
-        {filteredLogs.length === 0 ? (
+        {dayGroups.length === 0 ? (
           <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
             Nessuna timbratura registrata.
           </p>
         ) : (
           <ItemList scrollable>
-            {filteredLogs.map((log) => (
+            {dayGroups.map((dayGroup) => (
               <ItemCard
-                key={log.id}
-                title={formatDayLabel(log.timestamp)}
-                subtitle={formatClockTime(log.timestamp)}
-                meta={getVisibleLogNote(log.note) ?? "Registrazione salvata"}
+                key={dayGroup.dayKey}
+                title={dayGroup.dayLabel}
+                subtitle={`${dayGroup.logs.length} timbrature`}
                 footer={
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <StatusPill
-                      label={log.type === "IN" ? "Entrata" : "Uscita"}
-                      tone={log.type === "IN" ? "warning" : "success"}
-                    />
-                    {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+                      gap: 8,
+                    }}
+                  >
+                    {dayGroup.logs.map((log) => (
+                      <div
+                        key={log.id}
+                        style={{
+                          display: "grid",
+                          gap: 6,
+                          padding: 12,
+                          borderRadius: 16,
+                          background: "#fff",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 10,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <StatusPill
+                            label={formatClockTypeLabel(log.type)}
+                            tone={log.type === "IN" ? "warning" : "success"}
+                          />
+                          <strong style={{ color: "#0f172a" }}>{formatClockTime(log.timestamp)}</strong>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {log.isManual ? <StatusPill label="Manuale" tone="neutral" /> : null}
+                          <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
+                            {getVisibleLogNote(log.note) ?? "Registrazione salvata"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 }
               />

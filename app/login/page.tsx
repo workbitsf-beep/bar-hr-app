@@ -259,55 +259,42 @@ export default function LoginPage() {
               Hai dimenticato la password?
             </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                background: "#0f172a",
-                color: "#fff",
-                border: 0,
-                borderRadius: 999,
-                padding: "14px 18px",
-                fontWeight: 700,
-                fontSize: 16,
-                cursor: loading ? "default" : "pointer",
-                opacity: loading ? 0.7 : 1,
-                boxShadow: "0 12px 22px rgba(15, 23, 42, 0.14)",
-              }}
-            >
-              {loading ? "Accesso in corso..." : "Entra"}
-            </button>
-          </form>
-
-          <div
-            style={{
-              display: "grid",
-              gap: 14,
-            }}
-          >
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
+                gridTemplateColumns: "1fr auto",
                 gap: 12,
                 alignItems: "center",
-                color: "#94a3b8",
-                fontSize: 13,
-                fontWeight: 700,
               }}
             >
-              <span style={{ height: 1, background: "#e2e8f0" }} />
-              <span>oppure</span>
-              <span style={{ height: 1, background: "#e2e8f0" }} />
-            </div>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  background: "#0f172a",
+                  color: "#fff",
+                  border: 0,
+                  borderRadius: 999,
+                  padding: "14px 18px",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  cursor: loading ? "default" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  boxShadow: "0 12px 22px rgba(15, 23, 42, 0.14)",
+                }}
+              >
+                {loading ? "Accesso in corso..." : "Entra"}
+              </button>
 
-            <PasskeyLoginButton
-              email={email}
-              rememberMe={rememberMe}
-              onError={setError}
-              onSuccess={handlePasskeySuccess}
-            />
-          </div>
+              <PasskeyLoginButton
+                email={email}
+                rememberMe={rememberMe}
+                onError={setError}
+                onSuccess={handlePasskeySuccess}
+                compact
+              />
+            </div>
+          </form>
         </div>
       </section>
     </main>
