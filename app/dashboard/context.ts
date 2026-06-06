@@ -75,6 +75,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
             tasksEnabled: true,
             noticeBoardEnabled: true,
             coursesEnabled: true,
+            documentsEnabled: true,
             reportsEnabled: true,
             companyShiftsEnabled: true,
           },
@@ -111,12 +112,10 @@ export const getDashboardContext = cache(async function getDashboardContext(
             ? [{ label: t.calendar, href: "/dashboard/calendar" }]
             : []),
           { label: t.dashboard, href: "/dashboard" },
-          ...(features.shifts && !isCompany
-            ? [{ label: t.shifts, href: "/dashboard/shifts" }]
-            : []),
           ...(features.tasks || features.noticeBoard
             ? [{ label: tasksNavLabel, href: "/dashboard/tasks" }]
             : []),
+          ...(features.documents ? [{ label: "Documenti", href: "/dashboard/documents" }] : []),
           ...(features.courses ? [{ label: "Corsi", href: "/dashboard/courses" }] : []),
           ...(features.timeTracking && !isCompany
             ? [{ label: t.timelogs, href: "/dashboard/timelogs" }]

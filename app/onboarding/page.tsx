@@ -98,6 +98,7 @@ type OnboardingBar = {
     tasksEnabled?: boolean | null;
     noticeBoardEnabled?: boolean | null;
     coursesEnabled?: boolean | null;
+    documentsEnabled?: boolean | null;
     reportsEnabled?: boolean | null;
     roundingMinutes: number | null;
     roundingMode: RoundingMode | null;
@@ -204,6 +205,7 @@ async function getOwnerContext() {
                   tasksEnabled: true,
                   noticeBoardEnabled: true,
                   coursesEnabled: true,
+                  documentsEnabled: true,
                   reportsEnabled: true,
                 },
             },
@@ -256,6 +258,7 @@ async function getOwnerContext() {
                 tasksEnabled: true,
                 noticeBoardEnabled: true,
                 coursesEnabled: true,
+                documentsEnabled: true,
                 reportsEnabled: true,
               },
             },
@@ -415,6 +418,7 @@ async function switchBarAction(formData: FormData) {
                 tasksEnabled: true,
                 noticeBoardEnabled: true,
                 coursesEnabled: true,
+                documentsEnabled: true,
                 reportsEnabled: true,
                 roundingMinutes: true,
                 roundingMode: true,

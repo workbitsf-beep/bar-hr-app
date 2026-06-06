@@ -107,6 +107,9 @@ model User {
   taskCompletions     TaskCompletion[]
   notesAuthored       Note[]            @relation("NoteAuthor")
   notesAbout          Note[]            @relation("NoteAboutEmployee")
+  documentsCreated    Document[]        @relation("DocumentCreated")
+  documentsAssigned   Document[]        @relation("DocumentAssigned")
+  documentsDeactivated Document[]       @relation("DocumentDeactivated")
   requests            Request[]         @relation("RequestEmployee")
   reviewedReqs        Request[]         @relation("RequestReviewer")
   peerReviewedReqs    Request[]         @relation("RequestPeerReviewer")
@@ -203,6 +206,7 @@ model Bar {
   availabilities    Availability[]
   courses           Course[]
   calendarClosures  CalendarClosure[]
+  documents         Document[]
   sessions          Session[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -251,6 +255,7 @@ model BarSettings {
   tasksEnabled        Boolean @default(true)
   noticeBoardEnabled  Boolean @default(true)
   coursesEnabled      Boolean @default(true)
+  documentsEnabled    Boolean @default(true)
   reportsEnabled      Boolean @default(true)
   roundingEnabled Boolean       @default(false)
   roundingMinutes Int?
@@ -500,4 +505,32 @@ model CalendarClosure {
   @@index([barId, startsAt])
   @@index([barId, endsAt])
   @@index([createdById])
+}
+
+model Document {
+  id              String   @id @default(uuid()) @db.Uuid
+  barId           String   @db.Uuid
+  title           String
+  description     String?
+  fileName        String
+  mimeType        String
+  fileSize        Int
+  content         Bytes
+  assignedToAll   Boolean  @default(true)
+  assignedToId    String?  @db.Uuid
+  createdById     String   @db.Uuid
+  isActive        Boolean  @default(true)
+  deactivatedAt   DateTime?
+  deactivatedById String?  @db.Uuid
+  bar             Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  assignedTo      User?    @relation("DocumentAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy       User     @relation("DocumentCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  deactivatedBy   User?    @relation("DocumentDeactivated", fields: [deactivatedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([barId, createdAt])
+  @@index([barId, isActive, createdAt])
+  @@index([assignedToId, isActive])
+  @@index([deactivatedById])
 }

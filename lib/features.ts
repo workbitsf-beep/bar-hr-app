@@ -7,6 +7,7 @@ export type FeatureKey =
   | "tasks"
   | "noticeBoard"
   | "courses"
+  | "documents"
   | "reports";
 
 export type FeatureFlags = Record<FeatureKey, boolean>;
@@ -20,6 +21,7 @@ export type FeatureSettingsInput = Partial<{
   tasksEnabled: boolean | null;
   noticeBoardEnabled: boolean | null;
   coursesEnabled: boolean | null;
+  documentsEnabled: boolean | null;
   reportsEnabled: boolean | null;
 }>;
 
@@ -96,6 +98,14 @@ export const featureDefinitions: Array<{
     emoji: "🎓",
   },
   {
+    key: "documents",
+    field: "documentsEnabled",
+    label: "Documenti",
+    shortLabel: "Documenti",
+    description: "File e materiali condivisi.",
+    emoji: "📎",
+  },
+  {
     key: "reports",
     field: "reportsEnabled",
     label: "Report PDF",
@@ -114,6 +124,7 @@ export const defaultFeatureFlags: FeatureFlags = {
   tasks: true,
   noticeBoard: true,
   courses: true,
+  documents: true,
   reports: true,
 };
 

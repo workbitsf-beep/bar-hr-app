@@ -542,6 +542,15 @@ async function getRequestFeatureSettings(activeBarId: string) {
   });
 }
 
+async function getDocumentFeatureSettings(activeBarId: string) {
+  return prisma.barSettings.findUnique({
+    where: { barId: activeBarId },
+    select: {
+      documentsEnabled: true,
+    },
+  });
+}
+
 async function getActionContext() {
   const session = await getSession();
 
@@ -2180,6 +2189,117 @@ export async function deleteCourseAction(formData: FormData) {
   revalidatePath("/dashboard/export");
 }
 
+export async function createDocumentAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const featureSettings = await getDocumentFeatureSettings(activeBarId);
+
+  if (featureSettings?.documentsEnabled === false) {
+    throw new Error("Documents not enabled");
+  }
+
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const audience = String(formData.get("audience") ?? "ALL").trim().toUpperCase();
+  const assignedToAll = audience !== "USER";
+  const assignedToId = String(formData.get("assignedToId") ?? "").trim();
+  const fileEntry = formData.get("file");
+
+  if (!title) {
+    throw new Error("Missing document title");
+  }
+
+  if (!(fileEntry instanceof File) || fileEntry.size === 0) {
+    throw new Error("Missing document file");
+  }
+
+  if (fileEntry.size > 8 * 1024 * 1024) {
+    throw new Error("File too large");
+  }
+
+  if (!assignedToAll && !assignedToId) {
+    throw new Error("Missing document recipient");
+  }
+
+  if (!assignedToAll) {
+    await ensureUsersBelongToBar(activeBarId, [assignedToId]);
+  }
+
+  const content = Buffer.from(await fileEntry.arrayBuffer());
+
+  await prisma.document.create({
+    data: {
+      barId: activeBarId,
+      title,
+      description: description || null,
+      fileName: fileEntry.name || title,
+      mimeType: fileEntry.type || "application/octet-stream",
+      fileSize: fileEntry.size,
+      content,
+      assignedToAll,
+      assignedToId: assignedToAll ? null : assignedToId,
+      createdById: session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard");
+}
+
+export async function toggleDocumentActiveAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const featureSettings = await getDocumentFeatureSettings(activeBarId);
+
+  if (featureSettings?.documentsEnabled === false) {
+    throw new Error("Documents not enabled");
+  }
+
+  const documentId = String(formData.get("documentId") ?? "").trim();
+  const nextActive = String(formData.get("nextActive") ?? "").trim() === "1";
+
+  if (!documentId) {
+    throw new Error("Missing document id");
+  }
+
+  const document = await prisma.document.findFirst({
+    where: {
+      id: documentId,
+      barId: activeBarId,
+    },
+    select: {
+      id: true,
+      isActive: true,
+    },
+  });
+
+  if (!document) {
+    throw new Error("Document not found");
+  }
+
+  await prisma.document.update({
+    where: { id: documentId },
+    data: {
+      isActive: nextActive,
+      deactivatedAt: nextActive ? null : new Date(),
+      deactivatedById: nextActive ? null : session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard");
+}
+
 export async function createEmployeeAction(formData: FormData) {
   const { role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);
@@ -2460,6 +2580,7 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/dashboard/shifts");
   revalidatePath("/dashboard/tasks");
   revalidatePath("/dashboard/requests");
+  revalidatePath("/dashboard/documents");
   revalidatePath("/dashboard/courses");
   revalidatePath("/dashboard/export");
   revalidatePath("/dashboard");

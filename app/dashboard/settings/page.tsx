@@ -241,6 +241,7 @@ export default async function DashboardSettingsPage() {
         tasksEnabled: true,
         noticeBoardEnabled: true,
         coursesEnabled: true,
+        documentsEnabled: true,
         reportsEnabled: true,
       },
     }),
