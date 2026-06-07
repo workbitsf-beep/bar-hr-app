@@ -856,6 +856,108 @@ async function ensureUsersBelongToBar(barId: string, userIds: string[]) {
   }
 }
 
+async function ensureOwnerUsersExist(ownerIds: string[]) {
+  if (ownerIds.length === 0) {
+    return;
+  }
+
+  const owners = await prisma.user.findMany({
+    where: {
+      id: {
+        in: ownerIds,
+      },
+      role: Role.OWNER,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const found = new Set(owners.map((owner) => owner.id));
+
+  for (const ownerId of ownerIds) {
+    if (!found.has(ownerId)) {
+      throw new Error("Owner not found");
+    }
+  }
+}
+
+async function syncBarOwnerMemberships(
+  tx: Prisma.TransactionClient,
+  barId: string,
+  ownerIds: string[]
+) {
+  const normalizedOwnerIds = Array.from(new Set(ownerIds.filter(Boolean)));
+
+  if (normalizedOwnerIds.length === 0) {
+    throw new Error("Missing owner data");
+  }
+
+  const currentOwnerMemberships = await tx.employeeBar.findMany({
+    where: {
+      barId,
+      role: Role.OWNER,
+    },
+    select: {
+      userId: true,
+    },
+  });
+
+  const currentOwnerIds = new Set(currentOwnerMemberships.map((membership) => membership.userId));
+
+  await Promise.all(
+    normalizedOwnerIds.map((ownerId) =>
+      tx.employeeBar.upsert({
+        where: {
+          userId_barId: {
+            userId: ownerId,
+            barId,
+          },
+        },
+        update: {
+          role: Role.OWNER,
+          isActive: true,
+          endedAt: null,
+        },
+        create: {
+          userId: ownerId,
+          barId,
+          role: Role.OWNER,
+          isActive: true,
+        },
+      })
+    )
+  );
+
+  const ownerIdsToDeactivate = currentOwnerMemberships
+    .map((membership) => membership.userId)
+    .filter((ownerId) => !normalizedOwnerIds.includes(ownerId));
+
+  if (ownerIdsToDeactivate.length > 0) {
+    await tx.employeeBar.updateMany({
+      where: {
+        barId,
+        role: Role.OWNER,
+        userId: {
+          in: ownerIdsToDeactivate,
+        },
+      },
+      data: {
+        isActive: false,
+        endedAt: new Date(),
+      },
+    });
+  }
+
+  const affectedUserIds = Array.from(
+    new Set([...normalizedOwnerIds, ...currentOwnerIds].filter((ownerId) => ownerId))
+  );
+
+  for (const ownerId of affectedUserIds) {
+    await syncUserRole(tx, ownerId);
+  }
+}
+
 async function applyShiftChangeIfApproved(requestId: string) {
   const request = await prisma.request.findUnique({
     where: { id: requestId },
@@ -1090,6 +1192,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/bars");
 
   const ownerId = String(formData.get("ownerId") ?? "").trim();
+  const additionalOwnerIds = normalizeIds(formData.getAll("additionalOwnerIds"));
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
@@ -1097,81 +1200,55 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   const city = String(formData.get("city") ?? "").trim();
   const postalCode = String(formData.get("postalCode") ?? "").trim();
   const activityType = parseActivityType(formData.get("activityType"));
+  const ownerIds = Array.from(new Set([ownerId, ...additionalOwnerIds]));
 
   if (!ownerId || !name) {
     throw new Error("Missing bar data");
   }
 
-  const owner = await prisma.user.findFirst({
-    where: {
-      id: ownerId,
-      role: Role.OWNER,
-    },
-    select: {
-      id: true,
-      email: true,
-    },
-  });
-
-  if (!owner) {
-    throw new Error("Owner not found");
-  }
+  await ensureOwnerUsersExist(ownerIds);
 
   const globalGpsRadius = await getGlobalGpsRadius();
 
-  const bar = await prisma.bar.create({
-    data: {
-      name,
-      email: email || null,
-      phone: phone || null,
-      addressLine1: addressLine1 || null,
-      city: city || null,
-      postalCode: postalCode || null,
-      latitude: 0,
-      longitude: 0,
-      radiusMeters: globalGpsRadius,
-      activityType,
-      ownerId,
-    },
-  });
-
-  await prisma.employeeBar.upsert({
-    where: {
-      userId_barId: {
-        userId: ownerId,
-        barId: bar.id,
+  const bar = await prisma.$transaction(async (tx) => {
+    const createdBar = await tx.bar.create({
+      data: {
+        name,
+        email: email || null,
+        phone: phone || null,
+        addressLine1: addressLine1 || null,
+        city: city || null,
+        postalCode: postalCode || null,
+        latitude: 0,
+        longitude: 0,
+        radiusMeters: globalGpsRadius,
+        activityType,
+        ownerId,
       },
-    },
-    update: {
-      role: Role.OWNER,
-      isActive: true,
-      endedAt: null,
-    },
-    create: {
-      userId: ownerId,
-      barId: bar.id,
-      role: Role.OWNER,
-      isActive: true,
-    },
-  });
+    });
 
-  await prisma.barSettings.create({
-    data: {
-      barId: bar.id,
-      gpsLatitude: null,
-      gpsLongitude: null,
-      gpsRadius: globalGpsRadius,
-      roundingEnabled: false,
-    },
-  });
+    await tx.barSettings.create({
+      data: {
+        barId: createdBar.id,
+        gpsLatitude: null,
+        gpsLongitude: null,
+        gpsRadius: globalGpsRadius,
+        roundingEnabled: false,
+      },
+    });
 
-  await prisma.subscription.create({
-    data: {
-      barId: bar.id,
-      planType: PlanType.TRIAL,
-      status: SubscriptionStatus.TRIALING,
-      trialEndsAt: createDefaultTrialEndsAt(),
-    },
+    await tx.subscription.create({
+      data: {
+        barId: createdBar.id,
+        planType: PlanType.TRIAL,
+        status: SubscriptionStatus.TRIALING,
+        trialEndsAt: createDefaultTrialEndsAt(),
+      },
+    });
+
+    await syncBarOwnerMemberships(tx, createdBar.id, ownerIds);
+
+    return createdBar;
   });
 
   invalidateBillingStatusCache(bar.id);
@@ -1189,6 +1266,8 @@ export async function updateBarSubscriptionAction(formData: FormData) {
 
   const barId = String(formData.get("barId") ?? "").trim();
   const ownerId = String(formData.get("ownerId") ?? "").trim();
+  const additionalOwnerIds = normalizeIds(formData.getAll("additionalOwnerIds"));
+  const ownerIds = Array.from(new Set([ownerId, ...additionalOwnerIds]));
   const planType = parsePlanType(formData.get("planType"));
   const billingInterval = parseBillingInterval(formData.get("billingInterval"));
   const monthlyDiscountPercent = normalizeMonthlyDiscountPercent(
@@ -1202,17 +1281,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
     throw new Error("Missing billing data");
   }
 
-  const owner = await prisma.user.findFirst({
-    where: {
-      id: ownerId,
-      role: Role.OWNER,
-    },
-    select: { id: true },
-  });
-
-  if (!owner) {
-    throw new Error("Owner not found");
-  }
+  await ensureOwnerUsersExist(ownerIds);
 
   const currentPeriodEnd = currentPeriodEndRaw
     ? parseRequiredDate(currentPeriodEndRaw)
@@ -1226,64 +1295,50 @@ export async function updateBarSubscriptionAction(formData: FormData) {
         stripeSubscriptionId: true,
       },
     }),
-    prisma.bar.update({
-      where: { id: barId },
-      data: {
-        ownerId,
-      },
+    prisma.$transaction(async (tx) => {
+      const updatedBar = await tx.bar.update({
+        where: { id: barId },
+        data: {
+          ownerId,
+        },
+      });
+
+      await syncBarOwnerMemberships(tx, barId, ownerIds);
+
+      await tx.subscription.upsert({
+        where: { barId },
+        update: {
+          planType,
+          billingInterval,
+          monthlyDiscountPercent,
+          status:
+            planType === PlanType.FREE || planType === PlanType.LIFETIME
+              ? SubscriptionStatus.ACTIVE
+              : planType === PlanType.TRIAL
+                ? SubscriptionStatus.TRIALING
+                : status,
+          currentPeriodEnd: planType === PlanType.PAID ? currentPeriodEnd : null,
+          trialEndsAt: planType === PlanType.TRIAL ? trialEndsAt : null,
+        },
+        create: {
+          barId,
+          planType,
+          billingInterval,
+          monthlyDiscountPercent,
+          status:
+            planType === PlanType.FREE || planType === PlanType.LIFETIME
+              ? SubscriptionStatus.ACTIVE
+              : planType === PlanType.TRIAL
+                ? SubscriptionStatus.TRIALING
+                : status,
+          currentPeriodEnd: planType === PlanType.PAID ? currentPeriodEnd : null,
+          trialEndsAt: planType === PlanType.TRIAL ? trialEndsAt : null,
+        },
+      });
+
+      return updatedBar;
     }),
   ]);
-
-  await prisma.employeeBar.upsert({
-    where: {
-      userId_barId: {
-        userId: ownerId,
-        barId: bar.id,
-      },
-    },
-    update: {
-      role: Role.OWNER,
-      isActive: true,
-      endedAt: null,
-    },
-    create: {
-      userId: ownerId,
-      barId: bar.id,
-      role: Role.OWNER,
-      isActive: true,
-    },
-  });
-
-  await prisma.subscription.upsert({
-    where: { barId },
-    update: {
-      planType,
-      billingInterval,
-      monthlyDiscountPercent,
-      status:
-        planType === PlanType.FREE || planType === PlanType.LIFETIME
-          ? SubscriptionStatus.ACTIVE
-          : planType === PlanType.TRIAL
-            ? SubscriptionStatus.TRIALING
-            : status,
-      currentPeriodEnd: planType === PlanType.PAID ? currentPeriodEnd : null,
-      trialEndsAt: planType === PlanType.TRIAL ? trialEndsAt : null,
-    },
-    create: {
-      barId,
-      planType,
-      billingInterval,
-      monthlyDiscountPercent,
-      status:
-        planType === PlanType.FREE || planType === PlanType.LIFETIME
-          ? SubscriptionStatus.ACTIVE
-          : planType === PlanType.TRIAL
-            ? SubscriptionStatus.TRIALING
-            : status,
-      currentPeriodEnd: planType === PlanType.PAID ? currentPeriodEnd : null,
-      trialEndsAt: planType === PlanType.TRIAL ? trialEndsAt : null,
-    },
-  });
 
   try {
     await syncStripeMonthlyDiscount({

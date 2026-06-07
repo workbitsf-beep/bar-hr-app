@@ -98,6 +98,22 @@ export default async function SuperAdminBarsPage({
             email: true,
           },
         },
+        memberships: {
+          where: {
+            isActive: true,
+            role: Role.OWNER,
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
         subscription: {
           select: {
             planType: true,

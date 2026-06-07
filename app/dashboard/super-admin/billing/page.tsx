@@ -24,6 +24,14 @@ type BarAdminItem = {
     lastName: string;
     email: string;
   };
+  memberships: {
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }[];
   subscription: {
     planType: PlanType;
     status: SubscriptionStatus;
@@ -68,6 +76,22 @@ export default async function SuperAdminBillingPage() {
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        memberships: {
+          where: {
+            isActive: true,
+            role: Role.OWNER,
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
           },
         },
         subscription: {
@@ -119,6 +143,7 @@ export default async function SuperAdminBillingPage() {
                 lastName: bar.owner.lastName,
                 email: bar.owner.email,
               },
+              memberships: bar.memberships,
               subscription: {
                 planType: bar.subscription?.planType ?? PlanType.PAID,
                 status: bar.subscription?.status ?? SubscriptionStatus.INACTIVE,

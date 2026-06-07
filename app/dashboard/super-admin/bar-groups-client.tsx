@@ -40,6 +40,9 @@ type BarAdminItem = {
   city: string | null;
   postalCode: string | null;
   owner: OwnerOption;
+  memberships: {
+    user: OwnerOption;
+  }[];
   subscription: {
     planType: PlanTypeValue;
     status: BillingStatusValue;
@@ -61,9 +64,23 @@ function formatDateInput(value: string | null) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
+function getAdditionalOwnersForBar(bar: Pick<BarAdminItem, "owner" | "memberships">) {
+  return bar.memberships
+    .map((membership) => membership.user)
+    .filter((owner) => owner.id !== bar.owner.id);
+}
+
+function getOwnerSummaryLabel(primary: OwnerOption, additionalOwners: OwnerOption[]) {
+  if (additionalOwners.length === 0) {
+    return `${primary.firstName} ${primary.lastName}`;
+  }
+
+  return `${primary.firstName} ${primary.lastName} + ${additionalOwners.length} titolari`;
+}
+
 function formatDateLabel(value: string | null) {
   if (!value) {
-    return "—";
+    return "-";
   }
 
   return new Intl.DateTimeFormat("it-IT", {
@@ -217,6 +234,7 @@ export function BarGroupsClient({
   const [monthlyDiscountPercent, setMonthlyDiscountPercent] = useState("0");
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState("");
   const [trialEndsAt, setTrialEndsAt] = useState("");
+  const [additionalOwnerIds, setAdditionalOwnerIds] = useState<string[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -244,6 +262,7 @@ export function BarGroupsClient({
     setMonthlyDiscountPercent(String(selectedBar.subscription.monthlyDiscountPercent ?? 0));
     setCurrentPeriodEnd(formatDateInput(selectedBar.subscription.currentPeriodEnd));
     setTrialEndsAt(formatDateInput(selectedBar.subscription.trialEndsAt));
+    setAdditionalOwnerIds(getAdditionalOwnersForBar(selectedBar).map((owner) => owner.id));
   }, [selectedBar]);
 
   useEffect(() => {
@@ -330,6 +349,19 @@ export function BarGroupsClient({
         ? String(targetBar.subscription.monthlyDiscountPercent ?? 0)
         : monthlyDiscountPercent
     );
+
+    const selectedAdditionalOwnerIds = Array.from(
+      new Set(
+        (inputBarId
+          ? getAdditionalOwnersForBar(targetBar).map((owner) => owner.id)
+          : additionalOwnerIds
+        ).filter((additionalOwnerId) => additionalOwnerId !== (inputBarId ? targetBar.owner.id : ownerId))
+      )
+    );
+
+    selectedAdditionalOwnerIds.forEach((additionalOwnerId) => {
+      formData.append("additionalOwnerIds", additionalOwnerId);
+    });
 
     if (!inputBarId && billingInterval) {
       formData.set("billingInterval", billingInterval);
@@ -432,6 +464,8 @@ export function BarGroupsClient({
 
           {filteredBars.map((bar) => {
             const badge = getBadgeMeta(bar);
+            const additionalOwners = getAdditionalOwnersForBar(bar);
+            const ownerSummary = getOwnerSummaryLabel(bar.owner, additionalOwners);
 
             return (
               <div
@@ -446,7 +480,7 @@ export function BarGroupsClient({
                   {bar.name}
                 </div>
                 <div style={{ padding: "16px", borderBottom: "1px solid #eef2f7", color: "#334155" }}>
-                  {bar.owner.firstName} {bar.owner.lastName}
+                  {ownerSummary}
                 </div>
                 <div style={{ padding: "16px", borderBottom: "1px solid #eef2f7", color: "#334155" }}>
                   {bar.subscription.planType}
@@ -574,6 +608,8 @@ export function BarGroupsClient({
       <div className="super-admin-mobile-list">
         {filteredBars.map((bar) => {
           const badge = getBadgeMeta(bar);
+          const additionalOwners = getAdditionalOwnersForBar(bar);
+          const ownerSummary = getOwnerSummaryLabel(bar.owner, additionalOwners);
 
           return (
             <button
@@ -598,9 +634,7 @@ export function BarGroupsClient({
             >
               <div style={{ display: "grid", gap: 8 }}>
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>{bar.name}</strong>
-                <span style={{ color: "#475569", lineHeight: 1.5 }}>
-                  {bar.owner.firstName} {bar.owner.lastName}
-                </span>
+                <span style={{ color: "#475569", lineHeight: 1.5 }}>{ownerSummary}</span>
                 <span
                   style={{
                     display: "inline-flex",
@@ -694,7 +728,7 @@ export function BarGroupsClient({
                   <div style={{ display: "grid", gap: 6 }}>
                     <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedBar.name}</strong>
                     <span style={{ color: "#475569" }}>
-                      Responsabile: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
+                      {getOwnerSummaryLabel(selectedBar.owner, getAdditionalOwnersForBar(selectedBar))}
                     </span>
                   </div>
 
@@ -727,7 +761,13 @@ export function BarGroupsClient({
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Responsabile</span>
                     <select
                       value={ownerId}
-                      onChange={(event) => setOwnerId(event.target.value)}
+                      onChange={(event) => {
+                        const nextOwnerId = event.target.value;
+                        setOwnerId(nextOwnerId);
+                        setAdditionalOwnerIds((current) =>
+                          current.filter((ownerId) => ownerId !== nextOwnerId)
+                        );
+                      }}
                       style={{
                         borderRadius: 16,
                         border: "1px solid #dbe3ee",
@@ -743,6 +783,75 @@ export function BarGroupsClient({
                       ))}
                     </select>
                   </label>
+
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      display: "grid",
+                      gap: 10,
+                      padding: 16,
+                      borderRadius: 20,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                      <strong style={{ color: "#0f172a" }}>Titolari aggiuntivi</strong>
+                      <span style={{ color: "#64748b", fontSize: 13 }}>
+                        {additionalOwnerIds.filter((additionalOwnerId) => additionalOwnerId !== ownerId).length} selezionati
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: 10,
+                        maxHeight: 200,
+                        overflowY: "auto",
+                        paddingRight: 4,
+                      }}
+                    >
+                      {owners
+                        .filter((owner) => owner.id !== ownerId)
+                        .map((owner) => {
+                          const checked = additionalOwnerIds.includes(owner.id);
+
+                          return (
+                            <label
+                              key={owner.id}
+                              style={{
+                                display: "grid",
+                                gap: 4,
+                                padding: 12,
+                                borderRadius: 16,
+                                border: "1px solid #e2e8f0",
+                                background: checked ? "#eff6ff" : "#ffffff",
+                              }}
+                            >
+                              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+                                <input
+                                  type="checkbox"
+                                  name="additionalOwnerIds"
+                                  value={owner.id}
+                                  checked={checked}
+                                  onChange={(event) => {
+                                    const nextChecked = event.target.checked;
+                                    setAdditionalOwnerIds((current) =>
+                                      nextChecked
+                                        ? Array.from(new Set([...current, owner.id]))
+                                        : current.filter((ownerId) => ownerId !== owner.id)
+                                    );
+                                  }}
+                                />
+                                {owner.firstName} {owner.lastName}
+                              </span>
+                              <span style={{ color: "#64748b", fontSize: 12 }}>{owner.email}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
 
                   <label style={{ display: "grid", gap: 8 }}>
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Plan type</span>

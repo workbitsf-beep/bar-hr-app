@@ -40,6 +40,9 @@ type BarItem = {
   postalCode: string | null;
   activityType: "RESTAURANT" | "COMPANY";
   owner: OwnerOption;
+  memberships: {
+    user: OwnerOption;
+  }[];
   subscription: {
     planType: "FREE" | "TRIAL" | "PAID" | "LIFETIME";
     status: "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INACTIVE";
@@ -200,6 +203,20 @@ function getRevenueSummary(subscription: BarItem["subscription"]) {
   };
 }
 
+function getAdditionalOwnersForBar(bar: Pick<BarItem, "owner" | "memberships">) {
+  return bar.memberships
+    .map((membership) => membership.user)
+    .filter((owner) => owner.id !== bar.owner.id);
+}
+
+function getOwnerSummaryLabel(primary: OwnerOption, additionalOwners: OwnerOption[]) {
+  if (additionalOwners.length === 0) {
+    return `${primary.firstName} ${primary.lastName}`;
+  }
+
+  return `${primary.firstName} ${primary.lastName} + ${additionalOwners.length} titolari`;
+}
+
 function formatDateInput(value: Date | string | null) {
   if (!value) {
     return "";
@@ -274,6 +291,7 @@ export function BarsManager({
   const [open, setOpen] = useState(false);
   const [selectedBarId, setSelectedBarId] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState("");
+  const [newOwnerId, setNewOwnerId] = useState("");
   const [planType, setPlanType] = useState<"FREE" | "TRIAL" | "PAID" | "LIFETIME">("PAID");
   const [status, setStatus] = useState<
     "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INACTIVE"
@@ -282,6 +300,8 @@ export function BarsManager({
   const [monthlyDiscountPercent, setMonthlyDiscountPercent] = useState("0");
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState("");
   const [trialEndsAt, setTrialEndsAt] = useState("");
+  const [additionalOwnerIds, setAdditionalOwnerIds] = useState<string[]>([]);
+  const [newAdditionalOwnerIds, setNewAdditionalOwnerIds] = useState<string[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -291,6 +311,9 @@ export function BarsManager({
     if (!open) {
       return;
     }
+
+    setNewOwnerId("");
+    setNewAdditionalOwnerIds([]);
 
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -324,6 +347,7 @@ export function BarsManager({
     setMonthlyDiscountPercent(String(selectedSubscription.monthlyDiscountPercent ?? 0));
     setCurrentPeriodEnd(formatDateInput(selectedSubscription.currentPeriodEnd));
     setTrialEndsAt(formatDateInput(selectedSubscription.trialEndsAt));
+    setAdditionalOwnerIds(getAdditionalOwnersForBar(selectedBar).map((owner) => owner.id));
   }, [selectedBar, selectedSubscription]);
 
   useEffect(() => {
@@ -374,6 +398,11 @@ export function BarsManager({
     formData.set("planType", planType);
     formData.set("status", status);
     formData.set("monthlyDiscountPercent", monthlyDiscountPercent || "0");
+
+    Array.from(new Set(additionalOwnerIds.filter((additionalOwnerId) => additionalOwnerId !== ownerId)))
+      .forEach((additionalOwnerId) => {
+        formData.append("additionalOwnerIds", additionalOwnerId);
+      });
 
     if (billingInterval) {
       formData.set("billingInterval", billingInterval);
@@ -490,12 +519,14 @@ export function BarsManager({
           {bars.length > 0 ? (
             <ItemList scrollable maxHeight={540}>
               {bars.map((bar) => {
-                const subscription = bar.subscription;
-                const revenue = getRevenueSummary(subscription);
+      const subscription = bar.subscription;
+      const revenue = getRevenueSummary(subscription);
+      const additionalOwners = getAdditionalOwnersForBar(bar);
+      const ownerSummary = getOwnerSummaryLabel(bar.owner, additionalOwners);
 
-                return (
-                  <button
-                    key={bar.id}
+      return (
+        <button
+          key={bar.id}
                     type="button"
                     onClick={() => setSelectedBarId(bar.id)}
                     style={{
@@ -508,7 +539,7 @@ export function BarsManager({
                   >
                     <ItemCard
                       title={bar.name}
-                      subtitle={`${bar.owner.firstName} ${bar.owner.lastName} - ${bar.city ?? "Senza citta"}`}
+                      subtitle={`${ownerSummary} - ${bar.city ?? "Senza citta"}`}
                       meta={`${getActivityLabel(bar.activityType)}${bar.legalName ? ` - ${bar.legalName}` : ""}`}
                       footer={
                         <div style={{ display: "grid", gap: 8 }}>
@@ -692,7 +723,18 @@ export function BarsManager({
 
                     <label style={{ display: "grid", gap: 8 }}>
                       <span style={{ fontWeight: 600, color: "#1e293b" }}>Responsabile</span>
-                      <Select name="ownerId" required defaultValue="">
+                      <Select
+                        name="ownerId"
+                        required
+                        value={newOwnerId}
+                        onChange={(event) => {
+                          const nextOwnerId = event.target.value;
+                          setNewOwnerId(nextOwnerId);
+                          setNewAdditionalOwnerIds((current) =>
+                            current.filter((ownerId) => ownerId !== nextOwnerId)
+                          );
+                        }}
+                      >
                         <option value="" disabled>
                           Seleziona responsabile
                         </option>
@@ -703,6 +745,73 @@ export function BarsManager({
                         ))}
                       </Select>
                     </label>
+
+                    <div
+                      style={{
+                        gridColumn: "1 / -1",
+                        display: "grid",
+                        gap: 10,
+                        padding: 16,
+                        borderRadius: 20,
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                        <strong style={{ color: "#0f172a" }}>Titolari aggiuntivi</strong>
+                        <span style={{ color: "#64748b", fontSize: 13 }}>
+                          {newAdditionalOwnerIds.length} selezionati
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                          gap: 10,
+                          maxHeight: 200,
+                          overflowY: "auto",
+                          paddingRight: 4,
+                        }}
+                      >
+                        {owners.filter((owner) => owner.id !== newOwnerId).map((owner) => {
+                          const checked = newAdditionalOwnerIds.includes(owner.id);
+
+                          return (
+                            <label
+                              key={owner.id}
+                              style={{
+                                display: "grid",
+                                gap: 4,
+                                padding: 12,
+                                borderRadius: 16,
+                                border: "1px solid #e2e8f0",
+                                background: checked ? "#eff6ff" : "#ffffff",
+                              }}
+                            >
+                              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+                                <input
+                                  type="checkbox"
+                                  name="additionalOwnerIds"
+                                  value={owner.id}
+                                  checked={checked}
+                                  onChange={(event) => {
+                                    const nextChecked = event.target.checked;
+                                    setNewAdditionalOwnerIds((current) =>
+                                      nextChecked
+                                        ? Array.from(new Set([...current, owner.id]))
+                                        : current.filter((ownerId) => ownerId !== owner.id)
+                                    );
+                                  }}
+                                />
+                                {owner.firstName} {owner.lastName}
+                              </span>
+                              <span style={{ color: "#64748b", fontSize: 12 }}>{owner.email}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -774,6 +883,12 @@ export function BarsManager({
                   }}
                 >
                   <div style={{ display: "grid", gap: 6 }}>
+                    {(() => {
+                      const additionalOwners = getAdditionalOwnersForBar(selectedBar);
+                      const ownerSummary = getOwnerSummaryLabel(selectedBar.owner, additionalOwners);
+
+                      return <span style={{ color: "#475569" }}>{ownerSummary}</span>;
+                    })()}
                     <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedBar.name}</strong>
                     <span style={{ color: "#475569" }}>
                       Responsabile: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
@@ -815,7 +930,13 @@ export function BarsManager({
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Responsabile</span>
                     <select
                       value={ownerId}
-                      onChange={(event) => setOwnerId(event.target.value)}
+                      onChange={(event) => {
+                        const nextOwnerId = event.target.value;
+                        setOwnerId(nextOwnerId);
+                        setAdditionalOwnerIds((current) =>
+                          current.filter((ownerId) => ownerId !== nextOwnerId)
+                        );
+                      }}
                       style={{
                         borderRadius: 16,
                         border: "1px solid #dbe3ee",
@@ -831,6 +952,75 @@ export function BarsManager({
                       ))}
                     </select>
                   </label>
+
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      display: "grid",
+                      gap: 10,
+                      padding: 16,
+                      borderRadius: 20,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                      <strong style={{ color: "#0f172a" }}>Titolari aggiuntivi</strong>
+                      <span style={{ color: "#64748b", fontSize: 13 }}>
+                        {additionalOwnerIds.filter((additionalOwnerId) => additionalOwnerId !== ownerId).length} selezionati
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: 10,
+                        maxHeight: 200,
+                        overflowY: "auto",
+                        paddingRight: 4,
+                      }}
+                    >
+                      {owners
+                        .filter((owner) => owner.id !== ownerId)
+                        .map((owner) => {
+                          const checked = additionalOwnerIds.includes(owner.id);
+
+                          return (
+                            <label
+                              key={owner.id}
+                              style={{
+                                display: "grid",
+                                gap: 4,
+                                padding: 12,
+                                borderRadius: 16,
+                                border: "1px solid #e2e8f0",
+                                background: checked ? "#eff6ff" : "#ffffff",
+                              }}
+                            >
+                              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+                                <input
+                                  type="checkbox"
+                                  name="additionalOwnerIds"
+                                  value={owner.id}
+                                  checked={checked}
+                                  onChange={(event) => {
+                                    const nextChecked = event.target.checked;
+                                    setAdditionalOwnerIds((current) =>
+                                      nextChecked
+                                        ? Array.from(new Set([...current, owner.id]))
+                                        : current.filter((ownerId) => ownerId !== owner.id)
+                                    );
+                                  }}
+                                />
+                                {owner.firstName} {owner.lastName}
+                              </span>
+                              <span style={{ color: "#64748b", fontSize: 12 }}>{owner.email}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
 
                   <label style={{ display: "grid", gap: 8 }}>
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Piano</span>
