@@ -255,6 +255,68 @@ function parseRole(value: FormDataEntryValue | null): Role {
   return Role.EMPLOYEE;
 }
 
+async function syncUserRole(tx: Prisma.TransactionClient, userId: string) {
+  const currentUser = await tx.user.findUnique({
+    where: { id: userId },
+    select: {
+      role: true,
+    },
+  });
+
+  if (!currentUser || currentUser.role === Role.SUPER_ADMIN) {
+    return;
+  }
+
+  const [primaryOwnedBars, ownerMemberships, managerMemberships, employeeMemberships] =
+    await Promise.all([
+      tx.bar.count({
+        where: {
+          ownerId: userId,
+        },
+      }),
+      tx.employeeBar.count({
+        where: {
+          userId,
+          isActive: true,
+          role: Role.OWNER,
+        },
+      }),
+      tx.employeeBar.count({
+        where: {
+          userId,
+          isActive: true,
+          role: Role.MANAGER,
+        },
+      }),
+      tx.employeeBar.count({
+        where: {
+          userId,
+          isActive: true,
+          role: Role.EMPLOYEE,
+        },
+      }),
+    ]);
+
+  let nextRole: Role = currentUser.role;
+
+  if (primaryOwnedBars > 0 || ownerMemberships > 0) {
+    nextRole = Role.OWNER;
+  } else if (managerMemberships > 0) {
+    nextRole = Role.MANAGER;
+  } else if (employeeMemberships > 0) {
+    nextRole = Role.EMPLOYEE;
+  }
+
+  if (nextRole !== currentUser.role) {
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        role: nextRole,
+      },
+    });
+  }
+}
+
 function parseRequestStatus(value: FormDataEntryValue | null): RequestStatus {
   return String(value ?? "") === RequestStatus.REJECTED
     ? RequestStatus.REJECTED
@@ -2339,24 +2401,41 @@ export async function createEmployeeAction(formData: FormData) {
     throw new Error("Bar not found");
   }
 
-  if (existingUser) {
-    redirect(appendStatusToPath(returnPath, { error: "employee-exists" }));
-  }
-
   const temporaryPassword = createTemporaryPassword();
   const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+  const shouldCreateUser = !existingUser;
 
   await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        role: userRole,
-        mustChangePwd: true,
-        passwordHash,
-      },
-    });
+    const user = existingUser
+      ? await tx.user.update({
+          where: { id: existingUser.id },
+          data: {
+            firstName,
+            lastName,
+          },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        })
+      : await tx.user.create({
+          data: {
+            email,
+            firstName,
+            lastName,
+            role: userRole,
+            mustChangePwd: true,
+            passwordHash,
+          },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        });
 
     await tx.employeeBar.upsert({
       where: {
@@ -2381,31 +2460,39 @@ export async function createEmployeeAction(formData: FormData) {
           hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
       },
     });
+
+    await syncUserRole(tx, user.id);
   });
 
-  await runEmailNotification(async () => {
-    if (userRole === Role.OWNER) {
-      await sendOwnerWelcomeEmail(
+  if (shouldCreateUser) {
+    await runEmailNotification(async () => {
+      if (userRole === Role.OWNER) {
+        await sendOwnerWelcomeEmail(
+          email,
+          `${firstName} ${lastName}`.trim(),
+          bar.name,
+          email,
+          temporaryPassword
+        );
+        return;
+      }
+
+      await sendEmployeeWelcomeEmail(
         email,
         `${firstName} ${lastName}`.trim(),
         bar.name,
         email,
         temporaryPassword
       );
-      return;
-    }
-
-    await sendEmployeeWelcomeEmail(
-      email,
-      `${firstName} ${lastName}`.trim(),
-      bar.name,
-      email,
-      temporaryPassword
-    );
-  });
+    });
+  }
 
   revalidatePath("/dashboard/people");
-  redirect(appendStatusToPath(returnPath, { success: "employee-created" }));
+  redirect(
+    appendStatusToPath(returnPath, {
+      success: shouldCreateUser ? "employee-created" : "employee-linked",
+    })
+  );
 }
 
 export async function removeEmployeeAction(formData: FormData) {
@@ -2445,17 +2532,25 @@ export async function removeEmployeeAction(formData: FormData) {
     throw new Error("Owner cannot be removed");
   }
 
-  await prisma.user.delete({
+  await prisma.employeeBar.update({
     where: {
-      id: membership.userId,
+      id: membership.id,
     },
+    data: {
+      isActive: false,
+      endedAt: new Date(),
+    },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await syncUserRole(tx, membership.userId);
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/people");
   revalidatePath("/dashboard/shifts");
   revalidatePath("/dashboard/requests");
-  redirect(appendStatusToPath(returnPath, { success: "employee-deleted" }));
+  redirect(appendStatusToPath(returnPath, { success: "employee-removed" }));
 }
 
 export async function updateSettingsAction(formData: FormData) {

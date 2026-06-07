@@ -35,7 +35,6 @@ export default async function DashboardPeoplePage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
-  const error = Array.isArray(params.error) ? params.error[0] : params.error;
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { role, activeBarId, billingStatus } = await getDashboardContext();
 
@@ -80,16 +79,14 @@ export default async function DashboardPeoplePage({
   return (
     <>
       <Stack>
-        {error === "employee-exists" ? (
-          <SuccessCallout style={{ background: "#fef2f2", borderColor: "#fecaca", color: "#b91c1c" }}>
-            Esiste gia un utente con questa email. Usa un indirizzo diverso.
-          </SuccessCallout>
-        ) : null}
         {success === "employee-created" ? (
           <SuccessCallout>Account creato correttamente. La password temporanea automatica e stata inviata via email.</SuccessCallout>
         ) : null}
-        {success === "employee-deleted" ? (
-          <SuccessCallout>Dipendente eliminato definitivamente dal database.</SuccessCallout>
+        {success === "employee-linked" ? (
+          <SuccessCallout>Utente collegato correttamente a questo locale.</SuccessCallout>
+        ) : null}
+        {success === "employee-removed" ? (
+          <SuccessCallout>Utente rimosso da questo locale.</SuccessCallout>
         ) : null}
 
         <Panel
@@ -120,7 +117,7 @@ export default async function DashboardPeoplePage({
 
                     <FormField label="Ruolo">
                       <Select name="role" defaultValue="EMPLOYEE">
-                        <option value="OWNER">Titolare</option>
+                        <option value="OWNER">Titolare aggiuntivo</option>
                         <option value="EMPLOYEE">Dipendente</option>
                         <option value="MANAGER">Manager</option>
                       </Select>
@@ -139,7 +136,7 @@ export default async function DashboardPeoplePage({
                   <input type="hidden" name="notifySuccess" value="1" />
 
                   <div>
-                    <PrimaryButton type="submit">Crea account</PrimaryButton>
+                    <PrimaryButton type="submit">Crea o collega account</PrimaryButton>
                   </div>
                 </form>
               </PopupAction>
@@ -159,8 +156,7 @@ export default async function DashboardPeoplePage({
                     <>
                       Ruolo: {formatRoleLabel(member.role)}
                       <br />
-                      Password temporanea{" "}
-                      {member.user.mustChangePwd ? "non ancora cambiata" : "gia aggiornata"}
+                      {member.user.mustChangePwd ? "Password iniziale da cambiare" : "Password aggiornata"}
                     </>
                   }
                   footer={
