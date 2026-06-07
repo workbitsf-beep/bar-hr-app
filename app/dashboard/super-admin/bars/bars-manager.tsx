@@ -302,6 +302,8 @@ export function BarsManager({
   const [trialEndsAt, setTrialEndsAt] = useState("");
   const [additionalOwnerIds, setAdditionalOwnerIds] = useState<string[]>([]);
   const [newAdditionalOwnerIds, setNewAdditionalOwnerIds] = useState<string[]>([]);
+  const [additionalOwnerDraftId, setAdditionalOwnerDraftId] = useState("");
+  const [newAdditionalOwnerDraftId, setNewAdditionalOwnerDraftId] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -314,6 +316,7 @@ export function BarsManager({
 
     setNewOwnerId("");
     setNewAdditionalOwnerIds([]);
+    setNewAdditionalOwnerDraftId("");
 
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -348,6 +351,7 @@ export function BarsManager({
     setCurrentPeriodEnd(formatDateInput(selectedSubscription.currentPeriodEnd));
     setTrialEndsAt(formatDateInput(selectedSubscription.trialEndsAt));
     setAdditionalOwnerIds(getAdditionalOwnersForBar(selectedBar).map((owner) => owner.id));
+    setAdditionalOwnerDraftId("");
   }, [selectedBar, selectedSubscription]);
 
   useEffect(() => {
@@ -385,6 +389,30 @@ export function BarsManager({
     if (nextPlan !== "TRIAL") {
       setTrialEndsAt("");
     }
+  }
+
+  function addNewAdditionalOwner() {
+    if (!newAdditionalOwnerDraftId || newAdditionalOwnerDraftId === newOwnerId) {
+      return;
+    }
+
+    setNewAdditionalOwnerIds((current) =>
+      current.includes(newAdditionalOwnerDraftId)
+        ? current
+        : [...current, newAdditionalOwnerDraftId]
+    );
+    setNewAdditionalOwnerDraftId("");
+  }
+
+  function addAdditionalOwner() {
+    if (!additionalOwnerDraftId || additionalOwnerDraftId === ownerId) {
+      return;
+    }
+
+    setAdditionalOwnerIds((current) =>
+      current.includes(additionalOwnerDraftId) ? current : [...current, additionalOwnerDraftId]
+    );
+    setAdditionalOwnerDraftId("");
   }
 
   async function saveSubscription() {
@@ -730,6 +758,7 @@ export function BarsManager({
                         onChange={(event) => {
                           const nextOwnerId = event.target.value;
                           setNewOwnerId(nextOwnerId);
+                          setNewAdditionalOwnerDraftId((current) => (current === nextOwnerId ? "" : current));
                           setNewAdditionalOwnerIds((current) =>
                             current.filter((ownerId) => ownerId !== nextOwnerId)
                           );
@@ -764,50 +793,96 @@ export function BarsManager({
                         </span>
                       </div>
 
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
+                        <div style={{ flex: "1 1 220px", minWidth: 0, display: "grid", gap: 8 }}>
+                          <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
+                            Seleziona e premi +
+                          </span>
+                          <Select
+                            value={newAdditionalOwnerDraftId}
+                            onChange={(event) => setNewAdditionalOwnerDraftId(event.target.value)}
+                          >
+                            <option value="">
+                              Aggiungi titolare
+                            </option>
+                            {owners
+                              .filter(
+                                (owner) =>
+                                  owner.id !== newOwnerId && !newAdditionalOwnerIds.includes(owner.id)
+                              )
+                              .map((owner) => (
+                                <option key={owner.id} value={owner.id}>
+                                  {owner.firstName} {owner.lastName}
+                                </option>
+                              ))}
+                          </Select>
+                        </div>
+
+                        <PrimaryButton
+                          type="button"
+                          tone="sand"
+                          onClick={addNewAdditionalOwner}
+                          disabled={!newAdditionalOwnerDraftId}
+                          style={{ minWidth: 52 }}
+                        >
+                          +
+                        </PrimaryButton>
+                      </div>
+
                       <div
                         style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                          gap: 10,
-                          maxHeight: 200,
+                          display: "flex",
+                          gap: 8,
+                          flexWrap: "wrap",
+                          maxHeight: 140,
                           overflowY: "auto",
                           paddingRight: 4,
                         }}
                       >
-                        {owners.filter((owner) => owner.id !== newOwnerId).map((owner) => {
-                          const checked = newAdditionalOwnerIds.includes(owner.id);
+                        {newAdditionalOwnerIds.map((ownerId) => {
+                          const owner = owners.find((item) => item.id === ownerId);
+
+                          if (!owner) {
+                            return null;
+                          }
 
                           return (
-                            <label
+                            <span
                               key={owner.id}
                               style={{
-                                display: "grid",
-                                gap: 4,
-                                padding: 12,
-                                borderRadius: 16,
-                                border: "1px solid #e2e8f0",
-                                background: checked ? "#eff6ff" : "#ffffff",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                borderRadius: 999,
+                                padding: "8px 12px",
+                                background: "#eef2ff",
+                                color: "#3730a3",
+                                fontWeight: 700,
+                                fontSize: 13,
                               }}
                             >
-                              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
-                                <input
-                                  type="checkbox"
-                                  name="additionalOwnerIds"
-                                  value={owner.id}
-                                  checked={checked}
-                                  onChange={(event) => {
-                                    const nextChecked = event.target.checked;
-                                    setNewAdditionalOwnerIds((current) =>
-                                      nextChecked
-                                        ? Array.from(new Set([...current, owner.id]))
-                                        : current.filter((ownerId) => ownerId !== owner.id)
-                                    );
-                                  }}
-                                />
-                                {owner.firstName} {owner.lastName}
-                              </span>
-                              <span style={{ color: "#64748b", fontSize: 12 }}>{owner.email}</span>
-                            </label>
+                              <input type="hidden" name="additionalOwnerIds" value={owner.id} />
+                              {owner.firstName} {owner.lastName}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setNewAdditionalOwnerIds((current) =>
+                                    current.filter((currentOwnerId) => currentOwnerId !== owner.id)
+                                  )
+                                }
+                                style={{
+                                  border: 0,
+                                  background: "transparent",
+                                  color: "inherit",
+                                  cursor: "pointer",
+                                  fontSize: 16,
+                                  lineHeight: 1,
+                                }}
+                                aria-label={`Rimuovi ${owner.firstName} ${owner.lastName}`}
+                              >
+                                ×
+                              </button>
+                            </span>
                           );
                         })}
                       </div>
@@ -933,6 +1008,7 @@ export function BarsManager({
                       onChange={(event) => {
                         const nextOwnerId = event.target.value;
                         setOwnerId(nextOwnerId);
+                        setAdditionalOwnerDraftId((current) => (current === nextOwnerId ? "" : current));
                         setAdditionalOwnerIds((current) =>
                           current.filter((ownerId) => ownerId !== nextOwnerId)
                         );
@@ -971,52 +1047,99 @@ export function BarsManager({
                       </span>
                     </div>
 
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
+                      <div style={{ flex: "1 1 220px", minWidth: 0, display: "grid", gap: 8 }}>
+                        <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
+                          Seleziona e premi +
+                        </span>
+                        <select
+                          value={additionalOwnerDraftId}
+                          onChange={(event) => setAdditionalOwnerDraftId(event.target.value)}
+                          style={{
+                            borderRadius: 16,
+                            border: "1px solid #dbe3ee",
+                            padding: "12px 14px",
+                            fontSize: 15,
+                            background: "#ffffff",
+                          }}
+                        >
+                          <option value="">Aggiungi titolare</option>
+                          {owners
+                            .filter((owner) => owner.id !== ownerId && !additionalOwnerIds.includes(owner.id))
+                            .map((owner) => (
+                              <option key={owner.id} value={owner.id}>
+                                {owner.firstName} {owner.lastName}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <PrimaryButton
+                        type="button"
+                        tone="sand"
+                        onClick={addAdditionalOwner}
+                        disabled={!additionalOwnerDraftId}
+                        style={{ minWidth: 52 }}
+                      >
+                        +
+                      </PrimaryButton>
+                    </div>
+
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 10,
-                        maxHeight: 200,
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        maxHeight: 140,
                         overflowY: "auto",
                         paddingRight: 4,
                       }}
                     >
-                      {owners
-                        .filter((owner) => owner.id !== ownerId)
-                        .map((owner) => {
-                          const checked = additionalOwnerIds.includes(owner.id);
+                      {additionalOwnerIds
+                        .filter((additionalOwnerId) => additionalOwnerId !== ownerId)
+                        .map((ownerId) => {
+                          const owner = owners.find((item) => item.id === ownerId);
+
+                          if (!owner) {
+                            return null;
+                          }
 
                           return (
-                            <label
+                            <span
                               key={owner.id}
                               style={{
-                                display: "grid",
-                                gap: 4,
-                                padding: 12,
-                                borderRadius: 16,
-                                border: "1px solid #e2e8f0",
-                                background: checked ? "#eff6ff" : "#ffffff",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                borderRadius: 999,
+                                padding: "8px 12px",
+                                background: "#eef2ff",
+                                color: "#3730a3",
+                                fontWeight: 700,
+                                fontSize: 13,
                               }}
                             >
-                              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
-                                <input
-                                  type="checkbox"
-                                  name="additionalOwnerIds"
-                                  value={owner.id}
-                                  checked={checked}
-                                  onChange={(event) => {
-                                    const nextChecked = event.target.checked;
-                                    setAdditionalOwnerIds((current) =>
-                                      nextChecked
-                                        ? Array.from(new Set([...current, owner.id]))
-                                        : current.filter((ownerId) => ownerId !== owner.id)
-                                    );
-                                  }}
-                                />
-                                {owner.firstName} {owner.lastName}
-                              </span>
-                              <span style={{ color: "#64748b", fontSize: 12 }}>{owner.email}</span>
-                            </label>
+                              {owner.firstName} {owner.lastName}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdditionalOwnerIds((current) =>
+                                    current.filter((currentOwnerId) => currentOwnerId !== owner.id)
+                                  )
+                                }
+                                style={{
+                                  border: 0,
+                                  background: "transparent",
+                                  color: "inherit",
+                                  cursor: "pointer",
+                                  fontSize: 16,
+                                  lineHeight: 1,
+                                }}
+                                aria-label={`Rimuovi ${owner.firstName} ${owner.lastName}`}
+                              >
+                                ×
+                              </button>
+                            </span>
                           );
                         })}
                     </div>
