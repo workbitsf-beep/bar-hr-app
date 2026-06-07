@@ -92,7 +92,7 @@ export default async function SuperAdminBillingPage() {
   return (
     <SuperAdminFrame
       title="Abbonamenti"
-      description="Gestisci abbonamenti, trial, scadenze e stato di tutte le strutture."
+      description="Controlla trial, stati, scadenze e sconti delle attività."
     >
       <Panel title="Abbonamenti" action={`${adminBars.length} strutture`}>
         {adminBars.length === 0 ? (

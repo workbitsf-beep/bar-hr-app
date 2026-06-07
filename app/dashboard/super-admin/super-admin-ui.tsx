@@ -6,23 +6,27 @@ import { EmptyState, Panel } from "../ui";
 const superAdminItems = [
   {
     href: "/dashboard/super-admin/owners",
-    title: "Nuovi titolari",
-    description: "Crea titolari e gestisci l'accesso iniziale.",
+    title: "Titolari",
+    description: "Crea e cerca i responsabili.",
+    emoji: "👤",
   },
   {
     href: "/dashboard/super-admin/bars",
-    title: "Nuove attivita",
-    description: "Apri aziende o ristorazione e collega il responsabile.",
+    title: "Attività",
+    description: "Aziende e ristorazione in un unico punto.",
+    emoji: "🏢",
   },
   {
     href: "/dashboard/super-admin/billing",
-    title: "Abbonamenti",
-    description: "Controlla stati, scadenze e sconti.",
+    title: "Pagamenti",
+    description: "Stati, trial e scadenze.",
+    emoji: "💳",
   },
   {
     href: "/dashboard/super-admin/gps",
     title: "GPS globale",
-    description: "Imposta il range globale per le timbrature.",
+    description: "Range timbrature valido per tutti.",
+    emoji: "📍",
   },
 ];
 
@@ -59,8 +63,8 @@ export function SuperAdminFrame({
           overflow: "hidden",
         }}
       >
-        <BrandLogo size={44} showIcon style={{ gap: 12 }} />
-        <div style={{ display: "grid", gap: 6 }}>
+        <BrandLogo size={40} showIcon style={{ gap: 12 }} />
+        <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
           <span
             style={{
               fontSize: 12,
@@ -72,8 +76,10 @@ export function SuperAdminFrame({
           >
             Super Admin
           </span>
-          <strong style={{ color: "#0f172a", fontSize: 24 }}>{title}</strong>
-          <span style={{ color: "#64748b", lineHeight: 1.6, overflowWrap: "anywhere" }}>{description}</span>
+          <strong style={{ color: "#0f172a", fontSize: 23, lineHeight: 1.15 }}>{title}</strong>
+          <span style={{ color: "#64748b", lineHeight: 1.55, overflowWrap: "anywhere" }}>
+            {description}
+          </span>
         </div>
       </section>
 
@@ -87,7 +93,7 @@ export function SuperAdminMenuGrid() {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
         gap: 14,
         minWidth: 0,
         width: "100%",
@@ -99,8 +105,8 @@ export function SuperAdminMenuGrid() {
           href={item.href}
           style={{
             display: "grid",
-            gap: 8,
-            minHeight: 120,
+            gap: 12,
+            minHeight: 132,
             padding: 18,
             borderRadius: 24,
             background: "#ffffff",
@@ -112,19 +118,45 @@ export function SuperAdminMenuGrid() {
             overflow: "hidden",
           }}
         >
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "#64748b",
-            }}
-          >
-            Apri
-          </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(124, 58, 237, 0.12)",
+                color: "#6d28d9",
+                fontSize: 18,
+              }}
+            >
+              {item.emoji}
+            </span>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#f8fafc",
+                color: "#475569",
+                border: "1px solid #e2e8f0",
+                fontSize: 18,
+                flexShrink: 0,
+              }}
+            >
+              →
+            </span>
+          </div>
           <strong style={{ fontSize: 18, overflowWrap: "anywhere" }}>{item.title}</strong>
-          <span style={{ color: "#64748b", lineHeight: 1.6, overflowWrap: "anywhere" }}>{item.description}</span>
+          <span style={{ color: "#64748b", lineHeight: 1.55, overflowWrap: "anywhere" }}>
+            {item.description}
+          </span>
         </Link>
       ))}
     </div>

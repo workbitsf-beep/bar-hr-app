@@ -117,8 +117,8 @@ export default async function SuperAdminBarsPage({
 
   return (
     <SuperAdminFrame
-      title="Nuove attivita"
-      description="Lista compatta di aziende e ristorazione con creazione rapida."
+      title="Attività"
+      description="Aziende e ristorazione con creazione e ricerca rapide."
     >
       <BarsManager
         bars={bars}

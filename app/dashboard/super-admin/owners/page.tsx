@@ -96,8 +96,8 @@ export default async function SuperAdminOwnersPage({
 
   return (
     <SuperAdminFrame
-      title="Nuovi titolari"
-      description="Lista compatta dei titolari con creazione rapida e filtri leggeri."
+      title="Titolari"
+      description="Crea, cerca e aggiorna i responsabili in modo rapido."
     >
       <OwnersManager owners={owners} query={query} error={error} success={success} />
     </SuperAdminFrame>

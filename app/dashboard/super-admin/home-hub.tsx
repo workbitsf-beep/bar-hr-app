@@ -7,10 +7,12 @@ const MONTHLY_PRICE = 29.99;
 const YEARLY_PRICE = 299;
 
 function StatCard({
+  emoji,
   value,
   label,
   detail,
 }: {
+  emoji: string;
   value: string;
   label: string;
   detail: string;
@@ -24,10 +26,29 @@ function StatCard({
         padding: 18,
         boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
         display: "grid",
-        gap: 8,
+        gap: 10,
         minWidth: 0,
       }}
     >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 999,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(124, 58, 237, 0.12)",
+            color: "#6d28d9",
+            fontSize: 18,
+            flexShrink: 0,
+          }}
+        >
+          {emoji}
+        </span>
+      </div>
       <strong style={{ fontSize: 28, lineHeight: 1, color: "#0f172a" }}>{value}</strong>
       <span style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>{label}</span>
       <span style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>{detail}</span>
@@ -43,7 +64,7 @@ function getActivityCount(
     };
   }[],
   activityType: ActivityType
-  ) {
+) {
   return counts.find((entry) => entry.activityType === activityType)?._count._all ?? 0;
 }
 
@@ -174,26 +195,42 @@ export async function SuperAdminHomeHub() {
   return (
     <div style={{ display: "grid", gap: 18, minWidth: 0 }}>
       <Stack columns="repeat(auto-fit, minmax(220px, 1fr))">
-        <StatCard value={String(totalBars)} label="Strutture" detail="Totale attivita registrate" />
-        <StatCard value={String(companyCount)} label="Aziende" detail="Sezione separata" />
-        <StatCard value={String(restaurantCount)} label="Ristorazione" detail="Sezione separata" />
-        <StatCard value={String(totalUsers)} label="Utenti" detail={`${ownerCount} titolari - ${staffCount} staff`} />
-        <StatCard value={String(activeBillingCount)} label="Abbonamenti attivi" detail="Clienti sbloccati" />
         <StatCard
+          emoji="🏢"
+          value={String(totalBars)}
+          label="Attività"
+          detail={`${companyCount} aziende · ${restaurantCount} ristorazione`}
+        />
+        <StatCard
+          emoji="👤"
+          value={String(ownerCount)}
+          label="Titolari"
+          detail="Responsabili attivi nel sistema"
+        />
+        <StatCard
+          emoji="👥"
+          value={String(staffCount)}
+          label="Staff"
+          detail={`Totale utenti collegati: ${totalUsers}`}
+        />
+        <StatCard
+          emoji="💳"
+          value={String(activeBillingCount)}
+          label="Abbonamenti attivi"
+          detail="Clienti operativi e sbloccati"
+        />
+        <StatCard
+          emoji="💰"
           value={formatCurrency(activeMonthly)}
-          label="Conto economico"
-          detail={`Annuale stimato ${formatCurrency(activeAnnual)} · Trial ${formatCurrency(trialPipeline)}`}
+          label="Ricavi stimati"
+          detail={`Annuale ${formatCurrency(activeAnnual)} · Trial ${formatCurrency(trialPipeline)}`}
         />
       </Stack>
 
-      <Panel title="Azioni rapide" action="Apri le pagine dedicate">
+      <Panel title="Accessi rapidi" action="Apri le sezioni">
         <SuperAdminMenuGrid />
-      </Panel>
-
-      <Panel title="Home leggera">
-        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-          La gestione dettagliata di titolari, attivita e abbonamenti si apre nelle pagine
-          dedicate, cosi la panoramica resta piu veloce su mobile.
+        <p style={{ margin: "12px 0 0", color: "#64748b", lineHeight: 1.6 }}>
+          Tieni a portata solo ciò che serve: titolari, attività, pagamenti e GPS globale.
         </p>
       </Panel>
     </div>

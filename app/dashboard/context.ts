@@ -96,11 +96,11 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const navItems: DashboardNavItem[] =
     String(role) === "SUPER_ADMIN"
       ? [
-          { label: "Dashboard", href: "/dashboard/super-admin" },
-          { label: "Responsabili", href: "/dashboard/super-admin/owners" },
-          { label: "Strutture", href: "/dashboard/super-admin/bars" },
-          { label: "Abbonamenti", href: "/dashboard/super-admin/billing" },
-          { label: "GPS", href: "/dashboard/super-admin/gps" },
+          { label: "Panoramica", href: "/dashboard/super-admin" },
+          { label: "Titolari", href: "/dashboard/super-admin/owners" },
+          { label: "Attività", href: "/dashboard/super-admin/bars" },
+          { label: "Pagamenti", href: "/dashboard/super-admin/billing" },
+          { label: "GPS globale", href: "/dashboard/super-admin/gps" },
         ]
       : [
           ...(features.shifts ||

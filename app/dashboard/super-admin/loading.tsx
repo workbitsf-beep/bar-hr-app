@@ -20,25 +20,25 @@ function SkeletonBlock({ width = "100%", height = 16 }: { width?: string; height
 export default function Loading() {
   return (
     <SuperAdminFrame
-      title="Hub super admin"
-      description="Caricamento vista leggera per monitoraggio e pagine dedicate."
+      title="Panoramica"
+      description="Caricamento rapido della sezione super admin."
     >
       <div style={{ display: "grid", gap: 18 }}>
         <Stack columns="repeat(auto-fit, minmax(220px, 1fr))">
           {Array.from({ length: 5 }, (_, index) => (
             <Panel key={index} title="Caricamento">
               <div style={{ display: "grid", gap: 10 }}>
-                <SkeletonBlock width="45%" />
-                <SkeletonBlock width="70%" height={24} />
-                <SkeletonBlock width="85%" />
+                <SkeletonBlock width="22%" />
+                <SkeletonBlock width="58%" height={24} />
+                <SkeletonBlock width="82%" />
               </div>
             </Panel>
           ))}
         </Stack>
 
-        <Panel title="Azioni rapide">
+        <Panel title="Accessi rapidi">
           <div style={{ display: "grid", gap: 12 }}>
-            <SkeletonBlock width="55%" height={18} />
+            <SkeletonBlock width="40%" height={18} />
             <SkeletonBlock width="100%" height={90} />
           </div>
         </Panel>

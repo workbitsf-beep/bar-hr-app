@@ -11,8 +11,8 @@ export default async function SuperAdminPage() {
 
   return (
     <SuperAdminFrame
-      title="Hub super admin"
-      description="Vista leggera per monitorare e aprire le pagine dedicate."
+      title="Panoramica"
+      description="Accessi rapidi e riepilogo essenziale di attività, titolari e abbonamenti."
     >
       <SuperAdminHomeHub />
     </SuperAdminFrame>
