@@ -2,6 +2,11 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { PendingButton } from "@/app/components/pending-button";
+import {
+  formatDateInTimeZone,
+  formatDateTimeInTimeZone,
+  formatDateTimeLocalInTimeZone,
+} from "@/lib/time-zone";
 import type { DashboardNavItem } from "./context";
 import { DashboardNavMenu } from "./dashboard-nav-menu";
 
@@ -10,26 +15,15 @@ function joinClassNames(...values: Array<string | undefined>) {
 }
 
 export function formatDate(value: Date | string): string {
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return formatDateInTimeZone(value);
 }
 
 export function formatDateTime(value: Date | string): string {
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatDateTimeInTimeZone(value);
 }
 
 export function formatDateTimeLocal(value: Date | string): string {
-  const date = new Date(value);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return formatDateTimeLocalInTimeZone(value);
 }
 
 const shellCardStyle: CSSProperties = {

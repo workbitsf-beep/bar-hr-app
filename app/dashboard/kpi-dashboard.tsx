@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ActivityType, Role } from "@prisma/client";
 import type { DashboardKpiData } from "@/lib/dashboard-kpi";
 import type { FeatureFlags } from "@/lib/features";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { EmptyState, Panel, StatusPill } from "./ui";
 
 type DashboardKpiResponse =
@@ -249,6 +250,7 @@ export function KpiDashboard({
     return `Aggiornata ${new Intl.DateTimeFormat("it-IT", {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: APP_TIME_ZONE,
     }).format(new Date(updatedAt))}`;
   }, [updatedAt]);
 
@@ -256,7 +258,7 @@ export function KpiDashboard({
     return (
       <div style={{ display: "grid", gap: 18 }}>
         <Panel
-          title="KPI operative"
+          title="👤"
           action={<StatusPill tone="neutral" label={roleLabel} />}
         >
           <div
@@ -278,7 +280,7 @@ export function KpiDashboard({
   if (error && !data) {
     return (
       <Panel
-        title="KPI operative"
+        title="👤"
         action={<StatusPill tone="warning" label={roleLabel} />}
       >
         <EmptyState message={error} />
@@ -353,7 +355,7 @@ export function KpiDashboard({
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <Panel
-        title="Panoramica rapida"
+        title="👤 Panoramica rapida"
         action={
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <StatusPill tone="neutral" label={roleLabel} />

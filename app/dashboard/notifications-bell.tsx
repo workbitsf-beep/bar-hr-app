@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ensureWorkbitPushRegistration } from "@/lib/push-client";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 type NotificationItem = {
   id: string;
@@ -37,6 +38,7 @@ function formatRelativeDate(value: string) {
   return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: APP_TIME_ZONE,
   }).format(date);
 }
 

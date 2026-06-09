@@ -8,6 +8,7 @@ import {
   toDateInputValue,
   toTimeInputValue,
 } from "@/lib/shift-datetime";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { TimeInput } from "@/app/components/time-input";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import { confirmShiftAction, deleteShiftAction, updateShiftAction } from "../actions";
@@ -44,6 +45,7 @@ function formatDayTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 

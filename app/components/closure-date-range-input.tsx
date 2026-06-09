@@ -43,6 +43,20 @@ export function ClosureDateRangeInput({
     setEndDate(splitDateValue(endValue));
   }, [endValue]);
 
+  useEffect(() => {
+    if (!startDate) {
+      if (endDate) {
+        setEndDate("");
+      }
+
+      return;
+    }
+
+    if (!endDate || endDate < startDate) {
+      setEndDate(startDate);
+    }
+  }, [startDate, endDate]);
+
   const startHiddenValue = startDate ? toStartOfDay(startDate) : "";
   const endHiddenValue = endDate ? toEndOfDay(endDate) : "";
 
@@ -60,7 +74,7 @@ export function ClosureDateRangeInput({
         <span style={{ fontWeight: 600, color: "#1e293b" }}>Dal giorno</span>
         <input
           type="date"
-          disabled={disabled}
+          disabled={disabled || !startDate}
           required={required}
           value={startDate}
           onChange={(event) => setStartDate(event.target.value)}
@@ -82,8 +96,17 @@ export function ClosureDateRangeInput({
           type="date"
           disabled={disabled}
           required={required}
+          min={startDate || undefined}
           value={endDate}
-          onChange={(event) => setEndDate(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            if (!startDate) {
+              setEndDate("");
+              return;
+            }
+
+            setEndDate(nextValue && nextValue < startDate ? startDate : nextValue);
+          }}
           style={{
             width: "100%",
             minWidth: 0,

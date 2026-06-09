@@ -2300,12 +2300,6 @@ export async function createCalendarClosureAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const requestFeatures = await getRequestFeatureSettings(activeBarId);
-
-  if (requestFeatures?.requestsEnabled === false) {
-    throw new Error("Requests not enabled");
-  }
-
   const type = parseCalendarClosureType(formData.get("type"));
   const titleRaw = String(formData.get("title") ?? "").trim();
   const startsAt = parseRequiredDate(formData.get("startsAt"));
@@ -2372,12 +2366,6 @@ export async function updateCalendarClosureAction(formData: FormData) {
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
-  }
-
-  const requestFeatures = await getRequestFeatureSettings(activeBarId);
-
-  if (requestFeatures?.requestsEnabled === false) {
-    throw new Error("Requests not enabled");
   }
 
   const closureId = String(formData.get("closureId") ?? "").trim();
@@ -2457,12 +2445,6 @@ export async function deleteCalendarClosureAction(formData: FormData) {
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
-  }
-
-  const requestFeatures = await getRequestFeatureSettings(activeBarId);
-
-  if (requestFeatures?.requestsEnabled === false) {
-    throw new Error("Requests not enabled");
   }
 
   const closureId = String(formData.get("closureId") ?? "").trim();

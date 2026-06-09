@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import {
   createBarBySuperAdminAction,
   deleteBarBySuperAdminAction,
@@ -66,9 +67,7 @@ function formatDateLabel(value: Date | string | null) {
     return "Nessuna data";
   }
 
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-  }).format(typeof value === "string" ? new Date(value) : value);
+  return formatDateInTimeZone(value);
 }
 
 function getActivityLabel(activityType: BarItem["activityType"]) {
@@ -222,8 +221,7 @@ function formatDateInput(value: Date | string | null) {
     return "";
   }
 
-  const date = typeof value === "string" ? new Date(value) : value;
-  return new Date(date).toISOString().slice(0, 10);
+  return toDateInputValueInTimeZone(value);
 }
 
 function getDefaultStatus(planType: "FREE" | "TRIAL" | "PAID" | "LIFETIME") {

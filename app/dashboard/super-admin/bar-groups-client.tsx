@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { deleteBarBySuperAdminAction, updateBarSubscriptionAction } from "../actions";
 import { PrimaryButton } from "../ui";
 
@@ -61,7 +62,7 @@ function formatDateInput(value: string | null) {
     return "";
   }
 
-  return new Date(value).toISOString().slice(0, 10);
+  return toDateInputValueInTimeZone(value);
 }
 
 function getAdditionalOwnersForBar(bar: Pick<BarAdminItem, "owner" | "memberships">) {
@@ -83,9 +84,7 @@ function formatDateLabel(value: string | null) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return formatDateInTimeZone(value);
 }
 
 function canAccess(bar: BarAdminItem) {

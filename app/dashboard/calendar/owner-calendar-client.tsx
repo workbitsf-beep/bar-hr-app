@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import type { FeatureFlags } from "@/lib/features";
 import { DateTimeInput } from "@/app/components/date-time-input";
@@ -151,6 +152,7 @@ function formatDayTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 
@@ -159,6 +161,7 @@ function formatDayLabel(value: string, locale: string) {
     weekday: "long",
     day: "numeric",
     month: "long",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 
@@ -341,11 +344,8 @@ function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = fals
 }
 
 function toDateTimeLocal(dateIso: string, hour: number, minute: number) {
-  const date = new Date(dateIso);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  const day = String(dateIso ?? "").slice(0, 10);
+  return `${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
 function chunkByWeek<T>(items: T[]) {
@@ -845,11 +845,13 @@ export function OwnerCalendarClient({
                     {new Intl.DateTimeFormat(locale, {
                       day: "numeric",
                       month: "long",
+                      timeZone: APP_TIME_ZONE,
                     }).format(new Date(week[0].date))}
                     {" - "}
                     {new Intl.DateTimeFormat(locale, {
                       day: "numeric",
                       month: "long",
+                      timeZone: APP_TIME_ZONE,
                     }).format(new Date(week[week.length - 1].date))}
                   </span>
                 ) : null}
@@ -897,7 +899,7 @@ export function OwnerCalendarClient({
                     (!features.availability || day.availabilities.length === 0) &&
                     (!features.requests || day.requests.length === 0) &&
                     day.courses.length === 0 &&
-                    (!features.requests || day.closures.length === 0) &&
+                    day.closures.length === 0 &&
                     day.tasks.length === 0 &&
                     day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
@@ -905,12 +907,11 @@ export function OwnerCalendarClient({
 
                     {features.shifts ? day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true)) : null}
 
-                    {features.requests
-                      ? day.closures.map((closure) => (
-                        <div
-                          key={closure.id}
-                          style={{
-                            padding: "12px 14px",
+                    {day.closures.map((closure) => (
+                      <div
+                        key={closure.id}
+                        style={{
+                          padding: "12px 14px",
                           borderRadius: 18,
                           background: "#fff7ed",
                           border: "1px solid #fed7aa",
@@ -920,8 +921,7 @@ export function OwnerCalendarClient({
                       >
                         {closure.title}
                       </div>
-                    ))
-                      : null}
+                    ))}
 
                     {features.courses && day.courses.length > 0 ? (
                       <div

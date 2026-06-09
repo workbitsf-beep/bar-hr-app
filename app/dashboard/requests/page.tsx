@@ -103,7 +103,8 @@ export default async function DashboardRequestsPage({
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
-  const pageTitle = features.requests ? "Richieste" : "Indisponibilita";
+  const canManageClosures = role === Role.OWNER || role === Role.MANAGER;
+  const pageTitle = canManageClosures ? "Richieste e chiusure" : features.requests ? "Richieste" : "Indisponibilita";
 
   if (!activeBarId) {
     return (
@@ -117,7 +118,7 @@ export default async function DashboardRequestsPage({
     return <BillingRequiredState role={String(role)} />;
   }
 
-  if (!features.requests && !features.availability) {
+  if (!features.requests && !features.availability && !canManageClosures) {
     return (
       <Panel title={pageTitle}>
         <EmptyState message="Moduli operativi disattivati nelle impostazioni." />
@@ -128,7 +129,6 @@ export default async function DashboardRequestsPage({
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
   const canCreateRequests = features.requests && role !== Role.OWNER;
   const canCreateAvailability = features.availability && !isCompany && role !== Role.OWNER;
-  const canManageClosures = features.requests && (role === Role.OWNER || role === Role.MANAGER);
   const canUseOvertime = features.requests && features.overtime;
   const requestPanelTitle = canUseOvertime
     ? "Richiedi ferie, permesso, malattia o straordinario"

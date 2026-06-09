@@ -5,6 +5,7 @@ import {
   TaskStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 
 export type DashboardKpiData = {
   today: {
@@ -105,13 +106,15 @@ function endOfMonth(date: Date) {
 }
 
 function dateKey(value: Date) {
-  return value.toISOString().slice(0, 10);
+  const parts = getZonedDateParts(value, APP_TIME_ZONE);
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function formatShortDay(value: Date) {
   return new Intl.DateTimeFormat("it-IT", {
     weekday: "short",
     day: "2-digit",
+    timeZone: APP_TIME_ZONE,
   }).format(value);
 }
 

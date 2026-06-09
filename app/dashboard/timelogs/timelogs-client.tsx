@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
 import { startPreciseGeolocationWatch } from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
+import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 import {
   EmptyState,
   FormField,
@@ -48,7 +49,8 @@ type Totals = {
 } | null;
 
 function getDayKey(value: string) {
-  return new Date(value).toISOString().slice(0, 10);
+  const parts = getZonedDateParts(value, APP_TIME_ZONE);
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function formatDayLabel(value: string) {
@@ -57,6 +59,7 @@ function formatDayLabel(value: string) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 
@@ -64,6 +67,7 @@ function formatClockTime(value: string) {
   return new Intl.DateTimeFormat("it-IT", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 

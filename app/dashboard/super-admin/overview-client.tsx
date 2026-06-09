@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { StatusPill, TextInput } from "../ui";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import type {
   ActivityItem,
   ActivityTypeValue,
@@ -43,6 +44,7 @@ function formatDateLabel(value: string | null) {
 
   return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 

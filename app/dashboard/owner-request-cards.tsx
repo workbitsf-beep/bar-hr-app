@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { reviewRequestAction } from "./actions";
 import { EmptyState, PrimaryButton, StatusPill } from "./ui";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 type RequestCardItem = {
   id: string;
@@ -75,6 +76,7 @@ function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { ShiftEditorModal } from "./shift-editor-modal";
 
 type MemberOption = {
@@ -34,6 +35,7 @@ function formatDayTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 

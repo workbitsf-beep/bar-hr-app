@@ -61,7 +61,12 @@ export function buildShiftPresets(settings: ShiftPresetSettings | null | undefin
 }
 
 function getDateParts(dateSource: string) {
-  const date = new Date(dateSource);
+  const datePart = String(dateSource ?? "").slice(0, 10);
+  const date = datePart ? new Date(`${datePart}T00:00:00`) : new Date(dateSource);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid date");
+  }
+
   return {
     year: date.getFullYear(),
     month: date.getMonth(),
