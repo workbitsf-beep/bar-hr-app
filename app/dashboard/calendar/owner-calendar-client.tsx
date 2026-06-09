@@ -287,7 +287,14 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
         fontSize: mobile ? 14 : 13,
       }}
     >
-      Indisponibilita: {availability.firstName} {availability.lastName}
+      <div style={{ display: "grid", gap: 4 }}>
+        <strong style={{ color: "#991b1b", fontSize: mobile ? 14 : 13 }}>
+          Indisponibilita: {availability.firstName} {availability.lastName}
+        </strong>
+        <span style={{ color: "#b91c1c" }}>
+          {formatRange(availability.startsAt, availability.endsAt, "it-IT")}
+        </span>
+      </div>
     </div>
   );
 }
@@ -310,6 +317,9 @@ function renderApprovedRequestCard(request: RequestItem, mobile = false) {
         <strong style={{ color: "#991b1b", fontSize: mobile ? 14 : 13 }}>
           {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
         </strong>
+        <span style={{ color: "#b91c1c" }}>
+          {formatRange(request.startsAt, request.endsAt, "it-IT")}
+        </span>
         {request.approvedBy ? (
           <span style={{ color: "#b91c1c" }}>Approvata da: {request.approvedBy}</span>
         ) : null}
@@ -1091,16 +1101,17 @@ export function OwnerCalendarClient({
                     paddingRight: 56,
                   }}
                 >
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong style={{ fontSize: 22, color: "#0f172a" }}>
-                      {new Intl.DateTimeFormat(locale, {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      }).format(new Date(day.date))}
-                    </strong>
-                  </div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <strong style={{ fontSize: 22, color: "#0f172a" }}>
+                    {new Intl.DateTimeFormat(locale, {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                      timeZone: APP_TIME_ZONE,
+                    }).format(new Date(day.date))}
+                  </strong>
+                </div>
                 </div>
 
                 {feedback ? (

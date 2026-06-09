@@ -33,6 +33,7 @@ import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
+import { formatDateTimeInTimeZone } from "@/lib/time-zone";
 import { parseTaskDueDate } from "@/lib/task-dates";
 import {
   canManageOperations,
@@ -101,21 +102,7 @@ function getLeaveTypeLabel(type: RequestType) {
 }
 
 function formatRangeLabel(startsAt: Date, endsAt: Date) {
-  const formatter = new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-
-  return `${formatter.format(startsAt)} - ${formatter.format(endsAt)}`;
-}
-
-function formatShiftWindow(startTime: Date, endTime: Date) {
-  const formatter = new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-
-  return `${formatter.format(startTime)} - ${formatter.format(endTime)}`;
+  return `${formatDateTimeInTimeZone(startsAt)} - ${formatDateTimeInTimeZone(endsAt)}`;
 }
 
 function dedupeUsers(users: Array<NotificationUser | null | undefined>) {
@@ -1789,28 +1776,6 @@ export async function createShiftAction(formData: FormData) {
     },
   });
 
-  const notificationContext = await getBarNotificationContext(activeBarId);
-
-  if (notificationContext) {
-    const recipients = excludeActorFromUsers(
-      notificationContext.users.filter((user) => employeeIds.includes(user.id)),
-      session.user.id
-    );
-
-    if (recipients.length > 0) {
-      await notifyUsers(recipients, {
-        barId: activeBarId,
-        title: isOnCall ? "Nuova reperibilità" : "Nuovo turno pubblicato",
-        message:
-          `${isOnCall ? "È stata inserita una reperibilità" : "È stato pubblicato un nuovo turno"} per ${formatShiftWindow(startTime, endTime)}${title ? ` - ${title}` : ""}.`,
-        type: isOnCall
-          ? INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REQUESTED
-          : INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
-        actionUrl: "/dashboard/calendar",
-      });
-    }
-  }
-
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/shifts");
@@ -1891,34 +1856,6 @@ export async function updateShiftAction(formData: FormData) {
       },
     },
   });
-
-  const notificationContext = await getBarNotificationContext(activeBarId);
-
-  if (notificationContext) {
-    const recipientIds = Array.from(
-      new Set([
-        ...existingShift.assignments.map((assignment) => assignment.userId),
-        ...employeeIds,
-      ])
-    );
-    const recipients = excludeActorFromUsers(
-      notificationContext.users.filter((user) => recipientIds.includes(user.id)),
-      session.user.id
-    );
-
-    if (recipients.length > 0) {
-      await notifyUsers(recipients, {
-        barId: activeBarId,
-        title: existingShift.isOnCall ? "Reperibilità aggiornata" : "Turno modificato",
-        message:
-          `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} è stato aggiornato per ${formatShiftWindow(startTime, endTime)}${title ? ` - ${title}` : ""}.`,
-        type: existingShift.isOnCall
-          ? INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REQUESTED
-          : INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
-        actionUrl: "/dashboard/calendar",
-      });
-    }
-  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
@@ -2063,7 +2000,7 @@ export async function deleteShiftAction(formData: FormData) {
           barId: activeBarId,
           title: existingShift.isOnCall ? "Reperibilità eliminata" : "Turno eliminato",
           message:
-            `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} prevista per ${formatShiftWindow(existingShift.startTime, existingShift.endTime)}${existingShift.title ? ` - ${existingShift.title}` : ""} è stata eliminata.`,
+            `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} prevista per ${formatRangeLabel(existingShift.startTime, existingShift.endTime)}${existingShift.title ? ` - ${existingShift.title}` : ""} è stata eliminata.`,
           type: INTERNAL_NOTIFICATION_TYPES.SHIFT_DELETED,
           actionUrl: "/dashboard/calendar",
         });

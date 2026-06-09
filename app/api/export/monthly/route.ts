@@ -6,6 +6,7 @@ import { buildMonthlyDataset } from "@/lib/reporting";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { formatDurationClock } from "@/lib/time-format";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { withBar } from "@/lib/withBar";
 
 export const runtime = "nodejs";
@@ -53,20 +54,22 @@ function resolvePdfFontPath() {
 }
 
 function formatTime(dateIso: string): string {
-  return new Date(dateIso).toLocaleTimeString("it-IT", {
+  return new Intl.DateTimeFormat("it-IT", {
     hour: "2-digit",
     minute: "2-digit",
-  });
+    timeZone: APP_TIME_ZONE,
+  }).format(new Date(dateIso));
 }
 
 function formatDateTime(dateIso: string): string {
-  return new Date(dateIso).toLocaleString("it-IT", {
+  return new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    timeZone: APP_TIME_ZONE,
+  }).format(new Date(dateIso));
 }
 
 async function createMonthlyPdfBuffer(input: {
