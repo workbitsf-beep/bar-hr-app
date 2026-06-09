@@ -52,6 +52,9 @@ export async function POST(req: Request): Promise<Response> {
 
   const accessibleBars = await getAccessibleBarsForUser(user.id);
   const activeBarId = accessibleBars[0]?.id ?? null;
+  const passkeyCount = await prisma.webAuthnCredential.count({
+    where: { userId: user.id },
+  });
   const sessionToken = crypto.randomUUID();
   const sessionMaxAge = getSessionMaxAge(rememberMe);
 
@@ -81,6 +84,7 @@ export async function POST(req: Request): Promise<Response> {
 
   return NextResponse.json({
     ok: true,
+    promptPasskeySetup: passkeyCount === 0,
     redirectTo: await getPostLoginDestination({
       userId: user.id,
       role: user.role,

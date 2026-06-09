@@ -7,9 +7,12 @@ import { BrandLogo } from "@/components/brand-logo";
 import {
   clearRememberedLoginEmail,
   clearPersistentSession,
+  clearPasskeySetupPending,
+  hasPasskeyPreferred,
   getRememberedLoginEmail,
   hasPersistentSessionMarker,
   markPersistentSession,
+  markPasskeySetupPending,
   rememberLoginEmail,
 } from "@/lib/client-session";
 import { PasskeyLoginButton } from "./passkey-login-button";
@@ -20,6 +23,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [autoPromptPasskey, setAutoPromptPasskey] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -66,6 +70,8 @@ export default function LoginPage() {
     if (rememberedEmail) {
       setEmail(rememberedEmail);
     }
+
+    setAutoPromptPasskey(hasPasskeyPreferred());
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -82,7 +88,12 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password, rememberMe }),
       });
       const data = (await response.json().catch(() => null)) as
-        | { ok?: boolean; message?: string; redirectTo?: string }
+        | {
+            ok?: boolean;
+            message?: string;
+            redirectTo?: string;
+            promptPasskeySetup?: boolean;
+          }
         | null;
 
       if (!response.ok || data?.ok !== true) {
@@ -96,6 +107,12 @@ export default function LoginPage() {
         clearRememberedLoginEmail();
       }
 
+      if (data?.promptPasskeySetup) {
+        markPasskeySetupPending();
+      } else {
+        clearPasskeySetupPending();
+      }
+
       markPersistentSession();
       router.push(data.redirectTo || "/dashboard");
       router.refresh();
@@ -107,6 +124,8 @@ export default function LoginPage() {
   }
 
   function handlePasskeySuccess(redirectTo: string, authenticatedEmail?: string) {
+    setAutoPromptPasskey(true);
+
     if (rememberMe) {
       rememberLoginEmail(authenticatedEmail || email);
     } else {
@@ -292,6 +311,7 @@ export default function LoginPage() {
                 onError={setError}
                 onSuccess={handlePasskeySuccess}
                 compact
+                autoPrompt={autoPromptPasskey}
               />
             </div>
           </form>

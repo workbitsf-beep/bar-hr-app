@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   browserSupportsWebAuthn,
   platformAuthenticatorIsAvailable,
   startRegistration,
 } from "@simplewebauthn/browser";
 import { PrimaryButton } from "@/app/dashboard/ui";
+import {
+  clearPasskeySetupPending,
+  markPasskeyPreferred,
+} from "@/lib/client-session";
 
 type WebAuthnRegistrationPanelProps = {
   initialPasskeyCount: number;
+  autoPrompt?: boolean;
+  onSuccess?: () => void;
 };
 
 type ApiResponse = {
@@ -20,6 +26,8 @@ type ApiResponse = {
 
 export function WebAuthnRegistrationPanel({
   initialPasskeyCount,
+  autoPrompt = false,
+  onSuccess,
 }: WebAuthnRegistrationPanelProps) {
   const [passkeyCount, setPasskeyCount] = useState(initialPasskeyCount);
   const [available, setAvailable] = useState(false);
@@ -28,6 +36,7 @@ export function WebAuthnRegistrationPanel({
   const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const autoPromptedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -95,6 +104,9 @@ export function WebAuthnRegistrationPanel({
       }
 
       setPasskeyCount((current) => current + 1);
+      markPasskeyPreferred();
+      clearPasskeySetupPending();
+      onSuccess?.();
       setMessage(verifyPayload.message || "Biometria attivata su questo dispositivo.");
     } catch (err) {
       const cancelled = err instanceof Error && err.name === "NotAllowedError";
@@ -107,6 +119,19 @@ export function WebAuthnRegistrationPanel({
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!autoPrompt || autoPromptedRef.current || checking || loading || updating || !available) {
+      return;
+    }
+
+    if (passkeyCount > 0) {
+      return;
+    }
+
+    autoPromptedRef.current = true;
+    void registerPasskey();
+  }, [autoPrompt, available, checking, loading, updating, passkeyCount]);
 
   async function handleUpdatePasskey() {
     setError("");

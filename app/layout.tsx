@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { PwaRegister } from "@/app/components/pwa-register";
+import { PasskeySetupPrompt } from "@/app/components/passkey-setup-prompt";
 import { RuntimeLanguageSync } from "@/app/components/runtime-language-sync";
 import { LANGUAGE_COOKIE_NAME, normalizeLanguage } from "@/lib/language";
 
@@ -89,6 +90,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       >
         <RuntimeLanguageSync language={htmlLang} />
         <PwaRegister />
+        <PasskeySetupPrompt />
         {children}
       </body>
     </html>

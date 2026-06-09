@@ -3,6 +3,8 @@
 const PERSISTENT_SESSION_KEY = "token";
 const PERSISTENT_SESSION_MARKER = "cookie-session";
 const REMEMBERED_EMAIL_KEY = "remembered-email";
+const PASSKEY_PREFERRED_KEY = "workbit-passkey-preferred";
+const PASSKEY_SETUP_PENDING_KEY = "workbit-passkey-setup-pending";
 
 export function markPersistentSession() {
   try {
@@ -56,5 +58,53 @@ export function getRememberedLoginEmail() {
     return localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+export function markPasskeyPreferred() {
+  try {
+    localStorage.setItem(PASSKEY_PREFERRED_KEY, "1");
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function clearPasskeyPreferred() {
+  try {
+    localStorage.removeItem(PASSKEY_PREFERRED_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function hasPasskeyPreferred() {
+  try {
+    return localStorage.getItem(PASSKEY_PREFERRED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markPasskeySetupPending() {
+  try {
+    localStorage.setItem(PASSKEY_SETUP_PENDING_KEY, "1");
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function clearPasskeySetupPending() {
+  try {
+    localStorage.removeItem(PASSKEY_SETUP_PENDING_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function hasPasskeySetupPending() {
+  try {
+    return localStorage.getItem(PASSKEY_SETUP_PENDING_KEY) === "1";
+  } catch {
+    return false;
   }
 }

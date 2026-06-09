@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   browserSupportsWebAuthn,
   platformAuthenticatorIsAvailable,
   startAuthentication,
 } from "@simplewebauthn/browser";
+import {
+  clearPasskeySetupPending,
+  markPasskeyPreferred,
+} from "@/lib/client-session";
 
 type PasskeyLoginButtonProps = {
   email: string;
@@ -13,6 +17,7 @@ type PasskeyLoginButtonProps = {
   onError: (message: string) => void;
   onSuccess: (redirectTo: string, authenticatedEmail?: string) => void;
   compact?: boolean;
+  autoPrompt?: boolean;
 };
 
 type ApiResponse = {
@@ -29,10 +34,12 @@ export function PasskeyLoginButton({
   onError,
   onSuccess,
   compact = false,
+  autoPrompt = false,
 }: PasskeyLoginButtonProps) {
   const [available, setAvailable] = useState(false);
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
+  const autoPromptedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -104,6 +111,8 @@ export function PasskeyLoginButton({
         return;
       }
 
+      markPasskeyPreferred();
+      clearPasskeySetupPending();
       onSuccess(verifyPayload.redirectTo || "/dashboard", verifyPayload.email);
     } catch (err) {
       const cancelled = err instanceof Error && err.name === "NotAllowedError";
@@ -116,6 +125,15 @@ export function PasskeyLoginButton({
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!autoPrompt || autoPromptedRef.current || checking || loading || !available) {
+      return;
+    }
+
+    autoPromptedRef.current = true;
+    void handlePasskeyLogin();
+  }, [autoPrompt, available, checking, loading]);
 
   return (
     <button
