@@ -111,7 +111,7 @@ function getRoundedTimestamp(
   roundingMode: RoundingMode | null,
   roundingMinutes: number | null
 ): Date {
-  if (!roundingEnabled || !roundingMode || !roundingMinutes) {
+  if (!roundingEnabled) {
     return log.timestamp;
   }
 

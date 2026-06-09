@@ -1,4 +1,11 @@
-import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
+import {
+  ActivityType,
+  CalendarClosureType,
+  RequestStatus,
+  RequestType,
+  Role,
+} from "@prisma/client";
+import { Fragment } from "react";
 import { prisma } from "@/lib/prisma";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { DateTimeInput } from "@/app/components/date-time-input";
@@ -7,6 +14,8 @@ import {
   createAvailabilityAction,
   createShiftChangeRequestAction,
   createTimeOffRequestAction,
+  deleteCalendarClosureAction,
+  updateCalendarClosureAction,
   reviewRequestAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
@@ -28,6 +37,30 @@ import {
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
+
+function closureTypeLabel(type: CalendarClosureType) {
+  if (type === CalendarClosureType.HOLIDAY) {
+    return "Festività";
+  }
+
+  if (type === CalendarClosureType.VACATION) {
+    return "Ferie aziendali";
+  }
+
+  return "Chiusura";
+}
+
+function closureTypeTone(type: CalendarClosureType) {
+  if (type === CalendarClosureType.HOLIDAY) {
+    return "warning" as const;
+  }
+
+  if (type === CalendarClosureType.VACATION) {
+    return "success" as const;
+  }
+
+  return "neutral" as const;
+}
 
 function requestTone(status: RequestStatus) {
   if (status === RequestStatus.APPROVED) {
@@ -111,6 +144,10 @@ export default async function DashboardRequestsPage({
           ? "Indisponibilita salvata correttamente."
           : success === "closure-created"
             ? "Chiusura salvata correttamente."
+            : success === "closure-updated"
+              ? "Chiusura aggiornata correttamente."
+              : success === "closure-deleted"
+                ? "Chiusura eliminata correttamente."
             : null;
   const [requests, ownShifts, teammates, availabilities, overtimeMembers, closures] = await Promise.all([
     features.requests
@@ -256,9 +293,7 @@ export default async function DashboardRequestsPage({
           where: {
             barId: activeBarId,
           },
-          orderBy: {
-            startsAt: "desc",
-          },
+          orderBy: [{ title: "asc" }, { startsAt: "asc" }],
           take: 20,
           select: {
             id: true,
@@ -483,23 +518,194 @@ export default async function DashboardRequestsPage({
             {closures.length === 0 ? (
               <EmptyState message="Nessuna chiusura registrata." />
             ) : (
-              <ItemList scrollable>
-                {closures.map((closure) => (
-                  <ItemCard
-                    key={closure.id}
-                    title={closure.title}
-                    subtitle="Chiusura registrata"
-                    meta={formatDate(closure.startsAt) + " - " + formatDate(closure.endsAt)}
-                    footer={
-                      closure.createdBy ? (
-                        <span style={{ color: "#64748b" }}>
-                          Da {closure.createdBy.firstName} {closure.createdBy.lastName}
+              <div
+                style={{
+                  overflowX: "auto",
+                  borderRadius: 22,
+                  border: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                }}
+              >
+                <div
+                  style={{
+                    minWidth: 880,
+                    display: "grid",
+                    gridTemplateColumns: "1.4fr 0.9fr 1.1fr 0.9fr auto",
+                  }}
+                >
+                  {["Nome", "Tipo attività", "Orari", "Inserita da", "Azioni"].map((label) => (
+                    <div
+                      key={label}
+                      style={{
+                        padding: "14px 16px",
+                        background: "#f8fafc",
+                        borderBottom: "1px solid #e2e8f0",
+                        fontWeight: 700,
+                        color: "#475569",
+                        fontSize: 13,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      {label}
+                    </div>
+                  ))}
+
+                  {closures.map((closure) => (
+                    <Fragment key={closure.id}>
+                      <div
+                        key={`${closure.id}-title`}
+                        style={{
+                          padding: "16px",
+                          borderBottom: "1px solid #eef2f7",
+                          color: "#0f172a",
+                          fontWeight: 700,
+                          display: "grid",
+                          gap: 4,
+                        }}
+                      >
+                        <span>{closure.title}</span>
+                        <span style={{ color: "#64748b", fontSize: 12, fontWeight: 500 }}>
+                          {formatDate(closure.startsAt)} - {formatDate(closure.endsAt)}
                         </span>
-                      ) : null
-                    }
-                  />
-                ))}
-              </ItemList>
+                      </div>
+
+                      <div
+                        key={`${closure.id}-type`}
+                        style={{
+                          padding: "16px",
+                          borderBottom: "1px solid #eef2f7",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <StatusPill label={closureTypeLabel(closure.type)} tone={closureTypeTone(closure.type)} />
+                      </div>
+
+                      <div
+                        key={`${closure.id}-hours`}
+                        style={{
+                          padding: "16px",
+                          borderBottom: "1px solid #eef2f7",
+                          color: "#334155",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        <div>{formatDateTime(closure.startsAt)}</div>
+                        <div>{formatDateTime(closure.endsAt)}</div>
+                      </div>
+
+                      <div
+                        key={`${closure.id}-author`}
+                        style={{
+                          padding: "16px",
+                          borderBottom: "1px solid #eef2f7",
+                          color: "#334155",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {closure.createdBy ? (
+                          <>
+                            {closure.createdBy.firstName} {closure.createdBy.lastName}
+                          </>
+                        ) : (
+                          "-"
+                        )}
+                      </div>
+
+                      <div
+                        key={`${closure.id}-actions`}
+                        style={{
+                          padding: "16px",
+                          borderBottom: "1px solid #eef2f7",
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <PopupAction
+                          title="Modifica chiusura"
+                          ariaLabel={`Modifica ${closure.title}`}
+                          closeOnSubmit
+                          triggerContent={
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          }
+                        >
+                          <form action={updateCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
+                            <input type="hidden" name="closureId" value={closure.id} />
+                            <input type="hidden" name="notifySuccess" value="1" />
+
+                            <FormField label="Nome">
+                              <TextInput name="title" defaultValue={closure.title} />
+                            </FormField>
+
+                            <FormField label="Tipo attività">
+                              <Select name="type" defaultValue={closure.type}>
+                                <option value={CalendarClosureType.CLOSURE}>Chiusura</option>
+                                <option value={CalendarClosureType.HOLIDAY}>Festività</option>
+                                <option value={CalendarClosureType.VACATION}>Ferie aziendali</option>
+                              </Select>
+                            </FormField>
+
+                            <ClosureDateRangeInput
+                              startName="startsAt"
+                              endName="endsAt"
+                              startValue={closure.startsAt.toISOString()}
+                              endValue={closure.endsAt.toISOString()}
+                              required
+                            />
+
+                            <div className="dashboard-form-actions">
+                              <PrimaryButton type="submit">Salva modifiche</PrimaryButton>
+                            </div>
+                          </form>
+                        </PopupAction>
+
+                        <PopupAction
+                          title="Elimina chiusura"
+                          ariaLabel={`Elimina ${closure.title}`}
+                          closeOnSubmit
+                          triggerContent={
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          }
+                        >
+                          <form action={deleteCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
+                            <input type="hidden" name="closureId" value={closure.id} />
+                            <input type="hidden" name="notifySuccess" value="1" />
+
+                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                              Vuoi eliminare questa chiusura? L&apos;azione non si può annullare.
+                            </p>
+
+                            <div className="dashboard-form-actions">
+                              <PrimaryButton type="submit" tone="red">
+                                Elimina chiusura
+                              </PrimaryButton>
+                            </div>
+                          </form>
+                        </PopupAction>
+                      </div>
+                    </Fragment>
+                  ))}
+                </div>
+              </div>
             )}
           </Panel>
         ) : null}

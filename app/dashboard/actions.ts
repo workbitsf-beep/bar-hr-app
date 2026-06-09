@@ -20,16 +20,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   sendEmployeeWelcomeEmail,
-  sendLeaveRequestEmail,
-  sendLeaveRequestResultEmail,
-  sendNoticeBoardDigestEmail,
-  sendNoticeBoardEmail,
   sendOwnerWelcomeEmail,
-  sendShiftSwapRequestEmail,
-  sendShiftSwapResultEmail,
-  sendTaskAssignedDigestEmail,
-  sendTaskAssignedEmail,
-  sendUnavailabilityEmail,
 } from "@/lib/email/notifications";
 import {
   barNeedsSubscriptionActivation,
@@ -56,6 +47,10 @@ import {
   SESSION_PERSIST_COOKIE_NAME,
 } from "@/lib/auth";
 import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
+import {
+  INTERNAL_NOTIFICATION_TYPES,
+  notifyUsers,
+} from "@/lib/notifications";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { createTemporaryPassword } from "@/lib/temporary-password";
 import { SUPER_ADMIN_OVERVIEW_CACHE_TAG } from "@/lib/super-admin-overview";
@@ -114,6 +109,15 @@ function formatRangeLabel(startsAt: Date, endsAt: Date) {
   return `${formatter.format(startsAt)} - ${formatter.format(endsAt)}`;
 }
 
+function formatShiftWindow(startTime: Date, endTime: Date) {
+  const formatter = new Intl.DateTimeFormat("it-IT", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  return `${formatter.format(startTime)} - ${formatter.format(endTime)}`;
+}
+
 function dedupeUsers(users: Array<NotificationUser | null | undefined>) {
   const byId = new Map<string, NotificationUser>();
 
@@ -130,14 +134,6 @@ function dedupeUsers(users: Array<NotificationUser | null | undefined>) {
 
 function excludeActorFromUsers<T extends { id: string }>(users: T[], actorId: string) {
   return users.filter((user) => user.id !== actorId);
-}
-
-async function runEmailNotification(task: () => Promise<void>) {
-  try {
-    await task();
-  } catch (error) {
-    console.error("[email] Failed to process notification flow.", error);
-  }
 }
 
 async function getBarNotificationContext(
@@ -1538,13 +1534,9 @@ export async function createTaskAction(formData: FormData) {
     })),
   });
 
-  await runEmailNotification(async () => {
-    const notificationContext = await getBarNotificationContext(activeBarId);
+  const notificationContext = await getBarNotificationContext(activeBarId);
 
-    if (!notificationContext) {
-      return;
-    }
-
+  if (notificationContext) {
     const tasksByRecipientId = new Map<string, string[]>();
 
     for (const taskDraft of taskDrafts) {
@@ -1567,22 +1559,26 @@ export async function createTaskAction(formData: FormData) {
           return Promise.resolve();
         }
 
-        return taskTitles.length === 1
-          ? sendTaskAssignedEmail(
-              recipient.email,
-              recipient.firstName,
-              taskTitles[0],
-              notificationContext.barName
-            )
-          : sendTaskAssignedDigestEmail(
-              recipient.email,
-              recipient.firstName,
-              taskTitles,
-              notificationContext.barName
-            );
+        const preview = taskTitles.slice(0, 4).map((taskTitle) => `• ${taskTitle}`).join("\n");
+        const extraCount = Math.max(0, taskTitles.length - 4);
+        const extraLine = extraCount > 0 ? `\n+ altre ${extraCount} mansioni` : "";
+
+        return notifyUsers([recipient.id], {
+          barId: activeBarId,
+          title:
+            taskTitles.length === 1
+              ? "Nuova mansione assegnata"
+              : "Nuove mansioni assegnate",
+          message:
+            taskTitles.length === 1
+              ? `Ciao ${recipient.firstName},\nTi è stata assegnata una nuova mansione: ${taskTitles[0]}.\nLocale: ${notificationContext.barName}.`
+              : `Ciao ${recipient.firstName},\nTi sono state assegnate ${taskTitles.length} nuove mansioni per ${notificationContext.barName}.\n${preview}${extraLine}`,
+          type: INTERNAL_NOTIFICATION_TYPES.TASK_ASSIGNED,
+          actionUrl: "/dashboard/tasks",
+        });
       })
     );
-  });
+  }
 
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/tasks");
@@ -1618,6 +1614,7 @@ export async function completeTaskAction(formData: FormData) {
     },
     select: {
       id: true,
+      createdById: true,
       assignedToId: true,
       assignedToAll: true,
     },
@@ -1660,6 +1657,16 @@ export async function completeTaskAction(formData: FormData) {
       },
     }),
   ]);
+
+  if (task.createdById !== session.user.id) {
+    await notifyUsers([task.createdById], {
+      barId: activeBarId,
+      title: "Mansione completata",
+      message: `${getFullName(session.user)} ha completato una mansione nel locale.`,
+      type: INTERNAL_NOTIFICATION_TYPES.TASK_COMPLETED,
+      actionUrl: "/dashboard/tasks",
+    });
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
@@ -1782,6 +1789,28 @@ export async function createShiftAction(formData: FormData) {
     },
   });
 
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = excludeActorFromUsers(
+      notificationContext.users.filter((user) => employeeIds.includes(user.id)),
+      session.user.id
+    );
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: isOnCall ? "Nuova reperibilità" : "Nuovo turno pubblicato",
+        message:
+          `${isOnCall ? "È stata inserita una reperibilità" : "È stato pubblicato un nuovo turno"} per ${formatShiftWindow(startTime, endTime)}${title ? ` - ${title}` : ""}.`,
+        type: isOnCall
+          ? INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REQUESTED
+          : INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
+        actionUrl: "/dashboard/calendar",
+      });
+    }
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/shifts");
@@ -1820,6 +1849,27 @@ export async function updateShiftAction(formData: FormData) {
     endTime,
   });
   const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
+  const existingShift = await prisma.shift.findFirst({
+    where: {
+      id: shiftId,
+      barId: activeBarId,
+    },
+    select: {
+      title: true,
+      startTime: true,
+      endTime: true,
+      isOnCall: true,
+      assignments: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
+  if (!existingShift) {
+    throw new Error("Shift not found");
+  }
 
   await prisma.shift.update({
     where: {
@@ -1841,6 +1891,34 @@ export async function updateShiftAction(formData: FormData) {
       },
     },
   });
+
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipientIds = Array.from(
+      new Set([
+        ...existingShift.assignments.map((assignment) => assignment.userId),
+        ...employeeIds,
+      ])
+    );
+    const recipients = excludeActorFromUsers(
+      notificationContext.users.filter((user) => recipientIds.includes(user.id)),
+      session.user.id
+    );
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: existingShift.isOnCall ? "Reperibilità aggiornata" : "Turno modificato",
+        message:
+          `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} è stato aggiornato per ${formatShiftWindow(startTime, endTime)}${title ? ` - ${title}` : ""}.`,
+        type: existingShift.isOnCall
+          ? INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REQUESTED
+          : INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
+        actionUrl: "/dashboard/calendar",
+      });
+    }
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
@@ -1903,13 +1981,34 @@ export async function confirmShiftAction(formData: FormData) {
     },
   });
 
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = excludeActorFromUsers(
+      notificationContext.users.filter(
+        (user) => user.role === Role.OWNER || user.role === Role.MANAGER
+      ),
+      session.user.id
+    );
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: "Reperibilità confermata",
+        message: `La reperibilità del turno selezionato è stata confermata da ${getFullName(session.user)}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REVIEWED,
+        actionUrl: "/dashboard/calendar",
+      });
+    }
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/shifts");
 }
 
 export async function deleteShiftAction(formData: FormData) {
-  const { role, activeBarId, activeBarActivityType } = await getActionContext();
+  const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
   ensureOperationRole(role);
 
   if (!activeBarId) {
@@ -1924,10 +2023,52 @@ export async function deleteShiftAction(formData: FormData) {
     throw new Error("Missing shift id");
   }
 
+  const existingShift = await prisma.shift.findFirst({
+    where: {
+      id: shiftId,
+      barId: activeBarId,
+    },
+    select: {
+      title: true,
+      startTime: true,
+      endTime: true,
+      isOnCall: true,
+      assignments: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
   const result = await deleteShiftWithCleanup(shiftId, { barId: activeBarId });
 
   if (!result.deleted) {
     throw new Error("Shift not found");
+  }
+
+  if (existingShift) {
+    const notificationContext = await getBarNotificationContext(activeBarId);
+
+    if (notificationContext) {
+      const recipients = excludeActorFromUsers(
+        notificationContext.users.filter((user) =>
+          existingShift.assignments.some((assignment) => assignment.userId === user.id)
+        ),
+        session.user.id
+      );
+
+      if (recipients.length > 0) {
+        await notifyUsers(recipients, {
+          barId: activeBarId,
+          title: existingShift.isOnCall ? "Reperibilità eliminata" : "Turno eliminato",
+          message:
+            `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} prevista per ${formatShiftWindow(existingShift.startTime, existingShift.endTime)}${existingShift.title ? ` - ${existingShift.title}` : ""} è stata eliminata.`,
+          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_DELETED,
+          actionUrl: "/dashboard/calendar",
+        });
+      }
+    }
   }
 
   revalidatePath("/dashboard");
@@ -1970,18 +2111,11 @@ export async function createBoardNoteAction(formData: FormData) {
     })),
   });
 
-  await runEmailNotification(async () => {
-    const notificationContext = await getBarNotificationContext(activeBarId);
+  const notificationContext = await getBarNotificationContext(activeBarId);
 
-    if (!notificationContext) {
-      return;
-    }
-
+  if (notificationContext) {
     const authorName = getFullName(session.user);
-    const recipientsByEmail = new Map<
-      string,
-      { email: string; firstName: string; count: number }
-    >();
+    const recipientsById = new Map<string, { firstName: string; count: number }>();
 
     for (const entry of noteEntries) {
       const recipients = entry.assignedToAll
@@ -1991,15 +2125,14 @@ export async function createBoardNoteAction(formData: FormData) {
           );
 
       for (const recipient of recipients) {
-        const current = recipientsByEmail.get(recipient.email);
+        const current = recipientsById.get(recipient.id);
 
         if (current) {
           current.count += 1;
           continue;
         }
 
-        recipientsByEmail.set(recipient.email, {
-          email: recipient.email,
+        recipientsById.set(recipient.id, {
           firstName: recipient.firstName,
           count: 1,
         });
@@ -2007,24 +2140,21 @@ export async function createBoardNoteAction(formData: FormData) {
     }
 
     await Promise.all(
-      Array.from(recipientsByEmail.values()).map((recipient) =>
-        recipient.count === 1
-          ? sendNoticeBoardEmail(
-              recipient.email,
-              recipient.firstName,
-              authorName,
-              notificationContext.barName
-            )
-          : sendNoticeBoardDigestEmail(
-              recipient.email,
-              recipient.firstName,
-              authorName,
-              notificationContext.barName,
-              recipient.count
-            )
-      )
+      Array.from(recipientsById.entries()).map(([recipientId, recipient]) => {
+        const notificationCountLabel =
+          recipient.count === 1 ? "un nuovo messaggio" : `${recipient.count} nuovi messaggi`;
+
+        return notifyUsers([recipientId], {
+          barId: activeBarId,
+          title:
+            recipient.count === 1 ? "Nuovo messaggio in bacheca" : "Nuovi messaggi in bacheca",
+          message: `Ciao ${recipient.firstName},\n${authorName} ha pubblicato ${notificationCountLabel} nella bacheca di ${notificationContext.barName}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
+          actionUrl: "/dashboard/tasks",
+        });
+      })
     );
-  });
+  }
 
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/tasks");
@@ -2124,13 +2254,9 @@ export async function createAvailabilityAction(formData: FormData) {
     },
   });
 
-  await runEmailNotification(async () => {
-    const notificationContext = await getBarNotificationContext(activeBarId);
+  const notificationContext = await getBarNotificationContext(activeBarId);
 
-    if (!notificationContext) {
-      return;
-    }
-
+  if (notificationContext) {
     const recipients = excludeActorFromUsers(
       notificationContext.users.filter(
         (user) => user.role === Role.OWNER || user.role === Role.MANAGER
@@ -2138,24 +2264,19 @@ export async function createAvailabilityAction(formData: FormData) {
       session.user.id
     );
 
-    if (recipients.length === 0) {
-      return;
+    if (recipients.length > 0) {
+      const employeeName = getFullName(session.user);
+      const dateLabel = formatRangeLabel(startsAt, endsAt);
+
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: "Nuova indisponibilità registrata",
+        message: `${employeeName} ha registrato un'indisponibilità per ${dateLabel} in ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.AVAILABILITY_CREATED,
+        actionUrl: "/dashboard/calendar",
+      });
     }
-
-    const employeeName = getFullName(session.user);
-    const dateLabel = formatRangeLabel(startsAt, endsAt);
-
-    await Promise.all(
-      recipients.map((recipient) =>
-        sendUnavailabilityEmail(
-          recipient.email,
-          employeeName,
-          notificationContext.barName,
-          dateLabel
-        )
-      )
-    );
-  });
+  }
 
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/requests");
@@ -2212,12 +2333,177 @@ export async function createCalendarClosureAction(formData: FormData) {
     },
   });
 
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = excludeActorFromUsers(notificationContext.users, session.user.id);
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title:
+          type === CalendarClosureType.HOLIDAY
+            ? "Nuova festività"
+            : type === CalendarClosureType.VACATION
+              ? "Nuove ferie aziendali"
+              : "Nuova chiusura",
+        message: `${titleRaw || fallbackTitle} è stata inserita per ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.CLOSURE_CREATED,
+        actionUrl: "/dashboard/requests",
+      });
+    }
+  }
+
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/requests");
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
     redirect(appendStatusToPath(returnPath, { success: "closure-created" }));
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function updateCalendarClosureAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const requestFeatures = await getRequestFeatureSettings(activeBarId);
+
+  if (requestFeatures?.requestsEnabled === false) {
+    throw new Error("Requests not enabled");
+  }
+
+  const closureId = String(formData.get("closureId") ?? "").trim();
+  const type = parseCalendarClosureType(formData.get("type"));
+  const titleRaw = String(formData.get("title") ?? "").trim();
+  const startsAt = parseRequiredDate(formData.get("startsAt"));
+  const endsAt = parseRequiredDate(formData.get("endsAt"));
+
+  if (!closureId) {
+    throw new Error("Missing closure id");
+  }
+
+  if (endsAt <= startsAt) {
+    throw new Error("Invalid date range");
+  }
+
+  const fallbackTitle =
+    type === CalendarClosureType.HOLIDAY
+      ? "Festivita"
+      : type === CalendarClosureType.VACATION
+        ? "Ferie aziendali"
+        : "Chiusura";
+
+  const updated = await prisma.calendarClosure.updateMany({
+    where: {
+      id: closureId,
+      barId: activeBarId,
+    },
+    data: {
+      title: titleRaw || fallbackTitle,
+      type,
+      startsAt,
+      endsAt,
+    },
+  });
+
+  if (updated.count === 0) {
+    throw new Error("Closure not found");
+  }
+
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = excludeActorFromUsers(notificationContext.users, session.user.id);
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title:
+          type === CalendarClosureType.HOLIDAY
+            ? "Festività aggiornata"
+            : type === CalendarClosureType.VACATION
+              ? "Ferie aziendali aggiornate"
+              : "Chiusura aggiornata",
+        message: `${titleRaw || fallbackTitle} è stata aggiornata per ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.CLOSURE_UPDATED,
+        actionUrl: "/dashboard/requests",
+      });
+    }
+  }
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "closure-updated" }));
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function deleteCalendarClosureAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const requestFeatures = await getRequestFeatureSettings(activeBarId);
+
+  if (requestFeatures?.requestsEnabled === false) {
+    throw new Error("Requests not enabled");
+  }
+
+  const closureId = String(formData.get("closureId") ?? "").trim();
+
+  if (!closureId) {
+    throw new Error("Missing closure id");
+  }
+
+  const deleted = await prisma.calendarClosure.deleteMany({
+    where: {
+      id: closureId,
+      barId: activeBarId,
+    },
+  });
+
+  if (deleted.count === 0) {
+    throw new Error("Closure not found");
+  }
+
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = excludeActorFromUsers(notificationContext.users, session.user.id);
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: "Chiusura eliminata",
+        message: `Una chiusura del calendario è stata eliminata da ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.CLOSURE_DELETED,
+        actionUrl: "/dashboard/requests",
+      });
+    }
+  }
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "closure-deleted" }));
   }
 
   revalidatePath("/dashboard");
@@ -2266,6 +2552,27 @@ export async function createCourseAction(formData: FormData) {
     },
   });
 
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = excludeActorFromUsers(
+      notificationContext.users.filter((user) =>
+        assignedToAll ? user.id !== session.user.id : user.id === assignedToId
+      ),
+      session.user.id
+    );
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: "Nuovo corso inserito",
+        message: `${title} è stato aggiunto per ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.COURSE_CREATED,
+        actionUrl: "/dashboard/courses",
+      });
+    }
+  }
+
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/courses");
 
@@ -2281,7 +2588,7 @@ export async function createCourseAction(formData: FormData) {
 }
 
 export async function deleteCourseAction(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
+  const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
 
   if (!activeBarId) {
@@ -2294,12 +2601,49 @@ export async function deleteCourseAction(formData: FormData) {
     throw new Error("Missing course id");
   }
 
+  const existingCourse = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      barId: activeBarId,
+    },
+    select: {
+      title: true,
+      assignedToAll: true,
+      assignedToId: true,
+    },
+  });
+
   await prisma.course.deleteMany({
     where: {
       id: courseId,
       barId: activeBarId,
     },
   });
+
+  if (existingCourse) {
+    const notificationContext = await getBarNotificationContext(activeBarId);
+
+    if (notificationContext) {
+      const recipients = excludeActorFromUsers(
+        notificationContext.users.filter((user) =>
+          existingCourse.assignedToAll
+            ? user.id !== session.user.id
+            : user.id === existingCourse.assignedToId
+        ),
+        session.user.id
+      );
+
+      if (recipients.length > 0) {
+        await notifyUsers(recipients, {
+          barId: activeBarId,
+          title: "Corso eliminato",
+          message: `${existingCourse.title} è stato eliminato da ${notificationContext.barName}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.COURSE_DELETED,
+          actionUrl: "/dashboard/courses",
+        });
+      }
+    }
+  }
 
   revalidatePath("/dashboard/courses");
   revalidatePath("/dashboard/calendar");
@@ -2520,18 +2864,15 @@ export async function createEmployeeAction(formData: FormData) {
   });
 
   if (shouldCreateUser) {
-    await runEmailNotification(async () => {
-      if (userRole === Role.OWNER) {
-        await sendOwnerWelcomeEmail(
-          email,
-          `${firstName} ${lastName}`.trim(),
-          bar.name,
-          email,
-          temporaryPassword
-        );
-        return;
-      }
-
+    if (userRole === Role.OWNER) {
+      await sendOwnerWelcomeEmail(
+        email,
+        `${firstName} ${lastName}`.trim(),
+        bar.name,
+        email,
+        temporaryPassword
+      );
+    } else {
       await sendEmployeeWelcomeEmail(
         email,
         `${firstName} ${lastName}`.trim(),
@@ -2539,7 +2880,7 @@ export async function createEmployeeAction(formData: FormData) {
         email,
         temporaryPassword
       );
-    });
+    }
   }
 
   revalidatePath("/dashboard/people");
@@ -2886,33 +3227,24 @@ export async function createTimeOffRequestAction(formData: FormData) {
     },
   });
 
-  await runEmailNotification(async () => {
-    const notificationContext = await getBarNotificationContext(activeBarId);
+  const notificationContext = await getBarNotificationContext(activeBarId);
 
-    if (!notificationContext) {
-      return;
-    }
-
-    if (isOwnerOvertimeRequest) {
-      return;
-    }
-
+  if (notificationContext && !isOwnerOvertimeRequest) {
     const ownerRecipients = excludeActorFromUsers(
       notificationContext.users.filter((user) => user.role === Role.OWNER),
       session.user.id
     );
 
-    await Promise.all(
-      ownerRecipients.map((recipient) =>
-        sendLeaveRequestEmail(
-          recipient.email,
-          getFullName(session.user),
-          getLeaveTypeLabel(type),
-          notificationContext.barName
-        )
-      )
-    );
-  });
+    if (ownerRecipients.length > 0) {
+      await notifyUsers(ownerRecipients, {
+        barId: activeBarId,
+        title: `Nuova richiesta ${getLeaveTypeLabel(type)}`,
+        message: `${getFullName(session.user)} ha inviato una richiesta di ${getLeaveTypeLabel(type)} per ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.REQUEST_CREATED,
+        actionUrl: "/dashboard/requests",
+      });
+    }
+  }
 
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/requests");
@@ -2994,13 +3326,9 @@ export async function createShiftChangeRequestAction(formData: FormData) {
     },
   });
 
-  await runEmailNotification(async () => {
-    const notificationContext = await getBarNotificationContext(activeBarId);
+  const notificationContext = await getBarNotificationContext(activeBarId);
 
-    if (!notificationContext) {
-      return;
-    }
-
+  if (notificationContext) {
     const recipients = excludeActorFromUsers(
       dedupeUsers([
         ...notificationContext.users.filter((user) => user.role === Role.OWNER),
@@ -3009,23 +3337,18 @@ export async function createShiftChangeRequestAction(formData: FormData) {
       session.user.id
     );
 
-    if (recipients.length === 0) {
-      return;
+    if (recipients.length > 0) {
+      const requesterName = getFullName(session.user);
+
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: "Richiesta cambio turno",
+        message: `${requesterName} ha inviato una richiesta di cambio turno per ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.SHIFT_CHANGE_REQUESTED,
+        actionUrl: "/dashboard/requests",
+      });
     }
-
-    const requesterName = getFullName(session.user);
-
-    await Promise.all(
-      recipients.map((recipient) =>
-        sendShiftSwapRequestEmail(
-          recipient.email,
-          recipient.firstName,
-          requesterName,
-          notificationContext.barName
-        )
-      )
-    );
-  });
+  }
 
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/requests");
@@ -3084,18 +3407,14 @@ export async function reviewRequestAction(formData: FormData) {
     | {
         approved: boolean;
         barName: string;
-        recipients: Array<{
-          email: string;
-          firstName: string;
-          lastName: string;
-        }>;
+        recipients: NotificationUser[];
       }
     | null = null;
   let leaveNotification:
     | {
         approved: boolean;
         barName: string;
-        employeeEmail: string;
+        employee: NotificationUser;
         type: string;
       }
     | null = null;
@@ -3127,34 +3446,30 @@ export async function reviewRequestAction(formData: FormData) {
         },
       });
 
-      shiftChangeNotification = {
-        approved: false,
-        barName: request.bar.name,
-        recipients: excludeActorFromUsers(
-          dedupeUsers([
-          {
-            id: request.employeeId,
-            email: request.employee.email,
-            firstName: request.employee.firstName,
-            lastName: request.employee.lastName,
-            role: Role.EMPLOYEE,
-          },
-          request.swapWith
-            ? {
-                id: request.swapWithUserId ?? request.swapWith.email,
-                email: request.swapWith.email,
-                firstName: request.swapWith.firstName,
-                lastName: request.swapWith.lastName,
+        shiftChangeNotification = {
+          approved: false,
+          barName: request.bar.name,
+          recipients: excludeActorFromUsers(
+            dedupeUsers([
+              {
+                id: request.employeeId,
+                email: request.employee.email,
+                firstName: request.employee.firstName,
+                lastName: request.employee.lastName,
                 role: Role.EMPLOYEE,
-              }
-            : null,
+              },
+              request.swapWith
+                ? {
+                    id: request.swapWithUserId ?? request.swapWith.email,
+                    email: request.swapWith.email,
+                    firstName: request.swapWith.firstName,
+                    lastName: request.swapWith.lastName,
+                    role: Role.EMPLOYEE,
+                  }
+                : null,
           ]),
           session.user.id
-        ).map((user) => ({
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-        })),
+        ),
       };
     } else {
       const updated = await prisma.request.update({
@@ -3189,29 +3504,25 @@ export async function reviewRequestAction(formData: FormData) {
           barName: request.bar.name,
           recipients: excludeActorFromUsers(
             dedupeUsers([
-            {
-              id: request.employeeId,
-              email: request.employee.email,
-              firstName: request.employee.firstName,
-              lastName: request.employee.lastName,
-              role: Role.EMPLOYEE,
-            },
-            request.swapWith
-              ? {
-                  id: request.swapWithUserId ?? request.swapWith.email,
-                  email: request.swapWith.email,
-                  firstName: request.swapWith.firstName,
-                  lastName: request.swapWith.lastName,
-                  role: Role.EMPLOYEE,
-                }
-              : null,
+              {
+                id: request.employeeId,
+                email: request.employee.email,
+                firstName: request.employee.firstName,
+                lastName: request.employee.lastName,
+                role: Role.EMPLOYEE,
+              },
+              request.swapWith
+                ? {
+                    id: request.swapWithUserId ?? request.swapWith.email,
+                    email: request.swapWith.email,
+                    firstName: request.swapWith.firstName,
+                    lastName: request.swapWith.lastName,
+                    role: Role.EMPLOYEE,
+                  }
+                : null,
             ]),
             session.user.id
-          ).map((user) => ({
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-          })),
+          ),
         };
       }
     }
@@ -3235,34 +3546,38 @@ export async function reviewRequestAction(formData: FormData) {
     leaveNotification = {
       approved: decision === RequestStatus.APPROVED,
       barName: request.bar.name,
-      employeeEmail: request.employee.email,
+      employee: {
+        id: request.employeeId,
+        email: request.employee.email,
+        firstName: request.employee.firstName,
+        lastName: request.employee.lastName,
+        role: Role.EMPLOYEE,
+      },
       type: getLeaveTypeLabel(request.type),
     };
   }
 
   if (shiftChangeNotification) {
-    await runEmailNotification(async () => {
-      await Promise.all(
-        shiftChangeNotification.recipients.map((recipient) =>
-          sendShiftSwapResultEmail(
-            recipient.email,
-            recipient.firstName,
-            shiftChangeNotification.approved,
-            shiftChangeNotification.barName
-          )
-        )
-      );
+    await notifyUsers(shiftChangeNotification.recipients, {
+      barId: activeBarId,
+      title: shiftChangeNotification.approved
+        ? "Cambio turno approvato"
+        : "Cambio turno rifiutato",
+      message: `La richiesta di cambio turno per ${shiftChangeNotification.barName} è stata ${shiftChangeNotification.approved ? "approvata" : "rifiutata"}.`,
+      type: INTERNAL_NOTIFICATION_TYPES.SHIFT_CHANGE_REVIEWED,
+      actionUrl: "/dashboard/requests",
     });
   }
 
   if (leaveNotification) {
-    await runEmailNotification(async () => {
-      await sendLeaveRequestResultEmail(
-        leaveNotification.employeeEmail,
-        leaveNotification.approved,
-        leaveNotification.type,
-        leaveNotification.barName
-      );
+    await notifyUsers([leaveNotification.employee], {
+      barId: activeBarId,
+      title: leaveNotification.approved
+        ? `${leaveNotification.type} approvati`
+        : `${leaveNotification.type} rifiutati`,
+      message: `La tua richiesta di ${leaveNotification.type} per ${leaveNotification.barName} è stata ${leaveNotification.approved ? "approvata" : "rifiutata"}.`,
+      type: INTERNAL_NOTIFICATION_TYPES.REQUEST_REVIEWED,
+      actionUrl: "/dashboard/requests",
     });
   }
 

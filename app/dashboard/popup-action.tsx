@@ -9,12 +9,14 @@ export function PopupAction({
   children,
   className,
   closeOnSubmit = false,
+  triggerContent,
 }: {
   title: string;
   ariaLabel: string;
   children: ReactNode;
   className?: string;
   closeOnSubmit?: boolean;
+  triggerContent?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -67,14 +69,16 @@ export function PopupAction({
           cursor: "pointer",
         }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 5v14M5 12h14"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-        </svg>
+        {triggerContent ?? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 5v14M5 12h14"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
       </button>
 
       {mounted && open

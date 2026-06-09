@@ -65,7 +65,7 @@ function ceilToQuarterHour(date: Date): Date {
   return rounded;
 }
 
-function roundWithTolerance(reference: Date, actual: Date, kind: ClockType): Date {
+function roundWithTolerance(reference: Date, actual: Date): Date {
   const toleranceMs = 5 * 60 * 1000;
   const delta = actual.getTime() - reference.getTime();
 
@@ -75,10 +75,6 @@ function roundWithTolerance(reference: Date, actual: Date, kind: ClockType): Dat
 
   if (delta > 0) {
     return ceilToQuarterHour(actual);
-  }
-
-  if (kind === ClockType.OUT) {
-    return floorToQuarterHour(actual);
   }
 
   return floorToQuarterHour(actual);
@@ -91,18 +87,11 @@ export function applyScheduledRounding(
   referenceEnd: Date | null
 ): Date {
   if (kind === ClockType.IN && referenceStart) {
-    return roundWithTolerance(referenceStart, date, kind);
+    return roundWithTolerance(referenceStart, date);
   }
 
   if (kind === ClockType.OUT && referenceEnd) {
-    const toleranceMs = 5 * 60 * 1000;
-    const delta = date.getTime() - referenceEnd.getTime();
-
-    if (Math.abs(delta) <= toleranceMs) {
-      return new Date(referenceEnd);
-    }
-
-    return floorToQuarterHour(date);
+    return roundWithTolerance(referenceEnd, date);
   }
 
   return applyRounding(date, RoundingMode.NEAREST, 15);

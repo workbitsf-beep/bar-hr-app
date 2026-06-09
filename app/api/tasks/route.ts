@@ -1,8 +1,5 @@
 import { Role, TaskStatus } from "@prisma/client";
-import {
-  sendTaskAssignedDigestEmail,
-  sendTaskAssignedEmail,
-} from "@/lib/email/notifications";
+import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { parseTaskDueDate } from "@/lib/task-dates";
@@ -119,7 +116,6 @@ export const POST = withBar(
             user: {
               select: {
                 id: true,
-                email: true,
                 firstName: true,
               },
             },
@@ -141,21 +137,23 @@ export const POST = withBar(
           );
 
       await Promise.all(
-        recipients.map((recipient) =>
-          taskTitles.length === 1
-            ? sendTaskAssignedEmail(
-                recipient.user.email,
-                recipient.user.firstName,
-                taskTitles[0],
-                bar.name
-              )
-            : sendTaskAssignedDigestEmail(
-                recipient.user.email,
-                recipient.user.firstName,
-                taskTitles,
-                bar.name
-              )
-        )
+        recipients.map((recipient) => {
+          const preview = taskTitles.slice(0, 4).map((taskTitle) => `• ${taskTitle}`).join("\n");
+          const extraCount = Math.max(0, taskTitles.length - 4);
+          const extraLine = extraCount > 0 ? `\n+ altre ${extraCount} mansioni` : "";
+
+          return notifyUsers([recipient.user.id], {
+            barId: session.activeBarId,
+            title:
+              taskTitles.length === 1 ? "Nuova mansione assegnata" : "Nuove mansioni assegnate",
+            message:
+              taskTitles.length === 1
+                ? `Ti è stata assegnata una nuova mansione: ${taskTitles[0]}.\nLocale: ${bar.name}.`
+                : `Ti sono state assegnate ${taskTitles.length} nuove mansioni per ${bar.name}.\n${preview}${extraLine}`,
+            type: INTERNAL_NOTIFICATION_TYPES.TASK_ASSIGNED,
+            actionUrl: "/dashboard/tasks",
+          });
+        })
       );
     }
 

@@ -1,9 +1,9 @@
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
-import { sendWeeklyShiftsPublishedEmail } from "@/lib/email/notifications";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
@@ -54,34 +54,6 @@ function getRangeLabel(rangeStart: Date, rangeEnd: Date) {
   });
 
   return `${formatter.format(rangeStart)} - ${formatter.format(rangeEnd)}`;
-}
-
-function buildDeliveryMessage(failedCount: number, errorMessages: string[]) {
-  if (failedCount === 0) {
-    return null;
-  }
-
-  const normalizedMessages = Array.from(
-    new Set(errorMessages.map((message) => message.trim()).filter(Boolean))
-  );
-
-  if (normalizedMessages.some((message) => message.toLowerCase().includes("api key is invalid"))) {
-    return "Email non inviate: RESEND_API_KEY non valida.";
-  }
-
-  if (
-    normalizedMessages.some(
-      (message) =>
-        message.toLowerCase().includes("you can only send testing emails") ||
-        message.toLowerCase().includes("resend.dev")
-    )
-  ) {
-    return "Email non inviate: la configurazione del mittente non e ancora pronta per questo account.";
-  }
-
-  return failedCount === 1
-    ? "1 email non inviata."
-    : `${failedCount} email non inviate.`;
 }
 
 export const POST = withBar(
@@ -138,9 +110,7 @@ export const POST = withBar(
             user: {
               select: {
                 id: true,
-                email: true,
                 firstName: true,
-                lastName: true,
               },
             },
           },
@@ -156,9 +126,7 @@ export const POST = withBar(
       string,
       {
         id: string;
-        email: string;
         firstName: string;
-        lastName: string;
       }
     >();
 
@@ -168,57 +136,45 @@ export const POST = withBar(
           continue;
         }
 
-        const email = assignment.user.email.trim().toLowerCase();
-
-        if (!email) {
-          continue;
-        }
-
-        recipientMap.set(email, {
+        recipientMap.set(assignment.user.id, {
           id: assignment.user.id,
-          email,
           firstName: assignment.user.firstName,
-          lastName: assignment.user.lastName,
         });
       }
     }
 
     const weekLabel = getRangeLabel(rangeStart, rangeEnd);
-    const results = await Promise.all(
-      Array.from(recipientMap.values()).map((recipient) =>
-        sendWeeklyShiftsPublishedEmail(
-          recipient.email,
-          `${recipient.firstName} ${recipient.lastName}`.trim(),
-          bar.name,
-          weekLabel
-        )
+    const recipients = Array.from(recipientMap.values());
+    const notificationResults = await Promise.all(
+      recipients.map((recipient) =>
+        notifyUsers([recipient.id], {
+          barId: session.activeBarId,
+          title: "Turni pubblicati",
+          message: `Ciao ${recipient.firstName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${weekLabel} per ${bar.name}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
+          actionUrl: "/dashboard/shifts",
+        })
       )
     );
-    const sentCount = results.filter((result) => result.success).length;
-    const failedCount = results.length - sentCount;
-    const message = buildDeliveryMessage(
-      failedCount,
-      results
-        .map((result) => result.errorMessage)
-        .filter((value): value is string => Boolean(value))
+    const sentCount = notificationResults.reduce(
+      (total, result) => total + result.createdCount,
+      0
     );
 
-    if (failedCount === 0 && recipientMap.size > 0) {
-      await prisma.shift.updateMany({
-        where: {
-          id: {
-            in: shifts.map((shift) => shift.id),
-          },
-          barId: session.activeBarId,
-          confirmedAt: null,
-          isOnCall: false,
+    await prisma.shift.updateMany({
+      where: {
+        id: {
+          in: shifts.map((shift) => shift.id),
         },
-        data: {
-          confirmedAt: new Date(),
-          confirmedById: session.user.id,
-        },
-      });
-    }
+        barId: session.activeBarId,
+        confirmedAt: null,
+        isOnCall: false,
+      },
+      data: {
+        confirmedAt: new Date(),
+        confirmedById: session.user.id,
+      },
+    });
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
@@ -227,8 +183,6 @@ export const POST = withBar(
     return Response.json({
       ok: true,
       sentCount,
-      failedCount,
-      message,
     });
   }
 );

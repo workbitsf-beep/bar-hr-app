@@ -141,6 +141,16 @@ function ClockLogRow({ log }: { log: LogItem }) {
   );
 }
 
+function groupLogsIntoRows(logs: LogItem[]) {
+  const rows: LogItem[][] = [];
+
+  for (let index = 0; index < logs.length; index += 2) {
+    rows.push(logs.slice(index, index + 2));
+  }
+
+  return rows;
+}
+
 function groupLogsByDay(logs: LogItem[]) {
   const groups = new Map<
     string,
@@ -676,13 +686,22 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "repeat(auto-fit, minmax(128px, 1fr))",
                               gap: 8,
-                              alignItems: "stretch",
                             }}
                           >
-                            {dayGroup.logs.map((log) => (
-                              <ClockLogRow key={log.id} log={log} />
+                            {groupLogsIntoRows(dayGroup.logs).map((row) => (
+                              <div
+                                key={row.map((log) => log.id).join("-")}
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
+                                  gap: 8,
+                                }}
+                              >
+                                {row.map((log) => (
+                                  <ClockLogRow key={log.id} log={log} />
+                                ))}
+                              </div>
                             ))}
                           </div>
                         }
@@ -744,13 +763,22 @@ function PersonalTimeLogsPanel({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(128px, 1fr))",
                       gap: 8,
-                      alignItems: "stretch",
                     }}
                   >
-                    {dayGroup.logs.map((log) => (
-                      <ClockLogRow key={log.id} log={log} />
+                    {groupLogsIntoRows(dayGroup.logs).map((row) => (
+                      <div
+                        key={row.map((log) => log.id).join("-")}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
+                          gap: 8,
+                        }}
+                      >
+                        {row.map((log) => (
+                          <ClockLogRow key={log.id} log={log} />
+                        ))}
+                      </div>
                     ))}
                   </div>
                 }
