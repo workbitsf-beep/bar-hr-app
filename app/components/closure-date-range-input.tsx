@@ -74,10 +74,22 @@ export function ClosureDateRangeInput({
         <span style={{ fontWeight: 600, color: "#1e293b" }}>Dal giorno</span>
         <input
           type="date"
-          disabled={disabled || !startDate}
+          disabled={disabled}
           required={required}
           value={startDate}
-          onChange={(event) => setStartDate(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setStartDate(nextValue);
+
+            if (!nextValue) {
+              setEndDate("");
+              return;
+            }
+
+            if (!endDate || endDate < nextValue) {
+              setEndDate(nextValue);
+            }
+          }}
           style={{
             width: "100%",
             minWidth: 0,

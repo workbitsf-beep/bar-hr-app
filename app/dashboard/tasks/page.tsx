@@ -8,6 +8,7 @@ import {
   deleteAllCompletedTasksAction,
   deleteBoardNoteAction,
   deleteCompletedTaskAction,
+  updateBoardNoteAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -62,6 +63,10 @@ export default async function DashboardTasksPage({
       ? "Mansione salvata correttamente."
       : success === "board-created"
         ? "Messaggio pubblicato correttamente."
+        : success === "board-updated"
+          ? "Messaggio aggiornato correttamente."
+          : success === "board-deleted"
+            ? "Messaggio eliminato correttamente."
         : success === "task-completed"
           ? "Mansione completata correttamente."
           : null;
@@ -123,14 +128,11 @@ export default async function DashboardTasksPage({
           },
         })
       : Promise.resolve([]),
-    canManage && features.tasks
+    canManage && (features.tasks || features.noticeBoard)
       ? prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
             isActive: true,
-            role: {
-              not: Role.OWNER,
-            },
           },
           orderBy: {
             role: "asc",
@@ -143,6 +145,7 @@ export default async function DashboardTasksPage({
                 lastName: true,
               },
             },
+            role: true,
           },
         })
       : Promise.resolve([]),
@@ -155,6 +158,13 @@ export default async function DashboardTasksPage({
           include: {
             author: {
               select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+            employee: {
+              select: {
+                id: true,
                 firstName: true,
                 lastName: true,
               },
@@ -181,12 +191,17 @@ export default async function DashboardTasksPage({
               </form>
             ) : null}
             <PopupAction title="Nuovo messaggio bacheca" ariaLabel="Aggiungi messaggio">
-              <BoardComposeForm
-                action={createBoardNoteAction}
-                canManage={canManage}
-                notifySuccess
-              />
-            </PopupAction>
+                <BoardComposeForm
+                  action={createBoardNoteAction}
+                  canManage={canManage}
+                  members={members.map((member) => ({
+                    id: member.user.id,
+                    firstName: member.user.firstName,
+                    lastName: member.user.lastName,
+                  }))}
+                  notifySuccess
+                />
+              </PopupAction>
           </div>
         }
       >
@@ -199,14 +214,45 @@ export default async function DashboardTasksPage({
                 key={note.id}
                 title={note.isPinned ? "Messaggio fissato" : "Messaggio"}
                 subtitle={note.content}
-                meta={`${note.author.firstName} ${note.author.lastName} - ${formatDateTime(note.createdAt)}`}
+                meta={
+                  <>
+                    {note.author.firstName} {note.author.lastName} - {formatDateTime(note.createdAt)}
+                    <br />
+                    {note.employee
+                      ? `Destinatario: ${note.employee.firstName} ${note.employee.lastName}`
+                      : "Destinatario: tutto il team"}
+                  </>
+                }
                 footer={
-                  <form action={deleteBoardNoteAction}>
-                    <input type="hidden" name="noteId" value={note.id} />
-                    <PrimaryButton type="submit" tone="red">
-                      Elimina messaggio
-                    </PrimaryButton>
-                  </form>
+                  <div className="dashboard-action-row">
+                    <PopupAction title="Modifica messaggio" ariaLabel="Modifica messaggio">
+                      <BoardComposeForm
+                        action={updateBoardNoteAction}
+                        canManage={canManage}
+                        members={members.map((member) => ({
+                          id: member.user.id,
+                          firstName: member.user.firstName,
+                          lastName: member.user.lastName,
+                        }))}
+                        notifySuccess
+                        initialContent={note.content}
+                        initialIsPinned={note.isPinned}
+                        initialAssignedToAll={!note.employeeId}
+                        initialAssignedToId={note.employeeId ?? ""}
+                        submitLabel="Salva modifiche"
+                        allowMultiple={false}
+                      >
+                        <input type="hidden" name="noteId" value={note.id} />
+                      </BoardComposeForm>
+                    </PopupAction>
+                    <form action={deleteBoardNoteAction}>
+                      <input type="hidden" name="noteId" value={note.id} />
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <PrimaryButton type="submit" tone="red">
+                        Elimina messaggio
+                      </PrimaryButton>
+                    </form>
+                  </div>
                 }
               />
             ))}
@@ -235,7 +281,9 @@ export default async function DashboardTasksPage({
                     id: member.user.id,
                     firstName: member.user.firstName,
                     lastName: member.user.lastName,
-                  }))}
+                  })).filter((member) =>
+                    members.some((source) => source.user.id === member.id && source.role !== Role.OWNER)
+                  )}
                   notifySuccess
                 />
               </PopupAction>

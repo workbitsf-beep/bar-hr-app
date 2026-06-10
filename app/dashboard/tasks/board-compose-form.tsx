@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { FormField, IconButton, PrimaryButton, TextArea } from "../ui";
 
@@ -8,19 +9,45 @@ function createEmptyEntry() {
     id: crypto.randomUUID(),
     value: "",
     isPinned: false,
+    assignedToAll: true,
+    assignedToId: "",
   };
 }
 
 export function BoardComposeForm({
   action,
   canManage,
+  members = [],
   notifySuccess = false,
+  initialContent = "",
+  initialIsPinned = false,
+  initialAssignedToAll = true,
+  initialAssignedToId = "",
+  submitLabel = "Conferma pubblicazione",
+  allowMultiple = true,
+  children,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   canManage: boolean;
+  members?: Array<{ id: string; firstName: string; lastName: string }>;
   notifySuccess?: boolean;
+  initialContent?: string;
+  initialIsPinned?: boolean;
+  initialAssignedToAll?: boolean;
+  initialAssignedToId?: string;
+  submitLabel?: string;
+  allowMultiple?: boolean;
+  children?: ReactNode;
 }) {
-  const [entries, setEntries] = useState([createEmptyEntry()]);
+  const [entries, setEntries] = useState([
+    {
+      ...createEmptyEntry(),
+      value: initialContent,
+      isPinned: initialIsPinned,
+      assignedToAll: initialAssignedToAll,
+      assignedToId: initialAssignedToId,
+    },
+  ]);
 
   function updateEntry(
     id: string,
@@ -61,6 +88,8 @@ export function BoardComposeForm({
                 border: "1px solid #e2e8f0",
               }}
             >
+              {children}
+
               <div
                 style={{
                   display: "flex",
@@ -72,7 +101,7 @@ export function BoardComposeForm({
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>
                   Messaggio {index + 1}
                 </strong>
-                {entries.length > 1 ? (
+                {allowMultiple && entries.length > 1 ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(entry.id)}
@@ -107,6 +136,59 @@ export function BoardComposeForm({
 
               <input type="hidden" name="boardEntryId" value={entry.id} />
 
+              {canManage && members.length > 0 ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      name={`assignedToAll_${entry.id}`}
+                      checked={entry.assignedToAll}
+                      onChange={(event) =>
+                        updateEntry(entry.id, {
+                          assignedToAll: event.target.checked,
+                          assignedToId: event.target.checked ? "" : entry.assignedToId,
+                        })
+                      }
+                    />
+                    Tutto il team
+                  </label>
+
+                  {!entry.assignedToAll ? (
+                    <select
+                      name={`assignedToId_${entry.id}`}
+                      value={entry.assignedToId}
+                      required={!entry.assignedToAll}
+                      onChange={(event) =>
+                        updateEntry(entry.id, { assignedToId: event.target.value })
+                      }
+                      style={{
+                        width: "100%",
+                        borderRadius: 16,
+                        border: "1px solid #dbe3ee",
+                        padding: "12px 14px",
+                        background: "#fff",
+                        fontSize: 15,
+                      }}
+                    >
+                      <option value="">Seleziona persona</option>
+                      {members.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.firstName} {member.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                </div>
+              ) : (
+                <input type="hidden" name={`assignedToAll_${entry.id}`} value="on" />
+              )}
+
               {canManage ? (
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
@@ -123,23 +205,25 @@ export function BoardComposeForm({
             </div>
           ))}
 
-          <div>
-            <IconButton type="button" onClick={addEntry} aria-label="Aggiungi messaggio">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M12 5v14M5 12h14"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </IconButton>
-          </div>
+          {allowMultiple ? (
+            <div>
+              <IconButton type="button" onClick={addEntry} aria-label="Aggiungi messaggio">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M12 5v14M5 12h14"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </IconButton>
+            </div>
+          ) : null}
         </div>
       </FormField>
 
       <div>
-        <PrimaryButton type="submit">Conferma pubblicazione</PrimaryButton>
+        <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
       </div>
     </form>
   );

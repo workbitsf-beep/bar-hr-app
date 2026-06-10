@@ -13,6 +13,7 @@ import {
   Stack,
 } from "../ui";
 import { formatDurationClock } from "@/lib/time-format";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 type EmployeeOption = {
   id: string;
@@ -333,6 +334,7 @@ export function ExportClient({
                                   year: "numeric",
                                   hour: "2-digit",
                                   minute: "2-digit",
+                                  timeZone: APP_TIME_ZONE,
                                 })}{" "}
                                 -{" "}
                                 {new Date(item.endsAt).toLocaleString("it-IT", {
@@ -341,6 +343,7 @@ export function ExportClient({
                                   year: "numeric",
                                   hour: "2-digit",
                                   minute: "2-digit",
+                                  timeZone: APP_TIME_ZONE,
                                 })}
                               </span>
                               {item.note ? <span style={{ color: "#64748b" }}>{item.note}</span> : null}
@@ -362,11 +365,13 @@ export function ExportClient({
                               {new Date(entry.clockIn).toLocaleTimeString("it-IT", {
                                 hour: "2-digit",
                                 minute: "2-digit",
+                                timeZone: APP_TIME_ZONE,
                               })}{" "}
                               -{" "}
                                 {new Date(entry.clockOut).toLocaleTimeString("it-IT", {
                                 hour: "2-digit",
                                 minute: "2-digit",
+                                timeZone: APP_TIME_ZONE,
                               })}{" "}
                                 - reali {formatDurationClock(entry.realHours)} - arrotondate{" "}
                                 {formatDurationClock(entry.roundedHours)}

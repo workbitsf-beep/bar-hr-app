@@ -62,8 +62,15 @@ export const POST = withBar(
       );
     }
 
-    const startTime = parseDateTimeLocal(body.startTime);
-    const endTime = parseDateTimeLocal(body.endTime);
+    let startTime: Date;
+    let endTime: Date;
+
+    try {
+      startTime = parseDateTimeLocal(body.startTime);
+      endTime = parseDateTimeLocal(body.endTime);
+    } catch {
+      return Response.json({ ok: false, message: "Invalid shift range" }, { status: 400 });
+    }
 
     if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
       return Response.json({ ok: false, message: "Invalid shift range" }, { status: 400 });

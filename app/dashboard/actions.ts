@@ -188,7 +188,21 @@ async function getBarNotificationContext(
 }
 
 function parseRequiredDate(value: FormDataEntryValue | null): Date {
-  return parseDateTimeLocal(String(value ?? ""));
+  try {
+    return parseDateTimeLocal(String(value ?? ""));
+  } catch {
+    throw new Error("Data non valida");
+  }
+}
+
+function ensureValidDateRange(startsAt: Date, endsAt: Date, message = "Intervallo date non valido") {
+  if (
+    Number.isNaN(startsAt.getTime()) ||
+    Number.isNaN(endsAt.getTime()) ||
+    endsAt <= startsAt
+  ) {
+    throw new Error(message);
+  }
 }
 
 function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
@@ -1744,9 +1758,7 @@ export async function createShiftAction(formData: FormData) {
     throw new Error("Select at least one employee");
   }
 
-  if (endTime <= startTime) {
-    throw new Error("Invalid shift range");
-  }
+  ensureValidDateRange(startTime, endTime, "Invalid shift range");
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
   await assertNoShiftAssignmentConflicts({
@@ -1802,9 +1814,7 @@ export async function updateShiftAction(formData: FormData) {
     throw new Error("Missing shift data");
   }
 
-  if (endTime <= startTime) {
-    throw new Error("Invalid shift range");
-  }
+  ensureValidDateRange(startTime, endTime, "Invalid shift range");
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
   await assertNoShiftAssignmentConflicts({
@@ -2087,7 +2097,7 @@ export async function createBoardNoteAction(formData: FormData) {
             recipient.count === 1 ? "Nuovo messaggio in bacheca" : "Nuovi messaggi in bacheca",
           message: `Ciao ${recipient.firstName},\n${authorName} ha pubblicato ${notificationCountLabel} nella bacheca di ${notificationContext.barName}.`,
           type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
-          actionUrl: "/dashboard/tasks",
+          actionUrl: "/dashboard/board",
         });
       })
     );
@@ -2098,11 +2108,95 @@ export async function createBoardNoteAction(formData: FormData) {
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard/board");
+    revalidatePath("/dashboard/calendar");
     redirect(appendStatusToPath(returnPath, { success: "board-created" }));
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/board");
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function updateBoardNoteAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const noteId = String(formData.get("noteId") ?? "").trim();
+  const noteEntries = parseBoardDrafts(formData, canManageOperations(role));
+  const noteEntry = noteEntries[0];
+
+  if (!noteId) {
+    throw new Error("Missing note id");
+  }
+
+  if (!noteEntry) {
+    throw new Error("Missing content");
+  }
+
+  if (!noteEntry.assignedToAll && !noteEntry.assignedToId) {
+    throw new Error("Missing board recipient");
+  }
+
+  if (!noteEntry.assignedToAll && noteEntry.assignedToId) {
+    await ensureUsersBelongToBar(activeBarId, [noteEntry.assignedToId]);
+  }
+
+  const updated = await prisma.note.updateMany({
+    where: {
+      id: noteId,
+      barId: activeBarId,
+    },
+    data: {
+      content: noteEntry.content,
+      isPinned: noteEntry.isPinned,
+      employeeId: noteEntry.assignedToAll ? null : noteEntry.assignedToId,
+    },
+  });
+
+  if (updated.count === 0) {
+    throw new Error("Note not found");
+  }
+
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = excludeActorFromUsers(
+      noteEntry.assignedToAll
+        ? notificationContext.users
+        : notificationContext.users.filter((user) => user.id === noteEntry.assignedToId),
+      session.user.id
+    );
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: "Messaggio bacheca aggiornato",
+        message: `${getFullName(session.user)} ha aggiornato un messaggio nella bacheca di ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
+        actionUrl: "/dashboard/board",
+      });
+    }
+  }
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/tasks");
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard/board");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "board-updated" }));
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/board");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function deleteAllBoardNotesAction() {
@@ -2122,6 +2216,7 @@ export async function deleteAllBoardNotesAction() {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/board");
 }
 
 export async function deleteBoardNoteAction(formData: FormData) {
@@ -2149,11 +2244,15 @@ export async function deleteBoardNoteAction(formData: FormData) {
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/tasks");
-    redirect(appendStatusToPath(returnPath, { success: "task-completed" }));
+    revalidatePath("/dashboard/board");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "board-deleted" }));
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/board");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function createAvailabilityAction(formData: FormData) {
@@ -2177,9 +2276,7 @@ export async function createAvailabilityAction(formData: FormData) {
   const endsAt = parseRequiredDate(formData.get("endsAt"));
   const reason = String(formData.get("reason") ?? "").trim();
 
-  if (endsAt <= startsAt) {
-    throw new Error("Invalid date range");
-  }
+  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
 
   await prisma.availability.create({
     data: {
@@ -2242,9 +2339,7 @@ export async function createCalendarClosureAction(formData: FormData) {
   const startsAt = parseRequiredDate(formData.get("startsAt"));
   const endsAt = parseRequiredDate(formData.get("endsAt"));
 
-  if (endsAt <= startsAt) {
-    throw new Error("Invalid date range");
-  }
+  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
 
   const fallbackTitle =
     type === CalendarClosureType.HOLIDAY
@@ -2315,9 +2410,7 @@ export async function updateCalendarClosureAction(formData: FormData) {
     throw new Error("Missing closure id");
   }
 
-  if (endsAt <= startsAt) {
-    throw new Error("Invalid date range");
-  }
+  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
 
   const fallbackTitle =
     type === CalendarClosureType.HOLIDAY
@@ -2449,9 +2542,7 @@ export async function createCourseAction(formData: FormData) {
     throw new Error("Missing course title");
   }
 
-  if (endsAt <= startsAt) {
-    throw new Error("Invalid course range");
-  }
+  ensureValidDateRange(startsAt, endsAt, "Invalid course range");
 
   if (!assignedToAll && assignedToId) {
     await ensureUsersBelongToBar(activeBarId, [assignedToId]);
@@ -3116,9 +3207,7 @@ export async function createTimeOffRequestAction(formData: FormData) {
     await ensureUsersBelongToBar(activeBarId, [employeeId]);
   }
 
-  if (endsAt <= startsAt) {
-    throw new Error("Invalid date range");
-  }
+  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
 
   if (type === RequestType.SICKNESS && !certificateCode) {
     throw new Error("Missing certificate code");
