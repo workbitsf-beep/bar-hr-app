@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canViewDocument, formatDocumentSize } from "@/lib/documents";
+import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { createDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -44,7 +45,7 @@ export default async function DashboardDocumentsPage() {
     );
   }
 
-  const canManage = role === Role.OWNER || role === Role.MANAGER;
+  const canManage = canManageTrainingAndDocuments(role as Role);
 
   const [documents, recipients] = await Promise.all([
     prisma.document.findMany({

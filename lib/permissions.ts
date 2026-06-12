@@ -196,8 +196,20 @@ export function canManagePeople(role: Role): boolean {
   return role === Role.OWNER;
 }
 
+export function canReviewOperationalRequests(role: Role): boolean {
+  return role === Role.OWNER || role === Role.MANAGER;
+}
+
+export function canManageTrainingAndDocuments(role: Role): boolean {
+  return role === Role.OWNER || role === Role.MANAGER || role === Role.AMMINISTRAZIONE;
+}
+
+export function canViewCompanyReports(role: Role): boolean {
+  return role === Role.OWNER || role === Role.AMMINISTRAZIONE;
+}
+
 export function canClock(role: Role): boolean {
-  return role === Role.MANAGER || role === Role.EMPLOYEE;
+  return role === Role.MANAGER || role === Role.AMMINISTRAZIONE || role === Role.EMPLOYEE;
 }
 
 export function canExportAll(role: Role): boolean {

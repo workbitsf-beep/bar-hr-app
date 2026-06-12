@@ -121,7 +121,7 @@ export default async function DashboardPage() {
       ) : null}
 
       {!canManagePeople ? (
-        <Panel title="Il tuo KPI" action={<ArrowLinkButton href="/dashboard/calendar" />}>
+        <Panel title="Le tue ore" action={<ArrowLinkButton href="/dashboard/calendar" />}>
           <div
             style={{
               display: "grid",
@@ -132,7 +132,7 @@ export default async function DashboardPage() {
             {isRestaurant && features.timeTracking && ownHours ? (
               <ItemCard
                 title={formatDurationClock(ownHours.roundedHours)}
-                subtitle={`Ore reali ${formatDurationClock(ownHours.realHours)}`}
+                subtitle={`Ore lavorate ${formatDurationClock(ownHours.realHours)}`}
                 meta="Ore mese"
               />
             ) : null}
@@ -166,7 +166,7 @@ export default async function DashboardPage() {
               {shifts.map((shift) => (
                 <ItemCard
                   key={shift.id}
-                  title={shift.title || "Turno condiviso"}
+                  title={shift.title || "Il tuo turno"}
                   subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
                   meta={shift.assignments
                     .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { canReviewOperationalRequests } from "@/lib/permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { getDashboardContext } from "../context";
@@ -166,7 +167,8 @@ export default async function DashboardCalendarPage({
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
   const canManageRestaurantShifts =
     features.shifts && isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
-  const canReviewCompanyRequests = features.requests && !isRestaurant && role === Role.OWNER;
+  const canReviewCompanyRequests =
+    features.requests && !isRestaurant && canReviewOperationalRequests(role as Role);
 
   const [
     settings,

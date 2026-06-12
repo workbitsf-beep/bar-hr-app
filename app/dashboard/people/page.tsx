@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { ActivityType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createEmployeeAction, removeEmployeeAction } from "../actions";
 import { getDashboardContext } from "../context";
@@ -23,7 +23,11 @@ function formatRoleLabel(role: Role) {
   }
 
   if (role === Role.MANAGER) {
-    return "Manager";
+    return "Responsabile";
+  }
+
+  if (role === Role.AMMINISTRAZIONE) {
+    return "Amministrazione";
   }
 
   return "Dipendente";
@@ -36,7 +40,7 @@ export default async function DashboardPeoplePage({
 }) {
   const params = searchParams ? await searchParams : {};
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
-  const { role, activeBarId, billingStatus } = await getDashboardContext();
+  const { role, activeBarId, activeBarActivityType, billingStatus } = await getDashboardContext();
 
   if (role !== Role.OWNER) {
     return (
@@ -75,6 +79,7 @@ export default async function DashboardPeoplePage({
       },
     },
   });
+  const isCompany = activeBarActivityType === ActivityType.COMPANY;
 
   return (
     <>
@@ -119,7 +124,10 @@ export default async function DashboardPeoplePage({
                       <Select name="role" defaultValue="EMPLOYEE">
                         <option value="OWNER">Titolare aggiuntivo</option>
                         <option value="EMPLOYEE">Dipendente</option>
-                        <option value="MANAGER">Manager</option>
+                        <option value="MANAGER">Responsabile</option>
+                        {isCompany ? (
+                          <option value="AMMINISTRAZIONE">Amministrazione</option>
+                        ) : null}
                       </Select>
                     </FormField>
 

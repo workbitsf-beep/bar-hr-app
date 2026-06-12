@@ -216,7 +216,7 @@ function hasTimeOverlap(rangeStart: string, rangeEnd: string, shiftStart: string
 
 function formatRoleLabel(role: string) {
   if (role === Role.MANAGER) {
-    return "Manager";
+    return "Responsabile";
   }
 
   if (role === Role.OWNER) {
@@ -625,7 +625,7 @@ export function DayActionCalendarClient({
   const canCreateAvailability = features.availability && !isCompany && role !== Role.OWNER;
   const canCreateCourse = features.courses && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateClosure = features.requests && (role === Role.OWNER || role === Role.MANAGER);
-  const canReviewRequests = features.requests && isCompany && role === Role.OWNER;
+  const canReviewRequests = features.requests && isCompany && (role === Role.OWNER || role === Role.MANAGER);
   const canOpenTaskComposer = features.tasks && (role === Role.OWNER || role === Role.MANAGER);
   const hasDayMancanze =
     (features.availability ? selectedDay?.availabilities.length ?? 0 : 0) +
@@ -1152,7 +1152,7 @@ export function DayActionCalendarClient({
                           lineHeight: 1.6,
                         }}
                       >
-                        Bacheca: {day.notes.length}
+                        {day.notes.length} messaggi in bacheca
                       </div>
                     ) : null}
                   </button>

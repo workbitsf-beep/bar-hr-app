@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { DateTimeInput } from "@/app/components/date-time-input";
 import { createCourseAction, deleteCourseAction } from "../actions";
 import { getDashboardContext } from "../context";
@@ -50,7 +51,7 @@ export default async function DashboardCoursesPage({
     );
   }
 
-  const canManage = role === Role.OWNER || role === Role.MANAGER;
+  const canManage = canManageTrainingAndDocuments(role as Role);
   const successMessage = success === "course-created" ? "Corso salvato correttamente." : null;
   const [courses, members] = await Promise.all([
     prisma.course.findMany({

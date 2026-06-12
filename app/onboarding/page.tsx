@@ -1080,7 +1080,7 @@ export default async function OnboardingPage({
                   >
                     <option value="OWNER">Titolare</option>
                     <option value="EMPLOYEE">Dipendente</option>
-                    <option value="MANAGER">Manager</option>
+                    <option value="MANAGER">Responsabile</option>
                   </select>
                 </label>
               </div>
@@ -1188,7 +1188,7 @@ export default async function OnboardingPage({
                         {membership.role === Role.OWNER
                           ? "Titolare"
                           : membership.role === Role.MANAGER
-                            ? "Manager"
+                            ? "Responsabile"
                             : "Dipendente"}
                       </span>
                     </div>

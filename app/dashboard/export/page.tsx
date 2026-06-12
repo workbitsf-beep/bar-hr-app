@@ -30,7 +30,7 @@ export default async function DashboardExportPage() {
 
   const canSelectEmployees =
     role === Role.OWNER ||
-    (role === Role.MANAGER && activeBarActivityType === ActivityType.COMPANY);
+    (role === Role.AMMINISTRAZIONE && activeBarActivityType === ActivityType.COMPANY);
 
   const employees = await prisma.employeeBar.findMany({
     where: {

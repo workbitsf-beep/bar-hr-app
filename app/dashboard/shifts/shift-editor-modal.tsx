@@ -51,7 +51,7 @@ function formatDayTime(value: string, locale: string) {
 
 function formatRoleLabel(role: string) {
   if (role === "MANAGER") {
-    return "Manager";
+    return "Responsabile";
   }
 
   if (role === "OWNER") {

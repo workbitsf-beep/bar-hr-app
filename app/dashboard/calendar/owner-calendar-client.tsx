@@ -171,7 +171,7 @@ function formatRange(start: string, end: string, locale: string) {
 
 function formatRoleLabel(role: string) {
   if (role === "MANAGER") {
-    return "Manager";
+    return "Responsabile";
   }
 
   if (role === "OWNER") {
@@ -1010,7 +1010,7 @@ export function OwnerCalendarClient({
                           lineHeight: 1.6,
                         }}
                       >
-                        Bacheca: {day.notes.length}
+                        {day.notes.length} messaggi in bacheca
                       </div>
                     ) : null}
                   </button>

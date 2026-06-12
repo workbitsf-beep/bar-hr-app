@@ -8,7 +8,7 @@ export type SubscriptionStatusValue =
   | "CANCELED"
   | "UNPAID"
   | "INACTIVE";
-export type RoleValue = "OWNER" | "MANAGER" | "EMPLOYEE";
+export type RoleValue = "OWNER" | "MANAGER" | "AMMINISTRAZIONE" | "EMPLOYEE";
 
 export type ActivityItem = {
   id: string;
@@ -24,6 +24,7 @@ export type ActivityItem = {
   staffCounts: {
     owners: number;
     managers: number;
+    administration: number;
     employees: number;
     total: number;
   };

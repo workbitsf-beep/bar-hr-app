@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { Fragment } from "react";
 import { prisma } from "@/lib/prisma";
+import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { DateTimeInput } from "@/app/components/date-time-input";
 import {
@@ -103,7 +104,7 @@ export default async function DashboardRequestsPage({
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
-  const canManageClosures = role === Role.OWNER || role === Role.MANAGER;
+  const canManageClosures = canReviewOperationalRequests(role as Role);
   const pageTitle = canManageClosures ? "Richieste e chiusure" : features.requests ? "Richieste" : "Indisponibilita";
 
   if (!activeBarId) {
@@ -154,7 +155,7 @@ export default async function DashboardRequestsPage({
       ? prisma.request.findMany({
       where: {
         barId: activeBarId,
-        ...(role === Role.OWNER
+        ...(canManageClosures
           ? {}
           : {
               OR: [
@@ -789,7 +790,7 @@ export default async function DashboardRequestsPage({
                     request.status === RequestStatus.PENDING &&
                     request.peerStatus !== RequestStatus.REJECTED;
                   const canOwnerReview =
-                    role === Role.OWNER &&
+                    canManageClosures &&
                     request.status === RequestStatus.PENDING &&
                     request.type !== RequestType.SICKNESS &&
                     (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);

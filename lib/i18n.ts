@@ -125,25 +125,29 @@ const roleLabels: Record<AppLanguage, Record<string, string>> = {
   it: {
     SUPER_ADMIN: "Super Admin",
     OWNER: "Titolare",
-    MANAGER: "Manager",
+    MANAGER: "Responsabile",
+    AMMINISTRAZIONE: "Amministrazione",
     EMPLOYEE: "Dipendente",
   },
   en: {
     SUPER_ADMIN: "Super Admin",
     OWNER: "Owner",
-    MANAGER: "Manager",
+    MANAGER: "Supervisor",
+    AMMINISTRAZIONE: "Administration",
     EMPLOYEE: "Employee",
   },
   es: {
     SUPER_ADMIN: "Super Admin",
     OWNER: "Propietario",
-    MANAGER: "Manager",
+    MANAGER: "Responsable",
+    AMMINISTRAZIONE: "Administracion",
     EMPLOYEE: "Empleado",
   },
   fr: {
     SUPER_ADMIN: "Super Admin",
     OWNER: "Proprietaire",
-    MANAGER: "Manager",
+    MANAGER: "Responsable",
+    AMMINISTRAZIONE: "Administration",
     EMPLOYEE: "Employe",
   },
 };

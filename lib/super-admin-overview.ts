@@ -112,7 +112,11 @@ function buildStaffDirectory(memberships: ActivityMembership[]) {
     }
 
     const membershipRole =
-      membership.role === Role.MANAGER ? "MANAGER" : "EMPLOYEE";
+      membership.role === Role.MANAGER
+        ? "MANAGER"
+        : membership.role === Role.AMMINISTRAZIONE
+          ? "AMMINISTRAZIONE"
+          : "EMPLOYEE";
 
     const current =
       staffMap.get(membership.user.id) ??
@@ -136,7 +140,13 @@ function buildStaffDirectory(memberships: ActivityMembership[]) {
 
     if (current.activityPreview.length < 3) {
       current.activityPreview.push(
-        `${membership.barName} (${membershipRole === "MANAGER" ? "Manager" : "Dipendente"})`
+        `${membership.barName} (${
+          membershipRole === "MANAGER"
+            ? "Responsabile"
+            : membershipRole === "AMMINISTRAZIONE"
+              ? "Amministrazione"
+              : "Dipendente"
+        })`
       );
     }
 
@@ -266,7 +276,7 @@ async function loadSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> 
       where: {
         isActive: true,
         role: {
-          in: [Role.OWNER, Role.MANAGER, Role.EMPLOYEE],
+          in: [Role.OWNER, Role.MANAGER, Role.AMMINISTRAZIONE, Role.EMPLOYEE],
         },
       },
       select: {
@@ -352,6 +362,7 @@ async function loadSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> 
     {
       owners: number;
       managers: number;
+      administration: number;
       employees: number;
       total: number;
     }
@@ -377,6 +388,7 @@ async function loadSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> 
       staffCountsByBarId.get(membership.barId) ?? {
         owners: 0,
         managers: 0,
+        administration: 0,
         employees: 0,
         total: 0,
       };
@@ -387,6 +399,8 @@ async function loadSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> 
       currentCounts.owners += 1;
     } else if (membership.role === Role.MANAGER) {
       currentCounts.managers += 1;
+    } else if (membership.role === Role.AMMINISTRAZIONE) {
+      currentCounts.administration += 1;
     } else if (membership.role === Role.EMPLOYEE) {
       currentCounts.employees += 1;
     }
@@ -399,6 +413,7 @@ async function loadSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> 
       staffCountsByBarId.get(bar.id) ?? {
         owners: 0,
         managers: 0,
+        administration: 0,
         employees: 0,
         total: 0,
       };

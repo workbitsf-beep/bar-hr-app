@@ -175,8 +175,8 @@ export function KpiDashboard({
         if (!response.ok || !payload.ok) {
           throw new Error(
             payload.ok
-              ? "Impossibile caricare i KPI."
-              : payload.message || "Impossibile caricare i KPI."
+              ? "Impossibile caricare le statistiche."
+              : payload.message || "Impossibile caricare le statistiche."
           );
         }
 
@@ -193,7 +193,7 @@ export function KpiDashboard({
           setError(
             fetchError instanceof Error
               ? fetchError.message
-              : "Impossibile caricare i KPI."
+              : "Impossibile caricare le statistiche."
           );
         }
       } finally {
@@ -240,7 +240,7 @@ export function KpiDashboard({
     };
   }, [activeBarId]);
 
-  const roleLabel = role === "OWNER" ? "Panoramica titolare" : "Panoramica manager";
+  const roleLabel = role === "OWNER" ? "Panoramica titolare" : "Panoramica responsabile";
 
   const freshnessLabel = useMemo(() => {
     if (!updatedAt) {

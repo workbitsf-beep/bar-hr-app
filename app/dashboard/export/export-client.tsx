@@ -282,7 +282,7 @@ export function ExportClient({
               </div>
             ) : (
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <ItemCard title="Ore reali" meta={formatDurationClock(result.totals.realHours)} />
+                <ItemCard title="Ore lavorate" meta={formatDurationClock(result.totals.realHours)} />
                 <ItemCard
                   title="Ore arrotondate"
                   meta={formatDurationClock(result.totals.roundedHours)}
@@ -307,7 +307,7 @@ export function ExportClient({
                     subtitle={
                       result.mode === "company"
                         ? `${day.items?.length ?? 0} registrazioni`
-                        : `Ore reali ${formatDurationClock(day.totals.realHours)} - Ore arrotondate ${formatDurationClock(day.totals.roundedHours)}`
+                        : `Ore lavorate ${formatDurationClock(day.totals.realHours)} - Ore arrotondate ${formatDurationClock(day.totals.roundedHours)}`
                     }
                     meta={
                       result.mode === "company"

@@ -85,7 +85,7 @@ export function PlannedShiftsList({
             }}
           >
             <div style={{ display: "grid", gap: 4 }}>
-              <strong style={{ color: "#0f172a" }}>{shift.title || "Turno condiviso"}</strong>
+              <strong style={{ color: "#0f172a" }}>{shift.title || "Il tuo turno"}</strong>
               <span style={{ color: "#475569", fontSize: 14 }}>
                 {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
               </span>

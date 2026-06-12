@@ -436,7 +436,7 @@ export function ClockActionsPanel({
             onClick={captureGeolocation}
             disabled={locating || !gpsConfigured}
           >
-            {locating ? "Aggiornamento posizione..." : compact ? "Verifica posizione" : "Aggiorna posizione"}
+            {locating ? "Aggiornamento posizione..." : compact ? "Controlla posizione" : "Aggiorna posizione"}
           </PrimaryButton>
         <div
           className="dashboard-clock-actions-row"
@@ -811,7 +811,7 @@ export function TimeLogsClient({
       {totals ? (
         <Panel title="Totale ore personale">
           <div className="dashboard-summary-grid" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <ItemCard className="dashboard-summary-card" title="Ore reali" meta={formatDurationClock(totals.realHours)} />
+            <ItemCard className="dashboard-summary-card" title="Ore lavorate" meta={formatDurationClock(totals.realHours)} />
             <ItemCard
               className="dashboard-summary-card"
               title="Ore arrotondate"

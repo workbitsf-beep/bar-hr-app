@@ -16,7 +16,7 @@ type MemberOption = {
 
 function formatRoleLabel(role: string) {
   if (role === "MANAGER") {
-    return "Manager";
+    return "Responsabile";
   }
 
   if (role === "OWNER") {

@@ -58,7 +58,11 @@ function getRoleLabel(role: RoleValue) {
   }
 
   if (role === "MANAGER") {
-    return "Manager";
+    return "Responsabile";
+  }
+
+  if (role === "AMMINISTRAZIONE") {
+    return "Amministrazione";
   }
 
   return "Dipendente";
@@ -959,7 +963,7 @@ export function SuperAdminOverviewClient({
         <MetricCard
           label="Staff associato"
           value={String(summary.staffCount)}
-          hint="Manager e dipendenti attivi"
+          hint="Responsabili, amministrazione e dipendenti attivi"
         />
         <MetricCard
           label="Pagamenti attivi"
@@ -1276,7 +1280,7 @@ export function SuperAdminOverviewClient({
         >
           <SectionTitle
             eyebrow="Ricerca staff"
-            title="Manager e dipendenti associati"
+            title="Responsabili, amministrazione e dipendenti associati"
             subtitle="Consulta dove lavorano, con quale ruolo e quante attivita seguono."
           />
           <div style={{ width: "min(320px, 100%)" }}>
@@ -1468,7 +1472,7 @@ export function SuperAdminOverviewClient({
                 }}
               >
                 <span>
-                  Owner: {activity.staffCounts.owners} - Manager: {activity.staffCounts.managers} - Dipendenti: {activity.staffCounts.employees}
+                  Titolari: {activity.staffCounts.owners} - Responsabili: {activity.staffCounts.managers} - Amministrazione: {activity.staffCounts.administration} - Dipendenti: {activity.staffCounts.employees}
                 </span>
                 <span>
                   Turni {activity.operations.shifts} - Timbrature {activity.operations.timeLogs}

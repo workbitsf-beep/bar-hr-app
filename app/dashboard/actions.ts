@@ -38,6 +38,8 @@ import { parseTaskDueDate } from "@/lib/task-dates";
 import {
   canManageOperations,
   canManagePeople,
+  canReviewOperationalRequests,
+  canManageTrainingAndDocuments,
   getActiveBarAccess,
   getAccessibleBarsForUser,
   userCanAccessBar,
@@ -245,7 +247,12 @@ function parseShiftPresetPair(
 function parseRole(value: FormDataEntryValue | null): Role {
   const raw = String(value ?? "");
 
-  if (raw === Role.OWNER || raw === Role.MANAGER || raw === Role.EMPLOYEE) {
+  if (
+    raw === Role.OWNER ||
+    raw === Role.MANAGER ||
+    raw === Role.AMMINISTRAZIONE ||
+    raw === Role.EMPLOYEE
+  ) {
     return raw;
   }
 
@@ -264,7 +271,13 @@ async function syncUserRole(tx: Prisma.TransactionClient, userId: string) {
     return;
   }
 
-  const [primaryOwnedBars, ownerMemberships, managerMemberships, employeeMemberships] =
+  const [
+    primaryOwnedBars,
+    ownerMemberships,
+    managerMemberships,
+    administrationMemberships,
+    employeeMemberships,
+  ] =
     await Promise.all([
       tx.bar.count({
         where: {
@@ -289,6 +302,13 @@ async function syncUserRole(tx: Prisma.TransactionClient, userId: string) {
         where: {
           userId,
           isActive: true,
+          role: Role.AMMINISTRAZIONE,
+        },
+      }),
+      tx.employeeBar.count({
+        where: {
+          userId,
+          isActive: true,
           role: Role.EMPLOYEE,
         },
       }),
@@ -300,6 +320,8 @@ async function syncUserRole(tx: Prisma.TransactionClient, userId: string) {
     nextRole = Role.OWNER;
   } else if (managerMemberships > 0) {
     nextRole = Role.MANAGER;
+  } else if (administrationMemberships > 0) {
+    nextRole = Role.AMMINISTRAZIONE;
   } else if (employeeMemberships > 0) {
     nextRole = Role.EMPLOYEE;
   }
@@ -554,6 +576,12 @@ function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft
 
 function ensureOperationRole(role: Role) {
   if (!canManageOperations(role)) {
+    throw new Error("Unauthorized");
+  }
+}
+
+function ensureTrainingDocumentRole(role: Role) {
+  if (!canManageTrainingAndDocuments(role)) {
     throw new Error("Unauthorized");
   }
 }
@@ -1932,9 +1960,7 @@ export async function confirmShiftAction(formData: FormData) {
 
   if (notificationContext) {
     const recipients = excludeActorFromUsers(
-      notificationContext.users.filter(
-        (user) => user.role === Role.OWNER || user.role === Role.MANAGER
-      ),
+      notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
       session.user.id
     );
 
@@ -2292,9 +2318,7 @@ export async function createAvailabilityAction(formData: FormData) {
 
   if (notificationContext) {
     const recipients = excludeActorFromUsers(
-      notificationContext.users.filter(
-        (user) => user.role === Role.OWNER || user.role === Role.MANAGER
-      ),
+      notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
       session.user.id
     );
 
@@ -2524,7 +2548,7 @@ export async function deleteCalendarClosureAction(formData: FormData) {
 
 export async function createCourseAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  ensureTrainingDocumentRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2599,7 +2623,7 @@ export async function createCourseAction(formData: FormData) {
 
 export async function deleteCourseAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  ensureTrainingDocumentRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2662,7 +2686,7 @@ export async function deleteCourseAction(formData: FormData) {
 
 export async function createDocumentAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  ensureTrainingDocumentRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2724,7 +2748,7 @@ export async function createDocumentAction(formData: FormData) {
 
 export async function toggleDocumentActiveAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  ensureTrainingDocumentRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2796,6 +2820,7 @@ export async function createEmployeeAction(formData: FormData) {
       where: { id: activeBarId },
       select: {
         name: true,
+        activityType: true,
       },
     }),
     prisma.user.findUnique({
@@ -2808,6 +2833,10 @@ export async function createEmployeeAction(formData: FormData) {
 
   if (!bar) {
     throw new Error("Bar not found");
+  }
+
+  if (bar.activityType !== ActivityType.COMPANY && userRole === Role.AMMINISTRAZIONE) {
+    throw new Error("Role not allowed for this activity");
   }
 
   const temporaryPassword = createTemporaryPassword();
@@ -3239,7 +3268,7 @@ export async function createTimeOffRequestAction(formData: FormData) {
 
   if (notificationContext && !isOwnerOvertimeRequest) {
     const ownerRecipients = excludeActorFromUsers(
-      notificationContext.users.filter((user) => user.role === Role.OWNER),
+      notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
       session.user.id
     );
 
@@ -3339,7 +3368,7 @@ export async function createShiftChangeRequestAction(formData: FormData) {
   if (notificationContext) {
     const recipients = excludeActorFromUsers(
       dedupeUsers([
-        ...notificationContext.users.filter((user) => user.role === Role.OWNER),
+        ...notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
         notificationContext.users.find((user) => user.id === swapWithUserId),
       ]),
       session.user.id
@@ -3429,7 +3458,7 @@ export async function reviewRequestAction(formData: FormData) {
 
   if (request.type === RequestType.SHIFT_CHANGE) {
     const isPeerReviewer = request.swapWithUserId === session.user.id;
-    const isOwnerReviewer = request.bar.ownerId === session.user.id || role === Role.OWNER;
+    const isOwnerReviewer = canReviewOperationalRequests(role);
 
     if (!isPeerReviewer && !isOwnerReviewer) {
       throw new Error("Unauthorized");
@@ -3535,7 +3564,7 @@ export async function reviewRequestAction(formData: FormData) {
       }
     }
   } else {
-    const isOwnerReviewer = request.bar.ownerId === session.user.id || role === Role.OWNER;
+    const isOwnerReviewer = canReviewOperationalRequests(role);
 
     if (!isOwnerReviewer) {
       throw new Error("Unauthorized");

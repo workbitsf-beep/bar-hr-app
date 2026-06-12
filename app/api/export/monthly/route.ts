@@ -272,7 +272,7 @@ export const POST = withBar(
       const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
       const canExportAll =
         access.role === Role.OWNER ||
-        (access.role === Role.MANAGER && activityType === ActivityType.COMPANY);
+        (access.role === Role.AMMINISTRAZIONE && activityType === ActivityType.COMPANY);
 
       if (
         Number.isNaN(month) ||
