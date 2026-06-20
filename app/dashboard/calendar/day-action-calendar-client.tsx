@@ -986,21 +986,21 @@ export function DayActionCalendarClient({
 
     runAction(async () => {
       await completeTaskAction(formData);
-    }, "Mansione completata.");
+    }, "Nota completata.");
   }
 
   function submitQuickTask(formData: FormData) {
     runAction(async () => {
       await createTaskAction(formData);
       setQuickComposer(null);
-    }, "Mansione aggiunta.");
+    }, "Nota aggiunta.");
   }
 
   function submitQuickBoard(formData: FormData) {
     runAction(async () => {
       await createBoardNoteAction(formData);
       setQuickComposer(null);
-    }, "Messaggio pubblicato.");
+    }, "Nota pubblicata.");
   }
 
   return (
@@ -1099,8 +1099,7 @@ export function DayActionCalendarClient({
                     (!features.requests || day.pendingRequests.length === 0) &&
                     day.courses.length === 0 &&
                     day.closures.length === 0 &&
-                    day.tasks.length === 0 &&
-                    day.notes.length === 0 ? (
+                    day.tasks.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
@@ -1143,21 +1142,7 @@ export function DayActionCalendarClient({
                           lineHeight: 1.6,
                         }}
                       >
-                        Mansioni: {day.tasks.length}
-                      </div>
-                    ) : null}
-                    {features.noticeBoard && day.notes.length > 0 ? (
-                      <div
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: 18,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          color: "#334155",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {day.notes.length} messaggi in bacheca
+                        Note: {day.tasks.length}
                       </div>
                     ) : null}
                   </button>
@@ -2044,14 +2029,14 @@ export function DayActionCalendarClient({
                       }}
                     >
                       <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                        Mansioni del giorno
+                        Note del giorno
                       </strong>
                       <CountBadge count={selectedDay.tasks.length} />
                       {canOpenTaskComposer ? (
                         <IconButton
                           type="button"
                           onClick={() => setQuickComposer("task")}
-                          aria-label="Aggiungi mansioni"
+                          aria-label="Aggiungi note"
                           disabled={isPending}
                         >
                           <svg
@@ -2072,56 +2057,10 @@ export function DayActionCalendarClient({
                       ) : null}
                     </div>
                     {selectedDay.tasks.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna mansione collegata a questa giornata.</div>
+                      <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-
-                {features.noticeBoard ? (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                        Bacheca del giorno
-                      </strong>
-                      <CountBadge count={selectedDay.notes.length} />
-                      <IconButton
-                        type="button"
-                        onClick={() => setQuickComposer("board")}
-                        aria-label="Aggiungi in bacheca"
-                        disabled={isPending}
-                      >
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M12 5v14M5 12h14"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                    </div>
-                    {selectedDay.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessun messaggio pubblicato in questa giornata.</div>
-                    ) : (
-                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                        {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
                       </div>
                     )}
                   </div>

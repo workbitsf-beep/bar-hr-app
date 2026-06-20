@@ -148,7 +148,7 @@ export function QuickCalendarEntryModal({
     mode === "task" ? (
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi mansioni</strong>
+          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi note</strong>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -172,12 +172,12 @@ export function QuickCalendarEntryModal({
                   gap: 10,
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Mansione {index + 1}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
                 {taskEntries.length > 1 ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setTaskEntries, entry.id)}
-                    aria-label={`Rimuovi mansione ${index + 1}`}
+                    aria-label={`Rimuovi nota ${index + 1}`}
                     style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -256,7 +256,7 @@ export function QuickCalendarEntryModal({
           ))}
 
           <div>
-            <IconButton type="button" onClick={() => addEntry(setTaskEntries)} aria-label="Aggiungi mansione">
+            <IconButton type="button" onClick={() => addEntry(setTaskEntries)} aria-label="Aggiungi nota">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M12 5v14M5 12h14"
@@ -302,14 +302,14 @@ export function QuickCalendarEntryModal({
             onClick={handleTaskSubmit}
             disabled={isPending || !taskDueDate}
           >
-            {isPending ? "Salvataggio..." : "Conferma mansioni"}
+            {isPending ? "Salvataggio..." : "Conferma note"}
           </PrimaryButton>
         </div>
       </div>
     ) : (
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi in bacheca</strong>
+          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi nota rapida</strong>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -333,12 +333,12 @@ export function QuickCalendarEntryModal({
                   gap: 10,
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Messaggio {index + 1}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
                 {boardEntries.length > 1 ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setBoardEntries, entry.id)}
-                    aria-label={`Rimuovi messaggio ${index + 1}`}
+                    aria-label={`Rimuovi nota ${index + 1}`}
                     style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -420,7 +420,7 @@ export function QuickCalendarEntryModal({
           ))}
 
           <div>
-            <IconButton type="button" onClick={() => addEntry(setBoardEntries)} aria-label="Aggiungi messaggio">
+            <IconButton type="button" onClick={() => addEntry(setBoardEntries)} aria-label="Aggiungi nota">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M12 5v14M5 12h14"

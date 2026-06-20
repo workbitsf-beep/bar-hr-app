@@ -90,7 +90,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
-  const tasksNavLabel = features.tasks || features.noticeBoard ? "Note" : t.board;
+  const tasksNavLabel = features.tasks ? "Note" : t.board;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
 
   const navItems: DashboardNavItem[] =
@@ -108,11 +108,10 @@ export const getDashboardContext = cache(async function getDashboardContext(
           features.requests ||
           features.availability ||
           features.tasks ||
-          features.noticeBoard ||
           features.courses
             ? [{ label: t.calendar, href: "/dashboard/calendar" }]
             : []),
-          ...(features.tasks || features.noticeBoard
+          ...(features.tasks
             ? [{ label: tasksNavLabel, href: "/dashboard/tasks" }]
             : []),
           ...(features.documents ? [{ label: "Documenti", href: "/dashboard/documents" }] : []),

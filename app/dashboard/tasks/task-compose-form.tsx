@@ -53,8 +53,8 @@ export function TaskComposeForm({
     <form action={action} style={{ display: "grid", gap: 16 }}>
       {notifySuccess ? <input type="hidden" name="notifySuccess" value="1" /> : null}
       <FormField
-        label="Mansioni"
-        hint="Usa il tasto + per aggiungere altre mansioni. Ogni voce verra salvata separatamente."
+        label="Note"
+        hint="Usa il tasto + per aggiungere altre note. Ogni voce verra salvata separatamente."
       >
         <div style={{ display: "grid", gap: 12 }}>
           {entries.map((entry, index) => (
@@ -78,13 +78,13 @@ export function TaskComposeForm({
                 }}
               >
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>
-                  Mansione {index + 1}
+                  Nota {index + 1}
                 </strong>
                 {entries.length > 1 ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(entry.id)}
-                    aria-label={`Rimuovi mansione ${index + 1}`}
+                    aria-label={`Rimuovi nota ${index + 1}`}
                     style={{
                       width: 34,
                       height: 34,
@@ -109,7 +109,7 @@ export function TaskComposeForm({
                 required={index === 0}
                 value={entry.value}
                 onChange={(event) => updateEntry(entry.id, { value: event.target.value })}
-                placeholder="Scrivi la mansione"
+                placeholder="Scrivi la nota"
               />
 
               <input type="hidden" name="taskEntryId" value={entry.id} />
@@ -169,7 +169,7 @@ export function TaskComposeForm({
           ))}
 
           <div>
-            <IconButton type="button" onClick={addEntry} aria-label="Aggiungi mansione">
+            <IconButton type="button" onClick={addEntry} aria-label="Aggiungi nota">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M12 5v14M5 12h14"
@@ -201,7 +201,7 @@ export function TaskComposeForm({
       </div>
 
       <div>
-        <PrimaryButton type="submit">Conferma mansioni</PrimaryButton>
+        <PrimaryButton type="submit">Conferma note</PrimaryButton>
       </div>
     </form>
   );

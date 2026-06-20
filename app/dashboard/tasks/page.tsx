@@ -1,15 +1,10 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
-  createBoardNoteAction,
   completeTaskAction,
-  confirmBoardNoteReadAction,
   createTaskAction,
-  deleteAllBoardNotesAction,
   deleteAllCompletedTasksAction,
-  deleteBoardNoteAction,
   deleteCompletedTaskAction,
-  updateBoardNoteAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -26,7 +21,6 @@ import {
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
-import { BoardComposeForm } from "./board-compose-form";
 import { TaskComposeForm } from "./task-compose-form";
 
 export default async function DashboardTasksPage({
@@ -50,10 +44,10 @@ export default async function DashboardTasksPage({
     return <BillingRequiredState role={String(role)} />;
   }
 
-  if (!features.tasks && !features.noticeBoard) {
+  if (!features.tasks) {
     return (
-      <Panel title="Contenuti">
-        <EmptyState message="Moduli contenuti disattivati nelle impostazioni." />
+      <Panel title="Note">
+        <EmptyState message="Modulo note disattivato nelle impostazioni." />
       </Panel>
     );
   }
@@ -61,21 +55,12 @@ export default async function DashboardTasksPage({
   const canManage = role === Role.OWNER || role === Role.MANAGER;
   const successMessage =
     success === "task-created"
-      ? "Mansione salvata correttamente."
-      : success === "board-created"
-        ? "Messaggio pubblicato correttamente."
-        : success === "board-updated"
-          ? "Messaggio aggiornato correttamente."
-          : success === "board-deleted"
-            ? "Messaggio eliminato correttamente."
-            : success === "board-read"
-              ? "Lettura confermata."
+      ? "Nota salvata correttamente."
         : success === "task-completed"
-          ? "Mansione completata correttamente."
+          ? "Nota completata correttamente."
           : null;
-  const [tasks, members, notes] = await Promise.all([
-    features.tasks
-      ? prisma.task.findMany({
+  const [tasks, members] = await Promise.all([
+    prisma.task.findMany({
           where: {
             barId: activeBarId,
             ...(role === Role.EMPLOYEE
@@ -129,9 +114,8 @@ export default async function DashboardTasksPage({
               },
             },
           },
-        })
-      : Promise.resolve([]),
-    canManage && (features.tasks || features.noticeBoard)
+        }),
+    canManage
       ? prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
@@ -152,184 +136,25 @@ export default async function DashboardTasksPage({
           },
         })
       : Promise.resolve([]),
-    features.noticeBoard
-      ? prisma.note.findMany({
-          where: {
-            barId: activeBarId,
-            ...(canManage
-              ? {}
-              : {
-                  OR: [{ employeeId: null }, { employeeId: session.user.id }],
-                }),
-          },
-          orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-          include: {
-            author: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-            employee: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-            readReceipts: {
-              orderBy: {
-                readAt: "desc",
-              },
-              select: {
-                userId: true,
-                readAt: true,
-                user: {
-                  select: {
-                    firstName: true,
-                    lastName: true,
-                  },
-                },
-              },
-            },
-          },
-        })
-      : Promise.resolve([]),
   ]);
 
   return (
     <Stack>
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
-      {features.noticeBoard ? (
       <Panel
-        title="Bacheca"
-        action={
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            {canManage && notes.length > 0 ? (
-              <form action={deleteAllBoardNotesAction}>
-                <PrimaryButton type="submit" tone="red">
-                  Pulisci bacheca
-                </PrimaryButton>
-              </form>
-            ) : null}
-            <PopupAction title="Nuovo messaggio bacheca" ariaLabel="Aggiungi messaggio">
-                <BoardComposeForm
-                  action={createBoardNoteAction}
-                  canManage={canManage}
-                  members={members.map((member) => ({
-                    id: member.user.id,
-                    firstName: member.user.firstName,
-                    lastName: member.user.lastName,
-                  }))}
-                  notifySuccess
-                />
-              </PopupAction>
-          </div>
-        }
-      >
-        {notes.length === 0 ? (
-          <EmptyState message="Nessun messaggio pubblicato al momento." />
-        ) : (
-          <ItemList scrollable>
-            {notes.map((note) => (
-              <ItemCard
-                key={note.id}
-                title={note.isPinned ? "Messaggio fissato" : "Messaggio"}
-                subtitle={note.content}
-                meta={
-                  <>
-                    {note.author.firstName} {note.author.lastName} - {formatDateTime(note.createdAt)}
-                    <br />
-                    {note.employee
-                      ? `Destinatario: ${note.employee.firstName} ${note.employee.lastName}`
-                      : "Destinatario: tutto il team"}
-                    {note.requiresConfirmation ? (
-                      <>
-                        <br />
-                        Conferme lettura: {note.readReceipts.length}
-                      </>
-                    ) : null}
-                  </>
-                }
-                footer={
-                  <div className="dashboard-action-row">
-                    {canManage && note.requiresConfirmation && note.readReceipts.length > 0 ? (
-                      <div style={{ color: "#64748b", fontSize: 14 }}>
-                        Letto da:{" "}
-                        {note.readReceipts
-                          .map((receipt) => `${receipt.user.firstName} ${receipt.user.lastName}`)
-                          .join(", ")}
-                      </div>
-                    ) : null}
-
-                    {!canManage &&
-                    note.requiresConfirmation &&
-                    !note.readReceipts.some((receipt) => receipt.userId === session.user.id) ? (
-                      <form action={confirmBoardNoteReadAction}>
-                        <input type="hidden" name="noteId" value={note.id} />
-                        <input type="hidden" name="notifySuccess" value="1" />
-                        <PrimaryButton type="submit" tone="green">
-                          Conferma lettura
-                        </PrimaryButton>
-                      </form>
-                    ) : null}
-
-                    {canManage ? (
-                    <PopupAction title="Modifica messaggio" ariaLabel="Modifica messaggio">
-                      <BoardComposeForm
-                        action={updateBoardNoteAction}
-                        canManage={canManage}
-                        members={members.map((member) => ({
-                          id: member.user.id,
-                          firstName: member.user.firstName,
-                          lastName: member.user.lastName,
-                        }))}
-                        notifySuccess
-                        initialContent={note.content}
-                        initialIsPinned={note.isPinned}
-                        initialRequiresConfirmation={note.requiresConfirmation}
-                        initialAssignedToAll={!note.employeeId}
-                        initialAssignedToId={note.employeeId ?? ""}
-                        submitLabel="Salva modifiche"
-                        allowMultiple={false}
-                      >
-                        <input type="hidden" name="noteId" value={note.id} />
-                      </BoardComposeForm>
-                    </PopupAction>
-                    ) : null}
-                    {canManage ? (
-                    <form action={deleteBoardNoteAction}>
-                      <input type="hidden" name="noteId" value={note.id} />
-                      <input type="hidden" name="notifySuccess" value="1" />
-                      <PrimaryButton type="submit" tone="red">
-                        Elimina messaggio
-                      </PrimaryButton>
-                    </form>
-                    ) : null}
-                  </div>
-                }
-              />
-            ))}
-          </ItemList>
-        )}
-      </Panel>
-      ) : null}
-
-      {features.tasks ? (
-      <Panel
-        title="Mansioni"
+        title="Note"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {canManage && tasks.some((task) => task.status === "DONE") ? (
               <form action={deleteAllCompletedTasksAction}>
                 <PrimaryButton type="submit" tone="red">
-                  Elimina completate
+                  Elimina note completate
                 </PrimaryButton>
               </form>
             ) : null}
             {canManage ? (
-              <PopupAction title="Crea nuova mansione" ariaLabel="Aggiungi mansione">
+              <PopupAction title="Crea nuova nota" ariaLabel="Aggiungi nota">
                 <TaskComposeForm
                   action={createTaskAction}
                   members={members.map((member) => ({
@@ -347,7 +172,7 @@ export default async function DashboardTasksPage({
         }
       >
         {tasks.length === 0 ? (
-          <EmptyState message="Nessuna mansione disponibile." />
+          <EmptyState message="Nessuna nota disponibile." />
         ) : (
           <ItemList scrollable>
             {tasks.map((task) => {
@@ -419,7 +244,7 @@ export default async function DashboardTasksPage({
                             <form action={deleteCompletedTaskAction}>
                               <input type="hidden" name="taskId" value={task.id} />
                               <PrimaryButton type="submit" tone="red">
-                                Elimina mansione completata
+                                Elimina nota completata
                               </PrimaryButton>
                             </form>
                           ) : null}
@@ -433,7 +258,6 @@ export default async function DashboardTasksPage({
           </ItemList>
         )}
       </Panel>
-      ) : null}
     </Stack>
   );
 }
