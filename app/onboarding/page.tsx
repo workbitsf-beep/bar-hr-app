@@ -995,6 +995,7 @@ export default async function OnboardingPage({
       {currentStep === 2 && activeBar && !showGpsStep ? (
         <Card title="Personalizza Workbit">
           <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+            <input type="hidden" name="settingsSection" value="features" />
             <FeatureToggleGrid settings={featureSettings} />
 
             <div>

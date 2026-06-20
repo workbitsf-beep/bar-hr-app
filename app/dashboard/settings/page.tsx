@@ -257,6 +257,7 @@ export default async function DashboardSettingsPage() {
   const featurePopup = (
     <PopupAction title="Funzioni attive" ariaLabel="Modifica funzioni attive" closeOnSubmit>
       <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+        <input type="hidden" name="settingsSection" value="features" />
         <FeatureToggleGrid settings={featureSettings} />
         <div className="dashboard-form-actions">
           <PrimaryButton type="submit">Salva funzioni</PrimaryButton>
@@ -268,6 +269,7 @@ export default async function DashboardSettingsPage() {
   const standardHoursPopup = (
     <PopupAction title="Orari standard" ariaLabel="Modifica orari standard">
       <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+        <input type="hidden" name="settingsSection" value="hours" />
         <div style={{ display: "grid", gap: 12 }}>
           <div
             className="dashboard-inline-grid"
@@ -320,6 +322,7 @@ export default async function DashboardSettingsPage() {
 
           <Panel title="GPS e arrotondamento">
             <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+              <input type="hidden" name="settingsSection" value="gps" />
               <GpsLocationField
                 latitudeName="gpsLatitude"
                 longitudeName="gpsLongitude"

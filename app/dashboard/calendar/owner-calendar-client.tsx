@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
-import { APP_TIME_ZONE } from "@/lib/time-zone";
+import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import type { FeatureFlags } from "@/lib/features";
 import { DateTimeInput } from "@/app/components/date-time-input";
@@ -816,6 +816,7 @@ export function OwnerCalendarClient({
   }
 
   const day = selectedDay ?? days[0];
+  const todayKey = toDateInputValueInTimeZone(new Date());
 
   return (
     <>
@@ -877,6 +878,12 @@ export function OwnerCalendarClient({
                     key={day.date}
                     type="button"
                     onClick={() => openDay(day)}
+                    disabled={day.date.slice(0, 10) < todayKey}
+                    title={
+                      day.date.slice(0, 10) < todayKey
+                        ? "Giornata passata: nuovi inserimenti non disponibili"
+                        : undefined
+                    }
                     data-calendar-today={day.isToday ? "true" : undefined}
                     style={{
                       display: "grid",
@@ -889,9 +896,14 @@ export function OwnerCalendarClient({
                       background: "#ffffff",
                       border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
                       boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-                      opacity: day.inCurrentMonth ? 1 : 0.7,
+                      opacity:
+                        day.date.slice(0, 10) < todayKey
+                          ? 0.58
+                          : day.inCurrentMonth
+                            ? 1
+                            : 0.7,
                       textAlign: "left",
-                      cursor: "pointer",
+                      cursor: day.date.slice(0, 10) < todayKey ? "not-allowed" : "pointer",
                     }}
                   >
                     <div

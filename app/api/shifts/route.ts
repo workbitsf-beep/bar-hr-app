@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
+import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
@@ -74,6 +75,13 @@ export const POST = withBar(
 
     if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
       return Response.json({ ok: false, message: "Invalid shift range" }, { status: 400 });
+    }
+
+    if (toDateInputValueInTimeZone(startTime) < toDateInputValueInTimeZone(new Date())) {
+      return Response.json(
+        { ok: false, message: "Non puoi inserire turni prima del giorno corrente" },
+        { status: 400 }
+      );
     }
 
     const shift = await prisma.shift.create({

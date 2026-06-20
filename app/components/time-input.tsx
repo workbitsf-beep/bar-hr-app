@@ -36,23 +36,32 @@ export function TimeInput({
   const [hours, setHours] = useState(() => splitTimeValue(value).hours);
   const [minutes, setMinutes] = useState(() => splitTimeValue(value).minutes);
   const lastEmittedValue = useRef<string | null>(null);
+  const preserveEmptyMinutes = useRef(false);
 
   useEffect(() => {
-    if (value && value === lastEmittedValue.current && value.endsWith(":00") && !minutes) {
+    if (
+      value &&
+      value === lastEmittedValue.current &&
+      value.endsWith(":00") &&
+      preserveEmptyMinutes.current
+    ) {
       setHours(splitTimeValue(value).hours);
+      setMinutes("");
       return;
     }
 
     const next = splitTimeValue(value);
     setHours(next.hours);
     setMinutes(next.minutes);
-  }, [minutes, value]);
+    preserveEmptyMinutes.current = false;
+  }, [value]);
 
   function commit(nextHours = hours, nextMinutes = minutes) {
     if (!nextHours && !nextMinutes) {
       setHours("");
       setMinutes("");
       lastEmittedValue.current = "";
+      preserveEmptyMinutes.current = false;
       onChange?.("");
       return;
     }
@@ -63,6 +72,7 @@ export function TimeInput({
     setHours(cleanHours ? cleanHours.padStart(2, "0") : "");
     setMinutes(cleanMinutes ? cleanMinutes.padStart(2, "0") : "");
     lastEmittedValue.current = finalValue;
+    preserveEmptyMinutes.current = !cleanMinutes;
     onChange?.(finalValue);
   }
 

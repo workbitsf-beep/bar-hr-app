@@ -33,7 +33,7 @@ import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
-import { formatDateTimeInTimeZone } from "@/lib/time-zone";
+import { formatDateTimeInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { parseTaskDueDate } from "@/lib/task-dates";
 import {
   canManageOperations,
@@ -204,6 +204,12 @@ function ensureValidDateRange(startsAt: Date, endsAt: Date, message = "Intervall
     endsAt <= startsAt
   ) {
     throw new Error(message);
+  }
+}
+
+function ensureShiftIsNotBeforeToday(startTime: Date) {
+  if (toDateInputValueInTimeZone(startTime) < toDateInputValueInTimeZone(new Date())) {
+    throw new Error("Non puoi inserire turni prima del giorno corrente");
   }
 }
 
@@ -1791,6 +1797,7 @@ export async function createShiftAction(formData: FormData) {
   }
 
   ensureValidDateRange(startTime, endTime, "Invalid shift range");
+  ensureShiftIsNotBeforeToday(startTime);
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
   await assertNoShiftAssignmentConflicts({
@@ -3074,33 +3081,28 @@ export async function updateSettingsAction(formData: FormData) {
     throw new Error("Bar not found");
   }
 
-  if (currentBar.activityType === ActivityType.COMPANY) {
+  const settingsSection = String(formData.get("settingsSection") ?? "").trim();
+
+  if (settingsSection === "features") {
     const featureFlags = parseFeatureFlags(formData);
     const companyShiftsEnabled =
-      formData.has("shiftsEnabled")
+      currentBar.activityType === ActivityType.COMPANY
         ? Boolean(featureFlags.shiftsEnabled)
-        : formData.get("companyShiftsEnabled") === "on";
+        : undefined;
 
     await prisma.barSettings.upsert({
       where: { barId: activeBarId },
       update: {
-        companyShiftsEnabled,
+        ...(companyShiftsEnabled === undefined ? {} : { companyShiftsEnabled }),
         ...featureFlags,
       },
       create: {
         barId: activeBarId,
-        companyShiftsEnabled,
+        ...(companyShiftsEnabled === undefined ? {} : { companyShiftsEnabled }),
         ...featureFlags,
       },
     });
-  } else {
-    const featureFlags = parseFeatureFlags(formData);
-    const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
-    const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
-    const gpsRadius = await getGlobalGpsRadius();
-    const roundingEnabled = formData.get("roundingEnabled") === "on";
-    const roundingMinutes = 15;
-    const roundingMode = "NEAREST";
+  } else if (settingsSection === "hours") {
     const morningPreset = parseShiftPresetPair(
       formData.get("morningStartTime"),
       formData.get("morningEndTime")
@@ -3113,7 +3115,30 @@ export async function updateSettingsAction(formData: FormData) {
       formData.get("eveningStartTime"),
       formData.get("eveningEndTime")
     );
+    const presetData = {
+      morningStartTime: morningPreset.startTime,
+      morningEndTime: morningPreset.endTime,
+      afternoonStartTime: afternoonPreset.startTime,
+      afternoonEndTime: afternoonPreset.endTime,
+      eveningStartTime: eveningPreset.startTime,
+      eveningEndTime: eveningPreset.endTime,
+    };
 
+    await prisma.barSettings.upsert({
+      where: { barId: activeBarId },
+      update: presetData,
+      create: {
+        barId: activeBarId,
+        ...presetData,
+      },
+    });
+  } else if (settingsSection === "gps") {
+    const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
+    const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
+    const gpsRadius = await getGlobalGpsRadius();
+    const roundingEnabled = formData.get("roundingEnabled") === "on";
+    const roundingMinutes = 15;
+    const roundingMode = "NEAREST";
     const resolvedLatitude = gpsLatitude ?? currentBar.latitude ?? null;
     const resolvedLongitude = gpsLongitude ?? currentBar.longitude ?? null;
 
@@ -3141,13 +3166,6 @@ export async function updateSettingsAction(formData: FormData) {
           roundingEnabled,
           roundingMinutes,
           roundingMode,
-          ...featureFlags,
-          morningStartTime: morningPreset.startTime,
-          morningEndTime: morningPreset.endTime,
-          afternoonStartTime: afternoonPreset.startTime,
-          afternoonEndTime: afternoonPreset.endTime,
-          eveningStartTime: eveningPreset.startTime,
-          eveningEndTime: eveningPreset.endTime,
         },
         create: {
           barId: activeBarId,
@@ -3157,16 +3175,11 @@ export async function updateSettingsAction(formData: FormData) {
           roundingEnabled,
           roundingMinutes,
           roundingMode,
-          ...featureFlags,
-          morningStartTime: morningPreset.startTime,
-          morningEndTime: morningPreset.endTime,
-          afternoonStartTime: afternoonPreset.startTime,
-          afternoonEndTime: afternoonPreset.endTime,
-          eveningStartTime: eveningPreset.startTime,
-          eveningEndTime: eveningPreset.endTime,
         },
       }),
     ]);
+  } else {
+    throw new Error("Sezione impostazioni non valida");
   }
 
   revalidatePath("/dashboard/settings");
