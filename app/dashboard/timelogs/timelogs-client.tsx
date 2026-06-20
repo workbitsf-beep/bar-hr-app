@@ -155,6 +155,15 @@ function groupLogsIntoRows(logs: LogItem[]) {
   return rows;
 }
 
+function countShiftRows(logs: LogItem[]) {
+  return groupLogsIntoRows(logs).length;
+}
+
+function formatShiftCount(logs: LogItem[]) {
+  const count = countShiftRows(logs);
+  return `${count} ${count === 1 ? "turno" : "turni"}`;
+}
+
 function groupLogsByDay(logs: LogItem[]) {
   const groups = new Map<
     string,
@@ -595,7 +604,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                 <div style={{ display: "grid", gap: 4 }}>
                   <strong style={{ color: "#0f172a" }}>{group.name}</strong>
                   <span style={{ color: "#475569", fontSize: 14 }}>
-                    {group.logs.length} timbrature - ultima {formatDateTime(group.latest)}
+                    {formatShiftCount(group.logs)} - ultima {formatDateTime(group.latest)}
                   </span>
                 </div>
 
@@ -672,7 +681,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                   <div style={{ display: "grid", gap: 6 }}>
                     <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedGroup.name}</strong>
                     <span style={{ color: "#475569" }}>
-                      {filteredSelectedLogs.length} timbrature visibili
+                      {formatShiftCount(filteredSelectedLogs)} visibili
                     </span>
                   </div>
 
@@ -697,7 +706,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                       <ItemCard
                         key={dayGroup.dayKey}
                         title={dayGroup.dayLabel}
-                        subtitle={`${dayGroup.logs.length} timbrature`}
+                        subtitle={formatShiftCount(dayGroup.logs)}
                         footer={
                           <div
                             style={{
@@ -753,7 +762,7 @@ function PersonalTimeLogsPanel({
   return (
     <Panel
       title={role === "OWNER" ? "Timbrature del team" : "Le tue timbrature"}
-      action={`${filteredLogs.length} registrazioni`}
+      action={formatShiftCount(filteredLogs)}
     >
       <div style={{ display: "grid", gap: 16 }}>
         <FormField label="Filtra per giorno">
@@ -774,7 +783,7 @@ function PersonalTimeLogsPanel({
               <ItemCard
                 key={dayGroup.dayKey}
                 title={dayGroup.dayLabel}
-                subtitle={`${dayGroup.logs.length} timbrature`}
+                subtitle={formatShiftCount(dayGroup.logs)}
                 footer={
                   <div
                     style={{
