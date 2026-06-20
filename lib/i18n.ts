@@ -37,7 +37,7 @@ const translations: Record<AppLanguage, TranslationSet> = {
     calendar: "Calendario",
     dashboard: "Dashboard",
     shifts: "Turni",
-    tasks: "Mansioni",
+    tasks: "Note",
     timelogs: "Timbrature",
     board: "Bacheca",
     requests: "Richieste",
