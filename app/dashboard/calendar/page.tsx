@@ -703,7 +703,14 @@ export default async function DashboardCalendarPage({
       <Panel
         title="Calendario"
         action={
-          <div style={{ display: "grid", gap: 10 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              alignItems: "flex-end",
+            }}
+          >
             <form
               method="get"
               className="dashboard-desktop-only"
@@ -729,12 +736,12 @@ export default async function DashboardCalendarPage({
             </form>
 
             {canPublishShifts ? (
-            <PublishWeekPanel
-              before={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
-              rangeStart={toLocalDateKey(currentMonthStart)}
-              rangeEnd={toLocalDateKey(currentMonthEnd)}
-              pendingCount={unconfirmedShiftCount}
-            />
+              <PublishWeekPanel
+                before={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
+                rangeStart={toLocalDateKey(currentMonthStart)}
+                rangeEnd={toLocalDateKey(currentMonthEnd)}
+                pendingCount={unconfirmedShiftCount}
+              />
             ) : (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <ScrollToTodayButton fallbackHref="/dashboard/calendar" />

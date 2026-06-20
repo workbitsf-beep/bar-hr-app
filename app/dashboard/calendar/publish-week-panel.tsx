@@ -62,10 +62,16 @@ export function PublishWeekPanel({
   }
 
   return (
-    <div style={{ display: "grid", gap: 12, alignContent: "start" }}>
+    <div style={{ display: "grid", gap: 10, alignContent: "start" }}>
       <div
         className="dashboard-publish-row"
-        style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+          justifyContent: "flex-end",
+          flexWrap: "wrap",
+        }}
       >
         {before}
 
@@ -73,13 +79,20 @@ export function PublishWeekPanel({
           type="button"
           onClick={handlePublish}
           disabled={isPending || pendingCount === 0}
+          style={{
+            minHeight: 44,
+            borderRadius: 999,
+            paddingInline: 18,
+            boxShadow: "0 10px 24px rgba(88, 28, 135, 0.10)",
+            whiteSpace: "nowrap",
+          }}
         >
           {isPending ? "Invio in corso..." : "Conferma turni"}
         </PrimaryButton>
 
-        <span style={{ color: "#64748b", fontSize: 14 }}>
+        <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
           {pendingCount === 0
-            ? "Nessun nuovo turno da confermare."
+            ? "Tutto confermato"
             : `${pendingCount} turni nuovi o aggiornati`}
         </span>
       </div>
