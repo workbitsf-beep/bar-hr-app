@@ -426,39 +426,41 @@ export function ClockActionsPanel({
             padding: 14,
             color: "#334155",
             lineHeight: 1.6,
-            display: "grid",
-            gap: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
           }}
         >
-          <div>{locationSummary}</div>
+          <div style={{ flex: "1 1 180px", minWidth: 0 }}>{locationSummary}</div>
+          <PrimaryButton
+            type="button"
+            tone="sand"
+            onClick={captureGeolocation}
+            disabled={locating || !gpsConfigured}
+            aria-label="Aggiorna posizione"
+            title={locating ? "Aggiornamento posizione..." : "Aggiorna posizione"}
+            style={{
+              width: 46,
+              height: 46,
+              minWidth: 46,
+              padding: 0,
+              borderRadius: 16,
+              fontSize: 21,
+              flex: "0 0 auto",
+            }}
+          >
+            {locating ? "..." : "↻"}
+          </PrimaryButton>
           {settings?.roundingEnabled && settings.roundingMinutes ? (
-            <div>
-            Arrotondamento attivo con tolleranza di 5 minuti.
+            <div style={{ flex: "1 1 100%", fontSize: 13, color: "#64748b" }}>
+              Arrotondamento attivo con tolleranza di 5 minuti.
             </div>
           ) : null}
         </div>
 
         <div className="dashboard-clock-actions" style={{ display: "grid", gap: 12 }}>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <PrimaryButton
-              type="button"
-              tone="sand"
-              onClick={captureGeolocation}
-              disabled={locating || !gpsConfigured}
-              aria-label="Aggiorna posizione"
-              title={locating ? "Aggiornamento posizione..." : "Aggiorna posizione"}
-              style={{
-                width: 48,
-                height: 48,
-                minWidth: 48,
-                padding: 0,
-                borderRadius: 18,
-                fontSize: 22,
-              }}
-            >
-              {locating ? "..." : "↻"}
-            </PrimaryButton>
-          </div>
         <div
           className="dashboard-clock-actions-row"
           style={{ display: "flex", gap: 10, alignItems: "stretch" }}
