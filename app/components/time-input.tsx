@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 function sanitizePart(value: string) {
   return value.replace(/\D/g, "").slice(0, 2);
@@ -35,24 +35,34 @@ export function TimeInput({
 }) {
   const [hours, setHours] = useState(() => splitTimeValue(value).hours);
   const [minutes, setMinutes] = useState(() => splitTimeValue(value).minutes);
+  const lastEmittedValue = useRef<string | null>(null);
 
   useEffect(() => {
+    if (value && value === lastEmittedValue.current && value.endsWith(":00") && !minutes) {
+      setHours(splitTimeValue(value).hours);
+      return;
+    }
+
     const next = splitTimeValue(value);
     setHours(next.hours);
     setMinutes(next.minutes);
-  }, [value]);
+  }, [minutes, value]);
 
   function commit(nextHours = hours, nextMinutes = minutes) {
     if (!nextHours && !nextMinutes) {
       setHours("");
       setMinutes("");
+      lastEmittedValue.current = "";
       onChange?.("");
       return;
     }
 
+    const cleanHours = sanitizePart(nextHours);
+    const cleanMinutes = sanitizePart(nextMinutes);
     const finalValue = buildTimeValue(nextHours, nextMinutes);
-    setHours(sanitizePart(nextHours).padStart(2, "0"));
-    setMinutes(sanitizePart(nextMinutes).padStart(2, "0"));
+    setHours(cleanHours ? cleanHours.padStart(2, "0") : "");
+    setMinutes(cleanMinutes ? cleanMinutes.padStart(2, "0") : "");
+    lastEmittedValue.current = finalValue;
     onChange?.(finalValue);
   }
 
