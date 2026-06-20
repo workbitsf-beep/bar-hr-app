@@ -236,6 +236,7 @@ export default async function DashboardCalendarPage({
               barId: activeBarId,
               startsAt: { lte: calendarEnd },
               endsAt: { gte: calendarStart },
+              ...(role === Role.EMPLOYEE ? { userId: session.user.id } : {}),
             },
             select: {
               id: true,
@@ -262,6 +263,7 @@ export default async function DashboardCalendarPage({
               status: RequestStatus.APPROVED,
               startsAt: { lte: calendarEnd },
               endsAt: { gte: calendarStart },
+              ...(role === Role.EMPLOYEE ? { employeeId: session.user.id } : {}),
             },
             select: {
               id: true,

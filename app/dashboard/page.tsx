@@ -184,6 +184,8 @@ export default async function DashboardPage() {
               ) : null}
             </div>
 
+            {features.timeTracking ? <ClockActionsPanel role={role} settings={settings} /> : null}
+
             <div
               style={{
                 padding: 18,
@@ -204,8 +206,6 @@ export default async function DashboardPage() {
                 </p>
               ) : null}
             </div>
-
-            {features.timeTracking ? <ClockActionsPanel role={role} settings={settings} /> : null}
           </div>
         </Panel>
       ) : null}

@@ -430,14 +430,26 @@ export function ClockActionsPanel({
         </div>
 
         <div className="dashboard-clock-actions" style={{ display: "grid", gap: 12 }}>
-          <PrimaryButton
-            type="button"
-            tone="sand"
-            onClick={captureGeolocation}
-            disabled={locating || !gpsConfigured}
-          >
-            {locating ? "Aggiornamento posizione..." : compact ? "Controlla posizione" : "Aggiorna posizione"}
-          </PrimaryButton>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <PrimaryButton
+              type="button"
+              tone="sand"
+              onClick={captureGeolocation}
+              disabled={locating || !gpsConfigured}
+              aria-label="Aggiorna posizione"
+              title={locating ? "Aggiornamento posizione..." : "Aggiorna posizione"}
+              style={{
+                width: 48,
+                height: 48,
+                minWidth: 48,
+                padding: 0,
+                borderRadius: 18,
+                fontSize: 22,
+              }}
+            >
+              {locating ? "..." : "↻"}
+            </PrimaryButton>
+          </div>
         <div
           className="dashboard-clock-actions-row"
           style={{ display: "flex", gap: 10, alignItems: "stretch" }}
@@ -447,7 +459,7 @@ export function ClockActionsPanel({
             tone="green"
             onClick={() => runClockAction("clock-in")}
             disabled={submitting !== null || !insideRadius || !geoReady}
-            style={{ flex: 1, minWidth: 0 }}
+            style={{ flex: 1, minWidth: 0, minHeight: 62, fontSize: 18, borderRadius: 22 }}
           >
             {submitting === "in" ? "Registrazione..." : "Entrata"}
           </PrimaryButton>
@@ -456,7 +468,7 @@ export function ClockActionsPanel({
             tone="red"
             onClick={() => runClockAction("clock-out")}
             disabled={submitting !== null || !insideRadius || !geoReady}
-            style={{ flex: 1, minWidth: 0 }}
+            style={{ flex: 1, minWidth: 0, minHeight: 62, fontSize: 18, borderRadius: 22 }}
           >
             {submitting === "out" ? "Registrazione..." : "Uscita"}
           </PrimaryButton>
