@@ -111,7 +111,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           features.courses
             ? [{ label: t.calendar, href: "/dashboard/calendar" }]
             : []),
-          { label: t.dashboard, href: "/dashboard" },
+          { label: "Profilo", href: "/dashboard" },
           ...(features.tasks || features.noticeBoard
             ? [{ label: tasksNavLabel, href: "/dashboard/tasks" }]
             : []),

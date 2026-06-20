@@ -1860,7 +1860,7 @@ export function OwnerCalendarClient({
                       gap: 12,
                     }}
                   >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Mancanze del giorno</strong>
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Assenze del giorno</strong>
                     <CountBadge
                       count={
                         (features.availability ? day.availabilities.length : 0) +

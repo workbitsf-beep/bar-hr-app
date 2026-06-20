@@ -87,6 +87,28 @@ export async function createNotification(input: {
   actionUrl?: string | null;
 }) {
   try {
+    const duplicateWindowStart = new Date(Date.now() - 30_000);
+    const existingDuplicate = await prisma.notification.findFirst({
+      where: {
+        userId: input.userId,
+        barId: input.barId ?? null,
+        title: input.title,
+        message: input.message,
+        type: input.type,
+        actionUrl: input.actionUrl ?? null,
+        createdAt: {
+          gte: duplicateWindowStart,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingDuplicate) {
+      return null;
+    }
+
     return await prisma.notification.create({
       data: {
         userId: input.userId,

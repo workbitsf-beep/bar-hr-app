@@ -17,6 +17,7 @@ import {
   formatDateTime,
 } from "./ui";
 import { formatDurationClock } from "@/lib/time-format";
+import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 
 export default async function DashboardPage() {
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
@@ -41,7 +42,8 @@ export default async function DashboardPage() {
   const now = new Date();
   const canManagePeople = role === Role.OWNER || role === Role.MANAGER;
   const isManager = role === Role.MANAGER;
-  const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
+  const isOwner = role === Role.OWNER;
+  const isOperationalProfile = !isOwner;
   const showKpi =
     canManagePeople &&
     (features.shifts ||
@@ -56,8 +58,8 @@ export default async function DashboardPage() {
       ? getDashboardKpiData(activeBarId, activeBarActivityType)
       : Promise.resolve(null);
 
-  const [settings, shifts, ownHours, kpiData] = await Promise.all([
-    isManager && isRestaurant && features.timeTracking
+  const [settings, shifts, ownHours, recentNotifications, kpiData] = await Promise.all([
+    isOperationalProfile && features.timeTracking
       ? prisma.barSettings.findUnique({
           where: { barId: activeBarId },
           select: {
@@ -70,7 +72,7 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve(null),
-    !canManagePeople && isRestaurant && features.shifts
+    isOperationalProfile && features.shifts
       ? prisma.shift.findMany({
           where: {
             barId: activeBarId,
@@ -106,43 +108,127 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve([]),
-    !canManagePeople && isRestaurant && features.timeTracking
+    isOperationalProfile && features.timeTracking
       ? buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear())
       : Promise.resolve(null),
+    isOperationalProfile
+      ? prisma.notification.findMany({
+          where: {
+            userId: session.user.id,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 3,
+          select: {
+            id: true,
+            title: true,
+            message: true,
+            createdAt: true,
+            actionUrl: true,
+          },
+        })
+      : Promise.resolve([]),
     kpiDataPromise,
   ]);
 
   const personalShiftCount = shifts.length;
+  const todayKey = toDateInputValueInTimeZone(now);
+  const todayShift = shifts.find((shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey);
+  const todayColleagues =
+    todayShift?.assignments
+      .filter((entry) => entry.user.id !== session.user.id)
+      .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`) ?? [];
+  const roleLabel =
+    role === Role.MANAGER
+      ? "Responsabile"
+      : role === Role.AMMINISTRAZIONE
+        ? "Amministrazione"
+        : "Dipendente";
 
   return (
     <Stack>
-      {isManager && isRestaurant && features.timeTracking ? (
-        <ClockActionsPanel role={role} settings={settings} />
-      ) : null}
+      {isOperationalProfile ? (
+        <Panel title="Profilo">
+          <div style={{ display: "grid", gap: 18 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 14,
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  aria-hidden="true"
+                  style={{
+                    width: 54,
+                    height: 54,
+                    borderRadius: 22,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #ede9fe, #f5f3ff)",
+                    color: "#5b21b6",
+                    fontSize: 25,
+                    fontWeight: 800,
+                  }}
+                >
+                  👤
+                </div>
+                <div>
+                  <div style={{ color: "#64748b", fontWeight: 700 }}>Ciao</div>
+                  <h1 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.1 }}>
+                    {session.user.firstName} {session.user.lastName}
+                  </h1>
+                  <div style={{ color: "#64748b", marginTop: 4 }}>{roleLabel}</div>
+                </div>
+              </div>
 
-      {!canManagePeople ? (
-        <Panel title="Le tue ore" action={<ArrowLinkButton href="/dashboard/calendar" />}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {isRestaurant && features.timeTracking && ownHours ? (
-              <ItemCard
-                title={formatDurationClock(ownHours.roundedHours)}
-                subtitle={`Ore lavorate ${formatDurationClock(ownHours.realHours)}`}
-                meta="Ore mese"
-              />
-            ) : null}
-            {features.shifts ? (
-              <ItemCard
-                title={`${personalShiftCount} turni`}
-                subtitle="Prossimi turni assegnati"
-                meta="Calendario"
-              />
-            ) : null}
+              {features.timeTracking && ownHours ? (
+                <div
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 24,
+                    background: "linear-gradient(135deg, #f5f3ff, #ffffff)",
+                    border: "1px solid rgba(124,58,237,0.12)",
+                    minWidth: 170,
+                  }}
+                >
+                  <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                    Le tue ore del mese
+                  </div>
+                  <div style={{ color: "#4c1d95", fontSize: 26, fontWeight: 800 }}>
+                    {formatDurationClock(ownHours.roundedHours)}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              style={{
+                padding: 18,
+                borderRadius: 26,
+                background: "#ffffff",
+                border: "1px solid #e9d5ff",
+                boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
+              }}
+            >
+              <strong style={{ display: "block", color: "#0f172a", fontSize: 20 }}>
+                {todayShift
+                  ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
+                  : "Oggi non hai turni programmati"}
+              </strong>
+              {todayColleagues.length > 0 ? (
+                <p style={{ margin: "8px 0 0", color: "#64748b" }}>
+                  Con te: {todayColleagues.join(", ")}
+                </p>
+              ) : null}
+            </div>
+
+            {features.timeTracking ? <ClockActionsPanel role={role} settings={settings} /> : null}
           </div>
         </Panel>
       ) : null}
@@ -157,8 +243,8 @@ export default async function DashboardPage() {
         />
       ) : null}
 
-      {!canManagePeople && features.shifts ? (
-        <Panel title="Prossimi turni" action={<ArrowLinkButton href="/dashboard/shifts" />}>
+      {isOperationalProfile && features.shifts ? (
+        <Panel title="Prossimi turni" action={<ArrowLinkButton href="/dashboard/calendar" />}>
           {shifts.length === 0 ? (
             <EmptyState message="Nessun turno schedulato al momento." />
           ) : (
@@ -171,6 +257,25 @@ export default async function DashboardPage() {
                   meta={shift.assignments
                     .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
                     .join(", ")}
+                />
+              ))}
+            </ItemList>
+          )}
+        </Panel>
+      ) : null}
+
+      {isOperationalProfile ? (
+        <Panel title="Notifiche recenti" action={<ArrowLinkButton href="/dashboard" />}>
+          {recentNotifications.length === 0 ? (
+            <EmptyState message="Nessuna notifica recente." />
+          ) : (
+            <ItemList>
+              {recentNotifications.map((notification) => (
+                <ItemCard
+                  key={notification.id}
+                  title={notification.title}
+                  subtitle={notification.message}
+                  meta={formatDateTime(notification.createdAt)}
                 />
               ))}
             </ItemList>

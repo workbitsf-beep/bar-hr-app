@@ -9,6 +9,7 @@ function createEmptyEntry() {
     id: crypto.randomUUID(),
     value: "",
     isPinned: false,
+    requiresConfirmation: false,
     assignedToAll: true,
     assignedToId: "",
   };
@@ -21,6 +22,7 @@ export function BoardComposeForm({
   notifySuccess = false,
   initialContent = "",
   initialIsPinned = false,
+  initialRequiresConfirmation = false,
   initialAssignedToAll = true,
   initialAssignedToId = "",
   submitLabel = "Conferma pubblicazione",
@@ -33,6 +35,7 @@ export function BoardComposeForm({
   notifySuccess?: boolean;
   initialContent?: string;
   initialIsPinned?: boolean;
+  initialRequiresConfirmation?: boolean;
   initialAssignedToAll?: boolean;
   initialAssignedToId?: string;
   submitLabel?: string;
@@ -44,6 +47,7 @@ export function BoardComposeForm({
       ...createEmptyEntry(),
       value: initialContent,
       isPinned: initialIsPinned,
+      requiresConfirmation: initialRequiresConfirmation,
       assignedToAll: initialAssignedToAll,
       assignedToId: initialAssignedToId,
     },
@@ -190,17 +194,30 @@ export function BoardComposeForm({
               )}
 
               {canManage ? (
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    name={`isPinned_${entry.id}`}
-                    checked={entry.isPinned}
-                    onChange={(event) =>
-                      updateEntry(entry.id, { isPinned: event.target.checked })
-                    }
-                  />
-                  In evidenza
-                </label>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      name={`isPinned_${entry.id}`}
+                      checked={entry.isPinned}
+                      onChange={(event) =>
+                        updateEntry(entry.id, { isPinned: event.target.checked })
+                      }
+                    />
+                    In evidenza
+                  </label>
+                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      name={`requiresConfirmation_${entry.id}`}
+                      checked={entry.requiresConfirmation}
+                      onChange={(event) =>
+                        updateEntry(entry.id, { requiresConfirmation: event.target.checked })
+                      }
+                    />
+                    Richiedi conferma lettura
+                  </label>
+                </div>
               ) : null}
             </div>
           ))}

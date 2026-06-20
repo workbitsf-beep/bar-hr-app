@@ -627,12 +627,12 @@ export function DayActionCalendarClient({
   const canCreateClosure = features.requests && (role === Role.OWNER || role === Role.MANAGER);
   const canReviewRequests = features.requests && isCompany && (role === Role.OWNER || role === Role.MANAGER);
   const canOpenTaskComposer = features.tasks && (role === Role.OWNER || role === Role.MANAGER);
-  const hasDayMancanze =
+  const hasDayAbsences =
     (features.availability ? selectedDay?.availabilities.length ?? 0 : 0) +
       (features.requests ? selectedDay?.requests.length ?? 0 : 0) >
     0;
-  const dayMancanzeSection = features.requests || features.availability ? (
-    hasDayMancanze ? (
+  const dayAbsencesSection = features.requests || features.availability ? (
+    hasDayAbsences ? (
       <div style={{ display: "grid", gap: 12 }}>
         <div
           style={{
@@ -642,7 +642,7 @@ export function DayActionCalendarClient({
             gap: 12,
           }}
         >
-          <strong style={{ fontSize: 18, color: "#0f172a" }}>Mancanze del giorno</strong>
+          <strong style={{ fontSize: 18, color: "#0f172a" }}>Assenze del giorno</strong>
           <CountBadge
             count={
               (features.availability ? selectedDay?.availabilities.length ?? 0 : 0) +
@@ -1759,7 +1759,7 @@ export function DayActionCalendarClient({
                     )}
                   </div>
                 ) : null}
-                {dayMancanzeSection}
+                {dayAbsencesSection}
 
                 {canCreateRequest ? (
                   <div style={{ display: "grid", gap: 12 }}>

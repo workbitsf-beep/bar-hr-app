@@ -5,7 +5,6 @@ import { canReviewOperationalRequests } from "@/lib/permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { getDashboardContext } from "../context";
-import { ClockActionsPanel } from "../timelogs/timelogs-client";
 import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, TextInput } from "../ui";
 import { DayActionCalendarClient } from "./day-action-calendar-client";
 import { OwnerCalendarClient } from "./owner-calendar-client";
@@ -699,10 +698,6 @@ export default async function DashboardCalendarPage({
 
   return (
     <Stack columns="minmax(0, 1fr)">
-      {isRestaurant && role !== Role.OWNER && features.timeTracking ? (
-        <ClockActionsPanel role={role} settings={settings} compact />
-      ) : null}
-
       <Panel
         title="Calendario"
         action={

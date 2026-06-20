@@ -57,9 +57,10 @@ function resolveEmoji(title: string) {
 
 function getBottomNavItems(navItems: DashboardNavItem[]) {
   const preferredHrefs = [
-    "/dashboard/calendar",
     "/dashboard",
+    "/dashboard/calendar",
     "/dashboard/tasks",
+    "/dashboard/timelogs",
     "/dashboard/requests",
   ];
   const preferred = preferredHrefs
@@ -67,7 +68,7 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
     .filter((item): item is DashboardNavItem => Boolean(item));
   const fill = navItems.filter((item) => !preferred.some((selected) => selected.href === item.href));
 
-  return [...preferred, ...fill].slice(0, 4);
+  return [...preferred, ...fill].slice(0, 5);
 }
 
 function BottomNavIcon({ href }: { href: string }) {
@@ -108,10 +109,8 @@ function BottomNavIcon({ href }: { href: string }) {
   if (href === "/dashboard") {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h5A1.5 1.5 0 0 1 12 5.5v4A1.5 1.5 0 0 1 10.5 11h-5A1.5 1.5 0 0 1 4 9.5v-4Z" {...common} />
-        <path d="M12.5 5.5A1.5 1.5 0 0 1 14 4h5A1.5 1.5 0 0 1 20.5 5.5v4A1.5 1.5 0 0 1 19 11h-5a1.5 1.5 0 0 1-1.5-1.5v-4Z" {...common} />
-        <path d="M4 14.5A1.5 1.5 0 0 1 5.5 13h5A1.5 1.5 0 0 1 12 14.5v4A1.5 1.5 0 0 1 10.5 20h-5A1.5 1.5 0 0 1 4 18.5v-4Z" {...common} />
-        <path d="M12.5 14.5A1.5 1.5 0 0 1 14 13h5a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 19 20h-5a1.5 1.5 0 0 1-1.5-1.5v-4Z" {...common} />
+        <path d="M16 19v-1.2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4V19" {...common} />
+        <path d="M10.5 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...common} />
       </svg>
     );
   }
@@ -229,6 +228,15 @@ function BottomNavIcon({ href }: { href: string }) {
   );
 }
 
+function getBottomNavLabel(item: DashboardNavItem, index: number) {
+  if (index === 4) return "Altro";
+  if (item.href === "/dashboard") return "Profilo";
+  if (item.href.includes("/calendar")) return "Calendario";
+  if (item.href.includes("/tasks") || item.href.includes("/board")) return "Messaggi";
+  if (item.href.includes("/timelogs") || item.href.includes("/export")) return "Ore";
+  return item.label;
+}
+
 function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
   const bottomNavItems = getBottomNavItems(navItems);
 
@@ -257,19 +265,21 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
         WebkitBackdropFilter: "blur(18px)",
       }}
     >
-      {bottomNavItems.map((item) => (
+      {bottomNavItems.map((item, index) => (
         <Link
           key={item.href}
           href={item.href}
           aria-label={item.label}
           title={item.label}
           style={{
-            width: 46,
-            height: 46,
-            borderRadius: 999,
+            width: 58,
+            minHeight: 54,
+            borderRadius: 24,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
+            flexDirection: "column",
+            gap: 3,
             color: "#4c1d95",
             background: "linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%)",
             border: "1px solid rgba(124, 58, 237, 0.1)",
@@ -277,6 +287,9 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
           }}
         >
           <BottomNavIcon href={item.href} />
+          <span style={{ fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
+            {getBottomNavLabel(item, index)}
+          </span>
         </Link>
       ))}
     </nav>

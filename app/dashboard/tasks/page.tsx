@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createBoardNoteAction,
   completeTaskAction,
+  confirmBoardNoteReadAction,
   createTaskAction,
   deleteAllBoardNotesAction,
   deleteAllCompletedTasksAction,
@@ -67,6 +68,8 @@ export default async function DashboardTasksPage({
           ? "Messaggio aggiornato correttamente."
           : success === "board-deleted"
             ? "Messaggio eliminato correttamente."
+            : success === "board-read"
+              ? "Lettura confermata."
         : success === "task-completed"
           ? "Mansione completata correttamente."
           : null;
@@ -153,6 +156,11 @@ export default async function DashboardTasksPage({
       ? prisma.note.findMany({
           where: {
             barId: activeBarId,
+            ...(canManage
+              ? {}
+              : {
+                  OR: [{ employeeId: null }, { employeeId: session.user.id }],
+                }),
           },
           orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
           include: {
@@ -167,6 +175,21 @@ export default async function DashboardTasksPage({
                 id: true,
                 firstName: true,
                 lastName: true,
+              },
+            },
+            readReceipts: {
+              orderBy: {
+                readAt: "desc",
+              },
+              select: {
+                userId: true,
+                readAt: true,
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
               },
             },
           },
@@ -221,10 +244,38 @@ export default async function DashboardTasksPage({
                     {note.employee
                       ? `Destinatario: ${note.employee.firstName} ${note.employee.lastName}`
                       : "Destinatario: tutto il team"}
+                    {note.requiresConfirmation ? (
+                      <>
+                        <br />
+                        Conferme lettura: {note.readReceipts.length}
+                      </>
+                    ) : null}
                   </>
                 }
                 footer={
                   <div className="dashboard-action-row">
+                    {canManage && note.requiresConfirmation && note.readReceipts.length > 0 ? (
+                      <div style={{ color: "#64748b", fontSize: 14 }}>
+                        Letto da:{" "}
+                        {note.readReceipts
+                          .map((receipt) => `${receipt.user.firstName} ${receipt.user.lastName}`)
+                          .join(", ")}
+                      </div>
+                    ) : null}
+
+                    {!canManage &&
+                    note.requiresConfirmation &&
+                    !note.readReceipts.some((receipt) => receipt.userId === session.user.id) ? (
+                      <form action={confirmBoardNoteReadAction}>
+                        <input type="hidden" name="noteId" value={note.id} />
+                        <input type="hidden" name="notifySuccess" value="1" />
+                        <PrimaryButton type="submit" tone="green">
+                          Conferma lettura
+                        </PrimaryButton>
+                      </form>
+                    ) : null}
+
+                    {canManage ? (
                     <PopupAction title="Modifica messaggio" ariaLabel="Modifica messaggio">
                       <BoardComposeForm
                         action={updateBoardNoteAction}
@@ -237,6 +288,7 @@ export default async function DashboardTasksPage({
                         notifySuccess
                         initialContent={note.content}
                         initialIsPinned={note.isPinned}
+                        initialRequiresConfirmation={note.requiresConfirmation}
                         initialAssignedToAll={!note.employeeId}
                         initialAssignedToId={note.employeeId ?? ""}
                         submitLabel="Salva modifiche"
@@ -245,6 +297,8 @@ export default async function DashboardTasksPage({
                         <input type="hidden" name="noteId" value={note.id} />
                       </BoardComposeForm>
                     </PopupAction>
+                    ) : null}
+                    {canManage ? (
                     <form action={deleteBoardNoteAction}>
                       <input type="hidden" name="noteId" value={note.id} />
                       <input type="hidden" name="notifySuccess" value="1" />
@@ -252,6 +306,7 @@ export default async function DashboardTasksPage({
                         Elimina messaggio
                       </PrimaryButton>
                     </form>
+                    ) : null}
                   </div>
                 }
               />

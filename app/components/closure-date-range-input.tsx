@@ -15,6 +15,14 @@ function toEndOfDay(date: string) {
   return `${date}T23:59`;
 }
 
+function getTodayInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function ClosureDateRangeInput({
   startName,
   endName,
@@ -59,6 +67,7 @@ export function ClosureDateRangeInput({
 
   const startHiddenValue = startDate ? toStartOfDay(startDate) : "";
   const endHiddenValue = endDate ? toEndOfDay(endDate) : "";
+  const today = getTodayInputValue();
 
   return (
     <div
@@ -76,9 +85,11 @@ export function ClosureDateRangeInput({
           type="date"
           disabled={disabled}
           required={required}
+          min={today}
           value={startDate}
           onChange={(event) => {
-            const nextValue = event.target.value;
+            const nextValue =
+              event.target.value && event.target.value < today ? today : event.target.value;
             setStartDate(nextValue);
 
             if (!nextValue) {
@@ -108,7 +119,7 @@ export function ClosureDateRangeInput({
           type="date"
           disabled={disabled}
           required={required}
-          min={startDate || undefined}
+          min={startDate || today}
           value={endDate}
           onChange={(event) => {
             const nextValue = event.target.value;

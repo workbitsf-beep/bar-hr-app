@@ -32,6 +32,14 @@ function buildDateTimeValue(date: string, time: string) {
   return `${date}T${time}`;
 }
 
+function getTodayInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function DateTimeInput({
   value = "",
   onChange,
@@ -67,6 +75,7 @@ export function DateTimeInput({
   }
 
   const hiddenValue = buildDateTimeValue(date, time);
+  const today = getTodayInputValue();
 
   return (
     <div
@@ -82,11 +91,13 @@ export function DateTimeInput({
         type="date"
         disabled={disabled}
         required={required}
+        min={today}
         value={date}
         onChange={(event) => {
           const nextDate = event.target.value;
-          setDate(nextDate);
-          commit(nextDate, time);
+          const safeDate = nextDate && nextDate < today ? today : nextDate;
+          setDate(safeDate);
+          commit(safeDate, time);
         }}
         onBlur={() => commit()}
         style={{

@@ -541,6 +541,7 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
 type ParsedBoardDraft = {
   content: string;
   isPinned: boolean;
+  requiresConfirmation: boolean;
   assignedToAll: boolean;
   assignedToId: string;
 };
@@ -555,10 +556,12 @@ function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft
     const assignedToAll = formData.get("assignedToAll") === "on";
     const assignedToId = String(formData.get("assignedToId") ?? "").trim();
     const isPinned = canPin && formData.get("isPinned") === "on";
+    const requiresConfirmation = formData.get("requiresConfirmation") === "on";
 
     return collectBulkTextEntries(formData, "content").map((content) => ({
       content,
       isPinned,
+      requiresConfirmation,
       assignedToAll,
       assignedToId,
     }));
@@ -568,6 +571,7 @@ function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft
     .map((entryId) => ({
       content: String(formData.get(`content_${entryId}`) ?? "").trim(),
       isPinned: canPin && formData.get(`isPinned_${entryId}`) === "on",
+      requiresConfirmation: formData.get(`requiresConfirmation_${entryId}`) === "on",
       assignedToAll: formData.get(`assignedToAll_${entryId}`) === "on",
       assignedToId: String(formData.get(`assignedToId_${entryId}`) ?? "").trim(),
     }))
@@ -2080,6 +2084,7 @@ export async function createBoardNoteAction(formData: FormData) {
       authorId: session.user.id,
       content: entry.content,
       isPinned: entry.isPinned,
+      requiresConfirmation: entry.requiresConfirmation,
       employeeId: entry.assignedToAll ? null : entry.assignedToId,
     })),
   });
@@ -2180,6 +2185,7 @@ export async function updateBoardNoteAction(formData: FormData) {
     data: {
       content: noteEntry.content,
       isPinned: noteEntry.isPinned,
+      requiresConfirmation: noteEntry.requiresConfirmation,
       employeeId: noteEntry.assignedToAll ? null : noteEntry.assignedToId,
     },
   });
@@ -2276,6 +2282,65 @@ export async function deleteBoardNoteAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/board");
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function confirmBoardNoteReadAction(formData: FormData) {
+  const { session, activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const noteId = String(formData.get("noteId") ?? "").trim();
+
+  if (!noteId) {
+    throw new Error("Missing note id");
+  }
+
+  const note = await prisma.note.findFirst({
+    where: {
+      id: noteId,
+      barId: activeBarId,
+      requiresConfirmation: true,
+      OR: [{ employeeId: null }, { employeeId: session.user.id }],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!note) {
+    throw new Error("Note not found");
+  }
+
+  await prisma.noteReadReceipt.upsert({
+    where: {
+      noteId_userId: {
+        noteId,
+        userId: session.user.id,
+      },
+    },
+    update: {
+      readAt: new Date(),
+    },
+    create: {
+      noteId,
+      userId: session.user.id,
+    },
+  });
+
+  if (wantsSuccessRedirect(formData)) {
+    const returnPath = await getReturnPathFromReferer("/dashboard/tasks");
+
+    revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard/board");
+    revalidatePath("/dashboard/calendar");
+    redirect(appendStatusToPath(returnPath, { success: "board-read" }));
+  }
+
   revalidatePath("/dashboard/tasks");
   revalidatePath("/dashboard/board");
   revalidatePath("/dashboard/calendar");
