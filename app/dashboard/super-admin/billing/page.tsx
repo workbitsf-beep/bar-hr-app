@@ -115,10 +115,10 @@ export default async function SuperAdminBillingPage() {
 
   return (
     <SuperAdminFrame
-      title="Abbonamenti"
+      title="Pagamenti"
       description="Controlla trial, stati, scadenze e sconti delle attività."
     >
-      <Panel title="Abbonamenti" action={`${adminBars.length} strutture`}>
+      <Panel title={`Abbonamenti (${adminBars.length})`} action="Gestione completa">
         {adminBars.length === 0 ? (
           <EmptyState message="Nessuna struttura creata al momento." />
         ) : (

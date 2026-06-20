@@ -97,10 +97,14 @@ export function OwnersManager({
   return (
     <>
       <Panel
-        title="Titolari"
+        title={`Titolari (${owners.length})`}
         action={
-          <PrimaryButton type="button" onClick={() => setOpen(true)}>
-            +
+          <PrimaryButton
+            type="button"
+            onClick={() => setOpen(true)}
+            style={{ borderRadius: 999, paddingInline: 16, whiteSpace: "nowrap" }}
+          >
+            + Nuovo
           </PrimaryButton>
         }
       >
@@ -115,8 +119,8 @@ export function OwnersManager({
               }}
             >
               <label style={{ display: "grid", gap: 8 }}>
-                <span style={{ fontWeight: 600, color: "#1e293b" }}>Cerca titolare</span>
-                <TextInput name="q" defaultValue={query} placeholder="Nome, email o locale" />
+                <span style={{ fontWeight: 700, color: "#344054" }}>Trova un titolare</span>
+                <TextInput name="q" defaultValue={query} placeholder="Nome, email o attivita" />
               </label>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>

@@ -485,10 +485,15 @@ export function BarsManager({
   return (
     <>
       <Panel
-        title="Strutture"
+        title={`Attivita (${bars.length})`}
         action={
-          <PrimaryButton type="button" onClick={() => setOpen(true)} disabled={!hasOwners}>
-            +
+          <PrimaryButton
+            type="button"
+            onClick={() => setOpen(true)}
+            disabled={!hasOwners}
+            style={{ borderRadius: 999, paddingInline: 16, whiteSpace: "nowrap" }}
+          >
+            + Nuova
           </PrimaryButton>
         }
       >
@@ -506,11 +511,11 @@ export function BarsManager({
                 gap: 12,
               }}
             >
-              <FormField label="Cerca" hint="Cerca per nome, responsabile o citta.">
-                <TextInput name="q" defaultValue={query} placeholder="Bar o titolare" />
+              <FormField label="Trova un'attivita">
+                <TextInput name="q" defaultValue={query} placeholder="Nome, titolare o citta" />
               </FormField>
 
-              <FormField label="Attivita" hint="Separa aziende e ristorazione.">
+              <FormField label="Categoria">
                 <Select name="activity" defaultValue={activity}>
                   <option value="ALL">Tutte</option>
                   <option value="COMPANY">Aziende</option>
@@ -606,16 +611,16 @@ export function BarsManager({
                             </span>
                           </div>
 
-                          <PrimaryButton
-                            type="button"
-                            tone="red"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void deleteBar(bar.id);
+                          <span
+                            style={{
+                              color: "#7c3aed",
+                              fontSize: 13,
+                              fontWeight: 800,
+                              textAlign: "right",
                             }}
                           >
-                            Elimina
-                          </PrimaryButton>
+                            Apri dettagli &#8594;
+                          </span>
                         </div>
                       }
                     />

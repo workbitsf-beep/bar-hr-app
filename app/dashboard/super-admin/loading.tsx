@@ -24,8 +24,8 @@ export default function Loading() {
       description="Caricamento rapido della sezione super admin."
     >
       <div style={{ display: "grid", gap: 18 }}>
-        <Stack columns="repeat(auto-fit, minmax(220px, 1fr))">
-          {Array.from({ length: 5 }, (_, index) => (
+        <Stack columns="repeat(auto-fit, minmax(200px, 1fr))">
+          {Array.from({ length: 4 }, (_, index) => (
             <Panel key={index} title="Caricamento">
               <div style={{ display: "grid", gap: 10 }}>
                 <SkeletonBlock width="22%" />
@@ -35,6 +35,22 @@ export default function Loading() {
             </Panel>
           ))}
         </Stack>
+
+        <div
+          style={{
+            minHeight: 132,
+            padding: 22,
+            borderRadius: 28,
+            background: "linear-gradient(135deg, #d1fae5, #ecfdf5)",
+            display: "grid",
+            alignContent: "center",
+            gap: 12,
+          }}
+        >
+          <SkeletonBlock width="22%" />
+          <SkeletonBlock width="42%" height={30} />
+          <SkeletonBlock width="32%" />
+        </div>
 
         <Panel title="Accessi rapidi">
           <div style={{ display: "grid", gap: 12 }}>

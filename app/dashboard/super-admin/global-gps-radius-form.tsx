@@ -33,39 +33,56 @@ export function GlobalGpsRadiusForm({
   }
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: 16, maxWidth: 520 }}>
       <label style={{ display: "grid", gap: 8 }}>
-        <span style={{ fontWeight: 600, color: "#1e293b" }}>Raggio GPS globale</span>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          step={1}
-          value={value}
-          onChange={(event) => {
-            setValue(event.target.value);
-            setFeedback(null);
-          }}
-          onBlur={submitCurrentValue}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              submitCurrentValue();
-            }
-          }}
-          disabled={isPending}
+        <span style={{ fontWeight: 800, color: "#344054" }}>Distanza consentita</span>
+        <div
           style={{
-            borderRadius: 16,
-            border: "1px solid #dbe3ee",
-            padding: "12px 14px",
-            fontSize: 15,
-            background: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            borderRadius: 22,
+            border: "1px solid rgba(217, 119, 6, .18)",
+            padding: "8px 14px",
+            background: "linear-gradient(135deg, #ffffff, #fffbeb)",
             width: "100%",
-            color: "#0f172a",
             boxSizing: "border-box",
-            opacity: isPending ? 0.7 : 1,
           }}
-        />
+        >
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            value={value}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setFeedback(null);
+            }}
+            onBlur={submitCurrentValue}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                submitCurrentValue();
+              }
+            }}
+            disabled={isPending}
+            style={{
+              minWidth: 0,
+              flex: 1,
+              border: 0,
+              outline: 0,
+              padding: "10px 2px",
+              fontSize: 28,
+              fontWeight: 900,
+              letterSpacing: "-0.04em",
+              background: "transparent",
+              color: "#172033",
+              opacity: isPending ? 0.7 : 1,
+            }}
+          />
+          <span style={{ color: "#b45309", fontSize: 14, fontWeight: 900 }}>metri</span>
+        </div>
       </label>
 
       {isPending ? (
