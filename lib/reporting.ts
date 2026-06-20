@@ -111,16 +111,20 @@ function getRoundedTimestamp(
   roundingMode: RoundingMode | null,
   roundingMinutes: number | null
 ): Date {
+  if (log.shift?.startTime || log.shift?.endTime) {
+    return applyScheduledRounding(
+      log.timestamp,
+      log.type,
+      log.shift?.startTime ?? null,
+      log.shift?.endTime ?? null
+    );
+  }
+
   if (!roundingEnabled) {
     return log.timestamp;
   }
 
-  return applyScheduledRounding(
-    log.timestamp,
-    log.type,
-    log.shift?.startTime ?? null,
-    log.shift?.endTime ?? null
-  );
+  return applyRounding(log.timestamp, roundingMode ?? RoundingMode.NEAREST, roundingMinutes ?? 15);
 }
 
 function requestLabel(type: RequestType): "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Richiesta" {

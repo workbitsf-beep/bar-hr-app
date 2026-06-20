@@ -278,6 +278,7 @@ function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
   return (
     <div
       key={shift.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? 14 : "10px 12px",
         borderRadius: mobile ? 18 : 16,
@@ -329,6 +330,7 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
   return (
     <div
       key={availability.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? "12px 14px" : "10px 12px",
         borderRadius: mobile ? 18 : 16,
@@ -341,7 +343,7 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
     >
       <div style={{ display: "grid", gap: 4 }}>
         <strong style={{ color: "#991b1b", fontSize: mobile ? 14 : 13 }}>
-          Indisponibilita segnalata: {availability.firstName} {availability.lastName}
+          Indisponibilita: {availability.firstName} {availability.lastName}
         </strong>
         <span style={{ color: "#b91c1c" }}>
           {formatRange(availability.startsAt, availability.endsAt, "it-IT")}
@@ -355,6 +357,7 @@ function renderApprovedRequestCard(request: RequestItem, mobile = false) {
   return (
     <div
       key={request.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? "12px 14px" : "10px 12px",
         borderRadius: mobile ? 18 : 16,
@@ -384,6 +387,7 @@ function renderCourseCard(course: CourseItem, locale: string, mobile = false) {
   return (
     <div
       key={course.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? 14 : "10px 12px",
         borderRadius: mobile ? 18 : 16,
@@ -409,6 +413,7 @@ function renderPendingRequestCard(request: PendingRequestItem, mobile = false) {
   return (
     <div
       key={request.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? "12px 14px" : "10px 12px",
         borderRadius: mobile ? 18 : 16,

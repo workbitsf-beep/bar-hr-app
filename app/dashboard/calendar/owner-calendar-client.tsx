@@ -228,6 +228,7 @@ function renderCompactShiftCard(shift: ShiftItem, locale: string, mobile = false
   return (
     <div
       key={shift.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? "12px 14px" : "10px 12px",
         borderRadius: mobile ? 18 : 16,
@@ -277,6 +278,7 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
   return (
     <div
       key={availability.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? "12px 14px" : "10px 12px",
         borderRadius: mobile ? 18 : 16,
@@ -303,6 +305,7 @@ function renderApprovedRequestCard(request: RequestItem, mobile = false) {
   return (
     <div
       key={request.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? "12px 14px" : "10px 12px",
         borderRadius: mobile ? 18 : 16,
@@ -332,6 +335,7 @@ function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = fals
   return (
     <div
       key={shift.id}
+      onClick={(event) => event.stopPropagation()}
       style={{
         padding: mobile ? "12px 14px" : "10px 12px",
         borderRadius: mobile ? 18 : 16,

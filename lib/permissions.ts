@@ -338,5 +338,5 @@ export async function getPostLoginDestination(input: {
     }
   }
 
-  return "/dashboard/calendar";
+  return "/dashboard";
 }

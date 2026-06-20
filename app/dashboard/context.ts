@@ -90,7 +90,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
-  const tasksNavLabel = features.tasks ? t.tasks : t.board;
+  const tasksNavLabel = features.tasks || features.noticeBoard ? "Note" : t.board;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
 
   const navItems: DashboardNavItem[] =
@@ -103,6 +103,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: "GPS globale", href: "/dashboard/super-admin/gps" },
         ]
       : [
+          { label: "Profilo", href: "/dashboard" },
           ...(features.shifts ||
           features.requests ||
           features.availability ||
@@ -111,7 +112,6 @@ export const getDashboardContext = cache(async function getDashboardContext(
           features.courses
             ? [{ label: t.calendar, href: "/dashboard/calendar" }]
             : []),
-          { label: "Profilo", href: "/dashboard" },
           ...(features.tasks || features.noticeBoard
             ? [{ label: tasksNavLabel, href: "/dashboard/tasks" }]
             : []),

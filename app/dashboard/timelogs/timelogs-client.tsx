@@ -822,8 +822,6 @@ export function TimeLogsClient({
       ) : null}
 
       <Stack>
-        <ClockActionsPanel role={role} settings={settings} />
-
         {role === "OWNER" ? (
           <OwnerTimeLogsPanel initialLogs={initialLogs} />
         ) : (

@@ -7,14 +7,10 @@ import { getDashboardContext } from "./context";
 import { KpiDashboard } from "./kpi-dashboard";
 import { ClockActionsPanel } from "./timelogs/timelogs-client";
 import {
-  ArrowLinkButton,
   BillingRequiredState,
   EmptyState,
-  ItemCard,
-  ItemList,
   Panel,
   Stack,
-  formatDateTime,
 } from "./ui";
 import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
@@ -58,7 +54,7 @@ export default async function DashboardPage() {
       ? getDashboardKpiData(activeBarId, activeBarActivityType)
       : Promise.resolve(null);
 
-  const [settings, shifts, ownHours, recentNotifications, kpiData] = await Promise.all([
+  const [settings, shifts, ownHours, kpiData] = await Promise.all([
     isOperationalProfile && features.timeTracking
       ? prisma.barSettings.findUnique({
           where: { barId: activeBarId },
@@ -111,28 +107,9 @@ export default async function DashboardPage() {
     isOperationalProfile && features.timeTracking
       ? buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear())
       : Promise.resolve(null),
-    isOperationalProfile
-      ? prisma.notification.findMany({
-          where: {
-            userId: session.user.id,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 3,
-          select: {
-            id: true,
-            title: true,
-            message: true,
-            createdAt: true,
-            actionUrl: true,
-          },
-        })
-      : Promise.resolve([]),
     kpiDataPromise,
   ]);
 
-  const personalShiftCount = shifts.length;
   const todayKey = toDateInputValueInTimeZone(now);
   const todayShift = shifts.find((shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey);
   const todayColleagues =
@@ -243,45 +220,6 @@ export default async function DashboardPage() {
         />
       ) : null}
 
-      {isOperationalProfile && features.shifts ? (
-        <Panel title="Prossimi turni" action={<ArrowLinkButton href="/dashboard/calendar" />}>
-          {shifts.length === 0 ? (
-            <EmptyState message="Nessun turno schedulato al momento." />
-          ) : (
-            <ItemList>
-              {shifts.map((shift) => (
-                <ItemCard
-                  key={shift.id}
-                  title={shift.title || "Il tuo turno"}
-                  subtitle={`${formatDateTime(shift.startTime)} - ${formatDateTime(shift.endTime)}`}
-                  meta={shift.assignments
-                    .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
-                    .join(", ")}
-                />
-              ))}
-            </ItemList>
-          )}
-        </Panel>
-      ) : null}
-
-      {isOperationalProfile ? (
-        <Panel title="Notifiche recenti" action={<ArrowLinkButton href="/dashboard" />}>
-          {recentNotifications.length === 0 ? (
-            <EmptyState message="Nessuna notifica recente." />
-          ) : (
-            <ItemList>
-              {recentNotifications.map((notification) => (
-                <ItemCard
-                  key={notification.id}
-                  title={notification.title}
-                  subtitle={notification.message}
-                  meta={formatDateTime(notification.createdAt)}
-                />
-              ))}
-            </ItemList>
-          )}
-        </Panel>
-      ) : null}
     </Stack>
   );
 }
