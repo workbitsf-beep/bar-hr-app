@@ -231,7 +231,7 @@ function BottomNavIcon({ href }: { href: string }) {
 function getBottomNavLabel(item: DashboardNavItem, index: number) {
   if (index === 4) return "Altro";
   if (item.href === "/dashboard") return "Profilo";
-  if (item.href.includes("/calendar")) return "Calendario";
+  if (item.href.includes("/calendar")) return "Turni";
   if (item.href.includes("/tasks") || item.href.includes("/board")) return "Note";
   if (item.href.includes("/timelogs") || item.href.includes("/export")) return "Ore";
   return item.label;
