@@ -727,6 +727,14 @@ export function DashboardShell({
   headerAction?: ReactNode;
   children: ReactNode;
 }) {
+  const bottomNavItems = getBottomNavItems(navItems);
+  const menuNavItems =
+    bottomNavItems.length > 1
+      ? navItems.filter(
+          (item) => !bottomNavItems.some((bottomItem) => bottomItem.href === item.href)
+        )
+      : navItems;
+
   return (
     <main
       className="dashboard-shell"
@@ -810,9 +818,10 @@ export function DashboardShell({
             >
               {headerAction ? <div className="dashboard-header-action">{headerAction}</div> : null}
               <DashboardNavMenu
-                navItems={navItems}
+                navItems={menuNavItems}
                 menuLabel={menuLabel}
                 menuContent={menuContent}
+                brandHref={navItems[0]?.href ?? "/dashboard"}
               />
             </div>
           </div>

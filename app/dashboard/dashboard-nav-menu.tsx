@@ -32,10 +32,12 @@ export function DashboardNavMenu({
   navItems,
   menuLabel,
   menuContent,
+  brandHref = "/dashboard",
 }: {
   navItems: DashboardNavItem[];
   menuLabel: string;
   menuContent?: ReactNode;
+  brandHref?: string;
 }) {
   const pathname = usePathname();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -250,7 +252,7 @@ export function DashboardNavMenu({
                     }}
                   >
                     <BrandLogo
-                      href={navItems[0]?.href ?? "/dashboard"}
+                      href={brandHref}
                       size={38}
                       showIcon
                       label="Workbit"
@@ -285,6 +287,7 @@ export function DashboardNavMenu({
                     </button>
                   </div>
 
+                  {navItems.length > 0 ? (
                   <div style={{ display: "grid", gap: 8 }}>
                     <span
                       style={{
@@ -334,6 +337,7 @@ export function DashboardNavMenu({
                       );
                     })}
                   </div>
+                  ) : null}
 
                   {menuContent ? (
                     <div
