@@ -1439,14 +1439,6 @@ export function OwnerCalendarClient({
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuovi turni</strong>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <PrimaryButton
-                        type="button"
-                        tone="sand"
-                        onClick={addShiftDraft}
-                        disabled={isPending}
-                      >
-                        + Aggiungi alla lista
-                      </PrimaryButton>
                       <IconButton
                         type="button"
                         onClick={() => setShowShiftComposer(false)}
@@ -1466,6 +1458,74 @@ export function OwnerCalendarClient({
                   </div>
 
                   {shiftDrafts.map((draft, index) => {
+                    const draftMemberNames =
+                      draft.memberIds
+                        .map((memberId) => members.find((member) => member.id === memberId))
+                        .filter(Boolean)
+                        .map((member) => `${member?.firstName} ${member?.lastName}`)
+                        .join(", ") || "Nessuna persona";
+
+                    return (
+                      <div
+                        key={draft.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          padding: "10px 12px",
+                          borderRadius: 16,
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentShiftDraft(draft);
+                            removeShiftDraft(draft.id);
+                          }}
+                          style={{
+                            flex: "1 1 auto",
+                            minWidth: 0,
+                            border: 0,
+                            background: "transparent",
+                            padding: 0,
+                            textAlign: "left",
+                            display: "grid",
+                            gap: 3,
+                            color: "#0f172a",
+                          }}
+                        >
+                          <strong style={{ fontSize: 13 }}>{draftMemberNames}</strong>
+                          <span style={{ color: "#64748b", fontSize: 12 }}>
+                            {draft.date} · {draft.startTime} - {draft.endTime}
+                          </span>
+                        </button>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <IconButton
+                            type="button"
+                            onClick={() => {
+                              setCurrentShiftDraft(draft);
+                              removeShiftDraft(draft.id);
+                            }}
+                            aria-label="Modifica turno"
+                            disabled={isPending}
+                          >
+                            ✎
+                          </IconButton>
+                          <IconButton
+                            type="button"
+                            onClick={() => removeShiftDraft(draft.id)}
+                            aria-label="Elimina turno"
+                            disabled={isPending}
+                          >
+                            ×
+                          </IconButton>
+                        </div>
+                      </div>
+                    );
+
                     const blockedMemberReasons = getBlockedMemberReasons(draft);
 
                     return (
@@ -1802,6 +1862,31 @@ export function OwnerCalendarClient({
                       </div>
                     </div>
                   ) : null}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: 10,
+                    }}
+                  >
+                    <IconButton
+                      type="button"
+                      onClick={addShiftDraft}
+                      aria-label="Aggiungi turno alla lista"
+                      disabled={isPending || !isShiftDraftValid(currentShiftDraft)}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 999,
+                        background: isShiftDraftValid(currentShiftDraft) ? "#dcfce7" : "#f1f5f9",
+                        color: isShiftDraftValid(currentShiftDraft) ? "#166534" : "#94a3b8",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    >
+                      ✓
+                    </IconButton>
+                  </div>
 
                   <div
                     className="dashboard-modal-actions"
