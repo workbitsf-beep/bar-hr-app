@@ -255,6 +255,16 @@ function formatAssignmentNames(assignments: ShiftAssignment[]) {
   return assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ");
 }
 
+function truncateCalendarText(value: string, maxLength = 25) {
+  const clean = value.replace(/\s+/g, " ").trim();
+
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+
+  return `${clean.slice(0, maxLength - 3).trimEnd()}...`;
+}
+
 function renderShiftStateIcon(confirmed: boolean, size = 16) {
   return confirmed ? (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -274,17 +284,37 @@ function renderShiftStateIcon(confirmed: boolean, size = 16) {
   );
 }
 
-function renderShiftCard(shift: ShiftItem, locale: string, mobile = false) {
+function renderShiftCard(
+  shift: ShiftItem,
+  locale: string,
+  mobile = false,
+  onOpen?: () => void
+) {
   return (
     <div
       key={shift.id}
-      onClick={(event) => event.stopPropagation()}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpen?.();
+      }}
+      onKeyDown={(event) => {
+        if (!onOpen || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen();
+      }}
       style={{
         padding: mobile ? 14 : "10px 12px",
         borderRadius: mobile ? 18 : 16,
         background: "#eff6ff",
         border: "1px solid #dbeafe",
         display: "block",
+        cursor: onOpen ? "pointer" : "default",
       }}
     >
       <div
@@ -348,6 +378,84 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
         <span style={{ color: "#b91c1c" }}>
           {formatRange(availability.startsAt, availability.endsAt, "it-IT")}
         </span>
+      </div>
+    </div>
+  );
+}
+
+function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => void) {
+  return (
+    <div
+      key={task.id}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpen?.();
+      }}
+      onKeyDown={(event) => {
+        if (!onOpen || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen();
+      }}
+      style={{
+        padding: mobile ? "12px 14px" : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        color: "#334155",
+        lineHeight: 1.55,
+        cursor: onOpen ? "pointer" : "default",
+      }}
+    >
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 14 : 13 }}>
+        📌 {truncateCalendarText(task.title)}
+      </strong>
+      <div style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
+        {task.assignedLabel}
+      </div>
+    </div>
+  );
+}
+
+function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => void) {
+  return (
+    <div
+      key={note.id}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpen?.();
+      }}
+      onKeyDown={(event) => {
+        if (!onOpen || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen();
+      }}
+      style={{
+        padding: mobile ? "12px 14px" : "10px 12px",
+        borderRadius: mobile ? 18 : 16,
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        color: "#334155",
+        lineHeight: 1.55,
+        cursor: onOpen ? "pointer" : "default",
+      }}
+    >
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 14 : 13 }}>
+        📌 {truncateCalendarText(note.content)}
+      </strong>
+      <div style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
+        {note.authorName}
       </div>
     </div>
   );
@@ -668,7 +776,7 @@ export function DayActionCalendarClient({
         </div>
       </div>
     ) : (
-      <div style={{ color: "#64748b" }}>Nessuna mancanza registrata in questa giornata.</div>
+      <div style={{ color: "#64748b" }}>Nessuna assenza registrata in questa giornata.</div>
     )
   ) : null;
 
@@ -1112,11 +1220,62 @@ export function DayActionCalendarClient({
                     (!features.requests || day.pendingRequests.length === 0) &&
                     day.courses.length === 0 &&
                     day.closures.length === 0 &&
-                    day.tasks.length === 0 ? (
+                    day.tasks.length === 0 &&
+                    day.notes.length === 0 ? (
                       <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
                     ) : null}
 
-                    {features.shifts ? day.shifts.map((shift) => renderShiftCard(shift, locale, true)) : null}
+                    {features.shifts
+                      ? day.shifts.map((shift) =>
+                          renderShiftCard(shift, locale, true, () => {
+                            setSelectedDate(day.date);
+                            setEditingShiftId(shift.id);
+                          })
+                        )
+                      : null}
+                    {features.requests
+                      ? day.requests.map((request) => renderApprovedRequestCard(request, true))
+                      : null}
+                    {features.tasks
+                      ? day.tasks
+                          .slice(0, 2)
+                          .map((task) =>
+                            renderTaskPreviewCard(task, true, () => {
+                              setSelectedDate(day.date);
+                            })
+                          )
+                      : null}
+                    {features.noticeBoard
+                      ? day.notes
+                          .slice(0, 2)
+                          .map((note) =>
+                            renderNotePreviewCard(note, true, () => {
+                              setSelectedDate(day.date);
+                            })
+                          )
+                      : null}
+                    {features.tasks || features.noticeBoard ? (
+                      day.tasks.length + day.notes.length > 2 ? (
+                        <div
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedDate(day.date);
+                          }}
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: 18,
+                            background: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            color: "#475569",
+                            lineHeight: 1.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          +{day.tasks.length + day.notes.length - 2}
+                        </div>
+                      ) : null
+                    ) : null}
                     {day.closures.map((closure) => (
                       <div
                         key={closure.id}
@@ -1141,23 +1300,6 @@ export function DayActionCalendarClient({
                           renderAvailabilityCard(availability, true)
                         )
                       : null}
-                    {features.requests
-                      ? day.requests.map((request) => renderApprovedRequestCard(request, true))
-                      : null}
-                    {features.tasks && day.tasks.length > 0 ? (
-                      <div
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: 18,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          color: "#334155",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Note: {day.tasks.length}
-                      </div>
-                    ) : null}
                   </button>
                 ))}
               </div>
@@ -2041,10 +2183,10 @@ export function DayActionCalendarClient({
                         gap: 12,
                       }}
                     >
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                        Note del giorno
-                      </strong>
-                      <CountBadge count={selectedDay.tasks.length} />
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                      Note del giorno
+                    </strong>
+                      <CountBadge count={selectedDay.tasks.length + selectedDay.notes.length} />
                       {canOpenTaskComposer ? (
                         <IconButton
                           type="button"
@@ -2069,11 +2211,12 @@ export function DayActionCalendarClient({
                         </IconButton>
                       ) : null}
                     </div>
-                    {selectedDay.tasks.length === 0 ? (
+                    {selectedDay.tasks.length === 0 && selectedDay.notes.length === 0 ? (
                       <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
+                        {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
                       </div>
                     )}
                   </div>
