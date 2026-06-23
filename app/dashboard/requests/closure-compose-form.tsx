@@ -38,12 +38,18 @@ export function ClosureComposeForm({
       return;
     }
 
+    if (draft.endsAt && draft.endsAt < draft.startsAt) {
+      return;
+    }
+
     setQueued((current) => current.concat(draft));
     setDraft(createDraft());
   }
 
   function saveAll() {
-    const currentDraftIsValid = Boolean(draft.startsAt);
+    const currentDraftIsValid = Boolean(
+      draft.startsAt && (!draft.endsAt || draft.endsAt >= draft.startsAt)
+    );
     const items = queued.concat(currentDraftIsValid ? [draft] : []);
 
     if (items.length === 0) {
@@ -128,14 +134,30 @@ export function ClosureComposeForm({
           <TextInput type="date" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} />
         </FormField>
         <FormField label="Fine">
-          <TextInput type="date" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} />
+          <TextInput
+            type="date"
+            min={draft.startsAt || undefined}
+            value={draft.endsAt}
+            onChange={(event) => {
+              const nextEndsAt = event.target.value;
+              setDraft({
+                ...draft,
+                endsAt: draft.startsAt && nextEndsAt < draft.startsAt ? draft.startsAt : nextEndsAt,
+              });
+            }}
+          />
         </FormField>
       </div>
       <FormField label="Note">
         <TextArea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
       </FormField>
       <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <PrimaryButton type="button" tone="sand" onClick={addToList} disabled={isPending || !draft.startsAt}>
+        <PrimaryButton
+          type="button"
+          tone="sand"
+          onClick={addToList}
+          disabled={isPending || !draft.startsAt || Boolean(draft.endsAt && draft.endsAt < draft.startsAt)}
+        >
           + Aggiungi alla lista
         </PrimaryButton>
         <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>

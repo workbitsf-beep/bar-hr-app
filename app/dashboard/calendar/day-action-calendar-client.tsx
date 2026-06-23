@@ -671,6 +671,7 @@ export function DayActionCalendarClient({
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
+  const [currentShiftDraft, setCurrentShiftDraft] = useState<ShiftDraft | null>(null);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [requestStart, setRequestStart] = useState("");
   const [requestEnd, setRequestEnd] = useState("");
@@ -849,7 +850,8 @@ export function DayActionCalendarClient({
     setShowCourseComposer(false);
     setQuickComposer(null);
     setFeedback(null);
-    setShiftDrafts([createShiftDraft(day.date)]);
+    setShiftDrafts([]);
+    setCurrentShiftDraft(createShiftDraft(day.date));
     setRequestType(RequestType.VACATION);
     setRequestStart(toDateTimeLocal(day.date, 9, 0));
     setRequestEnd(toDateTimeLocal(day.date, 18, 0));
@@ -881,6 +883,11 @@ export function DayActionCalendarClient({
     setSelectedDate(null);
     setQuickComposer(null);
     setFeedback(null);
+    setCurrentShiftDraft(null);
+  }
+
+  function isShiftDraftValid(draft: ShiftDraft | null) {
+    return Boolean(draft?.date && draft.startTime && draft.endTime && draft.memberIds.length > 0);
   }
 
   function addShiftDraft() {
@@ -889,13 +896,23 @@ export function DayActionCalendarClient({
     }
 
     setShowShiftComposer(true);
-    setShiftDrafts((current) => current.concat(createShiftDraft(selectedDay.date)));
+    if (!currentShiftDraft) {
+      setCurrentShiftDraft(createShiftDraft(selectedDay.date));
+      return;
+    }
+
+    if (!isShiftDraftValid(currentShiftDraft)) {
+      setFeedback({ tone: "danger", message: "Completa il turno prima di aggiungerlo alla lista." });
+      return;
+    }
+
+    setShiftDrafts((current) => current.concat(currentShiftDraft));
+    setCurrentShiftDraft(createShiftDraft(selectedDay.date));
+    setFeedback(null);
   }
 
   function removeShiftDraft(draftId: string) {
-    setShiftDrafts((current) =>
-      current.length <= 1 ? current : current.filter((draft) => draft.id !== draftId)
-    );
+    setShiftDrafts((current) => current.filter((draft) => draft.id !== draftId));
   }
 
   function updateShiftDraft(draftId: string, patch: Partial<ShiftDraft>) {
@@ -916,6 +933,22 @@ export function DayActionCalendarClient({
     );
   }
 
+  function updateCurrentShiftDraft(patch: Partial<ShiftDraft>) {
+    setCurrentShiftDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const next = { ...current, ...patch };
+      const blocked = getBlockedMemberReasons(next);
+
+      return {
+        ...next,
+        memberIds: next.memberIds.filter((memberId) => !blocked.has(memberId)),
+      };
+    });
+  }
+
   function toggleDraftMember(draftId: string, memberId: string) {
     setShiftDrafts((current) =>
       current.map((draft) =>
@@ -931,6 +964,21 @@ export function DayActionCalendarClient({
     );
   }
 
+  function toggleCurrentDraftMember(memberId: string) {
+    setCurrentShiftDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        memberIds: current.memberIds.includes(memberId)
+          ? current.memberIds.filter((id) => id !== memberId)
+          : current.memberIds.concat(memberId),
+      };
+    });
+  }
+
   function applyPresetByKey(draftId: string, nextKey: string) {
     if (nextKey === "CUSTOM") {
       updateShiftDraft(draftId, { presetKey: nextKey });
@@ -944,6 +992,25 @@ export function DayActionCalendarClient({
     }
 
     updateShiftDraft(draftId, {
+      presetKey: nextKey,
+      startTime: preset.startTime,
+      endTime: preset.endTime,
+    });
+  }
+
+  function applyPresetToCurrent(nextKey: string) {
+    if (nextKey === "CUSTOM") {
+      updateCurrentShiftDraft({ presetKey: nextKey });
+      return;
+    }
+
+    const preset = presets.find((entry) => entry.key === nextKey);
+
+    if (!preset) {
+      return;
+    }
+
+    updateCurrentShiftDraft({
       presetKey: nextKey,
       startTime: preset.startTime,
       endTime: preset.endTime,
@@ -997,9 +1064,9 @@ export function DayActionCalendarClient({
       return;
     }
 
-    const validDrafts = shiftDrafts.filter(
-      (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
-    );
+    const validDrafts = shiftDrafts
+      .concat(isShiftDraftValid(currentShiftDraft) && currentShiftDraft ? [currentShiftDraft] : [])
+      .filter((draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0);
 
     if (validDrafts.length === 0) {
       return;
@@ -1023,7 +1090,8 @@ export function DayActionCalendarClient({
           await createShiftAction(formData);
         }
 
-        setShiftDrafts([createShiftDraft(selectedDay.date)]);
+        setShiftDrafts([]);
+        setCurrentShiftDraft(createShiftDraft(selectedDay.date));
         setShowShiftComposer(false);
       },
       validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.",
@@ -1500,8 +1568,8 @@ export function DayActionCalendarClient({
                           type="button"
                           onClick={() => {
                             setShowShiftComposer(true);
-                            if (shiftDrafts.length === 0) {
-                              addShiftDraft();
+                            if (!currentShiftDraft) {
+                              setCurrentShiftDraft(createShiftDraft(selectedDay.date));
                             }
                           }}
                           aria-label="Aggiungi turno"
@@ -1751,19 +1819,178 @@ export function DayActionCalendarClient({
                           );
                         })}
 
+                        {currentShiftDraft ? (
+                          <div
+                            key={currentShiftDraft.id}
+                            style={{
+                              display: "grid",
+                              gap: 12,
+                              padding: 16,
+                              borderRadius: 20,
+                              background: "#ffffff",
+                              border: "1px solid #dbe3ee",
+                            }}
+                          >
+                            <strong style={{ color: "#0f172a" }}>Nuovo turno</strong>
+
+                            {presets.length > 0 ? (
+                              <label style={{ display: "grid", gap: 8 }}>
+                                <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario standard</span>
+                                <Select
+                                  value={currentShiftDraft.presetKey}
+                                  onChange={(event) => applyPresetToCurrent(event.target.value)}
+                                >
+                                  <option value="CUSTOM">Personalizzato</option>
+                                  {presets.map((preset) => (
+                                    <option key={preset.key} value={preset.key}>
+                                      {preset.label} - {preset.startTime} / {preset.endTime}
+                                    </option>
+                                  ))}
+                                </Select>
+                              </label>
+                            ) : null}
+
+                            <div
+                              className="dashboard-modal-body-grid"
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                                gap: 12,
+                              }}
+                            >
+                              <label style={{ display: "grid", gap: 8 }}>
+                                <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
+                                <TextInput
+                                  type="date"
+                                  value={currentShiftDraft.date}
+                                  onChange={(event) =>
+                                    updateCurrentShiftDraft({ date: event.target.value })
+                                  }
+                                />
+                              </label>
+
+                              <label style={{ display: "grid", gap: 8 }}>
+                                <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
+                                <TimeInput
+                                  value={currentShiftDraft.startTime}
+                                  onChange={(value) =>
+                                    updateCurrentShiftDraft({
+                                      presetKey: "CUSTOM",
+                                      startTime: value,
+                                    })
+                                  }
+                                />
+                              </label>
+
+                              <label style={{ display: "grid", gap: 8 }}>
+                                <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine</span>
+                                <TimeInput
+                                  value={currentShiftDraft.endTime}
+                                  onChange={(value) =>
+                                    updateCurrentShiftDraft({
+                                      presetKey: "CUSTOM",
+                                      endTime: value,
+                                    })
+                                  }
+                                />
+                              </label>
+                            </div>
+
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                color: "#334155",
+                                fontWeight: 600,
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={currentShiftDraft.isOnCall}
+                                onChange={(event) =>
+                                  updateCurrentShiftDraft({ isOnCall: event.target.checked })
+                                }
+                              />
+                              Reperibilita
+                            </label>
+
+                            <div style={{ display: "grid", gap: 10 }}>
+                              <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
+                              <div
+                                className="dashboard-modal-members-grid"
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                                  gap: 10,
+                                }}
+                              >
+                                {members.map((member) => {
+                                  const blockedMemberReasons = getBlockedMemberReasons(currentShiftDraft);
+
+                                  return (
+                                    <label
+                                      key={member.id}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        padding: "12px 14px",
+                                        borderRadius: 16,
+                                        border: "1px solid #e2e8f0",
+                                        background: currentShiftDraft.memberIds.includes(member.id)
+                                          ? "#e2e8f0"
+                                          : "#ffffff",
+                                        color: blockedMemberReasons.has(member.id) ? "#94a3b8" : "#0f172a",
+                                        opacity: blockedMemberReasons.has(member.id) ? 0.6 : 1,
+                                      }}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={currentShiftDraft.memberIds.includes(member.id)}
+                                        disabled={blockedMemberReasons.has(member.id)}
+                                        onChange={() => toggleCurrentDraftMember(member.id)}
+                                      />
+                                      <span style={{ display: "grid", gap: 2 }}>
+                                        <span>
+                                          {member.firstName} {member.lastName} -{" "}
+                                          {activityType === ActivityType.COMPANY && member.role === Role.MANAGER
+                                            ? "Ufficio personale"
+                                            : formatRoleLabel(member.role)}
+                                        </span>
+                                        {blockedMemberReasons.has(member.id) ? (
+                                          <span style={{ fontSize: 12, color: "#b45309" }}>
+                                            {blockedMemberReasons.get(member.id)}
+                                          </span>
+                                        ) : null}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+
                         <div className="dashboard-modal-actions" style={{ display: "flex", justifyContent: "flex-end" }}>
                           <PrimaryButton
                             type="button"
                             onClick={submitShifts}
                             disabled={
                               isPending ||
-                              !shiftDrafts.some(
-                                (draft) =>
-                                  draft.memberIds.length > 0 &&
-                                  draft.date &&
-                                  draft.startTime &&
-                                  draft.endTime
-                              )
+                              !shiftDrafts
+                                .concat(
+                                  isShiftDraftValid(currentShiftDraft) && currentShiftDraft
+                                    ? [currentShiftDraft]
+                                    : []
+                                )
+                                .some(
+                                  (draft) =>
+                                    draft.memberIds.length > 0 &&
+                                    draft.date &&
+                                    draft.startTime &&
+                                    draft.endTime
+                                )
                             }
                           >
                             {isPending ? "Salvataggio..." : "Salva turni"}
@@ -2310,7 +2537,7 @@ export function DayActionCalendarClient({
         members={members}
         canPinBoard={role === Role.OWNER || role === Role.MANAGER}
         isPending={isPending}
-        onClose={() => setQuickComposer(null)}
+        onClose={closeModal}
         onSubmitTask={submitQuickTask}
         onSubmitBoard={submitQuickBoard}
       />
