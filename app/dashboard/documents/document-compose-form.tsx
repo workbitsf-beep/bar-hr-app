@@ -93,7 +93,23 @@ export function DocumentComposeForm({
                 border: "1px solid #e2e8f0",
               }}
             >
-              <span style={{ color: "#0f172a", fontWeight: 700 }}>{item.title}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(item);
+                  setQueued((current) => current.filter((entry) => entry.id !== item.id));
+                }}
+                style={{
+                  border: 0,
+                  background: "transparent",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  textAlign: "left",
+                  padding: 0,
+                }}
+              >
+                {item.title}
+              </button>
               <button
                 type="button"
                 onClick={() => setQueued((current) => current.filter((entry) => entry.id !== item.id))}

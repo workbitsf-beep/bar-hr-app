@@ -139,6 +139,8 @@ type FeedbackState =
     }
   | null;
 
+type CalendarModalMode = "day" | "shifts" | "notes";
+
 type ShiftDraft = {
   id: string;
   date: string;
@@ -295,14 +297,6 @@ function renderShiftCard(
       key={shift.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
-      onPointerDown={(event) => {
-        if (!onOpen || event.pointerType === "mouse") {
-          return;
-        }
-
-        event.stopPropagation();
-        onOpen();
-      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -399,14 +393,6 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
       key={task.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
-      onPointerDown={(event) => {
-        if (!onOpen || event.pointerType === "mouse") {
-          return;
-        }
-
-        event.stopPropagation();
-        onOpen();
-      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -448,14 +434,6 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
       key={note.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
-      onPointerDown={(event) => {
-        if (!onOpen || event.pointerType === "mouse") {
-          return;
-        }
-
-        event.stopPropagation();
-        onOpen();
-      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -685,6 +663,7 @@ export function DayActionCalendarClient({
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
   const [showRequestComposer, setShowRequestComposer] = useState(false);
@@ -860,8 +839,9 @@ export function DayActionCalendarClient({
     return blocked;
   }
 
-  function openDay(day: DayItem) {
+  function openDay(day: DayItem, mode: CalendarModalMode = "day") {
     setSelectedDate(day.date);
+    setActiveCalendarModal(mode);
     setEditingShiftId(null);
     setShowShiftComposer(false);
     setShowRequestComposer(false);
@@ -893,6 +873,7 @@ export function DayActionCalendarClient({
     }
 
     setEditingShiftId(null);
+    setActiveCalendarModal(null);
     setShowShiftComposer(false);
     setShowRequestComposer(false);
     setShowAvailabilityComposer(false);
@@ -1270,7 +1251,8 @@ export function DayActionCalendarClient({
                             `shift-${shift.id}`,
                             renderShiftCard(shift, locale, true, () => {
                               setSelectedDate(day.date);
-                              setEditingShiftId(shift.id);
+                              setActiveCalendarModal("shifts");
+                              setEditingShiftId(null);
                             })
                           );
                         }
@@ -1286,7 +1268,10 @@ export function DayActionCalendarClient({
                         for (const task of day.tasks) {
                           pushCard(
                             `task-${task.id}`,
-                            renderTaskPreviewCard(task, true, () => setSelectedDate(day.date))
+                            renderTaskPreviewCard(task, true, () => {
+                              setSelectedDate(day.date);
+                              setActiveCalendarModal("notes");
+                            })
                           );
                         }
                       }
@@ -1295,7 +1280,10 @@ export function DayActionCalendarClient({
                         for (const note of day.notes) {
                           pushCard(
                             `note-${note.id}`,
-                            renderNotePreviewCard(note, true, () => setSelectedDate(day.date))
+                            renderNotePreviewCard(note, true, () => {
+                              setSelectedDate(day.date);
+                              setActiveCalendarModal("notes");
+                            })
                           );
                         }
                       }
@@ -1356,6 +1344,7 @@ export function DayActionCalendarClient({
                               onClick={(event) => {
                                 event.stopPropagation();
                                 setSelectedDate(day.date);
+                                setActiveCalendarModal("day");
                               }}
                               style={{
                                 padding: "6px 9px",
@@ -1495,7 +1484,7 @@ export function DayActionCalendarClient({
                   )
                 ) : null}
 
-                {canManageOptionalShifts ? (
+                {features.shifts && activeCalendarModal !== "notes" ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -1788,12 +1777,9 @@ export function DayActionCalendarClient({
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.shifts.map((shift) => (
-                          <button
+                          <div
                             key={shift.id}
-                            type="button"
                             className="dashboard-list-card"
-                            onClick={() => setEditingShiftId(shift.id)}
-                            disabled={isPending}
                             style={{
                               width: "100%",
                               padding: 14,
@@ -1803,34 +1789,47 @@ export function DayActionCalendarClient({
                               textAlign: "left",
                               display: "grid",
                               gap: 6,
-                              cursor: isPending ? "default" : "pointer",
                             }}
                           >
-                            <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                              {formatRange(shift.startTime, shift.endTime, locale)}
-                            </strong>
-                            <span style={{ color: "#475569" }}>
-                              {formatAssignmentNames(shift.assignments)}
-                            </span>
-                            <span
-                              title={shift.confirmedAt ? "Confermato" : "In attesa"}
-                              aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
-                              style={{
-                                justifySelf: "start",
-                                display: "inline-flex",
-                                alignItems: "center",
-                              }}
-                            >
-                              {renderShiftStateIcon(Boolean(shift.confirmedAt), 18)}
-                            </span>
-                          </button>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                              <div style={{ display: "grid", gap: 6 }}>
+                                <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                                  {formatRange(shift.startTime, shift.endTime, locale)}
+                                </strong>
+                                <span style={{ color: "#475569" }}>
+                                  {formatAssignmentNames(shift.assignments)}
+                                </span>
+                                <span
+                                  title={shift.confirmedAt ? "Confermato" : "In attesa"}
+                                  aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
+                                  style={{
+                                    justifySelf: "start",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  {renderShiftStateIcon(Boolean(shift.confirmedAt), 18)}
+                                </span>
+                              </div>
+                              {canManageOptionalShifts ? (
+                                <PrimaryButton
+                                  type="button"
+                                  tone="sand"
+                                  onClick={() => setEditingShiftId(shift.id)}
+                                  disabled={isPending}
+                                >
+                                  Modifica
+                                </PrimaryButton>
+                              ) : null}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
                   </div>
                 ) : null}
 
-                {(selectedDay?.pendingOnCallShifts ?? []).filter(
+                {activeCalendarModal === "day" && (selectedDay?.pendingOnCallShifts ?? []).filter(
                   (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
                   <div style={{ display: "grid", gap: 12 }}>
@@ -1894,7 +1893,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canCreateRequest ? (
+                {activeCalendarModal === "day" && canCreateRequest ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
                       Richieste da approvare
@@ -1972,9 +1971,9 @@ export function DayActionCalendarClient({
                     )}
                   </div>
                 ) : null}
-                {dayAbsencesSection}
+                {activeCalendarModal === "day" ? dayAbsencesSection : null}
 
-                {canCreateRequest ? (
+                {activeCalendarModal === "day" && canCreateRequest ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -2006,7 +2005,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {canCreateAvailability ? (
+                {activeCalendarModal === "day" && canCreateAvailability ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -2038,7 +2037,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {showRequestComposer ? (
+                {activeCalendarModal === "day" && showRequestComposer ? (
                       <div
                         style={{
                           position: "fixed",
@@ -2151,7 +2150,7 @@ export function DayActionCalendarClient({
                       </div>
                     ) : null}
 
-                {showAvailabilityComposer && canCreateAvailability ? (
+                {activeCalendarModal === "day" && showAvailabilityComposer && canCreateAvailability ? (
                       <div
                         style={{
                           position: "fixed",
@@ -2241,7 +2240,7 @@ export function DayActionCalendarClient({
                       </div>
                     ) : null}
 
-                {features.tasks ? (
+                {features.tasks && activeCalendarModal !== "shifts" ? (
                   <div style={{ display: "grid", gap: 10 }}>
                     <div
                       style={{
@@ -2252,7 +2251,12 @@ export function DayActionCalendarClient({
                       }}
                     >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      Note del giorno
+                      📌 Note del{" "}
+                      {new Intl.DateTimeFormat(locale, {
+                        day: "numeric",
+                        month: "long",
+                        timeZone: APP_TIME_ZONE,
+                      }).format(new Date(selectedDay.date))}
                     </strong>
                       <CountBadge count={selectedDay.tasks.length + selectedDay.notes.length} />
                       {canOpenTaskComposer ? (
@@ -2318,7 +2322,7 @@ export function DayActionCalendarClient({
         shift={editingShift}
         members={members}
         presets={presets}
-        onClose={() => setEditingShiftId(null)}
+        onClose={closeModal}
       />
     </>
   );

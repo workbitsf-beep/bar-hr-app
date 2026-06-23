@@ -126,6 +126,8 @@ type FeedbackState =
     }
   | null;
 
+type CalendarModalMode = "day" | "shifts" | "notes";
+
 type ShiftDraft = {
   id: string;
   date: string;
@@ -245,14 +247,6 @@ function renderCompactShiftCard(
       key={shift.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
-      onPointerDown={(event) => {
-        if (!onOpen || event.pointerType === "mouse") {
-          return;
-        }
-
-        event.stopPropagation();
-        onOpen();
-      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -320,14 +314,6 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
       key={task.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
-      onPointerDown={(event) => {
-        if (!onOpen || event.pointerType === "mouse") {
-          return;
-        }
-
-        event.stopPropagation();
-        onOpen();
-      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -369,14 +355,6 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
       key={note.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
-      onPointerDown={(event) => {
-        if (!onOpen || event.pointerType === "mouse") {
-          return;
-        }
-
-        event.stopPropagation();
-        onOpen();
-      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -564,6 +542,7 @@ export function OwnerCalendarClient({
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
   const [showRequestComposer, setShowRequestComposer] = useState(false);
@@ -690,8 +669,9 @@ export function OwnerCalendarClient({
     setShowAvailabilityComposer(true);
   }
 
-  function openDay(day: DayItem) {
+  function openDay(day: DayItem, mode: CalendarModalMode = "day") {
     setSelectedDate(day.date);
+    setActiveCalendarModal(mode);
     setEditingShiftId(null);
     setShowShiftComposer(false);
     setShowRequestComposer(false);
@@ -723,6 +703,7 @@ export function OwnerCalendarClient({
     }
 
     setEditingShiftId(null);
+    setActiveCalendarModal(null);
     setShowShiftComposer(false);
     setShowRequestComposer(false);
     setShowAvailabilityComposer(false);
@@ -1084,7 +1065,8 @@ export function OwnerCalendarClient({
                             `shift-${shift.id}`,
                             renderCompactShiftCard(shift, locale, true, () => {
                               setSelectedDate(day.date);
-                              setEditingShiftId(shift.id);
+                              setActiveCalendarModal("shifts");
+                              setEditingShiftId(null);
                             })
                           );
                         }
@@ -1116,7 +1098,10 @@ export function OwnerCalendarClient({
                         for (const task of day.tasks) {
                           pushCard(
                             `task-${task.id}`,
-                            renderTaskPreviewCard(task, true, () => setSelectedDate(day.date))
+                            renderTaskPreviewCard(task, true, () => {
+                              setSelectedDate(day.date);
+                              setActiveCalendarModal("notes");
+                            })
                           );
                         }
                       }
@@ -1125,7 +1110,10 @@ export function OwnerCalendarClient({
                         for (const note of day.notes) {
                           pushCard(
                             `note-${note.id}`,
-                            renderNotePreviewCard(note, true, () => setSelectedDate(day.date))
+                            renderNotePreviewCard(note, true, () => {
+                              setSelectedDate(day.date);
+                              setActiveCalendarModal("notes");
+                            })
                           );
                         }
                       }
@@ -1212,6 +1200,7 @@ export function OwnerCalendarClient({
                               onClick={(event) => {
                                 event.stopPropagation();
                                 setSelectedDate(day.date);
+                                setActiveCalendarModal("day");
                               }}
                               style={{
                                 padding: "6px 9px",
@@ -1907,6 +1896,7 @@ export function OwnerCalendarClient({
                 ) : null}
 
                 {selectedDay &&
+                activeCalendarModal !== "notes" &&
                 (features.shifts || features.requests || features.tasks || features.noticeBoard) ? (
                   <div style={{ display: "grid", gap: 10 }}>
                   <div
@@ -1939,12 +1929,9 @@ export function OwnerCalendarClient({
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                       {day.shifts.map((shift) => (
-                        <button
-                          type="button"
+                        <div
                           className="dashboard-list-card"
                           key={shift.id}
-                          onClick={() => setEditingShiftId(shift.id)}
-                          disabled={isPending}
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
@@ -1956,7 +1943,6 @@ export function OwnerCalendarClient({
                             background: "#f8fafc",
                             border: "1px solid #e2e8f0",
                             textAlign: "left",
-                            cursor: isPending ? "default" : "pointer",
                           }}
                         >
                           <div style={{ display: "grid", gap: 6 }}>
@@ -1991,14 +1977,22 @@ export function OwnerCalendarClient({
                             </svg>
                             ›
                           </span>
-                        </button>
+                          <PrimaryButton
+                            type="button"
+                            tone="sand"
+                            onClick={() => setEditingShiftId(shift.id)}
+                            disabled={isPending}
+                          >
+                            Modifica
+                          </PrimaryButton>
+                        </div>
                       ))}
                     </div>
                   )}
                   </div>
                 ) : null}
 
-                {features.shifts && (selectedDay?.pendingOnCallShifts ?? []).filter(
+                {activeCalendarModal === "day" && features.shifts && (selectedDay?.pendingOnCallShifts ?? []).filter(
                   (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
                   <div style={{ display: "grid", gap: 10 }}>
@@ -2062,7 +2056,7 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                {features.requests ? (
+                {activeCalendarModal === "day" && features.requests ? (
                 <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
@@ -2103,7 +2097,7 @@ export function OwnerCalendarClient({
                 </div>
                 ) : null}
 
-                {features.tasks ? (
+                {activeCalendarModal !== "shifts" && features.tasks ? (
                 <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
@@ -2113,7 +2107,14 @@ export function OwnerCalendarClient({
                       gap: 12,
                     }}
                   >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Note del giorno</strong>
+                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
+                      📌 Note del{" "}
+                      {new Intl.DateTimeFormat(locale, {
+                        day: "numeric",
+                        month: "long",
+                        timeZone: APP_TIME_ZONE,
+                      }).format(new Date(day.date))}
+                    </strong>
                     <CountBadge count={day.tasks.length + day.notes.length} />
                     <IconButton
                       type="button"
@@ -2221,7 +2222,7 @@ export function OwnerCalendarClient({
         shift={editingShift}
         members={members}
         presets={presets}
-        onClose={() => setEditingShiftId(null)}
+        onClose={closeModal}
       />
       <QuickCalendarEntryModal
         open={Boolean(
