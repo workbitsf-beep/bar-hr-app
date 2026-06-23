@@ -198,6 +198,7 @@ export default async function DashboardCalendarPage({
           afternoonEndTime: true,
           eveningStartTime: true,
           eveningEndTime: true,
+          standardShiftPresets: true,
         },
       }),
       features.shifts

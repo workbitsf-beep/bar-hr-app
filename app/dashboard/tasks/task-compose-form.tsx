@@ -194,7 +194,7 @@ export function TaskComposeForm({
           gap: 12,
         }}
       >
-        <FormField label="Data attività">
+        <FormField label="Data">
           <TextInput name="dueDate" type="date" required />
         </FormField>
 

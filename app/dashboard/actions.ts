@@ -250,6 +250,27 @@ function parseShiftPresetPair(
   return { startTime, endTime };
 }
 
+function parseStandardShiftPresets(formData: FormData) {
+  return normalizeIds(formData.getAll("standardShiftPresetId")).flatMap((id, index) => {
+    const title = String(formData.get(`standardShiftPresetTitle_${id}`) ?? "").trim();
+    const startTime = parseOptionalTime(formData.get(`standardShiftPresetStart_${id}`));
+    const endTime = parseOptionalTime(formData.get(`standardShiftPresetEnd_${id}`));
+
+    if (!startTime || !endTime) {
+      return [];
+    }
+
+    return [
+      {
+        id,
+        title: title || `Orario ${index + 1}`,
+        startTime,
+        endTime,
+      },
+    ];
+  });
+}
+
 function parseRole(value: FormDataEntryValue | null): Role {
   const raw = String(value ?? "");
 
@@ -3103,6 +3124,7 @@ export async function updateSettingsAction(formData: FormData) {
       },
     });
   } else if (settingsSection === "hours") {
+    const standardShiftPresets = parseStandardShiftPresets(formData);
     const morningPreset = parseShiftPresetPair(
       formData.get("morningStartTime"),
       formData.get("morningEndTime")
@@ -3122,6 +3144,7 @@ export async function updateSettingsAction(formData: FormData) {
       afternoonEndTime: afternoonPreset.endTime,
       eveningStartTime: eveningPreset.startTime,
       eveningEndTime: eveningPreset.endTime,
+      standardShiftPresets,
     };
 
     await prisma.barSettings.upsert({

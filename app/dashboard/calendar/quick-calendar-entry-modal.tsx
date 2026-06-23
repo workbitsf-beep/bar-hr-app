@@ -286,7 +286,7 @@ export function QuickCalendarEntryModal({
           }}
         >
           <label style={{ display: "grid", gap: 8 }}>
-            <span style={{ fontWeight: 600, color: "#1e293b" }}>Data attività</span>
+            <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>
             <TextInput
               type="date"
               value={taskDueDate}

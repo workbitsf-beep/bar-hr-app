@@ -38,6 +38,7 @@ import {
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
+import { ClosureComposeForm } from "./closure-compose-form";
 
 function closureTypeLabel(type: CalendarClosureType) {
   if (type === CalendarClosureType.HOLIDAY) {
@@ -498,21 +499,7 @@ export default async function DashboardRequestsPage({
             title="Chiusure"
             action={
               <PopupAction title="Chiusura" ariaLabel="Aggiungi chiusura">
-                <form action={createCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
-                  <input type="hidden" name="type" value="CLOSURE" />
-
-                  <FormField label="Titolo">
-                    <TextInput name="title" placeholder="Chiusura locale" />
-                  </FormField>
-
-                  <ClosureDateRangeInput startName="startsAt" endName="endsAt" required />
-
-                  <input type="hidden" name="notifySuccess" value="1" />
-
-                  <div className="dashboard-form-actions">
-                    <PrimaryButton type="submit">Salva chiusura</PrimaryButton>
-                  </div>
-                </form>
+                <ClosureComposeForm action={createCalendarClosureAction} />
               </PopupAction>
             }
           >
@@ -712,9 +699,8 @@ export default async function DashboardRequestsPage({
         ) : null}
 
         {features.availability && !isCompany ? (
-          <>
             <Panel
-              title="Nuova indisponibilita"
+              title="Indisponibilita"
               action={
                 <PopupAction title="Indisponibilita" ariaLabel="Aggiungi indisponibilita">
                   <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
@@ -750,12 +736,7 @@ export default async function DashboardRequestsPage({
                 </PopupAction>
               }
             >
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                Segnala quando non puoi lavorare.
-              </p>
-            </Panel>
-
-            <Panel title="Indisponibilita" action={availabilities.length + " elementi"}>
+              <div style={{ display: "grid", gap: 12 }}>
               {availabilities.length === 0 ? (
                 <EmptyState message="Nessuna indisponibilita registrata." />
               ) : (
@@ -774,8 +755,8 @@ export default async function DashboardRequestsPage({
                   ))}
                 </ItemList>
               )}
+              </div>
             </Panel>
-          </>
         ) : null}
         {features.requests ? (
           <Panel title="Storico richieste" action={`${requests.length} elementi`}>

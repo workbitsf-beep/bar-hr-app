@@ -1,6 +1,5 @@
 import { ActivityType, Prisma, Role } from "@prisma/client";
 import { GpsLocationField } from "@/app/components/gps-location-field";
-import { TimeInput } from "@/app/components/time-input";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
 import { featureDefinitions, getFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
@@ -8,10 +7,11 @@ import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { updateSettingsAction } from "../actions";
-import { EmptyState, FormField, Panel, PrimaryButton, Stack } from "../ui";
+import { EmptyState, Panel, PrimaryButton, Stack } from "../ui";
 import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { PasswordChangePanel } from "./password-change-panel";
+import { StandardHoursForm, StandardHoursPreview, type StandardHourEntry } from "./standard-hours-form";
 
 function FeatureSummaryChips({ settings }: { settings?: FeatureSettingsInput | null }) {
   const features = getFeatureFlags(settings);
@@ -128,50 +128,49 @@ function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | nul
   );
 }
 
-function StandardHoursPreview({
-  morningStartTime,
-  morningEndTime,
-  afternoonStartTime,
-  afternoonEndTime,
-  eveningStartTime,
-  eveningEndTime,
-}: {
+function parseStandardHoursFromSettings(settings?: {
+  standardShiftPresets?: unknown;
   morningStartTime?: string | null;
   morningEndTime?: string | null;
   afternoonStartTime?: string | null;
   afternoonEndTime?: string | null;
   eveningStartTime?: string | null;
   eveningEndTime?: string | null;
-}) {
-  const rows = [
-    ["Mattina", morningStartTime, morningEndTime],
-    ["Pomeriggio", afternoonStartTime, afternoonEndTime],
-    ["Sera", eveningStartTime, eveningEndTime],
-  ] as const;
+} | null): StandardHourEntry[] {
+  if (Array.isArray(settings?.standardShiftPresets)) {
+    const entries = settings.standardShiftPresets.flatMap((entry, index) => {
+      if (!entry || typeof entry !== "object") {
+        return [];
+      }
 
-  return (
-    <div style={{ display: "grid", gap: 8 }}>
-      {rows.map(([label, start, end]) => (
-        <div
-          key={label}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            padding: "10px 12px",
-            borderRadius: 16,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            color: "#334155",
-            fontSize: 14,
-          }}
-        >
-          <strong>{label}</strong>
-          <span>{start && end ? `${start} - ${end}` : "Non impostato"}</span>
-        </div>
-      ))}
-    </div>
-  );
+      const data = entry as Record<string, unknown>;
+      const startTime = typeof data.startTime === "string" ? data.startTime : "";
+      const endTime = typeof data.endTime === "string" ? data.endTime : "";
+
+      if (!startTime || !endTime) {
+        return [];
+      }
+
+      return [
+        {
+          id: typeof data.id === "string" && data.id ? data.id : `preset-${index}`,
+          title: typeof data.title === "string" ? data.title : "",
+          startTime,
+          endTime,
+        },
+      ];
+    });
+
+    if (entries.length > 0) {
+      return entries;
+    }
+  }
+
+  return [
+    { id: "legacy-1", title: "", startTime: settings?.morningStartTime ?? "", endTime: settings?.morningEndTime ?? "" },
+    { id: "legacy-2", title: "", startTime: settings?.afternoonStartTime ?? "", endTime: settings?.afternoonEndTime ?? "" },
+    { id: "legacy-3", title: "", startTime: settings?.eveningStartTime ?? "", endTime: settings?.eveningEndTime ?? "" },
+  ].filter((entry) => entry.startTime || entry.endTime);
 }
 
 async function getPasskeyCount(userId: string) {
@@ -232,6 +231,7 @@ export default async function DashboardSettingsPage() {
         afternoonEndTime: true,
         eveningStartTime: true,
         eveningEndTime: true,
+        standardShiftPresets: true,
         companyShiftsEnabled: true,
         timeTrackingEnabled: true,
         shiftsEnabled: true,
@@ -253,6 +253,7 @@ export default async function DashboardSettingsPage() {
     activeBarActivityType === ActivityType.COMPANY && settings?.companyShiftsEnabled === false
       ? { ...settings, shiftsEnabled: false }
       : settings;
+  const standardHours = parseStandardHoursFromSettings(settings);
 
   const featurePopup = (
     <PopupAction title="Funzioni attive" ariaLabel="Modifica funzioni attive" closeOnSubmit>
@@ -270,39 +271,7 @@ export default async function DashboardSettingsPage() {
     <PopupAction title="Orari standard" ariaLabel="Modifica orari standard">
       <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
         <input type="hidden" name="settingsSection" value="hours" />
-        <div style={{ display: "grid", gap: 12 }}>
-          <div
-            className="dashboard-inline-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
-            }}
-          >
-            <FormField label="Mattina - inizio">
-              <TimeInput name="morningStartTime" value={settings?.morningStartTime ?? ""} />
-            </FormField>
-            <FormField label="Mattina - fine">
-              <TimeInput name="morningEndTime" value={settings?.morningEndTime ?? ""} />
-            </FormField>
-            <FormField label="Pomeriggio - inizio">
-              <TimeInput name="afternoonStartTime" value={settings?.afternoonStartTime ?? ""} />
-            </FormField>
-            <FormField label="Pomeriggio - fine">
-              <TimeInput name="afternoonEndTime" value={settings?.afternoonEndTime ?? ""} />
-            </FormField>
-            <FormField label="Sera - inizio">
-              <TimeInput name="eveningStartTime" value={settings?.eveningStartTime ?? ""} />
-            </FormField>
-            <FormField label="Sera - fine">
-              <TimeInput name="eveningEndTime" value={settings?.eveningEndTime ?? ""} />
-            </FormField>
-          </div>
-        </div>
-
-        <div className="dashboard-form-actions">
-          <PrimaryButton type="submit">Salva orari</PrimaryButton>
-        </div>
+        <StandardHoursForm initialEntries={standardHours} />
       </form>
     </PopupAction>
   );
@@ -352,14 +321,7 @@ export default async function DashboardSettingsPage() {
           </Panel>
 
           <Panel title="Orari standard" action={standardHoursPopup}>
-            <StandardHoursPreview
-              morningStartTime={settings?.morningStartTime}
-              morningEndTime={settings?.morningEndTime}
-              afternoonStartTime={settings?.afternoonStartTime}
-              afternoonEndTime={settings?.afternoonEndTime}
-              eveningStartTime={settings?.eveningStartTime}
-              eveningEndTime={settings?.eveningEndTime}
-            />
+            <StandardHoursPreview entries={standardHours} />
             <EmptyState message="Apri il popup con il + per aggiornarli in pochi tocchi." />
           </Panel>
         </>

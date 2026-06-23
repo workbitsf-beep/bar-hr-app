@@ -3,7 +3,7 @@
 import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { combineDateAndTime } from "@/lib/shift-datetime";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
@@ -309,8 +309,8 @@ function renderShiftCard(
         onOpen();
       }}
       style={{
-        padding: mobile ? 14 : "10px 12px",
-        borderRadius: mobile ? 18 : 16,
+        padding: mobile ? "7px 9px" : "7px 9px",
+        borderRadius: mobile ? 12 : 12,
         background: "#eff6ff",
         border: "1px solid #dbeafe",
         display: "block",
@@ -326,15 +326,15 @@ function renderShiftCard(
           lineHeight: 1.5,
         }}
       >
-        <strong style={{ color: "#0f172a", fontSize: mobile ? 15 : 13 }}>
+        <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
           {formatRange(shift.startTime, shift.endTime, locale)}
         </strong>
         {shift.isOnCall ? (
-          <span style={{ color: "#b45309", fontSize: mobile ? 13 : 12, fontWeight: 600 }}>
+          <span style={{ color: "#b45309", fontSize: mobile ? 11 : 11, fontWeight: 600 }}>
             {shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
           </span>
         ) : null}
-        <span style={{ color: "#475569", fontSize: mobile ? 14 : 12 }}>
+        <span style={{ color: "#475569", fontSize: mobile ? 12 : 11 }}>
           {formatAssignmentNames(shift.assignments)}
         </span>
         <span
@@ -348,7 +348,7 @@ function renderShiftCard(
             justifyContent: "center",
           }}
         >
-          {renderShiftStateIcon(Boolean(shift.confirmedAt), mobile ? 18 : 16)}
+          {renderShiftStateIcon(Boolean(shift.confirmedAt), mobile ? 14 : 14)}
           {shift.confirmedAt ? "✓" : "○"}
         </span>
       </div>
@@ -403,8 +403,8 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
         onOpen();
       }}
       style={{
-        padding: mobile ? "12px 14px" : "10px 12px",
-        borderRadius: mobile ? 18 : 16,
+        padding: mobile ? "7px 9px" : "7px 9px",
+        borderRadius: mobile ? 12 : 12,
         background: "#f8fafc",
         border: "1px solid #e2e8f0",
         color: "#334155",
@@ -412,10 +412,10 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
         cursor: onOpen ? "pointer" : "default",
       }}
     >
-      <strong style={{ color: "#0f172a", fontSize: mobile ? 14 : 13 }}>
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
         📌 {truncateCalendarText(task.title)}
       </strong>
-      <div style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
+      <div style={{ color: "#64748b", fontSize: mobile ? 11 : 11 }}>
         {task.assignedLabel}
       </div>
     </div>
@@ -442,8 +442,8 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
         onOpen();
       }}
       style={{
-        padding: mobile ? "12px 14px" : "10px 12px",
-        borderRadius: mobile ? 18 : 16,
+        padding: mobile ? "7px 9px" : "7px 9px",
+        borderRadius: mobile ? 12 : 12,
         background: "#f8fafc",
         border: "1px solid #e2e8f0",
         color: "#334155",
@@ -451,10 +451,10 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
         cursor: onOpen ? "pointer" : "default",
       }}
     >
-      <strong style={{ color: "#0f172a", fontSize: mobile ? 14 : 13 }}>
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
         📌 {truncateCalendarText(note.content)}
       </strong>
-      <div style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
+      <div style={{ color: "#64748b", fontSize: mobile ? 11 : 11 }}>
         {note.authorName}
       </div>
     </div>
@@ -1180,12 +1180,12 @@ export function DayActionCalendarClient({
                     data-calendar-today={day.isToday ? "true" : undefined}
                     style={{
                       display: "grid",
-                      gap: 10,
+                      gap: 6,
                       width: "100%",
                       maxWidth: "100%",
                       boxSizing: "border-box",
-                      padding: 14,
-                      borderRadius: 20,
+                      padding: 10,
+                      borderRadius: 16,
                       background: "#ffffff",
                       border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
                       boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
@@ -1204,11 +1204,11 @@ export function DayActionCalendarClient({
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        gap: 8,
+                        gap: 6,
                         flexWrap: "wrap",
                       }}
                     >
-                      <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                      <strong style={{ color: "#0f172a", fontSize: 14 }}>
                         {formatDayLabel(day.date, locale)}
                       </strong>
                       {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
@@ -1222,84 +1222,129 @@ export function DayActionCalendarClient({
                     day.closures.length === 0 &&
                     day.tasks.length === 0 &&
                     day.notes.length === 0 ? (
-                      <div style={{ color: "#94a3b8", fontSize: 15 }}>Nessun evento</div>
+                      <div style={{ color: "#94a3b8", fontSize: 12 }}>Nessun evento</div>
                     ) : null}
 
-                    {features.shifts
-                      ? day.shifts.map((shift) =>
-                          renderShiftCard(shift, locale, true, () => {
-                            setSelectedDate(day.date);
-                            setEditingShiftId(shift.id);
-                          })
-                        )
-                      : null}
-                    {features.requests
-                      ? day.requests.map((request) => renderApprovedRequestCard(request, true))
-                      : null}
-                    {features.tasks
-                      ? day.tasks
-                          .slice(0, 2)
-                          .map((task) =>
-                            renderTaskPreviewCard(task, true, () => {
+                    {(() => {
+                      const cards: Array<{ key: string; node: ReactNode }> = [];
+                      const maxVisible = 3;
+                      const pushCard = (key: string, node: ReactNode) => {
+                        if (cards.length < maxVisible) {
+                          cards.push({ key, node });
+                        }
+                      };
+
+                      if (features.shifts) {
+                        for (const shift of day.shifts) {
+                          pushCard(
+                            `shift-${shift.id}`,
+                            renderShiftCard(shift, locale, true, () => {
                               setSelectedDate(day.date);
+                              setEditingShiftId(shift.id);
                             })
-                          )
-                      : null}
-                    {features.noticeBoard
-                      ? day.notes
-                          .slice(0, 2)
-                          .map((note) =>
-                            renderNotePreviewCard(note, true, () => {
-                              setSelectedDate(day.date);
-                            })
-                          )
-                      : null}
-                    {features.tasks || features.noticeBoard ? (
-                      day.tasks.length + day.notes.length > 2 ? (
-                        <div
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedDate(day.date);
-                          }}
-                          style={{
-                            padding: "10px 14px",
-                            borderRadius: 18,
-                            background: "#f8fafc",
-                            border: "1px solid #e2e8f0",
-                            color: "#475569",
-                            lineHeight: 1.5,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          +{day.tasks.length + day.notes.length - 2}
-                        </div>
-                      ) : null
-                    ) : null}
-                    {day.closures.map((closure) => (
-                      <div
-                        key={closure.id}
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: 18,
-                          background: "#fff7ed",
-                          border: "1px solid #fed7aa",
-                          color: "#9a3412",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {closure.title}
-                      </div>
-                    ))}
-                    {features.courses ? day.courses.map((course) => renderCourseCard(course, locale, true)) : null}
-                    {features.requests
-                      ? day.pendingRequests.map((request) => renderPendingRequestCard(request, true))
-                      : null}
-                    {features.availability
-                      ? day.availabilities.map((availability) =>
-                          renderAvailabilityCard(availability, true)
-                        )
-                      : null}
+                          );
+                        }
+                      }
+
+                      if (features.requests) {
+                        for (const request of day.requests) {
+                          pushCard(`request-${request.id}`, renderApprovedRequestCard(request, true));
+                        }
+                      }
+
+                      if (features.tasks) {
+                        for (const task of day.tasks) {
+                          pushCard(
+                            `task-${task.id}`,
+                            renderTaskPreviewCard(task, true, () => setSelectedDate(day.date))
+                          );
+                        }
+                      }
+
+                      if (features.noticeBoard) {
+                        for (const note of day.notes) {
+                          pushCard(
+                            `note-${note.id}`,
+                            renderNotePreviewCard(note, true, () => setSelectedDate(day.date))
+                          );
+                        }
+                      }
+
+                      if (features.courses) {
+                        for (const course of day.courses) {
+                          pushCard(`course-${course.id}`, renderCourseCard(course, locale, true));
+                        }
+                      }
+
+                      for (const closure of day.closures) {
+                        pushCard(
+                          `closure-${closure.id}`,
+                          <div
+                            key={closure.id}
+                            style={{
+                              padding: "7px 9px",
+                              borderRadius: 12,
+                              background: "#fff7ed",
+                              border: "1px solid #fed7aa",
+                              color: "#9a3412",
+                              lineHeight: 1.35,
+                              fontSize: 12,
+                            }}
+                          >
+                            {truncateCalendarText(closure.title)}
+                          </div>
+                        );
+                      }
+
+                      if (features.requests) {
+                        for (const request of day.pendingRequests) {
+                          pushCard(`pending-${request.id}`, renderPendingRequestCard(request, true));
+                        }
+                      }
+
+                      if (features.availability) {
+                        for (const availability of day.availabilities) {
+                          pushCard(`availability-${availability.id}`, renderAvailabilityCard(availability, true));
+                        }
+                      }
+
+                      const totalCount =
+                        (features.shifts ? day.shifts.length : 0) +
+                        (features.requests ? day.requests.length + day.pendingRequests.length : 0) +
+                        (features.tasks ? day.tasks.length : 0) +
+                        (features.noticeBoard ? day.notes.length : 0) +
+                        (features.courses ? day.courses.length : 0) +
+                        day.closures.length +
+                        (features.availability ? day.availabilities.length : 0);
+                      const hiddenCount = Math.max(0, totalCount - cards.length);
+
+                      return (
+                        <>
+                          {cards.map((card) => card.node)}
+                          {hiddenCount > 0 ? (
+                            <div
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedDate(day.date);
+                              }}
+                              style={{
+                                padding: "6px 9px",
+                                borderRadius: 12,
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                color: "#475569",
+                                lineHeight: 1.3,
+                                fontSize: 12,
+                                fontWeight: 800,
+                                cursor: "pointer",
+                              }}
+                            >
+                              +{hiddenCount}
+                            </div>
+                          ) : null}
+                        </>
+                      );
+                    })()}
                   </button>
                 ))}
               </div>

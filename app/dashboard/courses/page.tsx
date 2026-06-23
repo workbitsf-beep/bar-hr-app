@@ -1,22 +1,18 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
-import { DateTimeInput } from "@/app/components/date-time-input";
 import { createCourseAction, deleteCourseAction } from "../actions";
 import { getDashboardContext } from "../context";
+import { CourseComposeForm } from "./course-compose-form";
 import {
   BillingRequiredState,
   EmptyState,
-  FormField,
   ItemCard,
   ItemList,
   Panel,
   PrimaryButton,
-  Select,
   Stack,
   SuccessCallout,
-  TextArea,
-  TextInput,
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
@@ -116,61 +112,13 @@ export default async function DashboardCoursesPage({
             <span>{courses.length} corsi</span>
             {canManage ? (
               <PopupAction title="Nuovo corso" ariaLabel="Aggiungi corso">
-                <form action={createCourseAction} style={{ display: "grid", gap: 16 }}>
-                  <FormField label="Titolo corso">
-                    <TextInput name="title" required placeholder="Sicurezza sul lavoro" />
-                  </FormField>
-
-                  <FormField label="Informazioni">
-                    <TextArea
-                      name="description"
-                      placeholder="Dettagli, materiale richiesto, note operative"
-                    />
-                  </FormField>
-
-                  <div
-                    className="dashboard-inline-grid"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <FormField label="Inizio">
-                      <DateTimeInput name="startsAt" required />
-                    </FormField>
-
-                    <FormField label="Fine">
-                      <DateTimeInput name="endsAt" required />
-                    </FormField>
-
-                    <FormField label="Luogo">
-                      <TextInput name="location" placeholder="Aula, sede o link" />
-                    </FormField>
-
-                    <FormField label="Assegna a">
-                      <Select name="assignedToId" defaultValue="">
-                        <option value="">Nessun singolo assegnatario</option>
-                        {members.map((member) => (
-                          <option key={member.user.id} value={member.user.id}>
-                            {member.user.firstName} {member.user.lastName} - {member.role}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormField>
-                  </div>
-
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input type="checkbox" name="assignedToAll" />
-                    Assegna a tutto il team
-                  </label>
-
-                  <input type="hidden" name="notifySuccess" value="1" />
-
-                  <div className="dashboard-form-actions">
-                    <PrimaryButton type="submit">Salva corso</PrimaryButton>
-                  </div>
-                </form>
+                <CourseComposeForm
+                  action={createCourseAction}
+                  members={members.map((member) => ({
+                    id: member.user.id,
+                    label: `${member.user.firstName} ${member.user.lastName} - ${member.role}`,
+                  }))}
+                />
               </PopupAction>
             ) : null}
           </div>

@@ -5,19 +5,16 @@ import { canViewDocument, formatDocumentSize } from "@/lib/documents";
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { createDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
+import { DocumentComposeForm } from "./document-compose-form";
 import {
   BillingRequiredState,
   EmptyState,
-  FormField,
   ItemCard,
   ItemList,
   Panel,
   PrimaryButton,
-  Select,
   Stack,
   StatusPill,
-  TextArea,
-  TextInput,
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
@@ -121,75 +118,14 @@ export default async function DashboardDocumentsPage() {
         title="Documenti"
         action={
           canManage ? (
-            <PopupAction title="Nuovo documento" ariaLabel="Carica documento" closeOnSubmit>
-              <form
+            <PopupAction title="Nuovo documento" ariaLabel="Carica documento">
+              <DocumentComposeForm
                 action={createDocumentAction}
-                encType="multipart/form-data"
-                style={{ display: "grid", gap: 16 }}
-              >
-                <div
-                  className="dashboard-inline-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  <FormField label="Titolo">
-                    <TextInput name="title" placeholder="Contratto, procedura, informativa..." required />
-                  </FormField>
-
-                  <FormField label="Destinatari">
-                    <Select name="audience" defaultValue="ALL">
-                      <option value="ALL">Tutto il team</option>
-                      <option value="USER">Dipendente specifico</option>
-                    </Select>
-                  </FormField>
-
-                  <FormField label="Dipendente">
-                    <Select name="assignedToId" defaultValue="">
-                      <option value="">Nessuno</option>
-                      {recipients.map((recipient) => (
-                        <option key={recipient.user.id} value={recipient.user.id}>
-                          {recipient.user.firstName} {recipient.user.lastName} - {recipient.user.role}
-                        </option>
-                      ))}
-                    </Select>
-                  </FormField>
-                </div>
-
-                <FormField label="Descrizione">
-                  <TextArea
-                    name="description"
-                    placeholder="Breve descrizione del documento, facoltativa."
-                  />
-                </FormField>
-
-                <FormField label="File">
-                  <input
-                    type="file"
-                    name="file"
-                    required
-                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                    style={{
-                      borderRadius: 16,
-                      border: "1px solid #dbe3ee",
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      background: "#ffffff",
-                      width: "100%",
-                    }}
-                  />
-                </FormField>
-
-                <p style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>
-                  Dimensione massima consigliata: 8 MB.
-                </p>
-
-                <div className="dashboard-form-actions">
-                  <PrimaryButton type="submit">Carica documento</PrimaryButton>
-                </div>
-              </form>
+                recipients={recipients.map((recipient) => ({
+                  id: recipient.user.id,
+                  label: `${recipient.user.firstName} ${recipient.user.lastName} - ${recipient.user.role}`,
+                }))}
+              />
             </PopupAction>
           ) : null
         }

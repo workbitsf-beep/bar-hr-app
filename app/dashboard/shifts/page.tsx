@@ -183,6 +183,7 @@ export default async function DashboardShiftsPage() {
             afternoonEndTime: true,
             eveningStartTime: true,
             eveningEndTime: true,
+            standardShiftPresets: true,
             companyShiftsEnabled: true,
           },
         })

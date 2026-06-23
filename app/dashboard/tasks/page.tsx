@@ -186,7 +186,7 @@ export default async function DashboardTasksPage({
                 <ItemCard
                   key={task.id}
                   title={task.title}
-                  subtitle={`Data attività ${formatDate(task.dueDate)}`}
+                  subtitle={`Data ${formatDate(task.dueDate)}`}
                   meta={
                     <>
                       Creata da {task.createdBy.firstName} {task.createdBy.lastName}

@@ -1,0 +1,131 @@
+"use client";
+
+import { CalendarClosureType } from "@prisma/client";
+import { useState, useTransition } from "react";
+import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+
+type ClosureDraft = {
+  id: string;
+  title: string;
+  type: CalendarClosureType;
+  startsAt: string;
+  endsAt: string;
+  notes: string;
+};
+
+function createDraft(): ClosureDraft {
+  return {
+    id: crypto.randomUUID(),
+    title: "",
+    type: CalendarClosureType.CLOSURE,
+    startsAt: "",
+    endsAt: "",
+    notes: "",
+  };
+}
+
+export function ClosureComposeForm({
+  action,
+}: {
+  action: (formData: FormData) => Promise<void> | void;
+}) {
+  const [draft, setDraft] = useState<ClosureDraft>(createDraft());
+  const [queued, setQueued] = useState<ClosureDraft[]>([]);
+  const [isPending, startTransition] = useTransition();
+
+  function addToList() {
+    if (!draft.startsAt) {
+      return;
+    }
+
+    setQueued((current) => current.concat(draft));
+    setDraft(createDraft());
+  }
+
+  function saveAll() {
+    const items = queued.length > 0 ? queued : draft.startsAt ? [draft] : [];
+
+    if (items.length === 0) {
+      return;
+    }
+
+    startTransition(async () => {
+      for (const item of items) {
+        const formData = new FormData();
+        formData.set("title", item.title);
+        formData.set("type", item.type);
+        formData.set("startsAt", item.startsAt);
+        formData.set("endsAt", item.endsAt || item.startsAt);
+        formData.set("notes", item.notes);
+        formData.set("notifySuccess", "1");
+        await action(formData);
+      }
+    });
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {queued.length > 0 ? (
+        <div style={{ display: "grid", gap: 8 }}>
+          {queued.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "10px 12px",
+                borderRadius: 16,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <span style={{ color: "#0f172a", fontWeight: 700 }}>
+                {item.title || "Chiusura"} - {item.startsAt}
+              </span>
+              <button
+                type="button"
+                onClick={() => setQueued((current) => current.filter((entry) => entry.id !== item.id))}
+                style={{ border: 0, background: "transparent", color: "#94a3b8", fontWeight: 800 }}
+              >
+                x
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="dashboard-inline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+        <FormField label="Titolo">
+          <TextInput value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+        </FormField>
+        <FormField label="Tipo">
+          <Select value={draft.type} onChange={(event) => setDraft({ ...draft, type: event.target.value as CalendarClosureType })}>
+            <option value={CalendarClosureType.CLOSURE}>Chiusura</option>
+            <option value={CalendarClosureType.HOLIDAY}>Festivita</option>
+            <option value={CalendarClosureType.VACATION}>Ferie collettive</option>
+          </Select>
+        </FormField>
+        <FormField label="Inizio">
+          <TextInput type="date" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} />
+        </FormField>
+        <FormField label="Fine">
+          <TextInput type="date" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} />
+        </FormField>
+      </div>
+      <FormField label="Note">
+        <TextArea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
+      </FormField>
+      <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <IconButton type="button" onClick={addToList} aria-label="Aggiungi chiusura alla lista" disabled={isPending}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </IconButton>
+        <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>
+          {isPending ? "Salvataggio..." : "Salva tutte"}
+        </PrimaryButton>
+      </div>
+    </div>
+  );
+}
