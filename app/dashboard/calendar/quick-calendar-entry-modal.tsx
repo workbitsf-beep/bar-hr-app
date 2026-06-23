@@ -256,16 +256,9 @@ export function QuickCalendarEntryModal({
           ))}
 
           <div>
-            <IconButton type="button" onClick={() => addEntry(setTaskEntries)} aria-label="Aggiungi nota">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M12 5v14M5 12h14"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </IconButton>
+            <PrimaryButton type="button" tone="sand" onClick={() => addEntry(setTaskEntries)}>
+              + Aggiungi alla lista
+            </PrimaryButton>
           </div>
         </div>
 
@@ -420,16 +413,9 @@ export function QuickCalendarEntryModal({
           ))}
 
           <div>
-            <IconButton type="button" onClick={() => addEntry(setBoardEntries)} aria-label="Aggiungi nota">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M12 5v14M5 12h14"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </IconButton>
+            <PrimaryButton type="button" tone="sand" onClick={() => addEntry(setBoardEntries)}>
+              + Aggiungi alla lista
+            </PrimaryButton>
           </div>
         </div>
 

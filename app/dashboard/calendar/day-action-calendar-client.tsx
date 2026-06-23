@@ -295,6 +295,14 @@ function renderShiftCard(
       key={shift.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
+      onPointerDown={(event) => {
+        if (!onOpen || event.pointerType === "mouse") {
+          return;
+        }
+
+        event.stopPropagation();
+        onOpen();
+      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -315,6 +323,8 @@ function renderShiftCard(
         border: "1px solid #dbeafe",
         display: "block",
         cursor: onOpen ? "pointer" : "default",
+        transition: "transform 120ms ease, box-shadow 120ms ease",
+        touchAction: "manipulation",
       }}
     >
       <div
@@ -389,6 +399,14 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
       key={task.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
+      onPointerDown={(event) => {
+        if (!onOpen || event.pointerType === "mouse") {
+          return;
+        }
+
+        event.stopPropagation();
+        onOpen();
+      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -410,6 +428,8 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
         color: "#334155",
         lineHeight: 1.55,
         cursor: onOpen ? "pointer" : "default",
+        transition: "transform 120ms ease, box-shadow 120ms ease",
+        touchAction: "manipulation",
       }}
     >
       <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
@@ -428,6 +448,14 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
       key={note.id}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
+      onPointerDown={(event) => {
+        if (!onOpen || event.pointerType === "mouse") {
+          return;
+        }
+
+        event.stopPropagation();
+        onOpen();
+      }}
       onClick={(event) => {
         event.stopPropagation();
         onOpen?.();
@@ -449,6 +477,8 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
         color: "#334155",
         lineHeight: 1.55,
         cursor: onOpen ? "pointer" : "default",
+        transition: "transform 120ms ease, box-shadow 120ms ease",
+        touchAction: "manipulation",
       }}
     >
       <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
@@ -1530,21 +1560,14 @@ export function DayActionCalendarClient({
                         >
                           <strong style={{ color: "#0f172a", fontSize: 18 }}>Nuovi turni</strong>
                           <div style={{ display: "flex", gap: 8 }}>
-                            <IconButton
+                            <PrimaryButton
                               type="button"
+                              tone="sand"
                               onClick={addShiftDraft}
-                              aria-label="Aggiungi un altro turno"
                               disabled={isPending}
                             >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path
-                                  d="M12 5v14M5 12h14"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                />
-                              </svg>
-                            </IconButton>
+                              + Aggiungi alla lista
+                            </PrimaryButton>
                             <IconButton
                               type="button"
                               onClick={() => setShowShiftComposer(false)}

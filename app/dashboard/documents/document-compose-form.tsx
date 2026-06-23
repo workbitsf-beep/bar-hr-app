@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { FormField, PrimaryButton, Select, TextArea, TextInput } from "../ui";
 
 type RecipientOption = {
   id: string;
@@ -49,7 +49,8 @@ export function DocumentComposeForm({
   }
 
   function saveAll() {
-    const items = queued.length > 0 ? queued : draft.title.trim() && draft.file ? [draft] : [];
+    const currentDraftIsValid = draft.title.trim() && draft.file;
+    const items = queued.concat(currentDraftIsValid ? [draft] : []);
 
     if (items.length === 0) {
       return;
@@ -69,6 +70,9 @@ export function DocumentComposeForm({
         formData.set("file", item.file);
         await action(formData);
       }
+
+      setQueued([]);
+      setDraft(createDraft());
     });
   }
 
@@ -149,13 +153,11 @@ export function DocumentComposeForm({
       </FormField>
 
       <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <IconButton type="button" onClick={addToList} aria-label="Aggiungi documento alla lista" disabled={isPending}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </IconButton>
+        <PrimaryButton type="button" tone="sand" onClick={addToList} disabled={isPending || !draft.title.trim() || !draft.file}>
+          + Aggiungi alla lista
+        </PrimaryButton>
         <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>
-          {isPending ? "Caricamento..." : "Carica tutti"}
+          {isPending ? "Caricamento..." : `Carica tutti${queued.length > 0 ? ` (${queued.length + (draft.title.trim() && draft.file ? 1 : 0)})` : ""}`}
         </PrimaryButton>
       </div>
     </div>
