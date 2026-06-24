@@ -55,6 +55,31 @@ function resolveEmoji(title: string) {
   return "•";
 }
 
+function resolveUiEmoji(title: string) {
+  const normalized = title.toLowerCase();
+
+  if (normalized.includes("riepilog") || normalized.includes("kpi")) return "\uD83D\uDCCA";
+  if (normalized.includes("gestir") || normalized.includes("attivit")) return "\uD83D\uDDC2\uFE0F";
+  if (normalized.includes("profil")) return "\uD83D\uDC64";
+  if (normalized.includes("person") || normalized.includes("team") || normalized.includes("dipendent")) return "\uD83D\uDC65";
+  if (normalized.includes("calend")) return "\uD83D\uDCC5";
+  if (normalized.includes("turn")) return "\u23F1\uFE0F";
+  if (normalized.includes("richiest") || normalized.includes("chius") || normalized.includes("permess")) return "\uD83D\uDCDD";
+  if (normalized.includes("mansion") || normalized.includes("note")) return "\u2705";
+  if (normalized.includes("bacheca") || normalized.includes("messagg")) return "\uD83D\uDCE2";
+  if (normalized.includes("cors") || normalized.includes("formaz")) return "\uD83C\uDF93";
+  if (normalized.includes("document")) return "\uD83D\uDCC1";
+  if (normalized.includes("timbr") || normalized.includes("ore")) return "\u23F1\uFE0F";
+  if (normalized.includes("impost")) return "\u2699\uFE0F";
+  if (normalized.includes("export") || normalized.includes("report") || normalized.includes("pdf")) return "\uD83D\uDCC4";
+  if (normalized.includes("sicurezza") || normalized.includes("password")) return "\uD83D\uDD12";
+  if (normalized.includes("abbon") || normalized.includes("pagament") || normalized.includes("ricav")) return "\uD83D\uDCB3";
+  if (normalized.includes("gps") || normalized.includes("posizion")) return "\uD83D\uDCCD";
+  if (normalized.includes("dashboard") || normalized.includes("panoramica")) return "\u2728";
+
+  return "\u2728";
+}
+
 function getBottomNavItems(navItems: DashboardNavItem[]) {
   const preferredHrefs = [
     "/dashboard",
@@ -210,6 +235,25 @@ function BottomNavIcon({ href }: { href: string }) {
     );
   }
 
+  if (href.includes("/documents")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10l2 2h5.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-10Z" {...common} />
+        <path d="M8 12h8M8 15h5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/shifts")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 7h16M7 4v6M17 4v6" {...common} />
+        <path d="M6 10h12v9H6z" {...common} />
+        <path d="M9 14h6M9 17h4" {...common} />
+      </svg>
+    );
+  }
+
   if (href.includes("/settings")) {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -221,9 +265,7 @@ function BottomNavIcon({ href }: { href: string }) {
 
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 12h14" {...common} />
-      <path d="M12 5v14" {...common} />
-      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+      <path d="M12 3.8 14.2 9l5.6.45-4.25 3.65 1.3 5.45L12 15.65l-4.85 2.9 1.3-5.45L4.2 9.45 9.8 9 12 3.8Z" {...common} />
     </svg>
   );
 }
@@ -874,7 +916,7 @@ export function PageHero({
               fontSize: 15,
             }}
           >
-            {resolveEmoji(title)}
+            {resolveUiEmoji(title)}
           </span>
           <p
             style={{
@@ -943,7 +985,7 @@ export function Panel({
               flex: "0 0 auto",
             }}
           >
-            {resolveEmoji(title)}
+            {resolveUiEmoji(title)}
           </span>
           <h3 className="dashboard-panel-title" style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>
             {title}
