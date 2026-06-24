@@ -173,50 +173,65 @@ export function DocumentComposeForm({
       </div>
 
       <FormField label="Destinatari">
-        <div style={{ display: "grid", gap: 8 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div className="dashboard-audience-selector" style={{ display: "grid", gap: 12 }}>
+          <div
+            className="dashboard-audience-options"
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+          >
             <button
+              className="dashboard-select-pill"
               type="button"
               onClick={() => setDraft({ ...draft, assignedToAll: true, assignedToIds: [] })}
               aria-pressed={draft.assignedToAll}
               style={{
-                minHeight: 42,
+                minHeight: 58,
                 borderRadius: 999,
-                border: draft.assignedToAll ? "1px solid #6d28d9" : "1px solid #e2e8f0",
+                border: draft.assignedToAll ? "2px solid #7c3aed" : "1px solid #e2e8f0",
                 background: draft.assignedToAll ? "#f3e8ff" : "#ffffff",
                 color: draft.assignedToAll ? "#4c1d95" : "#334155",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
-                padding: "10px 12px",
-                fontWeight: 800,
+                gap: 12,
+                padding: "13px 18px",
+                fontSize: 18,
+                fontWeight: 850,
+                boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)",
+                transition: "background 160ms ease, border-color 160ms ease, color 160ms ease",
                 cursor: "pointer",
               }}
             >
-              <span aria-hidden="true">{draft.assignedToAll ? "✓" : "○"}</span>
+              <span aria-hidden="true" style={{ fontSize: 22, lineHeight: 1 }}>
+                {draft.assignedToAll ? "✓" : "○"}
+              </span>
               <span>Team</span>
             </button>
             <button
+              className="dashboard-select-pill"
               type="button"
               onClick={() => setDraft({ ...draft, assignedToAll: false })}
               aria-pressed={!draft.assignedToAll}
               style={{
-                minHeight: 42,
+                minHeight: 58,
                 borderRadius: 999,
-                border: !draft.assignedToAll ? "1px solid #6d28d9" : "1px solid #e2e8f0",
+                border: !draft.assignedToAll ? "2px solid #7c3aed" : "1px solid #e2e8f0",
                 background: !draft.assignedToAll ? "#f3e8ff" : "#ffffff",
                 color: !draft.assignedToAll ? "#4c1d95" : "#334155",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
-                padding: "10px 12px",
-                fontWeight: 800,
+                gap: 12,
+                padding: "13px 18px",
+                fontSize: 18,
+                fontWeight: 850,
+                boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)",
+                transition: "background 160ms ease, border-color 160ms ease, color 160ms ease",
                 cursor: "pointer",
               }}
             >
-              <span aria-hidden="true">{!draft.assignedToAll ? "✓" : "○"}</span>
+              <span aria-hidden="true" style={{ fontSize: 22, lineHeight: 1 }}>
+                {!draft.assignedToAll ? "✓" : "○"}
+              </span>
               <span>Dipendenti</span>
             </button>
           </div>
@@ -229,7 +244,7 @@ export function DocumentComposeForm({
                 gap: 8,
                 maxHeight: 148,
                 overflowY: "auto",
-                padding: 2,
+                padding: 4,
               }}
             >
               {recipients.map((recipient) => {
@@ -238,19 +253,22 @@ export function DocumentComposeForm({
                 return (
                   <button
                     key={recipient.id}
+                    className="dashboard-select-pill"
                     type="button"
                     onClick={() => toggleRecipient(recipient.id)}
                     aria-pressed={selected}
                     style={{
                       borderRadius: 999,
-                      border: selected ? "1px solid #6d28d9" : "1px solid #e2e8f0",
+                      border: selected ? "2px solid #7c3aed" : "1px solid #e2e8f0",
                       background: selected ? "#f3e8ff" : "#ffffff",
                       color: selected ? "#4c1d95" : "#334155",
-                      padding: "9px 12px",
-                      fontWeight: 700,
+                      padding: "10px 14px",
+                      fontSize: 15,
+                      fontWeight: 800,
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 8,
+                      boxShadow: selected ? "0 8px 18px rgba(124, 58, 237, 0.10)" : "none",
                       cursor: "pointer",
                     }}
                   >

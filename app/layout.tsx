@@ -71,6 +71,61 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               *::after {
                 box-sizing: border-box;
               }
+
+              :root {
+                --workbit-ink: #0f172a;
+                --workbit-muted: #64748b;
+                --workbit-purple: #7c3aed;
+                --workbit-purple-dark: #4c1d95;
+                --workbit-purple-soft: #f3e8ff;
+                --workbit-border: rgba(124, 58, 237, 0.14);
+                --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,247,255,0.96) 100%);
+                --workbit-shadow: 0 18px 46px rgba(88, 28, 135, 0.075);
+                --workbit-focus: 0 0 0 4px rgba(124, 58, 237, 0.12);
+              }
+
+              input,
+              select,
+              textarea,
+              button {
+                font: inherit;
+              }
+
+              input:not([type="checkbox"]):not([type="radio"]),
+              select,
+              textarea {
+                max-width: 100%;
+              }
+
+              input:not([type="checkbox"]):not([type="radio"]):focus,
+              select:focus,
+              textarea:focus,
+              button:focus-visible,
+              a:focus-visible {
+                outline: none;
+                box-shadow: var(--workbit-focus);
+              }
+
+              input::placeholder,
+              textarea::placeholder {
+                color: #94a3b8;
+              }
+
+              input[type="file"]::file-selector-button {
+                border: 1px solid var(--workbit-border);
+                border-radius: 999px;
+                background: var(--workbit-purple-soft);
+                color: var(--workbit-purple-dark);
+                font-weight: 800;
+                padding: 8px 12px;
+                margin-right: 12px;
+                cursor: pointer;
+              }
+
+              ::selection {
+                background: rgba(124, 58, 237, 0.18);
+                color: var(--workbit-ink);
+              }
             `,
           }}
         />

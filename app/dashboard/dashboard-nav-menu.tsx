@@ -157,12 +157,12 @@ export function DashboardNavMenu({
           borderRadius: 999,
           padding: 0,
           background: open ? "#e2e8f0" : "#f8fafc",
-          color: "#0f172a",
-          border: "1px solid #e2e8f0",
+          color: open ? "#4c1d95" : "#0f172a",
+          border: "1px solid rgba(124, 58, 237, 0.12)",
           fontWeight: 700,
           boxShadow: open
-            ? "0 10px 24px rgba(15, 23, 42, 0.10)"
-            : "0 6px 16px rgba(15, 23, 42, 0.04)",
+            ? "0 14px 28px rgba(88, 28, 135, 0.14)"
+            : "0 8px 18px rgba(88, 28, 135, 0.07)",
           cursor: "pointer",
           display: "inline-flex",
           alignItems: "center",
@@ -229,8 +229,9 @@ export function DashboardNavMenu({
                     overflowY: "auto",
                     padding: isCompact ? 14 : 16,
                     borderRadius: isCompact ? 28 : 24,
-                    border: "1px solid rgba(226, 232, 240, 0.96)",
-                    background: "rgba(255,255,255,0.98)",
+                    border: "1px solid rgba(124, 58, 237, 0.12)",
+                    background:
+                      "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,247,255,0.98) 100%)",
                     boxShadow: isCompact
                       ? "0 28px 60px rgba(15, 23, 42, 0.20)"
                       : "0 20px 44px rgba(15, 23, 42, 0.16)",
@@ -248,7 +249,7 @@ export function DashboardNavMenu({
                       justifyContent: "space-between",
                       gap: 12,
                       padding: "8px 8px 12px",
-                      borderBottom: "1px solid #e2e8f0",
+                      borderBottom: "1px solid rgba(124, 58, 237, 0.10)",
                     }}
                   >
                     <BrandLogo
@@ -267,9 +268,9 @@ export function DashboardNavMenu({
                         width: 40,
                         height: 40,
                         borderRadius: 999,
-                        border: "1px solid #e2e8f0",
-                        background: "#f8fafc",
-                        color: "#0f172a",
+                        border: "1px solid rgba(124, 58, 237, 0.12)",
+                        background: "linear-gradient(180deg, #ffffff 0%, #f7f2ff 100%)",
+                        color: "#4c1d95",
                         cursor: "pointer",
                         display: "inline-flex",
                         alignItems: "center",
@@ -317,9 +318,12 @@ export function DashboardNavMenu({
                             textDecoration: "none",
                             borderRadius: 18,
                             padding: "14px 16px",
-                            background: active ? "#e2e8f0" : "#f8fafc",
-                            color: "#0f172a",
-                            border: active ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                            background: active ? "#f3e8ff" : "#ffffff",
+                            color: active ? "#4c1d95" : "#0f172a",
+                            border: active
+                              ? "1px solid rgba(124, 58, 237, 0.36)"
+                              : "1px solid rgba(124, 58, 237, 0.10)",
+                            boxShadow: active ? "0 10px 22px rgba(124, 58, 237, 0.10)" : "none",
                             fontWeight: 700,
                             fontSize: 16,
                             lineHeight: 1.35,
@@ -330,7 +334,7 @@ export function DashboardNavMenu({
                           }}
                         >
                           <span>{item.label}</span>
-                          <span style={{ color: active ? "#0f172a" : "#64748b", display: "inline-flex" }}>
+                          <span style={{ color: active ? "#4c1d95" : "#64748b", display: "inline-flex" }}>
                             <ArrowIcon />
                           </span>
                         </Link>
@@ -345,7 +349,7 @@ export function DashboardNavMenu({
                         display: "grid",
                         gap: 12,
                         paddingTop: 12,
-                        borderTop: "1px solid #e2e8f0",
+                        borderTop: "1px solid rgba(124, 58, 237, 0.10)",
                       }}
                     >
                       {menuContent}

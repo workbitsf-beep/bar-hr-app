@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { AudienceSelector } from "@/app/components/audience-selector";
 import { FormField, IconButton, PrimaryButton, TextArea } from "../ui";
 
 function createEmptyEntry() {
@@ -194,51 +195,15 @@ export function BoardComposeForm({
             />
 
             {canManage && members.length > 0 ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: 10,
-                }}
-              >
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={draft.assignedToAll}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        assignedToAll: event.target.checked,
-                        assignedToId: event.target.checked ? "" : draft.assignedToId,
-                      })
-                    }
-                  />
-                  Tutto il team
-                </label>
-
-                {!draft.assignedToAll ? (
-                  <select
-                    value={draft.assignedToId}
-                    required={!draft.assignedToAll}
-                    onChange={(event) => setDraft({ ...draft, assignedToId: event.target.value })}
-                    style={{
-                      width: "100%",
-                      borderRadius: 16,
-                      border: "1px solid #dbe3ee",
-                      padding: "12px 14px",
-                      background: "#fff",
-                      fontSize: 15,
-                    }}
-                  >
-                    <option value="">Seleziona persona</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.firstName} {member.lastName}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-              </div>
+              <AudienceSelector
+                members={members.map((member) => ({
+                  id: member.id,
+                  label: `${member.firstName} ${member.lastName}`,
+                }))}
+                assignedToAll={draft.assignedToAll}
+                assignedToId={draft.assignedToId}
+                onChange={(value) => setDraft({ ...draft, ...value })}
+              />
             ) : null}
 
             {canManage ? (

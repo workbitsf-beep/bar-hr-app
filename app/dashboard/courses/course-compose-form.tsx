@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { AudienceSelector } from "@/app/components/audience-selector";
 import { DateTimeInput } from "@/app/components/date-time-input";
-import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -148,23 +149,12 @@ export function CourseComposeForm({
           <TextInput value={draft.location} onChange={(event) => setDraft({ ...draft, location: event.target.value })} />
         </FormField>
         <FormField label="Assegna a">
-          <Select
-            value={draft.assignedToAll ? "ALL" : draft.assignedToId}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                assignedToAll: event.target.value === "ALL",
-                assignedToId: event.target.value === "ALL" ? "" : event.target.value,
-              })
-            }
-          >
-            <option value="ALL">Tutto il team</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.label}
-              </option>
-            ))}
-          </Select>
+          <AudienceSelector
+            members={members}
+            assignedToAll={draft.assignedToAll}
+            assignedToId={draft.assignedToId}
+            onChange={(value) => setDraft({ ...draft, ...value })}
+          />
         </FormField>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

@@ -28,12 +28,20 @@ export function formatDateTimeLocal(value: Date | string): string {
 
 const shellCardStyle: CSSProperties = {
   background:
-    "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,244,255,0.95) 100%)",
-  border: "1px solid rgba(124, 58, 237, 0.08)",
+    "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,247,255,0.96) 100%)",
+  border: "1px solid rgba(124, 58, 237, 0.10)",
   borderRadius: 28,
-  boxShadow: "0 18px 40px rgba(88, 28, 135, 0.06)",
+  boxShadow: "0 18px 46px rgba(88, 28, 135, 0.075)",
   backdropFilter: "blur(16px)",
 };
+
+const softCardStyle: CSSProperties = {
+  background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
+  border: "1px solid rgba(124, 58, 237, 0.10)",
+  boxShadow: "0 12px 28px rgba(88, 28, 135, 0.06)",
+};
+
+const focusRing = "0 0 0 4px rgba(124, 58, 237, 0.12)";
 
 function resolveEmoji(title: string) {
   const normalized = title.toLowerCase();
@@ -393,7 +401,8 @@ function DashboardResponsiveStyles() {
       .dashboard-button,
       .dashboard-menu-button,
       .dashboard-icon-button,
-      .dashboard-bottom-nav a {
+      .dashboard-bottom-nav a,
+      .dashboard-select-pill {
         transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease, background 140ms ease;
         touch-action: manipulation;
       }
@@ -401,8 +410,66 @@ function DashboardResponsiveStyles() {
       .dashboard-button:active,
       .dashboard-menu-button:active,
       .dashboard-icon-button:active,
-      .dashboard-bottom-nav a:active {
+      .dashboard-bottom-nav a:active,
+      .dashboard-select-pill:active {
         transform: scale(0.98);
+      }
+
+      .dashboard-panel,
+      .dashboard-shell-card,
+      .dashboard-item-card,
+      .dashboard-list-card,
+      .dashboard-summary-card,
+      .dashboard-calendar-day,
+      .dashboard-modal-panel {
+        border-color: rgba(124, 58, 237, 0.10) !important;
+      }
+
+      .dashboard-form-field input:not([type="checkbox"]):not([type="radio"]),
+      .dashboard-form-field select,
+      .dashboard-form-field textarea,
+      .dashboard-modal-panel input:not([type="checkbox"]):not([type="radio"]),
+      .dashboard-modal-panel select,
+      .dashboard-modal-panel textarea {
+        border-radius: 18px !important;
+        border: 1px solid rgba(124, 58, 237, 0.14) !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+
+      .dashboard-form-field input:not([type="checkbox"]):not([type="radio"]):focus,
+      .dashboard-form-field select:focus,
+      .dashboard-form-field textarea:focus,
+      .dashboard-modal-panel input:not([type="checkbox"]):not([type="radio"]):focus,
+      .dashboard-modal-panel select:focus,
+      .dashboard-modal-panel textarea:focus {
+        outline: none !important;
+        border-color: rgba(124, 58, 237, 0.48) !important;
+        box-shadow: ${focusRing} !important;
+      }
+
+      .dashboard-form-field input[type="file"],
+      .dashboard-modal-panel input[type="file"] {
+        padding: 12px !important;
+        cursor: pointer;
+      }
+
+      .dashboard-button:hover:not(:disabled),
+      .dashboard-icon-button:hover:not(:disabled),
+      .dashboard-menu-button:hover:not(:disabled) {
+        box-shadow: 0 14px 30px rgba(88, 28, 135, 0.14) !important;
+      }
+
+      .dashboard-bottom-nav a,
+      .dashboard-menu-button,
+      .dashboard-icon-button,
+      .dashboard-arrow-link {
+        border-color: rgba(124, 58, 237, 0.12) !important;
+      }
+
+      .dashboard-audience-options {
+        grid-template-columns: 1fr 1fr;
       }
 
       @keyframes dashboardModalEnter {
@@ -534,7 +601,7 @@ function DashboardResponsiveStyles() {
         .dashboard-shell-card,
         .dashboard-panel {
           padding: 18px !important;
-          border-radius: 22px !important;
+          border-radius: 24px !important;
           width: 100% !important;
           max-width: 100% !important;
         }
@@ -726,6 +793,15 @@ function DashboardResponsiveStyles() {
 
         .dashboard-list-button-arrow {
           align-self: flex-end;
+        }
+
+        .dashboard-audience-options {
+          grid-template-columns: 1fr !important;
+        }
+
+        .dashboard-select-pill {
+          min-height: 52px !important;
+          font-size: 16px !important;
         }
 
         .dashboard-table-desktop {
@@ -1030,8 +1106,151 @@ export function Panel({
   );
 }
 
+export function Card({
+  children,
+  className,
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <section
+      className={joinClassNames("dashboard-card", className)}
+      style={{
+        ...shellCardStyle,
+        padding: 22,
+        ...style,
+      }}
+    >
+      {children}
+    </section>
+  );
+}
+
+export function SectionHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div
+      className="dashboard-section-header"
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 14,
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(124, 58, 237, 0.12)",
+              color: "#6d28d9",
+              flex: "0 0 auto",
+            }}
+          >
+            {resolveUiEmoji(title)}
+          </span>
+          <h3 style={{ margin: 0, color: "#0f172a", fontSize: 20, letterSpacing: "-0.02em" }}>
+            {title}
+          </h3>
+        </div>
+        {subtitle ? (
+          <div style={{ color: "#64748b", lineHeight: 1.55, fontSize: 14 }}>{subtitle}</div>
+        ) : null}
+      </div>
+      {action ? <div style={{ flex: "0 0 auto" }}>{action}</div> : null}
+    </div>
+  );
+}
+
+export function Modal({
+  title,
+  children,
+  footer,
+  onClose,
+}: {
+  title: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  onClose?: () => void;
+}) {
+  return (
+    <div
+      className="dashboard-modal-wrap"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "grid",
+        placeItems: "center",
+        background: "rgba(15, 23, 42, 0.22)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+      }}
+    >
+      <section className="dashboard-modal-panel" style={{ ...shellCardStyle, display: "grid", gap: 18 }}>
+        <div
+          className="dashboard-modal-header"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <SectionHeader title={title} />
+          {onClose ? (
+            <IconButton type="button" onClick={onClose} aria-label="Chiudi">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M6 6l12 12M18 6 6 18"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </IconButton>
+          ) : null}
+        </div>
+        <div style={{ display: "grid", gap: 14, minWidth: 0 }}>{children}</div>
+        {footer ? <div className="dashboard-modal-actions">{footer}</div> : null}
+      </section>
+    </div>
+  );
+}
+
 export function EmptyState({ message }: { message: string }) {
-  return <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>{message}</p>;
+  return (
+    <div
+      className="dashboard-empty-state"
+      style={{
+        ...softCardStyle,
+        borderRadius: 20,
+        padding: 16,
+        color: "#64748b",
+        lineHeight: 1.7,
+      }}
+    >
+      {message}
+    </div>
+  );
 }
 
 export function Stack({
@@ -1107,10 +1326,9 @@ export function ItemCard({
     <div
       className={joinClassNames("dashboard-item-card", className)}
       style={{
+        ...softCardStyle,
         padding: 16,
         borderRadius: 20,
-        background: "linear-gradient(180deg, #ffffff 0%, #f8f5ff 100%)",
-        border: "1px solid rgba(124, 58, 237, 0.08)",
         display: "grid",
         gap: 6,
       }}
@@ -1119,6 +1337,40 @@ export function ItemCard({
       {subtitle ? <div style={{ color: "#334155" }}>{subtitle}</div> : null}
       {meta ? <div style={{ color: "#64748b", fontSize: 14 }}>{meta}</div> : null}
       {footer ? <div style={{ marginTop: 8 }}>{footer}</div> : null}
+    </div>
+  );
+}
+
+export function CompactListItem({
+  title,
+  subtitle,
+  meta,
+  action,
+}: {
+  title: string;
+  subtitle?: ReactNode;
+  meta?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div
+      className="dashboard-compact-list-item"
+      style={{
+        ...softCardStyle,
+        borderRadius: 18,
+        padding: "12px 14px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+      }}
+    >
+      <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
+        <strong style={{ color: "#0f172a", fontSize: 15 }}>{title}</strong>
+        {subtitle ? <span style={{ color: "#475569", fontSize: 14 }}>{subtitle}</span> : null}
+        {meta ? <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>{meta}</span> : null}
+      </div>
+      {action ? <div style={{ flex: "0 0 auto" }}>{action}</div> : null}
     </div>
   );
 }
@@ -1144,14 +1396,15 @@ export function FormField({
 }
 
 const fieldStyle: CSSProperties = {
-  borderRadius: 16,
+  borderRadius: 18,
   border: "1px solid rgba(124, 58, 237, 0.14)",
-  padding: "12px 14px",
+  padding: "13px 15px",
   fontSize: 15,
   background: "#ffffff",
   width: "100%",
   color: "#0f172a",
   boxSizing: "border-box",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.9)",
 };
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -1188,7 +1441,22 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} style={{ ...fieldStyle, ...props.style }} />;
+  return (
+    <select
+      {...props}
+      style={{
+        ...fieldStyle,
+        appearance: "none",
+        backgroundImage:
+          "linear-gradient(45deg, transparent 50%, #6d28d9 50%), linear-gradient(135deg, #6d28d9 50%, transparent 50%)",
+        backgroundPosition: "calc(100% - 18px) 52%, calc(100% - 12px) 52%",
+        backgroundSize: "6px 6px, 6px 6px",
+        backgroundRepeat: "no-repeat",
+        paddingRight: 38,
+        ...props.style,
+      }}
+    />
+  );
 }
 
 export function PrimaryButton({
@@ -1201,10 +1469,10 @@ export function PrimaryButton({
   pendingLabel?: React.ReactNode;
 }) {
   const backgrounds = {
-    dark: "#0f172a",
-    green: "#166534",
-    red: "#b91c1c",
-    sand: "#475569",
+    dark: "linear-gradient(135deg, #111827 0%, #4c1d95 100%)",
+    green: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
+    red: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
+    sand: "linear-gradient(135deg, #64748b 0%, #475569 100%)",
   };
 
   return (
@@ -1217,9 +1485,10 @@ export function PrimaryButton({
         color: "#fff",
         border: 0,
         borderRadius: 999,
-        padding: "12px 18px",
-        fontWeight: 700,
-        boxShadow: "0 10px 20px rgba(15, 23, 42, 0.14)",
+        padding: "12px 20px",
+        fontWeight: 800,
+        letterSpacing: "-0.01em",
+        boxShadow: "0 14px 28px rgba(88, 28, 135, 0.16)",
         transition: "transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease",
         touchAction: "manipulation",
         ...props.style,
@@ -1238,6 +1507,13 @@ export function PrimaryButton({
   );
 }
 
+export function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  tone?: "dark" | "green" | "red" | "sand";
+  pendingLabel?: React.ReactNode;
+}) {
+  return <PrimaryButton {...props} />;
+}
+
 export function IconButton({
   children,
   pendingLabel,
@@ -1254,13 +1530,13 @@ export function IconButton({
         width: 42,
         height: 42,
         borderRadius: 999,
-        border: "1px solid #e2e8f0",
-        background: "#f8fafc",
-        color: "#0f172a",
+        border: "1px solid rgba(124, 58, 237, 0.12)",
+        background: "linear-gradient(180deg, #ffffff 0%, #f7f2ff 100%)",
+        color: "#4c1d95",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
+        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.07)",
         touchAction: "manipulation",
         ...props.style,
       }}
@@ -1296,12 +1572,12 @@ export function ArrowLinkButton({
         height: 36,
         borderRadius: 999,
         textDecoration: "none",
-        background: "#f8fafc",
-        color: "#0f172a",
-        border: "1px solid #e2e8f0",
+        background: "linear-gradient(180deg, #ffffff 0%, #f7f2ff 100%)",
+        color: "#4c1d95",
+        border: "1px solid rgba(124, 58, 237, 0.12)",
         fontSize: 18,
         fontWeight: 700,
-        boxShadow: "0 6px 16px rgba(15, 23, 42, 0.04)",
+        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.07)",
       }}
     >
       {">"}
@@ -1352,6 +1628,13 @@ export function StatusPill({
       {label}
     </span>
   );
+}
+
+export function Badge(props: {
+  label: string;
+  tone?: "neutral" | "success" | "warning" | "danger";
+}) {
+  return <StatusPill {...props} />;
 }
 
 export function SuccessCallout({

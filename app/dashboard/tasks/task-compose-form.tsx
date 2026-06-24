@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { AudienceSelector } from "@/app/components/audience-selector";
+import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -162,34 +163,15 @@ export function TaskComposeForm({
                 gap: 10,
               }}
             >
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={draft.assignedToAll}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      assignedToAll: event.target.checked,
-                      assignedToId: event.target.checked ? "" : draft.assignedToId,
-                    })
-                  }
-                />
-                Tutto il team
-              </label>
-
-              {!draft.assignedToAll ? (
-                <Select
-                  value={draft.assignedToId}
-                  onChange={(event) => setDraft({ ...draft, assignedToId: event.target.value })}
-                >
-                  <option value="">Seleziona persona</option>
-                  {members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.firstName} {member.lastName}
-                    </option>
-                  ))}
-                </Select>
-              ) : null}
+              <AudienceSelector
+                members={members.map((member) => ({
+                  id: member.id,
+                  label: `${member.firstName} ${member.lastName}`,
+                }))}
+                assignedToAll={draft.assignedToAll}
+                assignedToId={draft.assignedToId}
+                onChange={(value) => setDraft({ ...draft, ...value })}
+              />
 
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <input

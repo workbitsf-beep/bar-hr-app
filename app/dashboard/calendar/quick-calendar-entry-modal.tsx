@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { createPortal } from "react-dom";
-import { IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { AudienceSelector } from "@/app/components/audience-selector";
+import { IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -283,42 +284,16 @@ export function QuickCalendarEntryModal({
                 onChange={(event) => setTaskDraft({ ...entry, value: event.target.value })}
               />
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: 10,
-                }}
-              >
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={entry.assignedToAll}
-                    onChange={(event) =>
-                      setTaskDraft({
-                        ...entry,
-                        assignedToAll: event.target.checked,
-                        assignedToId: event.target.checked ? "" : entry.assignedToId,
-                      })
-                    }
-                  />
-                  Tutto il team
-                </label>
-
-                {!entry.assignedToAll ? (
-                  <Select
-                    value={entry.assignedToId}
-                    onChange={(event) => setTaskDraft({ ...entry, assignedToId: event.target.value })}
-                  >
-                    <option value="">Seleziona persona</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.firstName} {member.lastName}
-                      </option>
-                    ))}
-                  </Select>
-                ) : null}
-
+              <div style={{ display: "grid", gap: 10 }}>
+                <AudienceSelector
+                  members={members.map((member) => ({
+                    id: member.id,
+                    label: `${member.firstName} ${member.lastName}`,
+                  }))}
+                  assignedToAll={entry.assignedToAll}
+                  assignedToId={entry.assignedToId}
+                  onChange={(value) => setTaskDraft({ ...entry, ...value })}
+                />
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
                     type="checkbox"
@@ -504,42 +479,15 @@ export function QuickCalendarEntryModal({
                 style={{ minHeight: 96 }}
               />
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: 10,
-                }}
-              >
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={entry.assignedToAll}
-                    onChange={(event) =>
-                      setBoardDraft({
-                        ...entry,
-                        assignedToAll: event.target.checked,
-                        assignedToId: event.target.checked ? "" : entry.assignedToId,
-                      })
-                    }
-                  />
-                  Tutto il team
-                </label>
-
-                {!entry.assignedToAll ? (
-                  <Select
-                    value={entry.assignedToId}
-                    onChange={(event) => setBoardDraft({ ...entry, assignedToId: event.target.value })}
-                  >
-                    <option value="">Seleziona persona</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.firstName} {member.lastName}
-                      </option>
-                    ))}
-                  </Select>
-                ) : null}
-              </div>
+              <AudienceSelector
+                members={members.map((member) => ({
+                  id: member.id,
+                  label: `${member.firstName} ${member.lastName}`,
+                }))}
+                assignedToAll={entry.assignedToAll}
+                assignedToId={entry.assignedToId}
+                onChange={(value) => setBoardDraft({ ...entry, ...value })}
+              />
 
               {canPinBoard ? (
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
