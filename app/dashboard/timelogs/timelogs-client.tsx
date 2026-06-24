@@ -91,6 +91,66 @@ function getClockTypeVisual(type: ClockType) {
   };
 }
 
+function ClockInIcon() {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path
+        d="M18.5 5.5h6v21h-6"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.55"
+      />
+      <path
+        d="M14.5 16h9M20.5 12.5 24 16l-3.5 3.5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="9.5" cy="8.5" r="3" fill="currentColor" />
+      <path
+        d="M9.5 13v6.5l-3 6M9.5 19.5l4 6M9.5 14.5l4.5 2"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ClockOutIcon() {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path
+        d="M7.5 5.5h6v21h-6"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.55"
+      />
+      <path
+        d="M17.5 16h9M23 12.5l3.5 3.5L23 19.5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="16.5" cy="8.5" r="3" fill="currentColor" />
+      <path
+        d="M16.5 13v6.5l-3 6M16.5 19.5l4 6M16.5 14.5l4.5 2"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function ClockLogRow({ log }: { log: LogItem }) {
   const visual = getClockTypeVisual(log.type);
 
@@ -466,22 +526,28 @@ export function ClockActionsPanel({
           style={{ display: "flex", gap: 10, alignItems: "stretch" }}
         >
           <PrimaryButton
+            className="dashboard-clock-button"
             type="button"
             tone="green"
             onClick={() => runClockAction("clock-in")}
             disabled={submitting !== null || !insideRadius || !geoReady}
-            style={{ flex: 1, minWidth: 0, minHeight: 62, fontSize: 18, borderRadius: 22 }}
+            aria-label={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
+            title={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
+            style={{ flex: 1, minWidth: 0, color: "#166534" }}
           >
-            {submitting === "in" ? "Registrazione..." : "Entrata"}
+            <ClockInIcon />
           </PrimaryButton>
           <PrimaryButton
+            className="dashboard-clock-button"
             type="button"
             tone="red"
             onClick={() => runClockAction("clock-out")}
             disabled={submitting !== null || !insideRadius || !geoReady}
-            style={{ flex: 1, minWidth: 0, minHeight: 62, fontSize: 18, borderRadius: 22 }}
+            aria-label={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
+            title={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
+            style={{ flex: 1, minWidth: 0, color: "#b91c1c" }}
           >
-            {submitting === "out" ? "Registrazione..." : "Uscita"}
+            <ClockOutIcon />
           </PrimaryButton>
         </div>
         </div>

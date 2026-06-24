@@ -430,6 +430,20 @@ function DashboardResponsiveStyles() {
         box-shadow: 0 6px 14px rgba(15, 23, 42, 0.035) !important;
       }
 
+      .dashboard-clock-button {
+        min-height: 74px !important;
+        padding: 0 !important;
+        border-radius: 26px !important;
+        font-size: 0 !important;
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12) !important;
+      }
+
+      .dashboard-clock-button svg {
+        width: 34px;
+        height: 34px;
+        display: block;
+      }
+
       .dashboard-button:active,
       .dashboard-menu-button:active,
       .dashboard-icon-button:active,
@@ -819,7 +833,8 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-audience-options {
-          grid-template-columns: 1fr !important;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+          gap: 8px !important;
         }
 
         .dashboard-select-pill {
