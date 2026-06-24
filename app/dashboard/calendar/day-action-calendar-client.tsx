@@ -2124,14 +2124,14 @@ export function DayActionCalendarClient({
                                 </span>
                               </div>
                               {canManageOptionalShifts ? (
-                                <PrimaryButton
+                                <IconButton
                                   type="button"
-                                  tone="sand"
                                   onClick={() => setEditingShiftId(shift.id)}
                                   disabled={isPending}
+                                  aria-label="Modifica turno"
                                 >
-                                  Modifica
-                                </PrimaryButton>
+                                  ✎
+                                </IconButton>
                               ) : null}
                             </div>
                           </div>

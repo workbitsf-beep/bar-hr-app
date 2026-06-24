@@ -2227,7 +2227,12 @@ export function OwnerCalendarClient({
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>
                     <IconButton
                       type="button"
-                      onClick={() => setShowShiftComposer(true)}
+                      onClick={() => {
+                        setShowShiftComposer(true);
+                        if (!currentShiftDraft) {
+                          setCurrentShiftDraft(createShiftDraft(day.date));
+                        }
+                      }}
                       aria-label="Aggiungi turni"
                       disabled={isPending}
                     >
@@ -2294,14 +2299,14 @@ export function OwnerCalendarClient({
                             </svg>
                             ›
                           </span>
-                          <PrimaryButton
+                          <IconButton
                             type="button"
-                            tone="sand"
                             onClick={() => setEditingShiftId(shift.id)}
                             disabled={isPending}
+                            aria-label="Modifica turno"
                           >
-                            Modifica
-                          </PrimaryButton>
+                            ✎
+                          </IconButton>
                         </div>
                       ))}
                     </div>
