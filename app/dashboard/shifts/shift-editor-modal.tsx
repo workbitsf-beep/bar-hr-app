@@ -8,7 +8,7 @@ import {
   toDateInputValue,
   toTimeInputValue,
 } from "@/lib/shift-datetime";
-import { APP_TIME_ZONE } from "@/lib/time-zone";
+import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { TimeInput } from "@/app/components/time-input";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import { confirmShiftAction, deleteShiftAction, updateShiftAction } from "../actions";
@@ -85,6 +85,7 @@ export function ShiftEditorModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const todayKey = toDateInputValueInTimeZone(new Date());
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState("");
@@ -422,8 +423,15 @@ export function ShiftEditorModal({
                   <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
                   <input
                     type="date"
+                    min={todayKey}
                     value={shiftDate}
-                    onChange={(event) => setShiftDate(event.target.value)}
+                    onChange={(event) =>
+                      setShiftDate(
+                        event.target.value && event.target.value < todayKey
+                          ? todayKey
+                          : event.target.value
+                      )
+                    }
                     style={{
                       borderRadius: 16,
                       border: "1px solid #dbe3ee",

@@ -222,6 +222,7 @@ export function BarGroupsClient({
   owners: OwnerOption[];
 }) {
   const router = useRouter();
+  const todayKey = toDateInputValueInTimeZone(new Date());
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedBarId, setSelectedBarId] = useState<string | null>(null);
@@ -1000,8 +1001,15 @@ export function BarGroupsClient({
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Scadenza periodo</span>
                     <input
                       type="date"
+                      min={todayKey}
                       value={currentPeriodEnd}
-                      onChange={(event) => setCurrentPeriodEnd(event.target.value)}
+                      onChange={(event) =>
+                        setCurrentPeriodEnd(
+                          event.target.value && event.target.value < todayKey
+                            ? todayKey
+                            : event.target.value
+                        )
+                      }
                       style={{
                         borderRadius: 16,
                         border: "1px solid #dbe3ee",
@@ -1017,8 +1025,15 @@ export function BarGroupsClient({
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine trial</span>
                     <input
                       type="date"
+                      min={todayKey}
                       value={trialEndsAt}
-                      onChange={(event) => setTrialEndsAt(event.target.value)}
+                      onChange={(event) =>
+                        setTrialEndsAt(
+                          event.target.value && event.target.value < todayKey
+                            ? todayKey
+                            : event.target.value
+                        )
+                      }
                       style={{
                         borderRadius: 16,
                         border: "1px solid #dbe3ee",

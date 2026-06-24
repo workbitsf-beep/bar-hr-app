@@ -213,6 +213,12 @@ function ensureShiftIsNotBeforeToday(startTime: Date) {
   }
 }
 
+function ensureDateIsNotBeforeToday(value: Date, message = "Non puoi inserire date precedenti a oggi") {
+  if (toDateInputValueInTimeZone(value) < toDateInputValueInTimeZone(new Date())) {
+    throw new Error(message);
+  }
+}
+
 function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || value.trim() === "") {
     return null;
@@ -1570,6 +1576,8 @@ export async function createTaskAction(formData: FormData) {
     throw new Error("Invalid due date");
   }
 
+  ensureDateIsNotBeforeToday(dueDate, "Non puoi inserire note prima del giorno corrente");
+
   const assignedUserIds = normalizeIds(
     taskDrafts
       .filter((draft) => !draft.assignedToAll && draft.assignedToId)
@@ -2396,6 +2404,7 @@ export async function createAvailabilityAction(formData: FormData) {
   const reason = String(formData.get("reason") ?? "").trim();
 
   ensureValidDateRange(startsAt, endsAt, "Invalid date range");
+  ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire indisponibilita prima del giorno corrente");
 
   await prisma.availability.create({
     data: {
@@ -2457,6 +2466,7 @@ export async function createCalendarClosureAction(formData: FormData) {
   const endsAt = parseRequiredDate(formData.get("endsAt"));
 
   ensureValidDateRange(startsAt, endsAt, "Invalid date range");
+  ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire chiusure prima del giorno corrente");
 
   const fallbackTitle =
     type === CalendarClosureType.HOLIDAY
@@ -2660,6 +2670,7 @@ export async function createCourseAction(formData: FormData) {
   }
 
   ensureValidDateRange(startsAt, endsAt, "Invalid course range");
+  ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire corsi prima del giorno corrente");
 
   if (!assignedToAll && assignedToId) {
     await ensureUsersBelongToBar(activeBarId, [assignedToId]);
@@ -3338,6 +3349,7 @@ export async function createTimeOffRequestAction(formData: FormData) {
   }
 
   ensureValidDateRange(startsAt, endsAt, "Invalid date range");
+  ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire richieste prima del giorno corrente");
 
   if (type === RequestType.SICKNESS && !certificateCode) {
     throw new Error("Missing certificate code");

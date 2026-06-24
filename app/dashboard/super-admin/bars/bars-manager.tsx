@@ -284,6 +284,7 @@ export function BarsManager({
   success?: string;
 }) {
   const router = useRouter();
+  const todayKey = toDateInputValueInTimeZone(new Date());
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -1237,8 +1238,15 @@ export function BarsManager({
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Scadenza periodo</span>
                     <input
                       type="date"
+                      min={todayKey}
                       value={currentPeriodEnd}
-                      onChange={(event) => setCurrentPeriodEnd(event.target.value)}
+                      onChange={(event) =>
+                        setCurrentPeriodEnd(
+                          event.target.value && event.target.value < todayKey
+                            ? todayKey
+                            : event.target.value
+                        )
+                      }
                       style={{
                         borderRadius: 16,
                         border: "1px solid #dbe3ee",
@@ -1254,8 +1262,15 @@ export function BarsManager({
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine trial</span>
                     <input
                       type="date"
+                      min={todayKey}
                       value={trialEndsAt}
-                      onChange={(event) => setTrialEndsAt(event.target.value)}
+                      onChange={(event) =>
+                        setTrialEndsAt(
+                          event.target.value && event.target.value < todayKey
+                            ? todayKey
+                            : event.target.value
+                        )
+                      }
                       style={{
                         borderRadius: 16,
                         border: "1px solid #dbe3ee",

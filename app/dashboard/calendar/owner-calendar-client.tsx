@@ -1597,9 +1597,15 @@ export function OwnerCalendarClient({
                             <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
                             <input
                               type="date"
+                              min={todayKey}
                               value={draft.date}
                               onChange={(event) =>
-                                updateShiftDraft(draft.id, { date: event.target.value })
+                                updateShiftDraft(draft.id, {
+                                  date:
+                                    event.target.value && event.target.value < todayKey
+                                      ? todayKey
+                                      : event.target.value,
+                                })
                               }
                               style={{
                                 borderRadius: 16,
@@ -1749,9 +1755,15 @@ export function OwnerCalendarClient({
                           <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
                           <input
                             type="date"
+                            min={todayKey}
                             value={currentShiftDraft.date}
                             onChange={(event) =>
-                              updateCurrentShiftDraft({ date: event.target.value })
+                              updateCurrentShiftDraft({
+                                date:
+                                  event.target.value && event.target.value < todayKey
+                                    ? todayKey
+                                    : event.target.value,
+                              })
                             }
                             style={{
                               borderRadius: 16,

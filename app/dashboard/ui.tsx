@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ChangeEvent, CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { PendingButton } from "@/app/components/pending-button";
@@ -62,14 +62,15 @@ function resolveUiEmoji(title: string) {
   if (normalized.includes("gestir") || normalized.includes("attivit")) return "\uD83D\uDDC2\uFE0F";
   if (normalized.includes("profil")) return "\uD83D\uDC64";
   if (normalized.includes("person") || normalized.includes("team") || normalized.includes("dipendent")) return "\uD83D\uDC65";
-  if (normalized.includes("calend")) return "\uD83D\uDCC5";
-  if (normalized.includes("turn")) return "\u23F1\uFE0F";
+  if (normalized.includes("calend")) return "\uD83D\uDCC6";
+  if (normalized.includes("turn")) return "\uD83D\uDD52";
   if (normalized.includes("richiest") || normalized.includes("chius") || normalized.includes("permess")) return "\uD83D\uDCDD";
   if (normalized.includes("mansion") || normalized.includes("note")) return "\u2705";
   if (normalized.includes("bacheca") || normalized.includes("messagg")) return "\uD83D\uDCE2";
   if (normalized.includes("cors") || normalized.includes("formaz")) return "\uD83C\uDF93";
   if (normalized.includes("document")) return "\uD83D\uDCC1";
-  if (normalized.includes("timbr") || normalized.includes("ore")) return "\u23F1\uFE0F";
+  if (normalized.includes("timbr")) return "\uD83D\uDD58";
+  if (normalized.includes("ore")) return "\u23F3";
   if (normalized.includes("impost")) return "\u2699\uFE0F";
   if (normalized.includes("export") || normalized.includes("report") || normalized.includes("pdf")) return "\uD83D\uDCC4";
   if (normalized.includes("sicurezza") || normalized.includes("password")) return "\uD83D\uDD12";
@@ -78,6 +79,14 @@ function resolveUiEmoji(title: string) {
   if (normalized.includes("dashboard") || normalized.includes("panoramica")) return "\uD83D\uDCCA";
 
   return "\uD83D\uDCCB";
+}
+
+function getTodayInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getBottomNavItems(navItems: DashboardNavItem[]) {
@@ -1123,7 +1132,31 @@ const fieldStyle: CSSProperties = {
 };
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} style={{ ...fieldStyle, ...props.style }} />;
+  if (props.type !== "date") {
+    return <input {...props} style={{ ...fieldStyle, ...props.style }} />;
+  }
+
+  const today = getTodayInputValue();
+  const min = typeof props.min === "string" && props.min > today ? props.min : today;
+  const value = typeof props.value === "string" && props.value && props.value < min ? min : props.value;
+
+  function handleDateChange(event: ChangeEvent<HTMLInputElement>) {
+    if (event.target.value && event.target.value < min) {
+      event.target.value = min;
+    }
+
+    props.onChange?.(event);
+  }
+
+  return (
+    <input
+      {...props}
+      min={min}
+      value={value}
+      onChange={handleDateChange}
+      style={{ ...fieldStyle, ...props.style }}
+    />
+  );
 }
 
 export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
