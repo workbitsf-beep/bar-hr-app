@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ActivityType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { SuperAdminHomeCreateActions } from "./home-create-actions";
 
 const MONTHLY_PRICE = 29.99;
 const YEARLY_PRICE = 299;
@@ -250,7 +251,7 @@ function BillingDonut({ buckets }: { buckets: Record<BillingBucket, number> }) {
 }
 
 export async function SuperAdminHomeHub() {
-  const [activityCounts, ownerCount, staffCount, revenueBars] = await Promise.all([
+  const [activityCounts, ownerCount, staffCount, revenueBars, ownerOptions] = await Promise.all([
     prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
     prisma.user.count({ where: { role: Role.OWNER } }),
     prisma.user.count({ where: { role: { in: [Role.MANAGER, Role.EMPLOYEE] } } }),
@@ -276,6 +277,16 @@ export async function SuperAdminHomeHub() {
             currentPeriodEnd: true,
           },
         },
+      },
+    }),
+    prisma.user.findMany({
+      where: { role: Role.OWNER },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
       },
     }),
   ]);
@@ -322,6 +333,7 @@ export async function SuperAdminHomeHub() {
             Ricavo ricorrente stimato, con {formatCurrency(trialPipeline)} di pipeline da prove attive e{" "}
             {formatCurrency(activeAnnual)} di proiezione annuale.
           </p>
+          <SuperAdminHomeCreateActions owners={ownerOptions} />
         </div>
         <div className="sa-command-orbit" aria-hidden="true">
           <span />
@@ -485,6 +497,13 @@ export async function SuperAdminHomeHub() {
               font-size: 15px;
               line-height: 1.65;
             }
+            .sa-quick-actions {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 9px;
+              margin-top: 4px;
+            }
+            .sa-quick-actions button,
             .sa-card-head a {
               display: inline-flex;
               align-items: center;
@@ -499,6 +518,7 @@ export async function SuperAdminHomeHub() {
               font-size: 12px;
               font-weight: 900;
               box-shadow: 0 10px 24px rgba(88,28,135,.08);
+              cursor: pointer;
             }
             .sa-command-orbit {
               position: relative;
