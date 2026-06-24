@@ -263,10 +263,29 @@ export function BoardComposeForm({
                 </label>
               </div>
             ) : null}
+            {allowMultiple ? (
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <IconButton
+                  type="button"
+                  onClick={addEntry}
+                  aria-label="Aggiungi messaggio alla lista"
+                  disabled={!draft.value.trim()}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    background: draft.value.trim() ? "#dcfce7" : "#f1f5f9",
+                    color: draft.value.trim() ? "#166534" : "#94a3b8",
+                    border: "1px solid #bbf7d0",
+                  }}
+                >
+                  ✓
+                </IconButton>
+              </div>
+            ) : null}
           </div>
 
           {allowMultiple ? (
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "none", justifyContent: "flex-end" }}>
               <IconButton
                 type="button"
                 onClick={addEntry}

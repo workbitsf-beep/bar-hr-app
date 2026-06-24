@@ -18,6 +18,7 @@ import {
   createShiftAction,
   createTaskAction,
   createTimeOffRequestAction,
+  confirmBoardNoteReadAction,
   confirmShiftAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
@@ -84,8 +85,15 @@ type NoteItem = {
   id: string;
   content: string;
   isPinned: boolean;
+  requiresConfirmation: boolean;
+  employeeId: string | null;
   createdAt: string;
   authorName: string;
+  confirmations: Array<{
+    userId: string;
+    userName: string;
+    readAt: string;
+  }>;
 };
 
 type CourseItem = {
@@ -386,6 +394,29 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
       <div style={{ color: "#64748b", fontSize: mobile ? 11 : 11 }}>
         {note.authorName}
       </div>
+    </div>
+  );
+}
+
+function renderNoteConfirmations(note: NoteItem, locale: string) {
+  if (!note.requiresConfirmation) {
+    return null;
+  }
+
+  if (note.confirmations.length === 0) {
+    return <span style={{ color: "#94a3b8", fontSize: 13 }}>Nessuna conferma</span>;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 4 }}>
+      <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+        Conferme
+      </span>
+      {note.confirmations.map((confirmation) => (
+        <span key={`${note.id}-${confirmation.userId}`} style={{ color: "#64748b", fontSize: 13 }}>
+          ✓ {confirmation.userName} - {formatDayTime(confirmation.readAt, locale)}
+        </span>
+      ))}
     </div>
   );
 }
@@ -1872,12 +1903,30 @@ export function OwnerCalendarClient({
                           })}
                         </div>
                       </div>
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <IconButton
+                          type="button"
+                          onClick={addShiftDraft}
+                          aria-label="Aggiungi turno alla lista"
+                          disabled={isPending || !isShiftDraftValid(currentShiftDraft)}
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 999,
+                            background: isShiftDraftValid(currentShiftDraft) ? "#dcfce7" : "#f1f5f9",
+                            color: isShiftDraftValid(currentShiftDraft) ? "#166534" : "#94a3b8",
+                            border: "1px solid #bbf7d0",
+                          }}
+                        >
+                          ✓
+                        </IconButton>
+                      </div>
                     </div>
                   ) : null}
 
                   <div
                     style={{
-                      display: "flex",
+                      display: "none",
                       justifyContent: "flex-end",
                       gap: 10,
                     }}
@@ -2505,15 +2554,21 @@ export function OwnerCalendarClient({
                             />
                           </div>
                           {task.status !== "DONE" ? (
-                            <div className="dashboard-action-row">
-                              <PrimaryButton
+                            <div className="dashboard-action-row" style={{ justifyContent: "flex-end" }}>
+                              <IconButton
                                 type="button"
-                                tone="green"
+                                aria-label="Conferma nota"
+                                title="Conferma nota"
                                 onClick={() => handleCompleteTask(task.id)}
                                 disabled={isPending}
+                                style={{
+                                  background: "#dcfce7",
+                                  color: "#166534",
+                                  border: "1px solid #bbf7d0",
+                                }}
                               >
-                                {isPending ? "Salvataggio..." : "Conferma nota"}
-                              </PrimaryButton>
+                                ✓
+                              </IconButton>
                             </div>
                           ) : null}
                         </div>
@@ -2535,6 +2590,37 @@ export function OwnerCalendarClient({
                           <span style={{ color: "#64748b", fontSize: 14 }}>
                             {note.authorName} - {formatDayTime(note.createdAt, locale)}
                           </span>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "flex-start",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <div>{renderNoteConfirmations(note, locale)}</div>
+                            {note.requiresConfirmation &&
+                            !note.confirmations.some(
+                              (confirmation) => confirmation.userId === currentUserId
+                            ) &&
+                            (!note.employeeId || note.employeeId === currentUserId) ? (
+                              <form action={confirmBoardNoteReadAction}>
+                                <input type="hidden" name="noteId" value={note.id} />
+                                <IconButton
+                                  type="submit"
+                                  aria-label="Conferma lettura"
+                                  title="Conferma lettura"
+                                  style={{
+                                    background: "#dcfce7",
+                                    color: "#166534",
+                                    border: "1px solid #bbf7d0",
+                                  }}
+                                >
+                                  ✓
+                                </IconButton>
+                              </form>
+                            ) : null}
+                          </div>
                         </div>
                       ))}
                     </div>

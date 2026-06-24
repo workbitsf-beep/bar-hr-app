@@ -219,6 +219,12 @@ function ensureDateIsNotBeforeToday(value: Date, message = "Non puoi inserire da
   }
 }
 
+function ensureSameLocalDay(startsAt: Date, endsAt: Date, message = "Le date devono essere nella stessa giornata") {
+  if (toDateInputValueInTimeZone(startsAt) !== toDateInputValueInTimeZone(endsAt)) {
+    throw new Error(message);
+  }
+}
+
 function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || value.trim() === "") {
     return null;
@@ -2405,6 +2411,7 @@ export async function createAvailabilityAction(formData: FormData) {
 
   ensureValidDateRange(startsAt, endsAt, "Invalid date range");
   ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire indisponibilita prima del giorno corrente");
+  ensureSameLocalDay(startsAt, endsAt, "L'indisponibilita deve essere nella stessa giornata");
 
   await prisma.availability.create({
     data: {
@@ -3350,6 +3357,10 @@ export async function createTimeOffRequestAction(formData: FormData) {
 
   ensureValidDateRange(startsAt, endsAt, "Invalid date range");
   ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire richieste prima del giorno corrente");
+
+  if (type === RequestType.OVERTIME) {
+    ensureSameLocalDay(startsAt, endsAt, "Lo straordinario deve essere nella stessa giornata");
+  }
 
   if (type === RequestType.SICKNESS && !certificateCode) {
     throw new Error("Missing certificate code");

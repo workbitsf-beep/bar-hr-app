@@ -289,9 +289,41 @@ export function DocumentComposeForm({
             width: "100%",
           }}
         />
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+          <IconButton
+            type="button"
+            onClick={addToList}
+            aria-label="Aggiungi documento alla lista"
+            disabled={
+              isPending ||
+              !draft.title.trim() ||
+              !draft.file ||
+              (!draft.assignedToAll && draft.assignedToIds.length === 0)
+            }
+            style={{
+              width: 38,
+              height: 38,
+              background:
+                draft.title.trim() &&
+                draft.file &&
+                (draft.assignedToAll || draft.assignedToIds.length > 0)
+                  ? "#dcfce7"
+                  : "#f1f5f9",
+              color:
+                draft.title.trim() &&
+                draft.file &&
+                (draft.assignedToAll || draft.assignedToIds.length > 0)
+                  ? "#166534"
+                  : "#94a3b8",
+              border: "1px solid #bbf7d0",
+            }}
+          >
+            ✓
+          </IconButton>
+        </div>
       </FormField>
 
-      <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+      <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
         <IconButton
           type="button"
           onClick={addToList}
@@ -318,6 +350,7 @@ export function DocumentComposeForm({
                 ? "#166534"
                 : "#94a3b8",
             border: "1px solid #bbf7d0",
+            display: "none",
           }}
         >
           ✓

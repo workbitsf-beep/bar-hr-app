@@ -151,6 +151,23 @@ export function ClosureComposeForm({
       <FormField label="Note">
         <TextArea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
       </FormField>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <IconButton
+          type="button"
+          onClick={addToList}
+          aria-label="Aggiungi chiusura alla lista"
+          disabled={isPending || !draft.startsAt || Boolean(draft.endsAt && draft.endsAt < draft.startsAt)}
+          style={{
+            width: 38,
+            height: 38,
+            background: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#dcfce7" : "#f1f5f9",
+            color: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#166534" : "#94a3b8",
+            border: "1px solid #bbf7d0",
+          }}
+        >
+          ✓
+        </IconButton>
+      </div>
       <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
         <IconButton
           type="button"
@@ -163,6 +180,7 @@ export function ClosureComposeForm({
             background: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#dcfce7" : "#f1f5f9",
             color: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#166534" : "#94a3b8",
             border: "1px solid #bbf7d0",
+            display: "none",
           }}
         >
           ✓

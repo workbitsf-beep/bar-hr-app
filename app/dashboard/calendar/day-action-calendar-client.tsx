@@ -18,6 +18,7 @@ import {
   createShiftAction,
   createTaskAction,
   createTimeOffRequestAction,
+  confirmBoardNoteReadAction,
   confirmShiftAction,
   reviewRequestAction,
 } from "../actions";
@@ -113,8 +114,15 @@ type NoteItem = {
   id: string;
   content: string;
   isPinned: boolean;
+  requiresConfirmation: boolean;
+  employeeId: string | null;
   createdAt: string;
   authorName: string;
+  confirmations: Array<{
+    userId: string;
+    userName: string;
+    readAt: string;
+  }>;
 };
 
 type DayItem = {
@@ -608,7 +616,13 @@ function renderTaskCard(task: TaskItem, mobile = false) {
   );
 }
 
-function renderNoteCard(note: NoteItem, locale: string, mobile = false) {
+function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, mobile = false) {
+  const currentUserConfirmed = note.confirmations.some(
+    (confirmation) => confirmation.userId === currentUserId
+  );
+  const canConfirm =
+    note.requiresConfirmation && !currentUserConfirmed && (!note.employeeId || note.employeeId === currentUserId);
+
   return (
     <div
       key={note.id}
@@ -630,6 +644,52 @@ function renderNoteCard(note: NoteItem, locale: string, mobile = false) {
           {note.authorName} - {formatTime(note.createdAt, locale)}
         </span>
       </div>
+      {note.requiresConfirmation ? (
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "grid", gap: 4 }}>
+            {note.confirmations.length === 0 ? (
+              <span style={{ color: "#94a3b8", fontSize: mobile ? 13 : 12 }}>
+                Nessuna conferma
+              </span>
+            ) : (
+              note.confirmations.map((confirmation) => (
+                <span
+                  key={`${note.id}-${confirmation.userId}`}
+                  style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}
+                >
+                  ✓ {confirmation.userName} - {formatTime(confirmation.readAt, locale)}
+                </span>
+              ))
+            )}
+          </div>
+          {canConfirm ? (
+            <form action={confirmBoardNoteReadAction}>
+              <input type="hidden" name="noteId" value={note.id} />
+              <IconButton
+                type="submit"
+                aria-label="Conferma lettura"
+                title="Conferma lettura"
+                style={{
+                  width: 38,
+                  height: 38,
+                  background: "#dcfce7",
+                  color: "#166534",
+                  border: "1px solid #bbf7d0",
+                }}
+              >
+                ✓
+              </IconButton>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2029,12 +2089,30 @@ export function DayActionCalendarClient({
                                 })}
                               </div>
                             </div>
+                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                              <IconButton
+                                type="button"
+                                onClick={addShiftDraft}
+                                aria-label="Aggiungi turno alla lista"
+                                disabled={isPending || !isShiftDraftValid(currentShiftDraft)}
+                                style={{
+                                  width: 38,
+                                  height: 38,
+                                  borderRadius: 999,
+                                  background: isShiftDraftValid(currentShiftDraft) ? "#dcfce7" : "#f1f5f9",
+                                  color: isShiftDraftValid(currentShiftDraft) ? "#166534" : "#94a3b8",
+                                  border: "1px solid #bbf7d0",
+                                }}
+                              >
+                                ✓
+                              </IconButton>
+                            </div>
                           </div>
                         ) : null}
 
                         <div
                           style={{
-                            display: "flex",
+                            display: "none",
                             justifyContent: "flex-end",
                             gap: 10,
                           }}
@@ -2600,7 +2678,9 @@ export function DayActionCalendarClient({
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
-                        {selectedDay.notes.map((note) => renderNoteCard(note, locale, true))}
+                        {selectedDay.notes.map((note) =>
+                          renderNoteCard(note, locale, currentUserId, true)
+                        )}
                       </div>
                     )}
                   </div>

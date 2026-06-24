@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { DateTimeInput } from "@/app/components/date-time-input";
+import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
 import {
   createCalendarClosureAction,
   createAvailabilityAction,
@@ -132,9 +133,7 @@ export default async function DashboardRequestsPage({
   const canCreateRequests = features.requests && role !== Role.OWNER;
   const canCreateAvailability = features.availability && !isCompany && role !== Role.OWNER;
   const canUseOvertime = features.requests && features.overtime;
-  const requestPanelTitle = canUseOvertime
-    ? "Richiedi ferie, permesso, malattia o straordinario"
-    : "Richiedi ferie, permesso o malattia";
+  const requestPanelTitle = "Richiedi ferie, permesso o malattia";
   const successMessage =
     success === "request-created"
       ? "Richiesta salvata correttamente."
@@ -313,6 +312,8 @@ export default async function DashboardRequestsPage({
         })
       : Promise.resolve([]),
   ]);
+  const standardRequests = requests.filter((request) => request.type !== RequestType.OVERTIME);
+  const overtimeRequests = requests.filter((request) => request.type === RequestType.OVERTIME);
 
   return (
     <>
@@ -338,7 +339,6 @@ export default async function DashboardRequestsPage({
                           <option value="VACATION">Ferie</option>
                           <option value="PERMISSION">Permesso</option>
                           <option value="SICKNESS">Malattia</option>
-                          {canUseOvertime ? <option value="OVERTIME">Straordinario</option> : null}
                         </Select>
                       </FormField>
 
@@ -468,13 +468,9 @@ export default async function DashboardRequestsPage({
                       </Select>
                     </FormField>
 
-                    <FormField label="Da">
-                      <DateTimeInput name="startsAt" required />
-                    </FormField>
-
-                    <FormField label="A">
-                      <DateTimeInput name="endsAt" required />
-                    </FormField>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
+                    </div>
                   </div>
 
                   <FormField label="Dettaglio">
@@ -490,7 +486,25 @@ export default async function DashboardRequestsPage({
               </PopupAction>
             }
           >
-            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Apri il popup per aggiungerne uno.</p>
+            <div style={{ display: "grid", gap: 12 }}>
+              {overtimeRequests.length === 0 ? (
+                <EmptyState message="Nessuno straordinario registrato." />
+              ) : (
+                <ItemList scrollable>
+                  {overtimeRequests.map((request) => (
+                    <ItemCard
+                      key={request.id}
+                      title={`${request.employee.firstName} ${request.employee.lastName}`}
+                      subtitle={`${formatDateTime(request.startsAt ?? request.createdAt)} - ${formatDateTime(
+                        request.endsAt ?? request.createdAt
+                      )}`}
+                      meta={request.reason || "Straordinario"}
+                      footer={<StatusPill label={request.status} tone={requestTone(request.status)} />}
+                    />
+                  ))}
+                </ItemList>
+              )}
+            </div>
           </Panel>
         ) : null}
 
@@ -516,12 +530,12 @@ export default async function DashboardRequestsPage({
               >
                 <div
                   style={{
-                    minWidth: 880,
+                    minWidth: 0,
                     display: "grid",
-                    gridTemplateColumns: "1.4fr 0.9fr 1.1fr 0.9fr auto",
+                    gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) auto",
                   }}
                 >
-                  {["Nome", "Tipo attività", "Orari", "Inserita da", "Azioni"].map((label) => (
+                  {["Titolo", "Date", "Azioni"].map((label) => (
                     <div
                       key={label}
                       style={{
@@ -553,9 +567,6 @@ export default async function DashboardRequestsPage({
                         }}
                       >
                         <span>{closure.title}</span>
-                        <span style={{ color: "#64748b", fontSize: 12, fontWeight: 500 }}>
-                          {formatDate(closure.startsAt)} - {formatDate(closure.endsAt)}
-                        </span>
                       </div>
 
                       <div
@@ -563,7 +574,7 @@ export default async function DashboardRequestsPage({
                         style={{
                           padding: "16px",
                           borderBottom: "1px solid #eef2f7",
-                          display: "flex",
+                          display: "none",
                           alignItems: "center",
                         }}
                       >
@@ -579,8 +590,8 @@ export default async function DashboardRequestsPage({
                           lineHeight: 1.6,
                         }}
                       >
-                        <div>{formatDateTime(closure.startsAt)}</div>
-                        <div>{formatDateTime(closure.endsAt)}</div>
+                        <div>{formatDate(closure.startsAt)}</div>
+                        <div>{formatDate(closure.endsAt)}</div>
                       </div>
 
                       <div
@@ -589,6 +600,7 @@ export default async function DashboardRequestsPage({
                           padding: "16px",
                           borderBottom: "1px solid #eef2f7",
                           color: "#334155",
+                          display: "none",
                           lineHeight: 1.5,
                         }}
                       >
@@ -704,21 +716,7 @@ export default async function DashboardRequestsPage({
               action={
                 <PopupAction title="Indisponibilita" ariaLabel="Aggiungi indisponibilita">
                   <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      <FormField label="Da">
-                        <DateTimeInput name="startsAt" required />
-                      </FormField>
-
-                      <FormField label="A">
-                        <DateTimeInput name="endsAt" required />
-                      </FormField>
-                    </div>
+                    <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
 
                     <FormField label="Motivo">
                       <TextArea
@@ -759,12 +757,12 @@ export default async function DashboardRequestsPage({
             </Panel>
         ) : null}
         {features.requests ? (
-          <Panel title="Storico richieste" action={`${requests.length} elementi`}>
-            {requests.length === 0 ? (
+          <Panel title="Storico richieste" action={`${standardRequests.length} elementi`}>
+            {standardRequests.length === 0 ? (
               <EmptyState message="Nessuna richiesta presente." />
             ) : (
               <ItemList scrollable>
-                {requests.map((request) => {
+                {standardRequests.map((request) => {
                   const canPeerReview =
                     request.type === "SHIFT_CHANGE" &&
                     request.swapWithUserId === session.user.id &&

@@ -123,7 +123,7 @@ export function TimeInput({
         maxLength={2}
         autoComplete="off"
         disabled={disabled}
-        required={required}
+        required={false}
         value={minutes}
         onChange={(event) => {
           setMinutes(sanitizePart(event.target.value));

@@ -167,6 +167,23 @@ export function CourseComposeForm({
           </Select>
         </FormField>
       </div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <IconButton
+          type="button"
+          onClick={addToList}
+          aria-label="Aggiungi corso alla lista"
+          disabled={isPending || !draft.title.trim() || !draft.startsAt || !draft.endsAt}
+          style={{
+            width: 38,
+            height: 38,
+            background: draft.title.trim() && draft.startsAt && draft.endsAt ? "#dcfce7" : "#f1f5f9",
+            color: draft.title.trim() && draft.startsAt && draft.endsAt ? "#166534" : "#94a3b8",
+            border: "1px solid #bbf7d0",
+          }}
+        >
+          ✓
+        </IconButton>
+      </div>
 
       <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
         <IconButton
@@ -180,6 +197,7 @@ export function CourseComposeForm({
             background: draft.title.trim() && draft.startsAt && draft.endsAt ? "#dcfce7" : "#f1f5f9",
             color: draft.title.trim() && draft.startsAt && draft.endsAt ? "#166534" : "#94a3b8",
             border: "1px solid #bbf7d0",
+            display: "none",
           }}
         >
           ✓

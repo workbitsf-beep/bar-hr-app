@@ -655,8 +655,24 @@ export default async function DashboardCalendarPage({
                   id: true,
                   content: true,
                   isPinned: true,
+                  requiresConfirmation: true,
                   createdAt: true,
                   employeeId: true,
+                  readReceipts: {
+                    orderBy: {
+                      readAt: "desc",
+                    },
+                    select: {
+                      readAt: true,
+                      userId: true,
+                      user: {
+                        select: {
+                          firstName: true,
+                          lastName: true,
+                        },
+                      },
+                    },
+                  },
                   author: {
                     select: {
                       firstName: true,
@@ -893,8 +909,15 @@ export default async function DashboardCalendarPage({
       id: note.id,
       content: note.content,
       isPinned: note.isPinned,
+      requiresConfirmation: note.requiresConfirmation,
+      employeeId: note.employeeId,
       createdAt: note.createdAt.toISOString(),
       authorName: `${note.author.firstName} ${note.author.lastName}`.trim(),
+      confirmations: note.readReceipts.map((receipt) => ({
+        userId: receipt.userId,
+        userName: `${receipt.user.firstName} ${receipt.user.lastName}`.trim(),
+        readAt: receipt.readAt.toISOString(),
+      })),
     })),
   }));
 
