@@ -21,15 +21,15 @@ export function AudienceSelector({
   peopleLabel?: string;
 }) {
   const basePillStyle = {
-    minHeight: 58,
+    minHeight: 42,
     borderRadius: 999,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    padding: "13px 18px",
-    fontSize: 18,
-    fontWeight: 850,
+    gap: 8,
+    padding: "9px 13px",
+    fontSize: 14,
+    fontWeight: 760,
     cursor: "pointer",
     transition: "background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease",
     boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)",
@@ -48,12 +48,12 @@ export function AudienceSelector({
           aria-pressed={assignedToAll}
           style={{
             ...basePillStyle,
-            border: assignedToAll ? "2px solid #7c3aed" : "1px solid #e2e8f0",
+            border: assignedToAll ? "1.5px solid #7c3aed" : "1px solid #e2e8f0",
             background: assignedToAll ? "#f3e8ff" : "#ffffff",
             color: assignedToAll ? "#4c1d95" : "#334155",
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 22, lineHeight: 1 }}>
+          <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
             {assignedToAll ? "✓" : "○"}
           </span>
           <span>{teamLabel}</span>
@@ -65,12 +65,12 @@ export function AudienceSelector({
           aria-pressed={!assignedToAll}
           style={{
             ...basePillStyle,
-            border: !assignedToAll ? "2px solid #7c3aed" : "1px solid #e2e8f0",
+            border: !assignedToAll ? "1.5px solid #7c3aed" : "1px solid #e2e8f0",
             background: !assignedToAll ? "#f3e8ff" : "#ffffff",
             color: !assignedToAll ? "#4c1d95" : "#334155",
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 22, lineHeight: 1 }}>
+          <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
             {!assignedToAll ? "✓" : "○"}
           </span>
           <span>{peopleLabel}</span>
@@ -100,12 +100,12 @@ export function AudienceSelector({
                 aria-pressed={selected}
                 style={{
                   borderRadius: 999,
-                  border: selected ? "2px solid #7c3aed" : "1px solid #e2e8f0",
+                  border: selected ? "1.5px solid #7c3aed" : "1px solid #e2e8f0",
                   background: selected ? "#f3e8ff" : "#ffffff",
                   color: selected ? "#4c1d95" : "#334155",
-                  padding: "10px 14px",
-                  fontSize: 15,
-                  fontWeight: 800,
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  fontWeight: 750,
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 8,

@@ -407,6 +407,29 @@ function DashboardResponsiveStyles() {
         touch-action: manipulation;
       }
 
+      .dashboard-button {
+        min-height: 38px !important;
+        padding: 9px 15px !important;
+        font-size: 13px !important;
+        box-shadow: 0 8px 18px rgba(88, 28, 135, 0.10) !important;
+      }
+
+      .dashboard-icon-button {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        box-shadow: 0 6px 14px rgba(88, 28, 135, 0.06) !important;
+      }
+
+      .dashboard-select-pill {
+        min-height: 42px !important;
+        padding: 9px 13px !important;
+        font-size: 14px !important;
+        gap: 8px !important;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.035) !important;
+      }
+
       .dashboard-button:active,
       .dashboard-menu-button:active,
       .dashboard-icon-button:active,
@@ -800,8 +823,8 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-select-pill {
-          min-height: 52px !important;
-          font-size: 16px !important;
+          min-height: 42px !important;
+          font-size: 14px !important;
         }
 
         .dashboard-table-desktop {
@@ -1485,10 +1508,12 @@ export function PrimaryButton({
         color: "#fff",
         border: 0,
         borderRadius: 999,
-        padding: "12px 20px",
-        fontWeight: 800,
+        minHeight: 38,
+        padding: "9px 15px",
+        fontSize: 13,
+        fontWeight: 760,
         letterSpacing: "-0.01em",
-        boxShadow: "0 14px 28px rgba(88, 28, 135, 0.16)",
+        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.10)",
         transition: "transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease",
         touchAction: "manipulation",
         ...props.style,
@@ -1527,8 +1552,8 @@ export function IconButton({
       pendingLabel={pendingLabel}
       className={joinClassNames("dashboard-icon-button", props.className)}
       style={{
-        width: 42,
-        height: 42,
+        width: 36,
+        height: 36,
         borderRadius: 999,
         border: "1px solid rgba(124, 58, 237, 0.12)",
         background: "linear-gradient(180deg, #ffffff 0%, #f7f2ff 100%)",
@@ -1536,7 +1561,7 @@ export function IconButton({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.07)",
+        boxShadow: "0 6px 14px rgba(88, 28, 135, 0.06)",
         touchAction: "manipulation",
         ...props.style,
       }}
@@ -1568,16 +1593,16 @@ export function ArrowLinkButton({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 36,
-        height: 36,
+        width: 32,
+        height: 32,
         borderRadius: 999,
         textDecoration: "none",
         background: "linear-gradient(180deg, #ffffff 0%, #f7f2ff 100%)",
         color: "#4c1d95",
         border: "1px solid rgba(124, 58, 237, 0.12)",
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 700,
-        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.07)",
+        boxShadow: "0 6px 14px rgba(88, 28, 135, 0.06)",
       }}
     >
       {">"}
