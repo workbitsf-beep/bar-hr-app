@@ -4,10 +4,11 @@ import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registratio
 import { getBillingStatus } from "@/lib/billing";
 import { featureDefinitions, getFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
+import { getLegalDocumentsWithAcceptance, legalDocumentTypeLabels } from "@/lib/legal-documents";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { updateSettingsAction } from "../actions";
-import { EmptyState, Panel, PrimaryButton, Stack } from "../ui";
+import { EmptyState, Panel, PrimaryButton, Stack, StatusPill } from "../ui";
 import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { PasswordChangePanel } from "./password-change-panel";
@@ -173,6 +174,71 @@ function parseStandardHoursFromSettings(settings?: {
   ].filter((entry) => entry.startTime || entry.endTime);
 }
 
+async function LegalDocumentsPanel({ userId }: { userId: string }) {
+  const documents = await getLegalDocumentsWithAcceptance(userId);
+
+  return (
+    <Panel title="Documenti legali">
+      {documents.length === 0 ? (
+        <EmptyState message="Nessun documento legale disponibile." />
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {documents.map((document) => {
+            const currentAcceptance = document.acceptances.find(
+              (acceptance) => acceptance.version === document.version
+            );
+            const accepted = Boolean(currentAcceptance);
+
+            return (
+              <details
+                key={document.id}
+                style={{
+                  padding: 16,
+                  borderRadius: 22,
+                  background: "#ffffff",
+                  border: "1px solid rgba(124, 58, 237, 0.12)",
+                }}
+              >
+                <summary style={{ cursor: "pointer", listStyle: "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <strong style={{ color: "#0f172a" }}>{document.title}</strong>
+                      <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                        {legalDocumentTypeLabels[document.type]} · v{document.version}
+                      </span>
+                    </div>
+                    <StatusPill
+                      label={accepted ? "Accettato" : document.isRequired ? "Da accettare" : "Disponibile"}
+                      tone={accepted ? "success" : document.isRequired ? "warning" : "neutral"}
+                    />
+                  </div>
+                </summary>
+                <div style={{ display: "grid", gap: 10, marginTop: 14, color: "#334155", lineHeight: 1.65 }}>
+                  {currentAcceptance ? (
+                    <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                      Accettato il {currentAcceptance.acceptedAt.toLocaleDateString("it-IT")}
+                    </span>
+                  ) : null}
+                  {document.content ? (
+                    <div style={{ whiteSpace: "pre-wrap" }}>{document.content}</div>
+                  ) : (
+                    <span style={{ color: "#64748b" }}>Contenuto testuale non presente.</span>
+                  )}
+                  {document.fileUrl ? (
+                    <a href={document.fileUrl} target="_blank" rel="noreferrer" style={{ color: "#6d28d9", fontWeight: 800 }}>
+                      Visualizza documento
+                    </a>
+                  ) : null}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 async function getPasskeyCount(userId: string) {
   try {
     return await prisma.webAuthnCredential.count({
@@ -281,6 +347,7 @@ export default async function DashboardSettingsPage() {
       {passwordPanel}
       {securityPanel}
       <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
+      <LegalDocumentsPanel userId={session.user.id} />
 
       {activeBarActivityType === ActivityType.RESTAURANT ? (
         <>

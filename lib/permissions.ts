@@ -3,6 +3,7 @@ import "server-only";
 import { ActivityType, PlanType, Role } from "@prisma/client";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { ownerNeedsLegalAcceptance } from "@/lib/legal-documents";
 import type { SessionWithUser } from "@/lib/auth";
 
 export type AccessibleBar = {
@@ -315,6 +316,10 @@ export async function getPostLoginDestination(input: {
   }
 
   if (input.role === Role.OWNER) {
+    if (await ownerNeedsLegalAcceptance({ userId: input.userId, role: input.role })) {
+      return "/legal/accept";
+    }
+
     const ownedBar = await getOwnerPrimaryBarState(input.userId, input.activeBarId ?? null);
 
     if (!ownedBar) {

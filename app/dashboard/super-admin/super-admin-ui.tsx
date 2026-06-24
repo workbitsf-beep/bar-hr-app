@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { EmptyState, Panel } from "../ui";
 
-type AdminSection = "home" | "owners" | "bars" | "billing" | "gps";
+type AdminSection = "home" | "owners" | "bars" | "billing" | "gps" | "legal";
 
 const superAdminItems: Array<{
   href: string;
@@ -49,6 +49,15 @@ const superAdminItems: Array<{
     color: "#d97706",
     tint: "#fffbeb",
   },
+  {
+    href: "/dashboard/super-admin/legal",
+    title: "Documenti legali",
+    description: "Policy e contratti obbligatori.",
+    eyebrow: "Compliance",
+    section: "legal",
+    color: "#9333ea",
+    tint: "#faf5ff",
+  },
 ];
 
 function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: number }) {
@@ -92,6 +101,15 @@ function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: numbe
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z" {...common} />
         <circle cx="12" cy="10" r="2.3" {...common} />
+      </svg>
+    );
+  }
+
+  if (section === "legal") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" {...common} />
+        <path d="M14 3.5V8h4M9 12h6M9 15.5h6M9 19h3" {...common} />
       </svg>
     );
   }
