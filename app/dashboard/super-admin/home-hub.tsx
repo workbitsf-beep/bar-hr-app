@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ActivityType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { SuperAdminMenuGrid } from "./super-admin-ui";
 
 const MONTHLY_PRICE = 29.99;
 const YEARLY_PRICE = 299;
@@ -323,11 +322,6 @@ export async function SuperAdminHomeHub() {
             Ricavo ricorrente stimato, con {formatCurrency(trialPipeline)} di pipeline da prove attive e{" "}
             {formatCurrency(activeAnnual)} di proiezione annuale.
           </p>
-          <div className="sa-quick-actions">
-            <Link href="/dashboard/super-admin/bars">+ Nuova attivita</Link>
-            <Link href="/dashboard/super-admin/owners">+ Nuovo titolare</Link>
-            <Link href="/dashboard/super-admin/billing">Gestisci abbonamenti</Link>
-          </div>
         </div>
         <div className="sa-command-orbit" aria-hidden="true">
           <span />
@@ -435,16 +429,6 @@ export async function SuperAdminHomeHub() {
         </article>
       </section>
 
-      <section className="sa-card">
-        <div className="sa-card-head">
-          <div>
-            <span className="sa-eyebrow">🚀 Azioni rapide</span>
-            <h3>Vai subito al punto giusto</h3>
-          </div>
-        </div>
-        <SuperAdminMenuGrid />
-      </section>
-
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -501,13 +485,6 @@ export async function SuperAdminHomeHub() {
               font-size: 15px;
               line-height: 1.65;
             }
-            .sa-quick-actions {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 9px;
-              margin-top: 4px;
-            }
-            .sa-quick-actions a,
             .sa-card-head a {
               display: inline-flex;
               align-items: center;

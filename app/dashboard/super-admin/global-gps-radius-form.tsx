@@ -33,7 +33,7 @@ export function GlobalGpsRadiusForm({
   }
 
   return (
-    <div style={{ display: "grid", gap: 16, maxWidth: 520 }}>
+    <div style={{ display: "grid", gap: 16, width: "100%", maxWidth: 520, minWidth: 0 }}>
       <label style={{ display: "grid", gap: 8 }}>
         <span style={{ fontWeight: 800, color: "#344054" }}>Distanza consentita</span>
         <div
@@ -41,9 +41,11 @@ export function GlobalGpsRadiusForm({
             display: "flex",
             alignItems: "center",
             gap: 12,
+            minWidth: 0,
+            maxWidth: "100%",
             borderRadius: 22,
             border: "1px solid rgba(217, 119, 6, .18)",
-            padding: "8px 14px",
+            padding: "8px 12px",
             background: "linear-gradient(135deg, #ffffff, #fffbeb)",
             width: "100%",
             boxSizing: "border-box",
@@ -70,10 +72,11 @@ export function GlobalGpsRadiusForm({
             style={{
               minWidth: 0,
               flex: 1,
+              width: "100%",
               border: 0,
               outline: 0,
               padding: "10px 2px",
-              fontSize: 28,
+              fontSize: "clamp(20px, 7vw, 28px)",
               fontWeight: 900,
               letterSpacing: "-0.04em",
               background: "transparent",
@@ -81,7 +84,7 @@ export function GlobalGpsRadiusForm({
               opacity: isPending ? 0.7 : 1,
             }}
           />
-          <span style={{ color: "#b45309", fontSize: 14, fontWeight: 900 }}>metri</span>
+          <span style={{ color: "#b45309", fontSize: 13, fontWeight: 900, flex: "0 0 auto" }}>metri</span>
         </div>
       </label>
 

@@ -148,7 +148,7 @@ export function SuperAdminFrame({
         <div className="super-admin-hero-copy">
           <div className="super-admin-live-pill">
             <span className="super-admin-live-dot" aria-hidden="true" />
-            Workbit control room
+            Area admin
           </div>
           <h1>{title}</h1>
           <p>{description}</p>
@@ -220,9 +220,11 @@ export function SuperAdminFrame({
               background: rgba(255,255,255,.10);
               backdrop-filter: blur(12px);
               font-size: 12px;
+              line-height: 1;
               font-weight: 800;
               letter-spacing: .04em;
               text-transform: uppercase;
+              white-space: nowrap;
             }
             .super-admin-live-dot { width: 8px; height: 8px; border-radius: 99px; background: #86efac; box-shadow: 0 0 0 5px rgba(134,239,172,.14); }
             .super-admin-hero h1 { margin: 0; font-size: clamp(30px, 4vw, 48px); line-height: 1; letter-spacing: -.045em; }
