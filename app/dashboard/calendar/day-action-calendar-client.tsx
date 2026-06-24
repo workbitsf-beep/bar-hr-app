@@ -2231,6 +2231,12 @@ export function DayActionCalendarClient({
                                 <strong style={{ color: "#0f172a", fontSize: 16 }}>
                                   {formatRange(shift.startTime, shift.endTime, locale)}
                                 </strong>
+                                {shift.isOnCall ? (
+                                  <StatusPill
+                                    label={shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
+                                    tone={shift.confirmedAt ? "warning" : "danger"}
+                                  />
+                                ) : null}
                                 <span style={{ color: "#475569" }}>
                                   {formatAssignmentNames(shift.assignments)}
                                 </span>

@@ -2332,6 +2332,12 @@ export function OwnerCalendarClient({
                             <strong style={{ color: "#0f172a" }}>
                               {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
                             </strong>
+                            {shift.isOnCall ? (
+                              <StatusPill
+                                label={shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
+                                tone={shift.confirmedAt ? "warning" : "danger"}
+                              />
+                            ) : null}
                             <span style={{ color: "#64748b", fontSize: 14 }}>
                               {formatAssignmentNames(shift.assignments)}
                             </span>
