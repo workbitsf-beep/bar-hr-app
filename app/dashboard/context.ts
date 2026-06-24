@@ -33,6 +33,87 @@ export type DashboardContext = {
   }[];
 };
 
+function isMissingColumnError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2022"
+  );
+}
+
+async function getDashboardFeatureSettings(barId: string) {
+  try {
+    return await prisma.barSettings.findUnique({
+      where: { barId },
+      select: {
+        timeTrackingEnabled: true,
+        shiftsEnabled: true,
+        requestsEnabled: true,
+        availabilityEnabled: true,
+        overtimeEnabled: true,
+        tasksEnabled: true,
+        noticeBoardEnabled: true,
+        coursesEnabled: true,
+        documentsEnabled: true,
+        reportsEnabled: true,
+        companyShiftsEnabled: true,
+      },
+    });
+  } catch (error) {
+    if (!isMissingColumnError(error)) {
+      throw error;
+    }
+  }
+
+  const expectedColumns = [
+    "timeTrackingEnabled",
+    "shiftsEnabled",
+    "requestsEnabled",
+    "availabilityEnabled",
+    "overtimeEnabled",
+    "tasksEnabled",
+    "noticeBoardEnabled",
+    "coursesEnabled",
+    "documentsEnabled",
+    "reportsEnabled",
+    "companyShiftsEnabled",
+  ];
+  const availableColumns = await prisma.$queryRaw<Array<{ column_name: string }>>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'BarSettings'
+      AND column_name IN (
+        'timeTrackingEnabled',
+        'shiftsEnabled',
+        'requestsEnabled',
+        'availabilityEnabled',
+        'overtimeEnabled',
+        'tasksEnabled',
+        'noticeBoardEnabled',
+        'coursesEnabled',
+        'documentsEnabled',
+        'reportsEnabled',
+        'companyShiftsEnabled'
+      )
+  `;
+  const columnSet = new Set(availableColumns.map((column) => column.column_name));
+  const selectedColumns = expectedColumns.filter((column) => columnSet.has(column));
+
+  if (selectedColumns.length === 0) {
+    return null;
+  }
+
+  const quotedColumns = selectedColumns.map((column) => `"${column}"`).join(", ");
+  const rows = await prisma.$queryRawUnsafe<Array<Record<string, boolean | null>>>(
+    `SELECT ${quotedColumns} FROM "BarSettings" WHERE "barId" = $1 LIMIT 1`,
+    barId
+  );
+
+  return rows[0] ?? null;
+}
+
 export const getDashboardContext = cache(async function getDashboardContext(
   allowBillingDestination = false
 ): Promise<DashboardContext> {
@@ -64,22 +145,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
       ? getBillingStatus(activeBar.id)
       : Promise.resolve(null),
     activeBar?.id && String(role) !== "SUPER_ADMIN"
-      ? prisma.barSettings.findUnique({
-          where: { barId: activeBar.id },
-          select: {
-            timeTrackingEnabled: true,
-            shiftsEnabled: true,
-            requestsEnabled: true,
-            availabilityEnabled: true,
-            overtimeEnabled: true,
-            tasksEnabled: true,
-            noticeBoardEnabled: true,
-            coursesEnabled: true,
-            documentsEnabled: true,
-            reportsEnabled: true,
-            companyShiftsEnabled: true,
-          },
-        })
+      ? getDashboardFeatureSettings(activeBar.id)
       : Promise.resolve(null),
   ]);
   const rawFeatures = getFeatureFlags(featureSettings);
