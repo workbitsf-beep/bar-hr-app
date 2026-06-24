@@ -62,47 +62,59 @@ function KpiSkeletonCard() {
   );
 }
 
-function KpiMetricCard({
-  title,
+function TeamTrendBar({
+  label,
   value,
-  subtitle,
-  tone = "neutral",
-  footer,
+  max,
+  tone = "purple",
 }: {
-  title: string;
-  value: string;
-  subtitle: string;
-  tone?: "success" | "warning" | "danger" | "neutral" | "purple";
-  footer?: string;
+  label: string;
+  value: number;
+  max: number;
+  tone?: "purple" | "green" | "amber";
 }) {
-  const accent =
-    tone === "success"
-      ? "linear-gradient(135deg, rgba(209,250,229,0.9), rgba(255,255,255,0.98))"
-      : tone === "warning"
-      ? "linear-gradient(135deg, rgba(254,240,138,0.58), rgba(255,255,255,0.98))"
-      : tone === "danger"
-        ? "linear-gradient(135deg, rgba(254,226,226,0.86), rgba(255,255,255,0.98))"
-        : tone === "purple"
-          ? "linear-gradient(135deg, rgba(237,233,254,0.9), rgba(255,255,255,0.98))"
-          : "linear-gradient(135deg, rgba(241,245,249,0.98), rgba(255,255,255,0.98))";
+  const width = max > 0 && value > 0 ? Math.max(8, Math.round((value / max) * 100)) : 0;
+  const fill =
+    tone === "green"
+      ? "linear-gradient(135deg, #86efac 0%, #22c55e 100%)"
+      : tone === "amber"
+        ? "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)"
+        : "linear-gradient(135deg, #ddd6fe 0%, #8b5cf6 100%)";
 
   return (
-    <div
-      style={{
-        padding: 18,
-        borderRadius: 22,
-        background: accent,
-        border: "1px solid rgba(148, 163, 184, 0.18)",
-        boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)",
-        display: "grid",
-        gap: 8,
-        minWidth: 0,
-      }}
-    >
-      <div style={{ color: "#64748b", fontSize: 13, fontWeight: 600 }}>{title}</div>
-      <div style={{ fontSize: 34, lineHeight: 1, fontWeight: 700, color: "#0f172a" }}>{value}</div>
-      <div style={{ color: "#334155", lineHeight: 1.5 }}>{subtitle}</div>
-      {footer ? <div style={{ color: "#64748b", fontSize: 13 }}>{footer}</div> : null}
+    <div style={{ display: "grid", gap: 7, minWidth: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          color: "#64748b",
+          fontSize: 12,
+          fontWeight: 760,
+        }}
+      >
+        <span>{label}</span>
+        <span>{value}</span>
+      </div>
+      <div
+        style={{
+          height: 9,
+          borderRadius: 999,
+          background: "#eef2f7",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${width}%`,
+            height: "100%",
+            borderRadius: 999,
+            background: fill,
+            transition: "width 180ms ease",
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -256,33 +268,25 @@ export function KpiDashboard({
 
   if (loading && !data) {
     return (
-      <div style={{ display: "grid", gap: 18 }}>
-        <Panel
-          title="👤"
-          action={<StatusPill tone="neutral" label={roleLabel} />}
+      <Panel title="Andamento team" action={<StatusPill tone="neutral" label={roleLabel} />}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 14,
+          }}
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-            }}
-          >
-            {Array.from({ length: 4 }, (_, index) => (
-              <KpiSkeletonCard key={index} />
-            ))}
-          </div>
-        </Panel>
-      </div>
+          {Array.from({ length: 3 }, (_, index) => (
+            <KpiSkeletonCard key={index} />
+          ))}
+        </div>
+      </Panel>
     );
   }
 
   if (error && !data) {
     return (
-      <Panel
-        title="👤"
-        action={<StatusPill tone="warning" label={roleLabel} />}
-      >
+      <Panel title="Andamento team" action={<StatusPill tone="warning" label={roleLabel} />}>
         <EmptyState message={error} />
       </Panel>
     );
@@ -292,70 +296,62 @@ export function KpiDashboard({
     return null;
   }
 
-  const summaryCards = [
+  const teamStats = [
     features.shifts
       ? {
-          key: "today",
-          title: "📅 Presenti oggi",
+          label: "Persone oggi",
           value: String(data.today.scheduledUsers),
-          subtitle:
+          detail:
             data.today.scheduledShifts > 0
-              ? `${data.today.scheduledShifts} turni, ${data.today.confirmedShifts} confermati`
+              ? `${data.today.confirmedShifts}/${data.today.scheduledShifts} turni confermati`
               : "Nessun turno oggi",
-          footer: `${data.today.pendingShifts} in attesa`,
-          tone: "purple" as const,
-        }
-      : null,
-    features.requests
-      ? {
-          key: "requests",
-          title: "📝 Richieste",
-          value: String(data.requests.totalPending),
-          subtitle:
-            data.requests.totalPending === 0
-              ? "Tutto aggiornato"
-              : "Da controllare",
-          footer: `${data.requests.pendingLeaves} ferie, ${data.requests.pendingPermissions} permessi`,
-          tone: data.requests.totalPending > 0 ? ("warning" as const) : ("neutral" as const),
         }
       : null,
     features.tasks
       ? {
-          key: "tasks",
-          title: "✅ Mansioni",
+          label: "Mansioni",
           value: `${data.tasks.completionRate}%`,
-          subtitle:
-            data.tasks.totalToday === 0
-              ? "Nessuna mansione oggi"
-              : `${data.tasks.completedToday}/${data.tasks.totalToday} completate`,
-          footer: `${data.tasks.openToday} aperte`,
-          tone:
-            data.tasks.openToday === 0 && data.tasks.totalToday > 0
-              ? ("success" as const)
-              : ("neutral" as const),
+          detail:
+            data.tasks.totalToday > 0
+              ? `${data.tasks.completedToday}/${data.tasks.totalToday} completate`
+              : "Nessuna mansione oggi",
         }
       : null,
-    features.noticeBoard || features.courses
+    features.requests
       ? {
-          key: "team",
-          title: "📢 Team",
-          value: String(data.board.last7DaysCount + data.training.pending + data.training.expiring),
-          subtitle:
-            features.noticeBoard && features.courses
-              ? "Bacheca e corsi"
-              : features.noticeBoard
-                ? "Messaggi recenti"
-                : "Corsi da seguire",
-          footer: `${data.board.last7DaysCount} messaggi, ${data.training.pending} corsi aperti`,
-          tone: "purple" as const,
+          label: "Richieste",
+          value: String(data.requests.totalPending),
+          detail: data.requests.totalPending > 0 ? "Da gestire" : "Tutto aggiornato",
         }
       : null,
-  ].filter((card): card is NonNullable<typeof card> => Boolean(card));
+    features.shifts || features.requests
+      ? {
+          label: "Mancanze",
+          value: String(data.today.absences),
+          detail:
+            data.today.absences > 0
+              ? `${data.today.approvedLeaves + data.today.approvedPermissions} ferie/permessi`
+              : "Nessuna assenza oggi",
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  const maxWeekShifts = Math.max(1, ...data.charts.shiftsCurrentWeek.map((entry) => entry.count));
+  const maxTaskTotal = Math.max(1, ...data.charts.tasksLast7Days.map((entry) => entry.total));
+  const maxRequests = Math.max(1, ...data.charts.requestsCurrentMonth.map((entry) => entry.count));
+  const teamSignal =
+    data.requests.totalPending > 0
+      ? "Richieste da controllare"
+      : data.tasks.openToday > 0
+        ? "Mansioni ancora aperte"
+        : data.today.pendingShifts > 0
+          ? "Turni da confermare"
+          : "Team allineato";
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <Panel
-        title="👤 Panoramica rapida"
+        title="Andamento team"
         action={
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <StatusPill tone="neutral" label={roleLabel} />
@@ -363,26 +359,179 @@ export function KpiDashboard({
           </div>
         }
       >
-        {summaryCards.length === 0 ? (
+        {teamStats.length === 0 ? (
           <EmptyState message="Attiva le funzioni che vuoi monitorare dalle impostazioni." />
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {summaryCards.map((card) => (
-              <KpiMetricCard
-                key={card.key}
-                title={card.title}
-                value={card.value}
-                subtitle={card.subtitle}
-                footer={card.footer}
-                tone={card.tone}
-              />
-            ))}
+          <div style={{ display: "grid", gap: 16 }}>
+            <div
+              className="dashboard-kpi-team-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 0.75fr)",
+                gap: 14,
+                alignItems: "stretch",
+              }}
+            >
+              <div
+                style={{
+                  padding: 20,
+                  borderRadius: 28,
+                  background:
+                    "linear-gradient(135deg, rgba(245,243,255,0.98) 0%, rgba(255,255,255,0.98) 100%)",
+                  border: "1px solid rgba(124, 58, 237, 0.14)",
+                  boxShadow: "0 18px 38px rgba(88, 28, 135, 0.07)",
+                  display: "grid",
+                  gap: 16,
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      width: 54,
+                      height: 54,
+                      borderRadius: 22,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "linear-gradient(135deg, #ede9fe, #ffffff)",
+                      color: "#5b21b6",
+                      fontSize: 25,
+                    }}
+                  >
+                    {"\uD83D\uDC65"}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: "#64748b", fontWeight: 760, fontSize: 13 }}>
+                      Stato operativo
+                    </div>
+                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 850, lineHeight: 1.1 }}>
+                      {teamSignal}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="dashboard-kpi-team-stats"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {teamStats.map((item) => (
+                    <div
+                      key={item.label}
+                      style={{
+                        padding: 14,
+                        borderRadius: 22,
+                        background: "#ffffff",
+                        border: "1px solid rgba(148, 163, 184, 0.18)",
+                        display: "grid",
+                        gap: 5,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 780 }}>
+                        {item.label}
+                      </span>
+                      <strong style={{ color: "#0f172a", fontSize: 24, lineHeight: 1 }}>
+                        {item.value}
+                      </strong>
+                      <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.35 }}>
+                        {item.detail}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 28,
+                  background: "#ffffff",
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  boxShadow: "0 14px 30px rgba(15, 23, 42, 0.05)",
+                  display: "grid",
+                  gap: 14,
+                  alignContent: "start",
+                  minWidth: 0,
+                }}
+              >
+                <strong style={{ color: "#0f172a", fontSize: 17 }}>Turni settimana</strong>
+                {features.shifts ? (
+                  data.charts.shiftsCurrentWeek.map((entry) => (
+                    <TeamTrendBar
+                      key={entry.date}
+                      label={entry.label}
+                      value={entry.count}
+                      max={maxWeekShifts}
+                    />
+                  ))
+                ) : (
+                  <EmptyState message="Turni non attivi." />
+                )}
+              </div>
+            </div>
+
+            <div
+              className="dashboard-kpi-small-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {features.tasks ? (
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 24,
+                    background: "#ffffff",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    display: "grid",
+                    gap: 12,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>Mansioni ultimi 7 giorni</strong>
+                  {data.charts.tasksLast7Days.map((entry) => (
+                    <TeamTrendBar
+                      key={entry.date}
+                      label={entry.label}
+                      value={entry.completed}
+                      max={maxTaskTotal}
+                      tone="green"
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {features.requests ? (
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 24,
+                    background: "#ffffff",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    display: "grid",
+                    gap: 12,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>Richieste del mese</strong>
+                  {data.charts.requestsCurrentMonth.map((entry) => (
+                    <TeamTrendBar
+                      key={entry.key}
+                      label={entry.label}
+                      value={entry.count}
+                      max={maxRequests}
+                      tone="amber"
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         )}
       </Panel>
@@ -393,6 +542,22 @@ export function KpiDashboard({
             @keyframes dashboardSkeletonPulse {
               0% { background-position: 200% 0; }
               100% { background-position: -200% 0; }
+            }
+
+            @media (max-width: 760px) {
+              .dashboard-kpi-team-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+              }
+
+              .dashboard-kpi-team-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              }
+            }
+
+            @media (max-width: 420px) {
+              .dashboard-kpi-team-stats {
+                grid-template-columns: minmax(0, 1fr) !important;
+              }
             }
           `,
         }}
