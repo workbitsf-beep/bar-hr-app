@@ -11,6 +11,23 @@ import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
 import { ScrollToTodayButton } from "./scroll-to-today-button";
 
+type CalendarPageSettings = {
+  gpsLatitude?: number | null;
+  gpsLongitude?: number | null;
+  gpsRadius?: number | null;
+  companyShiftsEnabled?: boolean | null;
+  roundingEnabled?: boolean | null;
+  roundingMinutes?: number | null;
+  roundingMode?: string | null;
+  morningStartTime?: string | null;
+  morningEndTime?: string | null;
+  afternoonStartTime?: string | null;
+  afternoonEndTime?: string | null;
+  eveningStartTime?: string | null;
+  eveningEndTime?: string | null;
+  standardShiftPresets?: unknown;
+};
+
 function getLocale(language: string) {
   if (language === "en") {
     return "en-US";
@@ -109,6 +126,103 @@ function parseDayFilter(searchParams?: Record<string, string | string[] | undefi
   return raw;
 }
 
+function isMissingColumnError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2022"
+  );
+}
+
+async function getCalendarPageSettings(barId: string) {
+  try {
+    return await prisma.barSettings.findUnique({
+      where: { barId },
+      select: {
+        gpsLatitude: true,
+        gpsLongitude: true,
+        gpsRadius: true,
+        companyShiftsEnabled: true,
+        roundingEnabled: true,
+        roundingMinutes: true,
+        roundingMode: true,
+        morningStartTime: true,
+        morningEndTime: true,
+        afternoonStartTime: true,
+        afternoonEndTime: true,
+        eveningStartTime: true,
+        eveningEndTime: true,
+        standardShiftPresets: true,
+      },
+    });
+  } catch (error) {
+    if (!isMissingColumnError(error)) {
+      throw error;
+    }
+  }
+
+  const expectedColumns = [
+    "gpsLatitude",
+    "gpsLongitude",
+    "gpsRadius",
+    "companyShiftsEnabled",
+    "roundingEnabled",
+    "roundingMinutes",
+    "roundingMode",
+    "morningStartTime",
+    "morningEndTime",
+    "afternoonStartTime",
+    "afternoonEndTime",
+    "eveningStartTime",
+    "eveningEndTime",
+    "standardShiftPresets",
+  ];
+  const availableColumns = await prisma.$queryRaw<Array<{ column_name: string }>>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'BarSettings'
+      AND column_name IN (
+        'gpsLatitude',
+        'gpsLongitude',
+        'gpsRadius',
+        'companyShiftsEnabled',
+        'roundingEnabled',
+        'roundingMinutes',
+        'roundingMode',
+        'morningStartTime',
+        'morningEndTime',
+        'afternoonStartTime',
+        'afternoonEndTime',
+        'eveningStartTime',
+        'eveningEndTime',
+        'standardShiftPresets'
+      )
+  `;
+  const columnSet = new Set(availableColumns.map((column) => column.column_name));
+  const selectedColumns = expectedColumns.filter((column) => columnSet.has(column));
+
+  if (selectedColumns.length === 0) {
+    return null;
+  }
+
+  const quotedColumns = selectedColumns.map((column) => `"${column}"`).join(", ");
+  const rows = await prisma.$queryRawUnsafe<CalendarPageSettings[]>(
+    `SELECT ${quotedColumns} FROM "BarSettings" WHERE "barId" = $1 LIMIT 1`,
+    barId
+  );
+  const row = rows[0];
+
+  return row
+    ? {
+        ...row,
+        companyShiftsEnabled: row.companyShiftsEnabled ?? true,
+        roundingEnabled: row.roundingEnabled ?? false,
+      }
+    : null;
+}
+
 export default async function DashboardCalendarPage({
   searchParams,
 }: {
@@ -182,25 +296,7 @@ export default async function DashboardCalendarPage({
     notes,
   ] =
     await Promise.all([
-      prisma.barSettings.findUnique({
-        where: { barId: activeBarId },
-        select: {
-          gpsLatitude: true,
-          gpsLongitude: true,
-          gpsRadius: true,
-          companyShiftsEnabled: true,
-          roundingEnabled: true,
-          roundingMinutes: true,
-          roundingMode: true,
-          morningStartTime: true,
-          morningEndTime: true,
-          afternoonStartTime: true,
-          afternoonEndTime: true,
-          eveningStartTime: true,
-          eveningEndTime: true,
-          standardShiftPresets: true,
-        },
-      }),
+      getCalendarPageSettings(activeBarId),
       features.shifts
         ? prisma.shift.findMany({
             where: {
