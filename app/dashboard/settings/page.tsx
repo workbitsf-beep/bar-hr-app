@@ -22,6 +22,7 @@ import {
 import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { PasswordChangePanel } from "./password-change-panel";
+import { PushSettingsClient } from "./push-settings-client";
 import { StandardHoursForm, StandardHoursPreview, type StandardHourEntry } from "./standard-hours-form";
 
 function normalizeParam(value: string | string[] | undefined) {
@@ -629,17 +630,10 @@ export default async function DashboardSettingsPage({
         icon="🔔"
         title="Notifiche"
         description="Notifiche interne e push del dispositivo."
-        status="Attive"
+        status="Gestibili"
         action={
           <PopupAction title="Notifiche" ariaLabel="Apri notifiche" triggerContent="Apri">
-            <div style={{ display: "grid", gap: 12 }}>
-              <EmptyState message="Le notifiche operative sono attive. Puoi gestire i permessi push dalle impostazioni del dispositivo." />
-              <div className="dashboard-form-actions">
-                <PrimaryButton type="button" tone="sand" data-popup-close>
-                  Chiudi
-                </PrimaryButton>
-              </div>
-            </div>
+            <PushSettingsClient />
           </PopupAction>
         }
       />

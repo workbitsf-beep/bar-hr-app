@@ -809,7 +809,7 @@ export function DayActionCalendarClient({
   const canCreateCourse = features.courses && (role === Role.OWNER || role === Role.MANAGER);
   const canCreateClosure = features.requests && (role === Role.OWNER || role === Role.MANAGER);
   const canReviewRequests = features.requests && isCompany && (role === Role.OWNER || role === Role.MANAGER);
-  const canOpenTaskComposer = features.tasks && (role === Role.OWNER || role === Role.MANAGER);
+  const canOpenTaskComposer = features.tasks;
   const hasDayAbsences =
     (features.availability ? selectedDay?.availabilities.length ?? 0 : 0) +
       (features.requests ? selectedDay?.requests.length ?? 0 : 0) >
@@ -913,18 +913,18 @@ export function DayActionCalendarClient({
     setShiftDrafts([]);
     setCurrentShiftDraft(createShiftDraft(day.date));
     setRequestType(RequestType.VACATION);
-    setRequestStart(toDateTimeLocal(day.date, 9, 0));
-    setRequestEnd(toDateTimeLocal(day.date, 18, 0));
+    setRequestStart(`${day.date.slice(0, 10)}T`);
+    setRequestEnd(`${day.date.slice(0, 10)}T`);
     setRequestReason("");
     setCertificateCode("");
-    setAvailabilityStart(toDateTimeLocal(day.date, 9, 0));
-    setAvailabilityEnd(toDateTimeLocal(day.date, 18, 0));
+    setAvailabilityStart(`${day.date.slice(0, 10)}T`);
+    setAvailabilityEnd(`${day.date.slice(0, 10)}T`);
     setAvailabilityReason("");
     setCourseTitle("");
     setCourseDescription("");
     setCourseLocation("");
-    setCourseStart(toDateTimeLocal(day.date, 9, 0));
-    setCourseEnd(toDateTimeLocal(day.date, 13, 0));
+    setCourseStart(`${day.date.slice(0, 10)}T`);
+    setCourseEnd(`${day.date.slice(0, 10)}T`);
     setCourseAssignedToAll(true);
     setCourseAssignedToId("");
   }
@@ -2701,6 +2701,7 @@ export function DayActionCalendarClient({
         dateIso={selectedDay?.date ?? null}
         members={members}
         canPinBoard={role === Role.OWNER || role === Role.MANAGER}
+        canChooseAudience={role === Role.OWNER || role === Role.MANAGER}
         isPending={isPending}
         onClose={closeModal}
         onSubmitTask={submitQuickTask}

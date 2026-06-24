@@ -45,3 +45,19 @@ export async function POST(req: Request) {
     pushTokenId: registered.id,
   });
 }
+
+export async function DELETE() {
+  const session = await getSession();
+
+  if (!session) {
+    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+  }
+
+  await prisma.pushToken.deleteMany({
+    where: {
+      userId: session.user.id,
+    },
+  });
+
+  return Response.json({ ok: true });
+}

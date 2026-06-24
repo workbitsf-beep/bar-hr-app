@@ -115,8 +115,7 @@ export default async function DashboardTasksPage({
             },
           },
         }),
-    canManage
-      ? prisma.employeeBar.findMany({
+    prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
             isActive: true,
@@ -134,8 +133,7 @@ export default async function DashboardTasksPage({
             },
             role: true,
           },
-        })
-      : Promise.resolve([]),
+        }),
   ]);
 
   return (
@@ -153,21 +151,24 @@ export default async function DashboardTasksPage({
                 </PrimaryButton>
               </form>
             ) : null}
-            {canManage ? (
-              <PopupAction title="Crea nuova nota" ariaLabel="Aggiungi nota">
-                <TaskComposeForm
-                  action={createTaskAction}
-                  members={members.map((member) => ({
+            <PopupAction title="Crea nuova nota" ariaLabel="Aggiungi nota">
+              <TaskComposeForm
+                action={createTaskAction}
+                members={members
+                  .map((member) => ({
                     id: member.user.id,
                     firstName: member.user.firstName,
                     lastName: member.user.lastName,
-                  })).filter((member) =>
-                    members.some((source) => source.user.id === member.id && source.role !== Role.OWNER)
+                  }))
+                  .filter((member) =>
+                    canManage
+                      ? members.some((source) => source.user.id === member.id && source.role !== Role.OWNER)
+                      : member.id === session.user.id
                   )}
-                  notifySuccess
-                />
-              </PopupAction>
-            ) : null}
+                canChooseAudience={canManage}
+                notifySuccess
+              />
+            </PopupAction>
           </div>
         }
       >

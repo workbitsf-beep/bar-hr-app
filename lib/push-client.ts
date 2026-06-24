@@ -28,6 +28,28 @@ type PushConfigResponse = {
 };
 
 let registrationPromise: Promise<PushRegistrationResult> | null = null;
+const PUSH_DISABLED_STORAGE_KEY = "workbit.push.disabled";
+
+export function isWorkbitPushDisabled() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(PUSH_DISABLED_STORAGE_KEY) === "1";
+}
+
+function setWorkbitPushDisabled(disabled: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (disabled) {
+    window.localStorage.setItem(PUSH_DISABLED_STORAGE_KEY, "1");
+    return;
+  }
+
+  window.localStorage.removeItem(PUSH_DISABLED_STORAGE_KEY);
+}
 
 async function loadPushConfig() {
   const response = await fetch("/api/push/config", {
@@ -66,6 +88,8 @@ function getBrowserPlatform() {
 }
 
 async function registerToken(token: string) {
+  setWorkbitPushDisabled(false);
+
   const response = await fetch("/api/push/register-token", {
     method: "POST",
     headers: {
@@ -81,6 +105,31 @@ async function registerToken(token: string) {
   if (!response.ok) {
     throw new Error("Impossibile registrare il token push.");
   }
+}
+
+export async function disableWorkbitPushRegistration(): Promise<PushRegistrationResult> {
+  setWorkbitPushDisabled(true);
+
+  const response = await fetch("/api/push/register-token", {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      enabled: false,
+      registered: false,
+      message: "Impossibile disattivare le notifiche push.",
+    };
+  }
+
+  return {
+    ok: true,
+    enabled: false,
+    registered: false,
+    message: "Notifiche push disattivate su questo dispositivo.",
+  };
 }
 
 export async function ensureWorkbitPushRegistration(options?: {
@@ -100,6 +149,15 @@ export async function ensureWorkbitPushRegistration(options?: {
   }
 
   registrationPromise = (async () => {
+    if (isWorkbitPushDisabled()) {
+      return {
+        ok: true,
+        enabled: false,
+        registered: false,
+        message: "Notifiche push disattivate su questo dispositivo.",
+      };
+    }
+
     if (!("serviceWorker" in navigator) || !("Notification" in window)) {
       return {
         ok: false,

@@ -1719,7 +1719,6 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
 
 export async function createTaskAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -1727,7 +1726,16 @@ export async function createTaskAction(formData: FormData) {
 
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = parseTaskDueDate(String(formData.get("dueDate") ?? ""));
-  const taskDrafts = parseTaskDrafts(formData);
+  const canManage = canManageOperations(role);
+  const taskDrafts = parseTaskDrafts(formData).map((taskDraft) =>
+    canManage
+      ? taskDraft
+      : {
+          ...taskDraft,
+          assignedToAll: false,
+          assignedToId: session.user.id,
+        }
+  );
 
   if (taskDrafts.length === 0) {
     throw new Error("Missing title");
@@ -2355,7 +2363,18 @@ export async function updateBoardNoteAction(formData: FormData) {
   }
 
   const noteId = String(formData.get("noteId") ?? "").trim();
-  const noteEntries = parseBoardDrafts(formData, canManageOperations(role));
+  const canManage = canManageOperations(role);
+  const noteEntries = parseBoardDrafts(formData, canManage).map((entry) =>
+    canManage
+      ? entry
+      : {
+          ...entry,
+          assignedToAll: false,
+          assignedToId: session.user.id,
+          isPinned: false,
+          requiresConfirmation: false,
+        }
+  );
   const noteEntry = noteEntries[0];
 
   if (!noteId) {

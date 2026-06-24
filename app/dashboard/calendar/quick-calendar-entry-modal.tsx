@@ -42,6 +42,7 @@ export function QuickCalendarEntryModal({
   dateIso,
   members,
   canPinBoard,
+  canChooseAudience = true,
   isPending,
   onClose,
   onSubmitTask,
@@ -52,6 +53,7 @@ export function QuickCalendarEntryModal({
   dateIso: string | null;
   members: MemberOption[];
   canPinBoard: boolean;
+  canChooseAudience?: boolean;
   isPending: boolean;
   onClose: () => void;
   onSubmitTask: (formData: FormData) => void;
@@ -285,15 +287,31 @@ export function QuickCalendarEntryModal({
               />
 
               <div style={{ display: "grid", gap: 10 }}>
-                <AudienceSelector
-                  members={members.map((member) => ({
-                    id: member.id,
-                    label: `${member.firstName} ${member.lastName}`,
-                  }))}
-                  assignedToAll={entry.assignedToAll}
-                  assignedToId={entry.assignedToId}
-                  onChange={(value) => setTaskDraft({ ...entry, ...value })}
-                />
+                {canChooseAudience ? (
+                  <AudienceSelector
+                    members={members.map((member) => ({
+                      id: member.id,
+                      label: `${member.firstName} ${member.lastName}`,
+                    }))}
+                    assignedToAll={entry.assignedToAll}
+                    assignedToId={entry.assignedToId}
+                    onChange={(value) => setTaskDraft({ ...entry, ...value })}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 18,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#475569",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Nota personale
+                  </div>
+                )}
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
                     type="checkbox"
@@ -479,15 +497,31 @@ export function QuickCalendarEntryModal({
                 style={{ minHeight: 96 }}
               />
 
-              <AudienceSelector
-                members={members.map((member) => ({
-                  id: member.id,
-                  label: `${member.firstName} ${member.lastName}`,
-                }))}
-                assignedToAll={entry.assignedToAll}
-                assignedToId={entry.assignedToId}
-                onChange={(value) => setBoardDraft({ ...entry, ...value })}
-              />
+              {canChooseAudience ? (
+                <AudienceSelector
+                  members={members.map((member) => ({
+                    id: member.id,
+                    label: `${member.firstName} ${member.lastName}`,
+                  }))}
+                  assignedToAll={entry.assignedToAll}
+                  assignedToId={entry.assignedToId}
+                  onChange={(value) => setBoardDraft({ ...entry, ...value })}
+                />
+              ) : (
+                <div
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 18,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    color: "#475569",
+                    fontSize: 13,
+                    fontWeight: 800,
+                  }}
+                >
+                  Nota personale
+                </div>
+              )}
 
               {canPinBoard ? (
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>

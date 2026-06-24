@@ -31,23 +31,6 @@ function formatInterval(interval: BillingInterval | null) {
   return "Non impostato";
 }
 
-function formatStatus(status: SubscriptionStatus) {
-  switch (status) {
-    case SubscriptionStatus.ACTIVE:
-      return "Attivo";
-    case SubscriptionStatus.TRIALING:
-      return "In prova";
-    case SubscriptionStatus.PAST_DUE:
-      return "Pagamento fallito";
-    case SubscriptionStatus.CANCELED:
-      return "Cancellato";
-    case SubscriptionStatus.UNPAID:
-      return "Non pagato";
-    default:
-      return "Inattivo";
-  }
-}
-
 function formatNullableDate(value: Date | null) {
   if (!value) {
     return "Non disponibile";
@@ -56,6 +39,80 @@ function formatNullableDate(value: Date | null) {
   return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
   }).format(value);
+}
+
+function isDateWithinDays(value: Date | null, days: number) {
+  if (!value) {
+    return false;
+  }
+
+  const diffMs = value.getTime() - Date.now();
+  return diffMs >= 0 && diffMs <= days * 24 * 60 * 60 * 1000;
+}
+
+function getBillingDisplay(status: BillingStatusResult) {
+  const isManagedOutsideStripe =
+    status.planType === PlanType.FREE || status.planType === PlanType.LIFETIME;
+  const relevantEndDate =
+    status.planType === PlanType.TRIAL ? status.trialEndsAt : status.currentPeriodEnd;
+  const isExpiringSoon = isDateWithinDays(relevantEndDate, 7);
+
+  if (
+    isManagedOutsideStripe ||
+    (status.canAccess &&
+      !status.requiresActivation &&
+      status.status !== SubscriptionStatus.PAST_DUE &&
+      status.status !== SubscriptionStatus.UNPAID &&
+      !status.isInGracePeriod &&
+      !isExpiringSoon)
+  ) {
+    return {
+      label: "Attivo",
+      tone: "success" as const,
+      message: isManagedOutsideStripe ? "Piano attivo gestito manualmente." : "Abbonamento attivo.",
+      messageColor: "#166534",
+    };
+  }
+
+  if (
+    status.canAccess &&
+    !status.requiresActivation &&
+    (status.isInGracePeriod ||
+      isExpiringSoon ||
+      status.status === SubscriptionStatus.PAST_DUE ||
+      status.status === SubscriptionStatus.UNPAID)
+  ) {
+    return {
+      label: "In scadenza",
+      tone: "warning" as const,
+      message: status.isInGracePeriod
+        ? `Periodo di tolleranza attivo fino al ${formatNullableDate(status.gracePeriodEndsAt)}.`
+        : `Abbonamento in scadenza il ${formatNullableDate(relevantEndDate)}.`,
+      messageColor: "#92400e",
+    };
+  }
+
+  if (
+    status.status === SubscriptionStatus.PAST_DUE ||
+    status.status === SubscriptionStatus.UNPAID ||
+    (relevantEndDate && relevantEndDate.getTime() < Date.now())
+  ) {
+    return {
+      label: "Scaduto",
+      tone: "danger" as const,
+      message: "Abbonamento scaduto. Rinnova per riattivare il servizio.",
+      messageColor: "#991b1b",
+    };
+  }
+
+  return {
+    label: "Disattivato",
+    tone: "neutral" as const,
+    message: status.requiresActivation
+      ? "Inserisci un metodo di pagamento per attivare il servizio."
+      : "Abbonamento disattivato.",
+    messageColor: status.requiresActivation ? "#92400e" : "#475569",
+  };
 }
 
 export function BillingSettingsPanel({
@@ -88,14 +145,15 @@ export function BillingSettingsPanel({
       Boolean(status.stripeSubscriptionId) ||
       Boolean(status.stripeCustomerId) ||
       Boolean(status.currentPeriodEnd));
+  const billingDisplay = getBillingDisplay(status);
 
   return (
     <Panel
       title="Abbonamento"
       action={
         <StatusPill
-          label={formatStatus(status.status)}
-          tone={status.canAccess && !status.requiresActivation ? "success" : "danger"}
+          label={billingDisplay.label}
+          tone={billingDisplay.tone}
         />
       }
     >
@@ -114,28 +172,7 @@ export function BillingSettingsPanel({
           Fine trial: {formatNullableDate(status.trialEndsAt)}
         </div>
 
-        {isManagedOutsideStripe ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>Piano gestito manualmente.</div>
-        ) : requiresTrialCardSetup ? (
-          <div style={{ color: "#92400e", lineHeight: 1.7 }}>Serve una carta per avviare la prova.</div>
-        ) : isTrialReady ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>Prova attiva.</div>
-        ) : isPaidActive ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>Abbonamento attivo.</div>
-        ) : status.status === SubscriptionStatus.CANCELED ? (
-          <div style={{ color: "#991b1b", lineHeight: 1.7 }}>Abbonamento disattivato.</div>
-        ) : status.status === SubscriptionStatus.PAST_DUE ||
-          status.status === SubscriptionStatus.UNPAID ? (
-          <div style={{ color: "#991b1b", lineHeight: 1.7 }}>Pagamento non valido.</div>
-        ) : (
-          <div style={{ color: "#475569", lineHeight: 1.7 }}>Piano non attivo.</div>
-        )}
-
-        {status.isInGracePeriod ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>
-            Tolleranza attiva fino al {formatNullableDate(status.gracePeriodEndsAt)}.
-          </div>
-        ) : null}
+        <div style={{ color: billingDisplay.messageColor, lineHeight: 1.7 }}>{billingDisplay.message}</div>
 
         {status.monthlyDiscountPercent > 0 ? (
           <div style={{ color: "#166534", lineHeight: 1.7 }}>

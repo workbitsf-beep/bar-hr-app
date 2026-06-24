@@ -714,18 +714,18 @@ export function OwnerCalendarClient({
     setShiftDrafts([]);
     setCurrentShiftDraft(createShiftDraft(day.date));
     setRequestType(RequestType.VACATION);
-    setRequestStart(toDateTimeLocal(day.date, 9, 0));
-    setRequestEnd(toDateTimeLocal(day.date, 18, 0));
+    setRequestStart(`${day.date.slice(0, 10)}T`);
+    setRequestEnd(`${day.date.slice(0, 10)}T`);
     setRequestReason("");
     setCertificateCode("");
-    setAvailabilityStart(toDateTimeLocal(day.date, 9, 0));
-    setAvailabilityEnd(toDateTimeLocal(day.date, 18, 0));
+    setAvailabilityStart(`${day.date.slice(0, 10)}T`);
+    setAvailabilityEnd(`${day.date.slice(0, 10)}T`);
     setAvailabilityReason("");
     setCourseTitle("");
     setCourseDescription("");
     setCourseLocation("");
-    setCourseStart(toDateTimeLocal(day.date, 9, 0));
-    setCourseEnd(toDateTimeLocal(day.date, 13, 0));
+    setCourseStart(`${day.date.slice(0, 10)}T`);
+    setCourseEnd(`${day.date.slice(0, 10)}T`);
     setCourseAssignedToAll(true);
     setCourseAssignedToId("");
   }

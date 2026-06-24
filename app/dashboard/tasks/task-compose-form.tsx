@@ -23,10 +23,12 @@ function createEmptyEntry() {
 export function TaskComposeForm({
   action,
   members,
+  canChooseAudience = true,
   notifySuccess = false,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   members: MemberOption[];
+  canChooseAudience?: boolean;
   notifySuccess?: boolean;
 }) {
   const [entries, setEntries] = useState<ReturnType<typeof createEmptyEntry>[]>([]);
@@ -163,15 +165,31 @@ export function TaskComposeForm({
                 gap: 10,
               }}
             >
-              <AudienceSelector
-                members={members.map((member) => ({
-                  id: member.id,
-                  label: `${member.firstName} ${member.lastName}`,
-                }))}
-                assignedToAll={draft.assignedToAll}
-                assignedToId={draft.assignedToId}
-                onChange={(value) => setDraft({ ...draft, ...value })}
-              />
+              {canChooseAudience ? (
+                <AudienceSelector
+                  members={members.map((member) => ({
+                    id: member.id,
+                    label: `${member.firstName} ${member.lastName}`,
+                  }))}
+                  assignedToAll={draft.assignedToAll}
+                  assignedToId={draft.assignedToId}
+                  onChange={(value) => setDraft({ ...draft, ...value })}
+                />
+              ) : (
+                <div
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 18,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    color: "#475569",
+                    fontSize: 13,
+                    fontWeight: 800,
+                  }}
+                >
+                  Nota personale
+                </div>
+              )}
 
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <input

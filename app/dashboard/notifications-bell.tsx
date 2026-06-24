@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ensureWorkbitPushRegistration } from "@/lib/push-client";
+import {
+  disableWorkbitPushRegistration,
+  ensureWorkbitPushRegistration,
+  isWorkbitPushDisabled,
+} from "@/lib/push-client";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 type NotificationItem = {
@@ -66,12 +70,14 @@ export function NotificationsBell() {
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushMessage, setPushMessage] = useState<string | null>(null);
+  const [pushDisabled, setPushDisabled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    setPushDisabled(isWorkbitPushDisabled());
   }, []);
 
   useEffect(() => {
@@ -209,6 +215,7 @@ export function NotificationsBell() {
     try {
       const result = await ensureWorkbitPushRegistration({ requestPermission: true });
       setPushMessage(result.message);
+      setPushDisabled(isWorkbitPushDisabled());
 
       if (result.ok && result.registered) {
         await loadNotifications();
@@ -218,8 +225,26 @@ export function NotificationsBell() {
     }
   }
 
+  async function handleDisablePush() {
+    setPushLoading(true);
+    setPushMessage(null);
+
+    try {
+      const result = await disableWorkbitPushRegistration();
+      setPushMessage(result.message);
+      setPushDisabled(true);
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
   const canEnablePush =
-    typeof Notification !== "undefined" && Notification.permission !== "granted";
+    typeof Notification !== "undefined" &&
+    (Notification.permission !== "granted" || pushDisabled);
+  const canDisablePush =
+    typeof Notification !== "undefined" &&
+    Notification.permission === "granted" &&
+    !pushDisabled;
 
   return (
     <>
@@ -399,6 +424,26 @@ export function NotificationsBell() {
                       }}
                     >
                       {pushLoading ? "Attivazione..." : "Attiva notifiche push"}
+                    </button>
+                  ) : null}
+
+                  {canDisablePush ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleDisablePush()}
+                      disabled={pushLoading}
+                      style={{
+                        border: "1px solid #fee2e2",
+                        background: "#fff7f7",
+                        color: "#991b1b",
+                        padding: "10px 14px",
+                        borderRadius: 999,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: pushLoading ? "default" : "pointer",
+                      }}
+                    >
+                      {pushLoading ? "Disattivazione..." : "Disattiva push"}
                     </button>
                   ) : null}
 
