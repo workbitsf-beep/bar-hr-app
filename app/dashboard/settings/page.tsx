@@ -194,6 +194,10 @@ function SettingsSectionCard({
   action: ReactNode;
   tone?: "default" | "danger";
 }) {
+  if (title === "Team e ruoli" || title === "Notifiche") {
+    return null;
+  }
+
   return (
     <section
       style={{

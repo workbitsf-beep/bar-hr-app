@@ -9,7 +9,6 @@ import { Fragment } from "react";
 import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
-import { DateTimeInput } from "@/app/components/date-time-input";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
 import {
   createCalendarClosureAction,
@@ -40,6 +39,7 @@ import {
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { ClosureComposeForm } from "./closure-compose-form";
+import { RequestDateFields } from "./request-date-fields";
 
 function closureTypeLabel(type: CalendarClosureType) {
   if (type === CalendarClosureType.HOLIDAY) {
@@ -326,30 +326,7 @@ export default async function DashboardRequestsPage({
               action={
                 <PopupAction title="Nuova richiesta" ariaLabel="Aggiungi richiesta">
                   <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
-                    <div
-                      className="dashboard-inline-grid"
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      <FormField label="Tipo">
-                        <Select name="type" defaultValue="VACATION">
-                          <option value="VACATION">Ferie</option>
-                          <option value="PERMISSION">Permesso</option>
-                          <option value="SICKNESS">Malattia</option>
-                        </Select>
-                      </FormField>
-
-                      <FormField label="Da">
-                        <DateTimeInput name="startsAt" required />
-                      </FormField>
-
-                      <FormField label="A">
-                        <DateTimeInput name="endsAt" required />
-                      </FormField>
-                    </div>
+                    <RequestDateFields />
 
                     <FormField label="Motivo">
                       <TextArea

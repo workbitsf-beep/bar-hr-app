@@ -3536,6 +3536,10 @@ export async function createTimeOffRequestAction(formData: FormData) {
     ensureSameLocalDay(startsAt, endsAt, "Lo straordinario deve essere nella stessa giornata");
   }
 
+  if (type === RequestType.PERMISSION) {
+    ensureSameLocalDay(startsAt, endsAt, "Il permesso deve essere nella stessa giornata");
+  }
+
   if (type === RequestType.SICKNESS && !certificateCode) {
     throw new Error("Missing certificate code");
   }
