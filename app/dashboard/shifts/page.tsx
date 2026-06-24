@@ -16,6 +16,17 @@ import { PopupAction } from "../popup-action";
 import { PlannedShiftsList } from "./planned-shifts-list";
 import { ShiftCreateForm } from "./shift-create-form";
 
+type ShiftPageSettings = {
+  morningStartTime?: string | null;
+  morningEndTime?: string | null;
+  afternoonStartTime?: string | null;
+  afternoonEndTime?: string | null;
+  eveningStartTime?: string | null;
+  eveningEndTime?: string | null;
+  standardShiftPresets?: unknown;
+  companyShiftsEnabled?: boolean | null;
+};
+
 function getLocale(language: string) {
   if (language === "en") {
     return "en-US";
@@ -30,6 +41,86 @@ function getLocale(language: string) {
   }
 
   return "it-IT";
+}
+
+function isMissingColumnError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2022"
+  );
+}
+
+async function getShiftPageSettings(barId: string, canManage: boolean) {
+  if (!canManage) {
+    return null;
+  }
+
+  try {
+    return await prisma.barSettings.findUnique({
+      where: {
+        barId,
+      },
+      select: {
+        morningStartTime: true,
+        morningEndTime: true,
+        afternoonStartTime: true,
+        afternoonEndTime: true,
+        eveningStartTime: true,
+        eveningEndTime: true,
+        standardShiftPresets: true,
+        companyShiftsEnabled: true,
+      },
+    });
+  } catch (error) {
+    if (!isMissingColumnError(error)) {
+      throw error;
+    }
+  }
+
+  const expectedColumns = [
+    "morningStartTime",
+    "morningEndTime",
+    "afternoonStartTime",
+    "afternoonEndTime",
+    "eveningStartTime",
+    "eveningEndTime",
+    "standardShiftPresets",
+    "companyShiftsEnabled",
+  ];
+  const availableColumns = await prisma.$queryRaw<Array<{ column_name: string }>>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'BarSettings'
+      AND column_name IN (
+        'morningStartTime',
+        'morningEndTime',
+        'afternoonStartTime',
+        'afternoonEndTime',
+        'eveningStartTime',
+        'eveningEndTime',
+        'standardShiftPresets',
+        'companyShiftsEnabled'
+      )
+  `;
+  const columnSet = new Set(availableColumns.map((column) => column.column_name));
+  const selectedColumns = expectedColumns.filter((column) => columnSet.has(column));
+
+  if (selectedColumns.length === 0) {
+    return null;
+  }
+
+  const quotedColumns = selectedColumns.map((column) => `"${column}"`).join(", ");
+  const rows = await prisma.$queryRawUnsafe<ShiftPageSettings[]>(
+    `SELECT ${quotedColumns} FROM "BarSettings" WHERE "barId" = $1 LIMIT 1`,
+    barId
+  );
+
+  const row = rows[0];
+
+  return row ? { ...row, companyShiftsEnabled: row.companyShiftsEnabled ?? true } : null;
 }
 
 export default async function DashboardShiftsPage() {
@@ -171,23 +262,7 @@ export default async function DashboardShiftsPage() {
         },
       },
     }),
-    canManage
-      ? prisma.barSettings.findUnique({
-          where: {
-            barId: activeBarId,
-          },
-          select: {
-            morningStartTime: true,
-            morningEndTime: true,
-            afternoonStartTime: true,
-            afternoonEndTime: true,
-            eveningStartTime: true,
-            eveningEndTime: true,
-            standardShiftPresets: true,
-            companyShiftsEnabled: true,
-          },
-        })
-      : Promise.resolve(null),
+    getShiftPageSettings(activeBarId, canManage),
   ]);
   const shiftPresets = buildShiftPresets(settings);
   const shiftsEnabled = !isCompany || Boolean(settings?.companyShiftsEnabled);
