@@ -451,7 +451,7 @@ export function ClockActionsPanel({
               flex: "0 0 auto",
             }}
           >
-            {locating ? "..." : "↻"}
+            {locating ? "…" : "🔄"}
           </PrimaryButton>
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div style={{ flex: "1 1 100%", fontSize: 13, color: "#64748b" }}>
@@ -475,9 +475,7 @@ export function ClockActionsPanel({
             title={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
             style={{ flex: 1, minWidth: 0, color: "#ffffff" }}
           >
-            <span className="dashboard-clock-emoji" aria-hidden="true">
-              🚶‍♂️
-            </span>
+            {submitting === "in" ? "Registro..." : "Entra"}
           </PrimaryButton>
           <PrimaryButton
             className="dashboard-clock-button"
@@ -489,9 +487,7 @@ export function ClockActionsPanel({
             title={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
             style={{ flex: 1, minWidth: 0, color: "#ffffff" }}
           >
-            <span className="dashboard-clock-emoji" aria-hidden="true">
-              🏃‍♂️
-            </span>
+            {submitting === "out" ? "Registro..." : "Esci"}
           </PrimaryButton>
         </div>
         </div>

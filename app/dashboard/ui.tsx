@@ -432,30 +432,15 @@ function DashboardResponsiveStyles() {
 
       .dashboard-clock-button {
         min-height: 74px !important;
-        padding: 0 !important;
+        padding: 0 18px !important;
         border-radius: 26px !important;
-        font-size: 0 !important;
+        font-size: 18px !important;
+        font-weight: 850 !important;
+        letter-spacing: -0.02em !important;
         box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12) !important;
-      }
-
-      .dashboard-clock-button {
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-      }
-
-      .dashboard-clock-emoji {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 52px;
-        height: 52px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.22);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 8px 18px rgba(15, 23, 42, 0.12);
-        font-size: 28px;
-        line-height: 1;
-        filter: saturate(1.08);
       }
 
       .dashboard-button:active,
