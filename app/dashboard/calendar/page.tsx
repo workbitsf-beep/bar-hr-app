@@ -135,6 +135,32 @@ function isMissingColumnError(error: unknown) {
   );
 }
 
+function isRecoverableSchemaError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    ["P2021", "P2022"].includes(String((error as { code?: string }).code))
+  );
+}
+
+async function safeCalendarQuery<T>(label: string, query: () => Promise<T>, fallback: T) {
+  try {
+    return await query();
+  } catch (error) {
+    if (!isRecoverableSchemaError(error)) {
+      throw error;
+    }
+
+    console.error(`[calendar] ${label} skipped due to schema mismatch`, {
+      code: (error as { code?: string }).code,
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    return fallback;
+  }
+}
+
 async function getCalendarPageSettings(barId: string) {
   try {
     return await prisma.barSettings.findUnique({
@@ -283,6 +309,90 @@ export default async function DashboardCalendarPage({
   const canReviewCompanyRequests =
     features.requests && !isRestaurant && canReviewOperationalRequests(role as Role);
 
+  const loadShifts = async () => {
+    if (!features.shifts) {
+      return [];
+    }
+
+    try {
+      return await prisma.shift.findMany({
+        where: {
+          barId: activeBarId,
+          startTime: { lte: calendarEnd },
+          endTime: { gte: calendarStart },
+        },
+        orderBy: { startTime: "asc" },
+        select: {
+          id: true,
+          title: true,
+          startTime: true,
+          endTime: true,
+          confirmedAt: true,
+          isOnCall: true,
+          assignments: {
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  role: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    } catch (error) {
+      if (!isRecoverableSchemaError(error)) {
+        throw error;
+      }
+
+      console.error("[calendar] shifts retried without optional fields", {
+        code: (error as { code?: string }).code,
+        message: error instanceof Error ? error.message : String(error),
+      });
+
+      return (
+        await safeCalendarQuery(
+          "shifts fallback",
+          () =>
+            prisma.shift.findMany({
+              where: {
+                barId: activeBarId,
+                startTime: { lte: calendarEnd },
+                endTime: { gte: calendarStart },
+              },
+              orderBy: { startTime: "asc" },
+              select: {
+                id: true,
+                title: true,
+                startTime: true,
+                endTime: true,
+                confirmedAt: true,
+                assignments: {
+                  select: {
+                    user: {
+                      select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        role: true,
+                      },
+                    },
+                  },
+                },
+              },
+            }),
+          []
+        )
+      ).map((shift) => ({
+        ...shift,
+        isOnCall: false,
+      }));
+    }
+  };
+
   const [
     settings,
     shifts,
@@ -297,255 +407,266 @@ export default async function DashboardCalendarPage({
   ] =
     await Promise.all([
       getCalendarPageSettings(activeBarId),
-      features.shifts
-        ? prisma.shift.findMany({
-            where: {
-              barId: activeBarId,
-              startTime: { lte: calendarEnd },
-              endTime: { gte: calendarStart },
-            },
-            orderBy: { startTime: "asc" },
-            select: {
-              id: true,
-              title: true,
-              startTime: true,
-              endTime: true,
-              confirmedAt: true,
-              isOnCall: true,
-              assignments: {
+      loadShifts(),
+      features.availability
+        ? safeCalendarQuery(
+            "availability",
+            () =>
+              prisma.availability.findMany({
+                where: {
+                  barId: activeBarId,
+                  startsAt: { lte: calendarEnd },
+                  endsAt: { gte: calendarStart },
+                  ...(role === Role.EMPLOYEE ? { userId: session.user.id } : {}),
+                },
                 select: {
+                  id: true,
+                  userId: true,
+                  startsAt: true,
+                  endsAt: true,
                   user: {
                     select: {
-                      id: true,
                       firstName: true,
                       lastName: true,
-                      role: true,
                     },
                   },
                 },
-              },
-            },
-          })
-        : Promise.resolve([]),
-      features.availability
-        ? prisma.availability.findMany({
-            where: {
-              barId: activeBarId,
-              startsAt: { lte: calendarEnd },
-              endsAt: { gte: calendarStart },
-              ...(role === Role.EMPLOYEE ? { userId: session.user.id } : {}),
-            },
-            select: {
-              id: true,
-              userId: true,
-              startsAt: true,
-              endsAt: true,
-              user: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                },
-              },
-            },
-            orderBy: { startsAt: "asc" },
-          })
+                orderBy: { startsAt: "asc" },
+              }),
+            []
+          )
         : Promise.resolve([]),
       features.requests
-        ? prisma.request.findMany({
-            where: {
-              barId: activeBarId,
-              type: {
-                in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
-              },
-              status: RequestStatus.APPROVED,
-              startsAt: { lte: calendarEnd },
-              endsAt: { gte: calendarStart },
-              ...(role === Role.EMPLOYEE ? { employeeId: session.user.id } : {}),
-            },
-            select: {
-              id: true,
-              type: true,
-              employeeId: true,
-              startsAt: true,
-              endsAt: true,
-              reviewedBy: {
-                select: {
-                  firstName: true,
-                  lastName: true,
+        ? safeCalendarQuery(
+            "approved requests",
+            () =>
+              prisma.request.findMany({
+                where: {
+                  barId: activeBarId,
+                  type: {
+                    in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+                  },
+                  status: RequestStatus.APPROVED,
+                  startsAt: { lte: calendarEnd },
+                  endsAt: { gte: calendarStart },
+                  ...(role === Role.EMPLOYEE ? { employeeId: session.user.id } : {}),
                 },
-              },
-              employee: {
                 select: {
-                  firstName: true,
-                  lastName: true,
+                  id: true,
+                  type: true,
+                  employeeId: true,
+                  startsAt: true,
+                  endsAt: true,
+                  reviewedBy: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                  employee: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
                 },
-              },
-            },
-            orderBy: { startsAt: "asc" },
-          })
+                orderBy: { startsAt: "asc" },
+              }),
+            []
+          )
         : Promise.resolve([]),
       canReviewCompanyRequests
-        ? prisma.request.findMany({
-            where: {
-              barId: activeBarId,
-              type: {
-                in: [
-                  RequestType.VACATION,
-                  RequestType.PERMISSION,
-                  RequestType.SICKNESS,
-                  ...(features.overtime ? [RequestType.OVERTIME] : []),
-                ],
-              },
-              status: RequestStatus.PENDING,
-              startsAt: { lte: calendarEnd },
-              endsAt: { gte: calendarStart },
-            },
-            select: {
-              id: true,
-              type: true,
-              startsAt: true,
-              endsAt: true,
-              reason: true,
-              certificateCode: true,
-              employee: {
-                select: {
-                  firstName: true,
-                  lastName: true,
+        ? safeCalendarQuery(
+            "pending requests",
+            () =>
+              prisma.request.findMany({
+                where: {
+                  barId: activeBarId,
+                  type: {
+                    in: [
+                      RequestType.VACATION,
+                      RequestType.PERMISSION,
+                      RequestType.SICKNESS,
+                      ...(features.overtime ? [RequestType.OVERTIME] : []),
+                    ],
+                  },
+                  status: RequestStatus.PENDING,
+                  startsAt: { lte: calendarEnd },
+                  endsAt: { gte: calendarStart },
                 },
-              },
-            },
-            orderBy: { startsAt: "asc" },
-          })
+                select: {
+                  id: true,
+                  type: true,
+                  startsAt: true,
+                  endsAt: true,
+                  reason: true,
+                  certificateCode: true,
+                  employee: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                },
+                orderBy: { startsAt: "asc" },
+              }),
+            []
+          )
         : Promise.resolve([]),
       features.courses
-        ? prisma.course.findMany({
-            where: {
-              barId: activeBarId,
-              startsAt: { lte: calendarEnd },
-              endsAt: { gte: calendarStart },
-              ...(role === Role.OWNER || role === Role.MANAGER
-                ? {}
-                : {
-                    OR: [{ assignedToAll: true }, { assignedToId: session.user.id }],
-                  }),
-            },
-            select: {
-              id: true,
-              title: true,
-              startsAt: true,
-              endsAt: true,
-              location: true,
-              assignedToAll: true,
-              assignedTo: {
-                select: {
-                  firstName: true,
-                  lastName: true,
+        ? safeCalendarQuery(
+            "courses",
+            () =>
+              prisma.course.findMany({
+                where: {
+                  barId: activeBarId,
+                  startsAt: { lte: calendarEnd },
+                  endsAt: { gte: calendarStart },
+                  ...(role === Role.OWNER || role === Role.MANAGER
+                    ? {}
+                    : {
+                        OR: [{ assignedToAll: true }, { assignedToId: session.user.id }],
+                      }),
                 },
-              },
-            },
-            orderBy: { startsAt: "asc" },
-          })
+                select: {
+                  id: true,
+                  title: true,
+                  startsAt: true,
+                  endsAt: true,
+                  location: true,
+                  assignedToAll: true,
+                  assignedTo: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                },
+                orderBy: { startsAt: "asc" },
+              }),
+            []
+          )
         : Promise.resolve([]),
       features.requests
-        ? prisma.calendarClosure.findMany({
-            where: {
-              barId: activeBarId,
-              startsAt: { lte: calendarEnd },
-              endsAt: { gte: calendarStart },
-            },
-            select: {
-              id: true,
-              title: true,
-              type: true,
-              startsAt: true,
-              endsAt: true,
-            },
-            orderBy: { startsAt: "asc" },
-          })
+        ? safeCalendarQuery(
+            "closures",
+            () =>
+              prisma.calendarClosure.findMany({
+                where: {
+                  barId: activeBarId,
+                  startsAt: { lte: calendarEnd },
+                  endsAt: { gte: calendarStart },
+                },
+                select: {
+                  id: true,
+                  title: true,
+                  type: true,
+                  startsAt: true,
+                  endsAt: true,
+                },
+                orderBy: { startsAt: "asc" },
+              }),
+            []
+          )
         : Promise.resolve([]),
-      prisma.employeeBar.findMany({
-        where: {
-          barId: activeBarId,
-          isActive: true,
-        },
-        orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-        select: {
-          role: true,
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-        },
-      }),
-      features.tasks
-        ? prisma.task.findMany({
+      safeCalendarQuery(
+        "members",
+        () =>
+          prisma.employeeBar.findMany({
             where: {
               barId: activeBarId,
-              dueDate: {
-                gte: calendarStart,
-                lte: calendarEnd,
-              },
-              ...(role === Role.EMPLOYEE
-                ? {
-                    OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
-                  }
-                : {}),
+              isActive: true,
             },
-            orderBy: [{ status: "asc" }, { isUrgent: "desc" }, { dueDate: "asc" }],
+            orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
             select: {
-              id: true,
-              title: true,
-              dueDate: true,
-              status: true,
-              isUrgent: true,
-              assignedToAll: true,
-              assignedTo: {
+              role: true,
+              user: {
                 select: {
-                  firstName: true,
-                  lastName: true,
-                },
-              },
-              completedBy: {
-                select: {
+                  id: true,
                   firstName: true,
                   lastName: true,
                 },
               },
             },
-          })
+          }),
+        []
+      ),
+      features.tasks
+        ? safeCalendarQuery(
+            "tasks",
+            () =>
+              prisma.task.findMany({
+                where: {
+                  barId: activeBarId,
+                  dueDate: {
+                    gte: calendarStart,
+                    lte: calendarEnd,
+                  },
+                  ...(role === Role.EMPLOYEE
+                    ? {
+                        OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
+                      }
+                    : {}),
+                },
+                orderBy: [{ status: "asc" }, { isUrgent: "desc" }, { dueDate: "asc" }],
+                select: {
+                  id: true,
+                  title: true,
+                  dueDate: true,
+                  status: true,
+                  isUrgent: true,
+                  assignedToAll: true,
+                  assignedTo: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                  completedBy: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                },
+              }),
+            []
+          )
         : Promise.resolve([]),
       features.noticeBoard
-        ? prisma.note.findMany({
-            where: {
-              barId: activeBarId,
-              createdAt: {
-                gte: calendarStart,
-                lte: calendarEnd,
-              },
-              ...(role === Role.EMPLOYEE
-                ? {
-                    OR: [{ employeeId: null }, { employeeId: session.user.id }],
-                  }
-                : {}),
-            },
-            orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-            select: {
-              id: true,
-              content: true,
-              isPinned: true,
-              createdAt: true,
-              employeeId: true,
-              author: {
-                select: {
-                  firstName: true,
-                  lastName: true,
+        ? safeCalendarQuery(
+            "notes",
+            () =>
+              prisma.note.findMany({
+                where: {
+                  barId: activeBarId,
+                  createdAt: {
+                    gte: calendarStart,
+                    lte: calendarEnd,
+                  },
+                  ...(role === Role.EMPLOYEE
+                    ? {
+                        OR: [{ employeeId: null }, { employeeId: session.user.id }],
+                      }
+                    : {}),
                 },
-              },
-            },
-          })
+                orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+                select: {
+                  id: true,
+                  content: true,
+                  isPinned: true,
+                  createdAt: true,
+                  employeeId: true,
+                  author: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                },
+              }),
+            []
+          )
         : Promise.resolve([]),
     ]);
 
