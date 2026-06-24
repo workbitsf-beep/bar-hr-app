@@ -692,8 +692,31 @@ function DashboardResponsiveStyles() {
           align-items: stretch !important;
         }
 
-        .dashboard-clock-actions > * {
-          width: 100%;
+      .dashboard-clock-actions > * {
+        width: 100%;
+      }
+
+        .calendar-publish-panel {
+          width: 100% !important;
+        }
+
+        .calendar-publish-actions {
+          display: grid !important;
+          grid-template-columns: minmax(76px, 0.8fr) minmax(132px, 1.2fr);
+          align-items: center !important;
+          gap: 8px !important;
+          width: 100% !important;
+        }
+
+        .calendar-publish-actions > * {
+          width: 100% !important;
+          min-width: 0 !important;
+        }
+
+        .calendar-publish-actions > span {
+          grid-column: 1 / -1;
+          text-align: center;
+          font-size: 12px !important;
         }
 
         .dashboard-list-button {

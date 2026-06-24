@@ -62,12 +62,12 @@ export function PublishWeekPanel({
   }
 
   return (
-    <div style={{ display: "grid", gap: 10, alignContent: "start" }}>
+    <div className="calendar-publish-panel" style={{ display: "grid", gap: 8, alignContent: "start" }}>
       <div
-        className="dashboard-publish-row"
+        className="calendar-publish-actions"
         style={{
           display: "flex",
-          gap: 10,
+          gap: 8,
           alignItems: "center",
           justifyContent: "flex-end",
           flexWrap: "wrap",
@@ -79,10 +79,11 @@ export function PublishWeekPanel({
           type="button"
           onClick={handlePublish}
           disabled={isPending || pendingCount === 0}
+          tone={pendingCount === 0 ? "sand" : "dark"}
           style={{
             minHeight: 44,
             borderRadius: 999,
-            paddingInline: 18,
+            paddingInline: 16,
             boxShadow: "0 10px 24px rgba(88, 28, 135, 0.10)",
             whiteSpace: "nowrap",
           }}
@@ -92,8 +93,8 @@ export function PublishWeekPanel({
 
         <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
           {pendingCount === 0
-            ? "Tutto confermato"
-            : `${pendingCount} turni nuovi o aggiornati`}
+            ? "✓ Tutto confermato"
+            : `${pendingCount} da confermare`}
         </span>
       </div>
 
