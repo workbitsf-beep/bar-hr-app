@@ -438,12 +438,24 @@ function DashboardResponsiveStyles() {
         box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12) !important;
       }
 
-      .dashboard-clock-button svg {
-        width: 42px;
-        height: 42px;
-        display: block;
-        color: #ffffff;
-        filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.22));
+      .dashboard-clock-button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      .dashboard-clock-emoji {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 8px 18px rgba(15, 23, 42, 0.12);
+        font-size: 28px;
+        line-height: 1;
+        filter: saturate(1.08);
       }
 
       .dashboard-button:active,
