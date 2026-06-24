@@ -337,8 +337,6 @@ export function KpiDashboard({
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   const maxWeekShifts = Math.max(1, ...data.charts.shiftsCurrentWeek.map((entry) => entry.count));
-  const maxTaskTotal = Math.max(1, ...data.charts.tasksLast7Days.map((entry) => entry.total));
-  const maxRequests = Math.max(1, ...data.charts.requestsCurrentMonth.map((entry) => entry.count));
   const teamSignal =
     data.requests.totalPending > 0
       ? "Richieste da controllare"
@@ -362,176 +360,140 @@ export function KpiDashboard({
         {teamStats.length === 0 ? (
           <EmptyState message="Attiva le funzioni che vuoi monitorare dalle impostazioni." />
         ) : (
-          <div style={{ display: "grid", gap: 16 }}>
+          <div
+            style={{
+              display: "grid",
+              gap: 14,
+              padding: 18,
+              borderRadius: 28,
+              background:
+                "linear-gradient(135deg, rgba(245,243,255,0.98) 0%, rgba(255,255,255,0.98) 100%)",
+              border: "1px solid rgba(124, 58, 237, 0.14)",
+              boxShadow: "0 18px 38px rgba(88, 28, 135, 0.07)",
+              minWidth: 0,
+            }}
+          >
             <div
-              className="dashboard-kpi-team-grid"
               style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 0.75fr)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
                 gap: 14,
-                alignItems: "stretch",
+                flexWrap: "wrap",
               }}
             >
-              <div
-                style={{
-                  padding: 20,
-                  borderRadius: 28,
-                  background:
-                    "linear-gradient(135deg, rgba(245,243,255,0.98) 0%, rgba(255,255,255,0.98) 100%)",
-                  border: "1px solid rgba(124, 58, 237, 0.14)",
-                  boxShadow: "0 18px 38px rgba(88, 28, 135, 0.07)",
-                  display: "grid",
-                  gap: 16,
-                  minWidth: 0,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 22,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "linear-gradient(135deg, #ede9fe, #ffffff)",
-                      color: "#5b21b6",
-                      fontSize: 25,
-                    }}
-                  >
-                    {"\uD83D\uDC65"}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: "#64748b", fontWeight: 760, fontSize: 13 }}>
-                      Stato operativo
-                    </div>
-                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 850, lineHeight: 1.1 }}>
-                      {teamSignal}
-                    </div>
-                  </div>
-                </div>
-
+              <div style={{ display: "flex", alignItems: "center", gap: 13, minWidth: 0 }}>
                 <div
-                  className="dashboard-kpi-team-stats"
+                  aria-hidden="true"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                    gap: 10,
+                    width: 54,
+                    height: 54,
+                    borderRadius: 22,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #ede9fe, #ffffff)",
+                    color: "#5b21b6",
+                    fontSize: 25,
+                    flex: "0 0 auto",
                   }}
                 >
-                  {teamStats.map((item) => (
-                    <div
-                      key={item.label}
-                      style={{
-                        padding: 14,
-                        borderRadius: 22,
-                        background: "#ffffff",
-                        border: "1px solid rgba(148, 163, 184, 0.18)",
-                        display: "grid",
-                        gap: 5,
-                        minWidth: 0,
-                      }}
-                    >
-                      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 780 }}>
-                        {item.label}
-                      </span>
-                      <strong style={{ color: "#0f172a", fontSize: 24, lineHeight: 1 }}>
-                        {item.value}
-                      </strong>
-                      <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.35 }}>
-                        {item.detail}
-                      </span>
-                    </div>
-                  ))}
+                  {"\uD83D\uDC65"}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ color: "#64748b", fontWeight: 760, fontSize: 13 }}>
+                    Stato team
+                  </div>
+                  <div style={{ color: "#0f172a", fontSize: 26, fontWeight: 850, lineHeight: 1.1 }}>
+                    {teamSignal}
+                  </div>
                 </div>
               </div>
 
+              {features.tasks ? (
+                <div
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: 22,
+                    background: "#ffffff",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    minWidth: 140,
+                  }}
+                >
+                  <div style={{ color: "#64748b", fontSize: 12, fontWeight: 760 }}>
+                    Mansioni oggi
+                  </div>
+                  <div style={{ color: "#4c1d95", fontSize: 25, fontWeight: 850 }}>
+                    {data.tasks.completionRate}%
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              className="dashboard-kpi-team-stats"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gap: 8,
+              }}
+            >
+              {teamStats.map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    padding: "12px 10px",
+                    borderRadius: 20,
+                    background: "#ffffff",
+                    border: "1px solid rgba(148, 163, 184, 0.16)",
+                    display: "grid",
+                    gap: 4,
+                    minWidth: 0,
+                  }}
+                >
+                  <span style={{ color: "#64748b", fontSize: 11, fontWeight: 780 }}>
+                    {item.label}
+                  </span>
+                  <strong style={{ color: "#0f172a", fontSize: 20, lineHeight: 1 }}>
+                    {item.value}
+                  </strong>
+                  <span style={{ color: "#64748b", fontSize: 11, lineHeight: 1.3 }}>
+                    {item.detail}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {features.shifts ? (
               <div
                 style={{
-                  padding: 18,
-                  borderRadius: 28,
-                  background: "#ffffff",
-                  border: "1px solid rgba(148, 163, 184, 0.18)",
-                  boxShadow: "0 14px 30px rgba(15, 23, 42, 0.05)",
                   display: "grid",
-                  gap: 14,
-                  alignContent: "start",
+                  gap: 9,
+                  paddingTop: 2,
                   minWidth: 0,
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 17 }}>Turni settimana</strong>
-                {features.shifts ? (
-                  data.charts.shiftsCurrentWeek.map((entry) => (
+                <div style={{ color: "#64748b", fontSize: 12, fontWeight: 780 }}>
+                  Turni settimana
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                    gap: 8,
+                  }}
+                >
+                  {data.charts.shiftsCurrentWeek.map((entry) => (
                     <TeamTrendBar
                       key={entry.date}
                       label={entry.label}
                       value={entry.count}
                       max={maxWeekShifts}
                     />
-                  ))
-                ) : (
-                  <EmptyState message="Turni non attivi." />
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
-
-            <div
-              className="dashboard-kpi-small-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
-              }}
-            >
-              {features.tasks ? (
-                <div
-                  style={{
-                    padding: 16,
-                    borderRadius: 24,
-                    background: "#ffffff",
-                    border: "1px solid rgba(148, 163, 184, 0.18)",
-                    display: "grid",
-                    gap: 12,
-                  }}
-                >
-                  <strong style={{ color: "#0f172a" }}>Mansioni ultimi 7 giorni</strong>
-                  {data.charts.tasksLast7Days.map((entry) => (
-                    <TeamTrendBar
-                      key={entry.date}
-                      label={entry.label}
-                      value={entry.completed}
-                      max={maxTaskTotal}
-                      tone="green"
-                    />
-                  ))}
-                </div>
-              ) : null}
-
-              {features.requests ? (
-                <div
-                  style={{
-                    padding: 16,
-                    borderRadius: 24,
-                    background: "#ffffff",
-                    border: "1px solid rgba(148, 163, 184, 0.18)",
-                    display: "grid",
-                    gap: 12,
-                  }}
-                >
-                  <strong style={{ color: "#0f172a" }}>Richieste del mese</strong>
-                  {data.charts.requestsCurrentMonth.map((entry) => (
-                    <TeamTrendBar
-                      key={entry.key}
-                      label={entry.label}
-                      value={entry.count}
-                      max={maxRequests}
-                      tone="amber"
-                    />
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            ) : null}
           </div>
         )}
       </Panel>
@@ -545,10 +507,6 @@ export function KpiDashboard({
             }
 
             @media (max-width: 760px) {
-              .dashboard-kpi-team-grid {
-                grid-template-columns: minmax(0, 1fr) !important;
-              }
-
               .dashboard-kpi-team-stats {
                 grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
               }
