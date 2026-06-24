@@ -533,7 +533,7 @@ export function ClockActionsPanel({
             disabled={submitting !== null || !insideRadius || !geoReady}
             aria-label={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
             title={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
-            style={{ flex: 1, minWidth: 0, color: "#166534" }}
+            style={{ flex: 1, minWidth: 0, color: "#ffffff" }}
           >
             <ClockInIcon />
           </PrimaryButton>
@@ -545,7 +545,7 @@ export function ClockActionsPanel({
             disabled={submitting !== null || !insideRadius || !geoReady}
             aria-label={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
             title={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
-            style={{ flex: 1, minWidth: 0, color: "#b91c1c" }}
+            style={{ flex: 1, minWidth: 0, color: "#ffffff" }}
           >
             <ClockOutIcon />
           </PrimaryButton>

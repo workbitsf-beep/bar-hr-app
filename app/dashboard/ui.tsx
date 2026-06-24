@@ -439,9 +439,11 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-clock-button svg {
-        width: 34px;
-        height: 34px;
+        width: 42px;
+        height: 42px;
         display: block;
+        color: #ffffff;
+        filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.22));
       }
 
       .dashboard-button:active,
