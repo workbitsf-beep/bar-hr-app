@@ -11,8 +11,8 @@ export default async function SuperAdminPage() {
 
   return (
     <SuperAdminFrame
-      title="Tutto sotto controllo."
-      description="Accessi rapidi e riepilogo essenziale di attività, titolari e abbonamenti."
+      title="Super Admin"
+      description="Clienti, ricavi e abbonamenti in una control room veloce, pulita e leggibile."
     >
       <SuperAdminHomeHub />
     </SuperAdminFrame>

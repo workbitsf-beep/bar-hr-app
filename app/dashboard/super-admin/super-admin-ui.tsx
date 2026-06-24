@@ -16,7 +16,7 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin/owners",
     title: "Titolari",
-    description: "Account, accessi e attivita collegate.",
+    description: "Crea, cerca e collega proprietari.",
     eyebrow: "Persone",
     section: "owners",
     color: "#2563eb",
@@ -25,7 +25,7 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin/bars",
     title: "Attivita",
-    description: "Aziende e ristorazione, tutte ordinate.",
+    description: "Clienti, sedi e tipologia operativa.",
     eyebrow: "Clienti",
     section: "bars",
     color: "#7c3aed",
@@ -34,7 +34,7 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin/billing",
     title: "Pagamenti",
-    description: "Trial, rinnovi, sconti e scadenze.",
+    description: "Trial, rinnovi, sconti e stato Stripe.",
     eyebrow: "Revenue",
     section: "billing",
     color: "#059669",
@@ -43,7 +43,7 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin/gps",
     title: "GPS globale",
-    description: "Un solo range per tutte le timbrature.",
+    description: "Range timbrature centralizzato.",
     eyebrow: "Sistema",
     section: "gps",
     color: "#d97706",
@@ -52,7 +52,7 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin/legal",
     title: "Documenti legali",
-    description: "Policy e contratti obbligatori.",
+    description: "Policy, contratti e compliance.",
     eyebrow: "Compliance",
     section: "legal",
     color: "#9333ea",
