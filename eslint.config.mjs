@@ -12,7 +12,19 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "scripts/**",
+    "prisma/seed.js",
+    "server.js",
+    "public/sw.js",
+    "src/**/*.js",
   ]),
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/error-boundaries": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

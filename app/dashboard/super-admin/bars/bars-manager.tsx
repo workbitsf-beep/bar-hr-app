@@ -303,6 +303,7 @@ export function BarsManager({
   const [newAdditionalOwnerIds, setNewAdditionalOwnerIds] = useState<string[]>([]);
   const [additionalOwnerDraftId, setAdditionalOwnerDraftId] = useState("");
   const [newAdditionalOwnerDraftId, setNewAdditionalOwnerDraftId] = useState("");
+  const nowMs = useMemo(() => Date.now(), []);
 
   useEffect(() => {
     setMounted(true);
@@ -1318,7 +1319,7 @@ export function BarsManager({
                     selectedSubscription.planType === "LIFETIME" ||
                     (selectedSubscription.planType === "TRIAL" &&
                       selectedSubscription.trialEndsAt &&
-                      new Date(selectedSubscription.trialEndsAt).getTime() > Date.now()) ||
+                      new Date(selectedSubscription.trialEndsAt).getTime() > nowMs) ||
                     (selectedSubscription.planType === "PAID" &&
                       (selectedSubscription.status === "ACTIVE" ||
                         selectedSubscription.status === "TRIALING"))

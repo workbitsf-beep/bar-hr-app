@@ -1,13 +1,13 @@
-import { getSession } from "./auth";
+import { getSession, type SessionWithUser } from "./auth";
 
-type AuthHandler = (
-  req: Request,
-  session: any,
-  context?: any
-) => Promise<Response>;
-
-export function withAuth(handler: AuthHandler) {
-  return async function authedHandler(req: Request, context?: any) {
+export function withAuth<TContext = unknown>(
+  handler: (
+    req: Request,
+    session: SessionWithUser,
+    context?: TContext
+  ) => Promise<Response>
+) {
+  return async function authedHandler(req: Request, context?: TContext) {
     const session = await getSession();
 
     if (!session) {

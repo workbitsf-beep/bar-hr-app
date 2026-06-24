@@ -967,7 +967,7 @@ export default async function OnboardingPage({
             </form>
           ) : null}
           <div style={{ marginTop: 12, color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
-            Puoi tornare all'altra attivita quando vuoi e riprendere la configurazione in seguito.
+            Puoi tornare all&apos;altra attivita quando vuoi e riprendere la configurazione in seguito.
           </div>
         </Card>
       ) : null}

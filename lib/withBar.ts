@@ -1,14 +1,18 @@
-import { getSession } from "./auth";
+import { getSession, type SessionWithUser } from "./auth";
 import { canAccessBar } from "./billing";
 
-type BarHandler = (
-  req: Request,
-  session: any,
-  context?: any
-) => Response | Promise<Response>;
+type SessionWithActiveBar = SessionWithUser & {
+  activeBarId: string;
+};
 
-export function withBar(handler: BarHandler) {
-  return async function barHandler(req: Request, context?: any) {
+export function withBar<TContext = unknown>(
+  handler: (
+    req: Request,
+    session: SessionWithActiveBar,
+    context?: TContext
+  ) => Response | Promise<Response>
+) {
+  return async function barHandler(req: Request, context?: TContext) {
     const session = await getSession();
 
     if (!session) {
@@ -36,6 +40,6 @@ export function withBar(handler: BarHandler) {
       );
     }
 
-    return handler(req, session, context);
+    return handler(req, session as SessionWithActiveBar, context);
   };
 }

@@ -78,17 +78,10 @@ export function OverviewSkeleton() {
 }
 
 export async function SuperAdminOverviewLoader() {
-  try {
-    const data = await getSuperAdminOverviewData();
+  let data: Awaited<ReturnType<typeof getSuperAdminOverviewData>>;
 
-    return (
-      <SuperAdminOverviewClient
-        summary={data.summary}
-        activities={data.activities}
-        owners={data.owners}
-        staff={data.staff}
-      />
-    );
+  try {
+    data = await getSuperAdminOverviewData();
   } catch (error) {
     console.error("[super-admin-overview] load failed", error);
 
@@ -98,4 +91,13 @@ export async function SuperAdminOverviewLoader() {
       </Panel>
     );
   }
+
+  return (
+    <SuperAdminOverviewClient
+      summary={data.summary}
+      activities={data.activities}
+      owners={data.owners}
+      staff={data.staff}
+    />
+  );
 }

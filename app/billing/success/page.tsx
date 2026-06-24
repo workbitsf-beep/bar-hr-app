@@ -6,7 +6,7 @@ export default function BillingSuccessPage() {
     <Panel title="Pagamento completato">
       <div style={{ display: "grid", gap: 16 }}>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          Pagamento completato. La carta e stata registrata e l'abbonamento si
+          Pagamento completato. La carta e stata registrata e l&apos;abbonamento si
           attivera o rinnovera automaticamente al termine dei 30 giorni di prova.
         </p>
         <div>

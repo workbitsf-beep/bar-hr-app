@@ -1727,12 +1727,12 @@ export function BillingRequiredState({
     <Panel title="Abbonamento richiesto">
       <div style={{ display: "grid", gap: 14 }}>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          Questo locale e attualmente bloccato perche l'abbonamento non e attivo.
+          Questo locale e attualmente bloccato perche l&apos;abbonamento non e attivo.
         </p>
         <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
           {canManageBilling
-            ? "Attiva o rinnova l'abbonamento per sbloccare turni, timbrature, mansioni, bacheca e report."
-            : "Contatta il titolare del locale per riattivare l'abbonamento e sbloccare le funzionalita operative."}
+            ? "Attiva o rinnova l’abbonamento per sbloccare turni, timbrature, mansioni, bacheca e report."
+            : "Contatta il titolare del locale per riattivare l’abbonamento e sbloccare le funzionalita operative."}
         </p>
         {canManageBilling ? (
           <div>
@@ -1751,7 +1751,7 @@ export function BillingRequiredState({
                 boxShadow: "0 10px 20px rgba(15, 23, 42, 0.14)",
               }}
             >
-              Vai all'abbonamento
+              Vai all&apos;abbonamento
             </Link>
           </div>
         ) : null}
