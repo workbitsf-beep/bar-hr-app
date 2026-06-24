@@ -1,4 +1,4 @@
-import type { ChangeEvent, CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { PendingButton } from "@/app/components/pending-button";
@@ -1140,20 +1140,11 @@ export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   const min = typeof props.min === "string" && props.min > today ? props.min : today;
   const value = typeof props.value === "string" && props.value && props.value < min ? min : props.value;
 
-  function handleDateChange(event: ChangeEvent<HTMLInputElement>) {
-    if (event.target.value && event.target.value < min) {
-      event.target.value = min;
-    }
-
-    props.onChange?.(event);
-  }
-
   return (
     <input
       {...props}
       min={min}
       value={value}
-      onChange={handleDateChange}
       style={{ ...fieldStyle, ...props.style }}
     />
   );
