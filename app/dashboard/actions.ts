@@ -1526,6 +1526,161 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
 }
 
+export async function deleteOwnerAccountAndBarAction(formData: FormData) {
+  const session = await getSession();
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const { activeBar, role } = await getActiveBarAccess(session);
+  const activeBarId = activeBar?.id ?? null;
+
+  if (role !== Role.OWNER || !activeBarId) {
+    throw new Error("Unauthorized");
+  }
+
+  const confirmation = String(formData.get("confirmation") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (confirmation !== "ELIMINA" || !password) {
+    redirect("/dashboard/settings?error=delete-confirmation");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { passwordHash: true },
+  });
+
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    redirect("/dashboard/settings?error=delete-password");
+  }
+
+  const bar = await prisma.bar.findFirst({
+    where: {
+      id: activeBarId,
+      OR: [
+        { ownerId: session.user.id },
+        {
+          memberships: {
+            some: {
+              userId: session.user.id,
+              role: Role.OWNER,
+              isActive: true,
+            },
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      ownerId: true,
+      subscription: {
+        select: {
+          stripeSubscriptionId: true,
+        },
+      },
+      memberships: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
+  if (!bar) {
+    throw new Error("Bar not found");
+  }
+
+  if (bar.subscription?.stripeSubscriptionId) {
+    await cancelStripeSubscriptionSafely(bar.subscription.stripeSubscriptionId);
+  }
+
+  const userIdsToCheck = Array.from(
+    new Set([bar.ownerId, ...bar.memberships.map((membership) => membership.userId)])
+  );
+  let deleteCurrentUser = false;
+  let nextActiveBarId: string | null = null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.bar.delete({
+      where: { id: bar.id },
+    });
+
+    const remainingUsers = await tx.user.findMany({
+      where: {
+        id: {
+          in: userIdsToCheck,
+        },
+      },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            ownedBars: true,
+            barMemberships: true,
+          },
+        },
+      },
+    });
+
+    const usersToDelete = remainingUsers
+      .filter((remainingUser) =>
+        remainingUser._count.ownedBars === 0 && remainingUser._count.barMemberships === 0
+      )
+      .map((remainingUser) => remainingUser.id);
+
+    deleteCurrentUser = usersToDelete.includes(session.user.id);
+
+    if (usersToDelete.length > 0) {
+      await tx.user.deleteMany({
+        where: {
+          id: {
+            in: usersToDelete,
+          },
+        },
+      });
+    }
+
+    if (!deleteCurrentUser) {
+      const nextMembership = await tx.employeeBar.findFirst({
+        where: {
+          userId: session.user.id,
+          isActive: true,
+        },
+        orderBy: { hiredAt: "desc" },
+        select: { barId: true },
+      });
+      const nextOwnedBar = await tx.bar.findFirst({
+        where: { ownerId: session.user.id },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+
+      nextActiveBarId = nextMembership?.barId ?? nextOwnedBar?.id ?? null;
+
+      await tx.session.updateMany({
+        where: { userId: session.user.id },
+        data: { activeBarId: nextActiveBarId },
+      });
+    }
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/super-admin");
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
+
+  if (deleteCurrentUser) {
+    const cookieStore = await cookies();
+    cookieStore.delete(SESSION_COOKIE_NAME);
+    cookieStore.delete(SESSION_PERSIST_COOKIE_NAME);
+    redirect("/login?deleted=1");
+  }
+
+  redirect(nextActiveBarId ? "/dashboard/settings?success=bar-deleted" : "/onboarding");
+}
+
 export async function confirmVisibleShiftsAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);

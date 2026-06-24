@@ -56,7 +56,8 @@ export function PopupAction({
         onClick={() => setOpen(true)}
         className={className}
         style={{
-          width: 40,
+          width: triggerContent ? "auto" : 40,
+          minWidth: 40,
           height: 40,
           borderRadius: 999,
           border: "1px solid rgba(226, 232, 240, 0.96)",
@@ -65,6 +66,9 @@ export function PopupAction({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
+          gap: 8,
+          padding: triggerContent ? "0 14px" : 0,
+          fontWeight: 800,
           boxShadow: "0 10px 18px rgba(15, 23, 42, 0.08)",
           cursor: "pointer",
         }}
@@ -138,6 +142,12 @@ export function PopupAction({
                     }
                   : undefined
               }
+              onClickCapture={(event) => {
+                const target = event.target as HTMLElement | null;
+                if (target?.closest("[data-popup-close]")) {
+                  setOpen(false);
+                }
+              }}
             >
                 <div
                   style={{
