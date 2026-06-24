@@ -2,7 +2,7 @@
 
 import { CalendarClosureType } from "@prisma/client";
 import { useState, useTransition } from "react";
-import { FormField, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
 
 type ClosureDraft = {
   id: string;
@@ -152,14 +152,21 @@ export function ClosureComposeForm({
         <TextArea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
       </FormField>
       <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <PrimaryButton
+        <IconButton
           type="button"
-          tone="sand"
           onClick={addToList}
+          aria-label="Aggiungi chiusura alla lista"
           disabled={isPending || !draft.startsAt || Boolean(draft.endsAt && draft.endsAt < draft.startsAt)}
+          style={{
+            width: 44,
+            height: 44,
+            background: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#dcfce7" : "#f1f5f9",
+            color: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#166534" : "#94a3b8",
+            border: "1px solid #bbf7d0",
+          }}
         >
-          + Aggiungi alla lista
-        </PrimaryButton>
+          ✓
+        </IconButton>
         <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>
           {isPending ? "Salvataggio..." : `Salva tutte${queued.length > 0 ? ` (${queued.length + (draft.startsAt ? 1 : 0)})` : ""}`}
         </PrimaryButton>

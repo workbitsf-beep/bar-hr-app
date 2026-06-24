@@ -28,7 +28,8 @@ export function TaskComposeForm({
   members: MemberOption[];
   notifySuccess?: boolean;
 }) {
-  const [entries, setEntries] = useState([createEmptyEntry()]);
+  const [entries, setEntries] = useState<ReturnType<typeof createEmptyEntry>[]>([]);
+  const [draft, setDraft] = useState(createEmptyEntry());
 
   function updateEntry(
     id: string,
@@ -40,12 +41,42 @@ export function TaskComposeForm({
   }
 
   function addEntry() {
-    setEntries((current) => [...current, createEmptyEntry()]);
+    if (!draft.value.trim()) {
+      return;
+    }
+
+    setEntries((current) => current.concat(draft));
+    setDraft(createEmptyEntry());
   }
 
   function removeEntry(id: string) {
-    setEntries((current) =>
-      current.length === 1 ? current : current.filter((entry) => entry.id !== id)
+    setEntries((current) => current.filter((entry) => entry.id !== id));
+  }
+
+  function editEntry(id: string) {
+    const entry = entries.find((item) => item.id === id);
+
+    if (!entry) {
+      return;
+    }
+
+    setDraft(entry);
+    removeEntry(id);
+  }
+
+  const allEntries = entries.concat(draft.value.trim() ? [draft] : []);
+
+  function renderHiddenEntry(entry: ReturnType<typeof createEmptyEntry>) {
+    return (
+      <div key={entry.id} style={{ display: "none" }}>
+        <input type="hidden" name="taskEntryId" value={entry.id} />
+        <input type="hidden" name={`title_${entry.id}`} value={entry.value} />
+        {entry.assignedToAll ? <input type="hidden" name={`assignedToAll_${entry.id}`} value="on" /> : null}
+        {!entry.assignedToAll && entry.assignedToId ? (
+          <input type="hidden" name={`assignedToId_${entry.id}`} value={entry.assignedToId} />
+        ) : null}
+        {entry.isUrgent ? <input type="hidden" name={`isUrgent_${entry.id}`} value="on" /> : null}
+      </div>
     );
   }
 
@@ -57,122 +88,140 @@ export function TaskComposeForm({
         hint="Usa il tasto + per aggiungere altre note. Ogni voce verra salvata separatamente."
       >
         <div style={{ display: "grid", gap: 12 }}>
-          {entries.map((entry, index) => (
+          {entries.map((entry) => (
             <div
               key={entry.id}
               style={{
-                display: "grid",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
                 gap: 10,
-                padding: 14,
-                borderRadius: 18,
+                padding: "10px 12px",
+                borderRadius: 16,
                 background: "#f8fafc",
                 border: "1px solid #e2e8f0",
               }}
             >
-              <div
+              <button
+                type="button"
+                onClick={() => editEntry(entry.id)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                }}
-              >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>
-                  Nota {index + 1}
-                </strong>
-                {entries.length > 1 ? (
-                  <IconButton
-                    type="button"
-                    onClick={() => removeEntry(entry.id)}
-                    aria-label={`Rimuovi nota ${index + 1}`}
-                    style={{
-                      width: 34,
-                      height: 34,
-                      color: "#94a3b8",
-                      boxShadow: "none",
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path
-                        d="M6 6l12 12M18 6 6 18"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </IconButton>
-                ) : null}
-              </div>
-
-              <TextInput
-                name={`title_${entry.id}`}
-                required={index === 0}
-                value={entry.value}
-                onChange={(event) => updateEntry(entry.id, { value: event.target.value })}
-                placeholder="Scrivi la nota"
-              />
-
-              <input type="hidden" name="taskEntryId" value={entry.id} />
-
-              <div
-                style={{
+                  flex: "1 1 auto",
+                  border: 0,
+                  background: "transparent",
+                  padding: 0,
+                  textAlign: "left",
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: 10,
+                  gap: 3,
+                  color: "#0f172a",
                 }}
               >
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    name={`assignedToAll_${entry.id}`}
-                    checked={entry.assignedToAll}
-                    onChange={(event) =>
-                      updateEntry(entry.id, {
-                        assignedToAll: event.target.checked,
-                        assignedToId: event.target.checked ? "" : entry.assignedToId,
-                      })
-                    }
-                  />
-                  Tutto il team
-                </label>
-
-                {!entry.assignedToAll ? (
-                  <Select
-                    name={`assignedToId_${entry.id}`}
-                    value={entry.assignedToId}
-                    onChange={(event) =>
-                      updateEntry(entry.id, { assignedToId: event.target.value })
-                    }
-                  >
-                    <option value="">Seleziona persona</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.firstName} {member.lastName}
-                      </option>
-                    ))}
-                  </Select>
-                ) : null}
-
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    name={`isUrgent_${entry.id}`}
-                    checked={entry.isUrgent}
-                    onChange={(event) =>
-                      updateEntry(entry.id, { isUrgent: event.target.checked })
-                    }
-                  />
-                  Urgente
-                </label>
+                <strong style={{ fontSize: 13 }}>{entry.value}</strong>
+                <span style={{ color: "#64748b", fontSize: 12 }}>
+                  {entry.assignedToAll
+                    ? "Tutto il team"
+                    : members.find((member) => member.id === entry.assignedToId)
+                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
+                      : "Persona non selezionata"}
+                  {entry.isUrgent ? " · Urgente" : ""}
+                </span>
+              </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <IconButton type="button" onClick={() => editEntry(entry.id)} aria-label="Modifica nota">
+                  ✎
+                </IconButton>
+                <IconButton type="button" onClick={() => removeEntry(entry.id)} aria-label="Elimina nota">
+                  ×
+                </IconButton>
               </div>
             </div>
           ))}
 
-          <div>
-            <PrimaryButton type="button" tone="sand" onClick={addEntry}>
-              + Aggiungi alla lista
-            </PrimaryButton>
+          <div
+            style={{
+              display: "grid",
+              gap: 10,
+              padding: 14,
+              borderRadius: 18,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <strong style={{ color: "#0f172a", fontSize: 14 }}>Nuova nota</strong>
+
+            <TextInput
+              value={draft.value}
+              onChange={(event) => setDraft({ ...draft, value: event.target.value })}
+              placeholder="Scrivi la nota"
+            />
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 10,
+              }}
+            >
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={draft.assignedToAll}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      assignedToAll: event.target.checked,
+                      assignedToId: event.target.checked ? "" : draft.assignedToId,
+                    })
+                  }
+                />
+                Tutto il team
+              </label>
+
+              {!draft.assignedToAll ? (
+                <Select
+                  value={draft.assignedToId}
+                  onChange={(event) => setDraft({ ...draft, assignedToId: event.target.value })}
+                >
+                  <option value="">Seleziona persona</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.firstName} {member.lastName}
+                    </option>
+                  ))}
+                </Select>
+              ) : null}
+
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={draft.isUrgent}
+                  onChange={(event) => setDraft({ ...draft, isUrgent: event.target.checked })}
+                />
+                Urgente
+              </label>
+            </div>
           </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <IconButton
+              type="button"
+              onClick={addEntry}
+              aria-label="Aggiungi nota alla lista"
+              disabled={!draft.value.trim()}
+              style={{
+                width: 44,
+                height: 44,
+                background: draft.value.trim() ? "#dcfce7" : "#f1f5f9",
+                color: draft.value.trim() ? "#166534" : "#94a3b8",
+                border: "1px solid #bbf7d0",
+              }}
+            >
+              ✓
+            </IconButton>
+          </div>
+
+          {allEntries.map(renderHiddenEntry)}
+
         </div>
       </FormField>
 
@@ -194,7 +243,7 @@ export function TaskComposeForm({
       </div>
 
       <div>
-        <PrimaryButton type="submit">Conferma note</PrimaryButton>
+        <PrimaryButton type="submit" disabled={allEntries.length === 0}>Conferma note</PrimaryButton>
       </div>
     </form>
   );

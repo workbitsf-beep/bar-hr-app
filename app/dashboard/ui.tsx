@@ -75,9 +75,9 @@ function resolveUiEmoji(title: string) {
   if (normalized.includes("sicurezza") || normalized.includes("password")) return "\uD83D\uDD12";
   if (normalized.includes("abbon") || normalized.includes("pagament") || normalized.includes("ricav")) return "\uD83D\uDCB3";
   if (normalized.includes("gps") || normalized.includes("posizion")) return "\uD83D\uDCCD";
-  if (normalized.includes("dashboard") || normalized.includes("panoramica")) return "\u2728";
+  if (normalized.includes("dashboard") || normalized.includes("panoramica")) return "\uD83D\uDCCA";
 
-  return "\u2728";
+  return "\uD83D\uDCCB";
 }
 
 function getBottomNavItems(navItems: DashboardNavItem[]) {

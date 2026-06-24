@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { DateTimeInput } from "@/app/components/date-time-input";
-import { FormField, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -169,9 +169,21 @@ export function CourseComposeForm({
       </div>
 
       <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <PrimaryButton type="button" tone="sand" onClick={addToList} disabled={isPending || !draft.title.trim() || !draft.startsAt || !draft.endsAt}>
-          + Aggiungi alla lista
-        </PrimaryButton>
+        <IconButton
+          type="button"
+          onClick={addToList}
+          aria-label="Aggiungi corso alla lista"
+          disabled={isPending || !draft.title.trim() || !draft.startsAt || !draft.endsAt}
+          style={{
+            width: 44,
+            height: 44,
+            background: draft.title.trim() && draft.startsAt && draft.endsAt ? "#dcfce7" : "#f1f5f9",
+            color: draft.title.trim() && draft.startsAt && draft.endsAt ? "#166534" : "#94a3b8",
+            border: "1px solid #bbf7d0",
+          }}
+        >
+          ✓
+        </IconButton>
         <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>
           {isPending ? "Salvataggio..." : `Salva tutti${queued.length > 0 ? ` (${queued.length + (draft.title.trim() && draft.startsAt && draft.endsAt ? 1 : 0)})` : ""}`}
         </PrimaryButton>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FormField, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
 
 type RecipientOption = {
   id: string;
@@ -169,9 +169,21 @@ export function DocumentComposeForm({
       </FormField>
 
       <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <PrimaryButton type="button" tone="sand" onClick={addToList} disabled={isPending || !draft.title.trim() || !draft.file}>
-          + Aggiungi alla lista
-        </PrimaryButton>
+        <IconButton
+          type="button"
+          onClick={addToList}
+          aria-label="Aggiungi documento alla lista"
+          disabled={isPending || !draft.title.trim() || !draft.file}
+          style={{
+            width: 44,
+            height: 44,
+            background: draft.title.trim() && draft.file ? "#dcfce7" : "#f1f5f9",
+            color: draft.title.trim() && draft.file ? "#166534" : "#94a3b8",
+            border: "1px solid #bbf7d0",
+          }}
+        >
+          ✓
+        </IconButton>
         <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>
           {isPending ? "Caricamento..." : `Carica tutti${queued.length > 0 ? ` (${queued.length + (draft.title.trim() && draft.file ? 1 : 0)})` : ""}`}
         </PrimaryButton>

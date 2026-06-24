@@ -57,19 +57,23 @@ export function QuickCalendarEntryModal({
   onSubmitBoard: (formData: FormData) => void;
 }) {
   const [taskEntries, setTaskEntries] = useState<EntryItem[]>([createEmptyEntry()]);
+  const [taskDraft, setTaskDraft] = useState<EntryItem>(createEmptyEntry());
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [boardEntries, setBoardEntries] = useState<EntryItem[]>([createEmptyEntry()]);
+  const [boardDraft, setBoardDraft] = useState<EntryItem>(createEmptyEntry());
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    setTaskEntries([createEmptyEntry()]);
+    setTaskEntries([]);
+    setTaskDraft(createEmptyEntry());
     setTaskDescription("");
     setTaskDueDate(toDateInputValue(dateIso));
-    setBoardEntries([createEmptyEntry()]);
+    setBoardEntries([]);
+    setBoardDraft(createEmptyEntry());
   }, [dateIso, open, mode]);
 
   if (!open || !mode) {
@@ -86,8 +90,22 @@ export function QuickCalendarEntryModal({
     );
   }
 
-  function addEntry(setter: Dispatch<SetStateAction<EntryItem[]>>) {
-    setter((current) => [...current, createEmptyEntry()]);
+  function addTaskEntry() {
+    if (!taskDraft.value.trim()) {
+      return;
+    }
+
+    setTaskEntries((current) => current.concat(taskDraft));
+    setTaskDraft(createEmptyEntry());
+  }
+
+  function addBoardEntry() {
+    if (!boardDraft.value.trim()) {
+      return;
+    }
+
+    setBoardEntries((current) => current.concat(boardDraft));
+    setBoardDraft(createEmptyEntry());
   }
 
   function removeEntry(
@@ -102,7 +120,9 @@ export function QuickCalendarEntryModal({
   function handleTaskSubmit() {
     const formData = new FormData();
 
-    for (const entry of taskEntries) {
+    const entries = taskEntries.concat(taskDraft.value.trim() ? [taskDraft] : []);
+
+    for (const entry of entries) {
       formData.append("taskEntryId", entry.id);
       formData.set(`title_${entry.id}`, entry.value);
 
@@ -126,7 +146,9 @@ export function QuickCalendarEntryModal({
   function handleBoardSubmit() {
     const formData = new FormData();
 
-    for (const entry of boardEntries) {
+    const entries = boardEntries.concat(boardDraft.value.trim() ? [boardDraft] : []);
+
+    for (const entry of entries) {
       formData.append("boardEntryId", entry.id);
       formData.set(`content_${entry.id}`, entry.value);
 
@@ -152,7 +174,70 @@ export function QuickCalendarEntryModal({
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
-          {taskEntries.map((entry, index) => (
+          {taskEntries.map((entry) => (
+            <div
+              key={entry.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "10px 12px",
+                borderRadius: 16,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setTaskDraft(entry);
+                  removeEntry(setTaskEntries, entry.id);
+                }}
+                style={{
+                  flex: "1 1 auto",
+                  border: 0,
+                  background: "transparent",
+                  padding: 0,
+                  textAlign: "left",
+                  display: "grid",
+                  gap: 3,
+                  color: "#0f172a",
+                }}
+              >
+                <strong style={{ fontSize: 13 }}>{entry.value}</strong>
+                <span style={{ color: "#64748b", fontSize: 12 }}>
+                  {entry.assignedToAll
+                    ? "Tutto il team"
+                    : members.find((member) => member.id === entry.assignedToId)
+                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
+                      : "Persona non selezionata"}
+                  {entry.isUrgent ? " · Urgente" : ""}
+                </span>
+              </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <IconButton
+                  type="button"
+                  onClick={() => {
+                    setTaskDraft(entry);
+                    removeEntry(setTaskEntries, entry.id);
+                  }}
+                  aria-label="Modifica nota"
+                >
+                  ✎
+                </IconButton>
+                <IconButton
+                  type="button"
+                  onClick={() => removeEntry(setTaskEntries, entry.id)}
+                  aria-label="Elimina nota"
+                >
+                  ×
+                </IconButton>
+              </div>
+            </div>
+          ))}
+
+          {[taskDraft].map((entry, index) => (
             <div
               key={entry.id}
               style={{
@@ -173,7 +258,7 @@ export function QuickCalendarEntryModal({
                 }}
               >
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
-                {taskEntries.length > 1 ? (
+                {false ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setTaskEntries, entry.id)}
@@ -195,9 +280,7 @@ export function QuickCalendarEntryModal({
               <TextInput
                 value={entry.value}
                 required={index === 0}
-                onChange={(event) =>
-                  updateEntries(setTaskEntries, entry.id, { value: event.target.value })
-                }
+                onChange={(event) => setTaskDraft({ ...entry, value: event.target.value })}
               />
 
               <div
@@ -212,7 +295,8 @@ export function QuickCalendarEntryModal({
                     type="checkbox"
                     checked={entry.assignedToAll}
                     onChange={(event) =>
-                      updateEntries(setTaskEntries, entry.id, {
+                      setTaskDraft({
+                        ...entry,
                         assignedToAll: event.target.checked,
                         assignedToId: event.target.checked ? "" : entry.assignedToId,
                       })
@@ -224,11 +308,7 @@ export function QuickCalendarEntryModal({
                 {!entry.assignedToAll ? (
                   <Select
                     value={entry.assignedToId}
-                    onChange={(event) =>
-                      updateEntries(setTaskEntries, entry.id, {
-                        assignedToId: event.target.value,
-                      })
-                    }
+                    onChange={(event) => setTaskDraft({ ...entry, assignedToId: event.target.value })}
                   >
                     <option value="">Seleziona persona</option>
                     {members.map((member) => (
@@ -243,11 +323,7 @@ export function QuickCalendarEntryModal({
                   <input
                     type="checkbox"
                     checked={entry.isUrgent}
-                    onChange={(event) =>
-                      updateEntries(setTaskEntries, entry.id, {
-                        isUrgent: event.target.checked,
-                      })
-                    }
+                    onChange={(event) => setTaskDraft({ ...entry, isUrgent: event.target.checked })}
                   />
                   Urgente
                 </label>
@@ -255,10 +331,22 @@ export function QuickCalendarEntryModal({
             </div>
           ))}
 
-          <div>
-            <PrimaryButton type="button" tone="sand" onClick={() => addEntry(setTaskEntries)}>
-              + Aggiungi alla lista
-            </PrimaryButton>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <IconButton
+              type="button"
+              onClick={addTaskEntry}
+              aria-label="Aggiungi nota alla lista"
+              disabled={!taskDraft.value.trim()}
+              style={{
+                width: 44,
+                height: 44,
+                background: taskDraft.value.trim() ? "#dcfce7" : "#f1f5f9",
+                color: taskDraft.value.trim() ? "#166534" : "#94a3b8",
+                border: "1px solid #bbf7d0",
+              }}
+            >
+              ✓
+            </IconButton>
           </div>
         </div>
 
@@ -293,7 +381,7 @@ export function QuickCalendarEntryModal({
           <PrimaryButton
             type="button"
             onClick={handleTaskSubmit}
-            disabled={isPending || !taskDueDate}
+            disabled={isPending || !taskDueDate || taskEntries.concat(taskDraft.value.trim() ? [taskDraft] : []).length === 0}
           >
             {isPending ? "Salvataggio..." : "Conferma note"}
           </PrimaryButton>
@@ -306,7 +394,70 @@ export function QuickCalendarEntryModal({
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
-          {boardEntries.map((entry, index) => (
+          {boardEntries.map((entry) => (
+            <div
+              key={entry.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "10px 12px",
+                borderRadius: 16,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setBoardDraft(entry);
+                  removeEntry(setBoardEntries, entry.id);
+                }}
+                style={{
+                  flex: "1 1 auto",
+                  border: 0,
+                  background: "transparent",
+                  padding: 0,
+                  textAlign: "left",
+                  display: "grid",
+                  gap: 3,
+                  color: "#0f172a",
+                }}
+              >
+                <strong style={{ fontSize: 13 }}>{entry.value}</strong>
+                <span style={{ color: "#64748b", fontSize: 12 }}>
+                  {entry.assignedToAll
+                    ? "Tutto il team"
+                    : members.find((member) => member.id === entry.assignedToId)
+                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
+                      : "Persona non selezionata"}
+                  {entry.isPinned ? " · In evidenza" : ""}
+                </span>
+              </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <IconButton
+                  type="button"
+                  onClick={() => {
+                    setBoardDraft(entry);
+                    removeEntry(setBoardEntries, entry.id);
+                  }}
+                  aria-label="Modifica nota"
+                >
+                  ✎
+                </IconButton>
+                <IconButton
+                  type="button"
+                  onClick={() => removeEntry(setBoardEntries, entry.id)}
+                  aria-label="Elimina nota"
+                >
+                  ×
+                </IconButton>
+              </div>
+            </div>
+          ))}
+
+          {[boardDraft].map((entry, index) => (
             <div
               key={entry.id}
               style={{
@@ -327,7 +478,7 @@ export function QuickCalendarEntryModal({
                 }}
               >
                 <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
-                {boardEntries.length > 1 ? (
+                {false ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setBoardEntries, entry.id)}
@@ -349,9 +500,7 @@ export function QuickCalendarEntryModal({
               <TextArea
                 value={entry.value}
                 required={index === 0}
-                onChange={(event) =>
-                  updateEntries(setBoardEntries, entry.id, { value: event.target.value })
-                }
+                onChange={(event) => setBoardDraft({ ...entry, value: event.target.value })}
                 style={{ minHeight: 96 }}
               />
 
@@ -367,7 +516,8 @@ export function QuickCalendarEntryModal({
                     type="checkbox"
                     checked={entry.assignedToAll}
                     onChange={(event) =>
-                      updateEntries(setBoardEntries, entry.id, {
+                      setBoardDraft({
+                        ...entry,
                         assignedToAll: event.target.checked,
                         assignedToId: event.target.checked ? "" : entry.assignedToId,
                       })
@@ -379,11 +529,7 @@ export function QuickCalendarEntryModal({
                 {!entry.assignedToAll ? (
                   <Select
                     value={entry.assignedToId}
-                    onChange={(event) =>
-                      updateEntries(setBoardEntries, entry.id, {
-                        assignedToId: event.target.value,
-                      })
-                    }
+                    onChange={(event) => setBoardDraft({ ...entry, assignedToId: event.target.value })}
                   >
                     <option value="">Seleziona persona</option>
                     {members.map((member) => (
@@ -400,11 +546,7 @@ export function QuickCalendarEntryModal({
                   <input
                     type="checkbox"
                     checked={entry.isPinned}
-                    onChange={(event) =>
-                      updateEntries(setBoardEntries, entry.id, {
-                        isPinned: event.target.checked,
-                      })
-                    }
+                    onChange={(event) => setBoardDraft({ ...entry, isPinned: event.target.checked })}
                   />
                   In evidenza
                 </label>
@@ -412,15 +554,31 @@ export function QuickCalendarEntryModal({
             </div>
           ))}
 
-          <div>
-            <PrimaryButton type="button" tone="sand" onClick={() => addEntry(setBoardEntries)}>
-              + Aggiungi alla lista
-            </PrimaryButton>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <IconButton
+              type="button"
+              onClick={addBoardEntry}
+              aria-label="Aggiungi nota alla lista"
+              disabled={!boardDraft.value.trim()}
+              style={{
+                width: 44,
+                height: 44,
+                background: boardDraft.value.trim() ? "#dcfce7" : "#f1f5f9",
+                color: boardDraft.value.trim() ? "#166534" : "#94a3b8",
+                border: "1px solid #bbf7d0",
+              }}
+            >
+              ✓
+            </IconButton>
           </div>
         </div>
 
         <div className="dashboard-modal-actions">
-          <PrimaryButton type="button" onClick={handleBoardSubmit} disabled={isPending}>
+          <PrimaryButton
+            type="button"
+            onClick={handleBoardSubmit}
+            disabled={isPending || boardEntries.concat(boardDraft.value.trim() ? [boardDraft] : []).length === 0}
+          >
             {isPending ? "Pubblicazione..." : "Conferma pubblicazione"}
           </PrimaryButton>
         </div>

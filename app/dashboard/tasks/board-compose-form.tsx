@@ -43,15 +43,26 @@ export function BoardComposeForm({
   children?: ReactNode;
 }) {
   const [entries, setEntries] = useState([
-    {
-      ...createEmptyEntry(),
-      value: initialContent,
-      isPinned: initialIsPinned,
-      requiresConfirmation: initialRequiresConfirmation,
-      assignedToAll: initialAssignedToAll,
-      assignedToId: initialAssignedToId,
-    },
+    ...(initialContent
+      ? [
+          {
+            ...createEmptyEntry(),
+            value: initialContent,
+            isPinned: initialIsPinned,
+            requiresConfirmation: initialRequiresConfirmation,
+            assignedToAll: initialAssignedToAll,
+            assignedToId: initialAssignedToId,
+          },
+        ]
+      : []),
   ]);
+  const [draft, setDraft] = useState({
+    ...createEmptyEntry(),
+    isPinned: initialIsPinned,
+    requiresConfirmation: initialRequiresConfirmation,
+    assignedToAll: initialAssignedToAll,
+    assignedToId: initialAssignedToId,
+  });
 
   function updateEntry(
     id: string,
@@ -63,12 +74,45 @@ export function BoardComposeForm({
   }
 
   function addEntry() {
-    setEntries((current) => [...current, createEmptyEntry()]);
+    if (!draft.value.trim()) {
+      return;
+    }
+
+    setEntries((current) => current.concat(draft));
+    setDraft(createEmptyEntry());
   }
 
   function removeEntry(id: string) {
-    setEntries((current) =>
-      current.length === 1 ? current : current.filter((entry) => entry.id !== id)
+    setEntries((current) => current.filter((entry) => entry.id !== id));
+  }
+
+  function editEntry(id: string) {
+    const entry = entries.find((item) => item.id === id);
+
+    if (!entry) {
+      return;
+    }
+
+    setDraft(entry);
+    removeEntry(id);
+  }
+
+  const allEntries = entries.concat(draft.value.trim() ? [draft] : []);
+
+  function renderHiddenEntry(entry: ReturnType<typeof createEmptyEntry>) {
+    return (
+      <div key={entry.id} style={{ display: "none" }}>
+        <input type="hidden" name="boardEntryId" value={entry.id} />
+        <input type="hidden" name={`content_${entry.id}`} value={entry.value} />
+        {entry.assignedToAll ? <input type="hidden" name={`assignedToAll_${entry.id}`} value="on" /> : null}
+        {!entry.assignedToAll && entry.assignedToId ? (
+          <input type="hidden" name={`assignedToId_${entry.id}`} value={entry.assignedToId} />
+        ) : null}
+        {entry.isPinned ? <input type="hidden" name={`isPinned_${entry.id}`} value="on" /> : null}
+        {entry.requiresConfirmation ? (
+          <input type="hidden" name={`requiresConfirmation_${entry.id}`} value="on" />
+        ) : null}
+      </div>
     );
   }
 
@@ -80,160 +124,174 @@ export function BoardComposeForm({
         hint="Usa il tasto + per aggiungere altri messaggi. Ogni voce verra pubblicata separatamente."
       >
         <div style={{ display: "grid", gap: 12 }}>
-          {entries.map((entry, index) => (
+          {entries.map((entry) => (
             <div
               key={entry.id}
               style={{
-                display: "grid",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
                 gap: 10,
-                padding: 14,
-                borderRadius: 18,
+                padding: "10px 12px",
+                borderRadius: 16,
                 background: "#f8fafc",
                 border: "1px solid #e2e8f0",
               }}
             >
-              {children}
-
-              <div
+              <button
+                type="button"
+                onClick={() => editEntry(entry.id)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
+                  flex: "1 1 auto",
+                  border: 0,
+                  background: "transparent",
+                  padding: 0,
+                  textAlign: "left",
+                  display: "grid",
+                  gap: 3,
+                  color: "#0f172a",
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>
-                  Messaggio {index + 1}
-                </strong>
-                {allowMultiple && entries.length > 1 ? (
-                  <IconButton
-                    type="button"
-                    onClick={() => removeEntry(entry.id)}
-                    aria-label={`Rimuovi messaggio ${index + 1}`}
-                    style={{
-                      width: 34,
-                      height: 34,
-                      color: "#94a3b8",
-                      boxShadow: "none",
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path
-                        d="M6 6l12 12M18 6 6 18"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </IconButton>
-                ) : null}
+                <strong style={{ fontSize: 13 }}>{entry.value}</strong>
+                <span style={{ color: "#64748b", fontSize: 12 }}>
+                  {entry.assignedToAll
+                    ? "Tutto il team"
+                    : members.find((member) => member.id === entry.assignedToId)
+                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
+                      : "Persona non selezionata"}
+                  {entry.isPinned ? " · In evidenza" : ""}
+                </span>
+              </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <IconButton type="button" onClick={() => editEntry(entry.id)} aria-label="Modifica messaggio">
+                  ✎
+                </IconButton>
+                <IconButton type="button" onClick={() => removeEntry(entry.id)} aria-label="Elimina messaggio">
+                  ×
+                </IconButton>
               </div>
-
-              <TextArea
-                name={`content_${entry.id}`}
-                required={index === 0}
-                value={entry.value}
-                onChange={(event) => updateEntry(entry.id, { value: event.target.value })}
-                placeholder="Scrivi il messaggio da pubblicare"
-                style={{ minHeight: 96 }}
-              />
-
-              <input type="hidden" name="boardEntryId" value={entry.id} />
-
-              {canManage && members.length > 0 ? (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                    gap: 10,
-                  }}
-                >
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input
-                      type="checkbox"
-                      name={`assignedToAll_${entry.id}`}
-                      checked={entry.assignedToAll}
-                      onChange={(event) =>
-                        updateEntry(entry.id, {
-                          assignedToAll: event.target.checked,
-                          assignedToId: event.target.checked ? "" : entry.assignedToId,
-                        })
-                      }
-                    />
-                    Tutto il team
-                  </label>
-
-                  {!entry.assignedToAll ? (
-                    <select
-                      name={`assignedToId_${entry.id}`}
-                      value={entry.assignedToId}
-                      required={!entry.assignedToAll}
-                      onChange={(event) =>
-                        updateEntry(entry.id, { assignedToId: event.target.value })
-                      }
-                      style={{
-                        width: "100%",
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        background: "#fff",
-                        fontSize: 15,
-                      }}
-                    >
-                      <option value="">Seleziona persona</option>
-                      {members.map((member) => (
-                        <option key={member.id} value={member.id}>
-                          {member.firstName} {member.lastName}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                </div>
-              ) : (
-                <input type="hidden" name={`assignedToAll_${entry.id}`} value="on" />
-              )}
-
-              {canManage ? (
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input
-                      type="checkbox"
-                      name={`isPinned_${entry.id}`}
-                      checked={entry.isPinned}
-                      onChange={(event) =>
-                        updateEntry(entry.id, { isPinned: event.target.checked })
-                      }
-                    />
-                    In evidenza
-                  </label>
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input
-                      type="checkbox"
-                      name={`requiresConfirmation_${entry.id}`}
-                      checked={entry.requiresConfirmation}
-                      onChange={(event) =>
-                        updateEntry(entry.id, { requiresConfirmation: event.target.checked })
-                      }
-                    />
-                    Richiedi conferma lettura
-                  </label>
-                </div>
-              ) : null}
             </div>
           ))}
 
+          <div
+            style={{
+              display: "grid",
+              gap: 10,
+              padding: 14,
+              borderRadius: 18,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            {children}
+            <strong style={{ color: "#0f172a", fontSize: 14 }}>Nuovo messaggio</strong>
+
+            <TextArea
+              value={draft.value}
+              onChange={(event) => setDraft({ ...draft, value: event.target.value })}
+              placeholder="Scrivi il messaggio da pubblicare"
+              style={{ minHeight: 96 }}
+            />
+
+            {canManage && members.length > 0 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={draft.assignedToAll}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        assignedToAll: event.target.checked,
+                        assignedToId: event.target.checked ? "" : draft.assignedToId,
+                      })
+                    }
+                  />
+                  Tutto il team
+                </label>
+
+                {!draft.assignedToAll ? (
+                  <select
+                    value={draft.assignedToId}
+                    required={!draft.assignedToAll}
+                    onChange={(event) => setDraft({ ...draft, assignedToId: event.target.value })}
+                    style={{
+                      width: "100%",
+                      borderRadius: 16,
+                      border: "1px solid #dbe3ee",
+                      padding: "12px 14px",
+                      background: "#fff",
+                      fontSize: 15,
+                    }}
+                  >
+                    <option value="">Seleziona persona</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.firstName} {member.lastName}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+            ) : null}
+
+            {canManage ? (
+              <div style={{ display: "grid", gap: 8 }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={draft.isPinned}
+                    onChange={(event) => setDraft({ ...draft, isPinned: event.target.checked })}
+                  />
+                  In evidenza
+                </label>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={draft.requiresConfirmation}
+                    onChange={(event) =>
+                      setDraft({ ...draft, requiresConfirmation: event.target.checked })
+                    }
+                  />
+                  Richiedi conferma lettura
+                </label>
+              </div>
+            ) : null}
+          </div>
+
           {allowMultiple ? (
-            <div>
-              <PrimaryButton type="button" tone="sand" onClick={addEntry}>
-                + Aggiungi alla lista
-              </PrimaryButton>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <IconButton
+                type="button"
+                onClick={addEntry}
+                aria-label="Aggiungi messaggio alla lista"
+                disabled={!draft.value.trim()}
+                style={{
+                  width: 44,
+                  height: 44,
+                  background: draft.value.trim() ? "#dcfce7" : "#f1f5f9",
+                  color: draft.value.trim() ? "#166534" : "#94a3b8",
+                  border: "1px solid #bbf7d0",
+                }}
+              >
+                ✓
+              </IconButton>
             </div>
           ) : null}
+
+          {allEntries.map(renderHiddenEntry)}
+
         </div>
       </FormField>
 
       <div>
-        <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
+        <PrimaryButton type="submit" disabled={allEntries.length === 0}>{submitLabel}</PrimaryButton>
       </div>
     </form>
   );
