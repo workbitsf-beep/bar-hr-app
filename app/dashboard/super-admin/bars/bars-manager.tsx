@@ -337,6 +337,15 @@ export function BarsManager({
       currentPeriodEnd: null,
       trialEndsAt: null,
     };
+  const selectedAccessUnlocked =
+    selectedSubscription.planType === "FREE" ||
+    selectedSubscription.planType === "LIFETIME" ||
+    (selectedSubscription.planType === "TRIAL" &&
+      selectedSubscription.trialEndsAt &&
+      new Date(selectedSubscription.trialEndsAt).getTime() > nowMs) ||
+    (selectedSubscription.planType === "PAID" &&
+      (selectedSubscription.status === "ACTIVE" ||
+        selectedSubscription.status === "TRIALING"));
 
   useEffect(() => {
     if (!selectedBar) {
@@ -969,10 +978,38 @@ export function BarsManager({
 
                       return <span style={{ color: "#475569" }}>{ownerSummary}</span>;
                     })()}
-                    <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedBar.name}</strong>
-                    <span style={{ color: "#475569" }}>
-                      Responsabile: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
-                    </span>
+                    <strong style={{ fontSize: 24, color: "#0f172a", lineHeight: 1.1 }}>
+                      {selectedBar.name}
+                    </strong>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          padding: "6px 10px",
+                          background: "#f1f5f9",
+                          color: "#334155",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {getActivityLabel(selectedBar.activityType)}
+                      </span>
+                      <span
+                        style={{
+                          borderRadius: 999,
+                          padding: "6px 10px",
+                          background: selectedAccessUnlocked ? "#dcfce7" : "#fee2e2",
+                          color: selectedAccessUnlocked ? "#166534" : "#991b1b",
+                          fontSize: 13,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {selectedAccessUnlocked ? "Accesso attivo" : "Accesso bloccato"}
+                      </span>
+                      <span style={{ color: "#64748b", fontSize: 13 }}>
+                        Titolare principale: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
+                      </span>
+                    </div>
                   </div>
 
                   <PrimaryButton type="button" tone="sand" onClick={closeDetailsModal} disabled={isPending}>
@@ -980,22 +1017,36 @@ export function BarsManager({
                   </PrimaryButton>
                 </div>
 
-                <div className="dashboard-inline-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("FREE")} disabled={isPending}>
-                    FREE
-                  </PrimaryButton>
-                  <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("LIFETIME")} disabled={isPending}>
-                    LIFETIME
-                  </PrimaryButton>
-                  <PrimaryButton type="button" onClick={() => applyPlan("PAID")} disabled={isPending}>
-                    PAID
-                  </PrimaryButton>
-                  <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("TRIAL")} disabled={isPending}>
-                    TRIAL
-                  </PrimaryButton>
-                  <PrimaryButton type="button" tone="red" onClick={() => void deleteBar()} disabled={isPending}>
-                    Elimina
-                  </PrimaryButton>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 10,
+                    padding: 14,
+                    borderRadius: 22,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
+                    Azioni rapide piano
+                  </div>
+                  <div className="dashboard-inline-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("FREE")} disabled={isPending}>
+                      Free
+                    </PrimaryButton>
+                    <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("LIFETIME")} disabled={isPending}>
+                      Lifetime
+                    </PrimaryButton>
+                    <PrimaryButton type="button" onClick={() => applyPlan("PAID")} disabled={isPending}>
+                      Pagante
+                    </PrimaryButton>
+                    <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("TRIAL")} disabled={isPending}>
+                      Prova
+                    </PrimaryButton>
+                    <PrimaryButton type="button" tone="red" onClick={() => void deleteBar()} disabled={isPending}>
+                      Elimina
+                    </PrimaryButton>
+                  </div>
                 </div>
 
                 <div
@@ -1287,6 +1338,111 @@ export function BarsManager({
                 <div
                   style={{
                     display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 8,
+                      padding: 16,
+                      borderRadius: 20,
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
+                      Ricavi stimati
+                    </div>
+                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                      {isRevenueEligible(selectedSubscription)
+                        ? formatCurrency(getEstimatedMonthlyRevenue(selectedSubscription))
+                        : "0,00 €"}
+                    </strong>
+                    <span style={{ color: "#64748b", fontSize: 13 }}>
+                      Annuale:{" "}
+                      {isRevenueEligible(selectedSubscription)
+                        ? formatCurrency(getEstimatedAnnualRevenue(selectedSubscription))
+                        : "0,00 €"}
+                    </span>
+                    <span style={{ color: "#64748b", fontSize: 13 }}>
+                      Sconto mensile: {selectedSubscription.monthlyDiscountPercent}%
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 8,
+                      padding: 16,
+                      borderRadius: 20,
+                      background: selectedAccessUnlocked ? "#f0fdf4" : "#fef2f2",
+                      border: selectedAccessUnlocked ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
+                      Stato servizio
+                    </div>
+                    <strong
+                      style={{
+                        color: selectedAccessUnlocked ? "#166534" : "#991b1b",
+                        fontSize: 22,
+                      }}
+                    >
+                      {selectedAccessUnlocked ? "Sbloccato" : "Bloccato"}
+                    </strong>
+                    <span style={{ color: selectedAccessUnlocked ? "#166534" : "#991b1b", fontSize: 13 }}>
+                      Piano: {selectedSubscription.planType}
+                    </span>
+                    <span style={{ color: selectedAccessUnlocked ? "#166534" : "#991b1b", fontSize: 13 }}>
+                      Stato: {selectedSubscription.status}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 8,
+                      padding: 16,
+                      borderRadius: 20,
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      minWidth: 0,
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
+                      Stripe
+                    </div>
+                    {[
+                      ["Customer", selectedBar.subscription?.stripeCustomerId],
+                      ["Subscription", selectedBar.subscription?.stripeSubscriptionId],
+                      ["Price", selectedBar.subscription?.stripePriceId],
+                    ].map(([label, value]) => (
+                      <div key={label} style={{ display: "grid", gap: 2, minWidth: 0 }}>
+                        <span style={{ color: "#94a3b8", fontSize: 11, fontWeight: 800 }}>
+                          {label}
+                        </span>
+                        <code
+                          style={{
+                            color: "#334155",
+                            fontSize: 12,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={value || "Non disponibile"}
+                        >
+                          {value || "Non disponibile"}
+                        </code>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "none",
                     gap: 10,
                     padding: 18,
                     borderRadius: 20,
