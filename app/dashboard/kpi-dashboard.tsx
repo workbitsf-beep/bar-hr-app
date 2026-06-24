@@ -62,63 +62,6 @@ function KpiSkeletonCard() {
   );
 }
 
-function TeamTrendBar({
-  label,
-  value,
-  max,
-  tone = "purple",
-}: {
-  label: string;
-  value: number;
-  max: number;
-  tone?: "purple" | "green" | "amber";
-}) {
-  const width = max > 0 && value > 0 ? Math.max(8, Math.round((value / max) * 100)) : 0;
-  const fill =
-    tone === "green"
-      ? "linear-gradient(135deg, #86efac 0%, #22c55e 100%)"
-      : tone === "amber"
-        ? "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)"
-        : "linear-gradient(135deg, #ddd6fe 0%, #8b5cf6 100%)";
-
-  return (
-    <div style={{ display: "grid", gap: 7, minWidth: 0 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          color: "#64748b",
-          fontSize: 12,
-          fontWeight: 760,
-        }}
-      >
-        <span>{label}</span>
-        <span>{value}</span>
-      </div>
-      <div
-        style={{
-          height: 9,
-          borderRadius: 999,
-          background: "#eef2f7",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: `${width}%`,
-            height: "100%",
-            borderRadius: 999,
-            background: fill,
-            transition: "width 180ms ease",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function KpiDashboard({
   activeBarId,
   role,
@@ -299,44 +242,43 @@ export function KpiDashboard({
   const teamStats = [
     features.shifts
       ? {
-          label: "Persone oggi",
+          label: "In turno oggi",
           value: String(data.today.scheduledUsers),
           detail:
             data.today.scheduledShifts > 0
-              ? `${data.today.confirmedShifts}/${data.today.scheduledShifts} turni confermati`
+              ? `${data.today.scheduledShifts} turni programmati`
               : "Nessun turno oggi",
         }
       : null,
     features.tasks
       ? {
-          label: "Mansioni",
-          value: `${data.tasks.completionRate}%`,
+          label: "Hanno fatto",
+          value: String(data.tasks.completedToday),
           detail:
             data.tasks.totalToday > 0
-              ? `${data.tasks.completedToday}/${data.tasks.totalToday} completate`
+              ? `su ${data.tasks.totalToday} mansioni`
               : "Nessuna mansione oggi",
         }
       : null,
     features.requests
       ? {
-          label: "Richieste",
-          value: String(data.requests.totalPending),
-          detail: data.requests.totalPending > 0 ? "Da gestire" : "Tutto aggiornato",
+          label: "Presente oggi",
+          value: String(Math.max(0, data.today.scheduledUsers - data.today.absences)),
+          detail: "personale operativo",
         }
       : null,
     features.shifts || features.requests
       ? {
-          label: "Mancanze",
+          label: "Assente oggi",
           value: String(data.today.absences),
           detail:
             data.today.absences > 0
-              ? `${data.today.approvedLeaves + data.today.approvedPermissions} ferie/permessi`
-              : "Nessuna assenza oggi",
+              ? "ferie, permessi o indisponibilita"
+              : "nessuna assenza",
         }
       : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-  const maxWeekShifts = Math.max(1, ...data.charts.shiftsCurrentWeek.map((entry) => entry.count));
   const teamSignal =
     data.requests.totalPending > 0
       ? "Richieste da controllare"
@@ -434,8 +376,8 @@ export function KpiDashboard({
               className="dashboard-kpi-team-stats"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: 8,
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: 10,
               }}
             >
               {teamStats.map((item) => (
@@ -463,37 +405,6 @@ export function KpiDashboard({
                 </div>
               ))}
             </div>
-
-            {features.shifts ? (
-              <div
-                style={{
-                  display: "grid",
-                  gap: 9,
-                  paddingTop: 2,
-                  minWidth: 0,
-                }}
-              >
-                <div style={{ color: "#64748b", fontSize: 12, fontWeight: 780 }}>
-                  Turni settimana
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                    gap: 8,
-                  }}
-                >
-                  {data.charts.shiftsCurrentWeek.map((entry) => (
-                    <TeamTrendBar
-                      key={entry.date}
-                      label={entry.label}
-                      value={entry.count}
-                      max={maxWeekShifts}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
           </div>
         )}
       </Panel>
