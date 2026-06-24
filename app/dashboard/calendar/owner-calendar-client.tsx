@@ -2529,16 +2529,52 @@ export function OwnerCalendarClient({
                             background: "#f8fafc",
                             border: "1px solid #e2e8f0",
                             display: "grid",
-                            gap: 8,
+                            gap: 10,
                           }}
                         >
-                          <div style={{ display: "grid", gap: 6 }}>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: task.status !== "DONE" ? "minmax(0, 1fr) auto" : "1fr",
+                              gap: 12,
+                              alignItems: "center",
+                            }}
+                          >
+                            <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
                             <strong style={{ color: "#0f172a" }}>{task.title}</strong>
                             <span style={{ color: "#475569" }}>{task.assignedLabel}</span>
                             {task.completedByLabel ? (
                               <span style={{ color: "#64748b", fontSize: 14 }}>
                                 Completata da {task.completedByLabel}
                               </span>
+                            ) : null}
+                            </div>
+                            {task.status !== "DONE" ? (
+                              <IconButton
+                                type="button"
+                                aria-label="Conferma nota"
+                                title="Conferma nota"
+                                onClick={() => handleCompleteTask(task.id)}
+                                disabled={isPending}
+                                style={{
+                                  width: 46,
+                                  height: 46,
+                                  background: "#dcfce7",
+                                  color: "#166534",
+                                  border: "1px solid #bbf7d0",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path
+                                    d="m5 12 4 4 10-10"
+                                    stroke="currentColor"
+                                    strokeWidth="2.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </IconButton>
                             ) : null}
                           </div>
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2553,24 +2589,6 @@ export function OwnerCalendarClient({
                               }
                             />
                           </div>
-                          {task.status !== "DONE" ? (
-                            <div className="dashboard-action-row" style={{ justifyContent: "flex-end" }}>
-                              <IconButton
-                                type="button"
-                                aria-label="Conferma nota"
-                                title="Conferma nota"
-                                onClick={() => handleCompleteTask(task.id)}
-                                disabled={isPending}
-                                style={{
-                                  background: "#dcfce7",
-                                  color: "#166534",
-                                  border: "1px solid #bbf7d0",
-                                }}
-                              >
-                                ✓
-                              </IconButton>
-                            </div>
-                          ) : null}
                         </div>
                       ))}
                       {day.notes.map((note) => (

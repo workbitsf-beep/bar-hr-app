@@ -586,7 +586,14 @@ function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = fals
   );
 }
 
-function renderTaskCard(task: TaskItem, mobile = false) {
+function renderTaskCard(
+  task: TaskItem,
+  mobile = false,
+  onComplete?: (taskId: string) => void,
+  isPending = false
+) {
+  const canComplete = task.status !== "DONE" && Boolean(onComplete);
+
   return (
     <div
       key={task.id}
@@ -596,11 +603,49 @@ function renderTaskCard(task: TaskItem, mobile = false) {
         background: "#f8fafc",
         border: "1px solid #e2e8f0",
         display: "grid",
-        gap: mobile ? 8 : 4,
+        gap: mobile ? 10 : 6,
       }}
     >
-      <strong style={{ color: "#0f172a", fontSize: mobile ? 16 : 14 }}>{task.title}</strong>
-      <span style={{ color: "#475569", fontSize: mobile ? 14 : 13 }}>{task.assignedLabel}</span>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: canComplete ? "minmax(0, 1fr) auto" : "1fr",
+          gap: 12,
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
+          <strong style={{ color: "#0f172a", fontSize: mobile ? 16 : 14 }}>{task.title}</strong>
+          <span style={{ color: "#475569", fontSize: mobile ? 14 : 13 }}>{task.assignedLabel}</span>
+        </div>
+        {canComplete ? (
+          <IconButton
+            type="button"
+            aria-label="Conferma nota"
+            title="Conferma nota"
+            onClick={() => onComplete?.(task.id)}
+            disabled={isPending}
+            style={{
+              width: mobile ? 46 : 38,
+              height: mobile ? 46 : 38,
+              background: "#dcfce7",
+              color: "#166534",
+              border: "1px solid #bbf7d0",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="m5 12 4 4 10-10"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </IconButton>
+        ) : null}
+      </div>
       {task.completedByLabel ? (
         <span style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
           Completata da {task.completedByLabel}
@@ -2677,7 +2722,9 @@ export function DayActionCalendarClient({
                       <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                        {selectedDay.tasks.map((task) => renderTaskCard(task, true))}
+                        {selectedDay.tasks.map((task) =>
+                          renderTaskCard(task, true, submitTaskCompletion, isPending)
+                        )}
                         {selectedDay.notes.map((note) =>
                           renderNoteCard(note, locale, currentUserId, true)
                         )}

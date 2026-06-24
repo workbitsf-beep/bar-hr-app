@@ -230,7 +230,7 @@ export default async function DashboardTasksPage({
                       ) : null}
 
                       {canComplete || canDeleteCompleted ? (
-                        <div className="dashboard-action-row">
+                        <div className="dashboard-action-row" style={{ justifyContent: "flex-end" }}>
                           {canComplete ? (
                             <form action={completeTaskAction}>
                               <input type="hidden" name="taskId" value={task.id} />
