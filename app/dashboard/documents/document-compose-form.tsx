@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type RecipientOption = {
   id: string;
@@ -12,8 +12,8 @@ type DocumentDraft = {
   id: string;
   title: string;
   description: string;
-  audience: "ALL" | "USER";
-  assignedToId: string;
+  assignedToAll: boolean;
+  assignedToIds: string[];
   file: File | null;
 };
 
@@ -22,8 +22,8 @@ function createDraft(): DocumentDraft {
     id: crypto.randomUUID(),
     title: "",
     description: "",
-    audience: "ALL",
-    assignedToId: "",
+    assignedToAll: true,
+    assignedToIds: [],
     file: null,
   };
 }
@@ -40,7 +40,7 @@ export function DocumentComposeForm({
   const [isPending, startTransition] = useTransition();
 
   function addToList() {
-    if (!draft.title.trim() || !draft.file) {
+    if (!draft.title.trim() || !draft.file || (!draft.assignedToAll && draft.assignedToIds.length === 0)) {
       return;
     }
 
@@ -49,7 +49,10 @@ export function DocumentComposeForm({
   }
 
   function saveAll() {
-    const currentDraftIsValid = draft.title.trim() && draft.file;
+    const currentDraftIsValid =
+      draft.title.trim() &&
+      draft.file &&
+      (draft.assignedToAll || draft.assignedToIds.length > 0);
     const items = queued.concat(currentDraftIsValid ? [draft] : []);
 
     if (items.length === 0) {
@@ -62,18 +65,56 @@ export function DocumentComposeForm({
           continue;
         }
 
-        const formData = new FormData();
-        formData.set("title", item.title);
-        formData.set("description", item.description);
-        formData.set("audience", item.audience);
-        formData.set("assignedToId", item.assignedToId);
-        formData.set("file", item.file);
-        await action(formData);
+        const targetIds = item.assignedToAll ? [null] : item.assignedToIds;
+
+        for (const targetId of targetIds) {
+          const formData = new FormData();
+          formData.set("title", item.title);
+          formData.set("description", item.description);
+          formData.set("audience", targetId ? "USER" : "ALL");
+          formData.set("assignedToId", targetId ?? "");
+          formData.set("file", item.file);
+          await action(formData);
+        }
       }
 
       setQueued([]);
       setDraft(createDraft());
     });
+  }
+
+  function toggleRecipient(recipientId: string) {
+    setDraft((current) => {
+      const selected = new Set(current.assignedToIds);
+
+      if (selected.has(recipientId)) {
+        selected.delete(recipientId);
+      } else {
+        selected.add(recipientId);
+      }
+
+      return {
+        ...current,
+        assignedToAll: false,
+        assignedToIds: Array.from(selected),
+      };
+    });
+  }
+
+  function getAudienceLabel(item: DocumentDraft) {
+    if (item.assignedToAll) {
+      return "Tutto il team";
+    }
+
+    const labels = item.assignedToIds
+      .map((id) => recipients.find((recipient) => recipient.id === id)?.label.split(" - ")[0])
+      .filter(Boolean);
+
+    if (labels.length === 0) {
+      return "Nessun destinatario";
+    }
+
+    return labels.length === 1 ? labels[0] : `${labels.length} dipendenti`;
   }
 
   return (
@@ -109,6 +150,9 @@ export function DocumentComposeForm({
                 }}
               >
                 {item.title}
+                <span style={{ display: "block", color: "#64748b", fontSize: 12, marginTop: 2 }}>
+                  {getAudienceLabel(item)}
+                </span>
               </button>
               <button
                 type="button"
@@ -126,26 +170,105 @@ export function DocumentComposeForm({
         <FormField label="Titolo">
           <TextInput value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
         </FormField>
-        <FormField label="Destinatari">
-          <Select
-            value={draft.audience}
-            onChange={(event) => setDraft({ ...draft, audience: event.target.value as "ALL" | "USER" })}
-          >
-            <option value="ALL">Tutto il team</option>
-            <option value="USER">Dipendente specifico</option>
-          </Select>
-        </FormField>
-        <FormField label="Dipendente">
-          <Select value={draft.assignedToId} onChange={(event) => setDraft({ ...draft, assignedToId: event.target.value })}>
-            <option value="">Nessuno</option>
-            {recipients.map((recipient) => (
-              <option key={recipient.id} value={recipient.id}>
-                {recipient.label}
-              </option>
-            ))}
-          </Select>
-        </FormField>
       </div>
+
+      <FormField label="Destinatari">
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setDraft({ ...draft, assignedToAll: true, assignedToIds: [] })}
+              aria-pressed={draft.assignedToAll}
+              style={{
+                minHeight: 42,
+                borderRadius: 999,
+                border: draft.assignedToAll ? "1px solid #6d28d9" : "1px solid #e2e8f0",
+                background: draft.assignedToAll ? "#f3e8ff" : "#ffffff",
+                color: draft.assignedToAll ? "#4c1d95" : "#334155",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "10px 12px",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              <span aria-hidden="true">{draft.assignedToAll ? "✓" : "○"}</span>
+              <span>Team</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDraft({ ...draft, assignedToAll: false })}
+              aria-pressed={!draft.assignedToAll}
+              style={{
+                minHeight: 42,
+                borderRadius: 999,
+                border: !draft.assignedToAll ? "1px solid #6d28d9" : "1px solid #e2e8f0",
+                background: !draft.assignedToAll ? "#f3e8ff" : "#ffffff",
+                color: !draft.assignedToAll ? "#4c1d95" : "#334155",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "10px 12px",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              <span aria-hidden="true">{!draft.assignedToAll ? "✓" : "○"}</span>
+              <span>Dipendenti</span>
+            </button>
+          </div>
+
+          {!draft.assignedToAll ? (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                maxHeight: 148,
+                overflowY: "auto",
+                padding: 2,
+              }}
+            >
+              {recipients.map((recipient) => {
+                const selected = draft.assignedToIds.includes(recipient.id);
+
+                return (
+                  <button
+                    key={recipient.id}
+                    type="button"
+                    onClick={() => toggleRecipient(recipient.id)}
+                    aria-pressed={selected}
+                    style={{
+                      borderRadius: 999,
+                      border: selected ? "1px solid #6d28d9" : "1px solid #e2e8f0",
+                      background: selected ? "#f3e8ff" : "#ffffff",
+                      color: selected ? "#4c1d95" : "#334155",
+                      padding: "9px 12px",
+                      fontWeight: 700,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span aria-hidden="true">{selected ? "✓" : "○"}</span>
+                    <span>{recipient.label.split(" - ")[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {draft.assignedToAll ? null : (
+            <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+              {draft.assignedToIds.length} selezionati
+            </span>
+          )}
+        </div>
+      </FormField>
 
       <FormField label="Descrizione">
         <TextArea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
@@ -173,12 +296,27 @@ export function DocumentComposeForm({
           type="button"
           onClick={addToList}
           aria-label="Aggiungi documento alla lista"
-          disabled={isPending || !draft.title.trim() || !draft.file}
+          disabled={
+            isPending ||
+            !draft.title.trim() ||
+            !draft.file ||
+            (!draft.assignedToAll && draft.assignedToIds.length === 0)
+          }
           style={{
             width: 44,
             height: 44,
-            background: draft.title.trim() && draft.file ? "#dcfce7" : "#f1f5f9",
-            color: draft.title.trim() && draft.file ? "#166534" : "#94a3b8",
+            background:
+              draft.title.trim() &&
+              draft.file &&
+              (draft.assignedToAll || draft.assignedToIds.length > 0)
+                ? "#dcfce7"
+                : "#f1f5f9",
+            color:
+              draft.title.trim() &&
+              draft.file &&
+              (draft.assignedToAll || draft.assignedToIds.length > 0)
+                ? "#166534"
+                : "#94a3b8",
             border: "1px solid #bbf7d0",
           }}
         >
