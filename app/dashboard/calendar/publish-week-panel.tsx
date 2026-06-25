@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PrimaryButton, SuccessCallout } from "../ui";
 
 export function PublishWeekPanel({
-  before,
   rangeStart,
   rangeEnd,
   pendingCount,
 }: {
-  before?: ReactNode;
   rangeStart: string;
   rangeEnd: string;
   pendingCount: number;
@@ -18,8 +16,13 @@ export function PublishWeekPanel({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const canPublish = pendingCount > 0;
 
   function handlePublish() {
+    if (!canPublish) {
+      return;
+    }
+
     setFeedback(null);
 
     startTransition(async () => {
@@ -36,7 +39,7 @@ export function PublishWeekPanel({
         });
 
         const result = (await response.json().catch(() => null)) as
-          | { ok?: boolean; sentCount?: number; failedCount?: number; message?: string }
+          | { ok?: boolean; message?: string }
           | null;
 
         if (!response.ok || !result?.ok) {
@@ -44,12 +47,7 @@ export function PublishWeekPanel({
           return;
         }
 
-        setFeedback(
-          result.message ||
-            (result.sentCount === 1
-              ? "1 notifica inviata."
-              : `${result.sentCount ?? 0} notifiche inviate.`)
-        );
+        setFeedback("Turni confermati.");
         router.refresh();
       } catch {
         setFeedback("Impossibile confermare i turni.");
@@ -58,72 +56,38 @@ export function PublishWeekPanel({
   }
 
   return (
-    <div className="calendar-publish-panel" style={{ display: "grid", gap: 6, alignContent: "start" }}>
+    <>
       <div
         className="calendar-publish-actions"
         style={{
           display: "flex",
-          gap: 7,
           alignItems: "center",
           justifyContent: "flex-end",
-          flexWrap: "wrap",
+          minWidth: 0,
+          width: "100%",
         }}
       >
-        {before}
-
         <PrimaryButton
           type="button"
           onClick={handlePublish}
-          disabled={isPending || pendingCount === 0}
-          tone={pendingCount === 0 ? "sand" : "dark"}
+          disabled={isPending || !canPublish}
+          tone="dark"
           style={{
-            minHeight: 36,
+            minHeight: 34,
             borderRadius: 999,
             paddingInline: 12,
-            fontSize: 13,
-            boxShadow: "0 8px 18px rgba(88, 28, 135, 0.08)",
+            fontSize: 12,
+            boxShadow: canPublish ? "0 8px 18px rgba(15, 23, 42, 0.12)" : "none",
             whiteSpace: "nowrap",
+            opacity: canPublish ? 1 : 0.42,
+            maxWidth: "100%",
           }}
         >
           {isPending ? "Confermo..." : "Conferma turni"}
         </PrimaryButton>
-
-        <span
-          className="calendar-publish-status"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: 28,
-            padding: "0 10px",
-            borderRadius: 999,
-            background: pendingCount === 0 ? "#ecfdf5" : "#fff7ed",
-            color: pendingCount === 0 ? "#166534" : "#9a3412",
-            border: pendingCount === 0 ? "1px solid #bbf7d0" : "1px solid #fed7aa",
-            fontSize: 12,
-            fontWeight: 800,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {pendingCount === 0 ? "✓ Confermati" : `${pendingCount} da confermare`}
-        </span>
       </div>
 
-      {feedback ? <SuccessCallout style={{ fontSize: 13 }}>{feedback}</SuccessCallout> : null}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @media (max-width: 520px) {
-              .calendar-publish-panel .calendar-publish-actions {
-                gap: 5px !important;
-              }
-              .calendar-publish-panel .calendar-publish-status {
-                display: none !important;
-              }
-            }
-          `,
-        }}
-      />
-    </div>
+      {feedback ? <SuccessCallout style={{ gridColumn: "1 / -1", fontSize: 13 }}>{feedback}</SuccessCallout> : null}
+    </>
   );
 }

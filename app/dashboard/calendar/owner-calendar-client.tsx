@@ -1160,11 +1160,11 @@ export function OwnerCalendarClient({
     <>
       <div
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: toolbarAction ? "minmax(0, auto) minmax(118px, 1fr)" : "minmax(0, auto)",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          flexWrap: "wrap",
+          justifyContent: "stretch",
+          gap: 8,
           marginBottom: 10,
         }}
       >
@@ -1189,11 +1189,11 @@ export function OwnerCalendarClient({
               style={{
                 border: 0,
                 borderRadius: 999,
-                padding: "7px 10px",
+                padding: "7px 9px",
                 background: calendarView === mode ? "#0f172a" : "transparent",
                 color: calendarView === mode ? "#ffffff" : "#475569",
                 fontWeight: 800,
-                fontSize: 13,
+                fontSize: 12,
                 cursor: "pointer",
               }}
             >
@@ -1202,7 +1202,7 @@ export function OwnerCalendarClient({
           ))}
         </div>
         {toolbarAction ? (
-          <div style={{ marginLeft: "auto", flex: "0 1 auto", minWidth: 0 }}>
+          <div style={{ justifySelf: "end", minWidth: 0, maxWidth: "100%" }}>
             {toolbarAction}
           </div>
         ) : null}
