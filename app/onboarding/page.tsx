@@ -16,6 +16,7 @@ import {
 import { featureDefinitions, getFeatureFlags, parseFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
+import { normalizeRoundingStep } from "@/lib/rounding";
 import {
   createTemporaryPassword,
 } from "@/lib/temporary-password";
@@ -523,7 +524,7 @@ async function saveRoundingAction(formData: FormData) {
   }
 
   const roundingEnabled = formData.get("roundingEnabled") === "on";
-  const roundingMinutes = 15;
+  const roundingMinutes = normalizeRoundingStep(Number(formData.get("roundingMinutes") ?? 15));
   const roundingMode = RoundingMode.NEAREST;
   const featureFlags = parseFeatureFlags(formData);
 
@@ -1034,11 +1035,12 @@ export default async function OnboardingPage({
                 type="checkbox"
                 defaultChecked={Boolean(activeBar.settings?.roundingEnabled)}
               />
-              Abilita arrotondamento con tolleranza di 5 minuti
+              Attiva arrotondamento ore
             </label>
 
             <input type="hidden" name="roundingMinutes" value="15" />
             <input type="hidden" name="roundingMode" value="NEAREST" />
+            <input type="hidden" name="roundingAcknowledged" value="on" />
 
             <div>
               <SubmitButton label="Continua" />

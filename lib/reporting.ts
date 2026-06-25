@@ -8,7 +8,7 @@ import {
   RoundingMode,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { applyRounding, applyScheduledRounding } from "@/lib/rounding";
+import { calculateRoundedWorkDuration } from "@/lib/rounding";
 import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 
 export type ExportEntry = {
@@ -105,28 +105,6 @@ function toHours(durationMs: number): number {
   return Math.round((durationMs / 3600000) * 100) / 100;
 }
 
-function getRoundedTimestamp(
-  log: MinimalTimeLog,
-  roundingEnabled: boolean,
-  roundingMode: RoundingMode | null,
-  roundingMinutes: number | null
-): Date {
-  if (log.shift?.startTime || log.shift?.endTime) {
-    return applyScheduledRounding(
-      log.timestamp,
-      log.type,
-      log.shift?.startTime ?? null,
-      log.shift?.endTime ?? null
-    );
-  }
-
-  if (!roundingEnabled) {
-    return log.timestamp;
-  }
-
-  return applyRounding(log.timestamp, roundingMode ?? RoundingMode.NEAREST, roundingMinutes ?? 15);
-}
-
 function requestLabel(type: RequestType): "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Richiesta" {
   if (type === RequestType.VACATION) {
     return "Ferie";
@@ -181,23 +159,10 @@ function calculateMonthlyTotals(
       continue;
     }
 
-    const realDurationMs = Math.max(0, log.timestamp.getTime() - pendingIn.timestamp.getTime());
-    const roundedIn = getRoundedTimestamp(
-      pendingIn,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedOut = getRoundedTimestamp(
-      log,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedDurationMs = Math.max(0, roundedOut.getTime() - roundedIn.getTime());
+    const duration = calculateRoundedWorkDuration(pendingIn.timestamp, log.timestamp, settings);
 
-    totalRealMs += realDurationMs;
-    totalRoundedMs += roundedDurationMs;
+    totalRealMs += duration.realMs;
+    totalRoundedMs += duration.roundedMs;
     pendingIn = null;
   }
 
@@ -323,6 +288,8 @@ async function buildRestaurantMonthlyDataset(
   }
 
   const groupedMap = new Map<string, GroupedDay>();
+  const dayRealTotalsMs = new Map<string, number>();
+  const dayRoundedTotalsMs = new Map<string, number>();
   let pendingIn: MinimalTimeLog | null = null;
   let totalRealMs = 0;
   let totalRoundedMs = 0;
@@ -337,20 +304,7 @@ async function buildRestaurantMonthlyDataset(
       continue;
     }
 
-    const realDurationMs = Math.max(0, log.timestamp.getTime() - pendingIn.timestamp.getTime());
-    const roundedIn = getRoundedTimestamp(
-      pendingIn,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedOut = getRoundedTimestamp(
-      log,
-      settings?.roundingEnabled ?? false,
-      settings?.roundingMode ?? null,
-      settings?.roundingMinutes ?? null
-    );
-    const roundedDurationMs = Math.max(0, roundedOut.getTime() - roundedIn.getTime());
+    const duration = calculateRoundedWorkDuration(pendingIn.timestamp, log.timestamp, settings);
 
     const dayKey = formatDayKey(pendingIn.timestamp);
     const day =
@@ -365,20 +319,22 @@ async function buildRestaurantMonthlyDataset(
       outLogId: log.id,
       clockIn: pendingIn.timestamp.toISOString(),
       clockOut: log.timestamp.toISOString(),
-      realDurationMs,
-      roundedDurationMs,
-      realHours: toHours(realDurationMs),
-      roundedHours: toHours(roundedDurationMs),
+      realDurationMs: duration.realMs,
+      roundedDurationMs: duration.roundedMs,
+      realHours: toHours(duration.realMs),
+      roundedHours: toHours(duration.roundedMs),
     };
 
     day.entries.push(entry);
-    day.totals.realHours =
-      Math.round((day.totals.realHours + entry.realHours) * 100) / 100;
-    day.totals.roundedHours =
-      Math.round((day.totals.roundedHours + entry.roundedHours) * 100) / 100;
+    const nextDayRealMs = (dayRealTotalsMs.get(dayKey) ?? 0) + duration.realMs;
+    const nextDayRoundedMs = (dayRoundedTotalsMs.get(dayKey) ?? 0) + duration.roundedMs;
+    dayRealTotalsMs.set(dayKey, nextDayRealMs);
+    dayRoundedTotalsMs.set(dayKey, nextDayRoundedMs);
+    day.totals.realHours = toHours(nextDayRealMs);
+    day.totals.roundedHours = toHours(nextDayRoundedMs);
     groupedMap.set(dayKey, day);
-    totalRealMs += realDurationMs;
-    totalRoundedMs += roundedDurationMs;
+    totalRealMs += duration.realMs;
+    totalRoundedMs += duration.roundedMs;
     pendingIn = null;
   }
 

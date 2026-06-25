@@ -32,6 +32,7 @@ import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
+import { normalizeRoundingStep } from "@/lib/rounding";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
 import { formatDateTimeInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { parseTaskDueDate } from "@/lib/task-dates";
@@ -3295,6 +3296,11 @@ export async function updateSettingsAction(formData: FormData) {
       activityType: true,
       latitude: true,
       longitude: true,
+      settings: {
+        select: {
+          roundingEnabled: true,
+        },
+      },
     },
   });
 
@@ -3360,13 +3366,18 @@ export async function updateSettingsAction(formData: FormData) {
     const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
     const gpsRadius = await getGlobalGpsRadius();
     const roundingEnabled = formData.get("roundingEnabled") === "on";
-    const roundingMinutes = 15;
+    const roundingMinutes = normalizeRoundingStep(Number(formData.get("roundingMinutes") ?? 15));
     const roundingMode = "NEAREST";
+    const roundingAcknowledged = formData.get("roundingAcknowledged") === "on";
     const resolvedLatitude = gpsLatitude ?? currentBar.latitude ?? null;
     const resolvedLongitude = gpsLongitude ?? currentBar.longitude ?? null;
 
     if (resolvedLatitude === null || resolvedLongitude === null) {
       throw new Error("Missing GPS settings");
+    }
+
+    if (roundingEnabled && !currentBar.settings?.roundingEnabled && !roundingAcknowledged) {
+      throw new Error("Conferma richiesta per attivare l'arrotondamento.");
     }
 
     await prisma.$transaction([

@@ -461,7 +461,7 @@ export function ClockActionsPanel({
           </PrimaryButton>
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div style={{ flex: "1 1 100%", fontSize: 13, color: "#64748b" }}>
-              Arrotondamento attivo con tolleranza di 5 minuti.
+              Arrotondamento ore attivo.
             </div>
           ) : null}
         </div>
@@ -846,10 +846,10 @@ export function TimeLogsClient({
       {totals ? (
         <Panel title="Totale ore personale">
           <div className="dashboard-summary-grid" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <ItemCard className="dashboard-summary-card" title="Ore lavorate" meta={formatDurationClock(totals.realHours)} />
+            <ItemCard className="dashboard-summary-card" title="Ore reali" meta={formatDurationClock(totals.realHours)} />
             <ItemCard
               className="dashboard-summary-card"
-              title="Ore arrotondate"
+              title="Ore lavorate"
               meta={formatDurationClock(totals.roundedHours)}
             />
           </div>

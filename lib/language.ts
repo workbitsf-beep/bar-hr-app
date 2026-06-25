@@ -255,8 +255,8 @@ const runtimeEntries: RuntimeEntry[] = [
   ["Configura il GPS del locale per abilitare la timbratura.", { it: "Configura il GPS del locale per abilitare la timbratura.", en: "Configure the venue GPS to enable clocking.", es: "Configura el GPS del local para habilitar el fichaje.", fr: "Configurez le GPS du local pour activer le pointage." }],
   ["Le tue timbrature", { it: "Le tue timbrature", en: "Your time logs", es: "Tus fichajes", fr: "Vos pointages" }],
   ["Totale ore personale", { it: "Totale ore personale", en: "Personal hours total", es: "Total de horas personal", fr: "Total d'heures personnel" }],
-  ["Ore reali", { it: "Ore lavorate", en: "Worked hours", es: "Horas trabajadas", fr: "Heures travaillees" }],
-  ["Ore arrotondate", { it: "Ore arrotondate", en: "Rounded hours", es: "Horas redondeadas", fr: "Heures arrondies" }],
+  ["Ore reali", { it: "Ore reali", en: "Real hours", es: "Horas reales", fr: "Heures reelles" }],
+  ["Ore lavorate", { it: "Ore lavorate", en: "Worked hours", es: "Horas trabajadas", fr: "Heures travaillees" }],
   ["Manuale", { it: "Manuale", en: "Manual", es: "Manual", fr: "Manuel" }],
   ["Confermato", { it: "Confermato", en: "Confirmed", es: "Confirmado", fr: "Confirme" }],
   ["Da confermare", { it: "Da confermare", en: "To confirm", es: "Por confirmar", fr: "A confirmer" }],
@@ -761,12 +761,12 @@ const runtimePatterns: RuntimePattern[] = [
     },
   },
   {
-    pattern: /^(\d+(?:[.,]\d+)?)\s+ore arrotondate$/u,
+    pattern: /^(\d+(?:[.,]\d+)?)\s+ore lavorate$/u,
     values: {
-      it: "$1 ore arrotondate",
-      en: "$1 rounded hours",
-      es: "$1 horas redondeadas",
-      fr: "$1 heures arrondies",
+      it: "$1 ore lavorate",
+      en: "$1 worked hours",
+      es: "$1 horas trabajadas",
+      fr: "$1 heures travaillees",
     },
   },
   {

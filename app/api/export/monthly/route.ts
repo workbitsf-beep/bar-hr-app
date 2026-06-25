@@ -170,14 +170,14 @@ async function createMonthlyPdfBuffer(input: {
         doc
           .fontSize(10)
           .text(
-            `${formatTime(entry.clockIn)} - ${formatTime(entry.clockOut)} | ore reali ${formatDurationClock(entry.realHours)} | ore arrotondate ${formatDurationClock(entry.roundedHours)}`
+            `${formatTime(entry.clockIn)} - ${formatTime(entry.clockOut)} | ore reali ${formatDurationClock(entry.realHours)} | ore lavorate ${formatDurationClock(entry.roundedHours)}`
           );
       }
 
       ensureSpace(22);
       doc
         .text(
-          `Totale giorno: reali ${formatDurationClock(day.totals.realHours)} | arrotondate ${formatDurationClock(day.totals.roundedHours)}`
+          `Totale giorno: ore reali ${formatDurationClock(day.totals.realHours)} | ore lavorate ${formatDurationClock(day.totals.roundedHours)}`
         );
       doc.font(pdfFontPath).moveDown(0.6);
     }
@@ -186,7 +186,7 @@ async function createMonthlyPdfBuffer(input: {
     doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
     doc.moveDown(0.6);
     doc.font(pdfFontPath).text(
-      `Totale mese: ore reali ${formatDurationClock(input.dataset.totals.realHours)} | ore arrotondate ${formatDurationClock(input.dataset.totals.roundedHours)}`
+      `Totale mese: ore reali ${formatDurationClock(input.dataset.totals.realHours)} | ore lavorate ${formatDurationClock(input.dataset.totals.roundedHours)}`
     );
     doc.end();
   });
