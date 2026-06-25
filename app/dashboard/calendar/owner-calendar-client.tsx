@@ -614,6 +614,7 @@ export function OwnerCalendarClient({
   const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
   const [courseAssignedToId, setCourseAssignedToId] = useState("");
   const daySwipeRef = useRef<{ x: number; y: number } | null>(null);
+  const dayStripRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -682,6 +683,26 @@ export function OwnerCalendarClient({
     };
   }, [days]);
 
+  useEffect(() => {
+    if (calendarView !== "day" || !focusedDayDate) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const target = dayStripRef.current?.querySelector<HTMLElement>(
+        `[data-day-date="${focusedDayDate}"]`
+      );
+
+      target?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [calendarView, focusedDayDate]);
+
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
@@ -704,8 +725,8 @@ export function OwnerCalendarClient({
     [filteredDay, weeks]
   );
   const visibleDayItems = useMemo(() => {
-    return focusedDay ? [focusedDay] : [];
-  }, [focusedDay]);
+    return filteredDay ? (focusedDay ? [focusedDay] : []) : days;
+  }, [days, filteredDay, focusedDay]);
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
       return new Map<string, string>();
@@ -1168,11 +1189,11 @@ export function OwnerCalendarClient({
               style={{
                 border: 0,
                 borderRadius: 999,
-                padding: "7px 12px",
+                padding: "7px 10px",
                 background: calendarView === mode ? "#0f172a" : "transparent",
                 color: calendarView === mode ? "#ffffff" : "#475569",
                 fontWeight: 800,
-                fontSize: 14,
+                fontSize: 13,
                 cursor: "pointer",
               }}
             >
@@ -1180,11 +1201,30 @@ export function OwnerCalendarClient({
             </button>
           ))}
         </div>
-        {toolbarAction ? <div style={{ marginLeft: "auto" }}>{toolbarAction}</div> : null}
+        {toolbarAction ? (
+          <div style={{ marginLeft: "auto", flex: "0 1 auto", minWidth: 0 }}>
+            {toolbarAction}
+          </div>
+        ) : null}
       </div>
 
       {calendarView === "day" ? (
-        <div style={{ display: "grid", gap: 14, width: "100%" }}>
+        <div
+          ref={dayStripRef}
+          style={{
+            display: "flex",
+            gap: 14,
+            width: "100%",
+            maxWidth: "100%",
+            overflowX: "auto",
+            overflowY: "hidden",
+            scrollSnapType: "x mandatory",
+            scrollPaddingInline: 12,
+            padding: "2px 2px 12px",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+          }}
+        >
           {visibleDayItems.map((day) => {
             const hasEvents =
               (features.shifts ? day.shifts.length : 0) +
@@ -1199,16 +1239,13 @@ export function OwnerCalendarClient({
             return (
               <section
                 key={`day-view-${day.date}`}
-                onPointerDown={(event) => {
-                  daySwipeRef.current = { x: event.clientX, y: event.clientY };
-                }}
-                onPointerUp={handleDayPointerEnd}
-                onPointerCancel={() => {
-                  daySwipeRef.current = null;
-                }}
+                data-day-date={day.date}
                 style={{
                   display: "grid",
                   gap: 14,
+                  flex: "0 0 min(92%, 820px)",
+                  width: "min(92%, 820px)",
+                  scrollSnapAlign: "center",
                   minHeight: "calc(100dvh - 230px)",
                   padding: "18px min(18px, 4vw)",
                   borderRadius: 28,
@@ -1216,7 +1253,7 @@ export function OwnerCalendarClient({
                   border: "1px solid rgba(124,58,237,0.12)",
                   boxShadow: "0 18px 45px rgba(88, 28, 135, 0.08)",
                   boxSizing: "border-box",
-                  touchAction: "pan-y",
+                  touchAction: "pan-x pan-y",
                 }}
               >
                 <div

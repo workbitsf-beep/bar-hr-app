@@ -79,8 +79,8 @@ export function PublishWeekPanel({
           style={{
             minHeight: 36,
             borderRadius: 999,
-            paddingInline: 14,
-            fontSize: 14,
+            paddingInline: 12,
+            fontSize: 13,
             boxShadow: "0 8px 18px rgba(88, 28, 135, 0.08)",
             whiteSpace: "nowrap",
           }}
@@ -89,6 +89,7 @@ export function PublishWeekPanel({
         </PrimaryButton>
 
         <span
+          className="calendar-publish-status"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -109,6 +110,20 @@ export function PublishWeekPanel({
       </div>
 
       {feedback ? <SuccessCallout style={{ fontSize: 13 }}>{feedback}</SuccessCallout> : null}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @media (max-width: 520px) {
+              .calendar-publish-panel .calendar-publish-actions {
+                gap: 5px !important;
+              }
+              .calendar-publish-panel .calendar-publish-status {
+                display: none !important;
+              }
+            }
+          `,
+        }}
+      />
     </div>
   );
 }
