@@ -810,6 +810,7 @@ export function DayActionCalendarClient({
   const [showCourseComposer, setShowCourseComposer] = useState(false);
   const daySwipeRef = useRef<{ x: number; y: number } | null>(null);
   const dayStripRef = useRef<HTMLDivElement | null>(null);
+  const dayScrollTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -889,7 +890,7 @@ export function DayActionCalendarClient({
       );
 
       target?.scrollIntoView({
-        behavior: "smooth",
+        behavior: "auto",
         block: "nearest",
         inline: "center",
       });
@@ -897,6 +898,14 @@ export function DayActionCalendarClient({
 
     return () => cancelAnimationFrame(frame);
   }, [calendarView, focusedDayDate]);
+
+  useEffect(() => {
+    return () => {
+      if (dayScrollTimerRef.current !== null) {
+        window.clearTimeout(dayScrollTimerRef.current);
+      }
+    };
+  }, []);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
@@ -920,8 +929,53 @@ export function DayActionCalendarClient({
     [filteredDay, weeks]
   );
   const visibleDayItems = useMemo(() => {
-    return filteredDay ? (focusedDay ? [focusedDay] : []) : days;
-  }, [days, filteredDay, focusedDay]);
+    if (filteredDay) {
+      return focusedDay ? [focusedDay] : [];
+    }
+
+    if (!days.length) {
+      return [];
+    }
+
+    const start = Math.max(0, focusedDayIndex - 1);
+    const end = Math.min(days.length, focusedDayIndex + 2);
+    return days.slice(start, end);
+  }, [days, filteredDay, focusedDay, focusedDayIndex]);
+
+  function handleDayStripScroll() {
+    if (calendarView !== "day" || filteredDay) {
+      return;
+    }
+
+    if (dayScrollTimerRef.current !== null) {
+      window.clearTimeout(dayScrollTimerRef.current);
+    }
+
+    dayScrollTimerRef.current = window.setTimeout(() => {
+      const strip = dayStripRef.current;
+      if (!strip) {
+        return;
+      }
+
+      const center = strip.scrollLeft + strip.clientWidth / 2;
+      const cards = Array.from(strip.querySelectorAll<HTMLElement>("[data-day-date]"));
+      let nearestDate = focusedDayDate;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      for (const card of cards) {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const distance = Math.abs(cardCenter - center);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestDate = card.dataset.dayDate ?? nearestDate;
+        }
+      }
+
+      if (nearestDate && nearestDate !== focusedDayDate) {
+        setFocusedDayDate(nearestDate);
+      }
+    }, 80);
+  }
 
   const isCompany = activityType === ActivityType.COMPANY;
   const canManageOptionalShifts =
@@ -1416,6 +1470,7 @@ export function DayActionCalendarClient({
       {calendarView === "day" ? (
         <div
           ref={dayStripRef}
+          onScroll={handleDayStripScroll}
           style={{
             display: "flex",
             gap: 14,
