@@ -84,8 +84,8 @@ export const featureDefinitions: Array<{
   {
     key: "noticeBoard",
     field: "noticeBoardEnabled",
-    label: "Note condivise",
-    shortLabel: "Note",
+    label: "Comunicazioni",
+    shortLabel: "Comunicazioni",
     description: "Comunicazioni interne al team.",
     emoji: "📢",
   },
