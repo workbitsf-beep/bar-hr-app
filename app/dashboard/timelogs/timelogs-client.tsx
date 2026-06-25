@@ -48,6 +48,8 @@ type Totals = {
   roundedHours: number;
 } | null;
 
+export type ClockActionStatus = "CAN_CLOCK_IN" | "CAN_CLOCK_OUT" | "DONE";
+
 function getDayKey(value: string) {
   const parts = getZonedDateParts(value, APP_TIME_ZONE);
   return `${parts.year}-${parts.month}-${parts.day}`;
@@ -207,10 +209,12 @@ export function ClockActionsPanel({
   role,
   settings,
   compact = false,
+  clockStatus = "CAN_CLOCK_IN",
 }: {
   role: Role | string;
   settings: BarSettingsSummary;
   compact?: boolean;
+  clockStatus?: ClockActionStatus;
 }) {
   const router = useRouter();
   const [latitude, setLatitude] = useState("");
@@ -238,6 +242,8 @@ export function ClockActionsPanel({
     distance !== null &&
     accuracy !== null &&
     distance <= ((settings?.gpsRadius ?? 0) + accuracy);
+  const canClockIn = insideRadius && geoReady && clockStatus === "CAN_CLOCK_IN";
+  const canClockOut = insideRadius && geoReady && clockStatus === "CAN_CLOCK_OUT";
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
@@ -470,7 +476,7 @@ export function ClockActionsPanel({
             type="button"
             tone="green"
             onClick={() => runClockAction("clock-in")}
-            disabled={submitting !== null || !insideRadius || !geoReady}
+            disabled={submitting !== null || !canClockIn}
             aria-label={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
             title={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
             style={{ flex: 1, minWidth: 0, color: "#ffffff" }}
@@ -482,7 +488,7 @@ export function ClockActionsPanel({
             type="button"
             tone="red"
             onClick={() => runClockAction("clock-out")}
-            disabled={submitting !== null || !insideRadius || !geoReady}
+            disabled={submitting !== null || !canClockOut}
             aria-label={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
             title={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
             style={{ flex: 1, minWidth: 0, color: "#ffffff" }}

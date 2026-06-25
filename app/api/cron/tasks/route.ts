@@ -2,14 +2,16 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(): Promise<Response> {
-  const [{ runTaskEscalation }, { runShiftRetentionCleanup }] = await Promise.all([
+  const [{ runTaskEscalation }, { runShiftRetentionCleanup }, { runTimeLogReminders }] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/shiftCleanup"),
+    import("@/lib/timelog-reminders"),
   ]);
 
-  const [taskResult, shiftResult] = await Promise.all([
+  const [taskResult, shiftResult, timelogReminderResult] = await Promise.all([
     runTaskEscalation(),
     runShiftRetentionCleanup(),
+    runTimeLogReminders(),
   ]);
 
   return Response.json({
@@ -23,6 +25,9 @@ export async function GET(): Promise<Response> {
     deletedClosureCount: shiftResult.deletedClosureCount,
     deletedTaskCount: shiftResult.deletedTaskCount,
     deletedNoteCount: shiftResult.deletedNoteCount,
+    checkedReminderShiftCount: timelogReminderResult.checkedShiftCount,
+    createdClockReminderCount: timelogReminderResult.createdReminderCount,
+    autoClockOutCount: timelogReminderResult.autoClockOutCount,
     restaurantCutoff: shiftResult.restaurantCutoff,
     companyCutoff: shiftResult.companyCutoff,
   });

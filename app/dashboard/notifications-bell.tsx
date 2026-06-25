@@ -181,7 +181,12 @@ export function NotificationsBell() {
   }
 
   function handleNotificationClick(notification: NotificationItem) {
-    void markAsRead(notification.id).finally(() => {
+    const isPersistentClockReminder = notification.type.startsWith("timelog.clock-");
+    const markPromise = isPersistentClockReminder
+      ? Promise.resolve()
+      : markAsRead(notification.id);
+
+    void markPromise.finally(() => {
       if (notification.actionUrl) {
         setOpen(false);
         router.push(notification.actionUrl);

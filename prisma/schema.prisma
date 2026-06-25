@@ -398,6 +398,7 @@ model TimeLog {
   latitude    Float?
   longitude   Float?
   isManual    Boolean   @default(false)
+  autoClockOut Boolean  @default(false)
   note        String?
 
   @@index([barId, userId, timestamp])

@@ -50,6 +50,7 @@ import {
   SESSION_PERSIST_COOKIE_NAME,
 } from "@/lib/auth";
 import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
+import { closeClockInReminders, closeClockOutReminders } from "@/lib/timelog-reminders";
 import {
   INTERNAL_NOTIFICATION_TYPES,
   notifyUsers,
@@ -3473,6 +3474,12 @@ export async function createManualTimeLogAction(formData: FormData) {
   });
 
   invalidateReportingCache(activeBarId, userId);
+
+  if (typeValue === "IN") {
+    await closeClockInReminders({ userId, barId: activeBarId });
+  } else {
+    await closeClockOutReminders({ userId, barId: activeBarId });
+  }
 
   if (wantsSuccessRedirect(formData)) {
     const returnPath = await getReturnPathFromReferer("/dashboard/timelogs");

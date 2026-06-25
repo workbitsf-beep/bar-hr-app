@@ -5,7 +5,7 @@ import { buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
 import { getDashboardContext } from "./context";
 import { KpiDashboard } from "./kpi-dashboard";
-import { ClockActionsPanel } from "./timelogs/timelogs-client";
+import { ClockActionsPanel, type ClockActionStatus } from "./timelogs/timelogs-client";
 import {
   BillingRequiredState,
   EmptyState,
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
       ? getDashboardKpiData(activeBarId, activeBarActivityType)
       : Promise.resolve(null);
 
-  const [settings, shifts, ownHours, kpiData] = await Promise.all([
+  const [settings, shifts, ownHours, latestTimeLog, kpiData] = await Promise.all([
     isOperationalProfile && features.timeTracking
       ? prisma.barSettings.findUnique({
           where: { barId: activeBarId },
@@ -107,6 +107,21 @@ export default async function DashboardPage() {
     isOperationalProfile && features.timeTracking
       ? buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear())
       : Promise.resolve(null),
+    isOperationalProfile && features.timeTracking
+      ? prisma.timeLog.findFirst({
+          where: {
+            barId: activeBarId,
+            userId: session.user.id,
+          },
+          orderBy: {
+            timestamp: "desc",
+          },
+          select: {
+            type: true,
+            timestamp: true,
+          },
+        })
+      : Promise.resolve(null),
     kpiDataPromise,
   ]);
 
@@ -122,6 +137,13 @@ export default async function DashboardPage() {
       : role === Role.AMMINISTRAZIONE
         ? "Amministrazione"
         : "Dipendente";
+  const clockStatus: ClockActionStatus =
+    latestTimeLog?.type === "IN"
+      ? "CAN_CLOCK_OUT"
+      : latestTimeLog?.type === "OUT" &&
+          toDateInputValueInTimeZone(latestTimeLog.timestamp) === todayKey
+        ? "DONE"
+        : "CAN_CLOCK_IN";
 
   return (
     <Stack>
@@ -184,7 +206,9 @@ export default async function DashboardPage() {
               ) : null}
             </div>
 
-            {features.timeTracking ? <ClockActionsPanel role={role} settings={settings} /> : null}
+            {features.timeTracking ? (
+              <ClockActionsPanel role={role} settings={settings} clockStatus={clockStatus} />
+            ) : null}
 
             <div
               style={{

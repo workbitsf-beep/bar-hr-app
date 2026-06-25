@@ -3,6 +3,7 @@ import { isWithinRadiusWithAccuracy } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
+import { closeClockOutReminders } from "@/lib/timelog-reminders";
 import { withBar } from "@/lib/withBar";
 
 type ClockOutBody = {
@@ -130,6 +131,11 @@ export const POST = withBar(
     });
 
     invalidateReportingCache(session.activeBarId, session.user.id);
+    await closeClockOutReminders({
+      userId: session.user.id,
+      barId: session.activeBarId,
+      shiftId: lastClockIn.shiftId,
+    });
 
     const duration = outTimestamp.getTime() - lastClockIn.timestamp.getTime();
 

@@ -3,6 +3,8 @@ import { isWithinRadiusWithAccuracy } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
+import { closeClockInReminders } from "@/lib/timelog-reminders";
+import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { withBar } from "@/lib/withBar";
 
 type ClockInBody = {
@@ -78,17 +80,47 @@ export const POST = withBar(
     }
 
     const now = new Date();
-    const shiftWindowStart = new Date(now);
-    shiftWindowStart.setHours(0, 0, 0, 0);
+    const latestLog = await prisma.timeLog.findFirst({
+      where: {
+        userId: session.user.id,
+        barId: session.activeBarId,
+      },
+      orderBy: {
+        timestamp: "desc",
+      },
+      select: {
+        type: true,
+        timestamp: true,
+      },
+    });
+
+    if (latestLog?.type === ClockType.IN) {
+      return Response.json(
+        { ok: false, message: "Prima registra l'uscita." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      latestLog?.type === ClockType.OUT &&
+      toDateInputValueInTimeZone(latestLog.timestamp) === toDateInputValueInTimeZone(now)
+    ) {
+      return Response.json(
+        { ok: false, message: "Turno gia completato." },
+        { status: 400 }
+      );
+    }
+
+    const shiftWindowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
     const activeShift = await prisma.shift.findFirst({
       where: {
         barId: session.activeBarId,
         startTime: {
-          lte: now,
+          lte: shiftWindowEnd,
         },
         endTime: {
-          gte: shiftWindowStart,
+          gte: now,
         },
         assignments: {
           some: {
@@ -118,6 +150,11 @@ export const POST = withBar(
     });
 
     invalidateReportingCache(session.activeBarId, session.user.id);
+    await closeClockInReminders({
+      userId: session.user.id,
+      barId: session.activeBarId,
+      shiftId: activeShift?.id ?? null,
+    });
 
     return Response.json({ ok: true, log });
   }

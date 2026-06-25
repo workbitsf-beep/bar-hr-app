@@ -17,6 +17,30 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, message: "Missing notification id" }, { status: 400 });
   }
 
+  const notification = await prisma.notification.findFirst({
+    where: {
+      id: notificationId,
+      userId: session.user.id,
+      ...(session.activeBarId
+        ? {
+            barId: session.activeBarId,
+          }
+        : {
+            barId: null,
+          }),
+    },
+    select: {
+      type: true,
+    },
+  });
+
+  if (notification?.type.startsWith("timelog.clock-")) {
+    return Response.json({
+      ok: true,
+      updatedCount: 0,
+    });
+  }
+
   const result = await prisma.notification.updateMany({
     where: {
       id: notificationId,
