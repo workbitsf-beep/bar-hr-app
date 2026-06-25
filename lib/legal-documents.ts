@@ -26,14 +26,19 @@ export async function getRequiredLegalDocumentsForUser(userId: string) {
       title: true,
       type: true,
       version: true,
+      revision: true,
       content: true,
       fileUrl: true,
+      fileName: true,
+      fileMimeType: true,
+      fileSize: true,
       updatedAt: true,
       acceptances: {
         where: { userId },
         select: {
           id: true,
           version: true,
+          revision: true,
           acceptedAt: true,
         },
       },
@@ -41,7 +46,9 @@ export async function getRequiredLegalDocumentsForUser(userId: string) {
   });
 
   return documents.filter((document) =>
-    document.acceptances.every((acceptance) => acceptance.version !== document.version)
+    document.acceptances.every(
+      (acceptance) => acceptance.version !== document.version || acceptance.revision !== document.revision
+    )
   );
 }
 
@@ -68,8 +75,12 @@ export async function getLegalDocumentsWithAcceptance(userId: string) {
       title: true,
       type: true,
       version: true,
+      revision: true,
       content: true,
       fileUrl: true,
+      fileName: true,
+      fileMimeType: true,
+      fileSize: true,
       isRequired: true,
       updatedAt: true,
       acceptances: {
@@ -77,6 +88,7 @@ export async function getLegalDocumentsWithAcceptance(userId: string) {
         orderBy: { acceptedAt: "desc" },
         select: {
           version: true,
+          revision: true,
           acceptedAt: true,
         },
       },

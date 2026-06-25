@@ -257,7 +257,8 @@ async function LegalDocumentsPanel({ userId }: { userId: string }) {
       ) : (
         documents.map((document) => {
           const currentAcceptance = document.acceptances.find(
-            (acceptance) => acceptance.version === document.version
+            (acceptance) =>
+              acceptance.version === document.version && acceptance.revision === document.revision
           );
           const accepted = Boolean(currentAcceptance);
 
@@ -275,7 +276,7 @@ async function LegalDocumentsPanel({ userId }: { userId: string }) {
                 <div style={{ display: "grid", gap: 4 }}>
                   <strong style={{ color: "#0f172a" }}>{document.title}</strong>
                   <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                    {legalDocumentTypeLabels[document.type]} · v{document.version}
+                    {legalDocumentTypeLabels[document.type]} · v{document.version}.{document.revision}
                   </span>
                   {currentAcceptance ? (
                     <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
@@ -294,20 +295,20 @@ async function LegalDocumentsPanel({ userId }: { userId: string }) {
                     triggerContent="Visualizza"
                   >
                     <div style={{ display: "grid", gap: 12, color: "#334155", lineHeight: 1.65 }}>
-                      <StatusPill label={`Versione ${document.version}`} tone="neutral" />
+                      <StatusPill label={`Versione ${document.version}.${document.revision}`} tone="neutral" />
                       {document.content ? (
                         <div style={{ whiteSpace: "pre-wrap" }}>{document.content}</div>
                       ) : (
                         <span style={{ color: "#64748b" }}>Contenuto testuale non presente.</span>
                       )}
-                      {document.fileUrl ? (
+                      {document.fileName ? (
                         <a
-                          href={document.fileUrl}
+                          href={`/api/legal-documents/${document.id}`}
                           target="_blank"
                           rel="noreferrer"
                           style={{ color: "#6d28d9", fontWeight: 800 }}
                         >
-                          Apri documento collegato
+                          Apri PDF
                         </a>
                       ) : null}
                       <div className="dashboard-form-actions">

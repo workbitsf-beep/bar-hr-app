@@ -580,8 +580,13 @@ model LegalDocument {
   title       String
   type        LegalDocumentType
   version     String
+  revision    Int               @default(1)
   content     String?
   fileUrl     String?
+  fileName    String?
+  fileMimeType String?
+  fileSize    Int?
+  fileContent Bytes?
   isActive    Boolean           @default(true)
   isRequired  Boolean           @default(true)
   acceptances LegalAcceptance[]
@@ -599,6 +604,7 @@ model LegalAcceptance {
   userId     String       @db.Uuid
   barId      String?      @db.Uuid
   version    String
+  revision   Int          @default(1)
   acceptedAt DateTime     @default(now())
   ipAddress  String?
   userAgent  String?
@@ -607,10 +613,10 @@ model LegalAcceptance {
   user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   bar        Bar?          @relation(fields: [barId], references: [id], onDelete: SetNull)
 
-  @@unique([documentId, userId, version])
+  @@unique([documentId, userId, version, revision])
   @@index([userId, acceptedAt])
   @@index([barId, acceptedAt])
-  @@index([documentId, version])
+  @@index([documentId, version, revision])
 }
 
 model Document {

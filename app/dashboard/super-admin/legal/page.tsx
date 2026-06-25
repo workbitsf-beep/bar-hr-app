@@ -22,11 +22,15 @@ function LegalDocumentFields({
   document,
 }: {
   document?: {
+    id?: string;
     title: string;
     type: LegalDocumentType;
     version: string;
+    revision?: number;
     content: string | null;
     fileUrl: string | null;
+    fileName?: string | null;
+    fileSize?: number | null;
     isActive: boolean;
     isRequired: boolean;
   };
@@ -55,8 +59,28 @@ function LegalDocumentFields({
         <TextArea name="content" defaultValue={document?.content ?? ""} style={{ minHeight: 180 }} />
       </FormField>
 
-      <FormField label="PDF o link">
-        <TextInput name="fileUrl" type="url" placeholder="https://..." defaultValue={document?.fileUrl ?? ""} />
+      <FormField label={document ? "Sostituisci PDF" : "PDF documento"}>
+        <input
+          name="pdfFile"
+          type="file"
+          accept="application/pdf"
+          required={!document}
+          style={{
+            width: "100%",
+            minHeight: 46,
+            borderRadius: 18,
+            border: "1px solid #e2e8f0",
+            background: "#ffffff",
+            padding: "10px 12px",
+            color: "#0f172a",
+            fontWeight: 700,
+          }}
+        />
+        {document?.fileName ? (
+          <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+            PDF attuale: {document.fileName}
+          </span>
+        ) : null}
       </FormField>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -102,7 +126,7 @@ export default async function SuperAdminLegalDocumentsPage({
     >
       <Stack columns="minmax(0, 420px) minmax(0, 1fr)">
         <Panel title="Nuovo documento">
-          <form action={createLegalDocumentAction} style={{ display: "grid", gap: 14 }}>
+          <form action={createLegalDocumentAction} encType="multipart/form-data" style={{ display: "grid", gap: 14 }}>
             <LegalDocumentFields />
             <PrimaryButton type="submit">Crea documento</PrimaryButton>
           </form>
@@ -131,7 +155,7 @@ export default async function SuperAdminLegalDocumentsPage({
                       <div style={{ display: "grid", gap: 4 }}>
                         <strong style={{ color: "#0f172a", fontSize: 17 }}>{document.title}</strong>
                         <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                          {legalDocumentTypeLabels[document.type]} · v{document.version} · {document._count.acceptances} accettazioni
+                          {legalDocumentTypeLabels[document.type]} · v{document.version}.{document.revision} · {document._count.acceptances} accettazioni
                         </span>
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -142,7 +166,22 @@ export default async function SuperAdminLegalDocumentsPage({
                   </summary>
 
                   <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
-                    <form action={updateLegalDocumentAction} style={{ display: "grid", gap: 14 }}>
+                    {document.fileName ? (
+                      <a
+                        href={`/api/legal-documents/${document.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          justifySelf: "start",
+                          color: "#6d28d9",
+                          fontWeight: 900,
+                          textDecoration: "none",
+                        }}
+                      >
+                        Apri PDF caricato
+                      </a>
+                    ) : null}
+                    <form action={updateLegalDocumentAction} encType="multipart/form-data" style={{ display: "grid", gap: 14 }}>
                       <input type="hidden" name="documentId" value={document.id} />
                       <LegalDocumentFields document={document} />
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>

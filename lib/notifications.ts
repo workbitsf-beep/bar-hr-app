@@ -27,6 +27,7 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   BILLING_ACTIVE: "billing.active",
   BILLING_PAST_DUE: "billing.past_due",
   BILLING_CANCELED: "billing.canceled",
+  LEGAL_DOCUMENT_REQUIRED: "legal-document.required",
   GENERIC_REQUEST_CREATED: "generic-request.created",
   GENERIC_REQUEST_REVIEWED: "generic-request.reviewed",
 } as const;

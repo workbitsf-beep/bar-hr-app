@@ -46,10 +46,11 @@ export async function acceptRequiredLegalDocumentsAction(formData: FormData) {
     documents.map((document) =>
       prisma.legalAcceptance.upsert({
         where: {
-          documentId_userId_version: {
+          documentId_userId_version_revision: {
             documentId: document.id,
             userId: session.user.id,
             version: document.version,
+            revision: document.revision,
           },
         },
         create: {
@@ -57,6 +58,7 @@ export async function acceptRequiredLegalDocumentsAction(formData: FormData) {
           userId: session.user.id,
           barId: session.activeBarId,
           version: document.version,
+          revision: document.revision,
           ipAddress,
           userAgent,
         },

@@ -103,7 +103,7 @@ export default async function LegalAcceptancePage({
               }}
             >
               <summary style={{ cursor: "pointer", fontWeight: 900, color: "#0f172a" }}>
-                {document.title} · {legalDocumentTypeLabels[document.type]} · v{document.version}
+                {document.title} · {legalDocumentTypeLabels[document.type]} · v{document.version}.{document.revision}
               </summary>
               <div style={{ display: "grid", gap: 12, marginTop: 14, color: "#334155", lineHeight: 1.7 }}>
                 {document.content ? (
@@ -111,14 +111,14 @@ export default async function LegalAcceptancePage({
                 ) : (
                   <p style={{ margin: 0, color: "#64748b" }}>Contenuto testuale non presente.</p>
                 )}
-                {document.fileUrl ? (
+                {document.fileName ? (
                   <Link
-                    href={document.fileUrl}
+                    href={`/api/legal-documents/${document.id}`}
                     target="_blank"
                     rel="noreferrer"
                     style={{ color: "#6d28d9", fontWeight: 800 }}
                   >
-                    Apri documento collegato
+                    Apri PDF
                   </Link>
                 ) : null}
               </div>
