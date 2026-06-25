@@ -434,6 +434,7 @@ async function assertNoShiftAssignmentConflicts(input: {
   employeeIds: string[];
   startTime: Date;
   endTime: Date;
+  isOnCall?: boolean;
 }) {
   const [availabilityConflicts, requestConflicts] = await Promise.all([
     prisma.availability.findMany({
@@ -518,6 +519,10 @@ async function assertNoShiftAssignmentConflicts(input: {
   const details = Array.from(conflicts.values()).map(
     (entry) => `${entry.name} (${Array.from(entry.reasons).join(", ")})`
   );
+
+  if (input.isOnCall) {
+    throw new Error("Impossibile assegnare alla reperibilità: il dipendente risulta assente o indisponibile.");
+  }
 
   throw new Error(`Non puoi assegnare questo turno a: ${details.join("; ")}`);
 }
@@ -2004,6 +2009,7 @@ export async function createShiftAction(formData: FormData) {
     employeeIds,
     startTime,
     endTime,
+    isOnCall,
   });
   const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
 
@@ -2060,6 +2066,7 @@ export async function updateShiftAction(formData: FormData) {
     employeeIds,
     startTime,
     endTime,
+    isOnCall,
   });
   const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
   const existingShift = await prisma.shift.findFirst({

@@ -127,6 +127,7 @@ export default async function DashboardPage() {
 
   const todayKey = toDateInputValueInTimeZone(now);
   const todayShift = shifts.find((shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey);
+  const nextShift = shifts.find((shift) => shift.id !== todayShift?.id) ?? null;
   const todayColleagues =
     todayShift?.assignments
       .filter((entry) => entry.user.id !== session.user.id)
@@ -206,30 +207,62 @@ export default async function DashboardPage() {
               ) : null}
             </div>
 
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              }}
+            >
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 26,
+                  background: "#ffffff",
+                  border: "1px solid #e9d5ff",
+                  boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
+                }}
+              >
+                <strong style={{ display: "block", color: "#0f172a", fontSize: 18 }}>
+                  {todayShift
+                    ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
+                    : "Oggi non hai turni programmati"}
+                </strong>
+                {todayColleagues.length > 0 ? (
+                  <p style={{ margin: "8px 0 0", color: "#64748b" }}>
+                    Con te: {todayColleagues.join(", ")}
+                  </p>
+                ) : null}
+              </div>
+
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 26,
+                  background: "#ffffff",
+                  border: "1px solid #e9d5ff",
+                  boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
+                }}
+              >
+                <strong style={{ display: "block", color: "#0f172a", fontSize: 18 }}>
+                  {nextShift
+                    ? `Prossimo turno: ${toDateInputValueInTimeZone(nextShift.startTime)} · ${toTimeInputValueInTimeZone(nextShift.startTime)}-${toTimeInputValueInTimeZone(nextShift.endTime)}`
+                    : "Nessun prossimo turno programmato"}
+                </strong>
+                {nextShift ? (
+                  <p style={{ margin: "8px 0 0", color: "#64748b" }}>
+                    {nextShift.assignments
+                      .filter((entry) => entry.user.id !== session.user.id)
+                      .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
+                      .join(", ") || "Nessun collega indicato"}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
             {features.timeTracking ? (
               <ClockActionsPanel role={role} settings={settings} clockStatus={clockStatus} />
             ) : null}
-
-            <div
-              style={{
-                padding: 18,
-                borderRadius: 26,
-                background: "#ffffff",
-                border: "1px solid #e9d5ff",
-                boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
-              }}
-            >
-              <strong style={{ display: "block", color: "#0f172a", fontSize: 20 }}>
-                {todayShift
-                  ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
-                  : "Oggi non hai turni programmati"}
-              </strong>
-              {todayColleagues.length > 0 ? (
-                <p style={{ margin: "8px 0 0", color: "#64748b" }}>
-                  Con te: {todayColleagues.join(", ")}
-                </p>
-              ) : null}
-            </div>
           </div>
         </Panel>
       ) : null}

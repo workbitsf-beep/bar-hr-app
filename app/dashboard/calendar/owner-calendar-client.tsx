@@ -572,6 +572,7 @@ export function OwnerCalendarClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
+  const [calendarView, setCalendarView] = useState<"week" | "day">("week");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
@@ -650,6 +651,13 @@ export function OwnerCalendarClient({
         : weeks,
     [filteredDay, weeks]
   );
+  const visibleDayItems = useMemo(() => {
+    if (filteredDay) {
+      return days.filter((day) => day.date.slice(0, 10) === filteredDay);
+    }
+
+    return [days.find((day) => day.isToday) ?? days[0]].filter((day): day is DayItem => Boolean(day));
+  }, [days, filteredDay]);
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
       return new Map<string, string>();
@@ -678,6 +686,12 @@ export function OwnerCalendarClient({
         if (hasTimeOverlap(request.startsAt, request.endsAt, nextShiftStart, nextShiftEnd)) {
           blocked.set(request.userId, formatRequestTypeLabel(request.type));
         }
+      }
+    }
+
+    if (draft.isOnCall) {
+      for (const userId of blocked.keys()) {
+        blocked.set(userId, "Impossibile assegnare alla reperibilità: assente o indisponibile");
       }
     }
 
@@ -1039,6 +1053,133 @@ export function OwnerCalendarClient({
 
   return (
     <>
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: 4,
+          borderRadius: 999,
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          marginBottom: 12,
+        }}
+      >
+        {(["week", "day"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setCalendarView(mode)}
+            style={{
+              border: 0,
+              borderRadius: 999,
+              padding: "8px 13px",
+              background: calendarView === mode ? "#0f172a" : "transparent",
+              color: calendarView === mode ? "#ffffff" : "#475569",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            {mode === "week" ? "Settimana" : "Giorno"}
+          </button>
+        ))}
+      </div>
+
+      {calendarView === "day" ? (
+        <div style={{ display: "grid", gap: 14 }}>
+          {visibleDayItems.map((day) => {
+            const hasEvents =
+              (features.shifts ? day.shifts.length : 0) +
+                (features.requests ? day.requests.length : 0) +
+                (features.availability ? day.availabilities.length : 0) +
+                (features.tasks ? day.tasks.length : 0) +
+                (features.noticeBoard ? day.notes.length : 0) +
+                (features.courses ? day.courses.length : 0) +
+                day.closures.length >
+              0;
+
+            return (
+              <section
+                key={`day-view-${day.date}`}
+                style={{
+                  display: "grid",
+                  gap: 14,
+                  padding: 16,
+                  borderRadius: 24,
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                  {formatDayLabel(day.date, locale)}
+                </strong>
+                {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
+                {features.shifts && day.shifts.length > 0 ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong>👤 Turni</strong>
+                    {day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true, () => {
+                      setSelectedDate(day.date);
+                      setActiveCalendarModal("shifts");
+                      setEditingShiftId(null);
+                    }))}
+                  </div>
+                ) : null}
+                {features.requests && day.requests.length > 0 ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong>🏖️ Ferie / Permessi / Assenze</strong>
+                    {day.requests.map((request) => renderApprovedRequestCard(request, true))}
+                  </div>
+                ) : null}
+                {features.availability && day.availabilities.length > 0 ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong>🚫 Indisponibilità</strong>
+                    {day.availabilities.map((availability) => renderAvailabilityCard(availability, true))}
+                  </div>
+                ) : null}
+                {features.shifts && day.pendingOnCallShifts.length > 0 ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong>📍 Reperibilità</strong>
+                    {day.pendingOnCallShifts.map((shift) => renderPendingOnCallCard(shift, locale, true))}
+                  </div>
+                ) : null}
+                {(features.tasks && day.tasks.length > 0) || (features.noticeBoard && day.notes.length > 0) ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong>📌 Note / Comunicazioni</strong>
+                    {day.tasks.map((task) => renderTaskPreviewCard(task, true, () => {
+                      setSelectedDate(day.date);
+                      setActiveCalendarModal("notes");
+                    }))}
+                    {day.notes.map((note) => renderNotePreviewCard(note, true, () => {
+                      setSelectedDate(day.date);
+                      setActiveCalendarModal("notes");
+                    }))}
+                  </div>
+                ) : null}
+                {features.courses && day.courses.length > 0 ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong>🎓 Corsi</strong>
+                    {day.courses.map((course) => (
+                      <div key={course.id} style={{ padding: 12, borderRadius: 16, background: "#eef2ff", border: "1px solid #c7d2fe", color: "#3730a3" }}>
+                        {course.title} · {formatRange(course.startTime, course.endTime, locale)}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {day.closures.length > 0 ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <strong>🔒 Chiusure</strong>
+                    {day.closures.map((closure) => (
+                      <div key={closure.id} style={{ padding: 12, borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412" }}>
+                        {closure.title}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
+        </div>
+      ) : (
       <CalendarWeekStrip
         className="dashboard-week-strip"
         style={{
@@ -1328,6 +1469,7 @@ export function OwnerCalendarClient({
           );
         })}
       </CalendarWeekStrip>
+      )}
 
       {mounted && selectedDay
         ? createPortal(

@@ -1118,15 +1118,14 @@ export function Panel({
           <span
             aria-hidden="true"
             style={{
-              width: 24,
-              height: 24,
-              borderRadius: 999,
+              width: "auto",
+              height: "auto",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(124, 58, 237, 0.12)",
-              color: "#6d28d9",
-              fontSize: 13,
+              background: "transparent",
+              color: "inherit",
+              fontSize: 18,
               flex: "0 0 auto",
             }}
           >
@@ -1191,14 +1190,14 @@ export function SectionHeader({
           <span
             aria-hidden="true"
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: 999,
+              width: "auto",
+              height: "auto",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(124, 58, 237, 0.12)",
-              color: "#6d28d9",
+              background: "transparent",
+              color: "inherit",
+              fontSize: 18,
               flex: "0 0 auto",
             }}
           >
