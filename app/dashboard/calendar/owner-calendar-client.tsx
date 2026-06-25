@@ -566,6 +566,7 @@ export function OwnerCalendarClient({
   role,
   currentUserId,
   features,
+  toolbarAction,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -576,6 +577,7 @@ export function OwnerCalendarClient({
   role: string;
   currentUserId: string;
   features: FeatureFlags;
+  toolbarAction?: ReactNode;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -1137,37 +1139,48 @@ export function OwnerCalendarClient({
     <>
       <div
         style={{
-          display: "inline-flex",
+          display: "flex",
           alignItems: "center",
-          gap: 4,
-          padding: 3,
-          borderRadius: 999,
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
+          justifyContent: "space-between",
+          gap: 10,
+          flexWrap: "wrap",
           marginBottom: 10,
-          width: "fit-content",
-          maxWidth: "100%",
         }}
       >
-        {(["week", "day"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => setCalendarView(mode)}
-            style={{
-              border: 0,
-              borderRadius: 999,
-              padding: "7px 12px",
-              background: calendarView === mode ? "#0f172a" : "transparent",
-              color: calendarView === mode ? "#ffffff" : "#475569",
-              fontWeight: 800,
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            {mode === "week" ? "Settimana" : "Giorno"}
-          </button>
-        ))}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: 3,
+            borderRadius: 999,
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            width: "fit-content",
+            maxWidth: "100%",
+          }}
+        >
+          {(["week", "day"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setCalendarView(mode)}
+              style={{
+                border: 0,
+                borderRadius: 999,
+                padding: "7px 12px",
+                background: calendarView === mode ? "#0f172a" : "transparent",
+                color: calendarView === mode ? "#ffffff" : "#475569",
+                fontWeight: 800,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              {mode === "week" ? "Settimana" : "Giorno"}
+            </button>
+          ))}
+        </div>
+        {toolbarAction ? <div style={{ marginLeft: "auto" }}>{toolbarAction}</div> : null}
       </div>
 
       {calendarView === "day" ? (
@@ -1239,7 +1252,7 @@ export function OwnerCalendarClient({
                   </IconButton>
                 </div>
                 {features.shifts && day.date.slice(0, 10) >= todayKey ? (
-                  <div style={{ display: "flex", justifyContent: "center" }}>
+                  <div style={{ display: "none" }}>
                     <PrimaryButton
                       type="button"
                       tone="sand"
@@ -1256,9 +1269,30 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
-                {features.shifts && day.shifts.length > 0 ? (
+                {features.shifts && (day.shifts.length > 0 || day.date.slice(0, 10) >= todayKey) ? (
                   <div style={{ display: "grid", gap: 8 }}>
-                    <strong>👤 Turni</strong>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <strong>👤 Turni</strong>
+                      {day.date.slice(0, 10) >= todayKey ? (
+                        <IconButton
+                          type="button"
+                          onClick={() => {
+                            setSelectedDate(day.date);
+                            setActiveCalendarModal("shifts");
+                            setShowShiftComposer(true);
+                            setCurrentShiftDraft(createShiftDraft(day.date));
+                          }}
+                          aria-label="Aggiungi turni"
+                          disabled={isPending}
+                          style={{ width: 36, height: 36 }}
+                        >
+                          +
+                        </IconButton>
+                      ) : null}
+                    </div>
+                    {day.shifts.length === 0 ? (
+                      <div style={{ color: "#64748b" }}>Nessun turno in questa giornata.</div>
+                    ) : null}
                     {day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true, () => {
                       setSelectedDate(day.date);
                       setActiveCalendarModal("shifts");

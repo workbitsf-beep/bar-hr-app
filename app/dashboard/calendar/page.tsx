@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { getDashboardContext } from "../context";
-import { BillingRequiredState, EmptyState, Panel, PrimaryButton, Stack, TextInput } from "../ui";
+import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
 import { DayActionCalendarClient } from "./day-action-calendar-client";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
@@ -943,54 +942,7 @@ export default async function DashboardCalendarPage({
     <Stack columns="minmax(0, 1fr)">
       <Panel
         title="Calendario"
-        action={
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              alignItems: "flex-end",
-              maxWidth: "100%",
-            }}
-          >
-            <form
-              method="get"
-              className="dashboard-desktop-only"
-              style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}
-            >
-              <TextInput
-                type="date"
-                name="day"
-                defaultValue={dayFilter ?? ""}
-                aria-label="Cerca giorno"
-                style={{ minWidth: 180 }}
-              />
-              <PrimaryButton type="submit" tone="sand">
-                Cerca giorno
-              </PrimaryButton>
-              {dayFilter ? (
-                <Link href="/dashboard/calendar" style={{ textDecoration: "none" }}>
-                  <PrimaryButton type="button" tone="sand">
-                    Reset
-                  </PrimaryButton>
-                </Link>
-              ) : null}
-            </form>
-
-            {canPublishShifts ? (
-              <PublishWeekPanel
-                before={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
-                rangeStart={toLocalDateKey(currentMonthStart)}
-                rangeEnd={toLocalDateKey(currentMonthEnd)}
-                pendingCount={unconfirmedShiftCount}
-              />
-            ) : (
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
-              </div>
-            )}
-          </div>
-        }
+        action={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
       >
         {canManageRestaurantShifts ? (
           <OwnerCalendarClient
@@ -1003,6 +955,15 @@ export default async function DashboardCalendarPage({
             role={String(role)}
             currentUserId={session.user.id}
             features={features}
+            toolbarAction={
+              canPublishShifts ? (
+                <PublishWeekPanel
+                  rangeStart={toLocalDateKey(currentMonthStart)}
+                  rangeEnd={toLocalDateKey(currentMonthEnd)}
+                  pendingCount={unconfirmedShiftCount}
+                />
+              ) : null
+            }
           />
         ) : (
           <DayActionCalendarClient
@@ -1017,6 +978,15 @@ export default async function DashboardCalendarPage({
             presets={shiftPresets}
             currentUserId={session.user.id}
             features={features}
+            toolbarAction={
+              canPublishShifts ? (
+                <PublishWeekPanel
+                  rangeStart={toLocalDateKey(currentMonthStart)}
+                  rangeEnd={toLocalDateKey(currentMonthEnd)}
+                  pendingCount={unconfirmedShiftCount}
+                />
+              ) : null
+            }
           />
         )}
       </Panel>
