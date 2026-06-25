@@ -1,19 +1,29 @@
-import { ActivityType, Role } from "@prisma/client";
+import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
 import { getDashboardContext } from "./context";
+import { reviewRequestAction } from "./actions";
 import { KpiDashboard } from "./kpi-dashboard";
 import { ClockActionsPanel, type ClockActionStatus } from "./timelogs/timelogs-client";
 import {
   BillingRequiredState,
   EmptyState,
   Panel,
+  PrimaryButton,
   Stack,
 } from "./ui";
 import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
+
+function requestTypeLabel(type: RequestType) {
+  if (type === RequestType.VACATION) return "Ferie";
+  if (type === RequestType.PERMISSION) return "Permesso";
+  if (type === RequestType.SHIFT_CHANGE) return "Cambio turno";
+  if (type === RequestType.OVERTIME) return "Straordinario";
+  return "Assenza";
+}
 
 export default async function DashboardPage() {
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
@@ -54,7 +64,7 @@ export default async function DashboardPage() {
       ? getDashboardKpiData(activeBarId, activeBarActivityType)
       : Promise.resolve(null);
 
-  const [settings, shifts, ownHours, latestTimeLog, kpiData] = await Promise.all([
+  const [settings, shifts, ownHours, latestTimeLog, kpiData, pendingApprovalRequests] = await Promise.all([
     isOperationalProfile && features.timeTracking
       ? prisma.barSettings.findUnique({
           where: { barId: activeBarId },
@@ -123,6 +133,45 @@ export default async function DashboardPage() {
         })
       : Promise.resolve(null),
     kpiDataPromise,
+    canManagePeople && features.requests
+      ? prisma.request.findMany({
+          where: {
+            barId: activeBarId,
+            status: RequestStatus.PENDING,
+            type: {
+              not: RequestType.SICKNESS,
+            },
+            OR: [
+              {
+                type: {
+                  not: RequestType.SHIFT_CHANGE,
+                },
+              },
+              {
+                type: RequestType.SHIFT_CHANGE,
+                peerStatus: RequestStatus.APPROVED,
+              },
+            ],
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+          take: 5,
+          select: {
+            id: true,
+            type: true,
+            startsAt: true,
+            endsAt: true,
+            reason: true,
+            employee: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   const todayKey = toDateInputValueInTimeZone(now);
@@ -263,6 +312,65 @@ export default async function DashboardPage() {
             {features.timeTracking ? (
               <ClockActionsPanel role={role} settings={settings} clockStatus={clockStatus} />
             ) : null}
+          </div>
+        </Panel>
+      ) : null}
+
+      {canManagePeople && pendingApprovalRequests.length > 0 ? (
+        <Panel title="Richieste da approvare" action={`${pendingApprovalRequests.length} in attesa`}>
+          <div style={{ display: "grid", gap: 10 }}>
+            {pendingApprovalRequests.map((request) => (
+              <div
+                key={request.id}
+                className="dashboard-list-card"
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  padding: 14,
+                  borderRadius: 20,
+                  background: "#ffffff",
+                  border: "1px solid #e9d5ff",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <strong style={{ color: "#0f172a" }}>{requestTypeLabel(request.type)}</strong>
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                      {request.employee.firstName} {request.employee.lastName}
+                    </div>
+                  </div>
+                  <div style={{ color: "#475569", fontSize: 13, fontWeight: 700 }}>
+                    {request.startsAt ? toDateInputValueInTimeZone(request.startsAt) : "Data non indicata"}
+                    {request.startsAt && request.endsAt
+                      ? ` · ${toTimeInputValueInTimeZone(request.startsAt)}-${toTimeInputValueInTimeZone(request.endsAt)}`
+                      : ""}
+                  </div>
+                </div>
+
+                {request.reason ? (
+                  <div style={{ color: "#64748b", lineHeight: 1.45 }}>{request.reason}</div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <form action={reviewRequestAction}>
+                    <input type="hidden" name="requestId" value={request.id} />
+                    <input type="hidden" name="decision" value="APPROVED" />
+                    <input type="hidden" name="notifySuccess" value="1" />
+                    <PrimaryButton type="submit" tone="green" style={{ minHeight: 34, paddingInline: 12 }}>
+                      Approva
+                    </PrimaryButton>
+                  </form>
+                  <form action={reviewRequestAction}>
+                    <input type="hidden" name="requestId" value={request.id} />
+                    <input type="hidden" name="decision" value="REJECTED" />
+                    <input type="hidden" name="notifySuccess" value="1" />
+                    <PrimaryButton type="submit" tone="red" style={{ minHeight: 34, paddingInline: 12 }}>
+                      Rifiuta
+                    </PrimaryButton>
+                  </form>
+                </div>
+              </div>
+            ))}
           </div>
         </Panel>
       ) : null}

@@ -118,37 +118,38 @@ export function PopupAction({
                 aria-label={title}
                 className="dashboard-modal-panel"
                 style={{
-                position: "relative",
-                zIndex: 1,
-                width: "min(92vw, 720px)",
-                maxWidth: "100%",
-                maxHeight: "calc(100dvh - 32px)",
+                  position: "relative",
+                  zIndex: 1,
+                  width: "min(94vw, 720px)",
+                  maxWidth: "calc(100vw - 32px)",
+                  maxHeight: "calc(100dvh - 32px)",
                   overflowY: "auto",
                   overflowX: "hidden",
-                  padding: 18,
+                  padding: "clamp(14px, 4vw, 18px)",
                   borderRadius: 28,
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
                   boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
-                display: "grid",
-                gap: 16,
-              }}
-              onSubmitCapture={
-                closeOnSubmit
-                  ? () => {
-                      window.setTimeout(() => {
-                        setOpen(false);
-                      }, 0);
-                    }
-                  : undefined
-              }
-              onClickCapture={(event) => {
-                const target = event.target as HTMLElement | null;
-                if (target?.closest("[data-popup-close]")) {
-                  setOpen(false);
+                  display: "grid",
+                  gap: 16,
+                  boxSizing: "border-box",
+                }}
+                onSubmitCapture={
+                  closeOnSubmit
+                    ? () => {
+                        window.setTimeout(() => {
+                          setOpen(false);
+                        }, 0);
+                      }
+                    : undefined
                 }
-              }}
-            >
+                onClickCapture={(event) => {
+                  const target = event.target as HTMLElement | null;
+                  if (target?.closest("[data-popup-close]")) {
+                    setOpen(false);
+                  }
+                }}
+              >
                 <div
                   style={{
                     display: "flex",

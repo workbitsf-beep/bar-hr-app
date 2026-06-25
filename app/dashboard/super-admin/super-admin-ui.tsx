@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { EmptyState, Panel } from "../ui";
 
-type AdminSection = "home" | "owners" | "bars" | "billing" | "gps" | "legal";
+type AdminSection = "home" | "owners" | "bars" | "billing" | "gps" | "legal" | "system";
 
 const superAdminItems: Array<{
   href: string;
@@ -58,6 +58,15 @@ const superAdminItems: Array<{
     color: "#9333ea",
     tint: "#faf5ff",
   },
+  {
+    href: "/dashboard/super-admin/system",
+    title: "Sistema",
+    description: "Metriche interne e consumi operativi.",
+    eyebrow: "Monitoraggio",
+    section: "system",
+    color: "#0f766e",
+    tint: "#f0fdfa",
+  },
 ];
 
 function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: number }) {
@@ -110,6 +119,15 @@ function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: numbe
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" {...common} />
         <path d="M14 3.5V8h4M9 12h6M9 15.5h6M9 19h3" {...common} />
+      </svg>
+    );
+  }
+
+  if (section === "system") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3" {...common} />
+        <path d="M7 5h10a3 3 0 0 1 3 3v8" {...common} />
       </svg>
     );
   }

@@ -141,7 +141,7 @@ export default async function DashboardDocumentsPage() {
         </Panel>
       ) : (
         <Panel title="Elenco documenti" action={`${visibleCount} visibili`}>
-          <ItemList scrollable>
+          <ItemList>
             {documents.map((document) => {
               const audienceLabel = document.assignedToAll
                 ? "Tutto il team"

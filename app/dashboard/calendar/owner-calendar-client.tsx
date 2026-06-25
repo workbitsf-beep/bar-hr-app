@@ -1312,7 +1312,7 @@ export function OwnerCalendarClient({
                     {day.availabilities.map((availability) => renderAvailabilityCard(availability, true))}
                   </div>
                 ) : null}
-                {features.shifts && day.pendingOnCallShifts.length > 0 ? (
+                {false && features.shifts && day.pendingOnCallShifts.length > 0 ? (
                   <div style={{ display: "grid", gap: 8 }}>
                     <strong>📍 Reperibilità</strong>
                     {day.pendingOnCallShifts.map((shift) => renderPendingOnCallCard(shift, locale, true))}
@@ -2424,7 +2424,7 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                {activeCalendarModal === "day" && features.shifts && (selectedDay?.pendingOnCallShifts ?? []).filter(
+                {(activeCalendarModal === "day" || activeCalendarModal === "shifts") && features.shifts && (selectedDay?.pendingOnCallShifts ?? []).filter(
                   (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
                   <div style={{ display: "grid", gap: 10 }}>

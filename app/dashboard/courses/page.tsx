@@ -127,7 +127,7 @@ export default async function DashboardCoursesPage({
         {courses.length === 0 ? (
           <EmptyState message="Nessun corso pianificato." />
         ) : (
-          <ItemList scrollable>
+          <ItemList>
             {courses.map((course) => (
               <ItemCard
                 key={course.id}
