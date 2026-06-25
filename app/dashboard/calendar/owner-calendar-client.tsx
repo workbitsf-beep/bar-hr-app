@@ -1160,11 +1160,12 @@ export function OwnerCalendarClient({
     <>
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: toolbarAction ? "minmax(0, auto) minmax(118px, 1fr)" : "minmax(0, auto)",
+          display: "flex",
           alignItems: "center",
-          justifyContent: "stretch",
-          gap: 8,
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "nowrap",
+          width: "100%",
           marginBottom: 10,
         }}
       >
@@ -1179,6 +1180,7 @@ export function OwnerCalendarClient({
             border: "1px solid #e2e8f0",
             width: "fit-content",
             maxWidth: "100%",
+            flex: "0 0 auto",
           }}
         >
           {(["week", "day"] as const).map((mode) => (
@@ -1202,7 +1204,7 @@ export function OwnerCalendarClient({
           ))}
         </div>
         {toolbarAction ? (
-          <div style={{ justifySelf: "end", minWidth: 0, maxWidth: "100%" }}>
+          <div style={{ marginLeft: "auto", flex: "0 0 auto", minWidth: 132 }}>
             {toolbarAction}
           </div>
         ) : null}
