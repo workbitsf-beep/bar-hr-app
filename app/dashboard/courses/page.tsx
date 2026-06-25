@@ -49,10 +49,15 @@ export default async function DashboardCoursesPage({
 
   const canManage = canManageTrainingAndDocuments(role as Role);
   const successMessage = success === "course-created" ? "Corso salvato correttamente." : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const [courses, members] = await Promise.all([
     prisma.course.findMany({
       where: {
         barId: activeBarId,
+        endsAt: {
+          gte: today,
+        },
         ...(canManage
           ? {}
           : {
@@ -62,7 +67,14 @@ export default async function DashboardCoursesPage({
       orderBy: {
         startsAt: "asc",
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        startsAt: true,
+        endsAt: true,
+        location: true,
+        assignedToAll: true,
         assignedTo: {
           select: {
             firstName: true,

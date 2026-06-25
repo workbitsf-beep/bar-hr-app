@@ -13,7 +13,6 @@ type RevenueBar = {
   owner: {
     firstName: string;
     lastName: string;
-    email: string;
   };
   subscription: {
     planType: "FREE" | "TRIAL" | "PAID" | "LIFETIME";
@@ -258,7 +257,6 @@ export async function SuperAdminHomeHub() {
                 select: {
                   firstName: true,
                   lastName: true,
-                  email: true,
                 },
               },
             },

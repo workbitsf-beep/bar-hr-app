@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -9,6 +9,8 @@ import {
   isWorkbitPushDisabled,
 } from "@/lib/push-client";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
+
+const NOTIFICATION_CACHE_TTL_MS = 30_000;
 
 type NotificationItem = {
   id: string;
@@ -74,6 +76,8 @@ export function NotificationsBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const lastLoadedAtRef = useRef(0);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -108,7 +112,16 @@ export function NotificationsBell() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mounted]);
 
-  const loadNotifications = useCallback(async () => {
+  const loadNotifications = useCallback(async (force = false) => {
+    if (loadingRef.current) {
+      return;
+    }
+
+    if (!force && Date.now() - lastLoadedAtRef.current < NOTIFICATION_CACHE_TTL_MS) {
+      return;
+    }
+
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -124,9 +137,11 @@ export function NotificationsBell() {
 
       setNotifications(payload.notifications ?? []);
       setUnreadCount(payload.unreadCount ?? 0);
+      lastLoadedAtRef.current = Date.now();
     } catch (error) {
       setError(error instanceof Error ? error.message : "Impossibile caricare le notifiche.");
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }, []);

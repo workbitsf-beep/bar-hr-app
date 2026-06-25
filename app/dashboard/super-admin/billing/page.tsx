@@ -69,7 +69,14 @@ export default async function SuperAdminBillingPage() {
       orderBy: {
         createdAt: "desc",
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        addressLine1: true,
+        city: true,
+        postalCode: true,
         owner: {
           select: {
             id: true,

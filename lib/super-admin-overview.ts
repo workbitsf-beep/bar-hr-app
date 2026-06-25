@@ -300,24 +300,44 @@ async function loadSuperAdminOverviewData(): Promise<SuperAdminOverviewPayload> 
     }),
     prisma.shift.groupBy({
       by: ["barId"],
+      where: {
+        startTime: {
+          gte: last30Days,
+        },
+      },
       _count: {
         _all: true,
       },
     }),
     prisma.timeLog.groupBy({
       by: ["barId"],
+      where: {
+        timestamp: {
+          gte: last30Days,
+        },
+      },
       _count: {
         _all: true,
       },
     }),
     prisma.request.groupBy({
       by: ["barId"],
+      where: {
+        createdAt: {
+          gte: last30Days,
+        },
+      },
       _count: {
         _all: true,
       },
     }),
     prisma.task.groupBy({
       by: ["barId"],
+      where: {
+        createdAt: {
+          gte: last30Days,
+        },
+      },
       _count: {
         _all: true,
       },
