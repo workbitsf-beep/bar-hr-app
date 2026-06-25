@@ -57,7 +57,7 @@ export function ScrollToTodayButton({ fallbackHref }: { fallbackHref: string }) 
         cursor: "pointer",
       }}
     >
-      Giorno
+      Oggi
     </button>
   );
 }

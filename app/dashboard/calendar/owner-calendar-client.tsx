@@ -1,7 +1,15 @@
 "use client";
 
 import { RequestType } from "@prisma/client";
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
@@ -573,6 +581,10 @@ export function OwnerCalendarClient({
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
+  const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
+    const today = days.find((day) => day.isToday) ?? days[0];
+    return filteredDay ?? today?.date ?? "";
+  });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
@@ -599,6 +611,7 @@ export function OwnerCalendarClient({
   const [courseEnd, setCourseEnd] = useState("");
   const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
   const [courseAssignedToId, setCourseAssignedToId] = useState("");
+  const daySwipeRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -635,6 +648,38 @@ export function OwnerCalendarClient({
     return () => cancelAnimationFrame(frame);
   }, [filteredDay, selectedDate]);
 
+  useEffect(() => {
+    const requestedDay = filteredDay
+      ? days.find((item) => item.date.slice(0, 10) === filteredDay)
+      : days.find((item) => item.date === focusedDayDate) ?? days.find((item) => item.isToday) ?? days[0];
+
+    if (requestedDay && requestedDay.date !== focusedDayDate) {
+      setFocusedDayDate(requestedDay.date);
+    }
+  }, [days, filteredDay, focusedDayDate]);
+
+  useEffect(() => {
+    function handleShowTodayAsDay() {
+      const today = days.find((item) => item.isToday) ?? days[0];
+
+      if (!today) {
+        return;
+      }
+
+      setFocusedDayDate(today.date);
+      setCalendarView("day");
+      setSelectedDate(null);
+      setActiveCalendarModal(null);
+      setFeedback(null);
+    }
+
+    window.addEventListener("workbit:calendar-show-today-day", handleShowTodayAsDay);
+
+    return () => {
+      window.removeEventListener("workbit:calendar-show-today-day", handleShowTodayAsDay);
+    };
+  }, [days]);
+
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
@@ -644,6 +689,11 @@ export function OwnerCalendarClient({
     [editingShiftId, selectedDay]
   );
   const weeks = useMemo(() => chunkByWeek(days), [days]);
+  const focusedDayIndex = useMemo(
+    () => Math.max(0, days.findIndex((item) => item.date === focusedDayDate)),
+    [days, focusedDayDate]
+  );
+  const focusedDay = days[focusedDayIndex] ?? days.find((item) => item.isToday) ?? days[0] ?? null;
   const visibleWeeks = useMemo(
     () =>
       filteredDay
@@ -652,12 +702,8 @@ export function OwnerCalendarClient({
     [filteredDay, weeks]
   );
   const visibleDayItems = useMemo(() => {
-    if (filteredDay) {
-      return days.filter((day) => day.date.slice(0, 10) === filteredDay);
-    }
-
-    return [days.find((day) => day.isToday) ?? days[0]].filter((day): day is DayItem => Boolean(day));
-  }, [days, filteredDay]);
+    return focusedDay ? [focusedDay] : [];
+  }, [focusedDay]);
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
       return new Map<string, string>();
@@ -742,6 +788,42 @@ export function OwnerCalendarClient({
     setCourseEnd(`${day.date.slice(0, 10)}T`);
     setCourseAssignedToAll(true);
     setCourseAssignedToId("");
+  }
+
+  function moveFocusedDay(direction: -1 | 1) {
+    if (!days.length) {
+      return;
+    }
+
+    const nextIndex = Math.min(days.length - 1, Math.max(0, focusedDayIndex + direction));
+    const nextDay = days[nextIndex];
+
+    if (!nextDay || nextDay.date === focusedDayDate) {
+      return;
+    }
+
+    setFocusedDayDate(nextDay.date);
+    setSelectedDate(null);
+    setActiveCalendarModal(null);
+    setFeedback(null);
+  }
+
+  function handleDayPointerEnd(event: PointerEvent<HTMLElement>) {
+    const start = daySwipeRef.current;
+    daySwipeRef.current = null;
+
+    if (!start) {
+      return;
+    }
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+
+    if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) {
+      return;
+    }
+
+    moveFocusedDay(deltaX < 0 ? 1 : -1);
   }
 
   function closeModal() {
@@ -1057,12 +1139,14 @@ export function OwnerCalendarClient({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 6,
-          padding: 4,
+          gap: 4,
+          padding: 3,
           borderRadius: 999,
           background: "#f8fafc",
           border: "1px solid #e2e8f0",
-          marginBottom: 12,
+          marginBottom: 10,
+          width: "fit-content",
+          maxWidth: "100%",
         }}
       >
         {(["week", "day"] as const).map((mode) => (
@@ -1073,10 +1157,11 @@ export function OwnerCalendarClient({
             style={{
               border: 0,
               borderRadius: 999,
-              padding: "8px 13px",
+              padding: "7px 12px",
               background: calendarView === mode ? "#0f172a" : "transparent",
               color: calendarView === mode ? "#ffffff" : "#475569",
               fontWeight: 800,
+              fontSize: 14,
               cursor: "pointer",
             }}
           >
@@ -1086,7 +1171,7 @@ export function OwnerCalendarClient({
       </div>
 
       {calendarView === "day" ? (
-        <div style={{ display: "grid", gap: 14 }}>
+        <div style={{ display: "grid", gap: 14, width: "100%" }}>
           {visibleDayItems.map((day) => {
             const hasEvents =
               (features.shifts ? day.shifts.length : 0) +
@@ -1101,18 +1186,75 @@ export function OwnerCalendarClient({
             return (
               <section
                 key={`day-view-${day.date}`}
+                onPointerDown={(event) => {
+                  daySwipeRef.current = { x: event.clientX, y: event.clientY };
+                }}
+                onPointerUp={handleDayPointerEnd}
+                onPointerCancel={() => {
+                  daySwipeRef.current = null;
+                }}
                 style={{
                   display: "grid",
                   gap: 14,
-                  padding: 16,
-                  borderRadius: 24,
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
+                  minHeight: "calc(100dvh - 230px)",
+                  padding: "18px min(18px, 4vw)",
+                  borderRadius: 28,
+                  background: "linear-gradient(145deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96))",
+                  border: "1px solid rgba(124,58,237,0.12)",
+                  boxShadow: "0 18px 45px rgba(88, 28, 135, 0.08)",
+                  boxSizing: "border-box",
+                  touchAction: "pan-y",
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  {formatDayLabel(day.date, locale)}
-                </strong>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <IconButton
+                    type="button"
+                    onClick={() => moveFocusedDay(-1)}
+                    disabled={focusedDayIndex <= 0}
+                    aria-label="Giorno precedente"
+                    style={{ width: 38, height: 38 }}
+                  >
+                    ‹
+                  </IconButton>
+                  <div style={{ display: "grid", gap: 4, textAlign: "center", minWidth: 0 }}>
+                    <strong style={{ color: "#0f172a", fontSize: 20, lineHeight: 1.15 }}>
+                      {formatDayLabel(day.date, locale)}
+                    </strong>
+                  </div>
+                  <IconButton
+                    type="button"
+                    onClick={() => moveFocusedDay(1)}
+                    disabled={focusedDayIndex >= days.length - 1}
+                    aria-label="Giorno successivo"
+                    style={{ width: 38, height: 38 }}
+                  >
+                    ›
+                  </IconButton>
+                </div>
+                {features.shifts && day.date.slice(0, 10) >= todayKey ? (
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <PrimaryButton
+                      type="button"
+                      tone="sand"
+                      onClick={() => {
+                        setSelectedDate(day.date);
+                        setActiveCalendarModal("shifts");
+                        setShowShiftComposer(true);
+                        setCurrentShiftDraft(createShiftDraft(day.date));
+                      }}
+                      style={{ minHeight: 38, borderRadius: 999, paddingInline: 14 }}
+                    >
+                      + Turni
+                    </PrimaryButton>
+                  </div>
+                ) : null}
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
                 {features.shifts && day.shifts.length > 0 ? (
                   <div style={{ display: "grid", gap: 8 }}>
@@ -1142,9 +1284,29 @@ export function OwnerCalendarClient({
                     {day.pendingOnCallShifts.map((shift) => renderPendingOnCallCard(shift, locale, true))}
                   </div>
                 ) : null}
-                {(features.tasks && day.tasks.length > 0) || (features.noticeBoard && day.notes.length > 0) ? (
+                {features.tasks || features.noticeBoard ? (
                   <div style={{ display: "grid", gap: 8 }}>
-                    <strong>📌 Note / Comunicazioni</strong>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <strong>📌 Note</strong>
+                      {features.tasks && day.date.slice(0, 10) >= todayKey ? (
+                        <IconButton
+                          type="button"
+                          onClick={() => {
+                            setSelectedDate(day.date);
+                            setActiveCalendarModal("notes");
+                            setQuickComposer("task");
+                          }}
+                          aria-label="Aggiungi note"
+                          disabled={isPending}
+                          style={{ width: 36, height: 36 }}
+                        >
+                          +
+                        </IconButton>
+                      ) : null}
+                    </div>
+                    {day.tasks.length === 0 && day.notes.length === 0 ? (
+                      <div style={{ color: "#64748b" }}>Nessuna nota in questa giornata.</div>
+                    ) : null}
                     {day.tasks.map((task) => renderTaskPreviewCard(task, true, () => {
                       setSelectedDate(day.date);
                       setActiveCalendarModal("notes");

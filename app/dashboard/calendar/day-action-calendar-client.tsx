@@ -1463,20 +1463,6 @@ export function DayActionCalendarClient({
                       + Turni
                     </PrimaryButton>
                   ) : null}
-                  {features.tasks && day.date.slice(0, 10) >= todayKey ? (
-                    <PrimaryButton
-                      type="button"
-                      tone="sand"
-                      onClick={() => {
-                        setSelectedDate(day.date);
-                        setActiveCalendarModal("notes");
-                        setQuickComposer("task");
-                      }}
-                      style={{ minHeight: 38, borderRadius: 999, paddingInline: 14 }}
-                    >
-                      + Note
-                    </PrimaryButton>
-                  ) : null}
                 </div>
 
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
@@ -1513,9 +1499,29 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {(features.tasks && day.tasks.length > 0) || (features.noticeBoard && day.notes.length > 0) ? (
+                {features.tasks || features.noticeBoard ? (
                   <div style={{ display: "grid", gap: 8 }}>
-                    <strong>📌 Note / Comunicazioni</strong>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <strong>📌 Note</strong>
+                      {features.tasks && day.date.slice(0, 10) >= todayKey ? (
+                        <IconButton
+                          type="button"
+                          onClick={() => {
+                            setSelectedDate(day.date);
+                            setActiveCalendarModal("notes");
+                            setQuickComposer("task");
+                          }}
+                          aria-label="Aggiungi note"
+                          disabled={isPending}
+                          style={{ width: 36, height: 36 }}
+                        >
+                          +
+                        </IconButton>
+                      ) : null}
+                    </div>
+                    {day.tasks.length === 0 && day.notes.length === 0 ? (
+                      <div style={{ color: "#64748b" }}>Nessuna nota in questa giornata.</div>
+                    ) : null}
                     {day.tasks.map((task) =>
                       renderTaskCard(task, true, submitTaskCompletion, isPending)
                     )}
