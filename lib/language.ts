@@ -348,9 +348,9 @@ const runtimeEntries: RuntimeEntry[] = [
     },
   ],
   [
-    "Nessuna posizione GPS salvata. Usa il tasto per registrarla.",
+    "Nessuna posizione GPS salvata.",
     {
-      it: "Nessuna posizione GPS salvata. Usa il tasto per registrarla.",
+      it: "Nessuna posizione GPS salvata.",
       en: "No GPS location saved yet. Use the button to register it.",
       es: "No hay ninguna posicion GPS guardada. Usa el boton para registrarla.",
       fr: "Aucune position GPS enregistree. Utilisez le bouton pour l'enregistrer.",

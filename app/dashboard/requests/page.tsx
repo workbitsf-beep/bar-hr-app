@@ -408,7 +408,7 @@ export default async function DashboardRequestsPage({
                   <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Nessun turno disponibile.</p>
                 ) : (
                   <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    Apri il popup per richiedere un cambio.
+                    Cambio turno
                   </p>
                 )}
               </Panel>

@@ -120,10 +120,7 @@ export function BoardComposeForm({
   return (
     <form action={action} style={{ display: "grid", gap: 16 }}>
       {notifySuccess ? <input type="hidden" name="notifySuccess" value="1" /> : null}
-      <FormField
-        label="Messaggi"
-        hint="Usa il tasto + per aggiungere altri messaggi. Ogni voce verra pubblicata separatamente."
-      >
+      <FormField label="Messaggi">
         <div style={{ display: "grid", gap: 12 }}>
           {entries.map((entry) => (
             <div

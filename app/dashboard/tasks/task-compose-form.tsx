@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AudienceSelector } from "@/app/components/audience-selector";
-import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
+import { FormField, IconButton, PrimaryButton, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -86,10 +86,7 @@ export function TaskComposeForm({
   return (
     <form action={action} style={{ display: "grid", gap: 16 }}>
       {notifySuccess ? <input type="hidden" name="notifySuccess" value="1" /> : null}
-      <FormField
-        label="Note"
-        hint="Usa il tasto + per aggiungere altre note. Ogni voce verra salvata separatamente."
-      >
+      <FormField label="Note">
         <div style={{ display: "grid", gap: 12 }}>
           {entries.map((entry) => (
             <div
@@ -217,6 +214,10 @@ export function TaskComposeForm({
                 ✓
               </IconButton>
             </div>
+
+            <FormField label="Data">
+              <TextInput name="dueDate" type="date" required />
+            </FormField>
           </div>
 
           <div style={{ display: "none", justifyContent: "flex-end" }}>
@@ -241,23 +242,6 @@ export function TaskComposeForm({
 
         </div>
       </FormField>
-
-      <FormField label="Descrizione">
-        <TextArea name="description" placeholder="Dettagli operativi opzionali" />
-      </FormField>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 12,
-        }}
-      >
-        <FormField label="Data">
-          <TextInput name="dueDate" type="date" required />
-        </FormField>
-
-      </div>
 
       <div>
         <PrimaryButton type="submit" disabled={allEntries.length === 0}>Conferma note</PrimaryButton>

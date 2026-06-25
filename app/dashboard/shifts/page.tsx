@@ -288,7 +288,7 @@ export default async function DashboardShiftsPage() {
             </PopupAction>
           }
         >
-          <EmptyState message="Apri il popup con il + per creare o modificare un turno." />
+          <EmptyState message="Nessun turno pianificato." />
         </Panel>
       ) : isCompany ? (
         <Panel title="Turni aziendali">

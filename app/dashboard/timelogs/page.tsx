@@ -176,7 +176,7 @@ export default async function DashboardTimeLogsPage({
           {members.length === 0 ? (
             <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
           ) : (
-            <EmptyState message="Usa il tasto + per aggiungere una timbratura manuale." />
+            <EmptyState message="Nessuna timbratura manuale." />
           )}
         </Panel>
       ) : null}

@@ -61,7 +61,6 @@ export function QuickCalendarEntryModal({
 }) {
   const [taskEntries, setTaskEntries] = useState<EntryItem[]>([createEmptyEntry()]);
   const [taskDraft, setTaskDraft] = useState<EntryItem>(createEmptyEntry());
-  const [taskDescription, setTaskDescription] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [boardEntries, setBoardEntries] = useState<EntryItem[]>([createEmptyEntry()]);
   const [boardDraft, setBoardDraft] = useState<EntryItem>(createEmptyEntry());
@@ -73,7 +72,6 @@ export function QuickCalendarEntryModal({
 
     setTaskEntries([]);
     setTaskDraft(createEmptyEntry());
-    setTaskDescription("");
     setTaskDueDate(toDateInputValue(dateIso));
     setBoardEntries([]);
     setBoardDraft(createEmptyEntry());
@@ -140,7 +138,7 @@ export function QuickCalendarEntryModal({
       }
     }
 
-    formData.set("description", taskDescription);
+    formData.set("description", "");
     formData.set("dueDate", taskDueDate);
 
     onSubmitTask(formData);
@@ -321,6 +319,15 @@ export function QuickCalendarEntryModal({
                   Urgente
                 </label>
               </div>
+
+              <label style={{ display: "grid", gap: 8 }}>
+                <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>
+                <TextInput
+                  type="date"
+                  value={taskDueDate}
+                  onChange={(event) => setTaskDueDate(event.target.value)}
+                />
+              </label>
             </div>
           ))}
 
@@ -341,33 +348,6 @@ export function QuickCalendarEntryModal({
               ✓
             </IconButton>
           </div>
-        </div>
-
-        <label style={{ display: "grid", gap: 8 }}>
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>Descrizione</span>
-          <TextArea
-            value={taskDescription}
-            onChange={(event) => setTaskDescription(event.target.value)}
-          />
-        </label>
-
-        <div
-          className="dashboard-modal-body-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 12,
-          }}
-        >
-          <label style={{ display: "grid", gap: 8 }}>
-            <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>
-            <TextInput
-              type="date"
-              value={taskDueDate}
-              onChange={(event) => setTaskDueDate(event.target.value)}
-            />
-          </label>
-
         </div>
 
         <div className="dashboard-modal-actions">

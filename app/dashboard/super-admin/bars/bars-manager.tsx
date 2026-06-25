@@ -810,7 +810,7 @@ export function BarsManager({
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
                         <div style={{ flex: "1 1 220px", minWidth: 0, display: "grid", gap: 8 }}>
                           <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
-                            Seleziona e premi +
+                            Seleziona titolare
                           </span>
                           <Select
                             value={newAdditionalOwnerDraftId}
@@ -1106,7 +1106,7 @@ export function BarsManager({
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
                       <div style={{ flex: "1 1 220px", minWidth: 0, display: "grid", gap: 8 }}>
                         <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
-                          Seleziona e premi +
+                          Seleziona titolare
                         </span>
                         <select
                           value={additionalOwnerDraftId}
