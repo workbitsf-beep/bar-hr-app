@@ -503,6 +503,7 @@ export default async function DashboardSettingsPage({
       : settings;
   const standardHours = parseStandardHoursFromSettings(settings);
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
+  const timeTrackingActive = getFeatureFlags(featureSettings).timeTracking;
   const activeFeatureCount = featureDefinitions.filter(
     (feature) => getFeatureFlags(featureSettings)[feature.key]
   ).length;
@@ -542,7 +543,7 @@ export default async function DashboardSettingsPage({
           </div>
         </form>
 
-        {isRestaurant ? (
+        {isRestaurant && timeTrackingActive ? (
           <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
             <input type="hidden" name="settingsSection" value="gps" />
             <GpsLocationField

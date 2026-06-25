@@ -110,11 +110,14 @@ function barNeedsSetup(bar: OnboardingBar) {
     return false;
   }
 
+  const timeTrackingEnabled = bar.settings?.timeTrackingEnabled !== false;
+
   if (bar.activityType === ActivityType.COMPANY) {
     return bar.settings?.companyShiftsEnabled === null;
   }
 
   const needsGps =
+    timeTrackingEnabled &&
     bar.activityType === ActivityType.RESTAURANT &&
     (!bar.settings ||
       bar.settings.gpsLatitude === null ||
@@ -124,8 +127,9 @@ function barNeedsSetup(bar: OnboardingBar) {
   return Boolean(
     !bar.settings ||
       needsGps ||
-      bar.settings.roundingMinutes === null ||
-      bar.settings.roundingMode === null
+      (timeTrackingEnabled &&
+        (bar.settings.roundingMinutes === null ||
+          bar.settings.roundingMode === null))
   );
 }
 
@@ -289,7 +293,10 @@ function getCurrentStep(activeBar: Awaited<ReturnType<typeof getOwnerContext>>["
     return 1;
   }
 
+  const timeTrackingEnabled = activeBar.settings?.timeTrackingEnabled !== false;
+
   if (
+    timeTrackingEnabled &&
     activeBar.activityType === ActivityType.RESTAURANT &&
     (!activeBar.settings ||
       activeBar.settings.gpsLatitude === null ||
@@ -307,13 +314,14 @@ function getCurrentStep(activeBar: Awaited<ReturnType<typeof getOwnerContext>>["
   }
 
   if (
+    timeTrackingEnabled &&
     activeBar.activityType === ActivityType.RESTAURANT &&
     !hasCompletedRoundingSetup(activeBar.settings)
   ) {
     return 3;
   }
 
-  return activeBar.activityType === ActivityType.RESTAURANT ? 4 : 3;
+  return activeBar.activityType === ActivityType.RESTAURANT && timeTrackingEnabled ? 4 : 3;
 }
 
 async function createBarAction(formData: FormData) {
@@ -874,7 +882,8 @@ export default async function OnboardingPage({
   const params = searchParams ? await searchParams : {};
   const { activeBar, ownedBars } = await getOwnerContext();
   const globalGpsRadius = await getGlobalGpsRadius();
-  const showGpsStep = activeBar?.activityType !== ActivityType.COMPANY;
+  const timeTrackingEnabled = activeBar?.settings?.timeTrackingEnabled !== false;
+  const showGpsStep = activeBar?.activityType !== ActivityType.COMPANY && timeTrackingEnabled;
   const onboardingSteps = showGpsStep
     ? ([
         { id: 1 as StepNumber, title: "Locale" },
