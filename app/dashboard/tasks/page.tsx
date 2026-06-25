@@ -137,7 +137,7 @@ export default async function DashboardTasksPage({
   ]);
 
   return (
-    <Stack>
+    <Stack columns="1fr">
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
       <Panel
@@ -175,7 +175,7 @@ export default async function DashboardTasksPage({
         {tasks.length === 0 ? (
           <EmptyState message="Nessuna nota disponibile." />
         ) : (
-          <ItemList scrollable>
+          <ItemList>
             {tasks.map((task) => {
               const isDone = task.status === "DONE";
               const canComplete =
@@ -213,10 +213,6 @@ export default async function DashboardTasksPage({
                           />
                         ) : null}
                       </div>
-
-                      {task.description ? (
-                        <div style={{ color: "#334155", lineHeight: 1.6 }}>{task.description}</div>
-                      ) : null}
 
                       {task.completions.length > 0 ? (
                         <div style={{ display: "grid", gap: 6 }}>
