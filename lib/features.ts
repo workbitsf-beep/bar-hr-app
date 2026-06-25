@@ -76,17 +76,17 @@ export const featureDefinitions: Array<{
   {
     key: "tasks",
     field: "tasksEnabled",
-    label: "Mansioni",
-    shortLabel: "Mansioni",
-    description: "Attività assegnate al team.",
+    label: "Note operative",
+    shortLabel: "Note",
+    description: "Note da assegnare e completare.",
     emoji: "✅",
   },
   {
     key: "noticeBoard",
     field: "noticeBoardEnabled",
-    label: "Bacheca",
-    shortLabel: "Bacheca",
-    description: "Comunicazioni interne.",
+    label: "Note condivise",
+    shortLabel: "Note",
+    description: "Comunicazioni interne al team.",
     emoji: "📢",
   },
   {

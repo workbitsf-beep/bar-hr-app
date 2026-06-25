@@ -18,5 +18,12 @@ export async function GET(): Promise<Response> {
     deletedShiftCount: shiftResult.deletedShiftCount,
     deletedRequestCount: shiftResult.deletedRequestCount,
     detachedTimeLogCount: shiftResult.detachedTimeLogCount,
+    deletedAvailabilityCount: shiftResult.deletedAvailabilityCount,
+    deletedCourseCount: shiftResult.deletedCourseCount,
+    deletedClosureCount: shiftResult.deletedClosureCount,
+    deletedTaskCount: shiftResult.deletedTaskCount,
+    deletedNoteCount: shiftResult.deletedNoteCount,
+    restaurantCutoff: shiftResult.restaurantCutoff,
+    companyCutoff: shiftResult.companyCutoff,
   });
 }

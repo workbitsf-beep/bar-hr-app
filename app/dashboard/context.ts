@@ -158,6 +158,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
   const tasksNavLabel = features.tasks ? "Note" : t.board;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
+  const calendarNavLabel = isCompany ? t.calendar : t.shifts;
 
   const navItems: DashboardNavItem[] =
     String(role) === "SUPER_ADMIN"
@@ -176,7 +177,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           features.availability ||
           features.tasks ||
           features.courses
-            ? [{ label: t.shifts, href: "/dashboard/calendar" }]
+            ? [{ label: calendarNavLabel, href: "/dashboard/calendar" }]
             : []),
           ...(features.tasks
             ? [{ label: tasksNavLabel, href: "/dashboard/tasks" }]

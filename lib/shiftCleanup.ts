@@ -1,23 +1,41 @@
-import { RequestType } from "@prisma/client";
+import { ActivityType, RequestType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export const SHIFT_RETENTION_DAYS = 45;
+export const RESTAURANT_CALENDAR_RETENTION_DAYS = 60;
+export const COMPANY_CALENDAR_RETENTION_DAYS = 400;
 const SHIFT_RETENTION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
 
 let lastRetentionCleanupAt = 0;
 let retentionCleanupPromise:
   | Promise<{
-      cutoff: Date;
+      restaurantCutoff: Date;
+      companyCutoff: Date;
       deletedShiftCount: number;
       deletedRequestCount: number;
       detachedTimeLogCount: number;
+      deletedAvailabilityCount: number;
+      deletedCourseCount: number;
+      deletedClosureCount: number;
+      deletedTaskCount: number;
+      deletedNoteCount: number;
     }>
   | null = null;
 
-export function getShiftRetentionCutoff(now = new Date()) {
+function getRetentionCutoff(days: number, now = new Date()) {
   const cutoff = new Date(now);
-  cutoff.setDate(cutoff.getDate() - SHIFT_RETENTION_DAYS);
+  cutoff.setDate(cutoff.getDate() - days);
   return cutoff;
+}
+
+export function getCalendarRetentionCutoffs(now = new Date()) {
+  return {
+    restaurantCutoff: getRetentionCutoff(RESTAURANT_CALENDAR_RETENTION_DAYS, now),
+    companyCutoff: getRetentionCutoff(COMPANY_CALENDAR_RETENTION_DAYS, now),
+  };
+}
+
+export function getShiftRetentionCutoff(now = new Date()) {
+  return getRetentionCutoff(RESTAURANT_CALENDAR_RETENTION_DAYS, now);
 }
 
 export async function deleteShiftWithCleanup(
@@ -82,12 +100,23 @@ export async function deleteShiftWithCleanup(
 }
 
 export async function runShiftRetentionCleanup(now = new Date()) {
-  const cutoff = getShiftRetentionCutoff(now);
+  const { restaurantCutoff, companyCutoff } = getCalendarRetentionCutoffs(now);
+  const expiredByBarActivity = [
+    {
+      bar: { activityType: ActivityType.RESTAURANT },
+      cutoff: restaurantCutoff,
+    },
+    {
+      bar: { activityType: ActivityType.COMPANY },
+      cutoff: companyCutoff,
+    },
+  ];
   const expiredShifts = await prisma.shift.findMany({
     where: {
-      endTime: {
-        lt: cutoff,
-      },
+      OR: expiredByBarActivity.map((entry) => ({
+        bar: entry.bar,
+        endTime: { lt: entry.cutoff },
+      })),
     },
     select: {
       id: true,
@@ -95,11 +124,19 @@ export async function runShiftRetentionCleanup(now = new Date()) {
   });
 
   if (expiredShifts.length === 0) {
+    const standaloneResult = await deleteExpiredCalendarItems(expiredByBarActivity);
+
     return {
-      cutoff,
+      restaurantCutoff,
+      companyCutoff,
       deletedShiftCount: 0,
-      deletedRequestCount: 0,
+      deletedRequestCount: standaloneResult.deletedRequestCount,
       detachedTimeLogCount: 0,
+      deletedAvailabilityCount: standaloneResult.deletedAvailabilityCount,
+      deletedCourseCount: standaloneResult.deletedCourseCount,
+      deletedClosureCount: standaloneResult.deletedClosureCount,
+      deletedTaskCount: standaloneResult.deletedTaskCount,
+      deletedNoteCount: standaloneResult.deletedNoteCount,
     };
   }
 
@@ -114,6 +151,28 @@ export async function runShiftRetentionCleanup(now = new Date()) {
       },
     });
 
+    const deletedOldRequests = await tx.request.deleteMany({
+      where: {
+        OR: expiredByBarActivity.flatMap((entry) => [
+          {
+            bar: entry.bar,
+            endsAt: { lt: entry.cutoff },
+          },
+          {
+            bar: entry.bar,
+            endsAt: null,
+            startsAt: { lt: entry.cutoff },
+          },
+          {
+            bar: entry.bar,
+            endsAt: null,
+            startsAt: null,
+            createdAt: { lt: entry.cutoff },
+          },
+        ]),
+      },
+    });
+
     const detachedTimeLogs = await tx.timeLog.updateMany({
       where: {
         shiftId: {
@@ -122,6 +181,51 @@ export async function runShiftRetentionCleanup(now = new Date()) {
       },
       data: {
         shiftId: null,
+      },
+    });
+
+    const deletedAvailabilities = await tx.availability.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedCourses = await tx.course.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedClosures = await tx.calendarClosure.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedTasks = await tx.task.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          dueDate: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedNotes = await tx.note.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          createdAt: { lt: entry.cutoff },
+        })),
       },
     });
 
@@ -135,15 +239,106 @@ export async function runShiftRetentionCleanup(now = new Date()) {
 
     return {
       deletedShiftCount: deletedShifts.count,
-      deletedRequestCount: deletedRequests.count,
+      deletedRequestCount: deletedRequests.count + deletedOldRequests.count,
       detachedTimeLogCount: detachedTimeLogs.count,
+      deletedAvailabilityCount: deletedAvailabilities.count,
+      deletedCourseCount: deletedCourses.count,
+      deletedClosureCount: deletedClosures.count,
+      deletedTaskCount: deletedTasks.count,
+      deletedNoteCount: deletedNotes.count,
     };
   });
 
   return {
-    cutoff,
+    restaurantCutoff,
+    companyCutoff,
     ...result,
   };
+}
+
+async function deleteExpiredCalendarItems(
+  expiredByBarActivity: Array<{
+    bar: { activityType: ActivityType };
+    cutoff: Date;
+  }>
+) {
+  return prisma.$transaction(async (tx) => {
+    const deletedRequests = await tx.request.deleteMany({
+      where: {
+        OR: expiredByBarActivity.flatMap((entry) => [
+          {
+            bar: entry.bar,
+            endsAt: { lt: entry.cutoff },
+          },
+          {
+            bar: entry.bar,
+            endsAt: null,
+            startsAt: { lt: entry.cutoff },
+          },
+          {
+            bar: entry.bar,
+            endsAt: null,
+            startsAt: null,
+            createdAt: { lt: entry.cutoff },
+          },
+        ]),
+      },
+    });
+
+    const deletedAvailabilities = await tx.availability.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedCourses = await tx.course.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedClosures = await tx.calendarClosure.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedTasks = await tx.task.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          dueDate: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    const deletedNotes = await tx.note.deleteMany({
+      where: {
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          createdAt: { lt: entry.cutoff },
+        })),
+      },
+    });
+
+    return {
+      deletedRequestCount: deletedRequests.count,
+      deletedAvailabilityCount: deletedAvailabilities.count,
+      deletedCourseCount: deletedCourses.count,
+      deletedClosureCount: deletedClosures.count,
+      deletedTaskCount: deletedTasks.count,
+      deletedNoteCount: deletedNotes.count,
+    };
+  });
 }
 
 export async function maybeRunShiftRetentionCleanup(now = new Date()) {
