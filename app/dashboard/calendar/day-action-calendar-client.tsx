@@ -3,7 +3,15 @@
 import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { combineDateAndTime } from "@/lib/shift-datetime";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
@@ -768,6 +776,10 @@ export function DayActionCalendarClient({
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
+  const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
+    const today = days.find((day) => day.isToday) ?? days[0];
+    return filteredDay ?? today?.date ?? "";
+  });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
@@ -794,6 +806,7 @@ export function DayActionCalendarClient({
   const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
   const [courseAssignedToId, setCourseAssignedToId] = useState("");
   const [showCourseComposer, setShowCourseComposer] = useState(false);
+  const daySwipeRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -830,6 +843,38 @@ export function DayActionCalendarClient({
     return () => cancelAnimationFrame(frame);
   }, [filteredDay, selectedDate]);
 
+  useEffect(() => {
+    const requestedDay = filteredDay
+      ? days.find((day) => day.date.slice(0, 10) === filteredDay)
+      : days.find((day) => day.date === focusedDayDate) ?? days.find((day) => day.isToday) ?? days[0];
+
+    if (requestedDay && requestedDay.date !== focusedDayDate) {
+      setFocusedDayDate(requestedDay.date);
+    }
+  }, [days, filteredDay, focusedDayDate]);
+
+  useEffect(() => {
+    function handleShowTodayAsDay() {
+      const today = days.find((day) => day.isToday) ?? days[0];
+
+      if (!today) {
+        return;
+      }
+
+      setFocusedDayDate(today.date);
+      setCalendarView("day");
+      setSelectedDate(null);
+      setActiveCalendarModal(null);
+      setFeedback(null);
+    }
+
+    window.addEventListener("workbit:calendar-show-today-day", handleShowTodayAsDay);
+
+    return () => {
+      window.removeEventListener("workbit:calendar-show-today-day", handleShowTodayAsDay);
+    };
+  }, [days]);
+
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
@@ -839,6 +884,11 @@ export function DayActionCalendarClient({
     [editingShiftId, selectedDay]
   );
   const weeks = useMemo(() => chunkByWeek(days), [days]);
+  const focusedDayIndex = useMemo(
+    () => Math.max(0, days.findIndex((day) => day.date === focusedDayDate)),
+    [days, focusedDayDate]
+  );
+  const focusedDay = days[focusedDayIndex] ?? days.find((day) => day.isToday) ?? days[0] ?? null;
   const visibleWeeks = useMemo(
     () =>
       filteredDay
@@ -847,12 +897,8 @@ export function DayActionCalendarClient({
     [filteredDay, weeks]
   );
   const visibleDayItems = useMemo(() => {
-    if (filteredDay) {
-      return days.filter((day) => day.date.slice(0, 10) === filteredDay);
-    }
-
-    return [days.find((day) => day.isToday) ?? days[0]].filter((day): day is DayItem => Boolean(day));
-  }, [days, filteredDay]);
+    return focusedDay ? [focusedDay] : [];
+  }, [focusedDay]);
 
   const isCompany = activityType === ActivityType.COMPANY;
   const canManageOptionalShifts =
@@ -929,6 +975,42 @@ export function DayActionCalendarClient({
     setCourseEnd(`${day.date.slice(0, 10)}T`);
     setCourseAssignedToAll(true);
     setCourseAssignedToId("");
+  }
+
+  function moveFocusedDay(direction: -1 | 1) {
+    if (!days.length) {
+      return;
+    }
+
+    const nextIndex = Math.min(days.length - 1, Math.max(0, focusedDayIndex + direction));
+    const nextDay = days[nextIndex];
+
+    if (!nextDay || nextDay.date === focusedDayDate) {
+      return;
+    }
+
+    setFocusedDayDate(nextDay.date);
+    setSelectedDate(null);
+    setActiveCalendarModal(null);
+    setFeedback(null);
+  }
+
+  function handleDayPointerEnd(event: PointerEvent<HTMLElement>) {
+    const start = daySwipeRef.current;
+    daySwipeRef.current = null;
+
+    if (!start) {
+      return;
+    }
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+
+    if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) {
+      return;
+    }
+
+    moveFocusedDay(deltaX < 0 ? 1 : -1);
   }
 
   function closeModal() {
@@ -1260,12 +1342,14 @@ export function DayActionCalendarClient({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 6,
-          padding: 4,
+          gap: 4,
+          padding: 3,
           borderRadius: 999,
           background: "#f8fafc",
           border: "1px solid #e2e8f0",
-          marginBottom: 12,
+          marginBottom: 10,
+          width: "fit-content",
+          maxWidth: "100%",
         }}
       >
         {(["week", "day"] as const).map((mode) => (
@@ -1276,10 +1360,11 @@ export function DayActionCalendarClient({
             style={{
               border: 0,
               borderRadius: 999,
-              padding: "8px 13px",
+              padding: "7px 12px",
               background: calendarView === mode ? "#0f172a" : "transparent",
               color: calendarView === mode ? "#ffffff" : "#475569",
               fontWeight: 800,
+              fontSize: 14,
               cursor: "pointer",
             }}
           >
@@ -1289,7 +1374,7 @@ export function DayActionCalendarClient({
       </div>
 
       {calendarView === "day" ? (
-        <div style={{ display: "grid", gap: 14 }}>
+        <div style={{ display: "grid", gap: 14, width: "100%" }}>
           {visibleDayItems.map((day) => {
             const hasEvents =
               (features.shifts ? day.shifts.length : 0) +
@@ -1304,18 +1389,95 @@ export function DayActionCalendarClient({
             return (
               <section
                 key={`day-view-${day.date}`}
+                onPointerDown={(event) => {
+                  daySwipeRef.current = { x: event.clientX, y: event.clientY };
+                }}
+                onPointerUp={handleDayPointerEnd}
+                onPointerCancel={() => {
+                  daySwipeRef.current = null;
+                }}
                 style={{
                   display: "grid",
                   gap: 14,
-                  padding: 16,
-                  borderRadius: 24,
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
+                  minHeight: "calc(100dvh - 230px)",
+                  padding: "18px min(18px, 4vw)",
+                  borderRadius: 28,
+                  background: "linear-gradient(145deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96))",
+                  border: "1px solid rgba(124,58,237,0.12)",
+                  boxShadow: "0 18px 45px rgba(88, 28, 135, 0.08)",
+                  boxSizing: "border-box",
+                  touchAction: "pan-y",
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  {formatDayLabel(day.date, locale)}
-                </strong>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <IconButton
+                    type="button"
+                    onClick={() => moveFocusedDay(-1)}
+                    disabled={focusedDayIndex <= 0}
+                    aria-label="Giorno precedente"
+                    style={{ width: 38, height: 38 }}
+                  >
+                    ‹
+                  </IconButton>
+                  <div style={{ display: "grid", gap: 4, textAlign: "center", minWidth: 0 }}>
+                    <strong style={{ color: "#0f172a", fontSize: 20, lineHeight: 1.15 }}>
+                      {formatDayLabel(day.date, locale)}
+                    </strong>
+                    <span style={{ color: "#64748b", fontSize: 13 }}>
+                      Scorri a destra o sinistra per cambiare giorno
+                    </span>
+                  </div>
+                  <IconButton
+                    type="button"
+                    onClick={() => moveFocusedDay(1)}
+                    disabled={focusedDayIndex >= days.length - 1}
+                    aria-label="Giorno successivo"
+                    style={{ width: 38, height: 38 }}
+                  >
+                    ›
+                  </IconButton>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  {features.shifts &&
+                  day.date.slice(0, 10) >= todayKey &&
+                  canManageOptionalShifts ? (
+                    <PrimaryButton
+                      type="button"
+                      tone="sand"
+                      onClick={() => {
+                        setSelectedDate(day.date);
+                        setActiveCalendarModal("shifts");
+                        setShowShiftComposer(true);
+                        setCurrentShiftDraft(createShiftDraft(day.date));
+                      }}
+                      style={{ minHeight: 38, borderRadius: 999, paddingInline: 14 }}
+                    >
+                      + Turni
+                    </PrimaryButton>
+                  ) : null}
+                  {features.tasks && day.date.slice(0, 10) >= todayKey ? (
+                    <PrimaryButton
+                      type="button"
+                      tone="sand"
+                      onClick={() => {
+                        setSelectedDate(day.date);
+                        setActiveCalendarModal("notes");
+                        setQuickComposer("task");
+                      }}
+                      style={{ minHeight: 38, borderRadius: 999, paddingInline: 14 }}
+                    >
+                      + Note
+                    </PrimaryButton>
+                  ) : null}
+                </div>
 
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
 
@@ -1354,7 +1516,9 @@ export function DayActionCalendarClient({
                 {(features.tasks && day.tasks.length > 0) || (features.noticeBoard && day.notes.length > 0) ? (
                   <div style={{ display: "grid", gap: 8 }}>
                     <strong>📌 Note / Comunicazioni</strong>
-                    {day.tasks.map((task) => renderTaskCard(task, true))}
+                    {day.tasks.map((task) =>
+                      renderTaskCard(task, true, submitTaskCompletion, isPending)
+                    )}
                     {day.notes.map((note) => renderNoteCard(note, locale, currentUserId, true))}
                   </div>
                 ) : null}

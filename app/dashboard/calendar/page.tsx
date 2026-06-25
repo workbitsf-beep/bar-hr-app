@@ -948,8 +948,9 @@ export default async function DashboardCalendarPage({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 10,
+              gap: 8,
               alignItems: "flex-end",
+              maxWidth: "100%",
             }}
           >
             <form
@@ -984,7 +985,7 @@ export default async function DashboardCalendarPage({
                 pendingCount={unconfirmedShiftCount}
               />
             ) : (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
               </div>
             )}

@@ -26,6 +26,8 @@ export function ScrollToTodayButton({ fallbackHref }: { fallbackHref: string }) 
   const router = useRouter();
 
   function handleClick() {
+    window.dispatchEvent(new CustomEvent("workbit:calendar-show-today-day"));
+
     if (scrollToTodayCard()) {
       return;
     }
@@ -42,19 +44,20 @@ export function ScrollToTodayButton({ fallbackHref }: { fallbackHref: string }) 
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        minWidth: 64,
-        height: 44,
-        padding: "0 16px",
+        minWidth: 54,
+        height: 36,
+        padding: "0 13px",
         borderRadius: 999,
         background: "linear-gradient(180deg, #ffffff 0%, #f6f2ff 100%)",
         color: "#4c1d95",
         border: "1px solid rgba(124, 58, 237, 0.16)",
-        boxShadow: "0 10px 24px rgba(88, 28, 135, 0.08)",
+        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.06)",
         fontWeight: 800,
+        fontSize: 14,
         cursor: "pointer",
       }}
     >
-      Oggi
+      Giorno
     </button>
   );
 }
