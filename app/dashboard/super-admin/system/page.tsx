@@ -9,6 +9,36 @@ function startOfMonth() {
   return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 MB";
+  }
+
+  const megabytes = bytes / 1024 / 1024;
+  if (megabytes < 1024) {
+    return `${megabytes.toFixed(0)} MB`;
+  }
+
+  return `${(megabytes / 1024).toFixed(1)} GB`;
+}
+
+function getRuntimeMetrics() {
+  const memory = process.memoryUsage();
+  const cpu = process.cpuUsage();
+  const uptimeSeconds = Math.max(process.uptime(), 1);
+  const cpuUsedMs = (cpu.user + cpu.system) / 1000;
+  const averageCpuPercent = Math.max(0, (cpuUsedMs / (uptimeSeconds * 1000)) * 100);
+
+  return {
+    rss: formatBytes(memory.rss),
+    heapUsed: formatBytes(memory.heapUsed),
+    heapTotal: formatBytes(memory.heapTotal),
+    external: formatBytes(memory.external),
+    cpuAverage: `${averageCpuPercent.toFixed(1)}%`,
+    uptime: `${Math.floor(uptimeSeconds / 60)} min`,
+  };
+}
+
 function MetricCard({
   label,
   value,
@@ -83,6 +113,7 @@ export default async function SuperAdminSystemPage() {
   ]);
 
   const activeBars = activeSubscriptions;
+  const runtimeMetrics = getRuntimeMetrics();
 
   return (
     <SuperAdminFrame
@@ -117,6 +148,23 @@ export default async function SuperAdminSystemPage() {
             <StatusPill label={`${companyBars} aziende`} tone="neutral" />
             <StatusPill label={`${trialSubscriptions} in prova`} tone="warning" />
             <StatusPill label={`${inactiveSubscriptions} non attive`} tone="danger" />
+          </div>
+        </Panel>
+
+        <Panel title="Consumi runtime">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: 12,
+            }}
+          >
+            <MetricCard label="RAM processo" value={runtimeMetrics.rss} tone="purple" />
+            <MetricCard label="Heap usato" value={runtimeMetrics.heapUsed} tone="green" />
+            <MetricCard label="Heap totale" value={runtimeMetrics.heapTotal} />
+            <MetricCard label="Memoria esterna" value={runtimeMetrics.external} />
+            <MetricCard label="CPU media" value={runtimeMetrics.cpuAverage} tone="orange" />
+            <MetricCard label="Uptime processo" value={runtimeMetrics.uptime} />
           </div>
         </Panel>
       </Stack>

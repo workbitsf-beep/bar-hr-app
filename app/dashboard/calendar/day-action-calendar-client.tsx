@@ -1426,7 +1426,7 @@ export function DayActionCalendarClient({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
+                    justifyContent: "center",
                     gap: 10,
                   }}
                 >
@@ -1435,7 +1435,7 @@ export function DayActionCalendarClient({
                     onClick={() => moveFocusedDay(-1)}
                     disabled={focusedDayIndex <= 0}
                     aria-label="Giorno precedente"
-                    style={{ width: 38, height: 38 }}
+                    style={{ width: 38, height: 38, display: "none" }}
                   >
                     ‹
                   </IconButton>
@@ -1444,7 +1444,7 @@ export function DayActionCalendarClient({
                       {formatDayLabel(day.date, locale)}
                     </strong>
                     <span style={{ color: "#64748b", fontSize: 13 }}>
-                      Scorri a destra o sinistra per cambiare giorno
+                      Scorri per cambiare giorno
                     </span>
                   </div>
                   <IconButton
@@ -1452,7 +1452,7 @@ export function DayActionCalendarClient({
                     onClick={() => moveFocusedDay(1)}
                     disabled={focusedDayIndex >= days.length - 1}
                     aria-label="Giorno successivo"
-                    style={{ width: 38, height: 38 }}
+                    style={{ width: 38, height: 38, display: "none" }}
                   >
                     ›
                   </IconButton>

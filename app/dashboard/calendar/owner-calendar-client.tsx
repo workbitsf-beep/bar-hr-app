@@ -1223,7 +1223,7 @@ export function OwnerCalendarClient({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
+                    justifyContent: "center",
                     gap: 10,
                   }}
                 >
@@ -1232,7 +1232,7 @@ export function OwnerCalendarClient({
                     onClick={() => moveFocusedDay(-1)}
                     disabled={focusedDayIndex <= 0}
                     aria-label="Giorno precedente"
-                    style={{ width: 38, height: 38 }}
+                    style={{ width: 38, height: 38, display: "none" }}
                   >
                     ‹
                   </IconButton>
@@ -1246,7 +1246,7 @@ export function OwnerCalendarClient({
                     onClick={() => moveFocusedDay(1)}
                     disabled={focusedDayIndex >= days.length - 1}
                     aria-label="Giorno successivo"
-                    style={{ width: 38, height: 38 }}
+                    style={{ width: 38, height: 38, display: "none" }}
                   >
                     ›
                   </IconButton>
