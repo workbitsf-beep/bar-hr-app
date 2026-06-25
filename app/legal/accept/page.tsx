@@ -7,7 +7,7 @@ import {
   getRequiredLegalDocumentsForUser,
   legalDocumentTypeLabels,
 } from "@/lib/legal-documents";
-import { acceptRequiredLegalDocumentsAction } from "../actions";
+import { LegalAcceptanceForm } from "./legal-acceptance-form";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -112,62 +112,31 @@ export default async function LegalAcceptancePage({
                   <p style={{ margin: 0, color: "#64748b" }}>Contenuto testuale non presente.</p>
                 )}
                 {document.fileName ? (
-                  <Link
-                    href={`/api/legal-documents/${document.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: "#6d28d9", fontWeight: 800 }}
-                  >
-                    Apri PDF
-                  </Link>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Link
+                      href={`/api/legal-documents/${document.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: "#6d28d9", fontWeight: 800 }}
+                    >
+                      Apri PDF
+                    </Link>
+                    <Link
+                      href={`/api/legal-documents/${document.id}?download=1`}
+                      style={{ color: "#0f172a", fontWeight: 800 }}
+                    >
+                      Scarica PDF
+                    </Link>
+                  </div>
                 ) : null}
               </div>
             </details>
           ))}
         </div>
 
-        <form action={acceptRequiredLegalDocumentsAction} style={{ display: "grid", gap: 14 }}>
-          <label
-            style={{
-              display: "flex",
-              gap: 10,
-              alignItems: "flex-start",
-              padding: 16,
-              borderRadius: 22,
-              background: "#ffffff",
-              border: "1px solid rgba(124, 58, 237, 0.12)",
-              color: "#0f172a",
-              fontWeight: 750,
-              lineHeight: 1.45,
-            }}
-          >
-            <input name="accepted" type="checkbox" required style={{ marginTop: 3 }} />
-            <span>Dichiaro di aver letto e accettato i documenti legali di Workbit.</span>
-          </label>
-
-          {error === "required" ? (
-            <p style={{ margin: 0, color: "#b91c1c", fontWeight: 800 }}>
-              Devi confermare la lettura e accettazione per continuare.
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            style={{
-              minHeight: 52,
-              borderRadius: 999,
-              border: 0,
-              background: "linear-gradient(135deg, #111827 0%, #4c1d95 100%)",
-              color: "#ffffff",
-              fontWeight: 900,
-              fontSize: 16,
-              cursor: "pointer",
-              boxShadow: "0 16px 34px rgba(88, 28, 135, 0.18)",
-            }}
-          >
-            Accetta e continua
-          </button>
-        </form>
+        <LegalAcceptanceForm
+          initialError={error === "required" ? "Devi confermare la lettura e accettazione per continuare." : ""}
+        />
       </section>
     </main>
   );

@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ documentId: string }> }
 ) {
   const session = await getSession();
@@ -43,11 +43,12 @@ export async function GET(
       ? document.fileContent
       : new Uint8Array(document.fileContent);
   const safeFileName = (document.fileName || `${document.title}.pdf`).replaceAll('"', "'");
+  const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
 
   return new Response(bytes, {
     headers: {
       "Content-Type": document.fileMimeType || "application/pdf",
-      "Content-Disposition": `inline; filename="${safeFileName}"`,
+      "Content-Disposition": `${disposition}; filename="${safeFileName}"`,
       "Cache-Control": "private, no-store",
     },
   });

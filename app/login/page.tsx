@@ -24,6 +24,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [autoPromptPasskey, setAutoPromptPasskey] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -31,10 +32,6 @@ export default function LoginPage() {
     let active = true;
 
     async function restoreSession() {
-      if (!hasPersistentSessionMarker()) {
-        return;
-      }
-
       try {
         const response = await fetch("/api/auth/session", {
           cache: "no-store",
@@ -46,14 +43,21 @@ export default function LoginPage() {
         }
 
         if (response.ok) {
+          active = false;
           router.replace("/dashboard");
           router.refresh();
           return;
         }
 
-        clearPersistentSession();
+        if (hasPersistentSessionMarker()) {
+          clearPersistentSession();
+        }
       } catch {
         // Keep the login form usable if the session check cannot complete.
+      } finally {
+        if (active) {
+          setSessionChecked(true);
+        }
       }
     }
 
@@ -71,8 +75,15 @@ export default function LoginPage() {
       setEmail(rememberedEmail);
     }
 
-    setAutoPromptPasskey(hasPasskeyPreferred());
   }, []);
+
+  useEffect(() => {
+    if (!sessionChecked) {
+      return;
+    }
+
+    setAutoPromptPasskey(hasPasskeyPreferred());
+  }, [sessionChecked]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

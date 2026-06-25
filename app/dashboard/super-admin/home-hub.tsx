@@ -98,32 +98,12 @@ function getTrialPipelineMonthly(bar: RevenueBar) {
     : MONTHLY_PRICE * multiplier;
 }
 
-function getBillingBucket(bar: RevenueBar): BillingBucket {
-  const subscription = bar.subscription;
-
-  if (!subscription) return "risk";
-
-  if (subscription.planType === "FREE" || subscription.planType === "LIFETIME") {
-    return "manual";
-  }
-
-  if (subscription.planType === "TRIAL" || subscription.status === "TRIALING") {
-    return "trial";
-  }
-
-  if (subscription.status === "ACTIVE") {
-    return "active";
-  }
-
-  return "risk";
+function getMonthLabel(date: Date) {
+  return new Intl.DateTimeFormat("it-IT", { month: "short" }).format(date);
 }
 
 function getMonthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getMonthLabel(date: Date) {
-  return new Intl.DateTimeFormat("it-IT", { month: "short" }).format(date);
 }
 
 function getLastMonths(count: number) {
@@ -251,68 +231,109 @@ function BillingDonut({ buckets }: { buckets: Record<BillingBucket, number> }) {
 }
 
 export async function SuperAdminHomeHub() {
-  const [activityCounts, ownerCount, staffCount, revenueBars, ownerOptions] = await Promise.all([
-    prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
-    prisma.user.count({ where: { role: Role.OWNER } }),
-    prisma.user.count({ where: { role: { in: [Role.MANAGER, Role.EMPLOYEE] } } }),
-    prisma.bar.findMany({
-      orderBy: { createdAt: "desc" },
-      select: {
-        name: true,
-        activityType: true,
-        createdAt: true,
-        owner: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
+  const [activityCounts, ownerCount, staffCount, revenueSubscriptions, ownerOptions, billingStatusCounts, growthRows] =
+    await Promise.all([
+      prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
+      prisma.user.count({ where: { role: Role.OWNER } }),
+      prisma.user.count({ where: { role: { in: [Role.MANAGER, Role.EMPLOYEE] } } }),
+      prisma.subscription.findMany({
+        where: {
+          OR: [
+            { planType: "PAID", status: { in: ["ACTIVE", "TRIALING"] } },
+            { planType: "TRIAL" },
+          ],
+        },
+        select: {
+          planType: true,
+          status: true,
+          billingInterval: true,
+          monthlyDiscountPercent: true,
+          currentPeriodEnd: true,
+          bar: {
+            select: {
+              name: true,
+              activityType: true,
+              createdAt: true,
+              owner: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
           },
         },
-        subscription: {
-          select: {
-            planType: true,
-            status: true,
-            billingInterval: true,
-            monthlyDiscountPercent: true,
-            currentPeriodEnd: true,
-          },
+      }),
+      prisma.user.findMany({
+        where: { role: Role.OWNER },
+        orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
         },
-      },
-    }),
-    prisma.user.findMany({
-      where: { role: Role.OWNER },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-      },
-    }),
-  ]);
+      }),
+      prisma.subscription.groupBy({
+        by: ["planType", "status"],
+        _count: { _all: true },
+      }),
+      prisma.$queryRaw<Array<{ month_key: string; count: number }>>`
+        SELECT
+          to_char(date_trunc('month', "createdAt"), 'YYYY-MM') AS month_key,
+          COUNT(*)::int AS count
+        FROM "Bar"
+        WHERE "createdAt" >= date_trunc('month', NOW()) - INTERVAL '5 months'
+        GROUP BY month_key
+        ORDER BY month_key ASC
+      `,
+    ]);
 
   const companyCount = activityCounts.find((entry) => entry.activityType === ActivityType.COMPANY)?._count._all ?? 0;
   const restaurantCount =
     activityCounts.find((entry) => entry.activityType === ActivityType.RESTAURANT)?._count._all ?? 0;
   const totalBars = companyCount + restaurantCount;
-  const activeBillingCount = revenueBars.filter(
-    (bar) => bar.subscription?.status === "ACTIVE" || bar.subscription?.status === "TRIALING"
-  ).length;
+  const revenueBars: RevenueBar[] = revenueSubscriptions.map((subscription) => ({
+    ...subscription.bar,
+    subscription: {
+      planType: subscription.planType,
+      status: subscription.status,
+      billingInterval: subscription.billingInterval,
+      monthlyDiscountPercent: subscription.monthlyDiscountPercent,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+    },
+  }));
+  const activeBillingCount = billingStatusCounts.reduce(
+    (sum, bucket) => sum + (bucket.status === "ACTIVE" || bucket.status === "TRIALING" ? bucket._count._all : 0),
+    0
+  );
+  const subscriptionCount = billingStatusCounts.reduce((sum, bucket) => sum + bucket._count._all, 0);
   const activeMonthly = revenueBars.reduce((sum, bar) => sum + getEstimatedMonthlyRevenue(bar), 0);
   const activeAnnual = revenueBars.reduce((sum, bar) => sum + getEstimatedAnnualRevenue(bar), 0);
   const trialPipeline = revenueBars.reduce((sum, bar) => sum + getTrialPipelineMonthly(bar), 0);
   const maxActivityCount = Math.max(companyCount, restaurantCount, 1);
-  const billingBuckets = revenueBars.reduce<Record<BillingBucket, number>>(
-    (acc, bar) => {
-      acc[getBillingBucket(bar)] += 1;
+  const billingBuckets = billingStatusCounts.reduce<Record<BillingBucket, number>>(
+    (acc, bucket) => {
+      if (bucket.planType === "FREE" || bucket.planType === "LIFETIME") {
+        acc.manual += bucket._count._all;
+      } else if (bucket.planType === "TRIAL" || bucket.status === "TRIALING") {
+        acc.trial += bucket._count._all;
+      } else if (bucket.status === "ACTIVE") {
+        acc.active += bucket._count._all;
+      } else {
+        acc.risk += bucket._count._all;
+      }
+
       return acc;
     },
-    { active: 0, trial: 0, risk: 0, manual: 0 }
+    { active: 0, trial: 0, risk: Math.max(0, totalBars - subscriptionCount), manual: 0 }
   );
   const months = getLastMonths(6);
+  const growthByMonth = new Map(growthRows.map((row) => [row.month_key, Number(row.count)]));
   const growthBars = months.map((month) => ({
     label: month.label,
-    value: revenueBars.filter((bar) => getMonthKey(bar.createdAt) === month.key).length,
+    value: growthByMonth.get(month.key) ?? 0,
   }));
   const growthMax = Math.max(...growthBars.map((bar) => bar.value), 1);
   const topRevenueBars = revenueBars
