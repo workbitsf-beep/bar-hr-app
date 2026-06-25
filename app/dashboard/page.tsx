@@ -150,7 +150,7 @@ export default async function DashboardPage() {
     <Stack>
       {isOperationalProfile ? (
         <Panel title="Profilo">
-          <div style={{ display: "grid", gap: 18 }}>
+          <div className="dashboard-profile-layout" style={{ display: "grid", gap: 18 }}>
             <div
               style={{
                 display: "flex",

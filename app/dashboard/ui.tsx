@@ -28,17 +28,17 @@ export function formatDateTimeLocal(value: Date | string): string {
 
 const shellCardStyle: CSSProperties = {
   background:
-    "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,247,255,0.96) 100%)",
-  border: "1px solid rgba(124, 58, 237, 0.10)",
-  borderRadius: 28,
-  boxShadow: "0 18px 46px rgba(88, 28, 135, 0.075)",
+    "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,247,255,0.97) 100%)",
+  border: "1px solid rgba(109, 40, 217, 0.13)",
+  borderRadius: 30,
+  boxShadow: "0 22px 58px rgba(49, 46, 129, 0.11)",
   backdropFilter: "blur(16px)",
 };
 
 const softCardStyle: CSSProperties = {
-  background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
-  border: "1px solid rgba(124, 58, 237, 0.10)",
-  boxShadow: "0 12px 28px rgba(88, 28, 135, 0.06)",
+  background: "linear-gradient(180deg, #ffffff 0%, #faf7ff 100%)",
+  border: "1px solid rgba(109, 40, 217, 0.12)",
+  boxShadow: "0 14px 34px rgba(49, 46, 129, 0.08)",
 };
 
 const focusRing = "0 0 0 4px rgba(124, 58, 237, 0.12)";
@@ -366,6 +366,34 @@ function DashboardResponsiveStyles() {
         max-width: 100%;
         overflow-x: hidden;
         padding-bottom: 100px !important;
+        background:
+          radial-gradient(circle at 88% 4%, rgba(124, 58, 237, 0.16), transparent 28%),
+          radial-gradient(circle at 10% 8%, rgba(37, 99, 235, 0.09), transparent 24%),
+          linear-gradient(180deg, #fbfaff 0%, #f6f3ff 42%, #ffffff 100%) !important;
+      }
+
+      .dashboard-profile-layout > div:first-child {
+        order: 1;
+      }
+
+      .dashboard-profile-layout > .dashboard-panel {
+        order: 2;
+      }
+
+      .dashboard-profile-layout > div:nth-child(2) {
+        order: 3;
+      }
+
+      .dashboard-profile-layout > div:nth-child(2) > div {
+        background:
+          radial-gradient(circle at 94% 8%, rgba(124, 58, 237, 0.08), transparent 34%),
+          linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%) !important;
+        border: 1px solid rgba(109, 40, 217, 0.13) !important;
+        box-shadow: 0 16px 34px rgba(49, 46, 129, 0.09) !important;
+      }
+
+      .dashboard-profile-layout > div:nth-child(2) > div strong {
+        letter-spacing: -0.025em;
       }
 
       .dashboard-shell-inner,
