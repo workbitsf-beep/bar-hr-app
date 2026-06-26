@@ -1,10 +1,10 @@
 import { getSession } from "@/lib/auth";
-import { canViewDocument } from "@/lib/documents";
+import { canViewDocument, getDocumentMimeType } from "@/lib/documents";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ documentId: string }> }
 ) {
   const session = await getSession();
@@ -42,11 +42,12 @@ export async function GET(
 
   const bytes = document.content instanceof Uint8Array ? document.content : new Uint8Array(document.content);
   const safeFileName = document.fileName.replaceAll('"', "'");
+  const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
 
   return new Response(bytes, {
     headers: {
-      "Content-Type": document.mimeType || "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${safeFileName}"`,
+      "Content-Type": getDocumentMimeType(document.fileName, document.mimeType),
+      "Content-Disposition": `${disposition}; filename="${safeFileName}"`,
       "Cache-Control": "private, no-store",
     },
   });

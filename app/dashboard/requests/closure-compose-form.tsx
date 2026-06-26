@@ -47,10 +47,7 @@ export function ClosureComposeForm({
   }
 
   function saveAll() {
-    const currentDraftIsValid = Boolean(
-      draft.startsAt && (!draft.endsAt || draft.endsAt >= draft.startsAt)
-    );
-    const items = queued.concat(currentDraftIsValid ? [draft] : []);
+    const items = queued;
 
     if (items.length === 0) {
       return;
@@ -185,8 +182,8 @@ export function ClosureComposeForm({
         >
           ✓
         </IconButton>
-        <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>
-          {isPending ? "Salvataggio..." : `Salva tutte${queued.length > 0 ? ` (${queued.length + (draft.startsAt ? 1 : 0)})` : ""}`}
+        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || queued.length === 0}>
+          {isPending ? "Salvataggio..." : `Salva tutte${queued.length > 0 ? ` (${queued.length})` : ""}`}
         </PrimaryButton>
       </div>
     </div>

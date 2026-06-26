@@ -27,6 +27,9 @@ type CalendarPageSettings = {
   standardShiftPresets?: unknown;
 };
 
+const CALENDAR_LOOKBACK_WEEKS = 4;
+const CALENDAR_LOOKAHEAD_WEEKS = 12;
+
 function getLocale(language: string) {
   if (language === "en") {
     return "en-US";
@@ -290,8 +293,8 @@ export default async function DashboardCalendarPage({
   const anchorDate = parseAnchorDate(params);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const calendarStart = startOfCalendarWeek(addDays(anchorDate, -7 * 20));
-  const calendarEnd = endOfCalendarWeek(addDays(anchorDate, 7 * 32));
+  const calendarStart = startOfCalendarWeek(addDays(anchorDate, -7 * CALENDAR_LOOKBACK_WEEKS));
+  const calendarEnd = endOfCalendarWeek(addDays(anchorDate, 7 * CALENDAR_LOOKAHEAD_WEEKS));
   const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const currentMonthEnd = new Date(
     today.getFullYear(),

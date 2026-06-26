@@ -58,7 +58,7 @@ export function TaskComposeForm({
     removeEntry(id);
   }
 
-  const allEntries = entries.concat(draft.value.trim() ? [draft] : []);
+  const allEntries = entries;
 
   function renderHiddenEntry(entry: ReturnType<typeof createEmptyEntry>) {
     return (

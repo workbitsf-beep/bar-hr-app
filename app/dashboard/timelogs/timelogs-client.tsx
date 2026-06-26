@@ -482,15 +482,16 @@ export function ClockActionsPanel({
             style={{
               flex: 1,
               minWidth: 0,
-              minHeight: 58,
-              fontSize: 26,
-              color: "#14532d",
-              background: "linear-gradient(135deg, #dcfce7 0%, #86efac 58%, #22c55e 100%)",
-              border: "1px solid #bbf7d0",
-              boxShadow: "0 12px 24px rgba(22, 163, 74, 0.16)",
+              minHeight: 66,
+              fontSize: 18,
+              letterSpacing: "0.08em",
+              color: "#ffffff",
+              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 58%, #4ade80 100%)",
+              border: "1px solid rgba(34, 197, 94, 0.72)",
+              boxShadow: "0 14px 28px rgba(22, 163, 74, 0.24)",
             }}
           >
-            {submitting === "in" ? "…" : "🚶‍♂️↗"}
+            {submitting === "in" ? "..." : "ENTRA"}
           </PrimaryButton>
           <PrimaryButton
             className="dashboard-clock-button"
@@ -503,15 +504,16 @@ export function ClockActionsPanel({
             style={{
               flex: 1,
               minWidth: 0,
-              minHeight: 58,
-              fontSize: 26,
-              color: "#7f1d1d",
-              background: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 58%, #fb7185 100%)",
-              border: "1px solid #fecaca",
-              boxShadow: "0 12px 24px rgba(248, 113, 113, 0.16)",
+              minHeight: 66,
+              fontSize: 18,
+              letterSpacing: "0.08em",
+              color: "#ffffff",
+              background: "linear-gradient(135deg, #dc2626 0%, #ef4444 58%, #fb7185 100%)",
+              border: "1px solid rgba(239, 68, 68, 0.72)",
+              boxShadow: "0 14px 28px rgba(220, 38, 38, 0.24)",
             }}
           >
-            {submitting === "out" ? "…" : "🚶‍♂️↘"}
+            {submitting === "out" ? "..." : "ESCI"}
           </PrimaryButton>
         </div>
         </div>

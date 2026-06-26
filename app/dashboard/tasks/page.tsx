@@ -10,6 +10,7 @@ import { getDashboardContext } from "../context";
 import {
   BillingRequiredState,
   EmptyState,
+  IconButton,
   ItemCard,
   ItemList,
   Panel,
@@ -201,16 +202,41 @@ export default async function DashboardTasksPage({
                   }
                   footer={
                     <div style={{ display: "grid", gap: 12 }}>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <StatusPill
-                          label={task.status}
-                          tone={isDone ? "success" : task.isUrgent ? "danger" : "warning"}
-                        />
-                        {task.completedBy ? (
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           <StatusPill
-                            label={`Completata da ${task.completedBy.firstName}`}
-                            tone="neutral"
+                            label={task.status}
+                            tone={isDone ? "success" : task.isUrgent ? "danger" : "warning"}
                           />
+                          {task.completedBy ? (
+                            <StatusPill
+                              label={`Completata da ${task.completedBy.firstName}`}
+                              tone="neutral"
+                            />
+                          ) : null}
+                        </div>
+                        {canComplete ? (
+                          <form action={completeTaskAction}>
+                            <input type="hidden" name="taskId" value={task.id} />
+                            <input type="hidden" name="notifySuccess" value="1" />
+                            <IconButton
+                              type="submit"
+                              aria-label="Completa nota"
+                              title="Completa nota"
+                              style={{
+                                width: 34,
+                                height: 34,
+                                background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                                color: "#ffffff",
+                                border: "1px solid rgba(34, 197, 94, 0.75)",
+                                boxShadow: "0 8px 18px rgba(22, 163, 74, 0.16)",
+                                fontSize: 14,
+                                fontWeight: 900,
+                              }}
+                            >
+                              V
+                            </IconButton>
+                          </form>
                         ) : null}
                       </div>
 
@@ -225,26 +251,14 @@ export default async function DashboardTasksPage({
                         </div>
                       ) : null}
 
-                      {canComplete || canDeleteCompleted ? (
+                      {canDeleteCompleted ? (
                         <div className="dashboard-action-row" style={{ justifyContent: "flex-end" }}>
-                          {canComplete ? (
-                            <form action={completeTaskAction}>
-                              <input type="hidden" name="taskId" value={task.id} />
-                              <input type="hidden" name="notifySuccess" value="1" />
-                              <PrimaryButton type="submit" tone="green">
-                                Segna completata
-                              </PrimaryButton>
-                            </form>
-                          ) : null}
-
-                          {canDeleteCompleted ? (
-                            <form action={deleteCompletedTaskAction}>
-                              <input type="hidden" name="taskId" value={task.id} />
-                              <PrimaryButton type="submit" tone="red">
-                                Elimina nota completata
-                              </PrimaryButton>
-                            </form>
-                          ) : null}
+                          <form action={deleteCompletedTaskAction}>
+                            <input type="hidden" name="taskId" value={task.id} />
+                            <PrimaryButton type="submit" tone="red">
+                              Elimina nota completata
+                            </PrimaryButton>
+                          </form>
                         </div>
                       ) : null}
                     </div>

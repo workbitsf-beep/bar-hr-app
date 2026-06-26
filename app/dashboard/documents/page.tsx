@@ -183,7 +183,7 @@ export default async function DashboardDocumentsPage() {
                             fontWeight: 700,
                           }}
                         >
-                          Apri
+                          Visualizza
                         </Link>
                       ) : null}
 

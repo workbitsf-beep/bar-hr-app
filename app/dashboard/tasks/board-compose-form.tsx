@@ -89,7 +89,9 @@ export function BoardComposeForm({
     removeEntry(id);
   }
 
-  const allEntries = entries.concat(draft.value.trim() ? [draft] : []);
+  const allEntries = allowMultiple
+    ? entries
+    : entries.concat(draft.value.trim() ? [draft] : []);
 
   function renderHiddenEntry(entry: ReturnType<typeof createEmptyEntry>) {
     return (

@@ -103,15 +103,13 @@ export function QuickCalendarEntryModal({
     setter: Dispatch<SetStateAction<EntryItem[]>>,
     id: string
   ) {
-    setter((current) =>
-      current.length === 1 ? current : current.filter((entry) => entry.id !== id)
-    );
+    setter((current) => current.filter((entry) => entry.id !== id));
   }
 
   function handleTaskSubmit() {
     const formData = new FormData();
 
-    const entries = taskEntries.concat(taskDraft.value.trim() ? [taskDraft] : []);
+    const entries = taskEntries;
 
     for (const entry of entries) {
       formData.append("taskEntryId", entry.id);
@@ -137,7 +135,7 @@ export function QuickCalendarEntryModal({
   function handleBoardSubmit() {
     const formData = new FormData();
 
-    const entries = boardEntries.concat(boardDraft.value.trim() ? [boardDraft] : []);
+    const entries = boardEntries;
 
     for (const entry of entries) {
       formData.append("boardEntryId", entry.id);
@@ -344,7 +342,7 @@ export function QuickCalendarEntryModal({
           <PrimaryButton
             type="button"
             onClick={handleTaskSubmit}
-            disabled={isPending || !taskDueDate || taskEntries.concat(taskDraft.value.trim() ? [taskDraft] : []).length === 0}
+            disabled={isPending || !taskDueDate || taskEntries.length === 0}
           >
             {isPending ? "Salvataggio..." : "Conferma note"}
           </PrimaryButton>
@@ -529,7 +527,7 @@ export function QuickCalendarEntryModal({
           <PrimaryButton
             type="button"
             onClick={handleBoardSubmit}
-            disabled={isPending || boardEntries.concat(boardDraft.value.trim() ? [boardDraft] : []).length === 0}
+            disabled={isPending || boardEntries.length === 0}
           >
             {isPending ? "Pubblicazione..." : "Conferma pubblicazione"}
           </PrimaryButton>

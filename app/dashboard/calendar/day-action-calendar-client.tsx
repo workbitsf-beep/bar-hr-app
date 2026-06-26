@@ -617,7 +617,7 @@ function renderTaskCard(
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: canComplete ? "minmax(0, 1fr) auto" : "1fr",
+          gridTemplateColumns: "1fr",
           gap: 12,
           alignItems: "center",
         }}
@@ -626,6 +626,17 @@ function renderTaskCard(
           <strong style={{ color: "#0f172a", fontSize: mobile ? 13 : 14 }}>{task.title}</strong>
           <span style={{ color: "#475569", fontSize: mobile ? 12 : 13 }}>{task.assignedLabel}</span>
         </div>
+      </div>
+      {task.completedByLabel ? (
+        <span style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
+          Completata da {task.completedByLabel}
+        </span>
+      ) : null}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+        <StatusPill
+          label={task.status}
+          tone={task.status === "DONE" ? "success" : task.isUrgent ? "danger" : "warning"}
+        />
         {canComplete ? (
           <IconButton
             type="button"
@@ -634,36 +645,20 @@ function renderTaskCard(
             onClick={() => onComplete?.(task.id)}
             disabled={isPending}
             style={{
-              width: mobile ? 34 : 38,
-              height: mobile ? 34 : 38,
-              background: "#dcfce7",
-              color: "#166534",
-              border: "1px solid #bbf7d0",
+              width: mobile ? 32 : 34,
+              height: mobile ? 32 : 34,
+              background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+              color: "#ffffff",
+              border: "1px solid rgba(34, 197, 94, 0.75)",
+              boxShadow: "0 8px 18px rgba(22, 163, 74, 0.16)",
               flexShrink: 0,
+              fontSize: 14,
+              fontWeight: 900,
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="m5 12 4 4 10-10"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            V
           </IconButton>
         ) : null}
-      </div>
-      {task.completedByLabel ? (
-        <span style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
-          Completata da {task.completedByLabel}
-        </span>
-      ) : null}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <StatusPill
-          label={task.status}
-          tone={task.status === "DONE" ? "success" : task.isUrgent ? "danger" : "warning"}
-        />
       </div>
     </div>
   );
@@ -777,7 +772,6 @@ export function DayActionCalendarClient({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [, startViewTransition] = useTransition();
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
   const [calendarContentView, setCalendarContentView] = useState<"week" | "day">("week");
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
@@ -1295,9 +1289,9 @@ export function DayActionCalendarClient({
       return;
     }
 
-    const validDrafts = shiftDrafts
-      .concat(isShiftDraftValid(currentShiftDraft) && currentShiftDraft ? [currentShiftDraft] : [])
-      .filter((draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0);
+    const validDrafts = shiftDrafts.filter(
+      (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
+    );
 
     if (validDrafts.length === 0) {
       return;
@@ -1460,7 +1454,7 @@ export function DayActionCalendarClient({
                 }
 
                 setCalendarView(mode);
-                startViewTransition(() => setCalendarContentView(mode));
+                setCalendarContentView(mode);
               }}
               style={{
                 border: 0,
@@ -2600,19 +2594,13 @@ export function DayActionCalendarClient({
                             onClick={submitShifts}
                             disabled={
                               isPending ||
-                              !shiftDrafts
-                                .concat(
-                                  isShiftDraftValid(currentShiftDraft) && currentShiftDraft
-                                    ? [currentShiftDraft]
-                                    : []
-                                )
-                                .some(
-                                  (draft) =>
-                                    draft.memberIds.length > 0 &&
-                                    draft.date &&
-                                    draft.startTime &&
-                                    draft.endTime
-                                )
+                              !shiftDrafts.some(
+                                (draft) =>
+                                  draft.memberIds.length > 0 &&
+                                  draft.date &&
+                                  draft.startTime &&
+                                  draft.endTime
+                              )
                             }
                           >
                             {isPending ? "Salvataggio..." : "Salva turni"}

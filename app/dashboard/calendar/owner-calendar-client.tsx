@@ -581,7 +581,6 @@ export function OwnerCalendarClient({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [, startViewTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
   const [calendarContentView, setCalendarContentView] = useState<"week" | "day">("week");
@@ -1084,9 +1083,9 @@ export function OwnerCalendarClient({
       return;
     }
 
-    const validDrafts = shiftDrafts
-      .concat(isShiftDraftValid(currentShiftDraft) && currentShiftDraft ? [currentShiftDraft] : [])
-      .filter((draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0);
+    const validDrafts = shiftDrafts.filter(
+      (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
+    );
 
     if (validDrafts.length === 0) {
       return;
@@ -1257,7 +1256,7 @@ export function OwnerCalendarClient({
                 }
 
                 setCalendarView(mode);
-                startViewTransition(() => setCalendarContentView(mode));
+                setCalendarContentView(mode);
               }}
               style={{
                 border: 0,
@@ -2423,19 +2422,13 @@ export function OwnerCalendarClient({
                       onClick={handleCreateShifts}
                       disabled={
                         isPending ||
-                        !shiftDrafts
-                          .concat(
-                            isShiftDraftValid(currentShiftDraft) && currentShiftDraft
-                              ? [currentShiftDraft]
-                              : []
-                          )
-                          .some(
-                            (draft) =>
-                              draft.memberIds.length > 0 &&
-                              draft.date &&
-                              draft.startTime &&
-                              draft.endTime
-                          )
+                        !shiftDrafts.some(
+                          (draft) =>
+                            draft.memberIds.length > 0 &&
+                            draft.date &&
+                            draft.startTime &&
+                            draft.endTime
+                        )
                       }
                     >
                       {isPending ? "Salvataggio..." : "Salva turni"}
@@ -2670,7 +2663,7 @@ export function OwnerCalendarClient({
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: task.status !== "DONE" ? "minmax(0, 1fr) auto" : "1fr",
+                              gridTemplateColumns: "1fr",
                               gap: 12,
                               alignItems: "center",
                             }}
@@ -2684,35 +2677,8 @@ export function OwnerCalendarClient({
                               </span>
                             ) : null}
                             </div>
-                            {task.status !== "DONE" ? (
-                              <IconButton
-                                type="button"
-                                aria-label="Conferma nota"
-                                title="Conferma nota"
-                                onClick={() => handleCompleteTask(task.id)}
-                                disabled={isPending}
-                                style={{
-                                  width: 46,
-                                  height: 46,
-                                  background: "#dcfce7",
-                                  color: "#166534",
-                                  border: "1px solid #bbf7d0",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                  <path
-                                    d="m5 12 4 4 10-10"
-                                    stroke="currentColor"
-                                    strokeWidth="2.4"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </IconButton>
-                            ) : null}
                           </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                             <StatusPill
                               label={task.status}
                               tone={
@@ -2723,6 +2689,28 @@ export function OwnerCalendarClient({
                                     : "warning"
                               }
                             />
+                            {task.status !== "DONE" ? (
+                              <IconButton
+                                type="button"
+                                aria-label="Conferma nota"
+                                title="Conferma nota"
+                                onClick={() => handleCompleteTask(task.id)}
+                                disabled={isPending}
+                                style={{
+                                  width: 34,
+                                  height: 34,
+                                  background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                                  color: "#ffffff",
+                                  border: "1px solid rgba(34, 197, 94, 0.75)",
+                                  boxShadow: "0 8px 18px rgba(22, 163, 74, 0.16)",
+                                  flexShrink: 0,
+                                  fontSize: 14,
+                                  fontWeight: 900,
+                                }}
+                              >
+                                V
+                              </IconButton>
+                            ) : null}
                           </div>
                         </div>
                       ))}

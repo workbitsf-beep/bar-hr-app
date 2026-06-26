@@ -18,6 +18,10 @@ type DocumentDraft = {
   file: File | null;
 };
 
+const allowedDocumentExtensions = new Set(["pdf", "doc", "docx", "xls", "xlsx", "xlsm"]);
+const documentAccept =
+  ".pdf,.doc,.docx,.xls,.xlsx,.xlsm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12";
+
 function createDraft(): DocumentDraft {
   return {
     id: crypto.randomUUID(),
@@ -27,6 +31,19 @@ function createDraft(): DocumentDraft {
     assignedToIds: [],
     file: null,
   };
+}
+
+function getFileExtension(fileName: string) {
+  const extension = fileName.split(".").pop()?.trim().toLowerCase();
+  return extension && extension !== fileName.toLowerCase() ? extension : "";
+}
+
+function isAllowedDocumentFile(file: File | null) {
+  if (!file) {
+    return false;
+  }
+
+  return allowedDocumentExtensions.has(getFileExtension(file.name));
 }
 
 export function DocumentComposeForm({
@@ -50,6 +67,11 @@ export function DocumentComposeForm({
       return;
     }
 
+    if (!isAllowedDocumentFile(draft.file)) {
+      setError("Carica solo file PDF, Word o Excel.");
+      return;
+    }
+
     setQueued((current) => current.concat(draft));
     setDraft(createDraft());
   }
@@ -58,14 +80,15 @@ export function DocumentComposeForm({
     setError("");
     setMessage("");
 
-    const currentDraftIsValid =
-      draft.title.trim() &&
-      draft.file &&
-      (draft.assignedToAll || draft.assignedToIds.length > 0);
-    const items = queued.concat(currentDraftIsValid ? [draft] : []);
+    const items = queued;
 
     if (items.length === 0) {
       setError("Aggiungi almeno un documento da caricare.");
+      return;
+    }
+
+    if (items.some((item) => !isAllowedDocumentFile(item.file))) {
+      setError("Carica solo file PDF, Word o Excel.");
       return;
     }
 
@@ -333,8 +356,20 @@ export function DocumentComposeForm({
         <input
           key={draft.id}
           type="file"
-          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-          onChange={(event) => setDraft({ ...draft, file: event.target.files?.[0] ?? null })}
+          accept={documentAccept}
+          onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+
+            if (file && !isAllowedDocumentFile(file)) {
+              setError("Carica solo file PDF, Word o Excel.");
+              setDraft({ ...draft, file: null });
+              event.currentTarget.value = "";
+              return;
+            }
+
+            setError("");
+            setDraft({ ...draft, file });
+          }}
           style={{
             borderRadius: 16,
             border: "1px solid #dbe3ee",
@@ -344,6 +379,9 @@ export function DocumentComposeForm({
             width: "100%",
           }}
         />
+        <span style={{ display: "block", marginTop: 8, color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+          Solo PDF, Word o Excel. Massimo 8 MB.
+        </span>
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
           <IconButton
             type="button"
@@ -410,8 +448,8 @@ export function DocumentComposeForm({
         >
           ✓
         </IconButton>
-        <PrimaryButton type="button" onClick={saveAll} disabled={isPending}>
-          {isPending ? "Caricamento..." : `Carica tutti${queued.length > 0 ? ` (${queued.length + (draft.title.trim() && draft.file ? 1 : 0)})` : ""}`}
+        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || queued.length === 0}>
+          {isPending ? "Caricamento..." : `Carica tutti${queued.length > 0 ? ` (${queued.length})` : ""}`}
         </PrimaryButton>
       </div>
     </div>

@@ -150,7 +150,7 @@ export function CourseComposeForm({
   }
 
   function saveAll() {
-    const items = queued.concat(draftValid ? [draft] : []);
+    const items = queued;
 
     if (items.length === 0) {
       setError("Aggiungi almeno un corso valido.");
@@ -351,8 +351,8 @@ export function CourseComposeForm({
         >
           ✓
         </IconButton>
-        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || (queued.length === 0 && !draftValid)}>
-          {isPending ? "Salvataggio..." : `Salva tutti${queued.length > 0 ? ` (${queued.length + (draftValid ? 1 : 0)})` : ""}`}
+        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || queued.length === 0}>
+          {isPending ? "Salvataggio..." : `Salva tutti${queued.length > 0 ? ` (${queued.length})` : ""}`}
         </PrimaryButton>
       </div>
     </div>

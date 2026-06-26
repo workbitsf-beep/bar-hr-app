@@ -4,8 +4,18 @@ import { getSession } from "@/lib/auth";
 import { getActiveBarAccess, canManageTrainingAndDocuments } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
+import { getDocumentMimeType } from "@/lib/documents";
 
 const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set(["pdf", "doc", "docx", "xls", "xlsx", "xlsm"]);
+const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel.sheet.macroenabled.12",
+]);
 
 type NotificationUser = {
   id: string;
@@ -27,6 +37,26 @@ function dedupeUsers(users: NotificationUser[]) {
   }
 
   return Array.from(byId.values());
+}
+
+function getFileExtension(fileName: string) {
+  const extension = fileName.split(".").pop()?.trim().toLowerCase();
+  return extension && extension !== fileName.toLowerCase() ? extension : "";
+}
+
+function isAllowedDocumentFile(file: File) {
+  const extension = getFileExtension(file.name);
+  const mimeType = file.type.trim().toLowerCase();
+
+  if (!ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
+    return false;
+  }
+
+  return (
+    !mimeType ||
+    mimeType === "application/octet-stream" ||
+    ALLOWED_DOCUMENT_MIME_TYPES.has(mimeType)
+  );
 }
 
 async function ensureUserBelongsToBar(barId: string, userId: string) {
@@ -151,6 +181,10 @@ export async function POST(request: Request) {
     return jsonError("File troppo grande. Massimo 8 MB.");
   }
 
+  if (!isAllowedDocumentFile(fileEntry)) {
+    return jsonError("Formato non valido. Carica solo PDF, Word o Excel.");
+  }
+
   if (!assignedToAll && !assignedToId) {
     return jsonError("Seleziona almeno un destinatario.");
   }
@@ -167,7 +201,7 @@ export async function POST(request: Request) {
         title,
         description: description || null,
         fileName: fileEntry.name || title,
-        mimeType: fileEntry.type || "application/octet-stream",
+        mimeType: getDocumentMimeType(fileEntry.name || title, fileEntry.type),
         fileSize: fileEntry.size,
         content,
         assignedToAll,

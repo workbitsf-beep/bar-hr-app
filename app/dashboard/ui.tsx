@@ -447,10 +447,6 @@ function DashboardResponsiveStyles() {
         box-shadow: var(--workbit-shadow) !important;
       }
 
-      .dashboard-button {
-        background: var(--workbit-gradient) !important;
-      }
-
       .dashboard-button:hover:not(:disabled) {
         box-shadow: 0 16px 34px rgba(124, 58, 237, 0.18) !important;
       }
@@ -638,6 +634,12 @@ function DashboardResponsiveStyles() {
         max-width: 100%;
       }
 
+      .dashboard-week-card,
+      .dashboard-calendar-day {
+        content-visibility: auto;
+        contain-intrinsic-size: 420px 720px;
+      }
+
       .dashboard-modal-wrap {
         padding:
           max(16px, env(safe-area-inset-top))
@@ -658,7 +660,6 @@ function DashboardResponsiveStyles() {
         border-radius: 28px !important;
         box-shadow: 0 22px 56px rgba(88, 28, 135, 0.18) !important;
         animation: dashboardModalEnter 140ms cubic-bezier(0.22, 1, 0.36, 1);
-        contain: layout paint;
         transform-origin: center;
         -webkit-overflow-scrolling: touch;
       }
@@ -1558,8 +1559,8 @@ export function PrimaryButton({
 }) {
   const backgrounds = {
     dark: "var(--workbit-gradient)",
-    green: "linear-gradient(135deg, #dcfce7 0%, #86efac 52%, #22c55e 100%)",
-    red: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 52%, #fb7185 100%)",
+    green: "linear-gradient(135deg, #15803d 0%, #22c55e 58%, #4ade80 100%)",
+    red: "linear-gradient(135deg, #b91c1c 0%, #ef4444 58%, #fb7185 100%)",
     sand: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
   };
 
@@ -1570,8 +1571,8 @@ export function PrimaryButton({
       className={joinClassNames("dashboard-button", props.className)}
       style={{
         background: backgrounds[tone],
-        color: tone === "green" ? "#14532d" : tone === "red" ? "#7f1d1d" : tone === "sand" ? "var(--workbit-navy)" : "#fff",
-        border: tone === "sand" ? "1px solid var(--workbit-border)" : tone === "red" ? "1px solid #fecaca" : tone === "green" ? "1px solid #bbf7d0" : 0,
+        color: tone === "sand" ? "var(--workbit-navy)" : "#ffffff",
+        border: tone === "sand" ? "1px solid var(--workbit-border)" : tone === "red" ? "1px solid rgba(239, 68, 68, 0.75)" : tone === "green" ? "1px solid rgba(34, 197, 94, 0.75)" : 0,
         borderRadius: 999,
         minHeight: 38,
         padding: "9px 15px",
