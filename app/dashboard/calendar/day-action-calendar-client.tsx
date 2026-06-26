@@ -2104,6 +2104,7 @@ export function DayActionCalendarClient({
 
                     {showShiftComposer && canManageOptionalShifts ? (
                       <div
+                        className="dashboard-modal-panel"
                         style={{
                           position: "fixed",
                           left: "50%",
@@ -2112,14 +2113,17 @@ export function DayActionCalendarClient({
                           zIndex: 2147483647,
                           display: "grid",
                           gap: 12,
-                          width: "min(720px, calc(100vw - 32px))",
+                          width: "min(92vw, 760px)",
                           maxHeight: "calc(100dvh - 32px)",
                           overflowY: "auto",
+                          overflowX: "hidden",
                           padding: 18,
                           borderRadius: 28,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
+                          background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
+                          border: "1px solid rgba(124, 58, 237, 0.16)",
+                          boxShadow: "0 24px 60px rgba(88, 28, 135, 0.20)",
+                          boxSizing: "border-box",
+                          animation: "dashboardModalEnter 120ms ease-out",
                         }}
                       >
                         <div

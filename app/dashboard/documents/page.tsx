@@ -3,7 +3,7 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canViewDocument, formatDocumentSize } from "@/lib/documents";
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
-import { createDocumentAction, toggleDocumentActiveAction } from "../actions";
+import { toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
 import { DocumentComposeForm } from "./document-compose-form";
 import {
@@ -120,7 +120,6 @@ export default async function DashboardDocumentsPage() {
           canManage ? (
             <PopupAction title="Nuovo documento" ariaLabel="Carica documento">
               <DocumentComposeForm
-                action={createDocumentAction}
                 recipients={recipients.map((recipient) => ({
                   id: recipient.user.id,
                   label: `${recipient.user.firstName} ${recipient.user.lastName} - ${recipient.user.role}`,

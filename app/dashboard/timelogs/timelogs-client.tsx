@@ -479,9 +479,18 @@ export function ClockActionsPanel({
             disabled={submitting !== null || !canClockIn}
             aria-label={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
             title={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
-            style={{ flex: 1, minWidth: 0, color: "#ffffff" }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              minHeight: 58,
+              fontSize: 26,
+              color: "#14532d",
+              background: "linear-gradient(135deg, #dcfce7 0%, #86efac 58%, #22c55e 100%)",
+              border: "1px solid #bbf7d0",
+              boxShadow: "0 12px 24px rgba(22, 163, 74, 0.16)",
+            }}
           >
-            {submitting === "in" ? "Registro..." : "Entra"}
+            {submitting === "in" ? "…" : "🚶‍♂️↗"}
           </PrimaryButton>
           <PrimaryButton
             className="dashboard-clock-button"
@@ -491,9 +500,18 @@ export function ClockActionsPanel({
             disabled={submitting !== null || !canClockOut}
             aria-label={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
             title={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
-            style={{ flex: 1, minWidth: 0, color: "#ffffff" }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              minHeight: 58,
+              fontSize: 26,
+              color: "#7f1d1d",
+              background: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 58%, #fb7185 100%)",
+              border: "1px solid #fecaca",
+              boxShadow: "0 12px 24px rgba(248, 113, 113, 0.16)",
+            }}
           >
-            {submitting === "out" ? "Registro..." : "Esci"}
+            {submitting === "out" ? "…" : "🚶‍♂️↘"}
           </PrimaryButton>
         </div>
         </div>

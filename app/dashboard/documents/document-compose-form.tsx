@@ -31,10 +31,8 @@ function createDraft(): DocumentDraft {
 
 export function DocumentComposeForm({
   recipients,
-  action,
 }: {
   recipients: RecipientOption[];
-  action: (formData: FormData) => Promise<void> | void;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<DocumentDraft>(createDraft());
@@ -87,7 +85,17 @@ export function DocumentComposeForm({
             formData.set("audience", targetId ? "USER" : "ALL");
             formData.set("assignedToId", targetId ?? "");
             formData.set("file", item.file);
-            await action(formData);
+            const response = await fetch("/api/documents", {
+              method: "POST",
+              body: formData,
+            });
+            const payload = (await response.json().catch(() => null)) as
+              | { ok?: boolean; message?: string }
+              | null;
+
+            if (!response.ok || payload?.ok === false) {
+              throw new Error(payload?.message || "Impossibile caricare il documento.");
+            }
           }
         }
 
