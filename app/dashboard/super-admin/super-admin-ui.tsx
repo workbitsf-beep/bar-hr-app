@@ -19,8 +19,8 @@ const superAdminItems: Array<{
     description: "Crea, cerca e collega proprietari.",
     eyebrow: "Persone",
     section: "owners",
-    color: "#2563eb",
-    tint: "#eff6ff",
+    color: "#5b21b6",
+    tint: "#f7f3ff",
   },
   {
     href: "/dashboard/super-admin/bars",
@@ -28,7 +28,7 @@ const superAdminItems: Array<{
     description: "Clienti, sedi e tipologia operativa.",
     eyebrow: "Clienti",
     section: "bars",
-    color: "#7c3aed",
+    color: "#7b2ff7",
     tint: "#f5f3ff",
   },
   {
@@ -37,8 +37,8 @@ const superAdminItems: Array<{
     description: "Trial, rinnovi, sconti e stato Stripe.",
     eyebrow: "Revenue",
     section: "billing",
-    color: "#059669",
-    tint: "#ecfdf5",
+    color: "#5b21b6",
+    tint: "#f7f3ff",
   },
   {
     href: "/dashboard/super-admin/gps",
@@ -46,8 +46,8 @@ const superAdminItems: Array<{
     description: "Range timbrature centralizzato.",
     eyebrow: "Sistema",
     section: "gps",
-    color: "#d97706",
-    tint: "#fffbeb",
+    color: "#a855f7",
+    tint: "#f7f3ff",
   },
   {
     href: "/dashboard/super-admin/legal",
@@ -55,8 +55,8 @@ const superAdminItems: Array<{
     description: "Policy, contratti e compliance.",
     eyebrow: "Compliance",
     section: "legal",
-    color: "#9333ea",
-    tint: "#faf5ff",
+    color: "#7b2ff7",
+    tint: "#f7f3ff",
   },
   {
     href: "/dashboard/super-admin/system",
@@ -64,8 +64,8 @@ const superAdminItems: Array<{
     description: "Metriche interne e consumi operativi.",
     eyebrow: "Monitoraggio",
     section: "system",
-    color: "#0f766e",
-    tint: "#f0fdfa",
+    color: "#0b1024",
+    tint: "#f7f3ff",
   },
 ];
 
@@ -193,8 +193,8 @@ export function SuperAdminFrame({
         dangerouslySetInnerHTML={{
           __html: `
             .super-admin-workspace {
-              --admin-ink: #172033;
-              --admin-muted: #667085;
+              --admin-ink: var(--workbit-navy);
+              --admin-muted: var(--workbit-muted);
               display: grid;
               gap: 16px;
               min-width: 0;
@@ -212,9 +212,10 @@ export function SuperAdminFrame({
               border-radius: 32px;
               color: white;
               background:
-                radial-gradient(circle at 82% 20%, rgba(255,255,255,.18), transparent 25%),
-                linear-gradient(135deg, #111827 0%, #312e81 52%, #6d28d9 100%);
-              box-shadow: 0 24px 60px rgba(49, 46, 129, .22);
+                radial-gradient(circle at 82% 20%, rgba(255,255,255,.20), transparent 25%),
+                radial-gradient(circle at 12% 18%, rgba(168,85,247,.28), transparent 28%),
+                var(--workbit-gradient);
+              box-shadow: var(--workbit-shadow-strong);
             }
             .super-admin-hero-glow {
               position: absolute;
@@ -256,7 +257,7 @@ export function SuperAdminFrame({
               flex: 0 0 auto;
               padding: 11px 14px;
               border-radius: 999px;
-              color: #312e81;
+              color: var(--workbit-purple-dark);
               background: white;
               text-decoration: none;
               font-size: 13px;
@@ -270,9 +271,9 @@ export function SuperAdminFrame({
               border-radius: 22px;
               overflow-x: auto;
               scrollbar-width: none;
-              background: rgba(255,255,255,.82);
-              border: 1px solid rgba(124,58,237,.10);
-              box-shadow: 0 12px 30px rgba(88,28,135,.06);
+              background: rgba(255,255,255,.88);
+              border: 1px solid var(--workbit-border);
+              box-shadow: 0 14px 34px rgba(124,58,237,.10);
               backdrop-filter: blur(16px);
             }
             .super-admin-section-nav::-webkit-scrollbar { display: none; }
@@ -285,19 +286,19 @@ export function SuperAdminFrame({
               padding: 0 15px;
               border-radius: 16px;
               color: var(--admin-ink);
-              background: white;
-              border: 1px solid #eef0f4;
+              background: linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%);
+              border: 1px solid var(--workbit-border);
               text-decoration: none;
               font-size: 13px;
               font-weight: 800;
               white-space: nowrap;
               transition: transform .18s ease, color .18s ease, border-color .18s ease;
             }
-            .super-admin-section-nav a:hover { transform: translateY(-1px); color: var(--admin-accent); border-color: color-mix(in srgb, var(--admin-accent) 30%, white); }
+            .super-admin-section-nav a:hover { transform: translateY(-1px); color: var(--admin-accent); border-color: rgba(168,85,247,.34); box-shadow: 0 14px 30px rgba(124,58,237,.14); }
             .super-admin-content { display: grid; gap: 18px; min-width: 0; }
             .super-admin-content .dashboard-panel {
-              border-color: rgba(124,58,237,.09) !important;
-              box-shadow: 0 16px 40px rgba(88,28,135,.055) !important;
+              border-color: var(--workbit-border) !important;
+              box-shadow: var(--workbit-shadow) !important;
             }
             .super-admin-content .dashboard-list-card { transition: transform .18s ease, box-shadow .18s ease; }
             .super-admin-content .dashboard-list-card:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(15,23,42,.06); }
@@ -356,20 +357,20 @@ export function SuperAdminMenuGrid() {
               padding: 18px;
               overflow: hidden;
               border-radius: 24px;
-              color: #172033;
-              background: linear-gradient(145deg, white 30%, var(--admin-tint));
-              border: 1px solid color-mix(in srgb, var(--admin-accent) 13%, white);
+              color: var(--workbit-navy);
+              background: linear-gradient(145deg, #ffffff 30%, var(--admin-tint));
+              border: 1px solid var(--workbit-border);
               text-decoration: none;
-              box-shadow: 0 14px 34px rgba(15,23,42,.055);
+              box-shadow: 0 14px 34px rgba(124,58,237,.10);
               transition: transform .2s ease, box-shadow .2s ease;
             }
-            .super-admin-menu-card:hover { transform: translateY(-3px); box-shadow: 0 20px 42px color-mix(in srgb, var(--admin-accent) 13%, transparent); }
+            .super-admin-menu-card:hover { transform: translateY(-3px); box-shadow: 0 20px 42px rgba(124,58,237,.16); }
             .super-admin-menu-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-            .super-admin-menu-icon { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 15px; color: var(--admin-accent); background: white; box-shadow: 0 8px 20px color-mix(in srgb, var(--admin-accent) 12%, transparent); }
+            .super-admin-menu-icon { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 15px; color: white; background: var(--workbit-gradient); box-shadow: 0 10px 24px rgba(124,58,237,.18); }
             .super-admin-menu-arrow { color: var(--admin-accent); font-size: 20px; font-weight: 800; }
             .super-admin-menu-eyebrow { color: var(--admin-accent); font-size: 11px; line-height: 1; font-weight: 900; letter-spacing: .10em; text-transform: uppercase; }
             .super-admin-menu-card strong { font-size: 19px; letter-spacing: -.02em; }
-            .super-admin-menu-description { color: #667085; font-size: 13px; line-height: 1.45; }
+            .super-admin-menu-description { color: var(--workbit-muted); font-size: 13px; line-height: 1.45; }
             @media (max-width: 980px) { .super-admin-menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
             @media (max-width: 560px) {
               .super-admin-menu-grid { grid-template-columns: 1fr; }

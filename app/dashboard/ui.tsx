@@ -27,21 +27,20 @@ export function formatDateTimeLocal(value: Date | string): string {
 }
 
 const shellCardStyle: CSSProperties = {
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,247,255,0.97) 100%)",
-  border: "1px solid rgba(109, 40, 217, 0.13)",
+  background: "var(--workbit-card)",
+  border: "1px solid var(--workbit-border)",
   borderRadius: 30,
-  boxShadow: "0 22px 58px rgba(49, 46, 129, 0.11)",
+  boxShadow: "var(--workbit-shadow)",
   backdropFilter: "blur(16px)",
 };
 
 const softCardStyle: CSSProperties = {
-  background: "linear-gradient(180deg, #ffffff 0%, #faf7ff 100%)",
-  border: "1px solid rgba(109, 40, 217, 0.12)",
-  boxShadow: "0 14px 34px rgba(49, 46, 129, 0.08)",
+  background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+  border: "1px solid var(--workbit-border)",
+  boxShadow: "0 14px 34px rgba(124, 58, 237, 0.10)",
 };
 
-const focusRing = "0 0 0 4px rgba(124, 58, 237, 0.12)";
+const focusRing = "var(--workbit-focus)";
 
 function resolveEmoji(title: string) {
   const normalized = title.toLowerCase();
@@ -317,9 +316,9 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
         gap: 8,
         padding: 10,
         borderRadius: 999,
-        border: "1px solid rgba(124, 58, 237, 0.12)",
-        background: "rgba(255,255,255,0.95)",
-        boxShadow: "0 18px 44px rgba(88, 28, 135, 0.12)",
+        border: "1px solid var(--workbit-border)",
+        background: "rgba(255,255,255,0.94)",
+        boxShadow: "0 20px 48px rgba(124, 58, 237, 0.16)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
       }}
@@ -339,9 +338,9 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
             justifyContent: "center",
             flexDirection: "column",
             gap: 3,
-            color: "#4c1d95",
-            background: "linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%)",
-            border: "1px solid rgba(124, 58, 237, 0.1)",
+            color: "var(--workbit-purple-dark)",
+            background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+            border: "1px solid var(--workbit-border)",
             textDecoration: "none",
           }}
         >
@@ -367,9 +366,9 @@ function DashboardResponsiveStyles() {
         overflow-x: hidden;
         padding-bottom: 100px !important;
         background:
-          radial-gradient(circle at 88% 4%, rgba(124, 58, 237, 0.16), transparent 28%),
-          radial-gradient(circle at 10% 8%, rgba(37, 99, 235, 0.09), transparent 24%),
-          linear-gradient(180deg, #fbfaff 0%, #f6f3ff 42%, #ffffff 100%) !important;
+          radial-gradient(circle at 88% 4%, rgba(168, 85, 247, 0.17), transparent 28%),
+          radial-gradient(circle at 10% 8%, rgba(11, 16, 36, 0.07), transparent 24%),
+          linear-gradient(180deg, #ffffff 0%, #f7f3ff 44%, #ffffff 100%) !important;
       }
 
       .dashboard-profile-layout > div:first-child {
@@ -386,10 +385,10 @@ function DashboardResponsiveStyles() {
 
       .dashboard-profile-layout > div:nth-child(2) > div {
         background:
-          radial-gradient(circle at 94% 8%, rgba(124, 58, 237, 0.08), transparent 34%),
-          linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%) !important;
-        border: 1px solid rgba(109, 40, 217, 0.13) !important;
-        box-shadow: 0 16px 34px rgba(49, 46, 129, 0.09) !important;
+          radial-gradient(circle at 94% 8%, rgba(168, 85, 247, 0.10), transparent 34%),
+          linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%) !important;
+        border: 1px solid var(--workbit-border) !important;
+        box-shadow: 0 16px 34px rgba(124, 58, 237, 0.10) !important;
       }
 
       .dashboard-profile-layout > div:nth-child(2) > div strong {
@@ -456,6 +455,49 @@ function DashboardResponsiveStyles() {
         font-size: 14px !important;
         gap: 8px !important;
         box-shadow: 0 6px 14px rgba(15, 23, 42, 0.035) !important;
+      }
+
+      .dashboard-panel,
+      .dashboard-card,
+      .dashboard-item-card,
+      .dashboard-modal-panel,
+      .dashboard-empty-state {
+        background: var(--workbit-card) !important;
+        border-color: var(--workbit-border) !important;
+        box-shadow: var(--workbit-shadow) !important;
+      }
+
+      .dashboard-button {
+        background: var(--workbit-gradient) !important;
+      }
+
+      .dashboard-button:hover:not(:disabled) {
+        box-shadow: 0 16px 34px rgba(124, 58, 237, 0.18) !important;
+      }
+
+      .dashboard-button[style*="64748b"],
+      .dashboard-button[style*="475569"] {
+        background: linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%) !important;
+        color: var(--workbit-navy) !important;
+        border: 1px solid var(--workbit-border) !important;
+      }
+
+      .dashboard-select-pill,
+      .dashboard-icon-button,
+      .dashboard-menu-button {
+        border-color: var(--workbit-border) !important;
+        background: linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%) !important;
+        color: var(--workbit-purple-dark) !important;
+      }
+
+      .dashboard-modal-wrap::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 82% 10%, rgba(168, 85, 247, 0.12), transparent 28%),
+          radial-gradient(circle at 18% 18%, rgba(11, 16, 36, 0.06), transparent 24%);
       }
 
       .dashboard-clock-button {
@@ -956,7 +998,7 @@ export function DashboardShell({
       style={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top left, rgba(237,233,254,0.65), rgba(255,255,255,0.95) 42%, rgba(248,250,252,1) 100%)",
+          "var(--workbit-app-bg)",
         padding: 18,
       }}
     >
@@ -1008,13 +1050,13 @@ export function DashboardShell({
                       margin: 0,
                       fontSize: 28,
                       lineHeight: 1.05,
-                      color: "#0f172a",
+                      color: "var(--workbit-navy)",
                       fontWeight: 700,
                     }}
                   >
                     {barName}
                   </h1>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.6 }}>
                     {userName} - {role}
                   </p>
                 </div>
@@ -1084,8 +1126,8 @@ export function PageHero({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(124, 58, 237, 0.12)",
-              color: "#6d28d9",
+              background: "var(--workbit-gradient-soft)",
+              color: "var(--workbit-purple-dark)",
               fontSize: 15,
             }}
           >
@@ -1094,7 +1136,7 @@ export function PageHero({
           <p
             style={{
               margin: 0,
-              color: "#64748b",
+              color: "var(--workbit-muted)",
               fontSize: 12,
               textTransform: "uppercase",
               fontWeight: 700,
@@ -1104,8 +1146,8 @@ export function PageHero({
             {eyebrow ?? "Workspace"}
           </p>
         </div>
-        <h2 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>{title}</h2>
-        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{subtitle}</p>
+        <h2 style={{ margin: 0, fontSize: 30, color: "var(--workbit-navy)" }}>{title}</h2>
+        <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.7 }}>{subtitle}</p>
       </div>
       {action ? <div>{action}</div> : null}
     </section>
@@ -1308,7 +1350,7 @@ export function EmptyState({ message }: { message: string }) {
         ...softCardStyle,
         borderRadius: 20,
         padding: 16,
-        color: "#64748b",
+        color: "var(--workbit-muted)",
         lineHeight: 1.7,
       }}
     >
@@ -1397,9 +1439,9 @@ export function ItemCard({
         gap: 6,
       }}
     >
-      <strong style={{ color: "#0f172a" }}>{title}</strong>
+      <strong style={{ color: "var(--workbit-navy)" }}>{title}</strong>
       {subtitle ? <div style={{ color: "#334155" }}>{subtitle}</div> : null}
-      {meta ? <div style={{ color: "#64748b", fontSize: 14 }}>{meta}</div> : null}
+      {meta ? <div style={{ color: "var(--workbit-muted)", fontSize: 14 }}>{meta}</div> : null}
       {footer ? <div style={{ marginTop: 8 }}>{footer}</div> : null}
     </div>
   );
@@ -1430,9 +1472,9 @@ export function CompactListItem({
       }}
     >
       <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
-        <strong style={{ color: "#0f172a", fontSize: 15 }}>{title}</strong>
+        <strong style={{ color: "var(--workbit-navy)", fontSize: 15 }}>{title}</strong>
         {subtitle ? <span style={{ color: "#475569", fontSize: 14 }}>{subtitle}</span> : null}
-        {meta ? <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>{meta}</span> : null}
+        {meta ? <span style={{ color: "var(--workbit-muted)", fontSize: 12, fontWeight: 700 }}>{meta}</span> : null}
       </div>
       {action ? <div style={{ flex: "0 0 auto" }}>{action}</div> : null}
     </div>
@@ -1452,23 +1494,23 @@ export function FormField({
 }) {
   return (
     <label className={joinClassNames("dashboard-form-field", className)} style={{ display: "grid", gap: 8 }}>
-      <span style={{ fontWeight: 600, color: "#1e293b" }}>{label}</span>
+      <span style={{ fontWeight: 600, color: "var(--workbit-navy)" }}>{label}</span>
       {children}
-      {hint ? <span style={{ color: "#64748b", fontSize: 13 }}>{hint}</span> : null}
+      {hint ? <span style={{ color: "var(--workbit-muted)", fontSize: 13 }}>{hint}</span> : null}
     </label>
   );
 }
 
 const fieldStyle: CSSProperties = {
   borderRadius: 18,
-  border: "1px solid rgba(124, 58, 237, 0.14)",
+  border: "1px solid var(--workbit-border)",
   padding: "13px 15px",
   fontSize: 15,
-  background: "#ffffff",
+  background: "linear-gradient(180deg, #ffffff 0%, #fdfbff 100%)",
   width: "100%",
-  color: "#0f172a",
+  color: "var(--workbit-navy)",
   boxSizing: "border-box",
-  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.9)",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 18px rgba(124, 58, 237, 0.035)",
 };
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -1512,7 +1554,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
         ...fieldStyle,
         appearance: "none",
         backgroundImage:
-          "linear-gradient(45deg, transparent 50%, #6d28d9 50%), linear-gradient(135deg, #6d28d9 50%, transparent 50%)",
+          "linear-gradient(45deg, transparent 50%, var(--workbit-purple-dark) 50%), linear-gradient(135deg, var(--workbit-purple-dark) 50%, transparent 50%)",
         backgroundPosition: "calc(100% - 18px) 52%, calc(100% - 12px) 52%",
         backgroundSize: "6px 6px, 6px 6px",
         backgroundRepeat: "no-repeat",
@@ -1533,10 +1575,10 @@ export function PrimaryButton({
   pendingLabel?: React.ReactNode;
 }) {
   const backgrounds = {
-    dark: "linear-gradient(135deg, #111827 0%, #4c1d95 100%)",
-    green: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
-    red: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
-    sand: "linear-gradient(135deg, #64748b 0%, #475569 100%)",
+    dark: "var(--workbit-gradient)",
+    green: "linear-gradient(135deg, #064e3b 0%, #059669 55%, #6ee7b7 100%)",
+    red: "linear-gradient(135deg, #7f1d1d 0%, #dc2626 58%, #fca5a5 100%)",
+    sand: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
   };
 
   return (
@@ -1546,15 +1588,15 @@ export function PrimaryButton({
       className={joinClassNames("dashboard-button", props.className)}
       style={{
         background: backgrounds[tone],
-        color: "#fff",
-        border: 0,
+        color: tone === "sand" ? "var(--workbit-navy)" : "#fff",
+        border: tone === "sand" ? "1px solid var(--workbit-border)" : 0,
         borderRadius: 999,
         minHeight: 38,
         padding: "9px 15px",
         fontSize: 13,
         fontWeight: 760,
         letterSpacing: "-0.01em",
-        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.10)",
+        boxShadow: "0 10px 22px rgba(124, 58, 237, 0.13)",
         transition: "transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease",
         touchAction: "manipulation",
         ...props.style,
@@ -1596,13 +1638,13 @@ export function IconButton({
         width: 36,
         height: 36,
         borderRadius: 999,
-        border: "1px solid rgba(124, 58, 237, 0.12)",
-        background: "linear-gradient(180deg, #ffffff 0%, #f7f2ff 100%)",
-        color: "#4c1d95",
+        border: "1px solid var(--workbit-border)",
+        background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+        color: "var(--workbit-purple-dark)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 6px 14px rgba(88, 28, 135, 0.06)",
+        boxShadow: "0 8px 18px rgba(124, 58, 237, 0.08)",
         touchAction: "manipulation",
         ...props.style,
       }}
@@ -1638,12 +1680,12 @@ export function ArrowLinkButton({
         height: 32,
         borderRadius: 999,
         textDecoration: "none",
-        background: "linear-gradient(180deg, #ffffff 0%, #f7f2ff 100%)",
-        color: "#4c1d95",
-        border: "1px solid rgba(124, 58, 237, 0.12)",
+        background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+        color: "var(--workbit-purple-dark)",
+        border: "1px solid var(--workbit-border)",
         fontSize: 16,
         fontWeight: 700,
-        boxShadow: "0 6px 14px rgba(88, 28, 135, 0.06)",
+        boxShadow: "0 8px 18px rgba(124, 58, 237, 0.08)",
       }}
     >
       {">"}
@@ -1659,10 +1701,10 @@ export function StatusPill({
   tone?: "neutral" | "success" | "warning" | "danger";
 }) {
   const palette = {
-    neutral: { background: "#e2e8f0", color: "#475569" },
-    success: { background: "#dcfce7", color: "#166534" },
-    warning: { background: "#fef3c7", color: "#92400e" },
-    danger: { background: "#fee2e2", color: "#991b1b" },
+    neutral: { background: "#f7f3ff", color: "#5b21b6", border: "1px solid rgba(124, 58, 237, 0.16)" },
+    success: { background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0" },
+    warning: { background: "#fffbeb", color: "#92400e", border: "1px solid #fde68a" },
+    danger: { background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca" },
   };
 
   return (
@@ -1718,7 +1760,7 @@ export function SuccessCallout({
         alignItems: "flex-start",
         padding: "12px 14px",
         borderRadius: 18,
-        background: "#dcfce7",
+        background: "linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%)",
         border: "1px solid #bbf7d0",
         color: "#166534",
         lineHeight: 1.6,

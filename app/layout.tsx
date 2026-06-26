@@ -39,7 +39,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f8fafc",
+  themeColor: "#f7f3ff",
 };
 
 export default async function RootLayout({ children }: RootLayoutProps) {
@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 width: 100%;
                 max-width: 100%;
                 overflow-x: hidden;
-                background: #f8fafc;
+                background: #f7f3ff;
               }
 
               body {
@@ -73,15 +73,25 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               :root {
-                --workbit-ink: #0f172a;
-                --workbit-muted: #64748b;
-                --workbit-purple: #7c3aed;
-                --workbit-purple-dark: #4c1d95;
-                --workbit-purple-soft: #f3e8ff;
-                --workbit-border: rgba(124, 58, 237, 0.14);
-                --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,247,255,0.96) 100%);
-                --workbit-shadow: 0 18px 46px rgba(88, 28, 135, 0.075);
-                --workbit-focus: 0 0 0 4px rgba(124, 58, 237, 0.12);
+                --workbit-navy: #0b1024;
+                --workbit-deep-navy: #111827;
+                --workbit-ink: #111827;
+                --workbit-muted: #667085;
+                --workbit-purple: #7b2ff7;
+                --workbit-electric-purple: #a855f7;
+                --workbit-purple-dark: #5b21b6;
+                --workbit-purple-soft: #f7f3ff;
+                --workbit-lavender: #ede9fe;
+                --workbit-border: rgba(124, 58, 237, 0.16);
+                --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(247,243,255,0.97) 100%);
+                --workbit-app-bg: radial-gradient(circle at 88% 2%, rgba(168,85,247,0.16), transparent 28%),
+                  radial-gradient(circle at 8% 4%, rgba(91,33,182,0.08), transparent 26%),
+                  linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%);
+                --workbit-gradient: linear-gradient(135deg, #0b1024 0%, #5b21b6 48%, #a855f7 100%);
+                --workbit-gradient-soft: linear-gradient(135deg, rgba(11,16,36,0.08) 0%, rgba(91,33,182,0.10) 45%, rgba(168,85,247,0.14) 100%);
+                --workbit-shadow: 0 20px 52px rgba(124, 58, 237, 0.12);
+                --workbit-shadow-strong: 0 24px 62px rgba(11, 16, 36, 0.18);
+                --workbit-focus: 0 0 0 4px rgba(168, 85, 247, 0.18);
               }
 
               input,
@@ -104,6 +114,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               a:focus-visible {
                 outline: none;
                 box-shadow: var(--workbit-focus);
+                border-color: rgba(168, 85, 247, 0.42);
               }
 
               input::placeholder,
@@ -114,7 +125,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               input[type="file"]::file-selector-button {
                 border: 1px solid var(--workbit-border);
                 border-radius: 999px;
-                background: var(--workbit-purple-soft);
+                background: linear-gradient(180deg, #ffffff 0%, var(--workbit-purple-soft) 100%);
                 color: var(--workbit-purple-dark);
                 font-weight: 800;
                 padding: 8px 12px;
@@ -135,8 +146,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           margin: 0,
           fontFamily:
             '"SF Pro Display", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif',
-          backgroundColor: "#f8fafc",
-          color: "#0f172a",
+          background: "var(--workbit-app-bg)",
+          color: "var(--workbit-ink)",
           width: "100%",
           maxWidth: "100%",
           minHeight: "100dvh",
