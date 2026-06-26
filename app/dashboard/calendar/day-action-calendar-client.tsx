@@ -1420,10 +1420,11 @@ export function DayActionCalendarClient({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 14,
-          flexWrap: "wrap",
+          gap: 8,
+          flexWrap: "nowrap",
           width: "100%",
           marginBottom: 10,
+          overflow: "visible",
         }}
       >
         <div
@@ -1436,8 +1437,9 @@ export function DayActionCalendarClient({
             background: "#f8fafc",
             border: "1px solid #e2e8f0",
             width: "fit-content",
-            maxWidth: "100%",
-            flex: "0 0 auto",
+            maxWidth: "calc(100% - 146px)",
+            flex: "0 1 auto",
+            minWidth: 0,
           }}
         >
           {(["week", "day"] as const).map((mode) => (
@@ -1448,12 +1450,13 @@ export function DayActionCalendarClient({
               style={{
                 border: 0,
                 borderRadius: 999,
-                padding: "6px 8px",
+                padding: "6px 9px",
                 background: calendarView === mode ? "#0f172a" : "transparent",
                 color: calendarView === mode ? "#ffffff" : "#475569",
                 fontWeight: 800,
                 fontSize: 11,
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               {mode === "week" ? "Settimana" : "Giorno"}
@@ -1464,8 +1467,8 @@ export function DayActionCalendarClient({
           <div
             style={{
               marginLeft: "auto",
-              flex: "1 1 178px",
-              minWidth: 166,
+              flex: "0 0 auto",
+              minWidth: 136,
               display: "flex",
               justifyContent: "flex-end",
             }}

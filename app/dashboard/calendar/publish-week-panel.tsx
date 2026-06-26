@@ -75,12 +75,12 @@ export function PublishWeekPanel({
           style={{
             minHeight: 34,
             borderRadius: 999,
-            paddingInline: 18,
-            fontSize: 12,
+            paddingInline: 13,
+            fontSize: 11,
             boxShadow: canPublish ? "0 8px 18px rgba(15, 23, 42, 0.12)" : "none",
             whiteSpace: "nowrap",
             opacity: canPublish ? 1 : 0.42,
-            minWidth: 166,
+            minWidth: 136,
             maxWidth: "100%",
             overflow: "visible",
           }}
