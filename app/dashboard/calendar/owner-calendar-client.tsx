@@ -435,17 +435,17 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
       key={availability.id}
       onClick={(event) => event.stopPropagation()}
       style={{
-        padding: mobile ? "12px 14px" : "10px 12px",
-        borderRadius: mobile ? 18 : 16,
+        padding: mobile ? "8px 10px" : "10px 12px",
+        borderRadius: mobile ? 12 : 16,
         background: "#fef2f2",
         border: "1px solid #fecaca",
         color: "#991b1b",
-        lineHeight: 1.6,
-        fontSize: mobile ? 14 : 13,
+        lineHeight: mobile ? 1.35 : 1.6,
+        fontSize: mobile ? 12 : 13,
       }}
     >
       <div style={{ display: "grid", gap: 4 }}>
-        <strong style={{ color: "#991b1b", fontSize: mobile ? 14 : 13 }}>
+        <strong style={{ color: "#991b1b", fontSize: mobile ? 12 : 13 }}>
           Indisponibilita: {availability.firstName} {availability.lastName}
         </strong>
         <span style={{ color: "#b91c1c" }}>
@@ -462,17 +462,17 @@ function renderApprovedRequestCard(request: RequestItem, mobile = false) {
       key={request.id}
       onClick={(event) => event.stopPropagation()}
       style={{
-        padding: mobile ? "12px 14px" : "10px 12px",
-        borderRadius: mobile ? 18 : 16,
+        padding: mobile ? "8px 10px" : "10px 12px",
+        borderRadius: mobile ? 12 : 16,
         background: "#fef2f2",
         border: "1px solid #fecaca",
         color: "#991b1b",
-        lineHeight: 1.6,
-        fontSize: mobile ? 14 : 13,
+        lineHeight: mobile ? 1.35 : 1.6,
+        fontSize: mobile ? 12 : 13,
       }}
     >
       <div style={{ display: "grid", gap: 4 }}>
-        <strong style={{ color: "#991b1b", fontSize: mobile ? 14 : 13 }}>
+        <strong style={{ color: "#991b1b", fontSize: mobile ? 12 : 13 }}>
           {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
         </strong>
         <span style={{ color: "#b91c1c" }}>
@@ -492,18 +492,18 @@ function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = fals
       key={shift.id}
       onClick={(event) => event.stopPropagation()}
       style={{
-        padding: mobile ? "12px 14px" : "10px 12px",
-        borderRadius: mobile ? 18 : 16,
+        padding: mobile ? "8px 10px" : "10px 12px",
+        borderRadius: mobile ? 12 : 16,
         background: "#fff7ed",
         border: "1px solid #fed7aa",
         color: "#9a3412",
-        lineHeight: 1.6,
-        fontSize: mobile ? 14 : 13,
+        lineHeight: mobile ? 1.35 : 1.6,
+        fontSize: mobile ? 12 : 13,
         display: "grid",
-        gap: 6,
+        gap: mobile ? 3 : 6,
       }}
     >
-      <strong style={{ color: "#0f172a", fontSize: mobile ? 14 : 13 }}>
+      <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 13 }}>
         Reperibilita da approvare
       </strong>
       <span style={{ color: "#334155" }}>{formatRange(shift.startTime, shift.endTime, locale)}</span>
@@ -1217,8 +1217,8 @@ export function OwnerCalendarClient({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
-          flexWrap: "nowrap",
+          gap: 14,
+          flexWrap: "wrap",
           width: "100%",
           marginBottom: 10,
         }}
@@ -1258,7 +1258,15 @@ export function OwnerCalendarClient({
           ))}
         </div>
         {toolbarAction ? (
-          <div style={{ marginLeft: "auto", flex: "0 0 auto", minWidth: 150 }}>
+          <div
+            style={{
+              marginLeft: "auto",
+              flex: "1 1 178px",
+              minWidth: 166,
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
             {toolbarAction}
           </div>
         ) : null}
@@ -1299,16 +1307,17 @@ export function OwnerCalendarClient({
                 data-day-date={day.date}
                 style={{
                   display: "grid",
-                  gap: 14,
+                  gap: 10,
                   flex: "0 0 min(92%, 820px)",
                   width: "min(92%, 820px)",
                   scrollSnapAlign: "center",
-                  minHeight: "calc(100dvh - 230px)",
-                  padding: "18px min(18px, 4vw)",
-                  borderRadius: 28,
+                  alignSelf: "start",
+                  minHeight: "auto",
+                  padding: "12px min(14px, 4vw)",
+                  borderRadius: 22,
                   background: "linear-gradient(145deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96))",
                   border: "1px solid rgba(124,58,237,0.12)",
-                  boxShadow: "0 18px 45px rgba(88, 28, 135, 0.08)",
+                  boxShadow: "0 12px 28px rgba(88, 28, 135, 0.07)",
                   boxSizing: "border-box",
                   touchAction: "pan-x pan-y",
                 }}
@@ -1330,8 +1339,8 @@ export function OwnerCalendarClient({
                   >
                     ‹
                   </IconButton>
-                  <div style={{ display: "grid", gap: 4, textAlign: "center", minWidth: 0 }}>
-                    <strong style={{ color: "#0f172a", fontSize: 20, lineHeight: 1.15 }}>
+                  <div style={{ display: "grid", gap: 2, textAlign: "center", minWidth: 0 }}>
+                    <strong style={{ color: "#0f172a", fontSize: 16, lineHeight: 1.15 }}>
                       {formatDayLabel(day.date, locale)}
                     </strong>
                   </div>
@@ -1364,7 +1373,7 @@ export function OwnerCalendarClient({
                 ) : null}
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
                 {features.shifts && (day.shifts.length > 0 || day.date.slice(0, 10) >= todayKey) ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <strong>👤 Turni</strong>
                       {day.date.slice(0, 10) >= todayKey ? (
@@ -1378,7 +1387,7 @@ export function OwnerCalendarClient({
                           }}
                           aria-label="Aggiungi turni"
                           disabled={isPending}
-                          style={{ width: 36, height: 36 }}
+                          style={{ width: 32, height: 32 }}
                         >
                           +
                         </IconButton>
@@ -1395,25 +1404,25 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
                 {features.requests && day.requests.length > 0 ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     <strong>🏖️ Ferie / Permessi / Assenze</strong>
                     {day.requests.map((request) => renderApprovedRequestCard(request, true))}
                   </div>
                 ) : null}
                 {features.availability && day.availabilities.length > 0 ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     <strong>🚫 Indisponibilità</strong>
                     {day.availabilities.map((availability) => renderAvailabilityCard(availability, true))}
                   </div>
                 ) : null}
                 {false && features.shifts && day.pendingOnCallShifts.length > 0 ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     <strong>📍 Reperibilità</strong>
                     {day.pendingOnCallShifts.map((shift) => renderPendingOnCallCard(shift, locale, true))}
                   </div>
                 ) : null}
                 {features.tasks || features.noticeBoard ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <strong>📌 Note</strong>
                       {features.tasks && day.date.slice(0, 10) >= todayKey ? (
@@ -1426,7 +1435,7 @@ export function OwnerCalendarClient({
                           }}
                           aria-label="Aggiungi note"
                           disabled={isPending}
-                          style={{ width: 36, height: 36 }}
+                          style={{ width: 32, height: 32 }}
                         >
                           +
                         </IconButton>
@@ -1446,20 +1455,20 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
                 {features.courses && day.courses.length > 0 ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     <strong>🎓 Corsi</strong>
                     {day.courses.map((course) => (
-                      <div key={course.id} style={{ padding: 12, borderRadius: 16, background: "#eef2ff", border: "1px solid #c7d2fe", color: "#3730a3" }}>
+                      <div key={course.id} style={{ padding: "8px 10px", borderRadius: 12, background: "#eef2ff", border: "1px solid #c7d2fe", color: "#3730a3", fontSize: 12, lineHeight: 1.35 }}>
                         {course.title} · {formatRange(course.startTime, course.endTime, locale)}
                       </div>
                     ))}
                   </div>
                 ) : null}
                 {day.closures.length > 0 ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     <strong>🔒 Chiusure</strong>
                     {day.closures.map((closure) => (
-                      <div key={closure.id} style={{ padding: 12, borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412" }}>
+                      <div key={closure.id} style={{ padding: "8px 10px", borderRadius: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", fontSize: 12, lineHeight: 1.35 }}>
                         {closure.title}
                       </div>
                     ))}
