@@ -224,17 +224,16 @@ export default async function DashboardTasksPage({
                               aria-label="Completa nota"
                               title="Completa nota"
                               style={{
-                                width: 34,
-                                height: 34,
-                                background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-                                color: "#ffffff",
-                                border: "1px solid rgba(34, 197, 94, 0.75)",
-                                boxShadow: "0 8px 18px rgba(22, 163, 74, 0.16)",
+                                width: 38,
+                                height: 38,
+                                background: "#dcfce7",
+                                color: "#166534",
+                                border: "1px solid #bbf7d0",
                                 fontSize: 14,
                                 fontWeight: 900,
                               }}
                             >
-                              V
+                              ✓
                             </IconButton>
                           </form>
                         ) : null}

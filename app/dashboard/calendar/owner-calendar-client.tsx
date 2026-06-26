@@ -1902,28 +1902,43 @@ export function OwnerCalendarClient({
                   )
                 ) : null}
 
+                {features.shifts && showShiftComposer ? createPortal(
                 <div
+                  className="dashboard-modal-wrap"
                   style={{
                     position: "fixed",
-                    left: "50%",
-                    top: "50%",
-                    transform: "translate(-50%, -50%)",
+                    inset: 0,
                     zIndex: 2147483647,
-                    display: features.shifts && showShiftComposer ? "grid" : "none",
-                    gap: 12,
-                    width: "min(92vw, 760px)",
-                    maxHeight: "calc(100dvh - 32px)",
-                    overflowY: "auto",
-                    overflowX: "hidden",
-                    padding: 18,
-                    borderRadius: 28,
-                    background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
-                    border: "1px solid rgba(124, 58, 237, 0.16)",
-                    boxShadow: "0 24px 60px rgba(88, 28, 135, 0.20)",
+                    display: "grid",
+                    placeItems: "center",
+                    padding: 16,
+                    background: "rgba(15, 23, 42, 0.28)",
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)",
                     boxSizing: "border-box",
-                    animation: "dashboardModalEnter 120ms ease-out",
                   }}
+                  onClick={() => setShowShiftComposer(false)}
                 >
+                  <section
+                    className="dashboard-modal-panel"
+                    onClick={(event) => event.stopPropagation()}
+                    style={{
+                      position: "relative",
+                      display: "grid",
+                      gap: 12,
+                      width: "min(92vw, 760px)",
+                      maxHeight: "calc(100dvh - 32px)",
+                      overflowY: "auto",
+                      overflowX: "hidden",
+                      padding: 18,
+                      borderRadius: 28,
+                      background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
+                      border: "1px solid rgba(124, 58, 237, 0.16)",
+                      boxShadow: "0 24px 60px rgba(88, 28, 135, 0.20)",
+                      boxSizing: "border-box",
+                      animation: "dashboardModalEnter 120ms ease-out",
+                    }}
+                  >
                   <div
                     style={{
                       display: "flex",
@@ -2434,7 +2449,10 @@ export function OwnerCalendarClient({
                       {isPending ? "Salvataggio..." : "Salva turni"}
                     </PrimaryButton>
                   </div>
-                </div>
+                  </section>
+                </div>,
+                document.body
+                ) : null}
 
                 {selectedDay &&
                 activeCalendarModal !== "notes" &&
@@ -2697,18 +2715,17 @@ export function OwnerCalendarClient({
                                 onClick={() => handleCompleteTask(task.id)}
                                 disabled={isPending}
                                 style={{
-                                  width: 34,
-                                  height: 34,
-                                  background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-                                  color: "#ffffff",
-                                  border: "1px solid rgba(34, 197, 94, 0.75)",
-                                  boxShadow: "0 8px 18px rgba(22, 163, 74, 0.16)",
+                                  width: 38,
+                                  height: 38,
+                                  background: "#dcfce7",
+                                  color: "#166534",
+                                  border: "1px solid #bbf7d0",
                                   flexShrink: 0,
                                   fontSize: 14,
                                   fontWeight: 900,
                                 }}
                               >
-                                V
+                                ✓
                               </IconButton>
                             ) : null}
                           </div>
@@ -2777,7 +2794,7 @@ export function OwnerCalendarClient({
                       ))}
                     </div>
                   )}
-                </div>
+                  </div>
                 ) : null}
 
                 {selectedNote ? (

@@ -940,12 +940,24 @@ export default async function DashboardCalendarPage({
     features.shifts &&
     (role === Role.OWNER || role === Role.MANAGER) &&
     (isRestaurant || Boolean(settings?.companyShiftsEnabled));
+  const publishWeekAction = canPublishShifts ? (
+    <PublishWeekPanel
+      rangeStart={toLocalDateKey(currentMonthStart)}
+      rangeEnd={toLocalDateKey(currentMonthEnd)}
+      pendingCount={unconfirmedShiftCount}
+    />
+  ) : null;
 
   return (
     <Stack columns="minmax(0, 1fr)">
       <Panel
         title="Calendario"
-        action={<ScrollToTodayButton fallbackHref="/dashboard/calendar" />}
+        action={
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+            <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
+            {publishWeekAction}
+          </div>
+        }
       >
         {canManageRestaurantShifts ? (
           <OwnerCalendarClient
@@ -958,15 +970,7 @@ export default async function DashboardCalendarPage({
             role={String(role)}
             currentUserId={session.user.id}
             features={features}
-            toolbarAction={
-              canPublishShifts ? (
-                <PublishWeekPanel
-                  rangeStart={toLocalDateKey(currentMonthStart)}
-                  rangeEnd={toLocalDateKey(currentMonthEnd)}
-                  pendingCount={unconfirmedShiftCount}
-                />
-              ) : null
-            }
+            toolbarAction={null}
           />
         ) : (
           <DayActionCalendarClient
@@ -981,15 +985,7 @@ export default async function DashboardCalendarPage({
             presets={shiftPresets}
             currentUserId={session.user.id}
             features={features}
-            toolbarAction={
-              canPublishShifts ? (
-                <PublishWeekPanel
-                  rangeStart={toLocalDateKey(currentMonthStart)}
-                  rangeEnd={toLocalDateKey(currentMonthEnd)}
-                  pendingCount={unconfirmedShiftCount}
-                />
-              ) : null
-            }
+            toolbarAction={null}
           />
         )}
       </Panel>

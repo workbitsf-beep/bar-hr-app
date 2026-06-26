@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton } from "../ui";
+import { IconButton } from "../ui";
 
 export function PublishWeekPanel({
   rangeStart,
@@ -56,47 +56,51 @@ export function PublishWeekPanel({
   }
 
   return (
-    <>
-      <div
-        className="calendar-publish-actions"
+    <div
+      className="calendar-publish-actions"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        gap: 8,
+        minWidth: 0,
+        width: "auto",
+        overflow: "visible",
+        maxWidth: "100%",
+      }}
+    >
+      <IconButton
+        type="button"
+        onClick={handlePublish}
+        disabled={isPending || !canPublish}
+        aria-label="Conferma turni"
+        title="Conferma turni"
         style={{
-          display: "grid",
-          justifyItems: "end",
-          gap: 6,
-          justifyContent: "flex-end",
-          minWidth: 0,
-          width: "auto",
-          overflow: "visible",
-          maxWidth: "100%",
+          width: 38,
+          height: 38,
+          background: canPublish ? "#dcfce7" : "#f1f5f9",
+          color: canPublish ? "#166534" : "#94a3b8",
+          border: canPublish ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+          boxShadow: canPublish ? "0 8px 18px rgba(22, 163, 74, 0.12)" : "none",
+          opacity: canPublish ? 1 : 0.42,
+          fontSize: 16,
+          fontWeight: 900,
         }}
       >
-        <PrimaryButton
-          type="button"
-          onClick={handlePublish}
-          disabled={isPending || !canPublish}
-          tone="dark"
+        {isPending ? "..." : "✓"}
+      </IconButton>
+      {feedback ? (
+        <span
+          aria-live="polite"
           style={{
-            minHeight: 34,
-            borderRadius: 999,
-            padding: "7px 13px",
+            color: feedback.includes("confermati") ? "#166534" : "#9a3412",
             fontSize: 12,
-            boxShadow: canPublish ? "0 8px 18px rgba(15, 23, 42, 0.12)" : "none",
-            whiteSpace: "nowrap",
-            opacity: canPublish ? 1 : 0.42,
-            width: "auto",
-            minWidth: "max-content",
-            maxWidth: "100%",
-            overflow: "visible",
+            fontWeight: 800,
           }}
         >
-          {isPending ? "Confermo..." : "Conferma turni"}
-        </PrimaryButton>
-        {feedback ? (
-          <span style={{ color: feedback.includes("confermati") ? "#166534" : "#9a3412", fontSize: 12, fontWeight: 800 }}>
-            {feedback.includes("confermati") ? "✓ " : ""}{feedback}
-          </span>
-        ) : null}
-      </div>
-    </>
+          {feedback.includes("confermati") ? "✓" : "!"}
+        </span>
+      ) : null}
+    </div>
   );
 }
