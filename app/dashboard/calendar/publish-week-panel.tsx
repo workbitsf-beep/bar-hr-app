@@ -64,7 +64,7 @@ export function PublishWeekPanel({
           alignItems: "center",
           justifyContent: "flex-end",
           minWidth: 0,
-          width: "100%",
+          width: "auto",
           overflow: "visible",
         }}
       >
@@ -81,13 +81,13 @@ export function PublishWeekPanel({
             boxShadow: canPublish ? "0 8px 18px rgba(15, 23, 42, 0.12)" : "none",
             whiteSpace: "nowrap",
             opacity: canPublish ? 1 : 0.42,
-            width: "100%",
-            minWidth: 0,
+            width: "auto",
+            minWidth: 92,
             maxWidth: "100%",
             overflow: "visible",
           }}
         >
-          {isPending ? "Confermo..." : "Conferma turni"}
+          {isPending ? "..." : "Conferma"}
         </PrimaryButton>
       </div>
 

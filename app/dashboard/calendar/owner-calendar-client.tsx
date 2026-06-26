@@ -1216,10 +1216,11 @@ export function OwnerCalendarClient({
         style={{
           display: "grid",
           gridTemplateColumns: toolbarAction
-            ? "minmax(0, 0.9fr) minmax(0, 0.75fr) minmax(118px, 1.15fr)"
-            : "minmax(0, 1fr) minmax(0, 1fr)",
+            ? "auto auto minmax(0, 1fr)"
+            : "auto auto",
           alignItems: "center",
-          gap: 7,
+          columnGap: 8,
+          rowGap: 8,
           width: "100%",
           marginBottom: 10,
           overflow: "visible",
@@ -1231,12 +1232,12 @@ export function OwnerCalendarClient({
             type="button"
             onClick={() => setCalendarView(mode)}
             style={{
-              width: "100%",
+              width: "auto",
               minWidth: 0,
               minHeight: 34,
               border: calendarView === mode ? "1px solid #0f172a" : "1px solid #e2e8f0",
               borderRadius: 999,
-              padding: "7px 6px",
+              padding: "7px 11px",
               background:
                 calendarView === mode
                   ? "#0f172a"
@@ -1258,7 +1259,8 @@ export function OwnerCalendarClient({
             style={{
               minWidth: 0,
               display: "flex",
-              justifyContent: "stretch",
+              justifyContent: "flex-end",
+              justifySelf: "end",
             }}
           >
             {toolbarAction}
