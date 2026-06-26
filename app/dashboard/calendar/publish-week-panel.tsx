@@ -65,6 +65,7 @@ export function PublishWeekPanel({
           justifyContent: "flex-end",
           minWidth: 0,
           width: "100%",
+          overflow: "visible",
         }}
       >
         <PrimaryButton
@@ -75,12 +76,13 @@ export function PublishWeekPanel({
           style={{
             minHeight: 34,
             borderRadius: 999,
-            paddingInline: 13,
-            fontSize: 11,
+            paddingInline: 9,
+            fontSize: 10.5,
             boxShadow: canPublish ? "0 8px 18px rgba(15, 23, 42, 0.12)" : "none",
             whiteSpace: "nowrap",
             opacity: canPublish ? 1 : 0.42,
-            minWidth: 136,
+            width: "100%",
+            minWidth: 0,
             maxWidth: "100%",
             overflow: "visible",
           }}

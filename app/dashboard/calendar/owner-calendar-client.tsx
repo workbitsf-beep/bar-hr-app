@@ -1214,60 +1214,51 @@ export function OwnerCalendarClient({
     <>
       <div
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: toolbarAction
+            ? "minmax(0, 0.9fr) minmax(0, 0.75fr) minmax(118px, 1.15fr)"
+            : "minmax(0, 1fr) minmax(0, 1fr)",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          flexWrap: "nowrap",
+          gap: 7,
           width: "100%",
           marginBottom: 10,
           overflow: "visible",
         }}
       >
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            padding: 3,
-            borderRadius: 999,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            width: "fit-content",
-            maxWidth: "calc(100% - 146px)",
-            flex: "0 1 auto",
-            minWidth: 0,
-          }}
-        >
-          {(["week", "day"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setCalendarView(mode)}
-              style={{
-                border: 0,
-                borderRadius: 999,
-                padding: "6px 9px",
-                background: calendarView === mode ? "#0f172a" : "transparent",
-                color: calendarView === mode ? "#ffffff" : "#475569",
-                fontWeight: 800,
-                fontSize: 11,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {mode === "week" ? "Settimana" : "Giorno"}
-            </button>
-          ))}
-        </div>
+        {(["week", "day"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setCalendarView(mode)}
+            style={{
+              width: "100%",
+              minWidth: 0,
+              minHeight: 34,
+              border: calendarView === mode ? "1px solid #0f172a" : "1px solid #e2e8f0",
+              borderRadius: 999,
+              padding: "7px 6px",
+              background:
+                calendarView === mode
+                  ? "#0f172a"
+                  : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+              color: calendarView === mode ? "#ffffff" : "#475569",
+              fontWeight: 800,
+              fontSize: 10.5,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              boxShadow:
+                calendarView === mode ? "0 8px 16px rgba(15, 23, 42, 0.12)" : "none",
+            }}
+          >
+            {mode === "week" ? "Settimana" : "Giorno"}
+          </button>
+        ))}
         {toolbarAction ? (
           <div
             style={{
-              marginLeft: "auto",
-              flex: "0 0 auto",
-              minWidth: 136,
+              minWidth: 0,
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "stretch",
             }}
           >
             {toolbarAction}
