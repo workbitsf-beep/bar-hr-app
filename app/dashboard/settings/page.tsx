@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ActivityType, Prisma, Role } from "@prisma/client";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
-import { featureDefinitions, getFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
+import { featureDefinitions, getFeatureFlags } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { getLegalDocumentsWithAcceptance, legalDocumentTypeLabels } from "@/lib/legal-documents";
 import { prisma } from "@/lib/prisma";
@@ -23,7 +23,7 @@ import { BillingSettingsPanel } from "./billing-settings-panel";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
 import { PushSettingsClient } from "./push-settings-client";
-import { StandardHoursForm, StandardHoursPreview, type StandardHourEntry } from "./standard-hours-form";
+import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -31,40 +31,6 @@ function normalizeParam(value: string | string[] | undefined) {
   }
 
   return value ?? "";
-}
-
-function FeatureSummaryChips({ settings }: { settings?: FeatureSettingsInput | null }) {
-  const features = getFeatureFlags(settings);
-  const active = featureDefinitions.filter((feature) => features[feature.key]);
-
-  if (active.length === 0) {
-    return <EmptyState message="Nessuna funzione attiva." />;
-  }
-
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      {active.map((feature) => (
-        <span
-          key={feature.key}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 12px",
-            borderRadius: 999,
-            background: "rgba(237, 233, 254, 0.78)",
-            border: "1px solid rgba(124, 58, 237, 0.14)",
-            color: "#4c1d95",
-            fontSize: 13,
-            fontWeight: 700,
-          }}
-        >
-          <span aria-hidden="true">{feature.emoji}</span>
-          {feature.shortLabel}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function parseStandardHoursFromSettings(settings?: {
@@ -441,7 +407,7 @@ export default async function DashboardSettingsPage({
   ).length;
 
   const localePopup = (
-    <PopupAction title="Locale / Attività" ariaLabel="Apri locale e attività" triggerContent="Gestisci">
+    <PopupAction title="Locale / Attività" ariaLabel="Apri locale e attività" triggerContent="Gestisci" closeOnSubmit>
       <LocaleSettingsPopupContent
         activityName={activeBar?.name ?? activeBarName ?? "Attività"}
         activityLabel={activeBar?.activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione"}
@@ -462,7 +428,7 @@ export default async function DashboardSettingsPage({
   );
 
   const standardHoursPopup = (
-    <PopupAction title="Orari standard" ariaLabel="Apri orari standard" triggerContent="Gestisci">
+    <PopupAction title="Orari standard" ariaLabel="Apri orari standard" triggerContent="Gestisci" closeOnSubmit>
       <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
         <input type="hidden" name="settingsSection" value="hours" />
         <StandardHoursForm initialEntries={standardHours} />

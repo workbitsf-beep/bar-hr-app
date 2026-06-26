@@ -1363,7 +1363,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
     : null;
   const trialEndsAt = trialEndsAtRaw ? parseRequiredDate(trialEndsAtRaw) : null;
 
-  const [currentSubscription, bar] = await Promise.all([
+  const [currentSubscription] = await Promise.all([
     prisma.subscription.findUnique({
       where: { barId },
       select: {
@@ -1371,7 +1371,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
       },
     }),
     prisma.$transaction(async (tx) => {
-      const updatedBar = await tx.bar.update({
+      await tx.bar.update({
         where: { id: barId },
         data: {
           ownerId,
@@ -1410,8 +1410,6 @@ export async function updateBarSubscriptionAction(formData: FormData) {
           trialEndsAt: planType === PlanType.TRIAL ? trialEndsAt : null,
         },
       });
-
-      return updatedBar;
     }),
   ]);
 
@@ -2119,7 +2117,7 @@ export async function updateShiftAction(formData: FormData) {
 }
 
 export async function confirmShiftAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");

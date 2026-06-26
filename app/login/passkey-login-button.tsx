@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   browserSupportsWebAuthn,
   platformAuthenticatorIsAvailable,
@@ -71,7 +71,7 @@ export function PasskeyLoginButton({
     };
   }, []);
 
-  async function handlePasskeyLogin() {
+  const handlePasskeyLogin = useCallback(async () => {
     onError("");
     setLoading(true);
 
@@ -124,7 +124,7 @@ export function PasskeyLoginButton({
     } finally {
       setLoading(false);
     }
-  }
+  }, [email, onError, onSuccess, rememberMe]);
 
   useEffect(() => {
     if (!autoPrompt || autoPromptedRef.current || checking || loading || !available) {
@@ -133,7 +133,7 @@ export function PasskeyLoginButton({
 
     autoPromptedRef.current = true;
     void handlePasskeyLogin();
-  }, [autoPrompt, available, checking, loading]);
+  }, [autoPrompt, available, checking, loading, handlePasskeyLogin]);
 
   return (
     <button

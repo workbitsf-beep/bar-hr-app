@@ -81,16 +81,6 @@ export function QuickCalendarEntryModal({
     return null;
   }
 
-  function updateEntries(
-    setter: Dispatch<SetStateAction<EntryItem[]>>,
-    id: string,
-    value: Partial<EntryItem>
-  ) {
-    setter((current) =>
-      current.map((entry) => (entry.id === id ? { ...entry, ...value } : entry))
-    );
-  }
-
   function addTaskEntry() {
     if (!taskDraft.value.trim()) {
       return;

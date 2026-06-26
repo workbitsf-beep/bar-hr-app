@@ -8,7 +8,9 @@ import {
   RoundingMode,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { calculateRoundedWorkDuration } from "@/lib/rounding";
+import {
+  calculateShiftAwareRoundedWorkDuration,
+} from "@/lib/rounding";
 import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 
 export type ExportEntry = {
@@ -159,7 +161,12 @@ function calculateMonthlyTotals(
       continue;
     }
 
-    const duration = calculateRoundedWorkDuration(pendingIn.timestamp, log.timestamp, settings);
+    const duration = calculateShiftAwareRoundedWorkDuration(
+      pendingIn.timestamp,
+      log.timestamp,
+      pendingIn.shift ?? log.shift,
+      settings
+    );
 
     totalRealMs += duration.realMs;
     totalRoundedMs += duration.roundedMs;
@@ -304,7 +311,12 @@ async function buildRestaurantMonthlyDataset(
       continue;
     }
 
-    const duration = calculateRoundedWorkDuration(pendingIn.timestamp, log.timestamp, settings);
+    const duration = calculateShiftAwareRoundedWorkDuration(
+      pendingIn.timestamp,
+      log.timestamp,
+      pendingIn.shift ?? log.shift,
+      settings
+    );
 
     const dayKey = formatDayKey(pendingIn.timestamp);
     const day =

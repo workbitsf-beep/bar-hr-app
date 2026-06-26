@@ -65,8 +65,16 @@ async function loadPushConfig() {
 }
 
 function getOrCreateFirebaseApp(config: PublicPushConfig) {
-  const { vapidKey: _vapidKey, ...firebaseConfig } = config;
-  return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  return getApps().length > 0
+    ? getApp()
+    : initializeApp({
+        apiKey: config.apiKey,
+        authDomain: config.authDomain,
+        projectId: config.projectId,
+        messagingSenderId: config.messagingSenderId,
+        appId: config.appId,
+        measurementId: config.measurementId,
+      });
 }
 
 function getBrowserPlatform() {

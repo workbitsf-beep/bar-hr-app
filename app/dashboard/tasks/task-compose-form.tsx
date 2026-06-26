@@ -34,15 +34,6 @@ export function TaskComposeForm({
   const [entries, setEntries] = useState<ReturnType<typeof createEmptyEntry>[]>([]);
   const [draft, setDraft] = useState(createEmptyEntry());
 
-  function updateEntry(
-    id: string,
-    value: Partial<ReturnType<typeof createEmptyEntry>>
-  ) {
-    setEntries((current) =>
-      current.map((entry) => (entry.id === id ? { ...entry, ...value } : entry))
-    );
-  }
-
   function addEntry() {
     if (!draft.value.trim()) {
       return;

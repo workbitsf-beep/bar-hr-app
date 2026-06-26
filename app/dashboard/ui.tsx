@@ -42,26 +42,6 @@ const softCardStyle: CSSProperties = {
 
 const focusRing = "var(--workbit-focus)";
 
-function resolveEmoji(title: string) {
-  const normalized = title.toLowerCase();
-
-  if (normalized.includes("riepilog")) return "📊";
-  if (normalized.includes("gestir")) return "🗂️";
-  if (normalized.includes("calend")) return "📅";
-  if (normalized.includes("turn")) return "⏱️";
-  if (normalized.includes("richiest") || normalized.includes("chius")) return "📝";
-  if (normalized.includes("mansion")) return "✅";
-  if (normalized.includes("bacheca")) return "📢";
-  if (normalized.includes("cors")) return "🎓";
-  if (normalized.includes("timbr")) return "⏱️";
-  if (normalized.includes("impost")) return "⚙️";
-  if (normalized.includes("export") || normalized.includes("report")) return "📄";
-  if (normalized.includes("sicurezza")) return "🔒";
-  if (normalized.includes("dashboard")) return "✨";
-
-  return "•";
-}
-
 function resolveUiEmoji(title: string) {
   const normalized = title.toLowerCase();
 

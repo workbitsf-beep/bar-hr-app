@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
@@ -282,12 +282,12 @@ export function ClockActionsPanel({
     weakAccuracy,
   ]);
 
-  function stopGeolocationWatch() {
+  const stopGeolocationWatch = useCallback(() => {
     stopWatchRef.current?.();
     stopWatchRef.current = null;
-  }
+  }, []);
 
-  function startGeolocationWatch(manual = false) {
+  const startGeolocationWatch = useCallback((manual = false) => {
     if (!canClock || !gpsConfigured || !navigator.geolocation) {
       return;
     }
@@ -337,7 +337,7 @@ export function ClockActionsPanel({
         );
       },
     });
-  }
+  }, [canClock, gpsConfigured, settings, stopGeolocationWatch]);
 
   useEffect(() => {
     if (!canClock || !gpsConfigured || !navigator.geolocation) {
@@ -358,7 +358,7 @@ export function ClockActionsPanel({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopGeolocationWatch();
     };
-  }, [canClock, gpsConfigured, settings?.gpsLatitude, settings?.gpsLongitude, settings?.gpsRadius]);
+  }, [canClock, gpsConfigured, settings?.gpsLatitude, settings?.gpsLongitude, settings?.gpsRadius, startGeolocationWatch, stopGeolocationWatch]);
 
   async function runClockAction(endpoint: "clock-in" | "clock-out") {
     setSubmitting(endpoint === "clock-in" ? "in" : "out");
@@ -833,7 +833,6 @@ function PersonalTimeLogsPanel({
 export function TimeLogsClient({
   role,
   initialLogs,
-  settings,
   totals,
 }: {
   role: Role | string;

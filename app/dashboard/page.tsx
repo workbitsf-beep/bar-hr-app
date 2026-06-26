@@ -1,4 +1,4 @@
-import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
+import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
@@ -47,7 +47,6 @@ export default async function DashboardPage() {
 
   const now = new Date();
   const canManagePeople = role === Role.OWNER || role === Role.MANAGER;
-  const isManager = role === Role.MANAGER;
   const isOwner = role === Role.OWNER;
   const isOperationalProfile = !isOwner;
   const showKpi =

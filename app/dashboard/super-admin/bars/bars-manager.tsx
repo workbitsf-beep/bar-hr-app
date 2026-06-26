@@ -327,16 +327,18 @@ export function BarsManager({
   }, [open]);
 
   const selectedBar = useMemo(() => bars.find((bar) => bar.id === selectedBarId) ?? null, [bars, selectedBarId]);
-  const selectedSubscription =
-    selectedBar?.subscription ??
-    {
-      planType: "PAID" as const,
-      status: "INACTIVE" as const,
-      billingInterval: null,
-      monthlyDiscountPercent: 0,
-      currentPeriodEnd: null,
-      trialEndsAt: null,
-    };
+  const selectedSubscription = useMemo(
+    () =>
+      selectedBar?.subscription ?? {
+        planType: "PAID" as const,
+        status: "INACTIVE" as const,
+        billingInterval: null,
+        monthlyDiscountPercent: 0,
+        currentPeriodEnd: null,
+        trialEndsAt: null,
+      },
+    [selectedBar]
+  );
   const selectedAccessUnlocked =
     selectedSubscription.planType === "FREE" ||
     selectedSubscription.planType === "LIFETIME" ||

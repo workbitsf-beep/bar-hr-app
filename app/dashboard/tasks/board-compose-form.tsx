@@ -65,15 +65,6 @@ export function BoardComposeForm({
     assignedToId: initialAssignedToId,
   });
 
-  function updateEntry(
-    id: string,
-    value: Partial<ReturnType<typeof createEmptyEntry>>
-  ) {
-    setEntries((current) =>
-      current.map((entry) => (entry.id === id ? { ...entry, ...value } : entry))
-    );
-  }
-
   function addEntry() {
     if (!draft.value.trim()) {
       return;

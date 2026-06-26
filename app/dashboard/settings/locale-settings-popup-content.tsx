@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import {
   featureDefinitions,
@@ -35,13 +35,26 @@ export function LocaleSettingsPopupContent({
   globalGpsRadius,
   isRestaurant,
 }: LocaleSettingsPopupContentProps) {
-  const [features, setFeatures] = useState(() => getFeatureFlags(settings));
+  const savedFeatures = useMemo(() => getFeatureFlags(settings), [settings]);
+  const [features, setFeatures] = useState(savedFeatures);
   const trackingFormRef = useRef<HTMLFormElement>(null);
   const [roundingEnabled, setRoundingEnabled] = useState(Boolean(settings?.roundingEnabled));
   const [roundingAcknowledged, setRoundingAcknowledged] = useState(Boolean(settings?.roundingEnabled));
   const [roundingConsent, setRoundingConsent] = useState(false);
   const [showRoundingInfo, setShowRoundingInfo] = useState(false);
   const timeTrackingActive = features.timeTracking;
+
+  useEffect(() => {
+    setFeatures(savedFeatures);
+    setRoundingEnabled(Boolean(settings?.roundingEnabled));
+    setRoundingAcknowledged(Boolean(settings?.roundingEnabled));
+    setRoundingConsent(false);
+    setShowRoundingInfo(false);
+  }, [savedFeatures, settings?.roundingEnabled]);
+
+  function resetFeatureDraft() {
+    setFeatures(savedFeatures);
+  }
 
   function handleTrackingSubmit(event: FormEvent<HTMLFormElement>) {
     if (roundingEnabled && !roundingAcknowledged) {
@@ -144,7 +157,7 @@ export function LocaleSettingsPopupContent({
         </div>
 
         <div className="dashboard-form-actions">
-          <PrimaryButton type="button" tone="sand" data-popup-close>
+          <PrimaryButton type="button" tone="sand" data-popup-close onClick={resetFeatureDraft}>
             Annulla
           </PrimaryButton>
           <PrimaryButton type="submit">Salva funzioni</PrimaryButton>
@@ -262,10 +275,10 @@ export function LocaleSettingsPopupContent({
             }}
           >
             <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
-              Come funziona l'arrotondamento?
+              Come funziona l&apos;arrotondamento?
             </h3>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>
-              Workbit continuerà a salvare gli orari reali di entrata e uscita. Le ore lavorate e i report verranno invece calcolati arrotondando entrata e uscita all'intervallo impostato.
+              Workbit continuerà a salvare gli orari reali di entrata e uscita. Le ore lavorate e i report verranno invece calcolati arrotondando entrata e uscita all&apos;intervallo impostato.
             </p>
             <div
               style={{

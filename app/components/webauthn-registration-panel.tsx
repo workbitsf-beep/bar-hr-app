@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   browserSupportsWebAuthn,
   platformAuthenticatorIsAvailable,
@@ -68,7 +68,7 @@ export function WebAuthnRegistrationPanel({
     };
   }, []);
 
-  async function registerPasskey() {
+  const registerPasskey = useCallback(async () => {
     setError("");
     setMessage("");
     setLoading(true);
@@ -118,7 +118,7 @@ export function WebAuthnRegistrationPanel({
     } finally {
       setLoading(false);
     }
-  }
+  }, [onSuccess]);
 
   useEffect(() => {
     if (!autoPrompt || autoPromptedRef.current || checking || loading || updating || !available) {
@@ -131,7 +131,7 @@ export function WebAuthnRegistrationPanel({
 
     autoPromptedRef.current = true;
     void registerPasskey();
-  }, [autoPrompt, available, checking, loading, updating, passkeyCount]);
+  }, [autoPrompt, available, checking, loading, updating, passkeyCount, registerPasskey]);
 
   async function handleUpdatePasskey() {
     setError("");
