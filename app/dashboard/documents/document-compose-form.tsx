@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type RecipientOption = {
@@ -35,12 +36,19 @@ export function DocumentComposeForm({
   recipients: RecipientOption[];
   action: (formData: FormData) => Promise<void> | void;
 }) {
+  const router = useRouter();
   const [draft, setDraft] = useState<DocumentDraft>(createDraft());
   const [queued, setQueued] = useState<DocumentDraft[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   function addToList() {
+    setError("");
+    setMessage("");
+
     if (!draft.title.trim() || !draft.file || (!draft.assignedToAll && draft.assignedToIds.length === 0)) {
+      setError("Completa titolo, file e destinatari.");
       return;
     }
 
@@ -49,6 +57,9 @@ export function DocumentComposeForm({
   }
 
   function saveAll() {
+    setError("");
+    setMessage("");
+
     const currentDraftIsValid =
       draft.title.trim() &&
       draft.file &&
@@ -56,30 +67,37 @@ export function DocumentComposeForm({
     const items = queued.concat(currentDraftIsValid ? [draft] : []);
 
     if (items.length === 0) {
+      setError("Aggiungi almeno un documento da caricare.");
       return;
     }
 
     startTransition(async () => {
-      for (const item of items) {
-        if (!item.file) {
-          continue;
+      try {
+        for (const item of items) {
+          if (!item.file) {
+            continue;
+          }
+
+          const targetIds = item.assignedToAll ? [null] : item.assignedToIds;
+
+          for (const targetId of targetIds) {
+            const formData = new FormData();
+            formData.set("title", item.title);
+            formData.set("description", item.description);
+            formData.set("audience", targetId ? "USER" : "ALL");
+            formData.set("assignedToId", targetId ?? "");
+            formData.set("file", item.file);
+            await action(formData);
+          }
         }
 
-        const targetIds = item.assignedToAll ? [null] : item.assignedToIds;
-
-        for (const targetId of targetIds) {
-          const formData = new FormData();
-          formData.set("title", item.title);
-          formData.set("description", item.description);
-          formData.set("audience", targetId ? "USER" : "ALL");
-          formData.set("assignedToId", targetId ?? "");
-          formData.set("file", item.file);
-          await action(formData);
-        }
+        setQueued([]);
+        setDraft(createDraft());
+        setMessage("Documenti caricati.");
+        router.refresh();
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Impossibile caricare il documento.");
       }
-
-      setQueued([]);
-      setDraft(createDraft());
     });
   }
 
@@ -119,6 +137,17 @@ export function DocumentComposeForm({
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
+      {error ? (
+        <div style={{ padding: "10px 12px", borderRadius: 16, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", fontWeight: 800 }}>
+          {error}
+        </div>
+      ) : null}
+      {message ? (
+        <div style={{ padding: "10px 12px", borderRadius: 16, background: "#ecfdf5", border: "1px solid #bbf7d0", color: "#166534", fontWeight: 800 }}>
+          ✓ {message}
+        </div>
+      ) : null}
+
       {queued.length > 0 ? (
         <div style={{ display: "grid", gap: 8 }}>
           {queued.map((item) => (

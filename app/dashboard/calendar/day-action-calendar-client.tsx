@@ -723,7 +723,7 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
             )}
           </div>
           {canConfirm ? (
-            <form action={confirmBoardNoteReadAction}>
+            <form action={confirmBoardNoteReadAction} onClick={(event) => event.stopPropagation()}>
               <input type="hidden" name="noteId" value={note.id} />
               <IconButton
                 type="submit"
@@ -777,13 +777,16 @@ export function DayActionCalendarClient({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [, startViewTransition] = useTransition();
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
+  const [calendarContentView, setCalendarContentView] = useState<"week" | "day">("week");
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
     const today = days.find((day) => day.isToday) ?? days[0];
     return filteredDay ?? today?.date ?? "";
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
   const [showRequestComposer, setShowRequestComposer] = useState(false);
@@ -867,6 +870,7 @@ export function DayActionCalendarClient({
 
       setFocusedDayDate(today.date);
       setCalendarView("day");
+      setCalendarContentView("day");
       setSelectedDate(null);
       setActiveCalendarModal(null);
       setFeedback(null);
@@ -910,6 +914,10 @@ export function DayActionCalendarClient({
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
+  );
+  const selectedNote = useMemo(
+    () => selectedDay?.notes.find((note) => note.id === selectedNoteId) ?? null,
+    [selectedDay, selectedNoteId]
   );
   const editingShift = useMemo(
     () => selectedDay?.shifts.find((shift) => shift.id === editingShiftId) ?? null,
@@ -1069,6 +1077,7 @@ export function DayActionCalendarClient({
     setFocusedDayDate(nextDay.date);
     setSelectedDate(null);
     setActiveCalendarModal(null);
+    setSelectedNoteId(null);
     setFeedback(null);
   }
 
@@ -1097,6 +1106,7 @@ export function DayActionCalendarClient({
 
     setEditingShiftId(null);
     setActiveCalendarModal(null);
+    setSelectedNoteId(null);
     setShowShiftComposer(false);
     setShowRequestComposer(false);
     setShowAvailabilityComposer(false);
@@ -1434,8 +1444,8 @@ export function DayActionCalendarClient({
             gap: 3,
             padding: 3,
             borderRadius: 999,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
+            background: "linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%)",
+            border: "1px solid rgba(124, 58, 237, 0.16)",
             flex: "0 0 auto",
             maxWidth: "100%",
           }}
@@ -1444,13 +1454,20 @@ export function DayActionCalendarClient({
             <button
               key={mode}
               type="button"
-              onClick={() => setCalendarView(mode)}
+              onClick={() => {
+                if (calendarView === mode) {
+                  return;
+                }
+
+                setCalendarView(mode);
+                startViewTransition(() => setCalendarContentView(mode));
+              }}
               style={{
                 border: 0,
                 borderRadius: 999,
                 minHeight: 34,
                 padding: "7px 12px",
-                background: calendarView === mode ? "#0f172a" : "transparent",
+                background: calendarView === mode ? "linear-gradient(135deg, #111936, #7c3aed)" : "transparent",
                 color: calendarView === mode ? "#ffffff" : "#475569",
                 fontWeight: 800,
                 fontSize: 11,
@@ -1477,7 +1494,7 @@ export function DayActionCalendarClient({
         ) : null}
       </div>
 
-      {calendarView === "day" ? (
+      {calendarContentView === "day" ? (
         <div
           ref={dayStripRef}
           onScroll={handleDayStripScroll}
@@ -1970,10 +1987,11 @@ export function DayActionCalendarClient({
                   width: "min(720px, calc(100vw - 32px))",
                   maxHeight: "calc(100vh - 32px)",
                   overflowY: "auto",
-                  background: "rgba(255,255,255,0.98)",
-                  border: "1px solid #e2e8f0",
+                  background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
+                  border: "1px solid rgba(124, 58, 237, 0.16)",
                   borderRadius: 28,
-                  boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
+                  boxShadow: "0 24px 60px rgba(88, 28, 135, 0.20)",
+                  animation: "dashboardModalEnter 140ms ease-out",
                   padding: 24,
                   display: "grid",
                   gap: 18,
@@ -2776,11 +2794,77 @@ export function DayActionCalendarClient({
                         {selectedDay.tasks.map((task) =>
                           renderTaskCard(task, true, submitTaskCompletion, isPending)
                         )}
-                        {selectedDay.notes.map((note) =>
-                          renderNoteCard(note, locale, currentUserId, true)
-                        )}
+                        {selectedDay.notes.map((note) => (
+                          <div
+                            key={note.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedNoteId(note.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setSelectedNoteId(note.id);
+                              }
+                            }}
+                            style={{
+                              border: 0,
+                              padding: 0,
+                              background: "transparent",
+                              textAlign: "left",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {renderNoteCard(note, locale, currentUserId, true)}
+                          </div>
+                        ))}
                       </div>
                     )}
+                  </div>
+                ) : null}
+                {selectedNote ? (
+                  <div
+                    style={{
+                      position: "fixed",
+                      inset: 0,
+                      zIndex: 2147483647,
+                      display: "grid",
+                      placeItems: "center",
+                      padding: 16,
+                      background: "rgba(15, 23, 42, 0.24)",
+                      backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    <section
+                      className="dashboard-modal-panel"
+                      style={{
+                        position: "relative",
+                        width: "min(520px, calc(100vw - 32px))",
+                        maxHeight: "calc(100dvh - 32px)",
+                        overflowY: "auto",
+                        padding: 18,
+                        borderRadius: 28,
+                        background: "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
+                        border: "1px solid rgba(124, 58, 237, 0.16)",
+                        boxShadow: "0 24px 60px rgba(88, 28, 135, 0.20)",
+                        display: "grid",
+                        gap: 14,
+                      }}
+                    >
+                      <IconButton
+                        type="button"
+                        onClick={() => setSelectedNoteId(null)}
+                        aria-label="Chiudi dettaglio nota"
+                        style={{ position: "absolute", top: 14, right: 14, width: 36, height: 36 }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                      </IconButton>
+                      <strong style={{ color: "#0f172a", fontSize: 20, paddingRight: 44 }}>
+                        📌 Nota
+                      </strong>
+                      {renderNoteCard(selectedNote, locale, currentUserId, true)}
+                    </section>
                   </div>
                 ) : null}
               </section>

@@ -656,8 +656,10 @@ function DashboardResponsiveStyles() {
         overflow-y: auto !important;
         padding: clamp(18px, 2.8vw, 24px) !important;
         border-radius: 28px !important;
-        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16) !important;
-        animation: dashboardModalEnter 180ms cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 0 22px 56px rgba(88, 28, 135, 0.18) !important;
+        animation: dashboardModalEnter 140ms cubic-bezier(0.22, 1, 0.36, 1);
+        contain: layout paint;
+        transform-origin: center;
         -webkit-overflow-scrolling: touch;
       }
 
@@ -1556,8 +1558,8 @@ export function PrimaryButton({
 }) {
   const backgrounds = {
     dark: "var(--workbit-gradient)",
-    green: "linear-gradient(135deg, #064e3b 0%, #059669 55%, #6ee7b7 100%)",
-    red: "linear-gradient(135deg, #7f1d1d 0%, #dc2626 58%, #fca5a5 100%)",
+    green: "linear-gradient(135deg, #dcfce7 0%, #86efac 52%, #22c55e 100%)",
+    red: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 52%, #fb7185 100%)",
     sand: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
   };
 
@@ -1568,8 +1570,8 @@ export function PrimaryButton({
       className={joinClassNames("dashboard-button", props.className)}
       style={{
         background: backgrounds[tone],
-        color: tone === "sand" ? "var(--workbit-navy)" : "#fff",
-        border: tone === "sand" ? "1px solid var(--workbit-border)" : 0,
+        color: tone === "green" ? "#14532d" : tone === "red" ? "#7f1d1d" : tone === "sand" ? "var(--workbit-navy)" : "#fff",
+        border: tone === "sand" ? "1px solid var(--workbit-border)" : tone === "red" ? "1px solid #fecaca" : tone === "green" ? "1px solid #bbf7d0" : 0,
         borderRadius: 999,
         minHeight: 38,
         padding: "9px 15px",

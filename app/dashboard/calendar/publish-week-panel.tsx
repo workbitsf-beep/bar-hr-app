@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PrimaryButton, SuccessCallout } from "../ui";
+import { PrimaryButton } from "../ui";
 
 export function PublishWeekPanel({
   rangeStart,
@@ -60,8 +60,9 @@ export function PublishWeekPanel({
       <div
         className="calendar-publish-actions"
         style={{
-          display: "flex",
-          alignItems: "center",
+          display: "grid",
+          justifyItems: "end",
+          gap: 6,
           justifyContent: "flex-end",
           minWidth: 0,
           width: "auto",
@@ -75,9 +76,9 @@ export function PublishWeekPanel({
           disabled={isPending || !canPublish}
           tone="dark"
           style={{
-            minHeight: 40,
+            minHeight: 34,
             borderRadius: 999,
-            padding: "7px 14px",
+            padding: "7px 13px",
             fontSize: 12,
             boxShadow: canPublish ? "0 8px 18px rgba(15, 23, 42, 0.12)" : "none",
             whiteSpace: "nowrap",
@@ -90,9 +91,12 @@ export function PublishWeekPanel({
         >
           {isPending ? "Confermo..." : "Conferma turni"}
         </PrimaryButton>
+        {feedback ? (
+          <span style={{ color: feedback.includes("confermati") ? "#166534" : "#9a3412", fontSize: 12, fontWeight: 800 }}>
+            {feedback.includes("confermati") ? "✓ " : ""}{feedback}
+          </span>
+        ) : null}
       </div>
-
-      {feedback ? <SuccessCallout style={{ gridColumn: "1 / -1", fontSize: 13 }}>{feedback}</SuccessCallout> : null}
     </>
   );
 }

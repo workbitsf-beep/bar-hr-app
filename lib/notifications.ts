@@ -22,6 +22,7 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   CLOSURE_CREATED: "closure.created",
   CLOSURE_UPDATED: "closure.updated",
   CLOSURE_DELETED: "closure.deleted",
+  DOCUMENT_CREATED: "document.created",
   AVAILABILITY_CREATED: "availability.created",
   AVAILABILITY_REVIEWED: "availability.reviewed",
   TIMELOG_CLOCK_IN_REMINDER_BEFORE: "timelog.clock-in.before",

@@ -3019,7 +3019,7 @@ export async function createDocumentAction(formData: FormData) {
 
   const content = Buffer.from(await fileEntry.arrayBuffer());
 
-  await prisma.document.create({
+  const document = await prisma.document.create({
     data: {
       barId: activeBarId,
       title,
@@ -3033,6 +3033,27 @@ export async function createDocumentAction(formData: FormData) {
       createdById: session.user.id,
     },
   });
+
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const recipients = assignedToAll
+      ? excludeActorFromUsers(notificationContext.users, session.user.id)
+      : excludeActorFromUsers(
+          notificationContext.users.filter((user) => user.id === assignedToId),
+          session.user.id
+        );
+
+    if (recipients.length > 0) {
+      await notifyUsers(recipients, {
+        barId: activeBarId,
+        title: "Nuovo documento",
+        message: `${document.title} è disponibile nei documenti di ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.DOCUMENT_CREATED,
+        actionUrl: "/dashboard/documents",
+      });
+    }
+  }
 
   revalidatePath("/dashboard/documents");
   revalidatePath("/dashboard");
