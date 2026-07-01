@@ -1,43 +1,32 @@
 import Link from "next/link";
-import { ActivityType, Role } from "@prisma/client";
+import { ActivityType, BillingInterval, PlanType, Role, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { SuperAdminHomeCreateActions } from "./home-create-actions";
 
 const MONTHLY_PRICE = 29.99;
 const YEARLY_PRICE = 299;
 
-type RevenueBar = {
-  activityType: ActivityType;
+type RevenueActivity = {
   name: string;
+  activityType: ActivityType;
   owner: {
     firstName: string;
     lastName: string;
   };
   subscription: {
-    planType: "FREE" | "TRIAL" | "PAID" | "LIFETIME";
-    status: "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INACTIVE";
-    billingInterval: "MONTHLY" | "YEARLY" | null;
+    planType: PlanType;
+    status: SubscriptionStatus;
+    billingInterval: BillingInterval | null;
     monthlyDiscountPercent: number;
     currentPeriodEnd: Date | null;
   } | null;
 };
-
-type BillingBucket = "active" | "trial" | "risk" | "manual";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("it-IT", {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatCompactCurrency(value: number) {
-  return new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency: "EUR",
-    notation: "compact",
-    maximumFractionDigits: 1,
   }).format(value);
 }
 
@@ -52,246 +41,138 @@ function formatDate(value: Date | null) {
 }
 
 function getActivityLabel(activityType: ActivityType) {
-  return activityType === ActivityType.COMPANY ? "Aziende" : "Ristorazione";
+  return activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione";
 }
 
 function getDiscountMultiplier(discountPercent: number) {
   return 1 - Math.max(0, Math.min(100, discountPercent)) / 100;
 }
 
-function isRevenueActive(bar: RevenueBar) {
+function isPaidActive(activity: RevenueActivity) {
   return (
-    bar.subscription?.planType === "PAID" &&
-    (bar.subscription.status === "ACTIVE" || bar.subscription.status === "TRIALING")
+    activity.subscription?.planType === PlanType.PAID &&
+    (activity.subscription.status === SubscriptionStatus.ACTIVE ||
+      activity.subscription.status === SubscriptionStatus.TRIALING)
   );
 }
 
-function getEstimatedMonthlyRevenue(bar: RevenueBar) {
-  if (!isRevenueActive(bar)) return 0;
+function getEstimatedMonthlyRevenue(activity: RevenueActivity) {
+  if (!isPaidActive(activity)) return 0;
 
-  const multiplier = getDiscountMultiplier(bar.subscription?.monthlyDiscountPercent ?? 0);
+  const multiplier = getDiscountMultiplier(activity.subscription?.monthlyDiscountPercent ?? 0);
 
-  return bar.subscription?.billingInterval === "YEARLY"
+  return activity.subscription?.billingInterval === BillingInterval.YEARLY
     ? (YEARLY_PRICE * multiplier) / 12
     : MONTHLY_PRICE * multiplier;
 }
 
-function getEstimatedAnnualRevenue(bar: RevenueBar) {
-  if (!isRevenueActive(bar)) return 0;
+function getEstimatedAnnualRevenue(activity: RevenueActivity) {
+  if (!isPaidActive(activity)) return 0;
 
-  const multiplier = getDiscountMultiplier(bar.subscription?.monthlyDiscountPercent ?? 0);
+  const multiplier = getDiscountMultiplier(activity.subscription?.monthlyDiscountPercent ?? 0);
 
-  return bar.subscription?.billingInterval === "YEARLY"
+  return activity.subscription?.billingInterval === BillingInterval.YEARLY
     ? YEARLY_PRICE * multiplier
     : MONTHLY_PRICE * 12 * multiplier;
 }
 
-function getTrialPipelineMonthly(bar: RevenueBar) {
-  if (bar.subscription?.planType !== "TRIAL") return 0;
-
-  const multiplier = getDiscountMultiplier(bar.subscription.monthlyDiscountPercent);
-
-  return bar.subscription.billingInterval === "YEARLY"
-    ? (YEARLY_PRICE * multiplier) / 12
-    : MONTHLY_PRICE * multiplier;
+function statusLabel(planType: PlanType, status: SubscriptionStatus) {
+  if (planType === PlanType.FREE) return "Free";
+  if (planType === PlanType.LIFETIME) return "Lifetime";
+  if (planType === PlanType.TRIAL || status === SubscriptionStatus.TRIALING) return "In prova";
+  if (status === SubscriptionStatus.ACTIVE) return "Attivo";
+  if (status === SubscriptionStatus.PAST_DUE) return "In scadenza";
+  if (status === SubscriptionStatus.UNPAID) return "Scaduto";
+  return "Disattivato";
 }
 
-function getMonthLabel(date: Date) {
-  return new Intl.DateTimeFormat("it-IT", { month: "short" }).format(date);
-}
-
-function getMonthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getLastMonths(count: number) {
-  const now = new Date();
-
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
-    return {
-      key: getMonthKey(date),
-      label: getMonthLabel(date),
-    };
-  });
-}
-
-function StatCard({
-  icon,
-  value,
+function AdminMetric({
   label,
+  value,
   detail,
-  tone,
 }: {
-  icon: string;
-  value: string;
   label: string;
+  value: string;
   detail: string;
-  tone: "violet" | "blue" | "emerald" | "amber";
 }) {
   return (
-    <div className={`sa-stat-card sa-tone-${tone}`}>
-      <span className="sa-stat-icon" aria-hidden="true">
-        {icon}
-      </span>
+    <div className="sa-lite-metric">
+      <span>{label}</span>
       <strong>{value}</strong>
-      <span className="sa-stat-label">{label}</span>
       <small>{detail}</small>
     </div>
   );
 }
 
-function ProgressBar({
-  label,
-  value,
-  max,
-  color,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-}) {
-  const percent = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
-
-  return (
-    <div className="sa-progress-row">
-      <div className="sa-progress-head">
-        <span>{label}</span>
-        <strong>{value}</strong>
-      </div>
-      <span className="sa-progress-track">
-        <span className="sa-progress-fill" style={{ width: `${percent}%`, background: color }} />
-      </span>
-    </div>
-  );
-}
-
-function RevenueSparkline({
-  bars,
-  max,
-}: {
-  bars: Array<{ label: string; value: number }>;
-  max: number;
-}) {
-  return (
-    <div className="sa-sparkline" aria-label="Crescita attivita ultimi mesi">
-      {bars.map((bar) => {
-        const height = max > 0 ? Math.max(12, Math.round((bar.value / max) * 100)) : 12;
-
-        return (
-          <div key={bar.label} className="sa-spark-item">
-            <span className="sa-spark-bar" style={{ height: `${height}%` }} />
-            <small>{bar.label}</small>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function BillingDonut({ buckets }: { buckets: Record<BillingBucket, number> }) {
-  const segments = [
-    { key: "active", label: "Attivi", value: buckets.active, color: "#22c55e" },
-    { key: "trial", label: "Prova", value: buckets.trial, color: "#f59e0b" },
-    { key: "risk", label: "Da seguire", value: buckets.risk, color: "#ef4444" },
-    { key: "manual", label: "Manuali", value: buckets.manual, color: "#8b5cf6" },
-  ];
-  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
-  let cursor = 0;
-  const gradient =
-    total > 0
-      ? segments
-          .map((segment) => {
-            const start = cursor;
-            cursor += (segment.value / total) * 100;
-            return `${segment.color} ${start}% ${cursor}%`;
-          })
-          .join(", ")
-      : "#e5e7eb 0% 100%";
-
-  return (
-    <div className="sa-donut-grid">
-      <div className="sa-donut" style={{ background: `conic-gradient(${gradient})` }}>
-        <span>{total}</span>
-      </div>
-      <div className="sa-donut-legend">
-        {segments.map((segment) => (
-          <span key={segment.key}>
-            <i style={{ background: segment.color }} />
-            {segment.label}
-            <strong>{segment.value}</strong>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export async function SuperAdminHomeHub() {
-  const [activityCounts, ownerCount, staffCount, revenueSubscriptions, ownerOptions, billingStatusCounts, growthRows] =
-    await Promise.all([
-      prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
-      prisma.user.count({ where: { role: Role.OWNER } }),
-      prisma.user.count({ where: { role: { in: [Role.MANAGER, Role.EMPLOYEE] } } }),
-      prisma.subscription.findMany({
-        where: {
-          OR: [
-            { planType: "PAID", status: { in: ["ACTIVE", "TRIALING"] } },
-            { planType: "TRIAL" },
-          ],
-        },
-        select: {
-          planType: true,
-          status: true,
-          billingInterval: true,
-          monthlyDiscountPercent: true,
-          currentPeriodEnd: true,
-          bar: {
-            select: {
-              name: true,
-              activityType: true,
-              owner: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                },
-              },
-            },
+  const [
+    activityCounts,
+    ownerCount,
+    staffCount,
+    subscriptions,
+    ownerOptions,
+    recentActivities,
+    billingStatusCounts,
+  ] = await Promise.all([
+    prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
+    prisma.user.count({ where: { role: Role.OWNER } }),
+    prisma.user.count({ where: { role: { in: [Role.MANAGER, Role.AMMINISTRAZIONE, Role.EMPLOYEE] } } }),
+    prisma.subscription.findMany({
+      where: {
+        OR: [
+          { planType: PlanType.PAID, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] } },
+          { planType: PlanType.TRIAL },
+        ],
+      },
+      select: {
+        planType: true,
+        status: true,
+        billingInterval: true,
+        monthlyDiscountPercent: true,
+        currentPeriodEnd: true,
+        bar: {
+          select: {
+            name: true,
+            activityType: true,
+            owner: { select: { firstName: true, lastName: true } },
           },
         },
-      }),
-      prisma.user.findMany({
-        where: { role: Role.OWNER },
-        orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-        take: 250,
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
+      },
+    }),
+    prisma.user.findMany({
+      where: { role: Role.OWNER },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      take: 200,
+      select: { id: true, firstName: true, lastName: true, email: true },
+    }),
+    prisma.bar.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: {
+        id: true,
+        name: true,
+        activityType: true,
+        owner: { select: { firstName: true, lastName: true } },
+        subscription: {
+          select: {
+            planType: true,
+            status: true,
+            currentPeriodEnd: true,
+          },
         },
-      }),
-      prisma.subscription.groupBy({
-        by: ["planType", "status"],
-        _count: { _all: true },
-      }),
-      prisma.$queryRaw<Array<{ month_key: string; count: number }>>`
-        SELECT
-          to_char(date_trunc('month', "createdAt"), 'YYYY-MM') AS month_key,
-          COUNT(*)::int AS count
-        FROM "Bar"
-        WHERE "createdAt" >= date_trunc('month', NOW()) - INTERVAL '5 months'
-        GROUP BY month_key
-        ORDER BY month_key ASC
-      `,
-    ]);
+      },
+    }),
+    prisma.subscription.groupBy({
+      by: ["planType", "status"],
+      _count: { _all: true },
+    }),
+  ]);
 
   const companyCount = activityCounts.find((entry) => entry.activityType === ActivityType.COMPANY)?._count._all ?? 0;
   const restaurantCount =
     activityCounts.find((entry) => entry.activityType === ActivityType.RESTAURANT)?._count._all ?? 0;
-  const totalBars = companyCount + restaurantCount;
-  const revenueBars: RevenueBar[] = revenueSubscriptions.map((subscription) => ({
+  const totalActivities = companyCount + restaurantCount;
+  const revenueActivities: RevenueActivity[] = subscriptions.map((subscription) => ({
     ...subscription.bar,
     subscription: {
       planType: subscription.planType,
@@ -301,160 +182,143 @@ export async function SuperAdminHomeHub() {
       currentPeriodEnd: subscription.currentPeriodEnd,
     },
   }));
+  const monthlyRevenue = revenueActivities.reduce((sum, activity) => sum + getEstimatedMonthlyRevenue(activity), 0);
+  const annualRevenue = revenueActivities.reduce((sum, activity) => sum + getEstimatedAnnualRevenue(activity), 0);
   const activeBillingCount = billingStatusCounts.reduce(
-    (sum, bucket) => sum + (bucket.status === "ACTIVE" || bucket.status === "TRIALING" ? bucket._count._all : 0),
+    (sum, bucket) =>
+      sum +
+      (bucket.status === SubscriptionStatus.ACTIVE || bucket.status === SubscriptionStatus.TRIALING
+        ? bucket._count._all
+        : 0),
     0
   );
-  const subscriptionCount = billingStatusCounts.reduce((sum, bucket) => sum + bucket._count._all, 0);
-  const activeMonthly = revenueBars.reduce((sum, bar) => sum + getEstimatedMonthlyRevenue(bar), 0);
-  const activeAnnual = revenueBars.reduce((sum, bar) => sum + getEstimatedAnnualRevenue(bar), 0);
-  const trialPipeline = revenueBars.reduce((sum, bar) => sum + getTrialPipelineMonthly(bar), 0);
-  const maxActivityCount = Math.max(companyCount, restaurantCount, 1);
-  const billingBuckets = billingStatusCounts.reduce<Record<BillingBucket, number>>(
-    (acc, bucket) => {
-      if (bucket.planType === "FREE" || bucket.planType === "LIFETIME") {
-        acc.manual += bucket._count._all;
-      } else if (bucket.planType === "TRIAL" || bucket.status === "TRIALING") {
-        acc.trial += bucket._count._all;
-      } else if (bucket.status === "ACTIVE") {
-        acc.active += bucket._count._all;
-      } else {
-        acc.risk += bucket._count._all;
-      }
-
-      return acc;
-    },
-    { active: 0, trial: 0, risk: Math.max(0, totalBars - subscriptionCount), manual: 0 }
+  const riskBillingCount = billingStatusCounts.reduce(
+    (sum, bucket) =>
+      sum +
+      (bucket.status === SubscriptionStatus.PAST_DUE ||
+      bucket.status === SubscriptionStatus.UNPAID ||
+      bucket.status === SubscriptionStatus.CANCELED ||
+      bucket.status === SubscriptionStatus.INACTIVE
+        ? bucket._count._all
+        : 0),
+    0
   );
-  const months = getLastMonths(6);
-  const growthByMonth = new Map(growthRows.map((row) => [row.month_key, Number(row.count)]));
-  const growthBars = months.map((month) => ({
-    label: month.label,
-    value: growthByMonth.get(month.key) ?? 0,
-  }));
-  const growthMax = Math.max(...growthBars.map((bar) => bar.value), 1);
-  const topRevenueBars = revenueBars
-    .map((bar) => ({
-      ...bar,
-      monthlyRevenue: getEstimatedMonthlyRevenue(bar),
+  const topRevenueActivities = revenueActivities
+    .map((activity) => ({
+      ...activity,
+      monthlyRevenue: getEstimatedMonthlyRevenue(activity),
     }))
+    .filter((activity) => activity.monthlyRevenue > 0)
     .sort((a, b) => b.monthlyRevenue - a.monthlyRevenue)
     .slice(0, 5);
 
   return (
-    <div className="sa-command-center">
-      <section className="sa-command-hero" aria-label="Panoramica economica">
-        <div className="sa-command-copy">
-          <span className="sa-eyebrow">⚡ Centro operativo</span>
-          <h2>{formatCurrency(activeMonthly)} / mese</h2>
+    <div className="sa-lite">
+      <section className="sa-lite-hero">
+        <div>
+          <span className="sa-lite-eyebrow">Controllo rapido</span>
+          <h2>{formatCurrency(annualRevenue)} / anno</h2>
           <p>
-            Ricavo ricorrente stimato, con {formatCurrency(trialPipeline)} di pipeline da prove attive e{" "}
-            {formatCurrency(activeAnnual)} di proiezione annuale.
+            Vista sintetica su attività, titolari e abbonamenti. I dettagli operativi sono separati
+            nelle sezioni sotto, senza doppioni.
           </p>
-          <SuperAdminHomeCreateActions owners={ownerOptions} />
         </div>
-        <div className="sa-command-orbit" aria-hidden="true">
-          <span />
-          <strong>WB</strong>
-        </div>
+        <SuperAdminHomeCreateActions owners={ownerOptions} />
       </section>
 
-      <div className="sa-stat-grid">
-        <StatCard
-          icon="🏢"
-          value={String(totalBars)}
-          label="Attivita"
-          detail={`${companyCount} aziende · ${restaurantCount} ristorazione`}
-          tone="violet"
+      <section className="sa-lite-metrics" aria-label="Metriche principali">
+        <AdminMetric
+          label="Attività"
+          value={String(totalActivities)}
+          detail={`${restaurantCount} ristorazione · ${companyCount} aziende`}
         />
-        <StatCard
-          icon="👤"
-          value={String(ownerCount)}
-          label="Titolari"
-          detail="Account proprietari collegati"
-          tone="blue"
+        <AdminMetric
+          label="Ricavi"
+          value={formatCurrency(monthlyRevenue)}
+          detail={`${formatCurrency(annualRevenue)} stimati all'anno`}
         />
-        <StatCard
-          icon="👥"
-          value={String(staffCount)}
-          label="Staff"
-          detail="Manager e dipendenti attivi"
-          tone="amber"
+        <AdminMetric
+          label="Persone"
+          value={String(ownerCount + staffCount)}
+          detail={`${ownerCount} titolari · ${staffCount} staff`}
         />
-        <StatCard
-          icon="✅"
+        <AdminMetric
+          label="Abbonamenti"
           value={String(activeBillingCount)}
-          label="Abbonamenti ok"
-          detail="Attivi o in prova"
-          tone="emerald"
+          detail={riskBillingCount > 0 ? `${riskBillingCount} da verificare` : "tutto regolare"}
         />
-      </div>
+      </section>
 
-      <section className="sa-grid-main">
-        <article className="sa-card sa-card-large">
-          <div className="sa-card-head">
+      <section className="sa-lite-grid">
+        <article className="sa-lite-card">
+          <div className="sa-lite-card-head">
             <div>
-              <span className="sa-eyebrow">📊 Distribuzione clienti</span>
-              <h3>Attivita per settore</h3>
+              <span className="sa-lite-eyebrow">Azioni</span>
+              <h3>Cosa gestire</h3>
             </div>
-            <Link href="/dashboard/super-admin/bars">Apri</Link>
           </div>
-          <div className="sa-progress-stack">
-            <ProgressBar label="Ristorazione" value={restaurantCount} max={maxActivityCount} color="#7c3aed" />
-            <ProgressBar label="Aziende" value={companyCount} max={maxActivityCount} color="#38bdf8" />
+          <div className="sa-lite-actions">
+            <Link href="/dashboard/super-admin/bars">Attività</Link>
+            <Link href="/dashboard/super-admin/owners">Titolari</Link>
+            <Link href="/dashboard/super-admin/billing">Abbonamenti</Link>
+            <Link href="/dashboard/super-admin/system">Sistema</Link>
           </div>
         </article>
 
-        <article className="sa-card">
-          <div className="sa-card-head">
+        <article className="sa-lite-card">
+          <div className="sa-lite-card-head">
             <div>
-              <span className="sa-eyebrow">💳 Billing</span>
-              <h3>Stato abbonamenti</h3>
+              <span className="sa-lite-eyebrow">Ricavi</span>
+              <h3>Attività più redditizie</h3>
             </div>
-            <Link href="/dashboard/super-admin/billing">Gestisci</Link>
+            <Link href="/dashboard/super-admin/billing">Apri</Link>
           </div>
-          <BillingDonut buckets={billingBuckets} />
-        </article>
-
-        <article className="sa-card">
-          <div className="sa-card-head">
-            <div>
-              <span className="sa-eyebrow">📈 Crescita</span>
-              <h3>Nuove attivita</h3>
-            </div>
-            <span className="sa-soft-pill">6 mesi</span>
-          </div>
-          <RevenueSparkline bars={growthBars} max={growthMax} />
-        </article>
-
-        <article className="sa-card sa-card-large">
-          <div className="sa-card-head">
-            <div>
-              <span className="sa-eyebrow">💜 Ricavi</span>
-              <h3>Attivita che rendono di piu</h3>
-            </div>
-            <span className="sa-soft-pill">{formatCompactCurrency(activeMonthly)}/mese</span>
-          </div>
-          <div className="sa-top-list">
-            {topRevenueBars.length ? (
-              topRevenueBars.map((bar, index) => (
-                <div key={`${bar.name}-${index}`} className="sa-top-row">
-                  <span className="sa-rank">{index + 1}</span>
+          <div className="sa-lite-list">
+            {topRevenueActivities.length > 0 ? (
+              topRevenueActivities.map((activity) => (
+                <div key={activity.name} className="sa-lite-row">
                   <div>
-                    <strong>{bar.name}</strong>
+                    <strong>{activity.name}</strong>
                     <small>
-                      {getActivityLabel(bar.activityType)} · {bar.owner.firstName} {bar.owner.lastName}
+                      {getActivityLabel(activity.activityType)} · {activity.owner.firstName}{" "}
+                      {activity.owner.lastName}
                     </small>
                   </div>
-                  <div className="sa-top-money">
-                    <strong>{formatCurrency(bar.monthlyRevenue)}</strong>
-                    <small>{formatDate(bar.subscription?.currentPeriodEnd ?? null)}</small>
-                  </div>
+                  <span>{formatCurrency(activity.monthlyRevenue)}</span>
                 </div>
               ))
             ) : (
-              <div className="sa-empty">Nessun ricavo attivo al momento.</div>
+              <p>Nessun abbonamento attivo da conteggiare.</p>
             )}
+          </div>
+        </article>
+
+        <article className="sa-lite-card">
+          <div className="sa-lite-card-head">
+            <div>
+              <span className="sa-lite-eyebrow">Clienti</span>
+              <h3>Ultime attività</h3>
+            </div>
+            <Link href="/dashboard/super-admin/bars">Cerca</Link>
+          </div>
+          <div className="sa-lite-list">
+            {recentActivities.map((activity) => (
+              <div key={activity.id} className="sa-lite-row">
+                <div>
+                  <strong>{activity.name}</strong>
+                  <small>
+                    {getActivityLabel(activity.activityType)} · {activity.owner.firstName}{" "}
+                    {activity.owner.lastName}
+                  </small>
+                </div>
+                <span>
+                  {activity.subscription
+                    ? statusLabel(activity.subscription.planType, activity.subscription.status)
+                    : "Da attivare"}
+                  <small>{formatDate(activity.subscription?.currentPeriodEnd ?? null)}</small>
+                </span>
+              </div>
+            ))}
           </div>
         </article>
       </section>
@@ -462,378 +326,191 @@ export async function SuperAdminHomeHub() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .sa-command-center {
-              --sa-ink: #111827;
-              --sa-muted: #667085;
-              --sa-violet: #6d28d9;
+            .sa-lite {
               display: grid;
-              gap: 16px;
+              gap: 14px;
               min-width: 0;
             }
-            .sa-command-hero {
-              position: relative;
-              overflow: hidden;
-              display: grid;
-              grid-template-columns: minmax(0, 1fr) 220px;
+            .sa-lite-hero,
+            .sa-lite-card,
+            .sa-lite-metric {
+              border: 1px solid rgba(124, 58, 237, 0.12);
+              background: rgba(255, 255, 255, 0.92);
+              box-shadow: 0 16px 38px rgba(88, 28, 135, 0.08);
+              backdrop-filter: blur(16px);
+            }
+            .sa-lite-hero {
+              display: flex;
+              align-items: flex-end;
+              justify-content: space-between;
               gap: 18px;
-              min-height: 260px;
-              padding: 28px;
-              border: 1px solid rgba(124, 58, 237, .16);
-              border-radius: 34px;
+              padding: 26px;
+              border-radius: 32px;
               background:
-                radial-gradient(circle at 78% 20%, rgba(255,255,255,.78), transparent 24%),
-                radial-gradient(circle at 16% 88%, rgba(196,181,253,.45), transparent 28%),
-                linear-gradient(135deg, #f6f0ff 0%, #ffffff 44%, #e0f2fe 100%);
-              box-shadow: 0 24px 70px rgba(88, 28, 135, .12);
+                radial-gradient(circle at 86% 12%, rgba(168, 85, 247, 0.20), transparent 26%),
+                linear-gradient(135deg, #ffffff 0%, #f7f3ff 52%, #eef2ff 100%);
             }
-            .sa-command-copy {
-              position: relative;
-              z-index: 1;
-              display: grid;
-              align-content: center;
-              gap: 12px;
-              max-width: 760px;
-            }
-            .sa-eyebrow {
+            .sa-lite-eyebrow {
               color: #6d28d9;
               font-size: 11px;
               font-weight: 950;
               letter-spacing: .12em;
               text-transform: uppercase;
             }
-            .sa-command-copy h2 {
-              margin: 0;
-              color: var(--sa-ink);
-              font-size: clamp(40px, 7vw, 74px);
-              line-height: .92;
-              letter-spacing: -.07em;
+            .sa-lite-hero h2 {
+              margin: 7px 0 8px;
+              color: #0f172a;
+              font-size: clamp(34px, 6vw, 64px);
+              line-height: .96;
+              letter-spacing: -.06em;
             }
-            .sa-command-copy p {
+            .sa-lite-hero p {
               margin: 0;
-              max-width: 620px;
-              color: #475467;
-              font-size: 15px;
-              line-height: 1.65;
+              max-width: 650px;
+              color: #64748b;
+              line-height: 1.58;
+              font-size: 14px;
             }
             .sa-quick-actions {
               display: flex;
+              gap: 8px;
               flex-wrap: wrap;
-              gap: 9px;
-              margin-top: 4px;
+              justify-content: flex-end;
             }
             .sa-quick-actions button,
-            .sa-card-head a {
+            .sa-lite-card-head a,
+            .sa-lite-actions a {
               display: inline-flex;
               align-items: center;
               justify-content: center;
               min-height: 38px;
               padding: 0 14px;
+              border: 1px solid rgba(124, 58, 237, 0.16);
               border-radius: 999px;
-              color: #111827;
-              background: rgba(255,255,255,.86);
-              border: 1px solid rgba(124,58,237,.15);
+              background: linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%);
+              color: #5b21b6;
               text-decoration: none;
               font-size: 12px;
               font-weight: 900;
-              box-shadow: 0 10px 24px rgba(88,28,135,.08);
               cursor: pointer;
             }
-            .sa-command-orbit {
-              position: relative;
-              display: grid;
-              place-items: center;
-              min-height: 210px;
-            }
-            .sa-command-orbit span {
-              position: absolute;
-              width: 190px;
-              height: 190px;
-              border-radius: 999px;
-              border: 18px solid rgba(124,58,237,.12);
-              box-shadow: 0 0 0 26px rgba(124,58,237,.045), inset 0 0 40px rgba(124,58,237,.10);
-              animation: sa-pulse 4s ease-in-out infinite;
-            }
-            .sa-command-orbit strong {
-              position: relative;
-              display: grid;
-              place-items: center;
-              width: 94px;
-              height: 94px;
-              border-radius: 30px;
-              color: #fff;
-              background: linear-gradient(145deg, #111827, #6d28d9);
-              font-size: 28px;
-              letter-spacing: -.08em;
-              box-shadow: 0 24px 44px rgba(109,40,217,.24);
-            }
-            @keyframes sa-pulse {
-              0%, 100% { transform: scale(.96); opacity: .8; }
-              50% { transform: scale(1.04); opacity: 1; }
-            }
-            .sa-stat-grid {
+            .sa-lite-metrics {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 12px;
+              gap: 10px;
             }
-            .sa-stat-card,
-            .sa-card {
-              min-width: 0;
-              border: 1px solid rgba(124,58,237,.10);
-              border-radius: 28px;
-              background: rgba(255,255,255,.86);
-              box-shadow: 0 18px 44px rgba(88,28,135,.065);
-              backdrop-filter: blur(18px);
-            }
-            .sa-stat-card {
+            .sa-lite-metric {
               display: grid;
-              gap: 8px;
-              padding: 18px;
+              gap: 6px;
+              padding: 16px;
+              border-radius: 24px;
             }
-            .sa-stat-card strong {
-              color: var(--sa-ink);
-              font-size: 32px;
+            .sa-lite-metric span {
+              color: #64748b;
+              font-size: 12px;
+              font-weight: 850;
+            }
+            .sa-lite-metric strong {
+              color: #0f172a;
+              font-size: 29px;
               line-height: 1;
               letter-spacing: -.05em;
             }
-            .sa-stat-card small,
-            .sa-stat-label {
-              color: var(--sa-muted);
+            .sa-lite-metric small {
+              color: #64748b;
               font-size: 12px;
               line-height: 1.35;
             }
-            .sa-stat-label {
-              color: #344054;
-              font-size: 14px;
-              font-weight: 900;
-            }
-            .sa-stat-icon {
-              width: 40px;
-              height: 40px;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              border-radius: 16px;
-              background: #fff;
-              box-shadow: 0 10px 24px rgba(15,23,42,.06);
-            }
-            .sa-tone-violet { background: linear-gradient(145deg, #fff 30%, #f5f3ff); }
-            .sa-tone-blue { background: linear-gradient(145deg, #fff 30%, #eff6ff); }
-            .sa-tone-emerald { background: linear-gradient(145deg, #fff 30%, #ecfdf5); }
-            .sa-tone-amber { background: linear-gradient(145deg, #fff 30%, #fffbeb); }
-            .sa-grid-main {
+            .sa-lite-grid {
               display: grid;
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 14px;
+              grid-template-columns: minmax(0, .8fr) minmax(0, 1.15fr) minmax(0, 1.15fr);
+              gap: 12px;
               align-items: start;
             }
-            .sa-card {
+            .sa-lite-card {
               display: grid;
-              gap: 16px;
-              padding: 20px;
-            }
-            .sa-card-large {
-              min-height: 300px;
-            }
-            .sa-card-head {
-              display: flex;
-              align-items: flex-start;
-              justify-content: space-between;
               gap: 14px;
-            }
-            .sa-card-head h3 {
-              margin: 4px 0 0;
-              color: var(--sa-ink);
-              font-size: 20px;
-              letter-spacing: -.035em;
-            }
-            .sa-progress-stack {
-              display: grid;
-              gap: 16px;
-              align-content: center;
-            }
-            .sa-progress-row {
-              display: grid;
-              gap: 8px;
-            }
-            .sa-progress-head {
-              display: flex;
-              justify-content: space-between;
-              gap: 12px;
-              color: #344054;
-              font-size: 13px;
-              font-weight: 850;
-            }
-            .sa-progress-track {
-              height: 16px;
-              overflow: hidden;
-              border-radius: 999px;
-              background: #f2f4f7;
-              box-shadow: inset 0 0 0 1px rgba(15,23,42,.04);
-            }
-            .sa-progress-fill {
-              display: block;
-              height: 100%;
-              border-radius: inherit;
-            }
-            .sa-donut-grid {
-              display: grid;
-              grid-template-columns: 132px minmax(0, 1fr);
-              gap: 18px;
-              align-items: center;
-            }
-            .sa-donut {
-              width: 132px;
-              height: 132px;
-              display: grid;
-              place-items: center;
-              border-radius: 999px;
-              box-shadow: inset 0 0 0 18px rgba(255,255,255,.72);
-            }
-            .sa-donut span {
-              display: grid;
-              place-items: center;
-              width: 76px;
-              height: 76px;
-              border-radius: 999px;
-              color: #111827;
-              background: #fff;
-              font-size: 27px;
-              font-weight: 950;
-              box-shadow: 0 12px 30px rgba(15,23,42,.08);
-            }
-            .sa-donut-legend {
-              display: grid;
-              gap: 8px;
-            }
-            .sa-donut-legend span {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 8px;
-              color: #475467;
-              font-size: 13px;
-              font-weight: 800;
-            }
-            .sa-donut-legend i {
-              width: 9px;
-              height: 9px;
-              border-radius: 99px;
-              margin-right: auto;
-            }
-            .sa-donut-legend strong {
-              color: #111827;
-            }
-            .sa-sparkline {
-              height: 184px;
-              display: grid;
-              grid-template-columns: repeat(6, minmax(0, 1fr));
-              gap: 9px;
-              align-items: end;
-              padding: 8px 2px 0;
-            }
-            .sa-spark-item {
-              height: 100%;
-              display: grid;
-              grid-template-rows: 1fr auto;
-              gap: 8px;
-              align-items: end;
+              padding: 18px;
+              border-radius: 28px;
               min-width: 0;
             }
-            .sa-spark-bar {
-              display: block;
-              border-radius: 999px 999px 10px 10px;
-              background: linear-gradient(180deg, #8b5cf6, #c4b5fd);
-              box-shadow: 0 10px 24px rgba(124,58,237,.18);
+            .sa-lite-card-head {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 12px;
             }
-            .sa-spark-item small {
-              color: #667085;
-              font-size: 11px;
-              font-weight: 850;
-              text-align: center;
-              text-transform: capitalize;
+            .sa-lite-card h3 {
+              margin: 4px 0 0;
+              color: #0f172a;
+              font-size: 19px;
+              letter-spacing: -.035em;
             }
-            .sa-top-list {
+            .sa-lite-actions {
               display: grid;
-              gap: 9px;
+              gap: 8px;
             }
-            .sa-top-row {
+            .sa-lite-actions a {
+              width: 100%;
+              min-height: 44px;
+              justify-content: flex-start;
+              padding: 0 16px;
+            }
+            .sa-lite-list {
               display: grid;
-              grid-template-columns: auto minmax(0, 1fr) auto;
+              gap: 8px;
+            }
+            .sa-lite-list p {
+              margin: 0;
+              padding: 16px;
+              border-radius: 18px;
+              background: #f8fafc;
+              color: #64748b;
+              font-size: 13px;
+              font-weight: 750;
+            }
+            .sa-lite-row {
+              display: flex;
               align-items: center;
+              justify-content: space-between;
               gap: 12px;
               padding: 12px;
-              border-radius: 20px;
-              background: linear-gradient(145deg, #fff, #faf7ff);
-              border: 1px solid rgba(124,58,237,.08);
+              border-radius: 18px;
+              background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
+              border: 1px solid rgba(124, 58, 237, 0.08);
             }
-            .sa-rank {
-              width: 34px;
-              height: 34px;
-              display: inline-grid;
-              place-items: center;
-              border-radius: 13px;
-              color: #6d28d9;
-              background: #f5f3ff;
-              font-size: 13px;
-              font-weight: 950;
-            }
-            .sa-top-row strong {
-              color: #111827;
+            .sa-lite-row strong {
+              display: block;
+              color: #0f172a;
               font-size: 14px;
             }
-            .sa-top-row small,
-            .sa-top-money small {
+            .sa-lite-row small {
               display: block;
-              color: #667085;
+              color: #64748b;
               font-size: 12px;
               line-height: 1.35;
             }
-            .sa-top-money {
+            .sa-lite-row > span {
+              color: #5b21b6;
+              font-size: 13px;
+              font-weight: 900;
               text-align: right;
               white-space: nowrap;
             }
-            .sa-soft-pill {
-              display: inline-flex;
-              align-items: center;
-              min-height: 34px;
-              padding: 0 11px;
-              border-radius: 999px;
-              color: #6d28d9;
-              background: #f5f3ff;
-              font-size: 12px;
-              font-weight: 900;
-              white-space: nowrap;
-            }
-            .sa-empty {
-              padding: 20px;
-              border-radius: 20px;
-              color: #667085;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 13px;
-              font-weight: 800;
-            }
-            @media (max-width: 980px) {
-              .sa-command-hero { grid-template-columns: 1fr; }
-              .sa-command-orbit { display: none; }
-              .sa-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-              .sa-grid-main { grid-template-columns: 1fr; }
+            @media (max-width: 1020px) {
+              .sa-lite-hero { align-items: flex-start; flex-direction: column; }
+              .sa-quick-actions { justify-content: flex-start; }
+              .sa-lite-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+              .sa-lite-grid { grid-template-columns: 1fr; }
             }
             @media (max-width: 560px) {
-              .sa-command-center { gap: 12px; }
-              .sa-command-hero { padding: 20px; border-radius: 28px; min-height: auto; }
-              .sa-command-copy h2 { font-size: 42px; }
-              .sa-command-copy p { font-size: 13px; }
-              .sa-stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-              .sa-stat-card { padding: 14px; border-radius: 22px; }
-              .sa-stat-card strong { font-size: 26px; }
-              .sa-card { padding: 16px; border-radius: 24px; }
-              .sa-card-head { align-items: center; }
-              .sa-card-head h3 { font-size: 18px; }
-              .sa-donut-grid { grid-template-columns: 1fr; justify-items: center; }
-              .sa-donut-legend { width: 100%; }
-              .sa-top-row { grid-template-columns: auto minmax(0, 1fr); }
-              .sa-top-money { grid-column: 1 / -1; text-align: left; padding-left: 46px; }
+              .sa-lite-hero { padding: 20px; border-radius: 26px; }
+              .sa-lite-hero h2 { font-size: 40px; }
+              .sa-lite-metrics { grid-template-columns: 1fr 1fr; }
+              .sa-lite-metric { padding: 13px; border-radius: 20px; }
+              .sa-lite-metric strong { font-size: 24px; }
+              .sa-lite-row { align-items: flex-start; flex-direction: column; }
+              .sa-lite-row > span { text-align: left; }
             }
           `,
         }}

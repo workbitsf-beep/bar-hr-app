@@ -1785,7 +1785,7 @@ export async function createTaskAction(formData: FormData) {
     throw new Error("Invalid due date");
   }
 
-  ensureDateIsNotBeforeToday(dueDate, "Non puoi inserire mansioni prima del giorno corrente");
+  ensureDateIsNotBeforeToday(dueDate, "Non puoi inserire note prima del giorno corrente");
 
   const assignedUserIds = normalizeIds(
     taskDrafts
@@ -1838,18 +1838,18 @@ export async function createTaskAction(formData: FormData) {
 
         const preview = taskTitles.slice(0, 4).map((taskTitle) => `• ${taskTitle}`).join("\n");
         const extraCount = Math.max(0, taskTitles.length - 4);
-        const extraLine = extraCount > 0 ? `\n+ altre ${extraCount} mansioni` : "";
+        const extraLine = extraCount > 0 ? `\n+ altre ${extraCount} note` : "";
 
         return notifyUsers([recipient.id], {
           barId: activeBarId,
           title:
             taskTitles.length === 1
-              ? "Nuova mansione assegnata"
-              : "Nuove mansioni assegnate",
+              ? "Nuova nota assegnata"
+              : "Nuove note assegnate",
           message:
             taskTitles.length === 1
-              ? `Ciao ${recipient.firstName},\nTi è stata assegnata una nuova mansione: ${taskTitles[0]}.\nLocale: ${notificationContext.barName}.`
-              : `Ciao ${recipient.firstName},\nTi sono state assegnate ${taskTitles.length} nuove mansioni per ${notificationContext.barName}.\n${preview}${extraLine}`,
+              ? `Ciao ${recipient.firstName},\nTi è stata assegnata una nuova nota: ${taskTitles[0]}.\nLocale: ${notificationContext.barName}.`
+              : `Ciao ${recipient.firstName},\nTi sono state assegnate ${taskTitles.length} nuove note per ${notificationContext.barName}.\n${preview}${extraLine}`,
           type: INTERNAL_NOTIFICATION_TYPES.TASK_ASSIGNED,
           actionUrl: "/dashboard/tasks",
         });
@@ -1938,8 +1938,8 @@ export async function completeTaskAction(formData: FormData) {
   if (task.createdById !== session.user.id) {
     await notifyUsers([task.createdById], {
       barId: activeBarId,
-      title: "Mansione completata",
-      message: `${getFullName(session.user)} ha completato una mansione nel locale.`,
+      title: "Nota completata",
+      message: `${getFullName(session.user)} ha completato una nota nel locale.`,
       type: INTERNAL_NOTIFICATION_TYPES.TASK_COMPLETED,
       actionUrl: "/dashboard/tasks",
     });
@@ -2369,13 +2369,13 @@ export async function createBoardNoteAction(formData: FormData) {
     await Promise.all(
       Array.from(recipientsById.entries()).map(([recipientId, recipient]) => {
         const notificationCountLabel =
-          recipient.count === 1 ? "un nuovo messaggio" : `${recipient.count} nuovi messaggi`;
+          recipient.count === 1 ? "una nuova nota" : `${recipient.count} nuove note`;
 
         return notifyUsers([recipientId], {
           barId: activeBarId,
           title:
-            recipient.count === 1 ? "Nuovo messaggio in bacheca" : "Nuovi messaggi in bacheca",
-          message: `Ciao ${recipient.firstName},\n${authorName} ha pubblicato ${notificationCountLabel} nella bacheca di ${notificationContext.barName}.`,
+            recipient.count === 1 ? "Nuova nota" : "Nuove note",
+          message: `Ciao ${recipient.firstName},\n${authorName} ha pubblicato ${notificationCountLabel} per ${notificationContext.barName}.`,
           type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
           actionUrl: "/dashboard/board",
         });
@@ -2472,8 +2472,8 @@ export async function updateBoardNoteAction(formData: FormData) {
     if (recipients.length > 0) {
       await notifyUsers(recipients, {
         barId: activeBarId,
-        title: "Messaggio bacheca aggiornato",
-        message: `${getFullName(session.user)} ha aggiornato un messaggio nella bacheca di ${notificationContext.barName}.`,
+        title: "Nota aggiornata",
+        message: `${getFullName(session.user)} ha aggiornato una nota di ${notificationContext.barName}.`,
         type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
         actionUrl: "/dashboard/board",
       });

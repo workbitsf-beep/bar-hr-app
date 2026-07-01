@@ -256,8 +256,8 @@ export function KpiDashboard({
           value: String(data.tasks.completedToday),
           detail:
             data.tasks.totalToday > 0
-              ? `su ${data.tasks.totalToday} mansioni`
-              : "Nessuna mansione oggi",
+              ? `su ${data.tasks.totalToday} note`
+              : "Nessuna nota oggi",
         }
       : null,
     features.requests
@@ -283,7 +283,7 @@ export function KpiDashboard({
     data.requests.totalPending > 0
       ? "Richieste da controllare"
       : data.tasks.openToday > 0
-        ? "Mansioni ancora aperte"
+        ? "Note ancora aperte"
         : data.today.pendingShifts > 0
           ? "Turni da confermare"
           : "Team allineato";
@@ -363,7 +363,7 @@ export function KpiDashboard({
                   }}
                 >
                   <div style={{ color: "#64748b", fontSize: 12, fontWeight: 760 }}>
-                    Mansioni oggi
+                    Note oggi
                   </div>
                   <div style={{ color: "#4c1d95", fontSize: 25, fontWeight: 850 }}>
                     {data.tasks.completionRate}%

@@ -160,7 +160,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
-  const tasksNavLabel = features.tasks ? "Note" : t.board;
+  const notesEnabled = features.tasks || features.noticeBoard;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
   const calendarNavLabel = isCompany ? t.calendar : t.shifts;
 
@@ -171,8 +171,6 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: "Titolari", href: "/dashboard/super-admin/owners" },
           { label: "Attività", href: "/dashboard/super-admin/bars" },
           { label: "Pagamenti", href: "/dashboard/super-admin/billing" },
-          { label: "GPS globale", href: "/dashboard/super-admin/gps" },
-          { label: "Documenti legali", href: "/dashboard/super-admin/legal" },
           { label: "Sistema", href: "/dashboard/super-admin/system" },
         ]
       : [
@@ -180,12 +178,12 @@ export const getDashboardContext = cache(async function getDashboardContext(
           ...(features.shifts ||
           features.requests ||
           features.availability ||
-          features.tasks ||
+          notesEnabled ||
           features.courses
             ? [{ label: calendarNavLabel, href: "/dashboard/calendar" }]
             : []),
-          ...(features.tasks
-            ? [{ label: tasksNavLabel, href: "/dashboard/tasks" }]
+          ...(notesEnabled
+            ? [{ label: "Note", href: "/dashboard/tasks" }]
             : []),
           ...(features.documents ? [{ label: "Documenti", href: "/dashboard/documents" }] : []),
           ...(features.courses ? [{ label: "Corsi", href: "/dashboard/courses" }] : []),

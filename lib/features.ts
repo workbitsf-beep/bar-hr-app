@@ -76,17 +76,17 @@ export const featureDefinitions: Array<{
   {
     key: "tasks",
     field: "tasksEnabled",
-    label: "Note operative",
+    label: "Note",
     shortLabel: "Note",
-    description: "Note da assegnare e completare.",
+    description: "Note da assegnare, leggere e completare.",
     emoji: "✅",
   },
   {
     key: "noticeBoard",
     field: "noticeBoardEnabled",
-    label: "Comunicazioni",
-    shortLabel: "Comunicazioni",
-    description: "Comunicazioni interne al team.",
+    label: "Note",
+    shortLabel: "Note",
+    description: "Note condivise con conferma lettura.",
     emoji: "📢",
   },
   {
@@ -128,18 +128,39 @@ export const defaultFeatureFlags: FeatureFlags = {
   reports: true,
 };
 
+export const featureToggleDefinitions = featureDefinitions.filter(
+  (feature) => feature.key !== "noticeBoard"
+);
+
 export function getFeatureFlags(settings?: FeatureSettingsInput | null): FeatureFlags {
-  return featureDefinitions.reduce<FeatureFlags>(
+  const flags = featureDefinitions.reduce<FeatureFlags>(
     (flags, feature) => ({
       ...flags,
       [feature.key]: settings?.[feature.field] ?? true,
     }),
     { ...defaultFeatureFlags }
   );
+  const notesEnabled = flags.tasks || flags.noticeBoard;
+
+  return {
+    ...flags,
+    tasks: notesEnabled,
+    noticeBoard: notesEnabled,
+  };
 }
 
 export function parseFeatureFlags(formData: FormData): Record<string, boolean> {
-  return Object.fromEntries(
+  const parsed = Object.fromEntries(
     featureDefinitions.map((feature) => [feature.field, formData.get(feature.field) === "on"])
   );
+
+  if (!formData.has("noticeBoardEnabled")) {
+    parsed.noticeBoardEnabled = parsed.tasksEnabled ?? true;
+  }
+
+  if (!formData.has("tasksEnabled")) {
+    parsed.tasksEnabled = parsed.noticeBoardEnabled ?? true;
+  }
+
+  return parsed;
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ActivityType, Prisma, Role } from "@prisma/client";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
-import { featureDefinitions, getFeatureFlags } from "@/lib/features";
+import { featureToggleDefinitions, getFeatureFlags } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { getLegalDocumentsWithAcceptance, legalDocumentTypeLabels } from "@/lib/legal-documents";
 import { prisma } from "@/lib/prisma";
@@ -407,7 +407,7 @@ export default async function DashboardSettingsPage({
       : settings;
   const standardHours = parseStandardHoursFromSettings(settings);
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
-  const visibleFeatureDefinitions = featureDefinitions.filter(
+  const visibleFeatureDefinitions = featureToggleDefinitions.filter(
     (feature) => isRestaurant || feature.key !== "timeTracking"
   );
   const activeFeatureCount = visibleFeatureDefinitions.filter(

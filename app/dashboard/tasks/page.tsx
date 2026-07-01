@@ -45,7 +45,9 @@ export default async function DashboardTasksPage({
     return <BillingRequiredState role={String(role)} />;
   }
 
-  if (!features.tasks) {
+  const notesEnabled = features.tasks || features.noticeBoard;
+
+  if (!notesEnabled) {
     return (
       <Panel title="Note">
         <EmptyState message="Modulo note disattivato nelle impostazioni." />

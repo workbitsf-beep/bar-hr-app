@@ -3,7 +3,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import {
-  featureDefinitions,
+  featureToggleDefinitions,
   getFeatureFlags,
   type FeatureSettingsInput,
 } from "@/lib/features";
@@ -43,7 +43,7 @@ export function LocaleSettingsPopupContent({
   const [roundingConsent, setRoundingConsent] = useState(false);
   const [showRoundingInfo, setShowRoundingInfo] = useState(false);
   const visibleFeatureDefinitions = useMemo(
-    () => featureDefinitions.filter((feature) => isRestaurant || feature.key !== "timeTracking"),
+    () => featureToggleDefinitions.filter((feature) => isRestaurant || feature.key !== "timeTracking"),
     [isRestaurant]
   );
   const timeTrackingActive = features.timeTracking;
@@ -144,6 +144,9 @@ export function LocaleSettingsPopupContent({
                         setFeatures((current) => ({
                           ...current,
                           [feature.key]: event.target.checked,
+                          ...(feature.key === "tasks"
+                            ? { noticeBoard: event.target.checked }
+                            : {}),
                         }))
                       }
                     />

@@ -13,7 +13,7 @@ import {
   sendEmployeeWelcomeEmail,
   sendOwnerWelcomeEmail,
 } from "@/lib/email/notifications";
-import { featureDefinitions, getFeatureFlags, parseFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
+import { featureToggleDefinitions, getFeatureFlags, parseFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
 import { normalizeRoundingStep } from "@/lib/rounding";
@@ -44,7 +44,7 @@ function FeatureToggleGrid({
   activityType?: ActivityType | null;
 }) {
   const features = getFeatureFlags(settings);
-  const visibleFeatureDefinitions = featureDefinitions.filter(
+  const visibleFeatureDefinitions = featureToggleDefinitions.filter(
     (feature) => activityType !== ActivityType.COMPANY || feature.key !== "timeTracking"
   );
 
