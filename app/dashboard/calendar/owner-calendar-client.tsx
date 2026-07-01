@@ -685,6 +685,7 @@ export function OwnerCalendarClient({
   const daySwipeRef = useRef<{ x: number; y: number } | null>(null);
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
+  const skipDayScrollIntoViewRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -755,6 +756,11 @@ export function OwnerCalendarClient({
 
   useEffect(() => {
     if (calendarView !== "day" || !focusedDayDate) {
+      return;
+    }
+
+    if (skipDayScrollIntoViewRef.current) {
+      skipDayScrollIntoViewRef.current = false;
       return;
     }
 
@@ -850,6 +856,7 @@ export function OwnerCalendarClient({
       }
 
       if (nearestDate && nearestDate !== focusedDayDate) {
+        skipDayScrollIntoViewRef.current = true;
         setFocusedDayDate(nearestDate);
       }
     });

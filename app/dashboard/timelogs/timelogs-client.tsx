@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
@@ -157,6 +158,22 @@ function groupLogsIntoRows(logs: LogItem[]) {
   return rows;
 }
 
+function getClockRowDurationMs(row: LogItem[]) {
+  const clockIn = row.find((log) => log.type === "IN");
+  const clockOut = row.find((log) => log.type === "OUT");
+
+  if (!clockIn || !clockOut) {
+    return null;
+  }
+
+  const duration = new Date(clockOut.timestamp).getTime() - new Date(clockIn.timestamp).getTime();
+  return duration > 0 ? duration : null;
+}
+
+function getDayWorkedDurationMs(logs: LogItem[]) {
+  return groupLogsIntoRows(logs).reduce((total, row) => total + (getClockRowDurationMs(row) ?? 0), 0);
+}
+
 function countShiftRows(logs: LogItem[]) {
   return groupLogsIntoRows(logs).length;
 }
@@ -208,6 +225,66 @@ function groupLogsByDay(logs: LogItem[]) {
       logs: group.logs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
     }))
     .sort((a, b) => new Date(b.latest).getTime() - new Date(a.latest).getTime());
+}
+
+function ClockDayCard({
+  dayLabel,
+  logs,
+  subtitle,
+  children,
+}: {
+  dayLabel: string;
+  logs: LogItem[];
+  subtitle: string;
+  children: ReactNode;
+}) {
+  const workedMs = getDayWorkedDurationMs(logs);
+
+  return (
+    <div
+      className="dashboard-item-card"
+      style={{
+        padding: 16,
+        borderRadius: 20,
+        display: "grid",
+        gap: 6,
+        background: "rgba(255, 255, 255, 0.92)",
+        border: "1px solid rgba(124, 58, 237, 0.14)",
+        boxShadow: "0 16px 32px rgba(76, 29, 149, 0.08)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <strong style={{ color: "var(--workbit-navy)", minWidth: 0 }}>{dayLabel}</strong>
+        {workedMs > 0 ? (
+          <span
+            title="Ore lavorate"
+            style={{
+              flex: "0 0 auto",
+              borderRadius: 999,
+              padding: "5px 9px",
+              background: "linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(168, 85, 247, 0.16))",
+              border: "1px solid rgba(124, 58, 237, 0.16)",
+              color: "#5b21b6",
+              fontSize: 12,
+              fontWeight: 900,
+              lineHeight: 1,
+            }}
+          >
+            {formatDurationFromMilliseconds(workedMs)}
+          </span>
+        ) : null}
+      </div>
+      <div style={{ color: "#334155" }}>{subtitle}</div>
+      <div style={{ marginTop: 8 }}>{children}</div>
+    </div>
+  );
 }
 
 export function ClockActionsPanel({
@@ -742,11 +819,12 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                 ) : (
                   <ItemList scrollable={selectedDayGroups.length > 4}>
                     {selectedDayGroups.map((dayGroup) => (
-                      <ItemCard
+                      <ClockDayCard
                         key={dayGroup.dayKey}
-                        title={dayGroup.dayLabel}
+                        dayLabel={dayGroup.dayLabel}
+                        logs={dayGroup.logs}
                         subtitle={formatShiftCount(dayGroup.logs)}
-                        footer={
+                      >
                           <div
                             style={{
                               display: "grid",
@@ -768,8 +846,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                               </div>
                             ))}
                           </div>
-                        }
-                      />
+                      </ClockDayCard>
                     ))}
                   </ItemList>
                 )}
@@ -837,15 +914,16 @@ function PersonalTimeLogsPanel({
         ) : (
           <ItemList scrollable>
             {dayGroups.map((dayGroup) => (
-              <ItemCard
+              <ClockDayCard
                 key={dayGroup.dayKey}
-                title={dayGroup.dayLabel}
+                dayLabel={dayGroup.dayLabel}
+                logs={dayGroup.logs}
                 subtitle={
                   dayGroup.dayKey === todayKey && todayTotals
                     ? `${formatShiftCount(dayGroup.logs)} - oggi ${formatDurationClock(todayTotals.roundedHours)}`
                     : formatShiftCount(dayGroup.logs)
                 }
-                footer={
+              >
                   <div
                     style={{
                       display: "grid",
@@ -867,8 +945,7 @@ function PersonalTimeLogsPanel({
                       </div>
                     ))}
                   </div>
-                }
-              />
+              </ClockDayCard>
             ))}
           </ItemList>
         )}

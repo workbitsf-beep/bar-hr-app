@@ -492,7 +492,7 @@ export const getSuperAdminOverviewData = unstable_cache(
   },
   ["super-admin-overview"],
   {
-    revalidate: 45,
+    revalidate: 120,
     tags: [SUPER_ADMIN_OVERVIEW_CACHE_TAG],
   }
 );

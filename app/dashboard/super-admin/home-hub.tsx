@@ -8,7 +8,6 @@ const YEARLY_PRICE = 299;
 
 type RevenueBar = {
   activityType: ActivityType;
-  createdAt: Date;
   name: string;
   owner: {
     firstName: string;
@@ -252,7 +251,6 @@ export async function SuperAdminHomeHub() {
             select: {
               name: true,
               activityType: true,
-              createdAt: true,
               owner: {
                 select: {
                   firstName: true,
@@ -266,6 +264,7 @@ export async function SuperAdminHomeHub() {
       prisma.user.findMany({
         where: { role: Role.OWNER },
         orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        take: 250,
         select: {
           id: true,
           firstName: true,
