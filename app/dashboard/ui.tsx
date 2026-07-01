@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { ConfirmationToast } from "@/app/components/confirmation-toast";
 import { PendingButton } from "@/app/components/pending-button";
 import {
   formatDateInTimeZone,
@@ -1730,54 +1731,13 @@ export function Badge(props: {
 
 export function SuccessCallout({
   children,
-  style,
+  style: _style,
 }: {
   children: ReactNode;
   style?: CSSProperties;
 }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        alignItems: "flex-start",
-        padding: "12px 14px",
-        borderRadius: 18,
-        background: "linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%)",
-        border: "1px solid #bbf7d0",
-        color: "#166534",
-        lineHeight: 1.6,
-        ...style,
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 22,
-          height: 22,
-          borderRadius: 999,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flex: "0 0 auto",
-          background: "#bbf7d0",
-          color: "#166534",
-          marginTop: 1,
-        }}
-      >
-        <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
-          <path
-            d="M2.25 6.25 4.75 8.75 9.75 3.75"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <div style={{ minWidth: 0 }}>{children}</div>
-    </div>
-  );
+  void _style;
+  return <ConfirmationToast>{children}</ConfirmationToast>;
 }
 
 export function BillingRequiredState({

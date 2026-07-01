@@ -935,18 +935,16 @@ export default async function DashboardCalendarPage({
       pendingCount={unconfirmedShiftCount}
     />
   ) : null;
+  const calendarToolbarAction = (
+    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+      <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
+      {publishWeekAction}
+    </div>
+  );
 
   return (
     <Stack columns="minmax(0, 1fr)">
-      <Panel
-        title="Calendario"
-        action={
-          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-            <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
-            {publishWeekAction}
-          </div>
-        }
-      >
+      <Panel title="Calendario">
         {canManageRestaurantShifts ? (
           <OwnerCalendarClient
             locale={locale}
@@ -958,7 +956,7 @@ export default async function DashboardCalendarPage({
             role={String(role)}
             currentUserId={session.user.id}
             features={features}
-            toolbarAction={null}
+            toolbarAction={calendarToolbarAction}
           />
         ) : (
           <DayActionCalendarClient
@@ -973,7 +971,7 @@ export default async function DashboardCalendarPage({
             presets={shiftPresets}
             currentUserId={session.user.id}
             features={features}
-            toolbarAction={null}
+            toolbarAction={calendarToolbarAction}
           />
         )}
       </Panel>

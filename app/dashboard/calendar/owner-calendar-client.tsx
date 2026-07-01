@@ -817,14 +817,8 @@ export function OwnerCalendarClient({
       return focusedDay ? [focusedDay] : [];
     }
 
-    if (!days.length) {
-      return [];
-    }
-
-    const start = Math.max(0, focusedDayIndex - 3);
-    const end = Math.min(days.length, focusedDayIndex + 4);
-    return days.slice(start, end);
-  }, [days, filteredDay, focusedDay, focusedDayIndex]);
+    return days;
+  }, [days, filteredDay, focusedDay]);
 
   function handleDayStripScroll() {
     if (calendarView !== "day" || filteredDay) {
