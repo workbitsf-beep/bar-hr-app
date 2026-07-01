@@ -9,13 +9,11 @@ import { DocumentComposeForm } from "./document-compose-form";
 import {
   BillingRequiredState,
   EmptyState,
-  ItemCard,
   ItemList,
   Panel,
   PrimaryButton,
   Select,
   Stack,
-  StatusPill,
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
@@ -196,44 +194,102 @@ export default async function DashboardDocumentsPage({
               const canOpen = canViewDocument(document, session.user.id, role);
 
               return (
-                <ItemCard
+                <div
                   key={document.id}
-                  title={document.title}
-                  subtitle={audienceLabel}
-                  meta={
-                    <>
-                      {document.description ? `${document.description} - ` : ""}
-                      {document.fileName} - {formatDocumentSize(document.fileSize)} -{" "}
-                      {formatDateTime(document.createdAt)}
-                    </>
-                  }
-                  footer={
+                  className="dashboard-item-card"
+                  style={{
+                    position: "relative",
+                    padding: "16px 48px 16px 16px",
+                    borderRadius: 20,
+                    display: "grid",
+                    gap: 8,
+                    background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+                    border: "1px solid var(--workbit-border)",
+                    boxShadow: "0 14px 34px rgba(124, 58, 237, 0.10)",
+                  }}
+                >
+                  <span
+                    aria-label={document.isActive ? "Documento attivo" : "Documento disattivato"}
+                    title={document.isActive ? "Documento attivo" : "Documento disattivato"}
+                    style={{
+                      position: "absolute",
+                      top: 12,
+                      right: 12,
+                      width: 28,
+                      height: 28,
+                      borderRadius: 999,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: document.isActive ? "#dcfce7" : "#fee2e2",
+                      color: document.isActive ? "#166534" : "#991b1b",
+                      border: document.isActive ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                      fontSize: 14,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {document.isActive ? "✓" : "×"}
+                  </span>
+                  <strong style={{ color: "var(--workbit-navy)" }}>{document.title}</strong>
+                  <div style={{ color: "#334155" }}>{audienceLabel}</div>
+                  <div style={{ color: "var(--workbit-muted)", fontSize: 14 }}>
+                    {document.description ? `${document.description} - ` : ""}
+                    {document.fileName} - {formatDocumentSize(document.fileSize)} -{" "}
+                    {formatDateTime(document.createdAt)}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <StatusPill label={document.isActive ? "Attivo" : "Disattivo"} tone={document.isActive ? "success" : "danger"} />
-
                       {canOpen ? (
                         <PopupAction
                           title={document.title}
                           ariaLabel={`Visualizza ${document.title}`}
                           triggerContent="Visualizza"
                         >
-                          <div style={{ display: "grid", gap: 12 }}>
+                          <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
                             <div
                               style={{
                                 borderRadius: 18,
-                                overflow: "hidden",
+                                overflow: "auto",
                                 border: "1px solid #e2e8f0",
                                 background: "#f8fafc",
-                                minHeight: "min(68dvh, 620px)",
+                                height: "min(52dvh, 520px)",
+                                minHeight: 260,
+                                maxWidth: "100%",
                               }}
                             >
-                              <iframe
-                                title={document.title}
-                                src={`/api/documents/${document.id}`}
-                                style={{ width: "100%", height: "min(68dvh, 620px)", border: 0 }}
-                              />
+                              {document.mimeType.includes("pdf") ? (
+                                <iframe
+                                  title={document.title}
+                                  src={`/api/documents/${document.id}`}
+                                  style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    minHeight: "100%",
+                                    display: "grid",
+                                    placeItems: "center",
+                                    padding: 20,
+                                    textAlign: "center",
+                                    color: "#475569",
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  <div style={{ display: "grid", gap: 8 }}>
+                                    <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                                      Anteprima non disponibile
+                                    </strong>
+                                    <span>
+                                      Word ed Excel non sempre vengono visualizzati dentro l'app. Usa Apri per consultarli.
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="dashboard-form-actions">
+                            <div
+                              className="dashboard-form-actions"
+                              style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}
+                            >
                               <PrimaryButton type="button" tone="sand" data-popup-close>
                                 Chiudi
                               </PrimaryButton>
@@ -286,8 +342,8 @@ export default async function DashboardDocumentsPage({
                         </form>
                       ) : null}
                     </div>
-                  }
-                />
+                  </div>
+                </div>
               );
             })}
           </ItemList>
