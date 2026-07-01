@@ -702,8 +702,8 @@ function renderTaskCard(
         {canComplete ? (
           <IconButton
             type="button"
-            aria-label="Completa mansione"
-            title="Completa mansione"
+            aria-label="Conferma nota"
+            title="Conferma nota"
             onClick={() => onComplete?.(task.id)}
             disabled={isPending}
             style={{
@@ -1512,19 +1512,19 @@ export function DayActionCalendarClient({
 
     runAction(async () => {
       await completeTaskAction(formData);
-    }, "Mansione completata.");
+    }, "Nota completata.");
   }
 
   function submitQuickTask(formData: FormData) {
     runAction(async () => {
       await createTaskAction(formData);
-    }, "Mansione aggiunta.");
+    }, "Nota aggiunta.");
   }
 
   function submitQuickBoard(formData: FormData) {
     runAction(async () => {
       await createBoardNoteAction(formData);
-    }, "Comunicazione pubblicata.");
+    }, "Nota pubblicata.");
   }
 
   const todayKey = toDateInputValueInTimeZone(new Date());
@@ -1752,7 +1752,7 @@ export function DayActionCalendarClient({
                 {features.tasks || features.noticeBoard ? (
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <strong>📌 Mansioni e comunicazioni</strong>
+                      <strong>📌 Note</strong>
                       {(features.tasks || features.noticeBoard) && day.date.slice(0, 10) >= todayKey ? (
                         <IconButton
                           type="button"
@@ -1761,7 +1761,7 @@ export function DayActionCalendarClient({
                             setActiveCalendarModal("notes");
                             setQuickComposer("task");
                           }}
-                          aria-label="Aggiungi comunicazione o mansione"
+                          aria-label="Aggiungi note"
                           disabled={isPending}
                           style={{ width: 32, height: 32 }}
                         >
@@ -1770,7 +1770,7 @@ export function DayActionCalendarClient({
                       ) : null}
                     </div>
                     {day.tasks.length === 0 && day.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna mansione o comunicazione in questa giornata.</div>
+                      <div style={{ color: "#64748b" }}>Nessuna nota in questa giornata.</div>
                     ) : null}
                     {day.tasks.map((task) =>
                       renderTaskCard(task, true, submitTaskCompletion, isPending)
@@ -2581,16 +2581,18 @@ export function DayActionCalendarClient({
                                 gap: 12,
                               }}
                             >
-                              <label style={{ display: "grid", gap: 8 }}>
-                                <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
-                                <TextInput
-                                  type="date"
-                                  value={currentShiftDraft.date}
-                                  onChange={(event) =>
-                                    updateCurrentShiftDraft({ date: event.target.value })
-                                  }
-                                />
-                              </label>
+                              {shiftInsertMode === "DAY" ? (
+                                <label style={{ display: "grid", gap: 8 }}>
+                                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
+                                  <TextInput
+                                    type="date"
+                                    value={currentShiftDraft.date}
+                                    onChange={(event) =>
+                                      updateCurrentShiftDraft({ date: event.target.value })
+                                    }
+                                  />
+                                </label>
+                              ) : null}
 
                               <label style={{ display: "grid", gap: 8 }}>
                                 <span style={{ fontWeight: 600, color: "#1e293b" }}>Inizio</span>
@@ -2982,7 +2984,7 @@ export function DayActionCalendarClient({
                       }}
                     >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      📌 Comunicazioni e mansioni del{" "}
+                      📌 Note del{" "}
                       {new Intl.DateTimeFormat(locale, {
                         day: "numeric",
                         month: "long",
@@ -2994,7 +2996,7 @@ export function DayActionCalendarClient({
                         <IconButton
                           type="button"
                           onClick={() => setQuickComposer("task")}
-                          aria-label="Aggiungi comunicazione o mansione"
+                          aria-label="Aggiungi note"
                           disabled={isPending}
                         >
                           <svg
@@ -3015,7 +3017,7 @@ export function DayActionCalendarClient({
                       ) : null}
                     </div>
                     {selectedDay.tasks.length === 0 && selectedDay.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna mansione o comunicazione collegata a questa giornata.</div>
+                      <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.tasks.map((task) =>
@@ -3080,7 +3082,7 @@ export function DayActionCalendarClient({
                       <IconButton
                         type="button"
                         onClick={() => setSelectedNoteId(null)}
-                        aria-label="Chiudi dettaglio comunicazione"
+                        aria-label="Chiudi dettaglio nota"
                         style={{ position: "absolute", top: 14, right: 14, width: 36, height: 36 }}
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -3088,7 +3090,7 @@ export function DayActionCalendarClient({
                         </svg>
                       </IconButton>
                       <strong style={{ color: "#0f172a", fontSize: 20, paddingRight: 44 }}>
-                        📌 Comunicazione
+                        📌 Nota
                       </strong>
                       {renderNoteCard(selectedNote, locale, currentUserId, true)}
                     </section>

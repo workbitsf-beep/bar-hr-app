@@ -176,7 +176,7 @@ export function QuickCalendarEntryModal({
     activeMode === "task" ? (
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi mansione</strong>
+          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi note</strong>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -224,14 +224,14 @@ export function QuickCalendarEntryModal({
                     setTaskDraft(entry);
                     removeEntry(setTaskEntries, entry.id);
                   }}
-                  aria-label="Modifica mansione"
+                  aria-label="Modifica nota"
                 >
                   ✎
                 </IconButton>
                 <IconButton
                   type="button"
                   onClick={() => removeEntry(setTaskEntries, entry.id)}
-                  aria-label="Elimina mansione"
+                  aria-label="Elimina nota"
                 >
                   ×
                 </IconButton>
@@ -259,12 +259,12 @@ export function QuickCalendarEntryModal({
                   gap: 10,
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Mansione {index + 1}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
                 {false ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setTaskEntries, entry.id)}
-                    aria-label={`Rimuovi mansione ${index + 1}`}
+                    aria-label={`Rimuovi nota ${index + 1}`}
                     style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -308,7 +308,7 @@ export function QuickCalendarEntryModal({
                       fontWeight: 800,
                     }}
                   >
-                    Mansione personale
+                    Nota personale
                   </div>
                 )}
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -336,7 +336,7 @@ export function QuickCalendarEntryModal({
             <IconButton
               type="button"
               onClick={addTaskEntry}
-              aria-label="Salva mansione"
+              aria-label="Salva nota"
               disabled={isPending || !taskDraft.value.trim() || !taskDueDate}
               style={{
                 width: 44,
@@ -355,7 +355,7 @@ export function QuickCalendarEntryModal({
     ) : (
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi comunicazione</strong>
+          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi note</strong>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -403,14 +403,14 @@ export function QuickCalendarEntryModal({
                     setBoardDraft(entry);
                     removeEntry(setBoardEntries, entry.id);
                   }}
-                  aria-label="Modifica comunicazione"
+                  aria-label="Modifica nota"
                 >
                   ✎
                 </IconButton>
                 <IconButton
                   type="button"
                   onClick={() => removeEntry(setBoardEntries, entry.id)}
-                  aria-label="Elimina comunicazione"
+                  aria-label="Elimina nota"
                 >
                   ×
                 </IconButton>
@@ -438,12 +438,12 @@ export function QuickCalendarEntryModal({
                   gap: 10,
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Comunicazione {index + 1}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
                 {false ? (
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setBoardEntries, entry.id)}
-                    aria-label={`Rimuovi comunicazione ${index + 1}`}
+                    aria-label={`Rimuovi nota ${index + 1}`}
                     style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -487,7 +487,7 @@ export function QuickCalendarEntryModal({
                     fontWeight: 800,
                   }}
                 >
-                  Comunicazione personale
+                  Nota personale
                 </div>
               )}
 
@@ -511,7 +511,7 @@ export function QuickCalendarEntryModal({
             <IconButton
               type="button"
               onClick={addBoardEntry}
-              aria-label="Salva comunicazione"
+              aria-label="Salva nota"
               disabled={isPending || !boardDraft.value.trim()}
               style={{
                 width: 44,
@@ -599,8 +599,8 @@ export function QuickCalendarEntryModal({
             }}
           >
             {[
-              { key: "board" as const, label: "Comunicazione" },
-              { key: "task" as const, label: "Mansione" },
+              { key: "board" as const, label: "Nota" },
+              { key: "task" as const, label: "Nota da fare" },
             ].map((option) => (
               <button
                 key={option.key}

@@ -2456,7 +2456,7 @@ export async function updateBoardNoteAction(formData: FormData) {
   });
 
   if (updated.count === 0) {
-    throw new Error("Comunicazione non trovata");
+    throw new Error("Note not found");
   }
 
   const notificationContext = await getBarNotificationContext(activeBarId);
@@ -2578,7 +2578,7 @@ export async function confirmBoardNoteReadAction(formData: FormData) {
   });
 
   if (!note) {
-    throw new Error("Comunicazione non trovata");
+    throw new Error("Note not found");
   }
 
   await prisma.noteReadReceipt.upsert({

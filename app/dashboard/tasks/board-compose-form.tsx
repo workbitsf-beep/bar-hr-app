@@ -33,7 +33,7 @@ export function BoardComposeForm({
   initialRequiresConfirmation = false,
   initialAssignedToAll = true,
   initialAssignedToId = "",
-  submitLabel = "Conferma comunicazioni",
+  submitLabel = "Conferma pubblicazione",
   allowMultiple = true,
   children,
 }: {
@@ -135,7 +135,7 @@ export function BoardComposeForm({
   return (
     <form action={action} style={{ display: "grid", gap: 16 }}>
       {notifySuccess ? <input type="hidden" name="notifySuccess" value="1" /> : null}
-      <FormField label="Comunicazioni">
+      <FormField label="Messaggi">
         <div style={{ display: "grid", gap: 12 }}>
           {entries.map((entry) => (
             <div
@@ -172,10 +172,10 @@ export function BoardComposeForm({
                 </span>
               </button>
               <div style={{ display: "flex", gap: 6 }}>
-                <IconButton type="button" onClick={() => editEntry(entry.id)} aria-label="Modifica comunicazione">
+                <IconButton type="button" onClick={() => editEntry(entry.id)} aria-label="Modifica messaggio">
                   ✎
                 </IconButton>
-                <IconButton type="button" onClick={() => removeEntry(entry.id)} aria-label="Elimina comunicazione">
+                <IconButton type="button" onClick={() => removeEntry(entry.id)} aria-label="Elimina messaggio">
                   ×
                 </IconButton>
               </div>
@@ -193,12 +193,12 @@ export function BoardComposeForm({
             }}
           >
             {children}
-            <strong style={{ color: "#0f172a", fontSize: 14 }}>Nuova comunicazione</strong>
+            <strong style={{ color: "#0f172a", fontSize: 14 }}>Nuovo messaggio</strong>
 
             <TextArea
               value={draft.value}
               onChange={(event) => setDraft({ ...draft, value: event.target.value })}
-              placeholder="Scrivi la comunicazione da pubblicare"
+              placeholder="Scrivi il messaggio da pubblicare"
               style={{ minHeight: 96 }}
             />
 
@@ -242,7 +242,7 @@ export function BoardComposeForm({
                 <IconButton
                   type="button"
                   onClick={addEntry}
-                  aria-label="Aggiungi comunicazione alla lista"
+                  aria-label="Aggiungi messaggio alla lista"
                   disabled={!draft.value.trim()}
                   style={{
                     width: 38,
@@ -263,7 +263,7 @@ export function BoardComposeForm({
               <IconButton
                 type="button"
                 onClick={addEntry}
-                aria-label="Aggiungi comunicazione alla lista"
+                aria-label="Aggiungi messaggio alla lista"
                 disabled={!draft.value.trim()}
                 style={{
                   width: 44,

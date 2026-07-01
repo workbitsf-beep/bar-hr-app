@@ -1301,7 +1301,7 @@ export function OwnerCalendarClient({
 
     runAction(async () => {
       await completeTaskAction(formData);
-    }, "Mansione completata.");
+    }, "Nota completata.");
   }
 
   function handleConfirmOnCall(shiftId: string) {
@@ -1316,13 +1316,13 @@ export function OwnerCalendarClient({
   function handleQuickTaskCreate(formData: FormData) {
     runAction(async () => {
       await createTaskAction(formData);
-    }, "Mansione aggiunta.");
+    }, "Nota aggiunta.");
   }
 
   function handleQuickBoardCreate(formData: FormData) {
     runAction(async () => {
       await createBoardNoteAction(formData);
-    }, "Comunicazione pubblicata.");
+    }, "Nota pubblicata.");
   }
 
   if (!days.length) {
@@ -1544,7 +1544,7 @@ export function OwnerCalendarClient({
                 {features.tasks || features.noticeBoard ? (
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <strong>📌 Mansioni e comunicazioni</strong>
+                      <strong>📌 Note</strong>
                       {(features.tasks || features.noticeBoard) && day.date.slice(0, 10) >= todayKey ? (
                         <IconButton
                           type="button"
@@ -1553,7 +1553,7 @@ export function OwnerCalendarClient({
                             setActiveCalendarModal("notes");
                             setQuickComposer("task");
                           }}
-                          aria-label="Aggiungi comunicazione o mansione"
+                          aria-label="Aggiungi note"
                           disabled={isPending}
                           style={{ width: 32, height: 32 }}
                         >
@@ -1562,7 +1562,7 @@ export function OwnerCalendarClient({
                       ) : null}
                     </div>
                     {day.tasks.length === 0 && day.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna mansione o comunicazione in questa giornata.</div>
+                      <div style={{ color: "#64748b" }}>Nessuna nota in questa giornata.</div>
                     ) : null}
                     {day.tasks.map((task) => renderTaskPreviewCard(task, true, () => {
                       setSelectedDate(day.date);
@@ -2409,29 +2409,31 @@ export function OwnerCalendarClient({
                           gap: 12,
                         }}
                       >
-                        <label style={{ display: "grid", gap: 8 }}>
-                          <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
-                          <input
-                            type="date"
-                            min={todayKey}
-                            value={currentShiftDraft.date}
-                            onChange={(event) =>
-                              updateCurrentShiftDraft({
-                                date:
-                                  event.target.value && event.target.value < todayKey
-                                    ? todayKey
-                                    : event.target.value,
-                              })
-                            }
-                            style={{
-                              borderRadius: 16,
-                              border: "1px solid #dbe3ee",
-                              padding: "12px 14px",
-                              fontSize: 15,
-                              background: "#ffffff",
-                            }}
-                          />
-                        </label>
+                        {shiftInsertMode === "DAY" ? (
+                          <label style={{ display: "grid", gap: 8 }}>
+                            <span style={{ fontWeight: 600, color: "#1e293b" }}>Giorno</span>
+                            <input
+                              type="date"
+                              min={todayKey}
+                              value={currentShiftDraft.date}
+                              onChange={(event) =>
+                                updateCurrentShiftDraft({
+                                  date:
+                                    event.target.value && event.target.value < todayKey
+                                      ? todayKey
+                                      : event.target.value,
+                                })
+                              }
+                              style={{
+                                borderRadius: 16,
+                                border: "1px solid #dbe3ee",
+                                padding: "12px 14px",
+                                fontSize: 15,
+                                background: "#ffffff",
+                              }}
+                            />
+                          </label>
+                        ) : null}
 
                         <label style={{ display: "grid", gap: 8 }}>
                           <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario di inizio</span>
@@ -2862,7 +2864,7 @@ export function OwnerCalendarClient({
                     }}
                   >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      📌 Comunicazioni e mansioni del{" "}
+                      📌 Note del{" "}
                       {new Intl.DateTimeFormat(locale, {
                         day: "numeric",
                         month: "long",
@@ -2873,7 +2875,7 @@ export function OwnerCalendarClient({
                     <IconButton
                       type="button"
                       onClick={() => setQuickComposer("task")}
-                      aria-label="Aggiungi comunicazione o mansione"
+                      aria-label="Aggiungi note"
                       disabled={isPending}
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -2887,7 +2889,7 @@ export function OwnerCalendarClient({
                     </IconButton>
                   </div>
                   {day.tasks.length === 0 && day.notes.length === 0 ? (
-                    <div style={{ color: "#64748b" }}>Nessuna mansione o comunicazione collegata a questa giornata.</div>
+                    <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                       {day.tasks.map((task) => (
@@ -2935,8 +2937,8 @@ export function OwnerCalendarClient({
                             {task.status !== "DONE" ? (
                               <IconButton
                                 type="button"
-                                aria-label="Completa mansione"
-                                title="Completa mansione"
+                                aria-label="Conferma nota"
+                                title="Conferma nota"
                                 onClick={() => handleCompleteTask(task.id)}
                                 disabled={isPending}
                                 style={{
@@ -3054,14 +3056,14 @@ export function OwnerCalendarClient({
                       <IconButton
                         type="button"
                         onClick={() => setSelectedNoteId(null)}
-                        aria-label="Chiudi dettaglio comunicazione"
+                        aria-label="Chiudi dettaglio nota"
                         style={{ position: "absolute", top: 14, right: 14, width: 36, height: 36 }}
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                           <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                         </svg>
                       </IconButton>
-                      <strong style={{ color: "#0f172a", fontSize: 20, paddingRight: 44 }}>📌 Comunicazione</strong>
+                      <strong style={{ color: "#0f172a", fontSize: 20, paddingRight: 44 }}>📌 Nota</strong>
                       <div className="dashboard-list-card" style={{ padding: 14, borderRadius: 18, background: "#f8fafc", border: "1px solid #e2e8f0", display: "grid", gap: 10 }}>
                         <strong style={{ color: "#0f172a" }}>{selectedNote.content}</strong>
                         <span style={{ color: "#64748b", fontSize: 14 }}>

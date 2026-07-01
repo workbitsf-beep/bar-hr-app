@@ -47,8 +47,8 @@ export default async function DashboardTasksPage({
 
   if (!features.tasks) {
     return (
-      <Panel title="Mansioni">
-        <EmptyState message="Modulo mansioni disattivato nelle impostazioni." />
+      <Panel title="Note">
+        <EmptyState message="Modulo note disattivato nelle impostazioni." />
       </Panel>
     );
   }
@@ -56,9 +56,9 @@ export default async function DashboardTasksPage({
   const canManage = role === Role.OWNER || role === Role.MANAGER;
   const successMessage =
     success === "task-created"
-      ? "Mansione salvata correttamente."
+      ? "Nota salvata correttamente."
         : success === "task-completed"
-          ? "Mansione completata correttamente."
+          ? "Nota completata correttamente."
           : null;
   const [tasks, members] = await Promise.all([
     prisma.task.findMany({
@@ -142,17 +142,17 @@ export default async function DashboardTasksPage({
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
       <Panel
-        title="Mansioni"
+        title="Note"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {canManage && tasks.some((task) => task.status === "DONE") ? (
               <form action={deleteAllCompletedTasksAction}>
                 <PrimaryButton type="submit" tone="red">
-                  Elimina mansioni completate
+                  Elimina note completate
                 </PrimaryButton>
               </form>
             ) : null}
-            <PopupAction title="Crea nuova mansione" ariaLabel="Aggiungi mansione">
+            <PopupAction title="Crea nuova nota" ariaLabel="Aggiungi nota">
               <TaskComposeForm
                 action={createTaskAction}
                 members={members
@@ -174,7 +174,7 @@ export default async function DashboardTasksPage({
         }
       >
         {tasks.length === 0 ? (
-          <EmptyState message="Nessuna mansione disponibile." />
+          <EmptyState message="Nessuna nota disponibile." />
         ) : (
           <ItemList>
             {tasks.map((task) => {
@@ -215,8 +215,8 @@ export default async function DashboardTasksPage({
                             <input type="hidden" name="notifySuccess" value="1" />
                             <IconButton
                               type="submit"
-                              aria-label="Completa mansione"
-                              title="Completa mansione"
+                              aria-label="Completa nota"
+                              title="Completa nota"
                               style={{
                                 width: 38,
                                 height: 38,
