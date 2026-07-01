@@ -264,14 +264,17 @@ async function buildRestaurantMonthlyDataset(
         },
       },
       select: {
+        id: true,
         type: true,
         startsAt: true,
         endsAt: true,
+        reason: true,
       },
     }),
   ]);
 
   const labelsByDay = new Map<string, Set<string>>();
+  const requestItemsByDay = new Map<string, CompanyReportItem[]>();
 
   for (const request of approvedRequests) {
     if (!request.startsAt || !request.endsAt) {
@@ -288,8 +291,19 @@ async function buildRestaurantMonthlyDataset(
       if (cursor >= monthStart && cursor < monthEnd) {
         const key = formatDayKey(cursor);
         const labels = labelsByDay.get(key) ?? new Set<string>();
-        labels.add(requestLabel(request.type));
+        const label = requestLabel(request.type);
+        labels.add(label);
         labelsByDay.set(key, labels);
+        const items = requestItemsByDay.get(key) ?? [];
+        items.push({
+          id: request.id,
+          type: label === "Richiesta" ? "Permesso" : label,
+          title: request.reason?.trim() || label,
+          startsAt: request.startsAt.toISOString(),
+          endsAt: request.endsAt.toISOString(),
+          note: request.reason?.trim() || null,
+        });
+        requestItemsByDay.set(key, items);
       }
 
       cursor.setDate(cursor.getDate() + 1);
@@ -326,6 +340,7 @@ async function buildRestaurantMonthlyDataset(
       {
         ...createEmptyDay(dayKey),
         labels: Array.from(labelsByDay.get(dayKey) ?? []),
+        items: requestItemsByDay.get(dayKey) ?? [],
       };
 
     const entry: ExportEntry = {
@@ -357,6 +372,7 @@ async function buildRestaurantMonthlyDataset(
       groupedMap.set(dayKey, {
         ...createEmptyDay(dayKey),
         labels: Array.from(labels),
+        items: requestItemsByDay.get(dayKey) ?? [],
       });
     }
   }
