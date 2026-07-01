@@ -22,7 +22,13 @@ export function scrollToTodayCard(behavior: ScrollBehavior = "smooth") {
   return true;
 }
 
-export function ScrollToTodayButton({ fallbackHref }: { fallbackHref: string }) {
+export function ScrollToTodayButton({
+  fallbackHref,
+  variant = "button",
+}: {
+  fallbackHref: string;
+  variant?: "button" | "segment";
+}) {
   const router = useRouter();
 
   function handleClick() {
@@ -44,17 +50,20 @@ export function ScrollToTodayButton({ fallbackHref }: { fallbackHref: string }) 
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        minWidth: 54,
-        height: 36,
-        padding: "0 13px",
+        minWidth: variant === "segment" ? 0 : 54,
+        height: variant === "segment" ? 42 : 36,
+        padding: variant === "segment" ? "0 18px" : "0 13px",
         borderRadius: 999,
-        background: "linear-gradient(180deg, #ffffff 0%, #f6f2ff 100%)",
-        color: "#4c1d95",
-        border: "1px solid rgba(124, 58, 237, 0.16)",
-        boxShadow: "0 8px 18px rgba(88, 28, 135, 0.06)",
+        background: variant === "segment" ? "transparent" : "linear-gradient(180deg, #ffffff 0%, #f6f2ff 100%)",
+        color: variant === "segment" ? "#111827" : "#4c1d95",
+        border: variant === "segment" ? 0 : "1px solid rgba(124, 58, 237, 0.16)",
+        borderLeft: variant === "segment" ? "1px solid rgba(124, 58, 237, 0.10)" : undefined,
+        boxShadow: variant === "segment" ? "none" : "0 8px 18px rgba(88, 28, 135, 0.06)",
         fontWeight: 800,
-        fontSize: 14,
+        fontSize: variant === "segment" ? 13 : 14,
         cursor: "pointer",
+        flex: variant === "segment" ? "1 1 0" : undefined,
+        whiteSpace: "nowrap",
       }}
     >
       Oggi

@@ -933,14 +933,10 @@ export default async function DashboardCalendarPage({
       rangeStart={toLocalDateKey(calendarStart)}
       rangeEnd={toLocalDateKey(calendarEnd)}
       pendingCount={unconfirmedShiftCount}
+      variant="wide"
     />
   ) : null;
-  const calendarToolbarAction = (
-    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-      <ScrollToTodayButton fallbackHref="/dashboard/calendar" />
-      {publishWeekAction}
-    </div>
-  );
+  const todayAction = <ScrollToTodayButton fallbackHref="/dashboard/calendar" variant="segment" />;
 
   return (
     <Stack columns="minmax(0, 1fr)">
@@ -956,7 +952,8 @@ export default async function DashboardCalendarPage({
             role={String(role)}
             currentUserId={session.user.id}
             features={features}
-            toolbarAction={calendarToolbarAction}
+            todayAction={todayAction}
+            publishAction={publishWeekAction}
           />
         ) : (
           <DayActionCalendarClient
@@ -971,7 +968,8 @@ export default async function DashboardCalendarPage({
             presets={shiftPresets}
             currentUserId={session.user.id}
             features={features}
-            toolbarAction={calendarToolbarAction}
+            todayAction={todayAction}
+            publishAction={publishWeekAction}
           />
         )}
       </Panel>

@@ -818,7 +818,8 @@ export function DayActionCalendarClient({
   presets,
   currentUserId,
   features,
-  toolbarAction,
+  todayAction,
+  publishAction,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -831,7 +832,8 @@ export function DayActionCalendarClient({
   presets: ShiftPreset[];
   currentUserId: string;
   features: FeatureFlags;
-  toolbarAction?: ReactNode;
+  todayAction?: ReactNode;
+  publishAction?: ReactNode;
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -1513,27 +1515,27 @@ export function DayActionCalendarClient({
     <>
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          flexWrap: "wrap",
+          display: "grid",
+          gap: 12,
           width: "100%",
-          marginBottom: 10,
+          marginBottom: 14,
           overflow: "visible",
         }}
       >
         <div
           style={{
-            display: "inline-flex",
+            display: "grid",
+            gridTemplateColumns: todayAction ? "1fr 1fr 1fr" : "1fr 1fr",
             alignItems: "center",
-            gap: 3,
-            padding: 3,
+            gap: 0,
+            padding: 4,
             borderRadius: 999,
             background: "linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%)",
             border: "1px solid rgba(124, 58, 237, 0.16)",
-            flex: "0 0 auto",
             maxWidth: "100%",
+            width: "100%",
+            boxShadow: "0 12px 26px rgba(88, 28, 135, 0.08)",
+            overflow: "hidden",
           }}
         >
           {(["week", "day"] as const).map((mode) => (
@@ -1550,12 +1552,12 @@ export function DayActionCalendarClient({
               style={{
                 border: 0,
                 borderRadius: 999,
-                minHeight: 34,
-                padding: "7px 12px",
+                minHeight: 42,
+                padding: "0 12px",
                 background: calendarView === mode ? "linear-gradient(135deg, #111936, #7c3aed)" : "transparent",
                 color: calendarView === mode ? "#ffffff" : "#475569",
                 fontWeight: 800,
-                fontSize: 11,
+                fontSize: 13,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
@@ -1563,20 +1565,9 @@ export function DayActionCalendarClient({
               {mode === "week" ? "Settimana" : "Giorno"}
             </button>
           ))}
+          {todayAction}
         </div>
-        {toolbarAction ? (
-          <div
-            style={{
-              marginLeft: "auto",
-              flex: "0 0 auto",
-              display: "flex",
-              justifyContent: "flex-end",
-              maxWidth: "100%",
-            }}
-          >
-            {toolbarAction}
-          </div>
-        ) : null}
+        {publishAction ? <div style={{ width: "100%" }}>{publishAction}</div> : null}
       </div>
 
       {calendarView === "day" ? (

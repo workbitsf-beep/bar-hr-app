@@ -13,10 +13,12 @@ export function PublishWeekPanel({
   rangeStart,
   rangeEnd,
   pendingCount,
+  variant = "icon",
 }: {
   rangeStart: string;
   rangeEnd: string;
   pendingCount: number;
+  variant?: "icon" | "wide";
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -86,10 +88,10 @@ export function PublishWeekPanel({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        justifyContent: "flex-end",
+        justifyContent: variant === "wide" ? "center" : "flex-end",
         gap: 8,
         minWidth: 0,
-        width: "auto",
+        width: variant === "wide" ? "100%" : "auto",
         overflow: "visible",
         maxWidth: "100%",
       }}
@@ -101,15 +103,16 @@ export function PublishWeekPanel({
         aria-label="Conferma turni"
         title="Conferma turni"
         style={{
-          width: 38,
-          height: 38,
-          background: hasPendingShifts ? "#dcfce7" : "#f8fafc",
-          color: hasPendingShifts ? "#166534" : "#475569",
-          border: hasPendingShifts ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
-          boxShadow: hasPendingShifts ? "0 8px 18px rgba(22, 163, 74, 0.12)" : "none",
+          width: variant === "wide" ? "100%" : 38,
+          height: variant === "wide" ? 48 : 38,
+          background: hasPendingShifts ? "#f5f3ff" : "#ffffff",
+          color: hasPendingShifts ? "#6d28d9" : "#7c3aed",
+          border: "1px solid rgba(124, 58, 237, 0.16)",
+          boxShadow: variant === "wide" ? "0 12px 24px rgba(88, 28, 135, 0.08)" : "none",
           opacity: isPending ? 0.7 : 1,
-          fontSize: 16,
+          fontSize: variant === "wide" ? 25 : 16,
           fontWeight: 900,
+          borderRadius: 999,
         }}
       >
         {isPending ? "..." : "✓"}
