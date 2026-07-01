@@ -692,16 +692,16 @@ function renderTaskCard(
           <span style={{ color: "#475569", fontSize: mobile ? 12 : 13 }}>{task.assignedLabel}</span>
         </div>
       </div>
-      {task.completedByLabel ? (
-        <span style={{ color: "#64748b", fontSize: mobile ? 13 : 12 }}>
-          Completata da {task.completedByLabel}
-        </span>
-      ) : null}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
         <StatusPill
-          label={task.status}
+          label={task.status === "DONE" ? "Completata" : task.isUrgent ? "Urgente" : "Da fare"}
           tone={task.status === "DONE" ? "success" : task.isUrgent ? "danger" : "warning"}
         />
+        {task.completedByLabel ? (
+          <span style={{ color: "#64748b", fontSize: mobile ? 12 : 12, fontWeight: 700 }}>
+            {task.completedByLabel}
+          </span>
+        ) : null}
         {canComplete ? (
           <IconButton
             type="button"

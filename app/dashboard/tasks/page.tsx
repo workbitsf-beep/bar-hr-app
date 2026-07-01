@@ -191,13 +191,13 @@ export default async function DashboardTasksPage({
                   subtitle={`Data ${formatDate(task.dueDate)}`}
                   meta={
                     <>
-                      Creata da {task.createdBy.firstName} {task.createdBy.lastName}
-                      <br />
                       {task.assignedToAll
-                        ? "Assegnata a tutto il team"
+                        ? "Tutto il team"
                         : task.assignedTo
-                          ? `Assegnata a ${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+                          ? task.assignedTo.firstName + " " + task.assignedTo.lastName
                           : "Non assegnata"}
+                      {" · creata da "}
+                      {task.createdBy.firstName} {task.createdBy.lastName}
                     </>
                   }
                   footer={
@@ -205,15 +205,9 @@ export default async function DashboardTasksPage({
                       <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           <StatusPill
-                            label={task.status}
+                            label={isDone ? "Completata" : task.isUrgent ? "Urgente" : "Da fare"}
                             tone={isDone ? "success" : task.isUrgent ? "danger" : "warning"}
                           />
-                          {task.completedBy ? (
-                            <StatusPill
-                              label={`Completata da ${task.completedBy.firstName}`}
-                              tone="neutral"
-                            />
-                          ) : null}
                         </div>
                         {canComplete ? (
                           <form action={completeTaskAction}>
@@ -242,7 +236,7 @@ export default async function DashboardTasksPage({
                       {task.completions.length > 0 ? (
                         <div style={{ display: "grid", gap: 6 }}>
                           {task.completions.map((completion) => (
-                            <div key={completion.id} style={{ color: "#64748b", fontSize: 14 }}>
+                            <div key={completion.id} style={{ color: "#64748b", fontSize: 13, fontWeight: 650 }}>
                               {completion.user.firstName} {completion.user.lastName} -{" "}
                               {formatDateTime(completion.completedAt)}
                             </div>
@@ -254,8 +248,17 @@ export default async function DashboardTasksPage({
                         <div className="dashboard-action-row" style={{ justifyContent: "flex-end" }}>
                           <form action={deleteCompletedTaskAction}>
                             <input type="hidden" name="taskId" value={task.id} />
-                            <PrimaryButton type="submit" tone="red">
-                              Elimina nota completata
+                            <PrimaryButton
+                              type="submit"
+                              tone="red"
+                              style={{
+                                minHeight: 36,
+                                padding: "0 14px",
+                                borderRadius: 999,
+                                fontSize: 13,
+                              }}
+                            >
+                              Elimina
                             </PrimaryButton>
                           </form>
                         </div>

@@ -2905,24 +2905,24 @@ export function OwnerCalendarClient({
                             <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
                             <strong style={{ color: "#0f172a" }}>{task.title}</strong>
                             <span style={{ color: "#475569" }}>{task.assignedLabel}</span>
-                            {task.completedByLabel ? (
-                              <span style={{ color: "#64748b", fontSize: 14 }}>
-                                Completata da {task.completedByLabel}
-                              </span>
-                            ) : null}
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                             <StatusPill
-                              label={task.status}
+                              label={task.status === "DONE" ? "Completata" : task.isUrgent ? "Urgente" : "Da fare"}
                               tone={
                                 task.status === "DONE"
                                   ? "success"
                                   : task.isUrgent
                                     ? "danger"
-                                    : "warning"
+                                  : "warning"
                               }
                             />
+                            {task.completedByLabel ? (
+                              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+                                {task.completedByLabel}
+                              </span>
+                            ) : null}
                             {task.status !== "DONE" ? (
                               <IconButton
                                 type="button"
