@@ -3,7 +3,8 @@ import { invalidateReportingCache } from "@/lib/reporting";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 
-const REMINDER_LEAD_MS = 5 * 60 * 1000;
+const CLOCK_IN_REMINDER_LEAD_MS = 60 * 1000;
+const CLOCK_OUT_REMINDER_DELAY_MS = 60 * 1000;
 const AUTO_CLOCK_OUT_DELAY_MS = 2 * 60 * 60 * 1000;
 const ACTION_URL = "/dashboard?clock=1";
 
@@ -11,7 +12,7 @@ function isDue(now: Date, triggerAt: Date) {
   return now.getTime() >= triggerAt.getTime();
 }
 
-async function hasUnreadClockReminder(input: {
+async function hasClockReminder(input: {
   userId: string;
   barId: string;
   type: string;
@@ -23,7 +24,6 @@ async function hasUnreadClockReminder(input: {
       barId: input.barId,
       type: input.type,
       actionUrl: `${ACTION_URL}&shift=${input.shiftId}`,
-      read: false,
     },
     select: {
       id: true,
@@ -41,7 +41,7 @@ async function notifyClockReminder(input: {
   message: string;
   type: string;
 }) {
-  const exists = await hasUnreadClockReminder(input);
+  const exists = await hasClockReminder(input);
 
   if (exists) {
     return 0;
@@ -164,7 +164,7 @@ async function getShiftClockState(input: {
 
 export async function runTimeLogReminders(now = new Date()) {
   const windowStart = new Date(now.getTime() - AUTO_CLOCK_OUT_DELAY_MS - 24 * 60 * 60 * 1000);
-  const windowEnd = new Date(now.getTime() + REMINDER_LEAD_MS);
+  const windowEnd = new Date(now.getTime() + CLOCK_IN_REMINDER_LEAD_MS);
 
   const shifts = await prisma.shift.findMany({
     where: {
@@ -219,7 +219,7 @@ export async function runTimeLogReminders(now = new Date()) {
       });
 
       if (!state.hasClockIn) {
-        const beforeStart = new Date(shift.startTime.getTime() - REMINDER_LEAD_MS);
+        const beforeStart = new Date(shift.startTime.getTime() - CLOCK_IN_REMINDER_LEAD_MS);
 
         if (isDue(now, beforeStart)) {
           createdReminderCount += await notifyClockReminder({
@@ -227,19 +227,8 @@ export async function runTimeLogReminders(now = new Date()) {
             barId: shift.barId,
             shiftId: shift.id,
             title: "Ricorda entrata",
-            message: "Tra poco inizia il tuo turno. Ricordati di registrare l'entrata.",
+            message: "Tra un minuto inizia il tuo turno. Ricordati di registrare l'entrata.",
             type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE,
-          });
-        }
-
-        if (isDue(now, shift.startTime)) {
-          createdReminderCount += await notifyClockReminder({
-            userId: assignment.userId,
-            barId: shift.barId,
-            shiftId: shift.id,
-            title: "Entrata da registrare",
-            message: "Il tuo turno e iniziato. Registra l'entrata.",
-            type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_START,
           });
         }
 
@@ -261,26 +250,15 @@ export async function runTimeLogReminders(now = new Date()) {
         continue;
       }
 
-      const beforeEnd = new Date(shift.endTime.getTime() - REMINDER_LEAD_MS);
+      const afterEnd = new Date(shift.endTime.getTime() + CLOCK_OUT_REMINDER_DELAY_MS);
 
-      if (isDue(now, beforeEnd)) {
-        createdReminderCount += await notifyClockReminder({
-          userId: assignment.userId,
-          barId: shift.barId,
-          shiftId: shift.id,
-          title: "Ricorda uscita",
-          message: "Tra poco finisce il tuo turno. Ricordati di registrare l'uscita.",
-          type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_BEFORE,
-        });
-      }
-
-      if (isDue(now, shift.endTime)) {
+      if (isDue(now, afterEnd)) {
         createdReminderCount += await notifyClockReminder({
           userId: assignment.userId,
           barId: shift.barId,
           shiftId: shift.id,
           title: "Uscita da registrare",
-          message: "Il tuo turno e terminato. Registra l'uscita.",
+          message: "Il tuo turno e terminato da un minuto. Ricordati di registrare l'uscita.",
           type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_END,
         });
       }
