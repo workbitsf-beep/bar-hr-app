@@ -1785,7 +1785,7 @@ export async function createTaskAction(formData: FormData) {
     throw new Error("Invalid due date");
   }
 
-  ensureDateIsNotBeforeToday(dueDate, "Non puoi inserire note prima del giorno corrente");
+  ensureDateIsNotBeforeToday(dueDate, "Non puoi inserire mansioni prima del giorno corrente");
 
   const assignedUserIds = normalizeIds(
     taskDrafts
@@ -2456,7 +2456,7 @@ export async function updateBoardNoteAction(formData: FormData) {
   });
 
   if (updated.count === 0) {
-    throw new Error("Note not found");
+    throw new Error("Comunicazione non trovata");
   }
 
   const notificationContext = await getBarNotificationContext(activeBarId);
@@ -2578,7 +2578,7 @@ export async function confirmBoardNoteReadAction(formData: FormData) {
   });
 
   if (!note) {
-    throw new Error("Note not found");
+    throw new Error("Comunicazione non trovata");
   }
 
   await prisma.noteReadReceipt.upsert({

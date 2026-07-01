@@ -224,14 +224,14 @@ export function QuickCalendarEntryModal({
                     setTaskDraft(entry);
                     removeEntry(setTaskEntries, entry.id);
                   }}
-                  aria-label="Modifica nota"
+                  aria-label="Modifica mansione"
                 >
                   ✎
                 </IconButton>
                 <IconButton
                   type="button"
                   onClick={() => removeEntry(setTaskEntries, entry.id)}
-                  aria-label="Elimina nota"
+                  aria-label="Elimina mansione"
                 >
                   ×
                 </IconButton>
@@ -264,7 +264,7 @@ export function QuickCalendarEntryModal({
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setTaskEntries, entry.id)}
-                    aria-label={`Rimuovi nota ${index + 1}`}
+                    aria-label={`Rimuovi mansione ${index + 1}`}
                     style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -308,7 +308,7 @@ export function QuickCalendarEntryModal({
                       fontWeight: 800,
                     }}
                   >
-                    Nota personale
+                    Mansione personale
                   </div>
                 )}
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -403,14 +403,14 @@ export function QuickCalendarEntryModal({
                     setBoardDraft(entry);
                     removeEntry(setBoardEntries, entry.id);
                   }}
-                  aria-label="Modifica nota"
+                  aria-label="Modifica comunicazione"
                 >
                   ✎
                 </IconButton>
                 <IconButton
                   type="button"
                   onClick={() => removeEntry(setBoardEntries, entry.id)}
-                  aria-label="Elimina nota"
+                  aria-label="Elimina comunicazione"
                 >
                   ×
                 </IconButton>
@@ -443,7 +443,7 @@ export function QuickCalendarEntryModal({
                   <IconButton
                     type="button"
                     onClick={() => removeEntry(setBoardEntries, entry.id)}
-                    aria-label={`Rimuovi nota ${index + 1}`}
+                    aria-label={`Rimuovi comunicazione ${index + 1}`}
                     style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -487,7 +487,7 @@ export function QuickCalendarEntryModal({
                     fontWeight: 800,
                   }}
                 >
-                  Nota personale
+                  Comunicazione personale
                 </div>
               )}
 

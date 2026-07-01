@@ -158,7 +158,6 @@ type FeedbackState =
 
 type CalendarModalMode = "day" | "shifts" | "notes";
 type ShiftInsertMode = "DAY" | "EMPLOYEE";
-type ShiftRepeatMode = "ONE" | "WEEK" | "CUSTOM";
 
 type ShiftDraft = {
   id: string;
@@ -220,21 +219,18 @@ function startOfWeekDateKey(dateKey: string) {
 function createRepeatedShiftDrafts(
   draft: ShiftDraft,
   mode: ShiftInsertMode,
-  repeatMode: ShiftRepeatMode,
   weekdays: string[],
   todayKey: string
 ) {
-  if (mode === "DAY" || repeatMode === "ONE") {
+  if (mode === "DAY") {
     return [{ ...draft, id: `${Date.now()}-${Math.random().toString(36).slice(2)}` }];
   }
 
   const weekStart = startOfWeekDateKey(draft.date);
-  const dateKeys =
-    repeatMode === "WEEK"
-      ? Array.from({ length: 7 }, (_, index) => addDaysToDateKey(weekStart, index))
-      : shiftRepeatWeekdays
-          .filter((day) => weekdays.includes(day.value))
-          .map((day) => addDaysToDateKey(weekStart, Number(day.value) === 0 ? 6 : Number(day.value) - 1));
+  const selectedWeekdays = weekdays.length > 0 ? weekdays : [String(dateKeyToLocalDate(draft.date).getDay())];
+  const dateKeys = shiftRepeatWeekdays
+    .filter((day) => selectedWeekdays.includes(day.value))
+    .map((day) => addDaysToDateKey(weekStart, Number(day.value) === 0 ? 6 : Number(day.value) - 1));
 
   return dateKeys
     .filter((dateKey) => dateKey >= todayKey)
@@ -706,8 +702,8 @@ function renderTaskCard(
         {canComplete ? (
           <IconButton
             type="button"
-            aria-label="Conferma nota"
-            title="Conferma nota"
+            aria-label="Completa mansione"
+            title="Completa mansione"
             onClick={() => onComplete?.(task.id)}
             disabled={isPending}
             style={{
@@ -856,7 +852,6 @@ export function DayActionCalendarClient({
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
   const [currentShiftDraft, setCurrentShiftDraft] = useState<ShiftDraft | null>(null);
   const [shiftInsertMode, setShiftInsertMode] = useState<ShiftInsertMode>("DAY");
-  const [shiftRepeatMode, setShiftRepeatMode] = useState<ShiftRepeatMode>("ONE");
   const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [requestStart, setRequestStart] = useState("");
@@ -1108,7 +1103,6 @@ export function DayActionCalendarClient({
     setShiftDrafts([]);
     setCurrentShiftDraft(createShiftDraft(day.date));
     setShiftInsertMode("DAY");
-    setShiftRepeatMode("ONE");
     setSelectedShiftWeekdays([]);
     setRequestType(RequestType.VACATION);
     setRequestStart(`${day.date.slice(0, 10)}T`);
@@ -1181,7 +1175,6 @@ export function DayActionCalendarClient({
     setFeedback(null);
     setCurrentShiftDraft(null);
     setShiftInsertMode("DAY");
-    setShiftRepeatMode("ONE");
     setSelectedShiftWeekdays([]);
   }
 
@@ -1208,7 +1201,6 @@ export function DayActionCalendarClient({
     const draftsToAdd = createRepeatedShiftDrafts(
       currentShiftDraft,
       shiftInsertMode,
-      shiftRepeatMode,
       selectedShiftWeekdays,
       todayKey
     );
@@ -1238,7 +1230,7 @@ export function DayActionCalendarClient({
       setShiftDrafts([]);
       setCurrentShiftDraft({
         ...createShiftDraft(selectedDay.date),
-        memberIds: shiftInsertMode === "EMPLOYEE" ? currentShiftDraft.memberIds.slice(0, 1) : [],
+        memberIds: shiftInsertMode === "EMPLOYEE" ? currentShiftDraft.memberIds : [],
         presetKey: currentShiftDraft.presetKey,
         startTime: currentShiftDraft.startTime,
         endTime: currentShiftDraft.endTime,
@@ -1520,19 +1512,19 @@ export function DayActionCalendarClient({
 
     runAction(async () => {
       await completeTaskAction(formData);
-    }, "Nota completata.");
+    }, "Mansione completata.");
   }
 
   function submitQuickTask(formData: FormData) {
     runAction(async () => {
       await createTaskAction(formData);
-    }, "Nota aggiunta.");
+    }, "Mansione aggiunta.");
   }
 
   function submitQuickBoard(formData: FormData) {
     runAction(async () => {
       await createBoardNoteAction(formData);
-    }, "Nota pubblicata.");
+    }, "Comunicazione pubblicata.");
   }
 
   const todayKey = toDateInputValueInTimeZone(new Date());
@@ -1760,7 +1752,7 @@ export function DayActionCalendarClient({
                 {features.tasks || features.noticeBoard ? (
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <strong>📌 Note</strong>
+                      <strong>📌 Mansioni e comunicazioni</strong>
                       {(features.tasks || features.noticeBoard) && day.date.slice(0, 10) >= todayKey ? (
                         <IconButton
                           type="button"
@@ -1769,7 +1761,7 @@ export function DayActionCalendarClient({
                             setActiveCalendarModal("notes");
                             setQuickComposer("task");
                           }}
-                          aria-label="Aggiungi note"
+                          aria-label="Aggiungi comunicazione o mansione"
                           disabled={isPending}
                           style={{ width: 32, height: 32 }}
                         >
@@ -1778,7 +1770,7 @@ export function DayActionCalendarClient({
                       ) : null}
                     </div>
                     {day.tasks.length === 0 && day.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna nota in questa giornata.</div>
+                      <div style={{ color: "#64748b" }}>Nessuna mansione o comunicazione in questa giornata.</div>
                     ) : null}
                     {day.tasks.map((task) =>
                       renderTaskCard(task, true, submitTaskCompletion, isPending)
@@ -2547,13 +2539,7 @@ export function DayActionCalendarClient({
                                   type="button"
                                   onClick={() => {
                                     setShiftInsertMode(option.value);
-                                    setShiftRepeatMode("ONE");
                                     setSelectedShiftWeekdays([]);
-                                    if (option.value === "EMPLOYEE") {
-                                      updateCurrentShiftDraft({
-                                        memberIds: currentShiftDraft.memberIds.slice(0, 1),
-                                      });
-                                    }
                                   }}
                                   style={{
                                     border: 0,
@@ -2662,75 +2648,94 @@ export function DayActionCalendarClient({
                                     gap: 12,
                                   }}
                                 >
-                                  <label style={{ display: "grid", gap: 8 }}>
-                                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Dipendente</span>
-                                    <Select
-                                      value={currentShiftDraft.memberIds[0] ?? ""}
-                                      onChange={(event) =>
-                                        updateCurrentShiftDraft({
-                                          memberIds: event.target.value ? [event.target.value] : [],
-                                        })
-                                      }
-                                    >
-                                      <option value="">Seleziona dipendente</option>
-                                      {members.map((member) => (
-                                        <option key={member.id} value={member.id}>
-                                          {member.firstName} {member.lastName} -{" "}
-                                          {activityType === ActivityType.COMPANY && member.role === Role.MANAGER
-                                            ? "Ufficio personale"
-                                            : formatRoleLabel(member.role)}
-                                        </option>
-                                      ))}
-                                    </Select>
-                                  </label>
-
-                                  <label style={{ display: "grid", gap: 8 }}>
-                                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Ripeti</span>
-                                    <Select
-                                      value={shiftRepeatMode}
-                                      onChange={(event) => {
-                                        setShiftRepeatMode(event.target.value as ShiftRepeatMode);
-                                        setSelectedShiftWeekdays([]);
+                                  <div style={{ display: "grid", gap: 10 }}>
+                                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Dipendenti</span>
+                                    <div
+                                      className="dashboard-modal-members-grid"
+                                      style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                                        gap: 10,
                                       }}
                                     >
-                                      <option value="ONE">Solo questo giorno</option>
-                                      <option value="WEEK">Tutta la settimana</option>
-                                      <option value="CUSTOM">Giorni scelti</option>
-                                    </Select>
-                                  </label>
+                                      {members.map((member) => {
+                                        const blockedMemberReasons = getBlockedMemberReasons(currentShiftDraft);
+
+                                        return (
+                                          <label
+                                            key={member.id}
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: 8,
+                                              padding: "12px 14px",
+                                              borderRadius: 16,
+                                              border: "1px solid #e2e8f0",
+                                              background: currentShiftDraft.memberIds.includes(member.id)
+                                                ? "#e2e8f0"
+                                                : "#ffffff",
+                                              color: blockedMemberReasons.has(member.id) ? "#94a3b8" : "#0f172a",
+                                              opacity: blockedMemberReasons.has(member.id) ? 0.6 : 1,
+                                            }}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={currentShiftDraft.memberIds.includes(member.id)}
+                                              disabled={blockedMemberReasons.has(member.id)}
+                                              onChange={() => toggleCurrentDraftMember(member.id)}
+                                            />
+                                            <span style={{ display: "grid", gap: 2 }}>
+                                              <span>
+                                                {member.firstName} {member.lastName} -{" "}
+                                                {activityType === ActivityType.COMPANY && member.role === Role.MANAGER
+                                                  ? "Ufficio personale"
+                                                  : formatRoleLabel(member.role)}
+                                              </span>
+                                              {blockedMemberReasons.has(member.id) ? (
+                                                <span style={{ fontSize: 12, color: "#b45309" }}>
+                                                  {blockedMemberReasons.get(member.id)}
+                                                </span>
+                                              ) : null}
+                                            </span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
                                 </div>
 
-                                {shiftRepeatMode === "CUSTOM" ? (
+                                <div style={{ display: "grid", gap: 8 }}>
+                                  <span style={{ fontWeight: 600, color: "#1e293b" }}>Seleziona giorni</span>
                                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                    {shiftRepeatWeekdays.map((day) => {
-                                      const selected = selectedShiftWeekdays.includes(day.value);
-                                      return (
-                                        <button
-                                          key={day.value}
-                                          type="button"
-                                          onClick={() =>
-                                            setSelectedShiftWeekdays((current) =>
-                                              selected
-                                                ? current.filter((value) => value !== day.value)
-                                                : current.concat(day.value)
-                                            )
-                                          }
-                                          style={{
-                                            borderRadius: 999,
-                                            border: selected ? "1px solid #7c3aed" : "1px solid #e2e8f0",
-                                            background: selected ? "#ede9fe" : "#ffffff",
-                                            color: selected ? "#4c1d95" : "#475569",
-                                            padding: "8px 11px",
-                                            fontWeight: 800,
-                                            cursor: "pointer",
-                                          }}
-                                        >
-                                          {day.label}
-                                        </button>
-                                      );
-                                    })}
+                                  {shiftRepeatWeekdays.map((day) => {
+                                    const selected = selectedShiftWeekdays.includes(day.value);
+                                    return (
+                                      <button
+                                        key={day.value}
+                                        type="button"
+                                        onClick={() =>
+                                          setSelectedShiftWeekdays((current) =>
+                                            selected
+                                              ? current.filter((value) => value !== day.value)
+                                              : current.concat(day.value)
+                                          )
+                                        }
+                                        style={{
+                                          borderRadius: 999,
+                                          border: selected ? "1px solid #7c3aed" : "1px solid #e2e8f0",
+                                          background: selected ? "#ede9fe" : "#ffffff",
+                                          color: selected ? "#4c1d95" : "#475569",
+                                          padding: "8px 11px",
+                                          fontWeight: 800,
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        {day.label}
+                                      </button>
+                                    );
+                                  })}
                                   </div>
-                                ) : null}
+                                </div>
                               </div>
                             ) : (
                             <div style={{ display: "grid", gap: 10 }}>
@@ -2977,7 +2982,7 @@ export function DayActionCalendarClient({
                       }}
                     >
                     <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      📌 Note del{" "}
+                      📌 Comunicazioni e mansioni del{" "}
                       {new Intl.DateTimeFormat(locale, {
                         day: "numeric",
                         month: "long",
@@ -2989,7 +2994,7 @@ export function DayActionCalendarClient({
                         <IconButton
                           type="button"
                           onClick={() => setQuickComposer("task")}
-                          aria-label="Aggiungi note"
+                          aria-label="Aggiungi comunicazione o mansione"
                           disabled={isPending}
                         >
                           <svg
@@ -3010,7 +3015,7 @@ export function DayActionCalendarClient({
                       ) : null}
                     </div>
                     {selectedDay.tasks.length === 0 && selectedDay.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
+                      <div style={{ color: "#64748b" }}>Nessuna mansione o comunicazione collegata a questa giornata.</div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.tasks.map((task) =>
@@ -3075,7 +3080,7 @@ export function DayActionCalendarClient({
                       <IconButton
                         type="button"
                         onClick={() => setSelectedNoteId(null)}
-                        aria-label="Chiudi dettaglio nota"
+                        aria-label="Chiudi dettaglio comunicazione"
                         style={{ position: "absolute", top: 14, right: 14, width: 36, height: 36 }}
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -3083,7 +3088,7 @@ export function DayActionCalendarClient({
                         </svg>
                       </IconButton>
                       <strong style={{ color: "#0f172a", fontSize: 20, paddingRight: 44 }}>
-                        📌 Nota
+                        📌 Comunicazione
                       </strong>
                       {renderNoteCard(selectedNote, locale, currentUserId, true)}
                     </section>

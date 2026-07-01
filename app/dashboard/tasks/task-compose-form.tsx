@@ -101,7 +101,7 @@ export function TaskComposeForm({
   return (
     <form action={action} style={{ display: "grid", gap: 16 }}>
       {notifySuccess ? <input type="hidden" name="notifySuccess" value="1" /> : null}
-      <FormField label="Note">
+      <FormField label="Mansioni">
         <div style={{ display: "grid", gap: 12 }}>
           {entries.map((entry) => (
             <div
@@ -138,10 +138,10 @@ export function TaskComposeForm({
                 </span>
               </button>
               <div style={{ display: "flex", gap: 6 }}>
-                <IconButton type="button" onClick={() => editEntry(entry.id)} aria-label="Modifica nota">
+                <IconButton type="button" onClick={() => editEntry(entry.id)} aria-label="Modifica mansione">
                   ✎
                 </IconButton>
-                <IconButton type="button" onClick={() => removeEntry(entry.id)} aria-label="Elimina nota">
+                <IconButton type="button" onClick={() => removeEntry(entry.id)} aria-label="Elimina mansione">
                   ×
                 </IconButton>
               </div>
@@ -158,12 +158,12 @@ export function TaskComposeForm({
               border: "1px solid #e2e8f0",
             }}
           >
-            <strong style={{ color: "#0f172a", fontSize: 14 }}>Nuova nota</strong>
+            <strong style={{ color: "#0f172a", fontSize: 14 }}>Nuova mansione</strong>
 
             <TextInput
               value={draft.value}
               onChange={(event) => setDraft({ ...draft, value: event.target.value })}
-              placeholder="Scrivi la nota"
+              placeholder="Scrivi la mansione"
             />
 
             <div
@@ -195,7 +195,7 @@ export function TaskComposeForm({
                     fontWeight: 800,
                   }}
                 >
-                  Nota personale
+                  Mansione personale
                 </div>
               )}
 
@@ -212,7 +212,7 @@ export function TaskComposeForm({
               <IconButton
                 type="button"
                 onClick={addEntry}
-                aria-label="Aggiungi nota alla lista"
+                aria-label="Aggiungi mansione alla lista"
                 disabled={!draft.value.trim()}
                 style={{
                   width: 38,
@@ -235,7 +235,7 @@ export function TaskComposeForm({
             <IconButton
               type="button"
               onClick={addEntry}
-              aria-label="Aggiungi nota alla lista"
+              aria-label="Aggiungi mansione alla lista"
               disabled={!draft.value.trim()}
               style={{
                 width: 44,
@@ -255,7 +255,7 @@ export function TaskComposeForm({
       </FormField>
 
       <div>
-        <PrimaryButton type="submit" disabled={allEntries.length === 0}>Conferma note</PrimaryButton>
+        <PrimaryButton type="submit" disabled={allEntries.length === 0}>Conferma mansioni</PrimaryButton>
       </div>
     </form>
   );
