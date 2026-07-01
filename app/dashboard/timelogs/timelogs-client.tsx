@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
+import { ConfirmationToast } from "@/app/components/confirmation-toast";
 import { startPreciseGeolocationWatch } from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
 import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
@@ -306,6 +307,8 @@ export function ClockActionsPanel({
   const [geoReady, setGeoReady] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [confirmationKey, setConfirmationKey] = useState(0);
   const [submitting, setSubmitting] = useState<"in" | "out" | null>(null);
   const [locating, setLocating] = useState(false);
   const [weakAccuracy, setWeakAccuracy] = useState<number | null>(null);
@@ -467,12 +470,18 @@ export function ClockActionsPanel({
         return;
       }
 
-      if (endpoint === "clock-out" && typeof payload?.duration === "number") {
+      if (endpoint === "clock-out") {
         setActionMessage(
-          `Uscita registrata. Durata ${formatDurationFromMilliseconds(payload.duration)}.`
+          typeof payload?.duration === "number"
+            ? `Uscita registrata. Durata ${formatDurationFromMilliseconds(payload.duration)}.`
+            : "Uscita registrata."
         );
+        setConfirmationMessage("Per oggi hai finito");
+        setConfirmationKey((current) => current + 1);
       } else {
         setActionMessage("Entrata registrata.");
+        setConfirmationMessage("Buon lavoro");
+        setConfirmationKey((current) => current + 1);
       }
 
       router.refresh();
@@ -602,6 +611,10 @@ export function ClockActionsPanel({
 
         {actionMessage ? (
           <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{actionMessage}</p>
+        ) : null}
+
+        {confirmationMessage ? (
+          <ConfirmationToast key={confirmationKey}>{confirmationMessage}</ConfirmationToast>
         ) : null}
 
         {compact && !gpsConfigured ? (
