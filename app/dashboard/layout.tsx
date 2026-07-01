@@ -33,7 +33,7 @@ export default async function DashboardLayout({
       <SessionKeepAlive />
       <PushRegistration />
       <DashboardRouteGuard
-        redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings" : null}
+        redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings?billing=1" : null}
         allowPrefixes={["/dashboard/settings"]}
       />
       <DashboardShell

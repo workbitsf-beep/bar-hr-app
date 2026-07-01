@@ -67,6 +67,7 @@ export default async function DashboardCoursesPage({
       orderBy: {
         startsAt: "asc",
       },
+      take: 100,
       select: {
         id: true,
         title: true,

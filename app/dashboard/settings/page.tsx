@@ -300,6 +300,7 @@ export default async function DashboardSettingsPage({
   const params = searchParams ? await searchParams : {};
   const error = normalizeParam(params.error);
   const success = normalizeParam(params.success);
+  const openBillingPopup = normalizeParam(params.billing) === "1" || normalizeParam(params.open) === "billing";
   const { session, role, activeBarId, activeBarName, activeBarActivityType, billingStatus } =
     await getDashboardContext();
   const passkeyCount = await getPasskeyCount(session.user.id);
@@ -397,12 +398,19 @@ export default async function DashboardSettingsPage({
   ]);
 
   const featureSettings =
-    activeBarActivityType === ActivityType.COMPANY && settings?.companyShiftsEnabled === false
-      ? { ...settings, shiftsEnabled: false }
+    activeBarActivityType === ActivityType.COMPANY
+      ? {
+          ...settings,
+          shiftsEnabled: settings?.companyShiftsEnabled === false ? false : settings?.shiftsEnabled,
+          timeTrackingEnabled: false,
+        }
       : settings;
   const standardHours = parseStandardHoursFromSettings(settings);
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
-  const activeFeatureCount = featureDefinitions.filter(
+  const visibleFeatureDefinitions = featureDefinitions.filter(
+    (feature) => isRestaurant || feature.key !== "timeTracking"
+  );
+  const activeFeatureCount = visibleFeatureDefinitions.filter(
     (feature) => getFeatureFlags(featureSettings)[feature.key]
   ).length;
 
@@ -505,7 +513,12 @@ export default async function DashboardSettingsPage({
         description="Piano Stripe, stato pagamento, trial e rinnovo."
         status={resolvedBillingStatus.canAccess ? "Ok" : "Da verificare"}
         action={
-          <PopupAction title="Abbonamento" ariaLabel="Apri abbonamento" triggerContent="Gestisci">
+          <PopupAction
+            title="Abbonamento"
+            ariaLabel="Apri abbonamento"
+            triggerContent="Gestisci"
+            initialOpen={openBillingPopup}
+          >
             <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
           </PopupAction>
         }

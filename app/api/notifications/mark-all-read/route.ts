@@ -19,11 +19,6 @@ export async function POST() {
             barId: null,
           }),
       read: false,
-      type: {
-        not: {
-          startsWith: "timelog.clock-",
-        },
-      },
     },
     data: {
       read: true,

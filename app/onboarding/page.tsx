@@ -36,8 +36,17 @@ function hasCompletedRoundingSetup(
   );
 }
 
-function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | null }) {
+function FeatureToggleGrid({
+  settings,
+  activityType,
+}: {
+  settings?: FeatureSettingsInput | null;
+  activityType?: ActivityType | null;
+}) {
   const features = getFeatureFlags(settings);
+  const visibleFeatureDefinitions = featureDefinitions.filter(
+    (feature) => activityType !== ActivityType.COMPANY || feature.key !== "timeTracking"
+  );
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -49,7 +58,7 @@ function FeatureToggleGrid({ settings }: { settings?: FeatureSettingsInput | nul
           gap: 10,
         }}
       >
-        {featureDefinitions.map((feature) => (
+        {visibleFeatureDefinitions.map((feature) => (
           <label
             key={feature.key}
             style={{
@@ -703,6 +712,9 @@ function StepShell({
   steps: Array<{ id: StepNumber; title: string }>;
   children: ReactNode;
 }) {
+  const currentIndex = Math.max(0, steps.findIndex((step) => step.id === currentStep));
+  const progressPercent = Math.round(((currentIndex + 1) / steps.length) * 100);
+
   return (
     <main
       style={{
@@ -727,9 +739,35 @@ function StepShell({
             color: "#f8fafc",
             borderRadius: 24,
             padding: 24,
+            display: "grid",
+            gap: 16,
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 32 }}>Configurazione iniziale</h1>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <h1 style={{ margin: 0, fontSize: 32 }}>Configurazione iniziale</h1>
+            <strong style={{ color: "#ddd6fe", fontSize: 15 }}>
+              Passo {currentIndex + 1} di {steps.length}
+            </strong>
+          </div>
+          <div
+            aria-label={`Avanzamento configurazione ${progressPercent}%`}
+            style={{
+              height: 10,
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.16)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${progressPercent}%`,
+                height: "100%",
+                borderRadius: 999,
+                background: "linear-gradient(90deg, #a78bfa, #ffffff)",
+                transition: "width 180ms ease",
+              }}
+            />
+          </div>
         </header>
 
         <section
@@ -889,18 +927,22 @@ export default async function OnboardingPage({
     ? ([
         { id: 1 as StepNumber, title: "Locale" },
         { id: 2 as StepNumber, title: "Posizione" },
-        { id: 3 as StepNumber, title: "Funzioni" },
+        { id: 3 as StepNumber, title: "Scegli cosa usare" },
         { id: 4 as StepNumber, title: "Team" },
       ] as const)
     : ([
         { id: 1 as StepNumber, title: "Locale" },
-        { id: 2 as StepNumber, title: "Funzioni" },
+        { id: 2 as StepNumber, title: "Scegli cosa usare" },
         { id: 3 as StepNumber, title: "Team" },
       ] as const);
   const teamMembers = activeBar?.memberships ?? [];
   const featureSettings =
-    activeBar?.activityType === ActivityType.COMPANY && activeBar.settings?.companyShiftsEnabled === false
-      ? { ...activeBar.settings, shiftsEnabled: false }
+    activeBar?.activityType === ActivityType.COMPANY
+      ? {
+          ...activeBar.settings,
+          shiftsEnabled: activeBar.settings?.companyShiftsEnabled === false ? false : activeBar.settings?.shiftsEnabled,
+          timeTrackingEnabled: false,
+        }
       : activeBar?.settings;
   const invitedMembers =
     activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
@@ -1006,7 +1048,7 @@ export default async function OnboardingPage({
         <Card title="Personalizza Workbit">
           <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
             <input type="hidden" name="settingsSection" value="features" />
-            <FeatureToggleGrid settings={featureSettings} />
+            <FeatureToggleGrid settings={featureSettings} activityType={activeBar.activityType} />
 
             <div>
               <SubmitButton label="Continua" />
@@ -1020,7 +1062,7 @@ export default async function OnboardingPage({
           title="Personalizza Workbit"
         >
           <form action={saveRoundingAction} style={{ display: "grid", gap: 18 }}>
-            <FeatureToggleGrid settings={featureSettings} />
+            <FeatureToggleGrid settings={featureSettings} activityType={activeBar.activityType} />
 
             <label
               style={{

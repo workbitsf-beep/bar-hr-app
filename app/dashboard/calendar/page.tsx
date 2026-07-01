@@ -29,6 +29,7 @@ type CalendarPageSettings = {
 
 const CALENDAR_LOOKBACK_WEEKS = 4;
 const CALENDAR_LOOKAHEAD_WEEKS = 12;
+const AVAILABILITY_VISIBILITY_HOURS = 24;
 
 function getLocale(language: string) {
   if (language === "en") {
@@ -293,18 +294,10 @@ export default async function DashboardCalendarPage({
   const anchorDate = parseAnchorDate(params);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const availabilityVisibleAfter = new Date();
+  availabilityVisibleAfter.setHours(availabilityVisibleAfter.getHours() - AVAILABILITY_VISIBILITY_HOURS);
   const calendarStart = startOfCalendarWeek(addDays(anchorDate, -7 * CALENDAR_LOOKBACK_WEEKS));
   const calendarEnd = endOfCalendarWeek(addDays(anchorDate, 7 * CALENDAR_LOOKAHEAD_WEEKS));
-  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const currentMonthEnd = new Date(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999
-  );
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
   const canManageRestaurantShifts =
     features.shifts && isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
@@ -418,8 +411,7 @@ export default async function DashboardCalendarPage({
                 where: {
                   barId: activeBarId,
                   startsAt: { lte: calendarEnd },
-                  endsAt: { gte: calendarStart },
-                  ...(role === Role.EMPLOYEE ? { userId: session.user.id } : {}),
+                  endsAt: { gte: calendarStart > availabilityVisibleAfter ? calendarStart : availabilityVisibleAfter },
                 },
                 select: {
                   id: true,
@@ -451,7 +443,6 @@ export default async function DashboardCalendarPage({
                   status: RequestStatus.APPROVED,
                   startsAt: { lte: calendarEnd },
                   endsAt: { gte: calendarStart },
-                  ...(role === Role.EMPLOYEE ? { employeeId: session.user.id } : {}),
                 },
                 select: {
                   id: true,
@@ -870,8 +861,8 @@ export default async function DashboardCalendarPage({
       lastName: request.employee.lastName,
       startsAt: request.startsAt?.toISOString() ?? day.date.toISOString(),
       endsAt: request.endsAt?.toISOString() ?? request.startsAt?.toISOString() ?? day.date.toISOString(),
-      reason: request.reason ?? null,
-      certificateCode: request.certificateCode ?? null,
+      reason: role === Role.OWNER ? request.reason ?? null : null,
+      certificateCode: role === Role.OWNER ? request.certificateCode ?? null : null,
     })),
     courses: (coursesByDay.get(toLocalDateKey(day.date)) ?? []).map((course) => ({
       id: course.id,
@@ -931,10 +922,7 @@ export default async function DashboardCalendarPage({
   }));
   const shiftPresets = buildShiftPresets(settings);
   const unconfirmedShiftCount = shifts.filter(
-    (shift) =>
-      !shift.confirmedAt &&
-      shift.startTime <= currentMonthEnd &&
-      shift.endTime >= currentMonthStart
+    (shift) => !shift.confirmedAt && !shift.isOnCall
   ).length;
   const canPublishShifts =
     features.shifts &&
@@ -942,8 +930,8 @@ export default async function DashboardCalendarPage({
     (isRestaurant || Boolean(settings?.companyShiftsEnabled));
   const publishWeekAction = canPublishShifts ? (
     <PublishWeekPanel
-      rangeStart={toLocalDateKey(currentMonthStart)}
-      rangeEnd={toLocalDateKey(currentMonthEnd)}
+      rangeStart={toLocalDateKey(calendarStart)}
+      rangeEnd={toLocalDateKey(calendarEnd)}
       pendingCount={unconfirmedShiftCount}
     />
   ) : null;

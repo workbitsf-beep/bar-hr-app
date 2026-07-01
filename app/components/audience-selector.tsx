@@ -12,6 +12,7 @@ export function AudienceSelector({
   onChange,
   teamLabel = "Team",
   peopleLabel = "Dipendenti",
+  multiple = true,
 }: {
   members: AudienceMember[];
   assignedToAll: boolean;
@@ -19,7 +20,12 @@ export function AudienceSelector({
   onChange: (value: { assignedToAll: boolean; assignedToId: string }) => void;
   teamLabel?: string;
   peopleLabel?: string;
+  multiple?: boolean;
 }) {
+  const selectedIds = assignedToId
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
   const basePillStyle = {
     minHeight: 42,
     borderRadius: 999,
@@ -89,14 +95,25 @@ export function AudienceSelector({
           }}
         >
           {members.map((member) => {
-            const selected = assignedToId === member.id;
+            const selected = selectedIds.includes(member.id);
 
             return (
               <button
                 key={member.id}
                 className="dashboard-select-pill"
                 type="button"
-                onClick={() => onChange({ assignedToAll: false, assignedToId: selected ? "" : member.id })}
+                onClick={() => {
+                  if (!multiple) {
+                    onChange({ assignedToAll: false, assignedToId: selected ? "" : member.id });
+                    return;
+                  }
+
+                  const nextIds = selected
+                    ? selectedIds.filter((id) => id !== member.id)
+                    : selectedIds.concat(member.id);
+
+                  onChange({ assignedToAll: false, assignedToId: nextIds.join(",") });
+                }}
                 aria-pressed={selected}
                 style={{
                   borderRadius: 999,
@@ -123,7 +140,11 @@ export function AudienceSelector({
 
       {!assignedToAll ? (
         <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-          {assignedToId ? "1 selezionato" : "Nessun dipendente selezionato"}
+          {selectedIds.length === 0
+            ? "Nessun dipendente selezionato"
+            : selectedIds.length === 1
+              ? "1 selezionato"
+              : `${selectedIds.length} selezionati`}
         </span>
       ) : null}
     </div>

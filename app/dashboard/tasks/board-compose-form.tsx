@@ -16,6 +16,13 @@ function createEmptyEntry() {
   };
 }
 
+function getSelectedIds(value: string) {
+  return value
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 export function BoardComposeForm({
   action,
   canManage,
@@ -93,6 +100,23 @@ export function BoardComposeForm({
     ? entries
     : entries.concat(draft.value.trim() ? [draft] : []);
 
+  function getAudienceLabel(entry: ReturnType<typeof createEmptyEntry>) {
+    if (entry.assignedToAll) {
+      return "Tutto il team";
+    }
+
+    const labels = getSelectedIds(entry.assignedToId)
+      .map((id) => members.find((member) => member.id === id))
+      .filter(Boolean)
+      .map((member) => `${member?.firstName} ${member?.lastName}`);
+
+    if (labels.length === 0) {
+      return "Persona non selezionata";
+    }
+
+    return labels.length === 1 ? labels[0] : `${labels.length} dipendenti`;
+  }
+
   function renderHiddenEntry(entry: ReturnType<typeof createEmptyEntry>) {
     return (
       <div key={entry.id} style={{ display: "none" }}>
@@ -145,11 +169,7 @@ export function BoardComposeForm({
               >
                 <strong style={{ fontSize: 13 }}>{entry.value}</strong>
                 <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {entry.assignedToAll
-                    ? "Tutto il team"
-                    : members.find((member) => member.id === entry.assignedToId)
-                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
-                      : "Persona non selezionata"}
+                  {getAudienceLabel(entry)}
                   {entry.isPinned ? " · In evidenza" : ""}
                 </span>
               </button>
@@ -192,6 +212,7 @@ export function BoardComposeForm({
                 }))}
                 assignedToAll={draft.assignedToAll}
                 assignedToId={draft.assignedToId}
+                multiple={allowMultiple}
                 onChange={(value) => setDraft({ ...draft, ...value })}
               />
             ) : null}

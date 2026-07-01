@@ -58,6 +58,7 @@ export default async function DashboardDocumentsPage() {
       orderBy: {
         createdAt: "desc",
       },
+      take: 100,
       select: {
         id: true,
         title: true,

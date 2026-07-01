@@ -1,7 +1,8 @@
 import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { buildMonthlyTotals } from "@/lib/reporting";
+import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
 import { getDashboardContext } from "./context";
 import { reviewRequestAction } from "./actions";
@@ -23,6 +24,21 @@ function requestTypeLabel(type: RequestType) {
   if (type === RequestType.SHIFT_CHANGE) return "Cambio turno";
   if (type === RequestType.OVERTIME) return "Straordinario";
   return "Assenza";
+}
+
+function startOfNextWeek(date: Date) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const day = start.getDay();
+  const daysUntilNextMonday = ((8 - day) % 7) || 7;
+  start.setDate(start.getDate() + daysUntilNextMonday);
+  return start;
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
 export default async function DashboardPage() {
@@ -63,7 +79,16 @@ export default async function DashboardPage() {
       ? getDashboardKpiData(activeBarId, activeBarActivityType)
       : Promise.resolve(null);
 
-  const [settings, shifts, ownHours, latestTimeLog, kpiData, pendingApprovalRequests] = await Promise.all([
+  const [
+    settings,
+    shifts,
+    ownHours,
+    todayHours,
+    latestTimeLog,
+    kpiData,
+    pendingApprovalRequests,
+    nextWeekShiftCount,
+  ] = await Promise.all([
     isOperationalProfile && features.timeTracking
       ? prisma.barSettings.findUnique({
           where: { barId: activeBarId },
@@ -115,6 +140,9 @@ export default async function DashboardPage() {
       : Promise.resolve([]),
     isOperationalProfile && features.timeTracking
       ? buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear())
+      : Promise.resolve(null),
+    isOperationalProfile && features.timeTracking
+      ? buildDailyTotals(activeBarId, session.user.id, now)
       : Promise.resolve(null),
     isOperationalProfile && features.timeTracking
       ? prisma.timeLog.findFirst({
@@ -171,6 +199,17 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve([]),
+    isOwner && features.shifts
+      ? prisma.shift.count({
+          where: {
+            barId: activeBarId,
+            startTime: {
+              gte: startOfNextWeek(now),
+              lt: addDays(startOfNextWeek(now), 7),
+            },
+          },
+        })
+      : Promise.resolve(0),
   ]);
 
   const todayKey = toDateInputValueInTimeZone(now);
@@ -251,6 +290,11 @@ export default async function DashboardPage() {
                   <div style={{ color: "#4c1d95", fontSize: 26, fontWeight: 800 }}>
                     {formatDurationClock(ownHours.roundedHours)}
                   </div>
+                  {todayHours ? (
+                    <div style={{ color: "#64748b", fontSize: 12, fontWeight: 750, marginTop: 2 }}>
+                      Oggi {formatDurationClock(todayHours.roundedHours)}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -311,6 +355,65 @@ export default async function DashboardPage() {
             {features.timeTracking ? (
               <ClockActionsPanel role={role} settings={settings} clockStatus={clockStatus} />
             ) : null}
+          </div>
+        </Panel>
+      ) : null}
+
+      {isOwner && features.shifts && nextWeekShiftCount === 0 ? (
+        <Panel title="Promemoria" action="Turni">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 14,
+              flexWrap: "wrap",
+              padding: 16,
+              borderRadius: 22,
+              background: "linear-gradient(135deg, rgba(255,247,237,0.92), rgba(245,243,255,0.9))",
+              border: "1px solid rgba(251,146,60,0.24)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 16,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#ffedd5",
+                  fontSize: 18,
+                }}
+              >
+                ⏰
+              </span>
+              <div>
+                <strong style={{ display: "block", color: "#0f172a" }}>
+                  Mancano i turni della prossima settimana
+                </strong>
+                <span style={{ color: "#64748b", fontSize: 13 }}>
+                  Pianificali ora e confermali quando sono pronti.
+                </span>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/calendar"
+              style={{
+                borderRadius: 999,
+                padding: "9px 13px",
+                background: "linear-gradient(135deg, #4c1d95, #7c3aed)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 800,
+                textDecoration: "none",
+                boxShadow: "0 10px 22px rgba(124,58,237,0.18)",
+              }}
+            >
+              Apri turni
+            </Link>
           </div>
         </Panel>
       ) : null}

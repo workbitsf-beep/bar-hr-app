@@ -9,6 +9,7 @@ export function PopupAction({
   children,
   className,
   closeOnSubmit = false,
+  initialOpen = false,
   triggerContent,
 }: {
   title: string;
@@ -16,6 +17,7 @@ export function PopupAction({
   children: ReactNode;
   className?: string;
   closeOnSubmit?: boolean;
+  initialOpen?: boolean;
   triggerContent?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -24,6 +26,12 @@ export function PopupAction({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (initialOpen) {
+      setOpen(true);
+    }
+  }, [initialOpen]);
 
   useEffect(() => {
     if (!open) {

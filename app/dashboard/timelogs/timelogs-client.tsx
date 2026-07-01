@@ -166,6 +166,11 @@ function formatShiftCount(logs: LogItem[]) {
   return `${count} ${count === 1 ? "turno" : "turni"}`;
 }
 
+function getTodayKey() {
+  const parts = getZonedDateParts(new Date(), APP_TIME_ZONE);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
 function groupLogsByDay(logs: LogItem[]) {
   const groups = new Map<
     string,
@@ -780,9 +785,11 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
 function PersonalTimeLogsPanel({
   initialLogs,
   role,
+  todayTotals,
 }: {
   initialLogs: LogItem[];
   role: Role | string;
+  todayTotals: Totals;
 }) {
   const [dayFilter, setDayFilter] = useState("");
 
@@ -792,6 +799,7 @@ function PersonalTimeLogsPanel({
   );
 
   const dayGroups = useMemo(() => groupLogsByDay(filteredLogs), [filteredLogs]);
+  const todayKey = getTodayKey();
 
   return (
     <Panel
@@ -799,6 +807,21 @@ function PersonalTimeLogsPanel({
       action={formatShiftCount(filteredLogs)}
     >
       <div style={{ display: "grid", gap: 16 }}>
+        {todayTotals ? (
+          <div
+            style={{
+              padding: "12px 14px",
+              borderRadius: 18,
+              background: "linear-gradient(135deg, #f5f3ff, #ffffff)",
+              border: "1px solid rgba(124, 58, 237, 0.14)",
+              color: "#4c1d95",
+              fontWeight: 850,
+            }}
+          >
+            Oggi hai lavorato {formatDurationClock(todayTotals.roundedHours)}
+          </div>
+        ) : null}
+
         <FormField label="Filtra per giorno">
           <TextInput
             type="date"
@@ -817,7 +840,11 @@ function PersonalTimeLogsPanel({
               <ItemCard
                 key={dayGroup.dayKey}
                 title={dayGroup.dayLabel}
-                subtitle={formatShiftCount(dayGroup.logs)}
+                subtitle={
+                  dayGroup.dayKey === todayKey && todayTotals
+                    ? `${formatShiftCount(dayGroup.logs)} - oggi ${formatDurationClock(todayTotals.roundedHours)}`
+                    : formatShiftCount(dayGroup.logs)
+                }
                 footer={
                   <div
                     style={{
@@ -854,11 +881,13 @@ export function TimeLogsClient({
   role,
   initialLogs,
   totals,
+  todayTotals,
 }: {
   role: Role | string;
   initialLogs: LogItem[];
   settings: BarSettingsSummary;
   totals: Totals;
+  todayTotals: Totals;
 }) {
   return (
     <>
@@ -879,7 +908,7 @@ export function TimeLogsClient({
         {role === "OWNER" ? (
           <OwnerTimeLogsPanel initialLogs={initialLogs} />
         ) : (
-          <PersonalTimeLogsPanel initialLogs={initialLogs} role={role} />
+          <PersonalTimeLogsPanel initialLogs={initialLogs} role={role} todayTotals={todayTotals} />
         )}
       </Stack>
     </>

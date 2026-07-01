@@ -17,6 +17,7 @@ export async function GET(req: Request) {
   const where = {
     userId: session.user.id,
     barId,
+    read: false,
   };
 
   const [notifications, unreadCount] = await Promise.all([

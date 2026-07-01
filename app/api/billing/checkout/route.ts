@@ -317,8 +317,8 @@ export async function POST(req: Request) {
           }
         : {}),
     },
-    success_url: `${baseUrl}/dashboard/settings`,
-    cancel_url: `${baseUrl}/dashboard/settings`,
+    success_url: `${baseUrl}/dashboard/settings?billing=1`,
+    cancel_url: `${baseUrl}/dashboard/settings?billing=1`,
   });
 
   return Response.json({

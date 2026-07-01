@@ -1803,7 +1803,7 @@ export function BillingRequiredState({
         {canManageBilling ? (
           <div>
             <Link
-              href="/dashboard/settings"
+              href="/dashboard/settings?billing=1"
               style={{
                 display: "inline-flex",
                 alignItems: "center",

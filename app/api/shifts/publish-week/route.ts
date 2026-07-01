@@ -97,6 +97,7 @@ export const POST = withBar(
       where: {
         barId: session.activeBarId,
         confirmedAt: null,
+        isOnCall: false,
         startTime: {
           lte: rangeEnd,
         },
@@ -119,7 +120,12 @@ export const POST = withBar(
     });
 
     if (shifts.length === 0) {
-      return Response.json({ ok: true, sentCount: 0 });
+      return Response.json({
+        ok: true,
+        sentCount: 0,
+        confirmedCount: 0,
+        message: "Nessun turno da confermare.",
+      });
     }
 
     const recipientMap = new Map<
@@ -168,7 +174,6 @@ export const POST = withBar(
         },
         barId: session.activeBarId,
         confirmedAt: null,
-        isOnCall: false,
       },
       data: {
         confirmedAt: new Date(),
@@ -183,6 +188,7 @@ export const POST = withBar(
     return Response.json({
       ok: true,
       sentCount,
+      confirmedCount: shifts.length,
     });
   }
 );

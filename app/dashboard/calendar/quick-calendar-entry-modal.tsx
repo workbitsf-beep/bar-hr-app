@@ -32,6 +32,13 @@ function createEmptyEntry(): EntryItem {
   };
 }
 
+function getSelectedIds(value: string) {
+  return value
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 function toDateInputValue(dateIso: string | null) {
   return dateIso ? dateIso.slice(0, 10) : "";
 }
@@ -104,6 +111,23 @@ export function QuickCalendarEntryModal({
     id: string
   ) {
     setter((current) => current.filter((entry) => entry.id !== id));
+  }
+
+  function getAudienceLabel(entry: EntryItem) {
+    if (entry.assignedToAll) {
+      return "Tutto il team";
+    }
+
+    const labels = getSelectedIds(entry.assignedToId)
+      .map((id) => members.find((member) => member.id === id))
+      .filter(Boolean)
+      .map((member) => `${member?.firstName} ${member?.lastName}`);
+
+    if (labels.length === 0) {
+      return "Persona non selezionata";
+    }
+
+    return labels.length === 1 ? labels[0] : `${labels.length} dipendenti`;
   }
 
   function handleTaskSubmit() {
@@ -196,11 +220,7 @@ export function QuickCalendarEntryModal({
               >
                 <strong style={{ fontSize: 13 }}>{entry.value}</strong>
                 <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {entry.assignedToAll
-                    ? "Tutto il team"
-                    : members.find((member) => member.id === entry.assignedToId)
-                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
-                      : "Persona non selezionata"}
+                  {getAudienceLabel(entry)}
                   {entry.isUrgent ? " · Urgente" : ""}
                 </span>
               </button>
@@ -388,11 +408,7 @@ export function QuickCalendarEntryModal({
               >
                 <strong style={{ fontSize: 13 }}>{entry.value}</strong>
                 <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {entry.assignedToAll
-                    ? "Tutto il team"
-                    : members.find((member) => member.id === entry.assignedToId)
-                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
-                      : "Persona non selezionata"}
+                  {getAudienceLabel(entry)}
                   {entry.isPinned ? " · In evidenza" : ""}
                 </span>
               </button>

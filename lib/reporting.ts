@@ -80,6 +80,8 @@ export type MonthlyTotals = {
   roundedHours: number;
 };
 
+export type DailyTotals = MonthlyTotals;
+
 type MinimalTimeLog = {
   id: string;
   type: ClockType;
@@ -642,6 +644,66 @@ export async function buildMonthlyTotals(
   );
 }
 
+export async function buildDailyTotals(
+  barId: string,
+  userId: string,
+  date: Date = new Date()
+): Promise<DailyTotals> {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayStart.getDate() + 1);
+
+  return getOrSetRuntimeCache(
+    `daily-totals:${barId}:${userId}:${formatDayKey(dayStart)}`,
+    10_000,
+    async () => {
+      const [timeLogs, settings] = await Promise.all([
+        prisma.timeLog.findMany({
+          where: {
+            userId,
+            barId,
+            timestamp: {
+              gte: dayStart,
+              lt: dayEnd,
+            },
+          },
+          select: {
+            id: true,
+            type: true,
+            timestamp: true,
+            shift: {
+              select: {
+                startTime: true,
+                endTime: true,
+              },
+            },
+          },
+          orderBy: {
+            timestamp: "asc",
+          },
+        }),
+        prisma.barSettings.findUnique({
+          where: { barId },
+          select: {
+            roundingEnabled: true,
+            roundingMode: true,
+            roundingMinutes: true,
+          },
+        }),
+      ]);
+
+      const totals = calculateMonthlyTotals(timeLogs, settings);
+
+      return {
+        realHours: toHours(totals.totalRealMs),
+        roundedHours: toHours(totals.totalRoundedMs),
+      };
+    }
+  );
+}
+
 export async function buildMonthlyDataset(
   barId: string,
   userId: string,
@@ -668,9 +730,11 @@ export async function buildMonthlyDataset(
 export function invalidateReportingCache(barId: string, userId?: string) {
   invalidateRuntimeCache(`monthly-totals:${barId}:`);
   invalidateRuntimeCache(`monthly-dataset:${barId}:`);
+  invalidateRuntimeCache(`daily-totals:${barId}:`);
 
   if (userId) {
     invalidateRuntimeCache(`monthly-totals:${barId}:${userId}:`);
     invalidateRuntimeCache(`monthly-dataset:${barId}:${userId}:`);
+    invalidateRuntimeCache(`daily-totals:${barId}:${userId}:`);
   }
 }

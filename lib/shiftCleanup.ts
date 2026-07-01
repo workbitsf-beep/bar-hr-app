@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export const RESTAURANT_CALENDAR_RETENTION_DAYS = 60;
 export const COMPANY_CALENDAR_RETENTION_DAYS = 400;
+export const AVAILABILITY_RETENTION_HOURS = 24;
 const SHIFT_RETENTION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
 
 let lastRetentionCleanupAt = 0;
@@ -24,6 +25,12 @@ let retentionCleanupPromise:
 function getRetentionCutoff(days: number, now = new Date()) {
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - days);
+  return cutoff;
+}
+
+function getAvailabilityRetentionCutoff(now = new Date()) {
+  const cutoff = new Date(now);
+  cutoff.setHours(cutoff.getHours() - AVAILABILITY_RETENTION_HOURS);
   return cutoff;
 }
 
@@ -101,6 +108,7 @@ export async function deleteShiftWithCleanup(
 
 export async function runShiftRetentionCleanup(now = new Date()) {
   const { restaurantCutoff, companyCutoff } = getCalendarRetentionCutoffs(now);
+  const availabilityCutoff = getAvailabilityRetentionCutoff(now);
   const expiredByBarActivity = [
     {
       bar: { activityType: ActivityType.RESTAURANT },
@@ -124,7 +132,7 @@ export async function runShiftRetentionCleanup(now = new Date()) {
   });
 
   if (expiredShifts.length === 0) {
-    const standaloneResult = await deleteExpiredCalendarItems(expiredByBarActivity);
+    const standaloneResult = await deleteExpiredCalendarItems(expiredByBarActivity, availabilityCutoff);
 
     return {
       restaurantCutoff,
@@ -186,10 +194,7 @@ export async function runShiftRetentionCleanup(now = new Date()) {
 
     const deletedAvailabilities = await tx.availability.deleteMany({
       where: {
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          endsAt: { lt: entry.cutoff },
-        })),
+        endsAt: { lt: availabilityCutoff },
       },
     });
 
@@ -260,7 +265,8 @@ async function deleteExpiredCalendarItems(
   expiredByBarActivity: Array<{
     bar: { activityType: ActivityType };
     cutoff: Date;
-  }>
+  }>,
+  availabilityCutoff = getAvailabilityRetentionCutoff()
 ) {
   return prisma.$transaction(async (tx) => {
     const deletedRequests = await tx.request.deleteMany({
@@ -287,10 +293,7 @@ async function deleteExpiredCalendarItems(
 
     const deletedAvailabilities = await tx.availability.deleteMany({
       where: {
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          endsAt: { lt: entry.cutoff },
-        })),
+        endsAt: { lt: availabilityCutoff },
       },
     });
 

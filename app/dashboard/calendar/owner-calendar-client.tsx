@@ -143,6 +143,8 @@ type FeedbackState =
   | null;
 
 type CalendarModalMode = "day" | "shifts" | "notes";
+type ShiftInsertMode = "DAY" | "EMPLOYEE";
+type ShiftRepeatMode = "ONE" | "WEEK" | "CUSTOM";
 
 type ShiftDraft = {
   id: string;
@@ -164,6 +166,69 @@ function createShiftDraft(dateIso: string): ShiftDraft {
     memberIds: [],
     isOnCall: false,
   };
+}
+
+const shiftRepeatWeekdays = [
+  { value: "1", label: "Lun" },
+  { value: "2", label: "Mar" },
+  { value: "3", label: "Mer" },
+  { value: "4", label: "Gio" },
+  { value: "5", label: "Ven" },
+  { value: "6", label: "Sab" },
+  { value: "0", label: "Dom" },
+];
+
+function dateKeyToLocalDate(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+function formatLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDaysToDateKey(dateKey: string, days: number) {
+  const date = dateKeyToLocalDate(dateKey);
+  date.setDate(date.getDate() + days);
+  return formatLocalDateKey(date);
+}
+
+function startOfWeekDateKey(dateKey: string) {
+  const date = dateKeyToLocalDate(dateKey);
+  const diff = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - diff);
+  return formatLocalDateKey(date);
+}
+
+function createRepeatedShiftDrafts(
+  draft: ShiftDraft,
+  mode: ShiftInsertMode,
+  repeatMode: ShiftRepeatMode,
+  weekdays: string[],
+  todayKey: string
+) {
+  if (mode === "DAY" || repeatMode === "ONE") {
+    return [{ ...draft, id: `${Date.now()}-${Math.random().toString(36).slice(2)}` }];
+  }
+
+  const weekStart = startOfWeekDateKey(draft.date);
+  const dateKeys =
+    repeatMode === "WEEK"
+      ? Array.from({ length: 7 }, (_, index) => addDaysToDateKey(weekStart, index))
+      : shiftRepeatWeekdays
+          .filter((day) => weekdays.includes(day.value))
+          .map((day) => addDaysToDateKey(weekStart, Number(day.value) === 0 ? 6 : Number(day.value) - 1));
+
+  return dateKeys
+    .filter((dateKey) => dateKey >= todayKey)
+    .map((dateKey) => ({
+      ...draft,
+      id: `${Date.now()}-${dateKey}-${Math.random().toString(36).slice(2)}`,
+      date: dateKey,
+    }));
 }
 
 function formatDayTime(value: string, locale: string) {
@@ -583,7 +648,6 @@ export function OwnerCalendarClient({
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
-  const [calendarContentView, setCalendarContentView] = useState<"week" | "day">("week");
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
     const today = days.find((day) => day.isToday) ?? days[0];
     return filteredDay ?? today?.date ?? "";
@@ -600,6 +664,9 @@ export function OwnerCalendarClient({
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
   const [currentShiftDraft, setCurrentShiftDraft] = useState<ShiftDraft | null>(null);
+  const [shiftInsertMode, setShiftInsertMode] = useState<ShiftInsertMode>("DAY");
+  const [shiftRepeatMode, setShiftRepeatMode] = useState<ShiftRepeatMode>("ONE");
+  const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [requestStart, setRequestStart] = useState("");
   const [requestEnd, setRequestEnd] = useState("");
@@ -674,7 +741,6 @@ export function OwnerCalendarClient({
 
       setFocusedDayDate(today.date);
       setCalendarView("day");
-      setCalendarContentView("day");
       setSelectedDate(null);
       setActiveCalendarModal(null);
       setFeedback(null);
@@ -710,7 +776,7 @@ export function OwnerCalendarClient({
   useEffect(() => {
     return () => {
       if (dayScrollTimerRef.current !== null) {
-        window.clearTimeout(dayScrollTimerRef.current);
+        window.cancelAnimationFrame(dayScrollTimerRef.current);
       }
     };
   }, []);
@@ -749,8 +815,8 @@ export function OwnerCalendarClient({
       return [];
     }
 
-    const start = Math.max(0, focusedDayIndex - 1);
-    const end = Math.min(days.length, focusedDayIndex + 2);
+    const start = Math.max(0, focusedDayIndex - 3);
+    const end = Math.min(days.length, focusedDayIndex + 4);
     return days.slice(start, end);
   }, [days, filteredDay, focusedDay, focusedDayIndex]);
 
@@ -760,10 +826,10 @@ export function OwnerCalendarClient({
     }
 
     if (dayScrollTimerRef.current !== null) {
-      window.clearTimeout(dayScrollTimerRef.current);
+      window.cancelAnimationFrame(dayScrollTimerRef.current);
     }
 
-    dayScrollTimerRef.current = window.setTimeout(() => {
+    dayScrollTimerRef.current = window.requestAnimationFrame(() => {
       const strip = dayStripRef.current;
       if (!strip) {
         return;
@@ -786,7 +852,7 @@ export function OwnerCalendarClient({
       if (nearestDate && nearestDate !== focusedDayDate) {
         setFocusedDayDate(nearestDate);
       }
-    }, 80);
+    });
   }
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {
@@ -857,6 +923,9 @@ export function OwnerCalendarClient({
     setFeedback(null);
     setShiftDrafts([]);
     setCurrentShiftDraft(createShiftDraft(day.date));
+    setShiftInsertMode("DAY");
+    setShiftRepeatMode("ONE");
+    setSelectedShiftWeekdays([]);
     setRequestType(RequestType.VACATION);
     setRequestStart(`${day.date.slice(0, 10)}T`);
     setRequestEnd(`${day.date.slice(0, 10)}T`);
@@ -927,6 +996,9 @@ export function OwnerCalendarClient({
     setSelectedDate(null);
     setFeedback(null);
     setCurrentShiftDraft(null);
+    setShiftInsertMode("DAY");
+    setShiftRepeatMode("ONE");
+    setSelectedShiftWeekdays([]);
   }
 
   function isShiftDraftValid(draft: ShiftDraft | null) {
@@ -949,8 +1021,28 @@ export function OwnerCalendarClient({
       return;
     }
 
-    setShiftDrafts((current) => current.concat(currentShiftDraft));
-    setCurrentShiftDraft(createShiftDraft(selectedDay.date));
+    const draftsToAdd = createRepeatedShiftDrafts(
+      currentShiftDraft,
+      shiftInsertMode,
+      shiftRepeatMode,
+      selectedShiftWeekdays,
+      todayKey
+    );
+
+    if (draftsToAdd.length === 0) {
+      setFeedback({ tone: "danger", message: "Seleziona almeno un giorno valido da oggi in poi." });
+      return;
+    }
+
+    setShiftDrafts((current) => current.concat(draftsToAdd));
+    setCurrentShiftDraft({
+      ...createShiftDraft(selectedDay.date),
+      memberIds: shiftInsertMode === "EMPLOYEE" ? currentShiftDraft.memberIds.slice(0, 1) : [],
+      presetKey: currentShiftDraft.presetKey,
+      startTime: currentShiftDraft.startTime,
+      endTime: currentShiftDraft.endTime,
+      isOnCall: currentShiftDraft.isOnCall,
+    });
     setFeedback(null);
   }
 
@@ -1256,7 +1348,6 @@ export function OwnerCalendarClient({
                 }
 
                 setCalendarView(mode);
-                setCalendarContentView(mode);
               }}
               style={{
                 border: 0,
@@ -1290,7 +1381,7 @@ export function OwnerCalendarClient({
         ) : null}
       </div>
 
-      {calendarContentView === "day" ? (
+      {calendarView === "day" ? (
         <div
           ref={dayStripRef}
           onScroll={handleDayStripScroll}
@@ -1647,7 +1738,12 @@ export function OwnerCalendarClient({
                                 fontSize: 12,
                               }}
                             >
-                              {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
+                              <strong style={{ display: "block", fontSize: 12 }}>
+                                {formatRequestTypeLabel(request.type)}: {request.firstName} {request.lastName}
+                              </strong>
+                              <span style={{ display: "block", color: "#b91c1c", fontSize: 11 }}>
+                                {formatRange(request.startsAt, request.endsAt, locale)}
+                              </span>
                             </div>
                           );
                         }
@@ -1735,7 +1831,12 @@ export function OwnerCalendarClient({
                                 fontSize: 12,
                               }}
                             >
-                              Indisponibile: {availability.firstName} {availability.lastName}
+                              <strong style={{ display: "block", fontSize: 12 }}>
+                                Indisponibile: {availability.firstName} {availability.lastName}
+                              </strong>
+                              <span style={{ display: "block", color: "#b91c1c", fontSize: 11 }}>
+                                {formatRange(availability.startsAt, availability.endsAt, locale)}
+                              </span>
                             </div>
                           );
                         }
@@ -2236,6 +2337,49 @@ export function OwnerCalendarClient({
                     >
                       <strong style={{ color: "#0f172a" }}>Nuovo turno</strong>
 
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gap: 8,
+                          padding: 4,
+                          borderRadius: 999,
+                          background: "#eef2ff",
+                          border: "1px solid #ddd6fe",
+                        }}
+                      >
+                        {[
+                          { value: "DAY" as ShiftInsertMode, label: "Per giorno" },
+                          { value: "EMPLOYEE" as ShiftInsertMode, label: "Per dipendente" },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setShiftInsertMode(option.value);
+                              setShiftRepeatMode("ONE");
+                              setSelectedShiftWeekdays([]);
+                              if (option.value === "EMPLOYEE") {
+                                updateCurrentShiftDraft({
+                                  memberIds: currentShiftDraft.memberIds.slice(0, 1),
+                                });
+                              }
+                            }}
+                            style={{
+                              border: 0,
+                              borderRadius: 999,
+                              padding: "9px 12px",
+                              background: shiftInsertMode === option.value ? "#4c1d95" : "transparent",
+                              color: shiftInsertMode === option.value ? "#ffffff" : "#475569",
+                              fontWeight: 800,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+
                       {presets.length > 0 ? (
                         <label style={{ display: "grid", gap: 8 }}>
                           <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario standard</span>
@@ -2331,6 +2475,84 @@ export function OwnerCalendarClient({
                         Reperibilita
                       </label>
 
+                      {shiftInsertMode === "EMPLOYEE" ? (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <div
+                            className="dashboard-modal-body-grid"
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                              gap: 12,
+                            }}
+                          >
+                            <label style={{ display: "grid", gap: 8 }}>
+                              <span style={{ fontWeight: 600, color: "#1e293b" }}>Dipendente</span>
+                              <Select
+                                value={currentShiftDraft.memberIds[0] ?? ""}
+                                onChange={(event) =>
+                                  updateCurrentShiftDraft({
+                                    memberIds: event.target.value ? [event.target.value] : [],
+                                  })
+                                }
+                              >
+                                <option value="">Seleziona dipendente</option>
+                                {members.map((member) => (
+                                  <option key={member.id} value={member.id}>
+                                    {member.firstName} {member.lastName} - {formatRoleLabel(member.role)}
+                                  </option>
+                                ))}
+                              </Select>
+                            </label>
+
+                            <label style={{ display: "grid", gap: 8 }}>
+                              <span style={{ fontWeight: 600, color: "#1e293b" }}>Ripeti</span>
+                              <Select
+                                value={shiftRepeatMode}
+                                onChange={(event) => {
+                                  setShiftRepeatMode(event.target.value as ShiftRepeatMode);
+                                  setSelectedShiftWeekdays([]);
+                                }}
+                              >
+                                <option value="ONE">Solo questo giorno</option>
+                                <option value="WEEK">Tutta la settimana</option>
+                                <option value="CUSTOM">Giorni scelti</option>
+                              </Select>
+                            </label>
+                          </div>
+
+                          {shiftRepeatMode === "CUSTOM" ? (
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {shiftRepeatWeekdays.map((day) => {
+                                const selected = selectedShiftWeekdays.includes(day.value);
+                                return (
+                                  <button
+                                    key={day.value}
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedShiftWeekdays((current) =>
+                                        selected
+                                          ? current.filter((value) => value !== day.value)
+                                          : current.concat(day.value)
+                                      )
+                                    }
+                                    style={{
+                                      borderRadius: 999,
+                                      border: selected ? "1px solid #7c3aed" : "1px solid #e2e8f0",
+                                      background: selected ? "#ede9fe" : "#ffffff",
+                                      color: selected ? "#4c1d95" : "#475569",
+                                      padding: "8px 11px",
+                                      fontWeight: 800,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    {day.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
                       <div style={{ display: "grid", gap: 10 }}>
                         <span style={{ fontWeight: 600, color: "#1e293b" }}>Persone nel turno</span>
                         <div
@@ -2382,6 +2604,7 @@ export function OwnerCalendarClient({
                           })}
                         </div>
                       </div>
+                      )}
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <IconButton
                           type="button"

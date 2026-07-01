@@ -339,7 +339,7 @@ export async function getPostLoginDestination(input: {
     );
 
     if (needsBilling) {
-      return "/dashboard/settings";
+      return "/dashboard/settings?billing=1";
     }
   }
 

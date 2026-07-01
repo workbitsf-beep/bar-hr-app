@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { buildMonthlyTotals } from "@/lib/reporting";
+import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
 import { DateTimeInput } from "@/app/components/date-time-input";
 import { createManualTimeLogAction } from "../actions";
 import { getDashboardContext } from "../context";
@@ -49,7 +49,7 @@ export default async function DashboardTimeLogsPage({
 
   const isOwner = role === Role.OWNER;
   const successMessage = success === "timelog-created" ? "Timbratura manuale salvata correttamente." : null;
-  const [settings, members, logs, ownTotals] = await Promise.all([
+  const [settings, members, logs, ownTotals, todayTotals] = await Promise.all([
     isOwner
       ? Promise.resolve(null)
       : prisma.barSettings.findUnique({
@@ -112,6 +112,9 @@ export default async function DashboardTimeLogsPage({
     isOwner
       ? Promise.resolve(null)
       : buildMonthlyTotals(activeBarId, session.user.id, new Date().getMonth() + 1, new Date().getFullYear()),
+    isOwner
+      ? Promise.resolve(null)
+      : buildDailyTotals(activeBarId, session.user.id, new Date()),
   ]);
 
   return (
@@ -202,6 +205,14 @@ export default async function DashboardTimeLogsPage({
             ? {
                 realHours: ownTotals.realHours,
                 roundedHours: ownTotals.roundedHours,
+              }
+            : null
+        }
+        todayTotals={
+          todayTotals
+            ? {
+                realHours: todayTotals.realHours,
+                roundedHours: todayTotals.roundedHours,
               }
             : null
         }

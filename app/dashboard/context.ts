@@ -150,8 +150,12 @@ export const getDashboardContext = cache(async function getDashboardContext(
   ]);
   const rawFeatures = getFeatureFlags(featureSettings);
   const features =
-    activeBar?.activityType === ActivityType.COMPANY && featureSettings?.companyShiftsEnabled === false
-      ? { ...rawFeatures, shifts: false }
+    activeBar?.activityType === ActivityType.COMPANY
+      ? {
+          ...rawFeatures,
+          shifts: featureSettings?.companyShiftsEnabled === false ? false : rawFeatures.shifts,
+          timeTracking: false,
+        }
       : rawFeatures;
   const ownerNeedsSubscriptionActivation =
     role === Role.OWNER && Boolean(billingStatus?.requiresActivation);

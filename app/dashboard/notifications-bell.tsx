@@ -183,9 +183,7 @@ export function NotificationsBell() {
       }
 
       setNotifications((current) =>
-        current.map((notification) =>
-          notification.id === notificationId ? { ...notification, read: true } : notification
-        )
+        current.filter((notification) => notification.id !== notificationId)
       );
       setUnreadCount((current) => Math.max(0, current - 1));
     } catch {
@@ -196,10 +194,7 @@ export function NotificationsBell() {
   }
 
   function handleNotificationClick(notification: NotificationItem) {
-    const isPersistentClockReminder = notification.type.startsWith("timelog.clock-");
-    const markPromise = isPersistentClockReminder
-      ? Promise.resolve()
-      : markAsRead(notification.id);
+    const markPromise = markAsRead(notification.id);
 
     void markPromise.finally(() => {
       if (notification.actionUrl) {
@@ -220,7 +215,7 @@ export function NotificationsBell() {
           throw new Error("Impossibile aggiornare le notifiche.");
         }
 
-        setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
+        setNotifications([]);
         setUnreadCount(0);
       } catch {
         // Silenzioso per non interrompere l'esperienza.

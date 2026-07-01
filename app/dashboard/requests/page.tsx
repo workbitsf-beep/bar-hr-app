@@ -41,6 +41,8 @@ import { PopupAction } from "../popup-action";
 import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
 
+const AVAILABILITY_VISIBILITY_HOURS = 24;
+
 function closureTypeLabel(type: CalendarClosureType) {
   if (type === CalendarClosureType.HOLIDAY) {
     return "Festività";
@@ -133,6 +135,8 @@ export default async function DashboardRequestsPage({
   const canCreateRequests = features.requests && role !== Role.OWNER;
   const canCreateAvailability = features.availability && !isCompany && role !== Role.OWNER;
   const canUseOvertime = features.requests && features.overtime;
+  const availabilityVisibleAfter = new Date();
+  availabilityVisibleAfter.setHours(availabilityVisibleAfter.getHours() - AVAILABILITY_VISIBILITY_HOURS);
   const requestPanelTitle = "Richiedi ferie, permesso o malattia";
   const successMessage =
     success === "request-created"
@@ -167,7 +171,19 @@ export default async function DashboardRequestsPage({
       orderBy: {
         createdAt: "desc",
       },
-      include: {
+      take: 80,
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        peerStatus: true,
+        ownerStatus: true,
+        reason: true,
+        certificateCode: true,
+        startsAt: true,
+        endsAt: true,
+        createdAt: true,
+        swapWithUserId: true,
         employee: {
           select: {
             firstName: true,
@@ -241,7 +257,8 @@ export default async function DashboardRequestsPage({
           orderBy: {
             role: "asc",
           },
-          include: {
+          select: {
+            role: true,
             user: {
               select: {
                 id: true,
@@ -256,11 +273,19 @@ export default async function DashboardRequestsPage({
       ? prisma.availability.findMany({
           where: {
             barId: activeBarId,
+            endsAt: {
+              gte: availabilityVisibleAfter,
+            },
           },
           orderBy: {
             startsAt: "asc",
           },
-          include: {
+          take: 60,
+          select: {
+            id: true,
+            startsAt: true,
+            endsAt: true,
+            reason: true,
             user: {
               select: {
                 id: true,
@@ -278,7 +303,8 @@ export default async function DashboardRequestsPage({
             isActive: true,
           },
           orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-          include: {
+          select: {
+            role: true,
             user: {
               select: {
                 id: true,

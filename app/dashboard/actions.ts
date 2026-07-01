@@ -400,10 +400,29 @@ function normalizeIds(entries: FormDataEntryValue[]): string[] {
   return Array.from(
     new Set(
       entries
-        .map((entry) => String(entry).trim())
+        .flatMap((entry) => String(entry).split(","))
+        .map((entry) => entry.trim())
         .filter((entry) => entry.length > 0)
     )
   );
+}
+
+function expandAudienceDrafts<T extends { assignedToAll: boolean; assignedToId: string }>(
+  entries: T[]
+): T[] {
+  return entries.flatMap((entry) => {
+    if (entry.assignedToAll) {
+      return [{ ...entry, assignedToId: "" }];
+    }
+
+    const assignedToIds = normalizeIds([entry.assignedToId]);
+
+    if (assignedToIds.length === 0) {
+      return [entry];
+    }
+
+    return assignedToIds.map((assignedToId) => ({ ...entry, assignedToId }));
+  });
 }
 
 function shouldAutoConfirmOwnShift(actorUserId: string, employeeIds: string[]) {
@@ -1732,14 +1751,16 @@ export async function createTaskAction(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = parseTaskDueDate(String(formData.get("dueDate") ?? ""));
   const canManage = canManageOperations(role);
-  const taskDrafts = parseTaskDrafts(formData).map((taskDraft) =>
-    canManage
-      ? taskDraft
-      : {
-          ...taskDraft,
-          assignedToAll: false,
-          assignedToId: session.user.id,
-        }
+  const taskDrafts = expandAudienceDrafts(
+    parseTaskDrafts(formData).map((taskDraft) =>
+      canManage
+        ? taskDraft
+        : {
+            ...taskDraft,
+            assignedToAll: false,
+            assignedToId: session.user.id,
+          }
+    )
   );
 
   if (taskDrafts.length === 0) {
@@ -2273,7 +2294,7 @@ export async function createBoardNoteAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const noteEntries = parseBoardDrafts(formData, canManageOperations(role));
+  const noteEntries = expandAudienceDrafts(parseBoardDrafts(formData, canManageOperations(role)));
 
   if (noteEntries.length === 0) {
     throw new Error("Missing content");
@@ -2373,7 +2394,10 @@ export async function updateBoardNoteAction(formData: FormData) {
   const canManage = canManageOperations(role);
   const noteEntries = parseBoardDrafts(formData, canManage).map((entry) =>
     canManage
-      ? entry
+      ? {
+          ...entry,
+          assignedToId: normalizeIds([entry.assignedToId])[0] ?? "",
+        }
       : {
           ...entry,
           assignedToAll: false,
@@ -2852,6 +2876,7 @@ export async function createCourseAction(formData: FormData) {
   const endsAt = parseRequiredDate(formData.get("endsAt"));
   const assignedToAll = formData.get("assignedToAll") === "on";
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
+  const assignedToIds = assignedToAll ? [] : normalizeIds([assignedToId]);
 
   if (!title) {
     throw new Error("Missing course title");
@@ -2860,12 +2885,16 @@ export async function createCourseAction(formData: FormData) {
   ensureValidDateRange(startsAt, endsAt, "Invalid course range");
   ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire corsi prima del giorno corrente");
 
-  if (!assignedToAll && assignedToId) {
-    await ensureUsersBelongToBar(activeBarId, [assignedToId]);
+  if (!assignedToAll && assignedToIds.length === 0) {
+    throw new Error("Missing course recipient");
   }
 
-  await prisma.course.create({
-    data: {
+  if (assignedToIds.length > 0) {
+    await ensureUsersBelongToBar(activeBarId, assignedToIds);
+  }
+
+  await prisma.course.createMany({
+    data: (assignedToAll ? [null] : assignedToIds).map((targetUserId) => ({
       barId: activeBarId,
       title,
       description: description || null,
@@ -2873,9 +2902,9 @@ export async function createCourseAction(formData: FormData) {
       endsAt,
       location: location || null,
       assignedToAll,
-      assignedToId: assignedToAll || !assignedToId ? null : assignedToId,
+      assignedToId: targetUserId,
       createdById: session.user.id,
-    },
+    })),
   });
 
   const notificationContext = await getBarNotificationContext(activeBarId);
@@ -2883,7 +2912,7 @@ export async function createCourseAction(formData: FormData) {
   if (notificationContext) {
     const recipients = excludeActorFromUsers(
       notificationContext.users.filter((user) =>
-        assignedToAll ? user.id !== session.user.id : user.id === assignedToId
+        assignedToAll ? user.id !== session.user.id : assignedToIds.includes(user.id)
       ),
       session.user.id
     );
@@ -3331,6 +3360,11 @@ export async function updateSettingsAction(formData: FormData) {
 
   if (settingsSection === "features") {
     const featureFlags = parseFeatureFlags(formData);
+
+    if (currentBar.activityType === ActivityType.COMPANY) {
+      featureFlags.timeTrackingEnabled = false;
+    }
+
     const companyShiftsEnabled =
       currentBar.activityType === ActivityType.COMPANY
         ? Boolean(featureFlags.shiftsEnabled)

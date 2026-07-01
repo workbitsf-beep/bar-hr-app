@@ -42,6 +42,10 @@ export function LocaleSettingsPopupContent({
   const [roundingAcknowledged, setRoundingAcknowledged] = useState(Boolean(settings?.roundingEnabled));
   const [roundingConsent, setRoundingConsent] = useState(false);
   const [showRoundingInfo, setShowRoundingInfo] = useState(false);
+  const visibleFeatureDefinitions = useMemo(
+    () => featureDefinitions.filter((feature) => isRestaurant || feature.key !== "timeTracking"),
+    [isRestaurant]
+  );
   const timeTrackingActive = features.timeTracking;
 
   useEffect(() => {
@@ -86,7 +90,7 @@ export function LocaleSettingsPopupContent({
       <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
         <input type="hidden" name="settingsSection" value="features" />
         <div style={{ display: "grid", gap: 12 }}>
-          <strong style={{ color: "#0f172a", fontSize: 18 }}>Funzioni attive</strong>
+          <strong style={{ color: "#0f172a", fontSize: 18 }}>Scegli cosa usare</strong>
           <div
             className="dashboard-inline-grid"
             style={{
@@ -95,7 +99,7 @@ export function LocaleSettingsPopupContent({
               gap: 10,
             }}
           >
-            {featureDefinitions.map((feature) => {
+            {visibleFeatureDefinitions.map((feature) => {
               const enabled = features[feature.key];
 
               return (

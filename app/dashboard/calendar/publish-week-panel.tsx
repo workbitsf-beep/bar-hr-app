@@ -16,13 +16,9 @@ export function PublishWeekPanel({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
-  const canPublish = pendingCount > 0;
+  const hasPendingShifts = pendingCount > 0;
 
   function handlePublish() {
-    if (!canPublish) {
-      return;
-    }
-
     setFeedback(null);
 
     startTransition(async () => {
@@ -39,7 +35,7 @@ export function PublishWeekPanel({
         });
 
         const result = (await response.json().catch(() => null)) as
-          | { ok?: boolean; message?: string }
+          | { ok?: boolean; message?: string; confirmedCount?: number }
           | null;
 
         if (!response.ok || !result?.ok) {
@@ -47,7 +43,11 @@ export function PublishWeekPanel({
           return;
         }
 
-        setFeedback("Turni confermati.");
+        setFeedback(
+          result.confirmedCount && result.confirmedCount > 0
+            ? "Turni confermati."
+            : "Nessun turno da confermare."
+        );
         router.refresh();
       } catch {
         setFeedback("Impossibile confermare i turni.");
@@ -72,17 +72,17 @@ export function PublishWeekPanel({
       <IconButton
         type="button"
         onClick={handlePublish}
-        disabled={isPending || !canPublish}
+        disabled={isPending}
         aria-label="Conferma turni"
         title="Conferma turni"
         style={{
           width: 38,
           height: 38,
-          background: canPublish ? "#dcfce7" : "#f1f5f9",
-          color: canPublish ? "#166534" : "#94a3b8",
-          border: canPublish ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
-          boxShadow: canPublish ? "0 8px 18px rgba(22, 163, 74, 0.12)" : "none",
-          opacity: canPublish ? 1 : 0.42,
+          background: hasPendingShifts ? "#dcfce7" : "#f8fafc",
+          color: hasPendingShifts ? "#166534" : "#475569",
+          border: hasPendingShifts ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+          boxShadow: hasPendingShifts ? "0 8px 18px rgba(22, 163, 74, 0.12)" : "none",
+          opacity: isPending ? 0.7 : 1,
           fontSize: 16,
           fontWeight: 900,
         }}

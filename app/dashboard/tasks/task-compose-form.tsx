@@ -20,6 +20,13 @@ function createEmptyEntry() {
   };
 }
 
+function getSelectedIds(value: string) {
+  return value
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 export function TaskComposeForm({
   action,
   members,
@@ -59,6 +66,23 @@ export function TaskComposeForm({
   }
 
   const allEntries = entries;
+
+  function getAudienceLabel(entry: ReturnType<typeof createEmptyEntry>) {
+    if (entry.assignedToAll) {
+      return "Tutto il team";
+    }
+
+    const labels = getSelectedIds(entry.assignedToId)
+      .map((id) => members.find((member) => member.id === id))
+      .filter(Boolean)
+      .map((member) => `${member?.firstName} ${member?.lastName}`);
+
+    if (labels.length === 0) {
+      return "Persona non selezionata";
+    }
+
+    return labels.length === 1 ? labels[0] : `${labels.length} dipendenti`;
+  }
 
   function renderHiddenEntry(entry: ReturnType<typeof createEmptyEntry>) {
     return (
@@ -109,11 +133,7 @@ export function TaskComposeForm({
               >
                 <strong style={{ fontSize: 13 }}>{entry.value}</strong>
                 <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {entry.assignedToAll
-                    ? "Tutto il team"
-                    : members.find((member) => member.id === entry.assignedToId)
-                      ? `${members.find((member) => member.id === entry.assignedToId)?.firstName} ${members.find((member) => member.id === entry.assignedToId)?.lastName}`
-                      : "Persona non selezionata"}
+                  {getAudienceLabel(entry)}
                   {entry.isUrgent ? " · Urgente" : ""}
                 </span>
               </button>
