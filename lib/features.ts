@@ -145,7 +145,7 @@ export function getFeatureFlags(settings?: FeatureSettingsInput | null): Feature
   return {
     ...flags,
     tasks: notesEnabled,
-    noticeBoard: notesEnabled,
+    noticeBoard: false,
   };
 }
 
@@ -155,7 +155,7 @@ export function parseFeatureFlags(formData: FormData): Record<string, boolean> {
   );
 
   if (!formData.has("noticeBoardEnabled")) {
-    parsed.noticeBoardEnabled = parsed.tasksEnabled ?? true;
+    parsed.noticeBoardEnabled = false;
   }
 
   if (!formData.has("tasksEnabled")) {

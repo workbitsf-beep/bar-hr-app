@@ -3155,6 +3155,75 @@ export async function toggleDocumentActiveAction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function deleteDocumentAction(formData: FormData) {
+  const { role, activeBarId } = await getActionContext();
+  ensureTrainingDocumentRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const documentId = String(formData.get("documentId") ?? "").trim();
+
+  if (!documentId) {
+    throw new Error("Missing document id");
+  }
+
+  await prisma.document.deleteMany({
+    where: {
+      id: documentId,
+      barId: activeBarId,
+    },
+  });
+
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteRequestAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const requestId = String(formData.get("requestId") ?? "").trim();
+
+  if (!requestId) {
+    throw new Error("Missing request id");
+  }
+
+  const request = await prisma.request.findFirst({
+    where: {
+      id: requestId,
+      barId: activeBarId,
+      type: {
+        in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+      },
+    },
+    select: {
+      id: true,
+      employeeId: true,
+    },
+  });
+
+  if (!request) {
+    throw new Error("Request not found");
+  }
+
+  if (request.employeeId !== session.user.id && !canReviewOperationalRequests(role)) {
+    throw new Error("Not authorized");
+  }
+
+  await prisma.request.delete({
+    where: { id: request.id },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/requests");
+}
+
 export async function createEmployeeAction(formData: FormData) {
   const { role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);

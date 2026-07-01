@@ -105,6 +105,8 @@ function AdminMetric({
 }
 
 export async function SuperAdminHomeHub() {
+  const memoryUsage = process.memoryUsage();
+  const cpuUsage = process.cpuUsage();
   const [
     activityCounts,
     ownerCount,
@@ -211,6 +213,10 @@ export async function SuperAdminHomeHub() {
     .filter((activity) => activity.monthlyRevenue > 0)
     .sort((a, b) => b.monthlyRevenue - a.monthlyRevenue)
     .slice(0, 5);
+  const rssMb = Math.round(memoryUsage.rss / 1024 / 1024);
+  const heapMb = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+  const cpuSeconds = Math.round((cpuUsage.user + cpuUsage.system) / 1_000_000);
+  const maxActivityCount = Math.max(restaurantCount, companyCount, 1);
 
   return (
     <div className="sa-lite">
@@ -247,6 +253,11 @@ export async function SuperAdminHomeHub() {
           value={String(activeBillingCount)}
           detail={riskBillingCount > 0 ? `${riskBillingCount} da verificare` : "tutto regolare"}
         />
+        <AdminMetric
+          label="Runtime"
+          value={`${rssMb} MB`}
+          detail={`Heap ${heapMb} MB · CPU ${cpuSeconds}s`}
+        />
       </section>
 
       <section className="sa-lite-grid">
@@ -261,7 +272,24 @@ export async function SuperAdminHomeHub() {
             <Link href="/dashboard/super-admin/bars">Attività</Link>
             <Link href="/dashboard/super-admin/owners">Titolari</Link>
             <Link href="/dashboard/super-admin/billing">Abbonamenti</Link>
+            <Link href="/dashboard/super-admin/gps">Range globale</Link>
             <Link href="/dashboard/super-admin/system">Sistema</Link>
+          </div>
+          <div className="sa-lite-bars" aria-label="Distribuzione attività">
+            <div>
+              <span>Ristorazione</span>
+              <strong>{restaurantCount}</strong>
+              <i>
+                <b style={{ width: `${Math.max(6, Math.round((restaurantCount / maxActivityCount) * 100))}%` }} />
+              </i>
+            </div>
+            <div>
+              <span>Aziende</span>
+              <strong>{companyCount}</strong>
+              <i>
+                <b style={{ width: `${Math.max(6, Math.round((companyCount / maxActivityCount) * 100))}%` }} />
+              </i>
+            </div>
           </div>
         </article>
 
@@ -396,7 +424,7 @@ export async function SuperAdminHomeHub() {
             }
             .sa-lite-metrics {
               display: grid;
-              grid-template-columns: repeat(4, minmax(0, 1fr));
+              grid-template-columns: repeat(5, minmax(0, 1fr));
               gap: 10px;
             }
             .sa-lite-metric {
@@ -449,6 +477,33 @@ export async function SuperAdminHomeHub() {
             .sa-lite-actions {
               display: grid;
               gap: 8px;
+            }
+            .sa-lite-bars {
+              display: grid;
+              gap: 10px;
+              padding-top: 4px;
+            }
+            .sa-lite-bars div {
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) auto;
+              gap: 8px;
+              align-items: center;
+              color: #475569;
+              font-size: 12px;
+              font-weight: 850;
+            }
+            .sa-lite-bars i {
+              grid-column: 1 / -1;
+              height: 10px;
+              overflow: hidden;
+              border-radius: 999px;
+              background: #f1f5f9;
+            }
+            .sa-lite-bars b {
+              display: block;
+              height: 100%;
+              border-radius: inherit;
+              background: linear-gradient(135deg, #111936, #8b5cf6);
             }
             .sa-lite-actions a {
               width: 100%;

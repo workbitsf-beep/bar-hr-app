@@ -16,6 +16,7 @@ import {
   createShiftChangeRequestAction,
   createTimeOffRequestAction,
   deleteCalendarClosureAction,
+  deleteRequestAction,
   updateCalendarClosureAction,
   reviewRequestAction,
 } from "../actions";
@@ -186,6 +187,7 @@ export default async function DashboardRequestsPage({
         swapWithUserId: true,
         employee: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           },
@@ -776,6 +778,10 @@ export default async function DashboardRequestsPage({
                     request.status === RequestStatus.PENDING &&
                     request.type !== RequestType.SICKNESS &&
                     (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
+                  const canDeleteRequest =
+                    request.type !== RequestType.SHIFT_CHANGE &&
+                    request.type !== RequestType.OVERTIME &&
+                    (canManageClosures || request.employee.id === session.user.id);
 
                   const requestSummary = request.shift
                     ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
@@ -825,6 +831,16 @@ export default async function DashboardRequestsPage({
                                 <input type="hidden" name="notifySuccess" value="1" />
                                 <PrimaryButton type="submit" tone="red">
                                   Rifiuta
+                                </PrimaryButton>
+                              </form>
+                            </div>
+                          ) : null}
+                          {canDeleteRequest ? (
+                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                              <form action={deleteRequestAction}>
+                                <input type="hidden" name="requestId" value={request.id} />
+                                <PrimaryButton type="submit" tone="red">
+                                  Elimina
                                 </PrimaryButton>
                               </form>
                             </div>

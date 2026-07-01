@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AudienceSelector } from "@/app/components/audience-selector";
-import { IconButton, TextArea, TextInput } from "../ui";
+import { IconButton, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -18,7 +18,6 @@ type EntryItem = {
   assignedToAll: boolean;
   assignedToId: string;
   isUrgent: boolean;
-  isPinned: boolean;
 };
 
 function createEmptyEntry(): EntryItem {
@@ -28,15 +27,7 @@ function createEmptyEntry(): EntryItem {
     assignedToAll: true,
     assignedToId: "",
     isUrgent: false,
-    isPinned: false,
   };
-}
-
-function getSelectedIds(value: string) {
-  return value
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
 }
 
 function toDateInputValue(dateIso: string | null) {
@@ -48,486 +39,63 @@ export function QuickCalendarEntryModal({
   mode,
   dateIso,
   members,
-  canPinBoard,
   canChooseAudience = true,
   canCreateTask = true,
-  canCreateBoard = true,
   isPending,
   onClose,
   onSubmitTask,
-  onSubmitBoard,
 }: {
   open: boolean;
   mode: "task" | "board" | null;
   dateIso: string | null;
   members: MemberOption[];
-  canPinBoard: boolean;
+  canPinBoard?: boolean;
   canChooseAudience?: boolean;
   canCreateTask?: boolean;
   canCreateBoard?: boolean;
   isPending: boolean;
   onClose: () => void;
   onSubmitTask: (formData: FormData) => void;
-  onSubmitBoard: (formData: FormData) => void;
+  onSubmitBoard?: (formData: FormData) => void;
 }) {
-  const [taskEntries, setTaskEntries] = useState<EntryItem[]>([createEmptyEntry()]);
-  const [taskDraft, setTaskDraft] = useState<EntryItem>(createEmptyEntry());
-  const [taskDueDate, setTaskDueDate] = useState("");
-  const [boardEntries, setBoardEntries] = useState<EntryItem[]>([createEmptyEntry()]);
-  const [boardDraft, setBoardDraft] = useState<EntryItem>(createEmptyEntry());
-  const [entryKind, setEntryKind] = useState<"board" | "task">("board");
+  const [draft, setDraft] = useState<EntryItem>(createEmptyEntry());
+  const [dueDate, setDueDate] = useState("");
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
+    setDraft(createEmptyEntry());
+    setDueDate(toDateInputValue(dateIso));
+  }, [dateIso, open, mode]);
 
-    setTaskEntries([]);
-    setTaskDraft(createEmptyEntry());
-    setTaskDueDate(toDateInputValue(dateIso));
-    setBoardEntries([]);
-    setBoardDraft(createEmptyEntry());
-    setEntryKind(canCreateBoard ? "board" : "task");
-  }, [canCreateBoard, dateIso, open, mode]);
-
-  if (!open || !mode || (!canCreateTask && !canCreateBoard)) {
+  if (!open || !mode || !canCreateTask) {
     return null;
   }
 
-  const activeMode = canCreateTask && canCreateBoard ? entryKind : canCreateTask ? "task" : "board";
-
-  function addTaskEntry() {
-    if (!taskDraft.value.trim() || !taskDueDate || isPending) {
+  function submitNote() {
+    if (!draft.value.trim() || !dueDate || isPending) {
       return;
     }
 
     const formData = new FormData();
-    formData.append("taskEntryId", taskDraft.id);
-    formData.set(`title_${taskDraft.id}`, taskDraft.value);
+    formData.append("taskEntryId", draft.id);
+    formData.set(`title_${draft.id}`, draft.value);
 
-    if (taskDraft.assignedToAll) {
-      formData.set(`assignedToAll_${taskDraft.id}`, "on");
-    } else if (taskDraft.assignedToId) {
-      formData.set(`assignedToId_${taskDraft.id}`, taskDraft.assignedToId);
+    if (draft.assignedToAll) {
+      formData.set(`assignedToAll_${draft.id}`, "on");
+    } else if (draft.assignedToId) {
+      formData.set(`assignedToId_${draft.id}`, draft.assignedToId);
     }
 
-    if (taskDraft.isUrgent) {
-      formData.set(`isUrgent_${taskDraft.id}`, "on");
+    if (draft.isUrgent) {
+      formData.set(`isUrgent_${draft.id}`, "on");
     }
 
     formData.set("description", "");
-    formData.set("dueDate", taskDueDate);
+    formData.set("dueDate", dueDate);
 
     onSubmitTask(formData);
-    setTaskDraft(createEmptyEntry());
+    setDraft(createEmptyEntry());
   }
-
-  function addBoardEntry() {
-    if (!boardDraft.value.trim() || isPending) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("boardEntryId", boardDraft.id);
-    formData.set(`content_${boardDraft.id}`, boardDraft.value);
-    formData.set("activityDate", toDateInputValue(dateIso));
-
-    if (boardDraft.assignedToAll) {
-      formData.set(`assignedToAll_${boardDraft.id}`, "on");
-    } else if (boardDraft.assignedToId) {
-      formData.set(`assignedToId_${boardDraft.id}`, boardDraft.assignedToId);
-    }
-
-    if (boardDraft.isPinned) {
-      formData.set(`isPinned_${boardDraft.id}`, "on");
-    }
-
-    formData.set(`requiresConfirmation_${boardDraft.id}`, "on");
-
-    onSubmitBoard(formData);
-    setBoardDraft(createEmptyEntry());
-  }
-
-  function removeEntry(
-    setter: Dispatch<SetStateAction<EntryItem[]>>,
-    id: string
-  ) {
-    setter((current) => current.filter((entry) => entry.id !== id));
-  }
-
-  function getAudienceLabel(entry: EntryItem) {
-    if (entry.assignedToAll) {
-      return "Tutto il team";
-    }
-
-    const labels = getSelectedIds(entry.assignedToId)
-      .map((id) => members.find((member) => member.id === id))
-      .filter(Boolean)
-      .map((member) => `${member?.firstName} ${member?.lastName}`);
-
-    if (labels.length === 0) {
-      return "Persona non selezionata";
-    }
-
-    return labels.length === 1 ? labels[0] : `${labels.length} dipendenti`;
-  }
-
-  const content =
-    activeMode === "task" ? (
-      <div style={{ display: "grid", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi note</strong>
-        </div>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          {taskEntries.map((entry) => (
-            <div
-              key={entry.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                padding: "10px 12px",
-                borderRadius: 16,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setTaskDraft(entry);
-                  removeEntry(setTaskEntries, entry.id);
-                }}
-                style={{
-                  flex: "1 1 auto",
-                  border: 0,
-                  background: "transparent",
-                  padding: 0,
-                  textAlign: "left",
-                  display: "grid",
-                  gap: 3,
-                  color: "#0f172a",
-                }}
-              >
-                <strong style={{ fontSize: 13 }}>{entry.value}</strong>
-                <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {getAudienceLabel(entry)}
-                  {entry.isUrgent ? " · Urgente" : ""}
-                </span>
-              </button>
-              <div style={{ display: "flex", gap: 6 }}>
-                <IconButton
-                  type="button"
-                  onClick={() => {
-                    setTaskDraft(entry);
-                    removeEntry(setTaskEntries, entry.id);
-                  }}
-                  aria-label="Modifica nota"
-                >
-                  ✎
-                </IconButton>
-                <IconButton
-                  type="button"
-                  onClick={() => removeEntry(setTaskEntries, entry.id)}
-                  aria-label="Elimina nota"
-                >
-                  ×
-                </IconButton>
-              </div>
-            </div>
-          ))}
-
-          {[taskDraft].map((entry, index) => (
-            <div
-              key={entry.id}
-              style={{
-                display: "grid",
-                gap: 10,
-                padding: 14,
-                borderRadius: 18,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                }}
-              >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
-                {false ? (
-                  <IconButton
-                    type="button"
-                    onClick={() => removeEntry(setTaskEntries, entry.id)}
-                    aria-label={`Rimuovi nota ${index + 1}`}
-                    style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path
-                        d="M6 6l12 12M18 6 6 18"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </IconButton>
-                ) : null}
-              </div>
-
-              <TextInput
-                value={entry.value}
-                required={index === 0}
-                onChange={(event) => setTaskDraft({ ...entry, value: event.target.value })}
-              />
-
-              <div style={{ display: "grid", gap: 10 }}>
-                {canChooseAudience ? (
-                  <AudienceSelector
-                    members={members.map((member) => ({
-                      id: member.id,
-                      label: `${member.firstName} ${member.lastName}`,
-                    }))}
-                    assignedToAll={entry.assignedToAll}
-                    assignedToId={entry.assignedToId}
-                    onChange={(value) => setTaskDraft({ ...entry, ...value })}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: 18,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      color: "#475569",
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
-                  >
-                    Nota personale
-                  </div>
-                )}
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={entry.isUrgent}
-                    onChange={(event) => setTaskDraft({ ...entry, isUrgent: event.target.checked })}
-                  />
-                  Urgente
-                </label>
-              </div>
-
-              <label style={{ display: "grid", gap: 8 }}>
-                <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>
-                <TextInput
-                  type="date"
-                  value={taskDueDate}
-                  onChange={(event) => setTaskDueDate(event.target.value)}
-                />
-              </label>
-            </div>
-          ))}
-
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <IconButton
-              type="button"
-              onClick={addTaskEntry}
-              aria-label="Salva nota"
-              disabled={isPending || !taskDraft.value.trim() || !taskDueDate}
-              style={{
-                width: 44,
-                height: 44,
-                background: taskDraft.value.trim() && taskDueDate ? "#dcfce7" : "#f1f5f9",
-                color: taskDraft.value.trim() && taskDueDate ? "#166534" : "#94a3b8",
-                border: "1px solid #bbf7d0",
-              }}
-            >
-              ✓
-            </IconButton>
-          </div>
-        </div>
-
-      </div>
-    ) : (
-      <div style={{ display: "grid", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi note</strong>
-        </div>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          {boardEntries.map((entry) => (
-            <div
-              key={entry.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                padding: "10px 12px",
-                borderRadius: 16,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setBoardDraft(entry);
-                  removeEntry(setBoardEntries, entry.id);
-                }}
-                style={{
-                  flex: "1 1 auto",
-                  border: 0,
-                  background: "transparent",
-                  padding: 0,
-                  textAlign: "left",
-                  display: "grid",
-                  gap: 3,
-                  color: "#0f172a",
-                }}
-              >
-                <strong style={{ fontSize: 13 }}>{entry.value}</strong>
-                <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {getAudienceLabel(entry)}
-                  {entry.isPinned ? " · In evidenza" : ""}
-                </span>
-              </button>
-              <div style={{ display: "flex", gap: 6 }}>
-                <IconButton
-                  type="button"
-                  onClick={() => {
-                    setBoardDraft(entry);
-                    removeEntry(setBoardEntries, entry.id);
-                  }}
-                  aria-label="Modifica nota"
-                >
-                  ✎
-                </IconButton>
-                <IconButton
-                  type="button"
-                  onClick={() => removeEntry(setBoardEntries, entry.id)}
-                  aria-label="Elimina nota"
-                >
-                  ×
-                </IconButton>
-              </div>
-            </div>
-          ))}
-
-          {[boardDraft].map((entry, index) => (
-            <div
-              key={entry.id}
-              style={{
-                display: "grid",
-                gap: 10,
-                padding: 14,
-                borderRadius: 18,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                }}
-              >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
-                {false ? (
-                  <IconButton
-                    type="button"
-                    onClick={() => removeEntry(setBoardEntries, entry.id)}
-                    aria-label={`Rimuovi nota ${index + 1}`}
-                    style={{ width: 34, height: 34, color: "#94a3b8", boxShadow: "none" }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path
-                        d="M6 6l12 12M18 6 6 18"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </IconButton>
-                ) : null}
-              </div>
-
-              <TextArea
-                value={entry.value}
-                required={index === 0}
-                onChange={(event) => setBoardDraft({ ...entry, value: event.target.value })}
-                style={{ minHeight: 96 }}
-              />
-
-              {canChooseAudience ? (
-                <AudienceSelector
-                  members={members.map((member) => ({
-                    id: member.id,
-                    label: `${member.firstName} ${member.lastName}`,
-                  }))}
-                  assignedToAll={entry.assignedToAll}
-                  assignedToId={entry.assignedToId}
-                  onChange={(value) => setBoardDraft({ ...entry, ...value })}
-                />
-              ) : (
-                <div
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: 18,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    color: "#475569",
-                    fontSize: 13,
-                    fontWeight: 800,
-                  }}
-                >
-                  Nota personale
-                </div>
-              )}
-
-              {canPinBoard ? (
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={entry.isPinned}
-                    onChange={(event) => setBoardDraft({ ...entry, isPinned: event.target.checked })}
-                  />
-                  In evidenza
-                </label>
-              ) : null}
-              <div style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-                Conferma visualizzazione richiesta a chi la apre.
-              </div>
-            </div>
-          ))}
-
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <IconButton
-              type="button"
-              onClick={addBoardEntry}
-              aria-label="Salva nota"
-              disabled={isPending || !boardDraft.value.trim()}
-              style={{
-                width: 44,
-                height: 44,
-                background: boardDraft.value.trim() ? "#dcfce7" : "#f1f5f9",
-                color: boardDraft.value.trim() ? "#166534" : "#94a3b8",
-                border: "1px solid #bbf7d0",
-              }}
-            >
-              ✓
-            </IconButton>
-          </div>
-        </div>
-
-      </div>
-    );
 
   return createPortal(
     <div
@@ -551,6 +119,8 @@ export function QuickCalendarEntryModal({
           position: "relative",
           width: "100%",
           maxWidth: 520,
+          maxHeight: "calc(100dvh - 32px)",
+          overflowY: "auto",
           background: "rgba(255,255,255,0.98)",
           border: "1px solid rgba(226,232,240,0.9)",
           borderRadius: 28,
@@ -585,47 +155,90 @@ export function QuickCalendarEntryModal({
           </svg>
         </IconButton>
 
-        {canCreateTask && canCreateBoard ? (
+        <div style={{ display: "grid", gap: 14 }}>
+          <strong style={{ fontSize: 20, color: "#0f172a", paddingRight: 52 }}>
+            Aggiungi note
+          </strong>
+
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 4,
-              padding: 4,
-              marginBottom: 14,
-              borderRadius: 999,
+              gap: 10,
+              padding: 14,
+              borderRadius: 18,
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
             }}
           >
-            {[
-              { key: "board" as const, label: "Nota" },
-              { key: "task" as const, label: "Nota da fare" },
-            ].map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setEntryKind(option.key)}
+            <TextInput
+              value={draft.value}
+              onChange={(event) => setDraft({ ...draft, value: event.target.value })}
+              placeholder="Scrivi la nota"
+            />
+
+            {canChooseAudience ? (
+              <AudienceSelector
+                members={members.map((member) => ({
+                  id: member.id,
+                  label: `${member.firstName} ${member.lastName}`,
+                }))}
+                assignedToAll={draft.assignedToAll}
+                assignedToId={draft.assignedToId}
+                onChange={(value) => setDraft({ ...draft, ...value })}
+              />
+            ) : (
+              <div
                 style={{
-                  minHeight: 38,
-                  border: 0,
-                  borderRadius: 999,
-                  background:
-                    activeMode === option.key
-                      ? "linear-gradient(135deg, #111936, #7c3aed)"
-                      : "transparent",
-                  color: activeMode === option.key ? "#ffffff" : "#475569",
-                  fontWeight: 850,
-                  cursor: "pointer",
+                  padding: "14px 16px",
+                  borderRadius: 18,
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  color: "#475569",
+                  fontSize: 13,
+                  fontWeight: 800,
                 }}
               >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
+                Nota personale
+              </div>
+            )}
 
-        {content}
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={draft.isUrgent}
+                onChange={(event) => setDraft({ ...draft, isUrgent: event.target.checked })}
+              />
+              Urgente
+            </label>
+
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>
+              <TextInput
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
+              />
+            </label>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <IconButton
+              type="button"
+              onClick={submitNote}
+              aria-label="Salva nota"
+              disabled={isPending || !draft.value.trim() || !dueDate}
+              style={{
+                width: 44,
+                height: 44,
+                background: draft.value.trim() && dueDate ? "#dcfce7" : "#f1f5f9",
+                color: draft.value.trim() && dueDate ? "#166534" : "#94a3b8",
+                border: "1px solid #bbf7d0",
+              }}
+            >
+              ✓
+            </IconButton>
+          </div>
+        </div>
       </section>
     </div>,
     document.body

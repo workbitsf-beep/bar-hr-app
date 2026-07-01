@@ -72,16 +72,16 @@ export function SuperAdminHomeCreateActions({ owners }: { owners: OwnerOption[] 
                 aria-label={modal === "owner" ? "Nuovo titolare" : "Nuova attività"}
                 onClick={(event) => event.stopPropagation()}
                 style={{
-                  width: "min(92vw, 620px)",
+                  width: "min(92vw, 520px)",
                   maxHeight: "calc(100dvh - 32px)",
                   overflowY: "auto",
                   borderRadius: 28,
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
                   boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
-                  padding: 22,
+                  padding: 20,
                   display: "grid",
-                  gap: 16,
+                  gap: 14,
                 }}
               >
                 <div
@@ -120,7 +120,7 @@ export function SuperAdminHomeCreateActions({ owners }: { owners: OwnerOption[] 
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                        gridTemplateColumns: "1fr",
                         gap: 12,
                       }}
                     >
@@ -158,7 +158,7 @@ export function SuperAdminHomeCreateActions({ owners }: { owners: OwnerOption[] 
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                        gridTemplateColumns: "1fr",
                         gap: 12,
                       }}
                     >

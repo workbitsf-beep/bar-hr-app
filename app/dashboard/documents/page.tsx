@@ -3,7 +3,7 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canViewDocument, formatDocumentSize } from "@/lib/documents";
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
-import { toggleDocumentActiveAction } from "../actions";
+import { deleteDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
 import { DocumentComposeForm } from "./document-compose-form";
 import {
@@ -13,13 +13,28 @@ import {
   ItemList,
   Panel,
   PrimaryButton,
+  Select,
   Stack,
   StatusPill,
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
 
-export default async function DashboardDocumentsPage() {
+function normalizeParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0] ?? "";
+  }
+
+  return value ?? "";
+}
+
+export default async function DashboardDocumentsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const employeeFilter = normalizeParam(params.employee);
   const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
@@ -109,9 +124,22 @@ export default async function DashboardDocumentsPage() {
       : Promise.resolve([]),
   ]);
 
-  const visibleCount = documents.filter((document) =>
-    canViewDocument(document, session.user.id, role)
-  ).length;
+  const filteredDocuments = documents.filter((document) => {
+    if (!canViewDocument(document, session.user.id, role)) {
+      return false;
+    }
+
+    if (!employeeFilter) {
+      return true;
+    }
+
+    if (employeeFilter === "team") {
+      return document.assignedToAll;
+    }
+
+    return document.assignedToId === employeeFilter;
+  });
+  const visibleCount = filteredDocuments.length;
 
   return (
     <Stack>
@@ -133,16 +161,32 @@ export default async function DashboardDocumentsPage() {
         <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
           {visibleCount} documenti visibili.
         </p>
+        {canManage ? (
+          <form action="/dashboard/documents" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Select name="employee" defaultValue={employeeFilter} style={{ maxWidth: 260 }}>
+              <option value="">Tutti i documenti</option>
+              <option value="team">Tutto il team</option>
+              {recipients.map((recipient) => (
+                <option key={recipient.user.id} value={recipient.user.id}>
+                  {recipient.user.firstName} {recipient.user.lastName}
+                </option>
+              ))}
+            </Select>
+            <PrimaryButton type="submit" tone="sand">
+              Filtra
+            </PrimaryButton>
+          </form>
+        ) : null}
       </Panel>
 
-      {documents.length === 0 ? (
+      {filteredDocuments.length === 0 ? (
         <Panel title="Elenco documenti">
           <EmptyState message="Nessun documento disponibile." />
         </Panel>
       ) : (
         <Panel title="Elenco documenti" action={`${visibleCount} visibili`}>
           <ItemList>
-            {documents.map((document) => {
+            {filteredDocuments.map((document) => {
               const audienceLabel = document.assignedToAll
                 ? "Tutto il team"
                 : document.assignedTo
@@ -168,24 +212,53 @@ export default async function DashboardDocumentsPage() {
                       <StatusPill label={document.isActive ? "Attivo" : "Disattivo"} tone={document.isActive ? "success" : "danger"} />
 
                       {canOpen ? (
-                        <Link
-                          href={`/api/documents/${document.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "10px 14px",
-                            borderRadius: 999,
-                            background: "#0f172a",
-                            color: "#fff",
-                            textDecoration: "none",
-                            fontWeight: 700,
-                          }}
+                        <PopupAction
+                          title={document.title}
+                          ariaLabel={`Visualizza ${document.title}`}
+                          triggerContent="Visualizza"
                         >
-                          Visualizza
-                        </Link>
+                          <div style={{ display: "grid", gap: 12 }}>
+                            <div
+                              style={{
+                                borderRadius: 18,
+                                overflow: "hidden",
+                                border: "1px solid #e2e8f0",
+                                background: "#f8fafc",
+                                minHeight: "min(68dvh, 620px)",
+                              }}
+                            >
+                              <iframe
+                                title={document.title}
+                                src={`/api/documents/${document.id}`}
+                                style={{ width: "100%", height: "min(68dvh, 620px)", border: 0 }}
+                              />
+                            </div>
+                            <div className="dashboard-form-actions">
+                              <PrimaryButton type="button" tone="sand" data-popup-close>
+                                Chiudi
+                              </PrimaryButton>
+                              <Link
+                                href={`/api/documents/${document.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  minHeight: 38,
+                                  padding: "0 14px",
+                                  borderRadius: 999,
+                                  background: "var(--workbit-gradient)",
+                                  color: "#fff",
+                                  textDecoration: "none",
+                                  fontWeight: 800,
+                                }}
+                              >
+                                Apri
+                              </Link>
+                            </div>
+                          </div>
+                        </PopupAction>
                       ) : null}
 
                       {canManage ? (
@@ -201,6 +274,14 @@ export default async function DashboardDocumentsPage() {
                             tone={document.isActive ? "red" : "green"}
                           >
                             {document.isActive ? "Disattiva" : "Riattiva"}
+                          </PrimaryButton>
+                        </form>
+                      ) : null}
+                      {canManage ? (
+                        <form action={deleteDocumentAction}>
+                          <input type="hidden" name="documentId" value={document.id} />
+                          <PrimaryButton type="submit" tone="red">
+                            Elimina
                           </PrimaryButton>
                         </form>
                       ) : null}
