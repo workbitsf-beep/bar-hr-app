@@ -124,6 +124,7 @@ type NoteItem = {
   isPinned: boolean;
   requiresConfirmation: boolean;
   employeeId: string | null;
+  activityDate: string;
   createdAt: string;
   authorName: string;
   confirmations: Array<{
@@ -1217,16 +1218,33 @@ export function DayActionCalendarClient({
       return;
     }
 
-    setShiftDrafts((current) => current.concat(draftsToAdd));
-    setCurrentShiftDraft({
-      ...createShiftDraft(selectedDay.date),
-      memberIds: shiftInsertMode === "EMPLOYEE" ? currentShiftDraft.memberIds.slice(0, 1) : [],
-      presetKey: currentShiftDraft.presetKey,
-      startTime: currentShiftDraft.startTime,
-      endTime: currentShiftDraft.endTime,
-      isOnCall: currentShiftDraft.isOnCall,
-    });
-    setFeedback(null);
+    runAction(async () => {
+      for (const draft of draftsToAdd) {
+        const formData = new FormData();
+        formData.set("title", "");
+        formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
+        formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
+        if (draft.isOnCall) {
+          formData.set("isOnCall", "on");
+        }
+
+        for (const memberId of draft.memberIds) {
+          formData.append("employeeIds", memberId);
+        }
+
+        await createShiftAction(formData);
+      }
+
+      setShiftDrafts([]);
+      setCurrentShiftDraft({
+        ...createShiftDraft(selectedDay.date),
+        memberIds: shiftInsertMode === "EMPLOYEE" ? currentShiftDraft.memberIds.slice(0, 1) : [],
+        presetKey: currentShiftDraft.presetKey,
+        startTime: currentShiftDraft.startTime,
+        endTime: currentShiftDraft.endTime,
+        isOnCall: currentShiftDraft.isOnCall,
+      });
+    }, draftsToAdd.length === 1 ? "Turno salvato." : "Turni salvati.");
   }
 
   function removeShiftDraft(draftId: string) {
@@ -1341,6 +1359,9 @@ export function DayActionCalendarClient({
     closeOnSuccess = false
   ) {
     startTransition(async () => {
+      const refreshDate = selectedDay?.date.slice(0, 10);
+      const refreshView = calendarView;
+
       try {
         await task();
         setFeedback({ tone: "success", message: successMessage });
@@ -1349,6 +1370,12 @@ export function DayActionCalendarClient({
           setSelectedDate(null);
         }
         window.setTimeout(() => {
+          if (refreshDate) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("day", refreshDate);
+            url.searchParams.set("view", refreshView);
+            window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+          }
           router.refresh();
         }, 0);
       } catch (error) {
@@ -1499,14 +1526,12 @@ export function DayActionCalendarClient({
   function submitQuickTask(formData: FormData) {
     runAction(async () => {
       await createTaskAction(formData);
-      setQuickComposer(null);
     }, "Nota aggiunta.");
   }
 
   function submitQuickBoard(formData: FormData) {
     runAction(async () => {
       await createBoardNoteAction(formData);
-      setQuickComposer(null);
     }, "Nota pubblicata.");
   }
 
@@ -2809,24 +2834,6 @@ export function DayActionCalendarClient({
                           </IconButton>
                         </div>
 
-                        <div className="dashboard-modal-actions" style={{ display: "flex", justifyContent: "flex-end" }}>
-                          <PrimaryButton
-                            type="button"
-                            onClick={submitShifts}
-                            disabled={
-                              isPending ||
-                              !shiftDrafts.some(
-                                (draft) =>
-                                  draft.memberIds.length > 0 &&
-                                  draft.date &&
-                                  draft.startTime &&
-                                  draft.endTime
-                              )
-                            }
-                          >
-                            {isPending ? "Salvataggio..." : "Salva turni"}
-                          </PrimaryButton>
-                        </div>
                         </section>
                       </div>,
                       document.body

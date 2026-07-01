@@ -456,6 +456,7 @@ model Note {
   content    String
   isPinned   Boolean  @default(false)
   requiresConfirmation Boolean @default(false)
+  activityDate DateTime?
   bar        Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
   author     User     @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   employee   User?    @relation("NoteAboutEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
@@ -464,6 +465,7 @@ model Note {
   updatedAt  DateTime @updatedAt
 
   @@index([barId, createdAt])
+  @@index([barId, activityDate])
   @@index([barId, isPinned, createdAt])
   @@index([employeeId])
 }

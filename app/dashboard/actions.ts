@@ -250,6 +250,20 @@ function parseOptionalTime(value: FormDataEntryValue | null): string | null {
   return /^([01]\d|2[0-3]):([0-5]\d)$/.test(normalized) ? normalized : null;
 }
 
+function parseOptionalDateOnly(value: FormDataEntryValue | null): Date | null {
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+
+  const normalized = value.trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error("Data non valida");
+  }
+
+  return parseDateTimeLocal(`${normalized}T00:00`);
+}
+
 function parseShiftPresetPair(
   startValue: FormDataEntryValue | null,
   endValue: FormDataEntryValue | null
@@ -2295,6 +2309,7 @@ export async function createBoardNoteAction(formData: FormData) {
   }
 
   const noteEntries = expandAudienceDrafts(parseBoardDrafts(formData, canManageOperations(role)));
+  const activityDate = parseOptionalDateOnly(formData.get("activityDate"));
 
   if (noteEntries.length === 0) {
     throw new Error("Missing content");
@@ -2318,6 +2333,7 @@ export async function createBoardNoteAction(formData: FormData) {
       content: entry.content,
       isPinned: entry.isPinned,
       requiresConfirmation: entry.requiresConfirmation,
+      activityDate,
       employeeId: entry.assignedToAll ? null : entry.assignedToId,
     })),
   });
@@ -2392,6 +2408,7 @@ export async function updateBoardNoteAction(formData: FormData) {
 
   const noteId = String(formData.get("noteId") ?? "").trim();
   const canManage = canManageOperations(role);
+  const activityDate = parseOptionalDateOnly(formData.get("activityDate"));
   const noteEntries = parseBoardDrafts(formData, canManage).map((entry) =>
     canManage
       ? {
@@ -2433,6 +2450,7 @@ export async function updateBoardNoteAction(formData: FormData) {
       content: noteEntry.content,
       isPinned: noteEntry.isPinned,
       requiresConfirmation: noteEntry.requiresConfirmation,
+      activityDate,
       employeeId: noteEntry.assignedToAll ? null : noteEntry.assignedToId,
     },
   });

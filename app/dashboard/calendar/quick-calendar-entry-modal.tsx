@@ -3,7 +3,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { createPortal } from "react-dom";
 import { AudienceSelector } from "@/app/components/audience-selector";
-import { IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
+import { IconButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -97,20 +97,54 @@ export function QuickCalendarEntryModal({
   const activeMode = canCreateTask && canCreateBoard ? entryKind : canCreateTask ? "task" : "board";
 
   function addTaskEntry() {
-    if (!taskDraft.value.trim()) {
+    if (!taskDraft.value.trim() || !taskDueDate || isPending) {
       return;
     }
 
-    setTaskEntries((current) => current.concat(taskDraft));
+    const formData = new FormData();
+    formData.append("taskEntryId", taskDraft.id);
+    formData.set(`title_${taskDraft.id}`, taskDraft.value);
+
+    if (taskDraft.assignedToAll) {
+      formData.set(`assignedToAll_${taskDraft.id}`, "on");
+    } else if (taskDraft.assignedToId) {
+      formData.set(`assignedToId_${taskDraft.id}`, taskDraft.assignedToId);
+    }
+
+    if (taskDraft.isUrgent) {
+      formData.set(`isUrgent_${taskDraft.id}`, "on");
+    }
+
+    formData.set("description", "");
+    formData.set("dueDate", taskDueDate);
+
+    onSubmitTask(formData);
     setTaskDraft(createEmptyEntry());
   }
 
   function addBoardEntry() {
-    if (!boardDraft.value.trim()) {
+    if (!boardDraft.value.trim() || isPending) {
       return;
     }
 
-    setBoardEntries((current) => current.concat(boardDraft));
+    const formData = new FormData();
+    formData.append("boardEntryId", boardDraft.id);
+    formData.set(`content_${boardDraft.id}`, boardDraft.value);
+    formData.set("activityDate", toDateInputValue(dateIso));
+
+    if (boardDraft.assignedToAll) {
+      formData.set(`assignedToAll_${boardDraft.id}`, "on");
+    } else if (boardDraft.assignedToId) {
+      formData.set(`assignedToId_${boardDraft.id}`, boardDraft.assignedToId);
+    }
+
+    if (boardDraft.isPinned) {
+      formData.set(`isPinned_${boardDraft.id}`, "on");
+    }
+
+    formData.set(`requiresConfirmation_${boardDraft.id}`, "on");
+
+    onSubmitBoard(formData);
     setBoardDraft(createEmptyEntry());
   }
 
@@ -136,57 +170,6 @@ export function QuickCalendarEntryModal({
     }
 
     return labels.length === 1 ? labels[0] : `${labels.length} dipendenti`;
-  }
-
-  function handleTaskSubmit() {
-    const formData = new FormData();
-
-    const entries = taskEntries.concat(taskDraft.value.trim() ? [taskDraft] : []);
-
-    for (const entry of entries) {
-      formData.append("taskEntryId", entry.id);
-      formData.set(`title_${entry.id}`, entry.value);
-
-      if (entry.assignedToAll) {
-        formData.set(`assignedToAll_${entry.id}`, "on");
-      } else if (entry.assignedToId) {
-        formData.set(`assignedToId_${entry.id}`, entry.assignedToId);
-      }
-
-      if (entry.isUrgent) {
-        formData.set(`isUrgent_${entry.id}`, "on");
-      }
-    }
-
-    formData.set("description", "");
-    formData.set("dueDate", taskDueDate);
-
-    onSubmitTask(formData);
-  }
-
-  function handleBoardSubmit() {
-    const formData = new FormData();
-
-    const entries = boardEntries.concat(boardDraft.value.trim() ? [boardDraft] : []);
-
-    for (const entry of entries) {
-      formData.append("boardEntryId", entry.id);
-      formData.set(`content_${entry.id}`, entry.value);
-
-      if (entry.assignedToAll) {
-        formData.set(`assignedToAll_${entry.id}`, "on");
-      } else if (entry.assignedToId) {
-        formData.set(`assignedToId_${entry.id}`, entry.assignedToId);
-      }
-
-      if (entry.isPinned) {
-        formData.set(`isPinned_${entry.id}`, "on");
-      }
-
-      formData.set(`requiresConfirmation_${entry.id}`, "on");
-    }
-
-    onSubmitBoard(formData);
   }
 
   const content =
@@ -353,13 +336,13 @@ export function QuickCalendarEntryModal({
             <IconButton
               type="button"
               onClick={addTaskEntry}
-              aria-label="Aggiungi nota alla lista"
-              disabled={!taskDraft.value.trim()}
+              aria-label="Salva mansione"
+              disabled={isPending || !taskDraft.value.trim() || !taskDueDate}
               style={{
                 width: 44,
                 height: 44,
-                background: taskDraft.value.trim() ? "#dcfce7" : "#f1f5f9",
-                color: taskDraft.value.trim() ? "#166534" : "#94a3b8",
+                background: taskDraft.value.trim() && taskDueDate ? "#dcfce7" : "#f1f5f9",
+                color: taskDraft.value.trim() && taskDueDate ? "#166534" : "#94a3b8",
                 border: "1px solid #bbf7d0",
               }}
             >
@@ -368,15 +351,6 @@ export function QuickCalendarEntryModal({
           </div>
         </div>
 
-        <div className="dashboard-modal-actions">
-          <PrimaryButton
-            type="button"
-            onClick={handleTaskSubmit}
-            disabled={isPending || !taskDueDate || (taskEntries.length === 0 && !taskDraft.value.trim())}
-          >
-            {isPending ? "Salvataggio..." : "Conferma mansioni"}
-          </PrimaryButton>
-        </div>
       </div>
     ) : (
       <div style={{ display: "grid", gap: 14 }}>
@@ -537,8 +511,8 @@ export function QuickCalendarEntryModal({
             <IconButton
               type="button"
               onClick={addBoardEntry}
-              aria-label="Aggiungi nota alla lista"
-              disabled={!boardDraft.value.trim()}
+              aria-label="Salva comunicazione"
+              disabled={isPending || !boardDraft.value.trim()}
               style={{
                 width: 44,
                 height: 44,
@@ -552,15 +526,6 @@ export function QuickCalendarEntryModal({
           </div>
         </div>
 
-        <div className="dashboard-modal-actions">
-          <PrimaryButton
-            type="button"
-            onClick={handleBoardSubmit}
-            disabled={isPending || (boardEntries.length === 0 && !boardDraft.value.trim())}
-          >
-            {isPending ? "Pubblicazione..." : "Conferma comunicazioni"}
-          </PrimaryButton>
-        </div>
       </div>
     );
 

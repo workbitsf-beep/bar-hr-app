@@ -633,22 +633,40 @@ export default async function DashboardCalendarPage({
               prisma.note.findMany({
                 where: {
                   barId: activeBarId,
-                  createdAt: {
-                    gte: calendarStart,
-                    lte: calendarEnd,
-                  },
-                  ...(role === Role.EMPLOYEE
-                    ? {
-                        OR: [{ employeeId: null }, { employeeId: session.user.id }],
-                      }
-                    : {}),
-                },
+                  AND: [
+                    {
+                      OR: [
+                        {
+                          activityDate: {
+                            gte: calendarStart,
+                            lte: calendarEnd,
+                          },
+                        },
+                        {
+                          activityDate: null,
+                          createdAt: {
+                            gte: calendarStart,
+                            lte: calendarEnd,
+                          },
+                        },
+                      ],
+                    },
+                    ...(role === Role.EMPLOYEE
+                      ? [
+                          {
+                            OR: [{ employeeId: null }, { employeeId: session.user.id }],
+                          },
+                        ]
+                      : []),
+                  ],
+                      },
                 orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
                 select: {
                   id: true,
                   content: true,
                   isPinned: true,
                   requiresConfirmation: true,
+                  activityDate: true,
                   createdAt: true,
                   employeeId: true,
                   readReceipts: {
@@ -770,7 +788,7 @@ export default async function DashboardCalendarPage({
   }
 
   for (const note of notes) {
-    const dayKey = toLocalDateKey(note.createdAt);
+    const dayKey = toLocalDateKey(note.activityDate ?? note.createdAt);
     const dayNotes = notesByDay.get(dayKey) ?? [];
     dayNotes.push(note);
     notesByDay.set(dayKey, dayNotes);
@@ -904,6 +922,7 @@ export default async function DashboardCalendarPage({
       isPinned: note.isPinned,
       requiresConfirmation: note.requiresConfirmation,
       employeeId: note.employeeId,
+      activityDate: (note.activityDate ?? note.createdAt).toISOString(),
       createdAt: note.createdAt.toISOString(),
       authorName: `${note.author.firstName} ${note.author.lastName}`.trim(),
       confirmations: note.readReceipts.map((receipt) => ({
