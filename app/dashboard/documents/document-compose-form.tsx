@@ -46,6 +46,15 @@ function isAllowedDocumentFile(file: File | null) {
   return allowedDocumentExtensions.has(getFileExtension(file.name));
 }
 
+function isDocumentDraftValid(draft: DocumentDraft) {
+  return Boolean(
+    draft.title.trim() &&
+      draft.file &&
+      isAllowedDocumentFile(draft.file) &&
+      (draft.assignedToAll || draft.assignedToIds.length > 0)
+  );
+}
+
 export function DocumentComposeForm({
   recipients,
 }: {
@@ -80,7 +89,8 @@ export function DocumentComposeForm({
     setError("");
     setMessage("");
 
-    const items = queued;
+    const draftValid = isDocumentDraftValid(draft);
+    const items = queued.concat(draftValid ? [draft] : []);
 
     if (items.length === 0) {
       setError("Aggiungi almeno un documento da caricare.");
@@ -448,8 +458,10 @@ export function DocumentComposeForm({
         >
           ✓
         </IconButton>
-        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || queued.length === 0}>
-          {isPending ? "Caricamento..." : `Carica tutti${queued.length > 0 ? ` (${queued.length})` : ""}`}
+        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || (queued.length === 0 && !isDocumentDraftValid(draft))}>
+          {isPending
+            ? "Caricamento..."
+            : `Carica tutti${queued.length + (isDocumentDraftValid(draft) ? 1 : 0) > 0 ? ` (${queued.length + (isDocumentDraftValid(draft) ? 1 : 0)})` : ""}`}
         </PrimaryButton>
       </div>
     </div>

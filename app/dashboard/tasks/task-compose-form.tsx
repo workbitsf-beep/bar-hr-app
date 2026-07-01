@@ -65,7 +65,7 @@ export function TaskComposeForm({
     removeEntry(id);
   }
 
-  const allEntries = entries;
+  const allEntries = entries.concat(draft.value.trim() ? [draft] : []);
 
   function getAudienceLabel(entry: ReturnType<typeof createEmptyEntry>) {
     if (entry.assignedToAll) {

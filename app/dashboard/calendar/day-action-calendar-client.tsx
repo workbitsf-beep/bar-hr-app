@@ -932,7 +932,6 @@ export function DayActionCalendarClient({
       }
 
       setFocusedDayDate(today.date);
-      setCalendarView("day");
       setSelectedDate(null);
       setActiveCalendarModal(null);
       setFeedback(null);
@@ -1383,7 +1382,9 @@ export function DayActionCalendarClient({
       return;
     }
 
-    const validDrafts = shiftDrafts.filter(
+    const validDrafts = shiftDrafts
+      .concat(currentShiftDraft && isShiftDraftValid(currentShiftDraft) ? [currentShiftDraft] : [])
+      .filter(
       (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
     );
 
@@ -1735,7 +1736,7 @@ export function DayActionCalendarClient({
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <strong>📌 Note</strong>
-                      {features.tasks && day.date.slice(0, 10) >= todayKey ? (
+                      {(features.tasks || features.noticeBoard) && day.date.slice(0, 10) >= todayKey ? (
                         <IconButton
                           type="button"
                           onClick={() => {
@@ -2958,7 +2959,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {features.tasks && activeCalendarModal !== "shifts" ? (
+                {(features.tasks || features.noticeBoard) && activeCalendarModal !== "shifts" ? (
                   <div style={{ display: "grid", gap: 10 }}>
                     <div
                       style={{
@@ -3090,14 +3091,15 @@ export function DayActionCalendarClient({
         open={Boolean(
           selectedDay &&
             quickComposer &&
-            ((quickComposer === "task" && features.tasks) ||
-              (quickComposer === "board" && features.noticeBoard))
+            (features.tasks || features.noticeBoard)
         )}
         mode={quickComposer}
         dateIso={selectedDay?.date ?? null}
         members={members}
         canPinBoard={role === Role.OWNER || role === Role.MANAGER}
         canChooseAudience={role === Role.OWNER || role === Role.MANAGER}
+        canCreateTask={features.tasks}
+        canCreateBoard={features.noticeBoard}
         isPending={isPending}
         onClose={closeModal}
         onSubmitTask={submitQuickTask}

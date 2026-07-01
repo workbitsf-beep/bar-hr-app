@@ -743,7 +743,6 @@ export function OwnerCalendarClient({
       }
 
       setFocusedDayDate(today.date);
-      setCalendarView("day");
       setSelectedDate(null);
       setActiveCalendarModal(null);
       setFeedback(null);
@@ -1178,7 +1177,9 @@ export function OwnerCalendarClient({
       return;
     }
 
-    const validDrafts = shiftDrafts.filter(
+    const validDrafts = shiftDrafts
+      .concat(currentShiftDraft && isShiftDraftValid(currentShiftDraft) ? [currentShiftDraft] : [])
+      .filter(
       (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
     );
 
@@ -1527,7 +1528,7 @@ export function OwnerCalendarClient({
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <strong>📌 Note</strong>
-                      {features.tasks && day.date.slice(0, 10) >= todayKey ? (
+                      {(features.tasks || features.noticeBoard) && day.date.slice(0, 10) >= todayKey ? (
                         <IconButton
                           type="button"
                           onClick={() => {
@@ -2841,7 +2842,7 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                {activeCalendarModal !== "shifts" && features.tasks ? (
+                {activeCalendarModal !== "shifts" && (features.tasks || features.noticeBoard) ? (
                 <div style={{ display: "grid", gap: 10 }}>
                   <div
                     style={{
@@ -3095,13 +3096,14 @@ export function OwnerCalendarClient({
         open={Boolean(
           selectedDay &&
             quickComposer &&
-            ((quickComposer === "task" && features.tasks) ||
-              (quickComposer === "board" && features.noticeBoard))
+            (features.tasks || features.noticeBoard)
         )}
         mode={quickComposer}
         dateIso={day.date ?? null}
         members={members}
         canPinBoard
+        canCreateTask={features.tasks}
+        canCreateBoard={features.noticeBoard}
         isPending={isPending}
         onClose={closeModal}
         onSubmitTask={handleQuickTaskCreate}

@@ -50,6 +50,8 @@ export function QuickCalendarEntryModal({
   members,
   canPinBoard,
   canChooseAudience = true,
+  canCreateTask = true,
+  canCreateBoard = true,
   isPending,
   onClose,
   onSubmitTask,
@@ -61,6 +63,8 @@ export function QuickCalendarEntryModal({
   members: MemberOption[];
   canPinBoard: boolean;
   canChooseAudience?: boolean;
+  canCreateTask?: boolean;
+  canCreateBoard?: boolean;
   isPending: boolean;
   onClose: () => void;
   onSubmitTask: (formData: FormData) => void;
@@ -71,6 +75,7 @@ export function QuickCalendarEntryModal({
   const [taskDueDate, setTaskDueDate] = useState("");
   const [boardEntries, setBoardEntries] = useState<EntryItem[]>([createEmptyEntry()]);
   const [boardDraft, setBoardDraft] = useState<EntryItem>(createEmptyEntry());
+  const [entryKind, setEntryKind] = useState<"board" | "task">("board");
 
   useEffect(() => {
     if (!open) {
@@ -82,11 +87,14 @@ export function QuickCalendarEntryModal({
     setTaskDueDate(toDateInputValue(dateIso));
     setBoardEntries([]);
     setBoardDraft(createEmptyEntry());
-  }, [dateIso, open, mode]);
+    setEntryKind(canCreateBoard ? "board" : "task");
+  }, [canCreateBoard, dateIso, open, mode]);
 
-  if (!open || !mode) {
+  if (!open || !mode || (!canCreateTask && !canCreateBoard)) {
     return null;
   }
+
+  const activeMode = canCreateTask && canCreateBoard ? entryKind : canCreateTask ? "task" : "board";
 
   function addTaskEntry() {
     if (!taskDraft.value.trim()) {
@@ -133,7 +141,7 @@ export function QuickCalendarEntryModal({
   function handleTaskSubmit() {
     const formData = new FormData();
 
-    const entries = taskEntries;
+    const entries = taskEntries.concat(taskDraft.value.trim() ? [taskDraft] : []);
 
     for (const entry of entries) {
       formData.append("taskEntryId", entry.id);
@@ -159,7 +167,7 @@ export function QuickCalendarEntryModal({
   function handleBoardSubmit() {
     const formData = new FormData();
 
-    const entries = boardEntries;
+    const entries = boardEntries.concat(boardDraft.value.trim() ? [boardDraft] : []);
 
     for (const entry of entries) {
       formData.append("boardEntryId", entry.id);
@@ -174,16 +182,18 @@ export function QuickCalendarEntryModal({
       if (entry.isPinned) {
         formData.set(`isPinned_${entry.id}`, "on");
       }
+
+      formData.set(`requiresConfirmation_${entry.id}`, "on");
     }
 
     onSubmitBoard(formData);
   }
 
   const content =
-    mode === "task" ? (
+    activeMode === "task" ? (
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi note</strong>
+          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi mansione</strong>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -266,7 +276,7 @@ export function QuickCalendarEntryModal({
                   gap: 10,
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>Mansione {index + 1}</strong>
                 {false ? (
                   <IconButton
                     type="button"
@@ -362,16 +372,16 @@ export function QuickCalendarEntryModal({
           <PrimaryButton
             type="button"
             onClick={handleTaskSubmit}
-            disabled={isPending || !taskDueDate || taskEntries.length === 0}
+            disabled={isPending || !taskDueDate || (taskEntries.length === 0 && !taskDraft.value.trim())}
           >
-            {isPending ? "Salvataggio..." : "Conferma note"}
+            {isPending ? "Salvataggio..." : "Conferma mansioni"}
           </PrimaryButton>
         </div>
       </div>
     ) : (
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 52 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi nota rapida</strong>
+          <strong style={{ fontSize: 20, color: "#0f172a" }}>Aggiungi comunicazione</strong>
         </div>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -454,7 +464,7 @@ export function QuickCalendarEntryModal({
                   gap: 10,
                 }}
               >
-                <strong style={{ color: "#0f172a", fontSize: 14 }}>Nota {index + 1}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>Comunicazione {index + 1}</strong>
                 {false ? (
                   <IconButton
                     type="button"
@@ -517,6 +527,9 @@ export function QuickCalendarEntryModal({
                   In evidenza
                 </label>
               ) : null}
+              <div style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+                Conferma visualizzazione richiesta a chi la apre.
+              </div>
             </div>
           ))}
 
@@ -543,9 +556,9 @@ export function QuickCalendarEntryModal({
           <PrimaryButton
             type="button"
             onClick={handleBoardSubmit}
-            disabled={isPending || boardEntries.length === 0}
+            disabled={isPending || (boardEntries.length === 0 && !boardDraft.value.trim())}
           >
-            {isPending ? "Pubblicazione..." : "Conferma pubblicazione"}
+            {isPending ? "Pubblicazione..." : "Conferma comunicazioni"}
           </PrimaryButton>
         </div>
       </div>
@@ -606,6 +619,46 @@ export function QuickCalendarEntryModal({
             />
           </svg>
         </IconButton>
+
+        {canCreateTask && canCreateBoard ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 4,
+              padding: 4,
+              marginBottom: 14,
+              borderRadius: 999,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            {[
+              { key: "board" as const, label: "Comunicazione" },
+              { key: "task" as const, label: "Mansione" },
+            ].map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => setEntryKind(option.key)}
+                style={{
+                  minHeight: 38,
+                  border: 0,
+                  borderRadius: 999,
+                  background:
+                    activeMode === option.key
+                      ? "linear-gradient(135deg, #111936, #7c3aed)"
+                      : "transparent",
+                  color: activeMode === option.key ? "#ffffff" : "#475569",
+                  fontWeight: 850,
+                  cursor: "pointer",
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         {content}
       </section>
