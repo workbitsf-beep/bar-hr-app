@@ -699,7 +699,7 @@ function renderTaskCard(
         />
         {task.completedByLabel ? (
           <span style={{ color: "#64748b", fontSize: mobile ? 12 : 12, fontWeight: 700 }}>
-            {task.completedByLabel}
+            Completata da: {task.completedByLabel}
           </span>
         ) : null}
         {canComplete ? (

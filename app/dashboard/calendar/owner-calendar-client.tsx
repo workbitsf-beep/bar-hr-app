@@ -2920,7 +2920,7 @@ export function OwnerCalendarClient({
                             />
                             {task.completedByLabel ? (
                               <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-                                {task.completedByLabel}
+                                Completata da: {task.completedByLabel}
                               </span>
                             ) : null}
                             {task.status !== "DONE" ? (

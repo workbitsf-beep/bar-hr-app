@@ -237,7 +237,7 @@ export default async function DashboardTasksPage({
                         <div style={{ display: "grid", gap: 6 }}>
                           {task.completions.map((completion) => (
                             <div key={completion.id} style={{ color: "#64748b", fontSize: 13, fontWeight: 650 }}>
-                              {completion.user.firstName} {completion.user.lastName} -{" "}
+                              Completata da: {completion.user.firstName} {completion.user.lastName} -{" "}
                               {formatDateTime(completion.completedAt)}
                             </div>
                           ))}

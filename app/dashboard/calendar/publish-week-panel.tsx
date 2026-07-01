@@ -94,7 +94,7 @@ export function PublishWeekPanel({
         width: variant === "wide" ? "100%" : "auto",
         overflow: "visible",
         maxWidth: "100%",
-        paddingInline: variant === "wide" ? 10 : 0,
+        paddingInline: variant === "wide" ? 2 : 0,
       }}
     >
       <IconButton
@@ -104,15 +104,15 @@ export function PublishWeekPanel({
         aria-label="Conferma turni"
         title="Conferma turni"
         style={{
-          width: variant === "wide" ? "min(100%, 760px)" : 38,
-          minWidth: variant === "wide" ? "min(100%, 280px)" : 38,
-          height: variant === "wide" ? 54 : 38,
+          width: variant === "wide" ? "min(100%, 980px)" : 38,
+          minWidth: variant === "wide" ? "min(100%, 340px)" : 38,
+          height: variant === "wide" ? 62 : 38,
           background: hasPendingShifts ? "#f5f3ff" : "#ffffff",
           color: hasPendingShifts ? "#6d28d9" : "#7c3aed",
           border: "1px solid rgba(124, 58, 237, 0.16)",
           boxShadow: variant === "wide" ? "0 16px 34px rgba(88, 28, 135, 0.10)" : "none",
           opacity: isPending ? 0.7 : 1,
-          fontSize: variant === "wide" ? 27 : 16,
+          fontSize: variant === "wide" ? 32 : 16,
           fontWeight: 900,
           borderRadius: 999,
           marginInline: "auto",
