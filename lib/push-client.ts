@@ -38,6 +38,14 @@ export function isWorkbitPushDisabled() {
   return window.localStorage.getItem(PUSH_DISABLED_STORAGE_KEY) === "1";
 }
 
+export function getWorkbitPushPermissionState() {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "unsupported";
+  }
+
+  return Notification.permission;
+}
+
 function setWorkbitPushDisabled(disabled: boolean) {
   if (typeof window === "undefined") {
     return;
@@ -157,13 +165,19 @@ export async function ensureWorkbitPushRegistration(options?: {
   }
 
   registrationPromise = (async () => {
-    if (isWorkbitPushDisabled()) {
+    const wantPermission = options?.requestPermission ?? false;
+
+    if (isWorkbitPushDisabled() && !wantPermission) {
       return {
         ok: true,
         enabled: false,
         registered: false,
         message: "Notifiche push disattivate su questo dispositivo.",
       };
+    }
+
+    if (wantPermission) {
+      setWorkbitPushDisabled(false);
     }
 
     if (!("serviceWorker" in navigator) || !("Notification" in window)) {
@@ -174,8 +188,6 @@ export async function ensureWorkbitPushRegistration(options?: {
         message: "Push non supportate da questo browser.",
       };
     }
-
-    const wantPermission = options?.requestPermission ?? false;
 
     if (Notification.permission !== "granted") {
       if (!wantPermission) {
@@ -194,7 +206,10 @@ export async function ensureWorkbitPushRegistration(options?: {
           ok: false,
           enabled: false,
           registered: false,
-          message: "Permesso notifiche non concesso.",
+          message:
+            permission === "denied"
+              ? "Notifiche bloccate dal browser. Riattivale dalle impostazioni del sito e riprova."
+              : "Permesso notifiche non concesso.",
         };
       }
     }

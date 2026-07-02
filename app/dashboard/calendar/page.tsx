@@ -71,7 +71,11 @@ function addDays(date: Date, days: number) {
 }
 
 function parseAnchorDate(searchParams?: Record<string, string | string[] | undefined>) {
-  const raw = Array.isArray(searchParams?.day) ? searchParams.day[0] : searchParams?.day;
+  const rawAnchor = Array.isArray(searchParams?.anchor)
+    ? searchParams.anchor[0]
+    : searchParams?.anchor;
+  const rawDay = Array.isArray(searchParams?.day) ? searchParams.day[0] : searchParams?.day;
+  const raw = rawAnchor ?? rawDay;
 
   if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
     const today = new Date();
@@ -940,6 +944,7 @@ export default async function DashboardCalendarPage({
     role: member.role,
   }));
   const shiftPresets = buildShiftPresets(settings);
+  const initialFocusedDay = toLocalDateKey(anchorDate);
   const unconfirmedShiftCount = shifts.filter(
     (shift) => !shift.confirmedAt && !shift.isOnCall
   ).length;
@@ -968,6 +973,7 @@ export default async function DashboardCalendarPage({
             members={memberOptions}
             presets={shiftPresets}
             filteredDay={dayFilter}
+            initialFocusedDay={initialFocusedDay}
             role={String(role)}
             currentUserId={session.user.id}
             features={features}
@@ -980,6 +986,7 @@ export default async function DashboardCalendarPage({
             weekdayLabels={weekdayLabels}
             days={serializedDays}
             filteredDay={dayFilter}
+            initialFocusedDay={initialFocusedDay}
             role={String(role)}
             activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
             companyShiftsEnabled={Boolean(settings?.companyShiftsEnabled)}

@@ -625,6 +625,7 @@ export function OwnerCalendarClient({
   members,
   presets,
   filteredDay,
+  initialFocusedDay,
   role,
   currentUserId,
   features,
@@ -637,6 +638,7 @@ export function OwnerCalendarClient({
   members: MemberOption[];
   presets: ShiftPreset[];
   filteredDay?: string | null;
+  initialFocusedDay?: string | null;
   role: string;
   currentUserId: string;
   features: FeatureFlags;
@@ -649,7 +651,10 @@ export function OwnerCalendarClient({
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
     const today = days.find((day) => day.isToday) ?? days[0];
-    return filteredDay ?? today?.date ?? "";
+    const initialDay = initialFocusedDay
+      ? days.find((day) => day.date.slice(0, 10) === initialFocusedDay)
+      : null;
+    return filteredDay ?? initialDay?.date ?? today?.date ?? "";
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
@@ -1179,7 +1184,8 @@ export function OwnerCalendarClient({
         window.setTimeout(() => {
           if (refreshDate) {
             const url = new URL(window.location.href);
-            url.searchParams.set("day", refreshDate);
+            url.searchParams.set("anchor", refreshDate);
+            url.searchParams.delete("day");
             url.searchParams.set("view", refreshView);
             window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
           }

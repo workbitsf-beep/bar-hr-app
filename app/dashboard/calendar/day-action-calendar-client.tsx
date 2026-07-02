@@ -808,6 +808,7 @@ export function DayActionCalendarClient({
   weekdayLabels,
   days,
   filteredDay,
+  initialFocusedDay,
   role,
   activityType,
   companyShiftsEnabled,
@@ -822,6 +823,7 @@ export function DayActionCalendarClient({
   weekdayLabels: string[];
   days: DayItem[];
   filteredDay?: string | null;
+  initialFocusedDay?: string | null;
   role: string;
   activityType: ActivityType;
   companyShiftsEnabled: boolean;
@@ -838,7 +840,10 @@ export function DayActionCalendarClient({
   const [calendarView, setCalendarView] = useState<"week" | "day">("week");
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
     const today = days.find((day) => day.isToday) ?? days[0];
-    return filteredDay ?? today?.date ?? "";
+    const initialDay = initialFocusedDay
+      ? days.find((day) => day.date.slice(0, 10) === initialFocusedDay)
+      : null;
+    return filteredDay ?? initialDay?.date ?? today?.date ?? "";
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
@@ -1364,7 +1369,8 @@ export function DayActionCalendarClient({
         window.setTimeout(() => {
           if (refreshDate) {
             const url = new URL(window.location.href);
-            url.searchParams.set("day", refreshDate);
+            url.searchParams.set("anchor", refreshDate);
+            url.searchParams.delete("day");
             url.searchParams.set("view", refreshView);
             window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
           }
