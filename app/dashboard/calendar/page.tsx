@@ -133,6 +133,11 @@ function parseDayFilter(searchParams?: Record<string, string | string[] | undefi
   return raw;
 }
 
+function parseCalendarView(searchParams?: Record<string, string | string[] | undefined>) {
+  const raw = Array.isArray(searchParams?.view) ? searchParams.view[0] : searchParams?.view;
+  return raw === "day" ? "day" : "week";
+}
+
 function isMissingColumnError(error: unknown) {
   return (
     typeof error === "object" &&
@@ -945,6 +950,7 @@ export default async function DashboardCalendarPage({
   }));
   const shiftPresets = buildShiftPresets(settings);
   const initialFocusedDay = toLocalDateKey(anchorDate);
+  const initialCalendarView = parseCalendarView(params);
   const unconfirmedShiftCount = shifts.filter(
     (shift) => !shift.confirmedAt && !shift.isOnCall
   ).length;
@@ -974,6 +980,7 @@ export default async function DashboardCalendarPage({
             presets={shiftPresets}
             filteredDay={dayFilter}
             initialFocusedDay={initialFocusedDay}
+            initialCalendarView={initialCalendarView}
             role={String(role)}
             currentUserId={session.user.id}
             features={features}
@@ -987,6 +994,7 @@ export default async function DashboardCalendarPage({
             days={serializedDays}
             filteredDay={dayFilter}
             initialFocusedDay={initialFocusedDay}
+            initialCalendarView={initialCalendarView}
             role={String(role)}
             activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
             companyShiftsEnabled={Boolean(settings?.companyShiftsEnabled)}

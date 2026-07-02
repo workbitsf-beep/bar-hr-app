@@ -228,6 +228,14 @@ function createRepeatedShiftDrafts(
     }));
 }
 
+function sortShiftDraftsByDateTime(drafts: ShiftDraft[]) {
+  return drafts.slice().sort((left, right) => {
+    const leftKey = `${left.date}T${left.startTime || "00:00"}`;
+    const rightKey = `${right.date}T${right.startTime || "00:00"}`;
+    return leftKey.localeCompare(rightKey);
+  });
+}
+
 function formatDayTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
@@ -626,6 +634,7 @@ export function OwnerCalendarClient({
   presets,
   filteredDay,
   initialFocusedDay,
+  initialCalendarView,
   role,
   currentUserId,
   features,
@@ -639,6 +648,7 @@ export function OwnerCalendarClient({
   presets: ShiftPreset[];
   filteredDay?: string | null;
   initialFocusedDay?: string | null;
+  initialCalendarView?: "week" | "day";
   role: string;
   currentUserId: string;
   features: FeatureFlags;
@@ -648,7 +658,7 @@ export function OwnerCalendarClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
-  const [calendarView, setCalendarView] = useState<"week" | "day">("week");
+  const [calendarView, setCalendarView] = useState<"week" | "day">(initialCalendarView ?? "week");
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
     const today = days.find((day) => day.isToday) ?? days[0];
     const initialDay = initialFocusedDay
@@ -667,6 +677,7 @@ export function OwnerCalendarClient({
   const [showCourseComposer, setShowCourseComposer] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
+  const [savedShiftDrafts, setSavedShiftDrafts] = useState<ShiftDraft[]>([]);
   const [currentShiftDraft, setCurrentShiftDraft] = useState<ShiftDraft | null>(null);
   const [shiftInsertMode, setShiftInsertMode] = useState<ShiftInsertMode>("DAY");
   const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
@@ -714,7 +725,7 @@ export function OwnerCalendarClient({
   }, [features.overtime, requestType]);
 
   useEffect(() => {
-    if (filteredDay || selectedDate) {
+    if (filteredDay || selectedDate || initialFocusedDay) {
       return;
     }
 
@@ -723,7 +734,7 @@ export function OwnerCalendarClient({
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [filteredDay, selectedDate]);
+  }, [filteredDay, initialFocusedDay, selectedDate]);
 
   useEffect(() => {
     const requestedDay = filteredDay
@@ -925,6 +936,7 @@ export function OwnerCalendarClient({
     setShowCourseComposer(false);
     setFeedback(null);
     setShiftDrafts([]);
+    setSavedShiftDrafts([]);
     setCurrentShiftDraft(createShiftDraft(day.date));
     setShiftInsertMode("DAY");
     setSelectedShiftWeekdays([]);
@@ -998,6 +1010,7 @@ export function OwnerCalendarClient({
     setSelectedDate(null);
     setFeedback(null);
     setCurrentShiftDraft(null);
+    setSavedShiftDrafts([]);
     setShiftInsertMode("DAY");
     setSelectedShiftWeekdays([]);
   }
@@ -1051,15 +1064,9 @@ export function OwnerCalendarClient({
         await createShiftAction(formData);
       }
 
+      setSavedShiftDrafts((current) => sortShiftDraftsByDateTime(current.concat(draftsToAdd)));
       setShiftDrafts([]);
-      setCurrentShiftDraft({
-        ...createShiftDraft(selectedDay.date),
-        memberIds: shiftInsertMode === "EMPLOYEE" ? currentShiftDraft.memberIds : [],
-        presetKey: currentShiftDraft.presetKey,
-        startTime: currentShiftDraft.startTime,
-        endTime: currentShiftDraft.endTime,
-        isOnCall: currentShiftDraft.isOnCall,
-      });
+      setCurrentShiftDraft(createShiftDraft(selectedDay.date));
     }, draftsToAdd.length === 1 ? "Turno salvato." : "Turni salvati.");
   }
 
@@ -2083,6 +2090,85 @@ export function OwnerCalendarClient({
                       </IconButton>
                     </div>
                   </div>
+
+                  {savedShiftDrafts.length > 0 ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 8,
+                        maxHeight: 156,
+                        overflowY: "auto",
+                        padding: 10,
+                        borderRadius: 18,
+                        background: "rgba(248,250,252,0.92)",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
+                        Turni salvati in questo inserimento
+                      </span>
+                      {savedShiftDrafts.map((draft) => {
+                        const draftMemberNames =
+                          draft.memberIds
+                            .map((memberId) => members.find((member) => member.id === memberId))
+                            .filter(Boolean)
+                            .map((member) => `${member?.firstName} ${member?.lastName}`)
+                            .join(", ") || "Nessuna persona";
+
+                        return (
+                          <div
+                            key={draft.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 10,
+                              padding: "9px 11px",
+                              borderRadius: 14,
+                              background: "#ffffff",
+                              border: "1px solid #dbe3ee",
+                              minWidth: 0,
+                            }}
+                          >
+                            <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
+                              <strong
+                                style={{
+                                  color: "#0f172a",
+                                  fontSize: 13,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {draftMemberNames}
+                              </strong>
+                              <span style={{ color: "#64748b", fontSize: 12 }}>
+                                {draft.date} · {draft.startTime} - {draft.endTime}
+                                {draft.isOnCall ? " · Reperibilità" : ""}
+                              </span>
+                            </div>
+                            <span
+                              aria-label="Salvato"
+                              title="Salvato"
+                              style={{
+                                flexShrink: 0,
+                                width: 28,
+                                height: 28,
+                                borderRadius: 999,
+                                display: "grid",
+                                placeItems: "center",
+                                background: "#dcfce7",
+                                color: "#166534",
+                                fontWeight: 900,
+                              }}
+                            >
+                              ✓
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
 
                   {shiftDrafts.map((draft, index) => {
                     const draftMemberNames =
