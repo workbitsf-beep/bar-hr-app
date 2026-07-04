@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
+import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { getDashboardContext } from "../context";
 import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
 import { DayActionCalendarClient } from "./day-action-calendar-client";
@@ -105,6 +106,11 @@ function toLocalDateKey(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function dateKeyToLocalDate(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
 }
 
 function getRangeDayKeys(start: Date, end: Date) {
@@ -775,10 +781,8 @@ export default async function DashboardCalendarPage({
   }
 
   for (const closure of closures) {
-    const cursor = new Date(closure.startsAt);
-    cursor.setHours(0, 0, 0, 0);
-    const closureEnd = new Date(closure.endsAt);
-    closureEnd.setHours(0, 0, 0, 0);
+    const cursor = dateKeyToLocalDate(toDateInputValueInTimeZone(closure.startsAt));
+    const closureEnd = dateKeyToLocalDate(toDateInputValueInTimeZone(closure.endsAt));
 
     while (cursor <= closureEnd) {
       const dayKey = toLocalDateKey(cursor);

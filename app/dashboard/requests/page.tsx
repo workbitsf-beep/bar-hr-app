@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import {
   createCalendarClosureAction,
   createAvailabilityAction,
@@ -72,6 +73,7 @@ function formatClosureCompactDate(value: Date) {
   return new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
     month: "short",
+    timeZone: APP_TIME_ZONE,
   }).format(value);
 }
 

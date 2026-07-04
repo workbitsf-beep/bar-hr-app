@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AudienceSelector } from "@/app/components/audience-selector";
+import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { IconButton, TextInput } from "../ui";
 
 type MemberOption = {
@@ -31,7 +32,7 @@ function createEmptyEntry(): EntryItem {
 }
 
 function toDateInputValue(dateIso: string | null) {
-  return dateIso ? dateIso.slice(0, 10) : "";
+  return dateIso ? toDateInputValueInTimeZone(dateIso) : "";
 }
 
 export function QuickCalendarEntryModal({

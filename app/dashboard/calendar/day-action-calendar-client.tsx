@@ -331,7 +331,7 @@ function formatRequestTypeLabel(type: string) {
 }
 
 function toDateTimeLocal(dateIso: string, hour: number, minute: number) {
-  const day = String(dateIso ?? "").slice(0, 10);
+  const day = toDateInputValueInTimeZone(dateIso);
   return `${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 

@@ -1,9 +1,19 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { toDateInputValueInTimeZone } from "@/lib/time-zone";
+
+function hasExplicitTimeZone(value: string) {
+  return /[zZ]$|[+-]\d{2}:?\d{2}$/.test(value);
+}
 
 function splitDateValue(value: string) {
   const trimmed = String(value ?? "").trim();
+
+  if (hasExplicitTimeZone(trimmed)) {
+    return toDateInputValueInTimeZone(trimmed);
+  }
+
   return trimmed.slice(0, 10);
 }
 

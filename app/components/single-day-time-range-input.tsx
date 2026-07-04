@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
 import { TimeInput } from "./time-input";
+
+function hasExplicitTimeZone(value: string) {
+  return /[zZ]$|[+-]\d{2}:?\d{2}$/.test(value);
+}
 
 function getTodayInputValue() {
   const now = new Date();
@@ -16,6 +21,13 @@ function splitDateTimeValue(value?: string | null) {
 
   if (!raw) {
     return { date: "", time: "" };
+  }
+
+  if (hasExplicitTimeZone(raw)) {
+    return {
+      date: toDateInputValueInTimeZone(raw),
+      time: toTimeInputValueInTimeZone(raw),
+    };
   }
 
   const [date = "", time = ""] = raw.includes("T") ? raw.split("T") : [raw.slice(0, 10), ""];
