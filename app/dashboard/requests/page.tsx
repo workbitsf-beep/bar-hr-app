@@ -71,8 +71,7 @@ function closureTypeTone(type: CalendarClosureType) {
 function formatClosureCompactDate(value: Date) {
   return new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
+    month: "short",
   }).format(value);
 }
 
