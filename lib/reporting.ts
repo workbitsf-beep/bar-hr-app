@@ -18,6 +18,10 @@ export type ExportEntry = {
   outLogId: string;
   clockIn: string;
   clockOut: string;
+  roundedClockIn: string;
+  roundedClockOut: string;
+  plannedStart: string | null;
+  plannedEnd: string | null;
   realDurationMs: number;
   roundedDurationMs: number;
   realHours: number;
@@ -348,6 +352,10 @@ async function buildRestaurantMonthlyDataset(
       outLogId: log.id,
       clockIn: pendingIn.timestamp.toISOString(),
       clockOut: log.timestamp.toISOString(),
+      roundedClockIn: duration.roundedStart.toISOString(),
+      roundedClockOut: duration.roundedEnd.toISOString(),
+      plannedStart: (pendingIn.shift ?? log.shift)?.startTime.toISOString() ?? null,
+      plannedEnd: (pendingIn.shift ?? log.shift)?.endTime.toISOString() ?? null,
       realDurationMs: duration.realMs,
       roundedDurationMs: duration.roundedMs,
       realHours: toHours(duration.realMs),

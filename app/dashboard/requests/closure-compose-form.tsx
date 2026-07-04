@@ -24,6 +24,15 @@ function createDraft(): ClosureDraft {
   };
 }
 
+function formatDateLabel(value: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const [year, month, day] = value.split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
 export function ClosureComposeForm({
   action,
 }: {
@@ -81,6 +90,7 @@ export function ClosureComposeForm({
               style={{
                 display: "flex",
                 justifyContent: "space-between",
+                alignItems: "center",
                 gap: 10,
                 padding: "10px 12px",
                 borderRadius: 16,
@@ -101,9 +111,15 @@ export function ClosureComposeForm({
                   fontWeight: 700,
                   textAlign: "left",
                   padding: 0,
+                  display: "grid",
+                  gap: 3,
                 }}
               >
-                {item.title || "Chiusura"} - {item.startsAt}
+                <span>{item.title || "Chiusura"}</span>
+                <span style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>
+                  {formatDateLabel(item.startsAt)}
+                  {item.endsAt && item.endsAt !== item.startsAt ? ` - ${formatDateLabel(item.endsAt)}` : ""}
+                </span>
               </button>
               <button
                 type="button"

@@ -589,14 +589,18 @@ export default async function DashboardRequestsPage({
                       <div
                         key={`${closure.id}-hours`}
                         style={{
-                          padding: "16px",
+                          padding: "14px 16px",
                           borderBottom: "1px solid #eef2f7",
                           color: "#334155",
-                          lineHeight: 1.6,
+                          lineHeight: 1.35,
+                          fontSize: 14,
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        <div>{formatDate(closure.startsAt)}</div>
-                        <div>{formatDate(closure.endsAt)}</div>
+                        {formatDate(closure.startsAt)}
+                        {closure.startsAt.toDateString() !== closure.endsAt.toDateString()
+                          ? ` - ${formatDate(closure.endsAt)}`
+                          : ""}
                       </div>
 
                       <div
