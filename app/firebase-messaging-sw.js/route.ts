@@ -35,9 +35,9 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload) {
   const notification = payload && payload.notification ? payload.notification : {};
   const data = payload && payload.data ? payload.data : {};
-  const title = notification.title || "Workbit";
+  const title = data.title || notification.title || "Workbit";
   const options = {
-    body: notification.body || "",
+    body: data.body || notification.body || "",
     icon: "/logo.png",
     badge: "/logo.png",
     data: data,

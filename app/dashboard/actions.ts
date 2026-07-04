@@ -3710,6 +3710,37 @@ export async function createTimeOffRequestAction(formData: FormData) {
   }
 
   const autoApproved = type === RequestType.SICKNESS || isOwnerOvertimeRequest;
+  const existingDuplicateRequest = await prisma.request.findFirst({
+    where: {
+      barId: activeBarId,
+      employeeId,
+      type,
+      startsAt,
+      endsAt,
+      status: autoApproved ? RequestStatus.APPROVED : RequestStatus.PENDING,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (existingDuplicateRequest) {
+    if (wantsSuccessRedirect(formData)) {
+      const returnPath = await getReturnPathFromReferer("/dashboard/requests");
+
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/requests");
+      revalidatePath("/dashboard/export");
+      revalidatePath("/dashboard/calendar");
+      redirect(appendStatusToPath(returnPath, { success: "request-created" }));
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/requests");
+    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/calendar");
+    return;
+  }
 
   await prisma.request.create({
     data: {

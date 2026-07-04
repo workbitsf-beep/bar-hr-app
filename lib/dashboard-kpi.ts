@@ -1,5 +1,6 @@
 import {
   ActivityType,
+  ClockType,
   RequestStatus,
   RequestType,
   TaskStatus,
@@ -9,6 +10,7 @@ import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 
 export type DashboardKpiData = {
   today: {
+    presentUsers: number;
     scheduledUsers: number;
     scheduledShifts: number;
     confirmedShifts: number;
@@ -161,6 +163,7 @@ export async function getDashboardKpiData(
 
   const [
     todayAssignments,
+    todayTimeLogs,
     weekShifts,
     pendingRequestTypes,
     approvedTodayRequestTypes,
@@ -183,8 +186,26 @@ export async function getDashboardKpiData(
           },
         },
       },
+      distinct: ["userId"],
       select: {
         userId: true,
+      },
+    }),
+    prisma.timeLog.findMany({
+      where: {
+        barId,
+        timestamp: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+      orderBy: {
+        timestamp: "asc",
+      },
+      select: {
+        userId: true,
+        type: true,
+        timestamp: true,
       },
     }),
     prisma.shift.findMany({
@@ -326,7 +347,23 @@ export async function getDashboardKpiData(
       : Promise.resolve([]),
   ]);
 
-  const scheduledUsers = new Set(todayAssignments.map((assignment) => assignment.userId)).size;
+  const scheduledUsers = todayAssignments.length;
+  const latestTodayTimeLogByUser = new Map<string, { type: ClockType; timestamp: Date }>();
+
+  for (const log of todayTimeLogs) {
+    const latest = latestTodayTimeLogByUser.get(log.userId);
+
+    if (!latest || log.timestamp > latest.timestamp) {
+      latestTodayTimeLogByUser.set(log.userId, {
+        type: log.type,
+        timestamp: log.timestamp,
+      });
+    }
+  }
+
+  const presentUsers = Array.from(latestTodayTimeLogByUser.values()).filter(
+    (log) => log.type === ClockType.IN
+  ).length;
 
   const pendingRequests = {
     pendingLeaves: 0,
@@ -446,6 +483,7 @@ export async function getDashboardKpiData(
 
   return {
     today: {
+      presentUsers,
       scheduledUsers,
       scheduledShifts,
       confirmedShifts,

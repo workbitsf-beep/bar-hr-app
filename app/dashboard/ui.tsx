@@ -858,9 +858,9 @@ function DashboardResponsiveStyles() {
         }
 
         .calendar-publish-actions {
-          display: grid !important;
-          grid-template-columns: minmax(76px, 0.8fr) minmax(132px, 1.2fr);
+          display: flex !important;
           align-items: center !important;
+          justify-content: stretch !important;
           gap: 8px !important;
           width: 100% !important;
         }

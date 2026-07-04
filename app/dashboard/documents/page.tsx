@@ -138,6 +138,53 @@ export default async function DashboardDocumentsPage({
     return document.assignedToId === employeeFilter;
   });
   const visibleCount = filteredDocuments.length;
+  const documentFolderMap = new Map<
+    string,
+    { key: string; label: string; documents: typeof filteredDocuments }
+  >();
+
+  documentFolderMap.set("team", {
+    key: "team",
+    label: "Tutto il team",
+    documents: [],
+  });
+
+  if (canManage) {
+    for (const recipient of recipients) {
+      documentFolderMap.set(recipient.user.id, {
+        key: recipient.user.id,
+        label: `${recipient.user.firstName} ${recipient.user.lastName}`,
+        documents: [],
+      });
+    }
+  } else {
+    documentFolderMap.set(session.user.id, {
+      key: session.user.id,
+      label: `${session.user.firstName} ${session.user.lastName}`,
+      documents: [],
+    });
+  }
+
+  for (const document of filteredDocuments) {
+    const folderKey = document.assignedToAll ? "team" : document.assignedToId ?? "unknown";
+    const fallbackLabel = document.assignedTo
+      ? `${document.assignedTo.firstName} ${document.assignedTo.lastName}`
+      : "Dipendente";
+    const folder =
+      documentFolderMap.get(folderKey) ??
+      {
+        key: folderKey,
+        label: fallbackLabel,
+        documents: [] as typeof filteredDocuments,
+      };
+
+    folder.documents.push(document);
+    documentFolderMap.set(folderKey, folder);
+  }
+
+  const documentFolders = Array.from(documentFolderMap.values()).filter(
+    (folder) => folder.documents.length > 0
+  );
 
   return (
     <Stack>
@@ -182,9 +229,15 @@ export default async function DashboardDocumentsPage({
           <EmptyState message="Nessun documento disponibile." />
         </Panel>
       ) : (
-        <Panel title="Elenco documenti" action={`${visibleCount} visibili`}>
-          <ItemList>
-            {filteredDocuments.map((document) => {
+        <>
+          {documentFolders.map((folder) => (
+            <Panel
+              key={folder.key}
+              title={`📁 ${folder.label}`}
+              action={`${folder.documents.length} documenti`}
+            >
+              <ItemList>
+            {folder.documents.map((document) => {
               const audienceLabel = document.assignedToAll
                 ? "Tutto il team"
                 : document.assignedTo
@@ -280,7 +333,7 @@ export default async function DashboardDocumentsPage({
                                       Anteprima non disponibile
                                     </strong>
                                     <span>
-                                      Word ed Excel non sempre vengono visualizzati dentro l'app. Usa Apri per consultarli.
+                                      Word ed Excel non sempre vengono visualizzati dentro l&apos;app. Usa Apri per consultarli.
                                     </span>
                                   </div>
                                 </div>
@@ -346,8 +399,10 @@ export default async function DashboardDocumentsPage({
                 </div>
               );
             })}
-          </ItemList>
-        </Panel>
+              </ItemList>
+            </Panel>
+          ))}
+        </>
       )}
     </Stack>
   );

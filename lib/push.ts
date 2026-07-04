@@ -82,17 +82,19 @@ export async function sendPushNotification(
   }
 
   const data = toStringData(input.data);
+  data.title = input.title;
+  data.body = input.body;
   const successfulTokenIds = new Set<string>();
   let sentCount = 0;
 
   try {
-    for (const batch of chunk(tokens, 500)) {
+    const uniqueTokens = Array.from(
+      new Map(tokens.map((entry) => [entry.token, entry])).values()
+    );
+
+    for (const batch of chunk(uniqueTokens, 500)) {
       const response = await messaging.sendEachForMulticast({
         tokens: batch.map((entry) => entry.token),
-        notification: {
-          title: input.title,
-          body: input.body,
-        },
         data,
       });
 

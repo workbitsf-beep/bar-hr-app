@@ -75,10 +75,19 @@ function formatDateTime(dateIso: string): string {
 function formatDateOnly(value: string | Date): string {
   return new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
-    month: "long",
+    month: "2-digit",
     year: "numeric",
     timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
+}
+
+function formatShortDay(value: string | Date): string {
+  return new Intl.DateTimeFormat("it-IT", {
+    weekday: "short",
+    timeZone: APP_TIME_ZONE,
+  })
+    .format(new Date(value))
+    .replace(".", "");
 }
 
 function formatMonthYear(month: number, year: number): string {
@@ -97,6 +106,11 @@ function isAbsenceType(type: string) {
   return type === "Ferie" || type === "Permesso" || type === "Malattia";
 }
 
+function round(value: number, decimals = 2) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
 async function createMonthlyPdfBuffer(input: {
   userLabel: string;
   employeeName?: string;
@@ -108,48 +122,112 @@ async function createMonthlyPdfBuffer(input: {
   return new Promise((resolve, reject) => {
     const pdfFontPath = resolvePdfFontPath();
     const doc = new PDFDocument({
-      margin: 40,
+      margin: 24,
       size: "A4",
+      layout: "landscape",
       font: pdfFontPath,
+      bufferPages: true,
     });
     const chunks: Buffer[] = [];
-    const pageWidth = doc.page.width - 80;
+    const marginX = 24;
+    const pageWidth = doc.page.width - marginX * 2;
+    const pageBottom = doc.page.height - 24;
     const softBorder = "#e5e7eb";
+    const lighterBorder = "#eef2f7";
     const navy = "#111827";
     const muted = "#64748b";
+    const blue = "#1d8bd7";
+    const green = "#15945b";
+    const orange = "#f59e0b";
+    const purple = "#7c3aed";
+    const red = "#ef4444";
+    const panelFill = "#fbfdff";
 
     const ensureSpace = (needed = 24) => {
-      if (doc.y + needed > doc.page.height - 40) {
+      if (doc.y + needed > pageBottom) {
         doc.addPage();
       }
     };
 
-    const drawCard = (height: number, fill = "#ffffff") => {
-      ensureSpace(height + 12);
-      const top = doc.y;
-      doc.roundedRect(40, top, pageWidth, height, 14).fillAndStroke(fill, softBorder);
-      doc.y = top + 14;
-      return top;
-    };
-
-    const drawPill = (text: string, x: number, y: number, fill: string, color: string) => {
-      doc.roundedRect(x, y, Math.max(74, text.length * 5.8 + 18), 20, 10).fill(fill);
-      doc.fillColor(color).fontSize(9).text(text, x + 9, y + 6, {
-        lineBreak: false,
-      });
+    const text = (
+      value: string,
+      x: number,
+      y: number,
+      width: number,
+      options: { size?: number; color?: string; align?: "left" | "center" | "right"; bold?: boolean } = {}
+    ) => {
+      doc
+        .font(pdfFontPath)
+        .fillColor(options.color ?? navy)
+        .fontSize(options.size ?? 8)
+        .text(value, x, y, {
+          width,
+          align: options.align ?? "left",
+          lineBreak: false,
+          ellipsis: true,
+        });
       doc.fillColor("#000000");
     };
 
-    const drawSummaryMetric = (label: string, value: string, index: number) => {
-      const columnWidth = pageWidth / 3;
-      const x = 52 + (index % 3) * columnWidth;
-      const y = doc.y + Math.floor(index / 3) * 42;
-      doc.fillColor(muted).fontSize(8).text(label.toUpperCase(), x, y, {
-        width: columnWidth - 12,
+    const drawCircle = (x: number, y: number, color: string, radius = 3) => {
+      doc.circle(x, y, radius).fill(color);
+    };
+
+    const drawBadge = (label: string, x: number, y: number, fill: string, color: string, width = 58) => {
+      doc.roundedRect(x, y, width, 12, 6).fill(fill);
+      text(label, x + 6, y + 3, width - 12, { size: 6.5, color, align: "center" });
+    };
+
+    const drawRoundedPanel = (x: number, y: number, width: number, height: number, fill = "#ffffff") => {
+      doc.roundedRect(x, y, width, height, 7).fillAndStroke(fill, softBorder);
+    };
+
+    const absenceItems = input.dataset.groupedLogs.flatMap((day) =>
+      (day.items ?? []).filter((item) => isAbsenceType(item.type))
+    );
+    const sumAbsenceHours = (type: "Ferie" | "Permesso" | "Malattia") =>
+      absenceItems
+        .filter((item) => item.type === type)
+        .reduce((total, item) => total + hoursBetween(item.startsAt, item.endsAt), 0);
+    const permissionHours = sumAbsenceHours("Permesso");
+    const vacationHours = sumAbsenceHours("Ferie");
+    const sicknessHours = sumAbsenceHours("Malattia");
+    const workedDays = input.dataset.groupedLogs.filter((day) => day.entries.length > 0).length;
+    const absenceDays = input.dataset.groupedLogs.filter((day) =>
+      (day.items ?? []).some((item) => isAbsenceType(item.type))
+    ).length;
+    const availabilityDays = input.dataset.groupedLogs.filter((day) =>
+      (day.items ?? []).some((item) => item.type === "Indisponibilita")
+    ).length;
+    const recognizedHours =
+      input.dataset.totals.roundedHours + permissionHours + vacationHours + sicknessHours;
+
+    const drawHeader = () => {
+      doc.y = 22;
+      text("Report Timbrature Dipendente", marginX, 24, 250, { size: 14.5, color: navy });
+      text(formatMonthYear(input.month, input.year), marginX, 45, 170, { size: 10.5, color: navy });
+      text(`Generato il ${formatDateTime(new Date().toISOString())}`, pageWidth - 200, 28, 220, {
+        size: 7.5,
+        color: muted,
+        align: "right",
       });
-      doc.fillColor(navy).fontSize(13).text(value, x, y + 14, {
-        width: columnWidth - 12,
-      });
+    };
+
+    const addFooters = () => {
+      const pages = doc.bufferedPageRange();
+      for (let pageIndex = 0; pageIndex < pages.count; pageIndex += 1) {
+        doc.switchToPage(pageIndex);
+        text(`Pagina ${pageIndex + 1} di ${pages.count}`, doc.page.width - 95, doc.page.height - 18, 70, {
+          size: 7,
+          color: "#94a3b8",
+          align: "right",
+        });
+      }
+    };
+
+    const finishDocument = () => {
+      addFooters();
+      doc.end();
     };
 
     doc.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
@@ -157,21 +235,7 @@ async function createMonthlyPdfBuffer(input: {
     doc.on("error", reject);
 
     doc.font(pdfFontPath);
-    doc.fillColor(navy).fontSize(22).text("Report mensile dipendente", 40, 42);
-    doc
-      .fillColor(muted)
-      .fontSize(10)
-      .text(`Generato il ${formatDateTime(new Date().toISOString())}`, 40, 72);
-    doc.moveDown(1.6);
-    doc
-      .fillColor(navy)
-      .fontSize(12)
-      .text(`Dipendente: ${input.employeeName ?? input.userLabel}`, 40, doc.y);
-    if (input.employeeEmail) {
-      doc.fillColor(muted).fontSize(11).text(`Email: ${input.employeeEmail}`);
-    }
-    doc.fillColor(muted).fontSize(11).text(`Periodo: ${formatMonthYear(input.month, input.year)}`);
-    doc.moveDown(1.2);
+    drawHeader();
 
     if (input.dataset.mode === "company") {
       if (input.dataset.groupedLogs.length === 0) {
@@ -206,115 +270,236 @@ async function createMonthlyPdfBuffer(input: {
       doc.font(pdfFontPath).text(
         `Riepilogo mese: indisponibilita ${input.dataset.summary.availability} | ferie ${input.dataset.summary.vacation} | permessi ${input.dataset.summary.permission} | malattie ${input.dataset.summary.sickness} | straordinari ${input.dataset.summary.overtime} | corsi ${input.dataset.summary.courses} | chiusure ${input.dataset.summary.closures}`
       );
-      doc.end();
+      finishDocument();
       return;
     }
 
-    const absenceItems = input.dataset.groupedLogs.flatMap((day) =>
-      (day.items ?? []).filter((item) => isAbsenceType(item.type))
-    );
-    const overtimeItems = input.dataset.groupedLogs.flatMap((day) =>
-      (day.items ?? []).filter((item) => item.type === "Straordinario")
-    );
-    const sumAbsenceHours = (type: "Ferie" | "Permesso" | "Malattia") =>
-      absenceItems
-        .filter((item) => item.type === type)
-        .reduce((total, item) => total + hoursBetween(item.startsAt, item.endsAt), 0);
-    const overtimeHours = overtimeItems.reduce(
-      (total, item) => total + hoursBetween(item.startsAt, item.endsAt),
-      0
-    );
-    const workedDays = input.dataset.groupedLogs.filter((day) => day.entries.length > 0).length;
-    const absenceDays = input.dataset.groupedLogs.filter((day) =>
-      (day.items ?? []).some((item) => isAbsenceType(item.type))
-    ).length;
+    const employeeTop = 70;
+    drawRoundedPanel(marginX, employeeTop, 220, 74, "#ffffff");
+    doc.circle(marginX + 36, employeeTop + 37, 25).fill("#eef2ff");
+    text((input.employeeName ?? input.userLabel).slice(0, 1).toUpperCase(), marginX + 27, employeeTop + 24, 18, {
+      size: 21,
+      color: purple,
+      align: "center",
+    });
+    text(input.employeeName ?? input.userLabel, marginX + 70, employeeTop + 16, 110, {
+      size: 11,
+      color: navy,
+    });
+    drawBadge("DIPENDENTE", marginX + 151, employeeTop + 15, "#dbeafe", "#1d4ed8", 55);
+    text(input.employeeEmail ?? "-", marginX + 70, employeeTop + 35, 130, { size: 7.5, color: muted });
+    text(`Periodo: ${formatMonthYear(input.month, input.year)}`, marginX + 70, employeeTop + 50, 130, {
+      size: 7.5,
+      color: muted,
+    });
 
-    drawCard(126, "#fbf8ff");
-    doc.fillColor(navy).fontSize(13).text("Riepilogo mese", 52, doc.y);
-    doc.moveDown(0.7);
-    const summaryStartY = doc.y;
+    const metricX = marginX + 238;
+    const metricY = employeeTop;
+    const metricW = (pageWidth - 238) / 6;
+    const topMetrics = [
+      { value: formatDurationClock(input.dataset.totals.realHours), label: "Ore Reali", color: blue },
+      { value: formatDurationClock(input.dataset.totals.roundedHours), label: "Ore Arrotondate", color: green },
+      { value: String(workedDays), label: "Giorni Lavorati", color: orange },
+      { value: String(absenceDays), label: "Permessi / Ferie", color: purple },
+      { value: String(availabilityDays), label: "Indisponibilita", color: orange },
+      { value: formatDurationClock(input.dataset.totals.roundedHours), label: "Totale Ore Mese", color: blue },
+    ];
+
+    drawRoundedPanel(metricX, metricY, pageWidth - 238, 74, "#ffffff");
+    topMetrics.forEach((metric, index) => {
+      const x = metricX + index * metricW;
+      if (index > 0) {
+        doc.moveTo(x, metricY).lineTo(x, metricY + 74).strokeColor(lighterBorder).stroke();
+      }
+      drawCircle(x + 22, metricY + 28, metric.color, 8);
+      text(metric.value, x + 40, metricY + 19, metricW - 46, { size: 11, color: navy });
+      text(metric.label, x + 10, metricY + 46, metricW - 20, { size: 7, color: navy, align: "center" });
+    });
+
+    const legendY = employeeTop + 94;
     [
-      ["Totale ore lavorate", formatDurationClock(input.dataset.totals.roundedHours)],
-      ["Totale ore reali", formatDurationClock(input.dataset.totals.realHours)],
-      ["Totale ore permessi", formatDurationClock(sumAbsenceHours("Permesso"))],
-      ["Totale ore ferie", formatDurationClock(sumAbsenceHours("Ferie"))],
-      ["Totale ore malattia", formatDurationClock(sumAbsenceHours("Malattia"))],
-      ["Assenze giustificate", `${absenceDays} giorni`],
-      ["Giorni lavorati", String(workedDays)],
-      ["Giorni con assenza", String(absenceDays)],
-      ["Straordinari", formatDurationClock(overtimeHours)],
-    ].forEach(([label, value], index) => drawSummaryMetric(label, value, index));
-    doc.y = summaryStartY + 128;
+      ["Lavorato", blue],
+      ["Permesso / Ferie", green],
+      ["Indisponibilita", orange],
+      ["Festivo", purple],
+      ["Nessun dato", "#94a3b8"],
+    ].forEach(([label, color], index) => {
+      const x = marginX + index * 95;
+      drawCircle(x + 4, legendY + 4, color);
+      text(label, x + 13, legendY, 76, { size: 7.5, color: navy });
+    });
 
-    doc.fillColor(navy).fontSize(15).text("Dettaglio giornaliero", 40, doc.y);
-    doc.moveDown(0.8);
+    const tableTop = legendY + 20;
+    const columns = [
+      { key: "date", label: "Data", width: 50 },
+      { key: "day", label: "Giorno", width: 36 },
+      { key: "status", label: "Stato", width: 70 },
+      { key: "type", label: "Tipo", width: 86 },
+      { key: "plannedStart", label: "Prev. Inizio", width: 48 },
+      { key: "plannedEnd", label: "Prev. Fine", width: 46 },
+      { key: "plannedTotal", label: "Prev. Tot.", width: 46 },
+      { key: "realStart", label: "Entrata", width: 45 },
+      { key: "realEnd", label: "Uscita", width: 45 },
+      { key: "realTotal", label: "Reale", width: 43 },
+      { key: "roundedStart", label: "Arr. Ent.", width: 45 },
+      { key: "roundedEnd", label: "Arr. Usc.", width: 45 },
+      { key: "roundedTotal", label: "Arr. Tot.", width: 43 },
+      { key: "hours", label: "Ore", width: 42 },
+      { key: "note", label: "Note", width: pageWidth - 690 },
+    ];
+    const tableWidth = columns.reduce((total, column) => total + column.width, 0);
+    const rowH = 17;
+
+    const drawTableHeader = () => {
+      doc.roundedRect(marginX, doc.y, tableWidth, 28, 6).fillAndStroke("#f8fafc", softBorder);
+      let x = marginX;
+      columns.forEach((column) => {
+        text(column.label, x + 4, doc.y + 10, column.width - 8, {
+          size: 6.7,
+          color: navy,
+          align: column.key === "note" || column.key === "type" ? "left" : "center",
+        });
+        x += column.width;
+      });
+      doc.y += 28;
+    };
+
+    doc.y = tableTop;
+    drawTableHeader();
+
+    const drawDataRow = (values: string[], statusColor: string, fill = "#ffffff") => {
+      ensureSpace(rowH + 36);
+      if (doc.y < 60) {
+        drawHeader();
+        doc.y = 68;
+        drawTableHeader();
+      }
+      const y = doc.y;
+      doc.rect(marginX, y, tableWidth, rowH).fillAndStroke(fill, lighterBorder);
+      let x = marginX;
+      values.forEach((value, index) => {
+        if (index === 2) {
+          drawCircle(x + 8, y + 8.5, statusColor, 2.7);
+          text(value, x + 15, y + 5, columns[index].width - 17, { size: 6.6, color: navy });
+        } else {
+          text(value, x + 4, y + 5, columns[index].width - 8, {
+            size: 6.6,
+            color: index === 14 ? "#334155" : navy,
+            align: index <= 13 && index !== 3 ? "center" : "left",
+          });
+        }
+        x += columns[index].width;
+      });
+      doc.y += rowH;
+    };
 
     for (const day of input.dataset.groupedLogs) {
       const dayAbsences = (day.items ?? []).filter((item) => isAbsenceType(item.type));
-      const cardHeight = 74 + day.entries.length * 48 + dayAbsences.length * 54;
-      const top = drawCard(Math.max(92, cardHeight), "#ffffff");
-      const contentX = 56;
-      let cursorY = top + 16;
-      const status =
-        day.entries.length > 0
-          ? "Lavorato"
-          : dayAbsences[0]?.type ?? (day.labels[0] || "Registrazione");
-      const statusFill =
-        status === "Lavorato" ? "#dcfce7" : status === "Ferie" ? "#dbeafe" : "#ffedd5";
-      const statusColor =
-        status === "Lavorato" ? "#166534" : status === "Ferie" ? "#1d4ed8" : "#9a3412";
+      const availabilities = (day.items ?? []).filter((item) => item.type === "Indisponibilita");
 
-      doc.fillColor(navy).fontSize(12).text(formatDateOnly(day.date), contentX, cursorY);
-      drawPill(status, 410, cursorY - 2, statusFill, statusColor);
-      cursorY += 26;
-
-      for (const entry of day.entries) {
-        doc
-          .fillColor("#334155")
-          .fontSize(10)
-          .text(`Entrata: ${formatTime(entry.clockIn)}    Uscita: ${formatTime(entry.clockOut)}`, contentX, cursorY);
-        cursorY += 15;
-        doc
-          .fillColor(muted)
-          .fontSize(10)
-          .text(
-            `Pause: -    Ore lavorate: ${formatDurationClock(entry.roundedHours)}    Ore reali: ${formatDurationClock(entry.realHours)}`,
-            contentX,
-            cursorY
+      if (day.entries.length > 0) {
+        day.entries.forEach((entry, index) => {
+          drawDataRow(
+            [
+              index === 0 ? formatDateOnly(day.date) : "",
+              index === 0 ? formatShortDay(day.date) : "",
+              "Lavorato",
+              "Turno",
+              "-",
+              "-",
+              "-",
+              formatTime(entry.clockIn),
+              formatTime(entry.clockOut),
+              formatDurationClock(entry.realHours),
+              formatTime(entry.clockIn),
+              formatTime(entry.clockOut),
+              formatDurationClock(entry.roundedHours),
+              formatDurationClock(entry.roundedHours),
+              "-",
+            ],
+            blue
           );
-        cursorY += 24;
+        });
       }
 
-      for (const absence of dayAbsences) {
-        doc
-          .fillColor("#334155")
-          .fontSize(10)
-          .text(
-            `${absence.type}: ${formatTime(absence.startsAt)} - ${formatTime(absence.endsAt)}`,
-            contentX,
-            cursorY
-          );
-        cursorY += 15;
-        doc
-          .fillColor(muted)
-          .fontSize(10)
-          .text(`Ore riconosciute: ${formatDurationClock(hoursBetween(absence.startsAt, absence.endsAt))}`, contentX, cursorY);
-        cursorY += 15;
-        if (absence.note) {
-          doc.fillColor(muted).fontSize(9).text(`Nota: ${absence.note}`, contentX, cursorY);
-          cursorY += 16;
-        }
-        cursorY += 6;
-      }
+      dayAbsences.forEach((absence, index) => {
+        const color = absence.type === "Ferie" ? blue : absence.type === "Malattia" ? red : green;
+        drawDataRow(
+          [
+            day.entries.length === 0 && index === 0 ? formatDateOnly(day.date) : "",
+            day.entries.length === 0 && index === 0 ? formatShortDay(day.date) : "",
+            absence.type,
+            absence.title || absence.type,
+            formatTime(absence.startsAt),
+            formatTime(absence.endsAt),
+            formatDurationClock(hoursBetween(absence.startsAt, absence.endsAt)),
+            "-",
+            "-",
+            "-",
+            formatTime(absence.startsAt),
+            formatTime(absence.endsAt),
+            formatDurationClock(hoursBetween(absence.startsAt, absence.endsAt)),
+            formatDurationClock(hoursBetween(absence.startsAt, absence.endsAt)),
+            absence.note || absence.type,
+          ],
+          color,
+          "#fffdfa"
+        );
+      });
 
-      if (day.entries.length === 0 && dayAbsences.length === 0) {
-        doc.fillColor(muted).fontSize(10).text("Nessun dato registrato.", contentX, cursorY);
-      }
-
-      doc.y = top + Math.max(92, cardHeight) + 12;
+      availabilities.forEach((availability, index) => {
+        drawDataRow(
+          [
+            day.entries.length === 0 && dayAbsences.length === 0 && index === 0 ? formatDateOnly(day.date) : "",
+            day.entries.length === 0 && dayAbsences.length === 0 && index === 0 ? formatShortDay(day.date) : "",
+            "Indisponibilita",
+            availability.title || "Indisponibilita",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "Indisponibilita",
+          ],
+          orange,
+          "#fffdf7"
+        );
+      });
     }
 
-    doc.end();
+    ensureSpace(72);
+    const summaryY = doc.y + 10;
+    drawRoundedPanel(marginX, summaryY, pageWidth, 55, panelFill);
+    text("RIEPILOGO MESE", marginX + 18, summaryY + 20, 110, { size: 10, color: "#1d4ed8" });
+    const bottomMetrics = [
+      [formatDurationClock(input.dataset.totals.realHours), "Ore Reali", blue],
+      [formatDurationClock(input.dataset.totals.roundedHours), "Ore Arrotondate", green],
+      [String(workedDays), "Giorni Lavorati", navy],
+      [
+        `${absenceDays} giorni`,
+        `Permessi ${formatDurationClock(permissionHours)} / Ferie ${formatDurationClock(vacationHours)}`,
+        green,
+      ],
+      [`${availabilityDays} giorni`, "Indisponibilita", orange],
+      [formatDurationClock(round(recognizedHours)), "Totale Ore Riconosciute", blue],
+    ];
+    const bottomStart = marginX + 140;
+    const bottomW = (pageWidth - 155) / bottomMetrics.length;
+    bottomMetrics.forEach(([value, label, color], index) => {
+      const x = bottomStart + index * bottomW;
+      if (index > 0) {
+        doc.moveTo(x, summaryY + 10).lineTo(x, summaryY + 45).strokeColor(lighterBorder).stroke();
+      }
+      text(value, x + 8, summaryY + 14, bottomW - 16, { size: 10, color: String(color), align: "center" });
+      text(label, x + 8, summaryY + 31, bottomW - 16, { size: 6.8, color: navy, align: "center" });
+    });
+
+    finishDocument();
   });
 }
 

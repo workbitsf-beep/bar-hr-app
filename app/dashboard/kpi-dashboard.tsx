@@ -242,12 +242,22 @@ export function KpiDashboard({
   const teamStats = [
     features.shifts
       ? {
-          label: "In turno oggi",
+          label: "Persone in turno",
           value: String(data.today.scheduledUsers),
           detail:
-            data.today.scheduledShifts > 0
-              ? `${data.today.scheduledShifts} turni programmati`
-              : "Nessun turno oggi",
+            data.today.scheduledUsers > 0
+              ? "persone uniche oggi"
+              : "nessuna persona in turno",
+        }
+      : null,
+    features.timeTracking
+      ? {
+          label: "Presenti ora",
+          value: String(data.today.presentUsers),
+          detail:
+            data.today.presentUsers > 0
+              ? "entrata timbrata"
+              : "nessuna entrata attiva",
         }
       : null,
     features.tasks
@@ -262,14 +272,7 @@ export function KpiDashboard({
       : null,
     features.requests
       ? {
-          label: "Presente oggi",
-          value: String(Math.max(0, data.today.scheduledUsers - data.today.absences)),
-          detail: "personale operativo",
-        }
-      : null,
-    features.shifts || features.requests
-      ? {
-          label: "Assente oggi",
+          label: "Assenze oggi",
           value: String(data.today.absences),
           detail:
             data.today.absences > 0
