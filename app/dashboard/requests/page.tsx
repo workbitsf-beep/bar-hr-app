@@ -68,6 +68,14 @@ function closureTypeTone(type: CalendarClosureType) {
   return "neutral" as const;
 }
 
+function formatClosureCompactDate(value: Date) {
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(value);
+}
+
 function requestTone(status: RequestStatus) {
   if (status === RequestStatus.APPROVED) {
     return "success" as const;
@@ -537,21 +545,22 @@ export default async function DashboardRequestsPage({
                   style={{
                     minWidth: 0,
                     display: "grid",
-                    gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) auto",
+                    gridTemplateColumns: "minmax(78px, 0.8fr) minmax(100px, 1fr) 92px",
                   }}
                 >
                   {["Titolo", "Date", "Azioni"].map((label) => (
                     <div
                       key={label}
                       style={{
-                        padding: "14px 16px",
+                        padding: "10px 12px",
                         background: "#f8fafc",
                         borderBottom: "1px solid #e2e8f0",
                         fontWeight: 700,
                         color: "#475569",
-                        fontSize: 13,
+                        fontSize: 11,
                         textTransform: "uppercase",
                         letterSpacing: "0.06em",
+                        textAlign: label === "Azioni" ? "center" : "left",
                       }}
                     >
                       {label}
@@ -563,15 +572,25 @@ export default async function DashboardRequestsPage({
                       <div
                         key={`${closure.id}-title`}
                         style={{
-                          padding: "16px",
+                          padding: "12px",
                           borderBottom: "1px solid #eef2f7",
                           color: "#0f172a",
                           fontWeight: 700,
+                          fontSize: 14,
                           display: "grid",
                           gap: 4,
+                          minWidth: 0,
                         }}
                       >
-                        <span>{closure.title}</span>
+                        <span
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {closure.title}
+                        </span>
                       </div>
 
                       <div
@@ -589,17 +608,26 @@ export default async function DashboardRequestsPage({
                       <div
                         key={`${closure.id}-hours`}
                         style={{
-                          padding: "14px 16px",
+                          padding: "12px",
                           borderBottom: "1px solid #eef2f7",
                           color: "#334155",
-                          lineHeight: 1.35,
-                          fontSize: 14,
+                          lineHeight: 1.2,
+                          fontSize: 13,
+                          fontWeight: 650,
                           whiteSpace: "nowrap",
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                         }}
+                        title={`${formatDate(closure.startsAt)}${
+                          closure.startsAt.toDateString() !== closure.endsAt.toDateString()
+                            ? ` - ${formatDate(closure.endsAt)}`
+                            : ""
+                        }`}
                       >
-                        {formatDate(closure.startsAt)}
+                        {formatClosureCompactDate(closure.startsAt)}
                         {closure.startsAt.toDateString() !== closure.endsAt.toDateString()
-                          ? ` - ${formatDate(closure.endsAt)}`
+                          ? ` - ${formatClosureCompactDate(closure.endsAt)}`
                           : ""}
                       </div>
 
@@ -625,12 +653,13 @@ export default async function DashboardRequestsPage({
                       <div
                         key={`${closure.id}-actions`}
                         style={{
-                          padding: "16px",
+                          padding: "8px 10px",
                           borderBottom: "1px solid #eef2f7",
                           display: "flex",
-                          gap: 10,
+                          gap: 6,
                           alignItems: "center",
-                          flexWrap: "wrap",
+                          justifyContent: "center",
+                          flexWrap: "nowrap",
                         }}
                       >
                         <PopupAction
