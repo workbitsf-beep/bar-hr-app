@@ -15,8 +15,8 @@ export default async function SuperAdminGlobalSettingsPage() {
 
   return (
     <SuperAdminFrame
-      title="Impostazioni globali"
-      description="Range timbrature e impostazioni condivise per tutte le attivita."
+      title="GPS globale"
+      description="Controllo del range timbrature globale."
     >
       <Panel title="Range globale timbrature">
         <GlobalGpsRadiusForm initialRadius={globalGpsRadius} />

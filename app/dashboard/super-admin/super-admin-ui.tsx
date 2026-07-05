@@ -2,7 +2,15 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { EmptyState, Panel } from "../ui";
 
-type AdminSection = "home" | "owners" | "bars" | "billing" | "revenue" | "gps" | "legal" | "system";
+type AdminSection =
+  | "home"
+  | "owners"
+  | "bars"
+  | "billing"
+  | "gps"
+  | "legal"
+  | "system"
+  | "settings";
 
 const superAdminItems: Array<{
   href: string;
@@ -16,8 +24,8 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin",
     title: "Panoramica",
-    description: "Numeri essenziali e stato rapido.",
-    eyebrow: "Control room",
+    description: "Solo numeri essenziali.",
+    eyebrow: "Home",
     section: "home",
     color: "#111936",
     tint: "#f8fafc",
@@ -25,7 +33,7 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin/owners",
     title: "Titolari",
-    description: "Crea, cerca e collega proprietari.",
+    description: "Inserimento e associazioni.",
     eyebrow: "Persone",
     section: "owners",
     color: "#5b21b6",
@@ -33,8 +41,8 @@ const superAdminItems: Array<{
   },
   {
     href: "/dashboard/super-admin/bars",
-    title: "Attivita",
-    description: "Clienti, sedi e tipologia operativa.",
+    title: "Attività",
+    description: "Inserimento attività e titolari.",
     eyebrow: "Clienti",
     section: "bars",
     color: "#7b2ff7",
@@ -43,38 +51,47 @@ const superAdminItems: Array<{
   {
     href: "/dashboard/super-admin/billing",
     title: "Abbonamenti",
-    description: "Trial, rinnovi, sconti e stato Stripe.",
-    eyebrow: "Revenue",
+    description: "Controllo stato e rinnovi.",
+    eyebrow: "Billing",
     section: "billing",
     color: "#5b21b6",
     tint: "#f7f3ff",
   },
   {
-    href: "/dashboard/super-admin/revenue",
-    title: "Incassi",
-    description: "MRR, ARR e attivita paganti.",
-    eyebrow: "Cashflow",
-    section: "revenue",
-    color: "#8b5cf6",
-    tint: "#faf5ff",
-  },
-  {
     href: "/dashboard/super-admin/system",
-    title: "Sistema",
-    description: "Metriche interne e consumi operativi.",
-    eyebrow: "Monitoraggio",
+    title: "Utilizzo",
+    description: "RAM, CPU e attività app.",
+    eyebrow: "Sistema",
     section: "system",
     color: "#0b1024",
     tint: "#f7f3ff",
   },
   {
     href: "/dashboard/super-admin/gps",
-    title: "Impostazioni globali",
-    description: "Range timbrature e regole condivise.",
-    eyebrow: "Global",
+    title: "GPS globale",
+    description: "Range timbrature globale.",
+    eyebrow: "GPS",
     section: "gps",
     color: "#4c1d95",
     tint: "#f5f3ff",
+  },
+  {
+    href: "/dashboard/super-admin/legal",
+    title: "Documenti legali",
+    description: "Privacy, termini e contratti.",
+    eyebrow: "Legal",
+    section: "legal",
+    color: "#6d28d9",
+    tint: "#faf5ff",
+  },
+  {
+    href: "/dashboard/super-admin/settings",
+    title: "Impostazioni",
+    description: "Cambio password admin.",
+    eyebrow: "Account",
+    section: "settings",
+    color: "#0f172a",
+    tint: "#f8fafc",
   },
 ];
 
@@ -105,11 +122,11 @@ function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: numbe
     );
   }
 
-  if (section === "billing" || section === "revenue") {
+  if (section === "billing") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="3" {...common} />
-        <path d={section === "revenue" ? "M7 15h2.5M12 15h5M8 12c1.7-1.4 3.4-1.4 5 0s3.3 1.4 5 0" : "M3 10h18M7 15h4"} {...common} />
+        <path d="M3 10h18M7 15h4" {...common} />
       </svg>
     );
   }
@@ -137,6 +154,15 @@ function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: numbe
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3" {...common} />
         <path d="M7 5h10a3 3 0 0 1 3 3v8" {...common} />
+      </svg>
+    );
+  }
+
+  if (section === "settings") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...common} />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.38a1.7 1.7 0 0 0-1 .92l-.03.08a2 2 0 0 1-3.78 0l-.03-.08A1.7 1.7 0 0 0 9.2 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.62 15a1.7 1.7 0 0 0-.92-1l-.08-.03a2 2 0 0 1 0-3.78l.08-.03A1.7 1.7 0 0 0 4.6 9.2a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.62a1.7 1.7 0 0 0 1-.92l.03-.08a2 2 0 0 1 3.78 0l.03.08a1.7 1.7 0 0 0 .96.9 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.38 9c.15.42.48.75.9.92l.08.03a2 2 0 0 1 0 3.78l-.08.03c-.42.17-.75.5-.92.92Z" {...common} />
       </svg>
     );
   }

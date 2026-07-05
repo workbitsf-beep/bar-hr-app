@@ -117,8 +117,8 @@ export default async function SuperAdminSystemPage() {
 
   return (
     <SuperAdminFrame
-      title="Sistema"
-      description="Monitoraggio leggero con metriche interne disponibili dal database."
+      title="Panoramica utilizzo"
+      description="Monitoraggio leggero di RAM, CPU e attività dell'app."
     >
       <Stack>
         <Panel title="Monitoraggio">

@@ -1,70 +1,6 @@
 import Link from "next/link";
-import { ActivityType, BillingInterval, PlanType, Role, SubscriptionStatus } from "@prisma/client";
+import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-
-const MONTHLY_PRICE = 29.99;
-const YEARLY_PRICE = 299;
-
-type RevenueSubscription = {
-  planType: PlanType;
-  status: SubscriptionStatus;
-  billingInterval: BillingInterval | null;
-  monthlyDiscountPercent: number;
-};
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatDate(value: Date | null) {
-  if (!value) return "Nessuna scadenza";
-
-  return new Intl.DateTimeFormat("it-IT", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(value);
-}
-
-function getActivityLabel(activityType: ActivityType) {
-  return activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione";
-}
-
-function getDiscountMultiplier(discountPercent: number) {
-  return 1 - Math.max(0, Math.min(100, discountPercent)) / 100;
-}
-
-function isPaidActive(subscription: RevenueSubscription) {
-  return (
-    subscription.planType === PlanType.PAID &&
-    (subscription.status === SubscriptionStatus.ACTIVE ||
-      subscription.status === SubscriptionStatus.TRIALING)
-  );
-}
-
-function getEstimatedMonthlyRevenue(subscription: RevenueSubscription) {
-  if (!isPaidActive(subscription)) return 0;
-
-  const multiplier = getDiscountMultiplier(subscription.monthlyDiscountPercent);
-
-  return subscription.billingInterval === BillingInterval.YEARLY
-    ? (YEARLY_PRICE * multiplier) / 12
-    : MONTHLY_PRICE * multiplier;
-}
-
-function statusLabel(planType: PlanType, status: SubscriptionStatus) {
-  if (planType === PlanType.FREE) return "Free";
-  if (planType === PlanType.LIFETIME) return "Lifetime";
-  if (planType === PlanType.TRIAL || status === SubscriptionStatus.TRIALING) return "In prova";
-  if (status === SubscriptionStatus.ACTIVE) return "Attivo";
-  if (status === SubscriptionStatus.PAST_DUE) return "In scadenza";
-  if (status === SubscriptionStatus.UNPAID) return "Scaduto";
-  return "Disattivato";
-}
 
 function AdminMetric({
   label,
@@ -76,7 +12,7 @@ function AdminMetric({
   detail: string;
 }) {
   return (
-    <div className="sa-lite-metric">
+    <div className="sa-overview-metric">
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{detail}</small>
@@ -84,59 +20,79 @@ function AdminMetric({
   );
 }
 
+const quickSections = [
+  {
+    href: "/dashboard/super-admin/owners",
+    title: "Inserimento titolare",
+    description: "Crea titolari e gestisci associazioni.",
+    icon: "👤",
+  },
+  {
+    href: "/dashboard/super-admin/bars",
+    title: "Inserimento attività",
+    description: "Crea attività e collega uno o più titolari.",
+    icon: "🏢",
+  },
+  {
+    href: "/dashboard/super-admin/billing",
+    title: "Controllo abbonamenti",
+    description: "Stati, trial, scadenze e gestione manuale.",
+    icon: "💳",
+  },
+  {
+    href: "/dashboard/super-admin/gps",
+    title: "GPS globale",
+    description: "Range timbrature globale.",
+    icon: "📍",
+  },
+  {
+    href: "/dashboard/super-admin/legal",
+    title: "Documenti legali",
+    description: "Inserimento privacy, termini e contratti.",
+    icon: "📄",
+  },
+  {
+    href: "/dashboard/super-admin/system",
+    title: "Panoramica utilizzo",
+    description: "RAM, CPU, notifiche e attività app.",
+    icon: "📊",
+  },
+  {
+    href: "/dashboard/super-admin/settings",
+    title: "Impostazioni",
+    description: "Cambio password account Super Admin.",
+    icon: "⚙️",
+  },
+];
+
 export async function SuperAdminHomeHub() {
   const memoryUsage = process.memoryUsage();
-  const cpuUsage = process.cpuUsage();
   const [
     activityCounts,
     ownerCount,
-    staffCount,
-    subscriptions,
-    recentActivities,
-    billingStatusCounts,
+    userCount,
+    activeSubscriptions,
+    trialSubscriptions,
+    riskySubscriptions,
   ] = await Promise.all([
     prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
     prisma.user.count({ where: { role: Role.OWNER } }),
-    prisma.user.count({
-      where: { role: { in: [Role.MANAGER, Role.AMMINISTRAZIONE, Role.EMPLOYEE] } },
+    prisma.user.count({ where: { role: { not: Role.SUPER_ADMIN } } }),
+    prisma.subscription.count({
+      where: { status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] } },
     }),
-    prisma.subscription.findMany({
+    prisma.subscription.count({ where: { status: SubscriptionStatus.TRIALING } }),
+    prisma.subscription.count({
       where: {
-        OR: [
-          {
-            planType: PlanType.PAID,
-            status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
-          },
-          { planType: PlanType.TRIAL },
-        ],
-      },
-      select: {
-        planType: true,
-        status: true,
-        billingInterval: true,
-        monthlyDiscountPercent: true,
-      },
-    }),
-    prisma.bar.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 4,
-      select: {
-        id: true,
-        name: true,
-        activityType: true,
-        owner: { select: { firstName: true, lastName: true } },
-        subscription: {
-          select: {
-            planType: true,
-            status: true,
-            currentPeriodEnd: true,
-          },
+        status: {
+          in: [
+            SubscriptionStatus.PAST_DUE,
+            SubscriptionStatus.UNPAID,
+            SubscriptionStatus.CANCELED,
+            SubscriptionStatus.INACTIVE,
+          ],
         },
       },
-    }),
-    prisma.subscription.groupBy({
-      by: ["planType", "status"],
-      _count: { _all: true },
     }),
   ]);
 
@@ -144,375 +100,162 @@ export async function SuperAdminHomeHub() {
   const restaurantCount =
     activityCounts.find((entry) => entry.activityType === ActivityType.RESTAURANT)?._count._all ?? 0;
   const totalActivities = companyCount + restaurantCount;
-  const monthlyRevenue = subscriptions.reduce(
-    (sum, subscription) => sum + getEstimatedMonthlyRevenue(subscription),
-    0
-  );
-  const annualRevenue = monthlyRevenue * 12;
-  const activeBillingCount = billingStatusCounts.reduce(
-    (sum, bucket) =>
-      sum +
-      (bucket.status === SubscriptionStatus.ACTIVE || bucket.status === SubscriptionStatus.TRIALING
-        ? bucket._count._all
-        : 0),
-    0
-  );
-  const riskBillingCount = billingStatusCounts.reduce(
-    (sum, bucket) =>
-      sum +
-      (bucket.status === SubscriptionStatus.PAST_DUE ||
-      bucket.status === SubscriptionStatus.UNPAID ||
-      bucket.status === SubscriptionStatus.CANCELED ||
-      bucket.status === SubscriptionStatus.INACTIVE
-        ? bucket._count._all
-        : 0),
-    0
-  );
   const rssMb = Math.round(memoryUsage.rss / 1024 / 1024);
   const heapMb = Math.round(memoryUsage.heapUsed / 1024 / 1024);
-  const cpuSeconds = Math.round((cpuUsage.user + cpuUsage.system) / 1_000_000);
-  const maxActivityCount = Math.max(restaurantCount, companyCount, 1);
 
   return (
-    <div className="sa-lite">
-      <section className="sa-lite-hero">
-        <div>
-          <span className="sa-lite-eyebrow">Controllo rapido</span>
-          <h2>{formatCurrency(annualRevenue)} / anno</h2>
-          <p>
-            Panoramica leggera su attivita, titolari e abbonamenti. I dettagli completi
-            restano nelle sezioni dedicate.
-          </p>
-        </div>
-        <div className="sa-quick-actions" aria-label="Azioni rapide Super Admin">
-          <Link href="/dashboard/super-admin/bars">+ Nuova attivita</Link>
-          <Link href="/dashboard/super-admin/owners">+ Nuovo titolare</Link>
-        </div>
+    <div className="sa-overview">
+      <section className="sa-overview-head">
+        <span>Control room</span>
+        <h2>Super Admin leggero</h2>
+        <p>Solo accessi rapidi e numeri essenziali. Le liste pesanti restano nelle pagine dedicate.</p>
       </section>
 
-      <section className="sa-lite-metrics" aria-label="Metriche principali">
+      <section className="sa-overview-metrics" aria-label="Metriche Super Admin">
         <AdminMetric
-          label="Attivita"
+          label="Attività"
           value={String(totalActivities)}
           detail={`${restaurantCount} ristorazione - ${companyCount} aziende`}
         />
-        <AdminMetric
-          label="Ricavi"
-          value={formatCurrency(monthlyRevenue)}
-          detail={`${formatCurrency(annualRevenue)} stimati all'anno`}
-        />
-        <AdminMetric
-          label="Persone"
-          value={String(ownerCount + staffCount)}
-          detail={`${ownerCount} titolari - ${staffCount} staff`}
-        />
+        <AdminMetric label="Titolari" value={String(ownerCount)} detail={`${userCount} utenti totali`} />
         <AdminMetric
           label="Abbonamenti"
-          value={String(activeBillingCount)}
-          detail={riskBillingCount > 0 ? `${riskBillingCount} da verificare` : "tutto regolare"}
+          value={String(activeSubscriptions)}
+          detail={`${trialSubscriptions} in prova - ${riskySubscriptions} da verificare`}
         />
-        <AdminMetric
-          label="Runtime"
-          value={`${rssMb} MB`}
-          detail={`Heap ${heapMb} MB - CPU ${cpuSeconds}s`}
-        />
+        <AdminMetric label="Runtime" value={`${rssMb} MB`} detail={`Heap ${heapMb} MB`} />
       </section>
 
-      <section className="sa-lite-grid">
-        <article className="sa-lite-card">
-          <div className="sa-lite-card-head">
-            <div>
-              <span className="sa-lite-eyebrow">Azioni</span>
-              <h3>Cosa gestire</h3>
-            </div>
-          </div>
-          <div className="sa-lite-actions">
-            <Link href="/dashboard/super-admin/bars">Attivita</Link>
-            <Link href="/dashboard/super-admin/owners">Titolari</Link>
-            <Link href="/dashboard/super-admin/billing">Abbonamenti</Link>
-            <Link href="/dashboard/super-admin/revenue">Incassi</Link>
-            <Link href="/dashboard/super-admin/system">Sistema</Link>
-            <Link href="/dashboard/super-admin/gps">Impostazioni globali</Link>
-          </div>
-          <div className="sa-lite-bars" aria-label="Distribuzione attivita">
-            <div>
-              <span>Ristorazione</span>
-              <strong>{restaurantCount}</strong>
-              <i>
-                <b style={{ width: `${Math.max(6, Math.round((restaurantCount / maxActivityCount) * 100))}%` }} />
-              </i>
-            </div>
-            <div>
-              <span>Aziende</span>
-              <strong>{companyCount}</strong>
-              <i>
-                <b style={{ width: `${Math.max(6, Math.round((companyCount / maxActivityCount) * 100))}%` }} />
-              </i>
-            </div>
-          </div>
-        </article>
-
-        <article className="sa-lite-card">
-          <div className="sa-lite-card-head">
-            <div>
-              <span className="sa-lite-eyebrow">Ricavi</span>
-              <h3>Incassi</h3>
-            </div>
-            <Link href="/dashboard/super-admin/revenue">Apri</Link>
-          </div>
-          <div className="sa-lite-list">
-            <div className="sa-lite-row">
-              <div>
-                <strong>{formatCurrency(monthlyRevenue)} / mese</strong>
-                <small>Ricorrente stimato da abbonamenti attivi</small>
-              </div>
-              <span>{formatCurrency(annualRevenue)} / anno</span>
-            </div>
-            <div className="sa-lite-row">
-              <div>
-                <strong>{activeBillingCount} abbonamenti attivi</strong>
-                <small>{riskBillingCount > 0 ? `${riskBillingCount} da verificare` : "Nessuna criticita"}</small>
-              </div>
-              <span>Dettagli</span>
-            </div>
-          </div>
-        </article>
-
-        <article className="sa-lite-card">
-          <div className="sa-lite-card-head">
-            <div>
-              <span className="sa-lite-eyebrow">Clienti</span>
-              <h3>Ultime attivita</h3>
-            </div>
-            <Link href="/dashboard/super-admin/bars">Cerca</Link>
-          </div>
-          <div className="sa-lite-list">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="sa-lite-row">
-                <div>
-                  <strong>{activity.name}</strong>
-                  <small>
-                    {getActivityLabel(activity.activityType)} - {activity.owner.firstName}{" "}
-                    {activity.owner.lastName}
-                  </small>
-                </div>
-                <span>
-                  {activity.subscription
-                    ? statusLabel(activity.subscription.planType, activity.subscription.status)
-                    : "Da attivare"}
-                  <small>{formatDate(activity.subscription?.currentPeriodEnd ?? null)}</small>
-                </span>
-              </div>
-            ))}
-          </div>
-        </article>
+      <section className="sa-overview-grid" aria-label="Sezioni operative">
+        {quickSections.map((section) => (
+          <Link key={section.href} href={section.href} className="sa-overview-card">
+            <span>{section.icon}</span>
+            <strong>{section.title}</strong>
+            <small>{section.description}</small>
+          </Link>
+        ))}
       </section>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .sa-lite {
+            .sa-overview {
               display: grid;
               gap: 14px;
               min-width: 0;
             }
-            .sa-lite-hero,
-            .sa-lite-card,
-            .sa-lite-metric {
-              border: 1px solid rgba(124, 58, 237, 0.12);
-              background: rgba(255, 255, 255, 0.92);
-              box-shadow: 0 16px 38px rgba(88, 28, 135, 0.08);
-              backdrop-filter: blur(16px);
+            .sa-overview-head,
+            .sa-overview-metric,
+            .sa-overview-card {
+              border: 1px solid rgba(124, 58, 237, .13);
+              background: rgba(255,255,255,.94);
+              box-shadow: 0 16px 38px rgba(88, 28, 135, .08);
             }
-            .sa-lite-hero {
-              display: flex;
-              align-items: flex-end;
-              justify-content: space-between;
-              gap: 18px;
-              padding: 26px;
-              border-radius: 32px;
+            .sa-overview-head {
+              display: grid;
+              gap: 8px;
+              padding: 24px;
+              border-radius: 30px;
               background:
-                radial-gradient(circle at 86% 12%, rgba(168, 85, 247, 0.20), transparent 26%),
-                linear-gradient(135deg, #ffffff 0%, #f7f3ff 52%, #eef2ff 100%);
+                radial-gradient(circle at 90% 8%, rgba(168, 85, 247, .18), transparent 24%),
+                linear-gradient(135deg, #ffffff 0%, #f7f3ff 58%, #eef2ff 100%);
             }
-            .sa-lite-eyebrow {
+            .sa-overview-head span {
               color: #6d28d9;
               font-size: 11px;
               font-weight: 950;
-              letter-spacing: .12em;
+              letter-spacing: .13em;
               text-transform: uppercase;
             }
-            .sa-lite-hero h2 {
-              margin: 7px 0 8px;
+            .sa-overview-head h2 {
+              margin: 0;
               color: #0f172a;
-              font-size: clamp(34px, 6vw, 64px);
-              line-height: .96;
+              font-size: clamp(30px, 5vw, 54px);
+              line-height: .98;
               letter-spacing: -.06em;
             }
-            .sa-lite-hero p {
+            .sa-overview-head p {
               margin: 0;
-              max-width: 650px;
+              max-width: 680px;
               color: #64748b;
-              line-height: 1.58;
               font-size: 14px;
+              line-height: 1.55;
             }
-            .sa-quick-actions {
-              display: flex;
-              gap: 8px;
-              flex-wrap: wrap;
-              justify-content: flex-end;
-            }
-            .sa-quick-actions a,
-            .sa-lite-card-head a,
-            .sa-lite-actions a {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 38px;
-              padding: 0 14px;
-              border: 1px solid rgba(124, 58, 237, 0.16);
-              border-radius: 999px;
-              background: linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%);
-              color: #5b21b6;
-              text-decoration: none;
-              font-size: 12px;
-              font-weight: 900;
-            }
-            .sa-lite-metrics {
+            .sa-overview-metrics {
               display: grid;
-              grid-template-columns: repeat(5, minmax(0, 1fr));
+              grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 10px;
             }
-            .sa-lite-metric {
+            .sa-overview-metric {
               display: grid;
               gap: 6px;
               padding: 16px;
               border-radius: 24px;
             }
-            .sa-lite-metric span {
+            .sa-overview-metric span,
+            .sa-overview-card small {
               color: #64748b;
               font-size: 12px;
-              font-weight: 850;
+              font-weight: 800;
             }
-            .sa-lite-metric strong {
+            .sa-overview-metric strong {
               color: #0f172a;
-              font-size: 29px;
+              font-size: 30px;
               line-height: 1;
               letter-spacing: -.05em;
             }
-            .sa-lite-metric small {
+            .sa-overview-metric small {
               color: #64748b;
               font-size: 12px;
               line-height: 1.35;
             }
-            .sa-lite-grid {
+            .sa-overview-grid {
               display: grid;
-              grid-template-columns: minmax(0, .8fr) minmax(0, 1.15fr) minmax(0, 1.15fr);
+              grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 12px;
-              align-items: start;
             }
-            .sa-lite-card {
+            .sa-overview-card {
               display: grid;
-              gap: 14px;
+              gap: 8px;
+              min-height: 138px;
               padding: 18px;
-              border-radius: 28px;
-              min-width: 0;
-            }
-            .sa-lite-card-head {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              gap: 12px;
-            }
-            .sa-lite-card h3 {
-              margin: 4px 0 0;
+              border-radius: 26px;
               color: #0f172a;
-              font-size: 19px;
-              letter-spacing: -.035em;
+              text-decoration: none;
+              background: linear-gradient(145deg, #ffffff 0%, #faf5ff 100%);
+              transition: transform .18s ease, box-shadow .18s ease;
             }
-            .sa-lite-actions {
-              display: grid;
-              gap: 8px;
+            .sa-overview-card:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 22px 46px rgba(124, 58, 237, .14);
             }
-            .sa-lite-actions a {
-              width: 100%;
-              min-height: 44px;
-              justify-content: flex-start;
-              padding: 0 16px;
-            }
-            .sa-lite-bars {
-              display: grid;
-              gap: 10px;
-              padding-top: 4px;
-            }
-            .sa-lite-bars div {
-              display: grid;
-              grid-template-columns: minmax(0, 1fr) auto;
-              gap: 8px;
+            .sa-overview-card > span {
+              width: 42px;
+              height: 42px;
+              display: inline-flex;
               align-items: center;
-              color: #475569;
-              font-size: 12px;
-              font-weight: 850;
+              justify-content: center;
+              border-radius: 16px;
+              background: linear-gradient(135deg, #111936, #7c3aed);
+              font-size: 20px;
+              box-shadow: 0 12px 26px rgba(124, 58, 237, .18);
             }
-            .sa-lite-bars i {
-              grid-column: 1 / -1;
-              height: 10px;
-              overflow: hidden;
-              border-radius: 999px;
-              background: #f1f5f9;
-            }
-            .sa-lite-bars b {
-              display: block;
-              height: 100%;
-              border-radius: inherit;
-              background: linear-gradient(135deg, #111936, #8b5cf6);
-            }
-            .sa-lite-list {
-              display: grid;
-              gap: 8px;
-            }
-            .sa-lite-row {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 12px;
-              padding: 12px;
-              border-radius: 18px;
-              background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
-              border: 1px solid rgba(124, 58, 237, 0.08);
-            }
-            .sa-lite-row strong {
-              display: block;
-              color: #0f172a;
-              font-size: 14px;
-            }
-            .sa-lite-row small {
-              display: block;
-              color: #64748b;
-              font-size: 12px;
-              line-height: 1.35;
-            }
-            .sa-lite-row > span {
-              color: #5b21b6;
-              font-size: 13px;
-              font-weight: 900;
-              text-align: right;
-              white-space: nowrap;
+            .sa-overview-card strong {
+              font-size: 16px;
+              letter-spacing: -.02em;
             }
             @media (max-width: 1020px) {
-              .sa-lite-hero { align-items: flex-start; flex-direction: column; }
-              .sa-quick-actions { justify-content: flex-start; }
-              .sa-lite-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-              .sa-lite-grid { grid-template-columns: 1fr; }
+              .sa-overview-metrics,
+              .sa-overview-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+              }
             }
             @media (max-width: 560px) {
-              .sa-lite-hero { padding: 20px; border-radius: 26px; }
-              .sa-lite-hero h2 { font-size: 40px; }
-              .sa-lite-metrics { grid-template-columns: 1fr 1fr; }
-              .sa-lite-metric { padding: 13px; border-radius: 20px; }
-              .sa-lite-metric strong { font-size: 24px; }
-              .sa-lite-row { align-items: flex-start; flex-direction: column; }
-              .sa-lite-row > span { text-align: left; }
+              .sa-overview-head { padding: 20px; border-radius: 26px; }
+              .sa-overview-metrics,
+              .sa-overview-grid {
+                grid-template-columns: 1fr;
+              }
             }
           `,
         }}
