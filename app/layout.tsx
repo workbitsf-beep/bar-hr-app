@@ -131,41 +131,41 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               html[data-theme="dark"] {
-                color-scheme: dark;
-                --workbit-background: #080b18;
-                --workbit-surface: #11172d;
-                --workbit-surface-secondary: #171f3a;
-                --workbit-surface-elevated: #1b2442;
-                --workbit-field-bg: #10172d;
-                --workbit-popup: #121a33;
-                --workbit-navigation: rgba(16, 23, 45, 0.94);
-                --workbit-calendar: #11172d;
-                --workbit-navy: #f8fafc;
-                --workbit-deep-navy: #f1f5f9;
-                --workbit-ink: #f8fafc;
-                --workbit-text: #f8fafc;
-                --workbit-text-secondary: #cbd5e1;
-                --workbit-muted: #a8b3c7;
-                --workbit-purple: #a78bfa;
-                --workbit-electric-purple: #c084fc;
-                --workbit-purple-dark: #ddd6fe;
-                --workbit-purple-soft: #211b3f;
-                --workbit-lavender: #2b2450;
-                --workbit-border: rgba(196, 181, 253, 0.24);
-                --workbit-card: linear-gradient(180deg, rgba(24, 32, 59, 0.98) 0%, rgba(17, 23, 45, 0.98) 100%);
-                --workbit-app-bg: radial-gradient(circle at 84% 0%, rgba(124,58,237,0.20), transparent 31%),
-                  radial-gradient(circle at 10% 6%, rgba(192,132,252,0.10), transparent 25%),
-                  linear-gradient(180deg, #080b18 0%, #10152b 100%);
-                --workbit-gradient: linear-gradient(135deg, #263063 0%, #7c3aed 52%, #c084fc 100%);
-                --workbit-gradient-soft: linear-gradient(135deg, rgba(124,58,237,0.20) 0%, rgba(192,132,252,0.12) 100%);
-                --workbit-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
-                --workbit-shadow-strong: 0 26px 62px rgba(0, 0, 0, 0.48);
-                --workbit-focus: 0 0 0 4px rgba(167, 139, 250, 0.28);
-                --workbit-success: #22c55e;
+                color-scheme: light;
+                --workbit-background: #eee7ff;
+                --workbit-surface: #fbf8ff;
+                --workbit-surface-secondary: #f1eaff;
+                --workbit-surface-elevated: #ffffff;
+                --workbit-field-bg: #ffffff;
+                --workbit-popup: #fbf8ff;
+                --workbit-navigation: rgba(255, 255, 255, 0.90);
+                --workbit-calendar: #fbf8ff;
+                --workbit-navy: #160f2f;
+                --workbit-deep-navy: #24124f;
+                --workbit-ink: #160f2f;
+                --workbit-text: #160f2f;
+                --workbit-text-secondary: #594b75;
+                --workbit-muted: #76678d;
+                --workbit-purple: #7c3aed;
+                --workbit-electric-purple: #a855f7;
+                --workbit-purple-dark: #5b21b6;
+                --workbit-purple-soft: #eee7ff;
+                --workbit-lavender: #e3d7ff;
+                --workbit-border: rgba(124, 58, 237, 0.18);
+                --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(238,231,255,0.96) 100%);
+                --workbit-app-bg: radial-gradient(circle at 86% 2%, rgba(168,85,247,0.24), transparent 29%),
+                  radial-gradient(circle at 12% 4%, rgba(124,58,237,0.12), transparent 26%),
+                  linear-gradient(180deg, #fbf8ff 0%, #eee7ff 52%, #e6dcff 100%);
+                --workbit-gradient: linear-gradient(135deg, #28164f 0%, #7c3aed 52%, #a855f7 100%);
+                --workbit-gradient-soft: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(168,85,247,0.16) 100%);
+                --workbit-shadow: 0 18px 42px rgba(91, 33, 182, 0.13);
+                --workbit-shadow-strong: 0 24px 58px rgba(91, 33, 182, 0.18);
+                --workbit-focus: 0 0 0 4px rgba(168, 85, 247, 0.20);
+                --workbit-success: #16a34a;
                 --workbit-warning: #f59e0b;
-                --workbit-danger: #f87171;
-                --workbit-info: #38bdf8;
-                --workbit-badge: rgba(167, 139, 250, 0.16);
+                --workbit-danger: #ef4444;
+                --workbit-info: #0284c7;
+                --workbit-badge: #f1eaff;
               }
 
               html,
@@ -244,7 +244,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               html[data-theme="dark"] a {
-                color: #d8b4fe;
+                color: var(--workbit-purple-dark);
               }
 
               html[data-theme="dark"] [style*="color: #0f172a"],
@@ -280,28 +280,28 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] [style*="color:#6d28d9"],
               html[data-theme="dark"] [style*="color: #7c3aed"],
               html[data-theme="dark"] [style*="color:#7c3aed"] {
-                color: #ddd6fe !important;
+                color: var(--workbit-purple-dark) !important;
               }
 
               html[data-theme="dark"] [style*="color: #166534"],
               html[data-theme="dark"] [style*="color:#166534"],
               html[data-theme="dark"] [style*="color: #15803d"],
               html[data-theme="dark"] [style*="color:#15803d"] {
-                color: #bbf7d0 !important;
+                color: #166534 !important;
               }
 
               html[data-theme="dark"] [style*="color: #92400e"],
               html[data-theme="dark"] [style*="color:#92400e"],
               html[data-theme="dark"] [style*="color: #9a3412"],
               html[data-theme="dark"] [style*="color:#9a3412"] {
-                color: #fed7aa !important;
+                color: #92400e !important;
               }
 
               html[data-theme="dark"] [style*="color: #991b1b"],
               html[data-theme="dark"] [style*="color:#991b1b"],
               html[data-theme="dark"] [style*="color: #b91c1c"],
               html[data-theme="dark"] [style*="color:#b91c1c"] {
-                color: #fecaca !important;
+                color: #991b1b !important;
               }
 
               html[data-theme="dark"] .dashboard-shell [style*="background: #ffffff"],
@@ -338,8 +338,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] [style*="background:#f0fdf4"],
               html[data-theme="dark"] [style*="background-color: #dcfce7"],
               html[data-theme="dark"] [style*="background-color:#dcfce7"] {
-                background: rgba(34, 197, 94, 0.15) !important;
-                border-color: rgba(74, 222, 128, 0.32) !important;
+                background: #dcfce7 !important;
+                border-color: #bbf7d0 !important;
               }
 
               html[data-theme="dark"] [style*="background: #fffbeb"],
@@ -348,8 +348,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] [style*="background:#fff7ed"],
               html[data-theme="dark"] [style*="background-color: #fffbeb"],
               html[data-theme="dark"] [style*="background-color:#fffbeb"] {
-                background: rgba(245, 158, 11, 0.16) !important;
-                border-color: rgba(251, 191, 36, 0.34) !important;
+                background: #fffbeb !important;
+                border-color: #fde68a !important;
               }
 
               html[data-theme="dark"] [style*="background: #fef2f2"],
@@ -358,22 +358,22 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] [style*="background:#fff1f2"],
               html[data-theme="dark"] [style*="background-color: #fef2f2"],
               html[data-theme="dark"] [style*="background-color:#fef2f2"] {
-                background: rgba(239, 68, 68, 0.16) !important;
-                border-color: rgba(251, 113, 133, 0.34) !important;
+                background: #fef2f2 !important;
+                border-color: #fecaca !important;
               }
 
               html[data-theme="dark"] .dashboard-bottom-nav,
               html[data-theme="dark"] nav {
                 background: var(--workbit-navigation) !important;
                 border-color: var(--workbit-border) !important;
-                box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34) !important;
+                box-shadow: var(--workbit-shadow-strong) !important;
               }
 
               html[data-theme="dark"] .dashboard-bottom-nav a,
               html[data-theme="dark"] .dashboard-bottom-nav button {
                 color: var(--workbit-text) !important;
                 background: var(--workbit-surface-elevated) !important;
-                border-color: rgba(196, 181, 253, 0.24) !important;
+                border-color: var(--workbit-border) !important;
               }
 
               html[data-theme="dark"] .dashboard-button,
@@ -391,7 +391,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] input[type="date"],
               html[data-theme="dark"] input[type="month"],
               html[data-theme="dark"] input[type="time"] {
-                color-scheme: dark;
+                color-scheme: light;
               }
 
               input,
