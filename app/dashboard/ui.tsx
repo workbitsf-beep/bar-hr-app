@@ -36,7 +36,7 @@ const shellCardStyle: CSSProperties = {
 };
 
 const softCardStyle: CSSProperties = {
-  background: "linear-gradient(180deg, var(--workbit-surface) 0%, var(--workbit-purple-soft) 100%)",
+  background: "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-surface-secondary) 100%)",
   border: "1px solid var(--workbit-border)",
   boxShadow: "var(--workbit-shadow)",
 };
@@ -299,8 +299,8 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
         padding: 10,
         borderRadius: 999,
         border: "1px solid var(--workbit-border)",
-        background: "rgba(255,255,255,0.94)",
-        boxShadow: "0 20px 48px rgba(124, 58, 237, 0.16)",
+        background: "var(--workbit-navigation)",
+        boxShadow: "var(--workbit-shadow-strong)",
         backdropFilter: "blur(18px)",
         WebkitBackdropFilter: "blur(18px)",
       }}
@@ -321,7 +321,7 @@ function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
             flexDirection: "column",
             gap: 3,
             color: "var(--workbit-purple-dark)",
-            background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+            background: "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%)",
             border: "1px solid var(--workbit-border)",
             textDecoration: "none",
           }}
@@ -347,10 +347,7 @@ function DashboardResponsiveStyles() {
         max-width: 100%;
         overflow-x: hidden;
         padding-bottom: 100px !important;
-        background:
-          radial-gradient(circle at 88% 4%, rgba(168, 85, 247, 0.17), transparent 28%),
-          radial-gradient(circle at 10% 8%, rgba(11, 16, 36, 0.07), transparent 24%),
-          linear-gradient(180deg, #ffffff 0%, #f7f3ff 44%, #ffffff 100%) !important;
+        background: var(--workbit-app-bg) !important;
       }
 
       .dashboard-profile-layout > div:first-child {
@@ -366,11 +363,9 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-profile-layout > div:nth-child(2) > div {
-        background:
-          radial-gradient(circle at 94% 8%, rgba(168, 85, 247, 0.10), transparent 34%),
-          linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%) !important;
+        background: var(--workbit-card) !important;
         border: 1px solid var(--workbit-border) !important;
-        box-shadow: 0 16px 34px rgba(124, 58, 237, 0.10) !important;
+        box-shadow: var(--workbit-shadow) !important;
       }
 
       .dashboard-profile-layout > div:nth-child(2) > div strong {
@@ -455,7 +450,7 @@ function DashboardResponsiveStyles() {
 
       .dashboard-button[style*="64748b"],
       .dashboard-button[style*="475569"] {
-        background: linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%) !important;
+        background: linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%) !important;
         color: var(--workbit-navy) !important;
         border: 1px solid var(--workbit-border) !important;
       }
@@ -464,7 +459,7 @@ function DashboardResponsiveStyles() {
       .dashboard-icon-button,
       .dashboard-menu-button {
         border-color: var(--workbit-border) !important;
-        background: linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%) !important;
+        background: linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%) !important;
         color: var(--workbit-purple-dark) !important;
       }
 
@@ -516,10 +511,10 @@ function DashboardResponsiveStyles() {
       .dashboard-modal-panel select,
       .dashboard-modal-panel textarea {
         border-radius: 18px !important;
-        border: 1px solid rgba(124, 58, 237, 0.14) !important;
-        background: #ffffff !important;
-        color: #0f172a !important;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        border: 1px solid var(--workbit-border) !important;
+        background: var(--workbit-field-bg) !important;
+        color: var(--workbit-text) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
 
       .dashboard-form-field input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -1494,7 +1489,7 @@ const fieldStyle: CSSProperties = {
   border: "1px solid var(--workbit-border)",
   padding: "13px 15px",
   fontSize: 15,
-  background: "linear-gradient(180deg, #ffffff 0%, #fdfbff 100%)",
+  background: "linear-gradient(180deg, var(--workbit-field-bg) 0%, var(--workbit-surface-secondary) 100%)",
   width: "100%",
   color: "var(--workbit-navy)",
   boxSizing: "border-box",
@@ -1566,7 +1561,7 @@ export function PrimaryButton({
     dark: "var(--workbit-gradient)",
     green: "linear-gradient(135deg, #15803d 0%, #22c55e 58%, #4ade80 100%)",
     red: "linear-gradient(135deg, #b91c1c 0%, #ef4444 58%, #fb7185 100%)",
-    sand: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+    sand: "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%)",
   };
 
   return (
@@ -1627,7 +1622,7 @@ export function IconButton({
         height: 36,
         borderRadius: 999,
         border: "1px solid var(--workbit-border)",
-        background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+        background: "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%)",
         color: "var(--workbit-purple-dark)",
         display: "inline-flex",
         alignItems: "center",
@@ -1668,7 +1663,7 @@ export function ArrowLinkButton({
         height: 32,
         borderRadius: 999,
         textDecoration: "none",
-        background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+        background: "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%)",
         color: "var(--workbit-purple-dark)",
         border: "1px solid var(--workbit-border)",
         fontSize: 16,

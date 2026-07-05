@@ -81,10 +81,11 @@ export function TimeInput({
     width: "100%",
     minWidth: 0,
     borderRadius: 16,
-    border: "1px solid #dbe3ee",
+    border: "1px solid var(--workbit-border)",
     padding: "12px 14px",
     fontSize: 15,
-    background: "#ffffff",
+    background: "var(--workbit-field-bg)",
+    color: "var(--workbit-text)",
     textAlign: "center",
   };
   const hiddenValue = hours || minutes ? buildTimeValue(hours, minutes) : "";
@@ -115,7 +116,7 @@ export function TimeInput({
         onBlur={() => commit()}
         style={inputStyle}
       />
-      <span style={{ color: "#94a3b8", fontSize: 20, fontWeight: 700, lineHeight: 1 }}>:</span>
+      <span style={{ color: "var(--workbit-muted)", fontSize: 20, fontWeight: 700, lineHeight: 1 }}>:</span>
       <input
         type="text"
         inputMode="numeric"

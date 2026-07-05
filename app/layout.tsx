@@ -97,6 +97,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-background: #f7f3ff;
                 --workbit-surface: #ffffff;
                 --workbit-surface-secondary: #f8fafc;
+                --workbit-surface-elevated: #ffffff;
+                --workbit-field-bg: #ffffff;
                 --workbit-popup: #ffffff;
                 --workbit-navigation: rgba(255,255,255,0.92);
                 --workbit-calendar: #ffffff;
@@ -131,37 +133,39 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] {
                 color-scheme: dark;
                 --workbit-background: #060817;
-                --workbit-surface: #111936;
-                --workbit-surface-secondary: #17203f;
-                --workbit-popup: #121a38;
-                --workbit-navigation: rgba(14, 20, 43, 0.94);
-                --workbit-calendar: #111936;
+                --workbit-surface: #11162a;
+                --workbit-surface-secondary: #171d35;
+                --workbit-surface-elevated: #171d35;
+                --workbit-field-bg: #0f1528;
+                --workbit-popup: #171d35;
+                --workbit-navigation: rgba(17, 22, 42, 0.94);
+                --workbit-calendar: #11162a;
                 --workbit-navy: #f8fafc;
                 --workbit-deep-navy: #eef2ff;
                 --workbit-ink: #f8fafc;
                 --workbit-text: #f8fafc;
                 --workbit-text-secondary: #cbd5e1;
-                --workbit-muted: #aeb8d0;
-                --workbit-purple: #a855f7;
-                --workbit-electric-purple: #c084fc;
+                --workbit-muted: #94a3b8;
+                --workbit-purple: #8b5cf6;
+                --workbit-electric-purple: #a855f7;
                 --workbit-purple-dark: #ddd6fe;
-                --workbit-purple-soft: #182142;
-                --workbit-lavender: #31235d;
-                --workbit-border: rgba(216, 180, 254, 0.24);
-                --workbit-card: linear-gradient(180deg, rgba(18,26,56,0.98) 0%, rgba(10,15,34,0.98) 100%);
-                --workbit-app-bg: radial-gradient(circle at 82% 0%, rgba(168,85,247,0.22), transparent 30%),
-                  radial-gradient(circle at 12% 8%, rgba(124,58,237,0.18), transparent 24%),
-                  linear-gradient(180deg, #060817 0%, #0b1024 100%);
-                --workbit-gradient: linear-gradient(135deg, #1d1647 0%, #7c3aed 48%, #c084fc 100%);
-                --workbit-gradient-soft: linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(168,85,247,0.16) 45%, rgba(192,132,252,0.18) 100%);
-                --workbit-shadow: 0 20px 52px rgba(0, 0, 0, 0.32);
-                --workbit-shadow-strong: 0 24px 62px rgba(0, 0, 0, 0.46);
-                --workbit-focus: 0 0 0 4px rgba(192, 132, 252, 0.24);
-                --workbit-success: #4ade80;
-                --workbit-warning: #fbbf24;
-                --workbit-danger: #fb7185;
+                --workbit-purple-soft: #1c2340;
+                --workbit-lavender: #272044;
+                --workbit-border: rgba(168, 85, 247, 0.18);
+                --workbit-card: linear-gradient(180deg, rgba(17,22,42,0.98) 0%, rgba(13,18,35,0.98) 100%);
+                --workbit-app-bg: radial-gradient(circle at 84% 0%, rgba(139,92,246,0.18), transparent 31%),
+                  radial-gradient(circle at 10% 6%, rgba(168,85,247,0.10), transparent 25%),
+                  linear-gradient(180deg, #070a16 0%, #0b1024 100%);
+                --workbit-gradient: linear-gradient(135deg, #1b2350 0%, #7c3aed 54%, #a855f7 100%);
+                --workbit-gradient-soft: linear-gradient(135deg, rgba(139,92,246,0.16) 0%, rgba(168,85,247,0.12) 100%);
+                --workbit-shadow: 0 16px 38px rgba(0, 0, 0, 0.28);
+                --workbit-shadow-strong: 0 24px 54px rgba(0, 0, 0, 0.42);
+                --workbit-focus: 0 0 0 4px rgba(139, 92, 246, 0.28);
+                --workbit-success: #22c55e;
+                --workbit-warning: #f59e0b;
+                --workbit-danger: #ef4444;
                 --workbit-info: #38bdf8;
-                --workbit-badge: rgba(124, 58, 237, 0.18);
+                --workbit-badge: rgba(139, 92, 246, 0.16);
               }
 
               html,
@@ -362,11 +366,14 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] nav {
                 background: var(--workbit-navigation) !important;
                 border-color: var(--workbit-border) !important;
+                box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34) !important;
               }
 
               html[data-theme="dark"] .dashboard-bottom-nav a,
               html[data-theme="dark"] .dashboard-bottom-nav button {
                 color: var(--workbit-text) !important;
+                background: var(--workbit-surface-elevated) !important;
+                border-color: rgba(168, 85, 247, 0.22) !important;
               }
 
               html[data-theme="dark"] .dashboard-button {

@@ -54,9 +54,9 @@ export function AudienceSelector({
           aria-pressed={assignedToAll}
           style={{
             ...basePillStyle,
-            border: assignedToAll ? "1.5px solid #7c3aed" : "1px solid #e2e8f0",
-            background: assignedToAll ? "#f3e8ff" : "#ffffff",
-            color: assignedToAll ? "#4c1d95" : "#334155",
+            border: assignedToAll ? "1.5px solid var(--workbit-purple)" : "1px solid var(--workbit-border)",
+            background: assignedToAll ? "var(--workbit-gradient-soft)" : "var(--workbit-surface-elevated)",
+            color: assignedToAll ? "var(--workbit-purple-dark)" : "var(--workbit-text-secondary)",
           }}
         >
           <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
@@ -71,9 +71,9 @@ export function AudienceSelector({
           aria-pressed={!assignedToAll}
           style={{
             ...basePillStyle,
-            border: !assignedToAll ? "1.5px solid #7c3aed" : "1px solid #e2e8f0",
-            background: !assignedToAll ? "#f3e8ff" : "#ffffff",
-            color: !assignedToAll ? "#4c1d95" : "#334155",
+            border: !assignedToAll ? "1.5px solid var(--workbit-purple)" : "1px solid var(--workbit-border)",
+            background: !assignedToAll ? "var(--workbit-gradient-soft)" : "var(--workbit-surface-elevated)",
+            color: !assignedToAll ? "var(--workbit-purple-dark)" : "var(--workbit-text-secondary)",
           }}
         >
           <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
@@ -117,9 +117,9 @@ export function AudienceSelector({
                 aria-pressed={selected}
                 style={{
                   borderRadius: 999,
-                  border: selected ? "1.5px solid #7c3aed" : "1px solid #e2e8f0",
-                  background: selected ? "#f3e8ff" : "#ffffff",
-                  color: selected ? "#4c1d95" : "#334155",
+                  border: selected ? "1.5px solid var(--workbit-purple)" : "1px solid var(--workbit-border)",
+                  background: selected ? "var(--workbit-gradient-soft)" : "var(--workbit-surface-elevated)",
+                  color: selected ? "var(--workbit-purple-dark)" : "var(--workbit-text-secondary)",
                   padding: "8px 12px",
                   fontSize: 13,
                   fontWeight: 750,
@@ -139,7 +139,7 @@ export function AudienceSelector({
       ) : null}
 
       {!assignedToAll ? (
-        <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+        <span style={{ color: "var(--workbit-muted)", fontSize: 13, fontWeight: 700 }}>
           {selectedIds.length === 0
             ? "Nessun dipendente selezionato"
             : selectedIds.length === 1
