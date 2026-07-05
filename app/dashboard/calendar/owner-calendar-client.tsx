@@ -2,6 +2,7 @@
 
 import { RequestType } from "@prisma/client";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -297,6 +298,152 @@ function truncateCalendarText(value: string, maxLength = 25) {
   }
 
   return `${clean.slice(0, maxLength - 3).trimEnd()}...`;
+}
+
+type WeekBadgeTone = "note" | "vacation" | "permission" | "course" | "availability" | "onCall" | "overtime" | "closure";
+
+type WeekBadge = {
+  key: string;
+  label: string;
+  count: number;
+  tone: WeekBadgeTone;
+};
+
+const WEEK_BADGE_STYLES: Record<WeekBadgeTone, { background: string; border: string; color: string }> = {
+  note: { background: "#f8fafc", border: "#e2e8f0", color: "#334155" },
+  vacation: { background: "#ede9fe", border: "#ddd6fe", color: "#5b21b6" },
+  permission: { background: "#fff7ed", border: "#fed7aa", color: "#9a3412" },
+  course: { background: "#eef2ff", border: "#c7d2fe", color: "#3730a3" },
+  availability: { background: "#fef2f2", border: "#fecaca", color: "#991b1b" },
+  onCall: { background: "#eff6ff", border: "#bfdbfe", color: "#1d4ed8" },
+  overtime: { background: "#fef3c7", border: "#fde68a", color: "#92400e" },
+  closure: { background: "#f1f5f9", border: "#cbd5e1", color: "#475569" },
+};
+
+function getRequestBadge(type: string): { key: string; label: string; tone: WeekBadgeTone } {
+  if (type === RequestType.OVERTIME) {
+    return { key: "overtime", label: "⭐ Straordinari", tone: "overtime" };
+  }
+
+  if (type === RequestType.PERMISSION) {
+    return { key: "permission", label: "🟠 Permessi", tone: "permission" };
+  }
+
+  if (type === RequestType.SICKNESS) {
+    return { key: "sickness", label: "🏥 Malattia", tone: "availability" };
+  }
+
+  return { key: "vacation", label: "🏖️ Ferie", tone: "vacation" };
+}
+
+function buildWeekBadges(day: DayItem, features: FeatureFlags): WeekBadge[] {
+  const badges = new Map<string, WeekBadge>();
+  const addBadge = (key: string, label: string, count: number, tone: WeekBadgeTone) => {
+    if (count <= 0) {
+      return;
+    }
+
+    const current = badges.get(key);
+    badges.set(key, {
+      key,
+      label,
+      tone,
+      count: (current?.count ?? 0) + count,
+    });
+  };
+
+  if (features.tasks || features.noticeBoard) {
+    addBadge("notes", "📌 Note", (features.tasks ? day.tasks.length : 0) + (features.noticeBoard ? day.notes.length : 0), "note");
+  }
+
+  if (features.requests) {
+    for (const request of day.requests) {
+      const badge = getRequestBadge(request.type);
+      addBadge(badge.key, badge.label, 1, badge.tone);
+    }
+  }
+
+  if (features.courses) {
+    addBadge("courses", "🎓 Corsi", day.courses.length, "course");
+  }
+
+  if (features.availability) {
+    addBadge("availability", "🚫 Indisponibilità", day.availabilities.length, "availability");
+  }
+
+  if (features.shifts) {
+    addBadge("on-call", "📍 Reperibilità", day.shifts.filter((shift) => shift.isOnCall).length, "onCall");
+  }
+
+  addBadge("closures", "Chiusure", day.closures.length, "closure");
+
+  return Array.from(badges.values());
+}
+
+function renderWeekBadge(
+  badge: WeekBadge,
+  onOpen: () => void
+) {
+  const style = WEEK_BADGE_STYLES[badge.tone];
+
+  return (
+    <button
+      key={badge.key}
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen();
+      }}
+      style={{
+        border: `1px solid ${style.border}`,
+        background: style.background,
+        color: style.color,
+        borderRadius: 999,
+        padding: "4px 8px",
+        fontSize: 11,
+        fontWeight: 850,
+        lineHeight: 1,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {badge.label} +{badge.count}
+    </button>
+  );
+}
+
+function renderWeekSection(title: string, children: ReactNode) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <strong style={{ color: "#0f172a", fontSize: 12 }}>{title}</strong>
+      <div style={{ display: "grid", gap: 6 }}>{children}</div>
+    </div>
+  );
+}
+
+function renderCompactTextCard(key: string, title: string, meta: string, tone: WeekBadgeTone = "note") {
+  const style = WEEK_BADGE_STYLES[tone];
+
+  return (
+    <div
+      key={key}
+      style={{
+        padding: "7px 9px",
+        borderRadius: 12,
+        background: style.background,
+        border: `1px solid ${style.border}`,
+        color: style.color,
+        lineHeight: 1.35,
+        fontSize: 12,
+      }}
+    >
+      <strong style={{ display: "block", color: "#0f172a", fontSize: 12 }}>
+        {truncateCalendarText(title, 42)}
+      </strong>
+      <span style={{ color: style.color, fontSize: 11 }}>{meta}</span>
+    </div>
+  );
 }
 
 function hasTimeOverlap(rangeStart: string, rangeEnd: string, shiftStart: string, shiftEnd: string) {
@@ -659,6 +806,7 @@ export function OwnerCalendarClient({
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [calendarView, setCalendarView] = useState<"week" | "day">(initialCalendarView ?? "week");
+  const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(() => new Set());
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
     const today = days.find((day) => day.isToday) ?? days[0];
     const initialDay = initialFocusedDay
@@ -832,6 +980,20 @@ export function OwnerCalendarClient({
 
     return days;
   }, [days, filteredDay, focusedDay]);
+
+  const toggleExpandedWeekDay = useCallback((date: string) => {
+    setExpandedWeekDays((current) => {
+      const next = new Set(current);
+
+      if (next.has(date)) {
+        next.delete(date);
+      } else {
+        next.add(date);
+      }
+
+      return next;
+    });
+  }, []);
 
   function handleDayStripScroll() {
     if (calendarView !== "day" || filteredDay) {
@@ -1665,14 +1827,25 @@ export function OwnerCalendarClient({
               </div>
 
               <div style={{ display: "grid", gap: 12 }}>
-                {week.map((day) => (
+                {week.map((day) => {
+                  const isExpanded = expandedWeekDays.has(day.date);
+                  const categoryBadges = buildWeekBadges(day, features);
+                  const isPastDay = day.date.slice(0, 10) < todayKey;
+                  const hasDayEvents =
+                    day.shifts.length > 0 ||
+                    categoryBadges.length > 0;
+
+                  return (
                   <button
                     key={day.date}
                     type="button"
-                    onClick={() => openDay(day)}
-                    disabled={day.date.slice(0, 10) < todayKey}
+                    onClick={() => {
+                      if (!isPastDay) {
+                        openDay(day);
+                      }
+                    }}
                     title={
-                      day.date.slice(0, 10) < todayKey
+                      isPastDay
                         ? "Giornata passata: nuovi inserimenti non disponibili"
                         : undefined
                     }
@@ -1689,13 +1862,13 @@ export function OwnerCalendarClient({
                       border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
                       boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
                       opacity:
-                        day.date.slice(0, 10) < todayKey
+                        isPastDay
                           ? 0.58
                           : day.inCurrentMonth
                             ? 1
                             : 0.7,
                       textAlign: "left",
-                      cursor: day.date.slice(0, 10) < todayKey ? "not-allowed" : "pointer",
+                      cursor: isPastDay ? "default" : "pointer",
                     }}
                   >
                     <div
@@ -1710,20 +1883,186 @@ export function OwnerCalendarClient({
                       <strong style={{ color: "#0f172a", fontSize: 14 }}>
                         {formatDayLabel(day.date, locale)}
                       </strong>
-                      {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-label={isExpanded ? "Comprimi giorno" : "Espandi giorno"}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleExpandedWeekDay(day.date);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key !== "Enter" && event.key !== " ") {
+                              return;
+                            }
+
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleExpandedWeekDay(day.date);
+                          }}
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 999,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: isExpanded ? "#f5f3ff" : "#ffffff",
+                            border: "1px solid rgba(124, 58, 237, 0.18)",
+                            color: "#6d28d9",
+                            fontSize: 16,
+                            fontWeight: 900,
+                            cursor: "pointer",
+                            transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                            transition: "transform 140ms ease, background 140ms ease",
+                          }}
+                        >
+                          ˅
+                        </span>
+                      </span>
                     </div>
 
-                    {day.shifts.length === 0 &&
-                    (!features.availability || day.availabilities.length === 0) &&
-                    (!features.requests || day.requests.length === 0) &&
-                    day.courses.length === 0 &&
-                    day.closures.length === 0 &&
-                    day.tasks.length === 0 &&
-                    day.notes.length === 0 ? (
+                    {!hasDayEvents ? (
                       <div style={{ color: "#94a3b8", fontSize: 12 }}>Nessun evento</div>
                     ) : null}
 
-                    {(() => {
+                    {features.shifts && day.shifts.length > 0 ? (
+                      <div style={{ display: "grid", gap: 6 }}>
+                        {day.shifts.map((shift) =>
+                          renderCompactShiftCard(shift, locale, true, () => {
+                            setSelectedDate(day.date);
+                            setActiveCalendarModal("shifts");
+                            setEditingShiftId(null);
+                          })
+                        )}
+                      </div>
+                    ) : null}
+
+                    {categoryBadges.length > 0 ? (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                        {categoryBadges.map((badge) =>
+                          renderWeekBadge(badge, () => toggleExpandedWeekDay(day.date))
+                        )}
+                      </div>
+                    ) : null}
+
+                    {isExpanded ? (
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 10,
+                          marginTop: 4,
+                          paddingTop: 8,
+                          borderTop: "1px solid #eef2f7",
+                          animation: "dashboardModalEnter 140ms ease-out",
+                        }}
+                      >
+                        {features.shifts && day.shifts.length > 0
+                          ? renderWeekSection(
+                              "👤 Turni",
+                              day.shifts.map((shift) =>
+                                renderCompactShiftCard(shift, locale, true, () => {
+                                  setSelectedDate(day.date);
+                                  setActiveCalendarModal("shifts");
+                                  setEditingShiftId(null);
+                                })
+                              )
+                            )
+                          : null}
+                        {features.requests && day.requests.filter((request) => request.type === RequestType.PERMISSION).length > 0
+                          ? renderWeekSection(
+                              "🟠 Permessi",
+                              day.requests
+                                .filter((request) => request.type === RequestType.PERMISSION)
+                                .map((request) => renderApprovedRequestCard(request, true))
+                            )
+                          : null}
+                        {features.requests && day.requests.filter((request) => request.type === RequestType.VACATION).length > 0
+                          ? renderWeekSection(
+                              "🏖️ Ferie",
+                              day.requests
+                                .filter((request) => request.type === RequestType.VACATION)
+                                .map((request) => renderApprovedRequestCard(request, true))
+                            )
+                          : null}
+                        {features.courses && day.courses.length > 0
+                          ? renderWeekSection(
+                              "🎓 Corsi",
+                              day.courses.map((course) =>
+                                renderCompactTextCard(
+                                  `course-${course.id}`,
+                                  course.title,
+                                  `${formatRange(course.startTime, course.endTime, locale)}${course.location ? ` - ${course.location}` : ""}`,
+                                  "course"
+                                )
+                              )
+                            )
+                          : null}
+                        {(features.tasks && day.tasks.length > 0) || (features.noticeBoard && day.notes.length > 0)
+                          ? renderWeekSection(
+                              "📌 Note",
+                              <>
+                                {features.tasks
+                                  ? day.tasks.map((task) =>
+                                      renderTaskPreviewCard(task, true, () => {
+                                        setSelectedDate(day.date);
+                                        setActiveCalendarModal("notes");
+                                      })
+                                    )
+                                  : null}
+                                {features.noticeBoard
+                                  ? day.notes.map((note) =>
+                                      renderNotePreviewCard(note, true, () => {
+                                        setSelectedDate(day.date);
+                                        setActiveCalendarModal("notes");
+                                      })
+                                    )
+                                  : null}
+                              </>
+                            )
+                          : null}
+                        {features.availability && day.availabilities.length > 0
+                          ? renderWeekSection(
+                              "🚫 Indisponibilità",
+                              day.availabilities.map((availability) => renderAvailabilityCard(availability, true))
+                            )
+                          : null}
+                        {features.shifts && day.shifts.filter((shift) => shift.isOnCall).length > 0
+                          ? renderWeekSection(
+                              "📍 Reperibilità",
+                              day.shifts
+                                .filter((shift) => shift.isOnCall)
+                                .map((shift) => renderPendingOnCallCard(shift, locale, true))
+                            )
+                          : null}
+                        {features.requests && day.requests.filter((request) => request.type === RequestType.OVERTIME).length > 0
+                          ? renderWeekSection(
+                              "⭐ Straordinari",
+                              day.requests
+                                .filter((request) => request.type === RequestType.OVERTIME)
+                                .map((request) => renderApprovedRequestCard(request, true))
+                            )
+                          : null}
+                        {day.closures.length > 0
+                          ? renderWeekSection(
+                              "Chiusure",
+                              day.closures.map((closure) =>
+                                renderCompactTextCard(
+                                  `closure-${closure.id}`,
+                                  closure.title,
+                                  formatRange(closure.startTime, closure.endTime, locale),
+                                  "closure"
+                                )
+                              )
+                            )
+                          : null}
+                      </div>
+                    ) : null}
+
+                    {false && (() => {
                       const cards: Array<{ key: string; node: ReactNode }> = [];
                       const maxVisible = 3;
                       const pushCard = (key: string, node: ReactNode) => {
@@ -1905,7 +2244,8 @@ export function OwnerCalendarClient({
                     })()}
 
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </section>
           );

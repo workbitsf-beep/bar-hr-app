@@ -150,6 +150,57 @@ export default async function DashboardTimeLogsPage({
                       </Select>
                     </FormField>
 
+                    <FormField label="Data e ora entrata">
+                      <DateTimeInput name="clockInAt" required allowPast />
+                    </FormField>
+
+                    <FormField label="Data e ora uscita">
+                      <DateTimeInput name="clockOutAt" required allowPast />
+                    </FormField>
+
+                    <FormField label="Nota">
+                      <TextInput name="note" />
+                    </FormField>
+                  </div>
+
+                  <input type="hidden" name="notifySuccess" value="1" />
+
+                  <div className="dashboard-form-actions">
+                    <PrimaryButton type="submit">Salva turno manuale</PrimaryButton>
+                  </div>
+                </form>
+              )}
+            </PopupAction>
+          }
+        >
+          {members.length === 0 ? (
+            <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              <EmptyState message="Aggiungi un turno completo oppure una singola timbratura mancante." />
+              <PopupAction title="Aggiungi singola timbratura" ariaLabel="Aggiungi singola timbratura">
+                <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
+                  <div
+                    className="dashboard-inline-grid"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <FormField label="Dipendente">
+                      <Select name="userId" required defaultValue="">
+                        <option value="" disabled>
+                          Seleziona
+                        </option>
+                        {members.map((member) => (
+                          <option key={member.user.id} value={member.user.id}>
+                            {member.user.firstName} {member.user.lastName}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
+
                     <FormField label="Tipo">
                       <Select name="type" defaultValue="IN">
                         <option value="IN">Entrata</option>
@@ -157,8 +208,8 @@ export default async function DashboardTimeLogsPage({
                       </Select>
                     </FormField>
 
-                    <FormField label="Timestamp">
-                      <DateTimeInput name="timestamp" required />
+                    <FormField label="Data e ora">
+                      <DateTimeInput name="timestamp" required allowPast />
                     </FormField>
 
                     <FormField label="Nota">
@@ -172,14 +223,8 @@ export default async function DashboardTimeLogsPage({
                     <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
                   </div>
                 </form>
-              )}
-            </PopupAction>
-          }
-        >
-          {members.length === 0 ? (
-            <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
-          ) : (
-            <EmptyState message="Nessuna timbratura manuale." />
+              </PopupAction>
+            </div>
           )}
         </Panel>
       ) : null}

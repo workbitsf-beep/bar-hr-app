@@ -36,6 +36,14 @@ type LogItem = {
   };
 };
 
+type ClockLogPair = {
+  id: string;
+  clockIn: LogItem | null;
+  clockOut: LogItem | null;
+  startTimestamp: string;
+  latestTimestamp: string;
+};
+
 type BarSettingsSummary = {
   gpsLatitude: number | null;
   gpsLongitude: number | null;
@@ -149,19 +157,66 @@ function ClockLogRow({ log }: { log: LogItem }) {
   );
 }
 
-function groupLogsIntoRows(logs: LogItem[]) {
-  const rows: LogItem[][] = [];
+function buildClockLogPairs(logs: LogItem[]): ClockLogPair[] {
+  const sortedLogs = [...logs].sort(
+    (left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime()
+  );
+  const pairs: ClockLogPair[] = [];
+  let pendingIn: LogItem | null = null;
 
-  for (let index = 0; index < logs.length; index += 2) {
-    rows.push(logs.slice(index, index + 2));
+  for (const log of sortedLogs) {
+    if (log.type === "IN") {
+      if (pendingIn) {
+        pairs.push({
+          id: pendingIn.id,
+          clockIn: pendingIn,
+          clockOut: null,
+          startTimestamp: pendingIn.timestamp,
+          latestTimestamp: pendingIn.timestamp,
+        });
+      }
+
+      pendingIn = log;
+      continue;
+    }
+
+    if (pendingIn) {
+      pairs.push({
+        id: `${pendingIn.id}-${log.id}`,
+        clockIn: pendingIn,
+        clockOut: log,
+        startTimestamp: pendingIn.timestamp,
+        latestTimestamp: log.timestamp,
+      });
+      pendingIn = null;
+      continue;
+    }
+
+    pairs.push({
+      id: log.id,
+      clockIn: null,
+      clockOut: log,
+      startTimestamp: log.timestamp,
+      latestTimestamp: log.timestamp,
+    });
   }
 
-  return rows;
+  if (pendingIn) {
+    pairs.push({
+      id: pendingIn.id,
+      clockIn: pendingIn,
+      clockOut: null,
+      startTimestamp: pendingIn.timestamp,
+      latestTimestamp: pendingIn.timestamp,
+    });
+  }
+
+  return pairs;
 }
 
-function getClockRowDurationMs(row: LogItem[]) {
-  const clockIn = row.find((log) => log.type === "IN");
-  const clockOut = row.find((log) => log.type === "OUT");
+function getClockPairDurationMs(pair: ClockLogPair) {
+  const clockIn = pair.clockIn;
+  const clockOut = pair.clockOut;
 
   if (!clockIn || !clockOut) {
     return null;
@@ -171,17 +226,17 @@ function getClockRowDurationMs(row: LogItem[]) {
   return duration > 0 ? duration : null;
 }
 
-function getDayWorkedDurationMs(logs: LogItem[]) {
-  return groupLogsIntoRows(logs).reduce((total, row) => total + (getClockRowDurationMs(row) ?? 0), 0);
+function getDayWorkedDurationMs(pairs: ClockLogPair[]) {
+  return pairs.reduce((total, pair) => total + (getClockPairDurationMs(pair) ?? 0), 0);
 }
 
-function countShiftRows(logs: LogItem[]) {
-  return groupLogsIntoRows(logs).length;
+function formatPairCount(pairs: ClockLogPair[]) {
+  const count = pairs.length;
+  return `${count} ${count === 1 ? "turno" : "turni"}`;
 }
 
 function formatShiftCount(logs: LogItem[]) {
-  const count = countShiftRows(logs);
-  return `${count} ${count === 1 ? "turno" : "turni"}`;
+  return formatPairCount(buildClockLogPairs(logs));
 }
 
 function getTodayKey() {
@@ -196,50 +251,52 @@ function groupLogsByDay(logs: LogItem[]) {
       dayKey: string;
       dayLabel: string;
       latest: string;
-      logs: LogItem[];
+      pairs: ClockLogPair[];
     }
   >();
 
-  for (const log of logs) {
-    const dayKey = getDayKey(log.timestamp);
+  for (const pair of buildClockLogPairs(logs)) {
+    const dayKey = getDayKey(pair.startTimestamp);
     const current = groups.get(dayKey);
 
     if (!current) {
       groups.set(dayKey, {
         dayKey,
-        dayLabel: formatDayLabel(log.timestamp),
-        latest: log.timestamp,
-        logs: [log],
+        dayLabel: formatDayLabel(pair.startTimestamp),
+        latest: pair.latestTimestamp,
+        pairs: [pair],
       });
       continue;
     }
 
-    current.logs.push(log);
-    if (new Date(log.timestamp).getTime() > new Date(current.latest).getTime()) {
-      current.latest = log.timestamp;
+    current.pairs.push(pair);
+    if (new Date(pair.latestTimestamp).getTime() > new Date(current.latest).getTime()) {
+      current.latest = pair.latestTimestamp;
     }
   }
 
   return Array.from(groups.values())
     .map((group) => ({
       ...group,
-      logs: group.logs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+      pairs: group.pairs.sort(
+        (a, b) => new Date(a.startTimestamp).getTime() - new Date(b.startTimestamp).getTime()
+      ),
     }))
     .sort((a, b) => new Date(b.latest).getTime() - new Date(a.latest).getTime());
 }
 
 function ClockDayCard({
   dayLabel,
-  logs,
+  pairs,
   subtitle,
   children,
 }: {
   dayLabel: string;
-  logs: LogItem[];
+  pairs: ClockLogPair[];
   subtitle: string;
   children: ReactNode;
 }) {
-  const workedMs = getDayWorkedDurationMs(logs);
+  const workedMs = getDayWorkedDurationMs(pairs);
 
   return (
     <div
@@ -684,17 +741,15 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
     [groupedLogs, selectedUser]
   );
 
-  const filteredSelectedLogs = useMemo(() => {
+  const selectedDayGroups = useMemo(() => {
     if (!selectedGroup) {
       return [];
     }
 
-    return selectedGroup.logs.filter((log) =>
-      dayFilter ? getDayKey(log.timestamp) === dayFilter : true
+    return groupLogsByDay(selectedGroup.logs).filter((group) =>
+      dayFilter ? group.dayKey === dayFilter : true
     );
   }, [dayFilter, selectedGroup]);
-
-  const selectedDayGroups = useMemo(() => groupLogsByDay(filteredSelectedLogs), [filteredSelectedLogs]);
 
   function closeModal() {
     setSelectedUser(null);
@@ -810,7 +865,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                   <div style={{ display: "grid", gap: 6 }}>
                     <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedGroup.name}</strong>
                     <span style={{ color: "#475569" }}>
-                      {formatShiftCount(filteredSelectedLogs)} visibili
+                      {selectedDayGroups.reduce((total, group) => total + group.pairs.length, 0)} visibili
                     </span>
                   </div>
 
@@ -835,8 +890,8 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                       <ClockDayCard
                         key={dayGroup.dayKey}
                         dayLabel={dayGroup.dayLabel}
-                        logs={dayGroup.logs}
-                        subtitle={formatShiftCount(dayGroup.logs)}
+                        pairs={dayGroup.pairs}
+                        subtitle={formatPairCount(dayGroup.pairs)}
                       >
                           <div
                             style={{
@@ -844,9 +899,11 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                               gap: 8,
                             }}
                           >
-                            {groupLogsIntoRows(dayGroup.logs).map((row) => (
+                            {dayGroup.pairs.map((pair) => {
+                              const row = [pair.clockIn, pair.clockOut].filter(Boolean) as LogItem[];
+                              return (
                               <div
-                                key={row.map((log) => log.id).join("-")}
+                                key={pair.id}
                                 style={{
                                   display: "grid",
                                   gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
@@ -857,7 +914,8 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                                   <ClockLogRow key={log.id} log={log} />
                                 ))}
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                       </ClockDayCard>
                     ))}
@@ -883,18 +941,20 @@ function PersonalTimeLogsPanel({
 }) {
   const [dayFilter, setDayFilter] = useState("");
 
-  const filteredLogs = useMemo(
-    () => initialLogs.filter((log) => (dayFilter ? getDayKey(log.timestamp) === dayFilter : true)),
+  const dayGroups = useMemo(
+    () => groupLogsByDay(initialLogs).filter((group) => (dayFilter ? group.dayKey === dayFilter : true)),
     [dayFilter, initialLogs]
   );
-
-  const dayGroups = useMemo(() => groupLogsByDay(filteredLogs), [filteredLogs]);
+  const visiblePairCount = useMemo(
+    () => dayGroups.reduce((total, group) => total + group.pairs.length, 0),
+    [dayGroups]
+  );
   const todayKey = getTodayKey();
 
   return (
     <Panel
       title={role === "OWNER" ? "Timbrature del team" : "Le tue timbrature"}
-      action={formatShiftCount(filteredLogs)}
+      action={`${visiblePairCount} ${visiblePairCount === 1 ? "turno" : "turni"}`}
     >
       <div style={{ display: "grid", gap: 16 }}>
         {todayTotals ? (
@@ -930,11 +990,11 @@ function PersonalTimeLogsPanel({
               <ClockDayCard
                 key={dayGroup.dayKey}
                 dayLabel={dayGroup.dayLabel}
-                logs={dayGroup.logs}
+                pairs={dayGroup.pairs}
                 subtitle={
                   dayGroup.dayKey === todayKey && todayTotals
-                    ? `${formatShiftCount(dayGroup.logs)} - oggi ${formatDurationClock(todayTotals.roundedHours)}`
-                    : formatShiftCount(dayGroup.logs)
+                    ? `${formatPairCount(dayGroup.pairs)} - oggi ${formatDurationClock(todayTotals.roundedHours)}`
+                    : formatPairCount(dayGroup.pairs)
                 }
               >
                   <div
@@ -943,9 +1003,11 @@ function PersonalTimeLogsPanel({
                       gap: 8,
                     }}
                   >
-                    {groupLogsIntoRows(dayGroup.logs).map((row) => (
+                    {dayGroup.pairs.map((pair) => {
+                      const row = [pair.clockIn, pair.clockOut].filter(Boolean) as LogItem[];
+                      return (
                       <div
-                        key={row.map((log) => log.id).join("-")}
+                        key={pair.id}
                         style={{
                           display: "grid",
                           gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
@@ -956,7 +1018,8 @@ function PersonalTimeLogsPanel({
                           <ClockLogRow key={log.id} log={log} />
                         ))}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
               </ClockDayCard>
             ))}

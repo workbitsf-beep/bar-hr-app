@@ -6,6 +6,7 @@ import {
   AppLanguage,
   BillingInterval,
   CalendarClosureType,
+  ClockType,
   PlanType,
   Prisma,
   RequestStatus,
@@ -3606,36 +3607,85 @@ export async function createManualTimeLogAction(formData: FormData) {
 
   const userId = String(formData.get("userId") ?? "").trim();
   const typeValue = String(formData.get("type") ?? "").trim();
-  const timestamp = parseRequiredDate(formData.get("timestamp"));
+  const clockInRaw = String(formData.get("clockInAt") ?? "").trim();
+  const clockOutRaw = String(formData.get("clockOutAt") ?? "").trim();
+  const timestampRaw = String(formData.get("timestamp") ?? "").trim();
   const latitude = parseOptionalNumber(formData.get("latitude"));
   const longitude = parseOptionalNumber(formData.get("longitude"));
   const note = String(formData.get("note") ?? "").trim();
+  const isCompleteShift = Boolean(clockInRaw || clockOutRaw);
 
-  if (!userId || (typeValue !== "IN" && typeValue !== "OUT")) {
+  if (!userId) {
     throw new Error("Missing time log data");
   }
 
   await ensureUsersBelongToBar(activeBarId, [userId]);
 
-  await prisma.timeLog.create({
-    data: {
-      userId,
-      barId: activeBarId,
-      createdById: session.user.id,
-      type: typeValue,
-      timestamp,
-      latitude,
-      longitude,
-      isManual: true,
-      note: note || null,
-    },
-  });
+  if (isCompleteShift) {
+    const clockInAt = parseRequiredDate(formData.get("clockInAt"));
+    const clockOutAt = parseRequiredDate(formData.get("clockOutAt"));
+
+    ensureValidDateRange(
+      clockInAt,
+      clockOutAt,
+      "L'uscita deve essere successiva all'entrata."
+    );
+
+    await prisma.timeLog.createMany({
+      data: [
+        {
+          userId,
+          barId: activeBarId,
+          createdById: session.user.id,
+          type: ClockType.IN,
+          timestamp: clockInAt,
+          latitude,
+          longitude,
+          isManual: true,
+          note: note || null,
+        },
+        {
+          userId,
+          barId: activeBarId,
+          createdById: session.user.id,
+          type: ClockType.OUT,
+          timestamp: clockOutAt,
+          latitude,
+          longitude,
+          isManual: true,
+          note: note || null,
+        },
+      ],
+    });
+  } else {
+    const timestamp = parseRequiredDate(timestampRaw);
+
+    if (typeValue !== "IN" && typeValue !== "OUT") {
+      throw new Error("Missing time log data");
+    }
+
+    await prisma.timeLog.create({
+      data: {
+        userId,
+        barId: activeBarId,
+        createdById: session.user.id,
+        type: typeValue,
+        timestamp,
+        latitude,
+        longitude,
+        isManual: true,
+        note: note || null,
+      },
+    });
+  }
 
   invalidateReportingCache(activeBarId, userId);
 
-  if (typeValue === "IN") {
+  if (isCompleteShift || typeValue === "IN") {
     await closeClockInReminders({ userId, barId: activeBarId });
-  } else {
+  }
+
+  if (isCompleteShift || typeValue === "OUT") {
     await closeClockOutReminders({ userId, barId: activeBarId });
   }
 

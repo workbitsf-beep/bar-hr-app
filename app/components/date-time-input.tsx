@@ -59,6 +59,7 @@ export function DateTimeInput({
   disabled,
   required,
   style,
+  allowPast = false,
 }: {
   value?: string;
   onChange?: (value: string) => void;
@@ -66,6 +67,7 @@ export function DateTimeInput({
   disabled?: boolean;
   required?: boolean;
   style?: CSSProperties;
+  allowPast?: boolean;
 }) {
   const [date, setDate] = useState(() => splitDateTimeValue(value).date);
   const [time, setTime] = useState(() => splitDateTimeValue(value).time);
@@ -103,11 +105,11 @@ export function DateTimeInput({
         type="date"
         disabled={disabled}
         required={required}
-        min={today}
+        min={allowPast ? undefined : today}
         value={date}
         onChange={(event) => {
           const nextDate = event.target.value;
-          const safeDate = nextDate && nextDate < today ? today : nextDate;
+          const safeDate = !allowPast && nextDate && nextDate < today ? today : nextDate;
           setDate(safeDate);
           commit(safeDate, time);
         }}

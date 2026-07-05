@@ -81,6 +81,17 @@ function formatDateOnly(value: string | Date): string {
   }).format(new Date(value));
 }
 
+function formatDateRange(start: string | Date, end?: string | Date | null): string {
+  const startLabel = formatDateOnly(start);
+
+  if (!end) {
+    return startLabel;
+  }
+
+  const endLabel = formatDateOnly(end);
+  return startLabel === endLabel ? startLabel : `${startLabel} -> ${endLabel}`;
+}
+
 function formatShortDay(value: string | Date): string {
   return new Intl.DateTimeFormat("it-IT", {
     weekday: "short",
@@ -228,13 +239,10 @@ async function createMonthlyPdfBuffer(input: {
 
     const permissionItems = uniqueItems("Permesso");
     const vacationItems = uniqueItems("Ferie");
-    const sicknessItems = uniqueItems("Malattia");
     const availabilityItems = uniqueItems("Indisponibilita");
-    const overtimeItems = uniqueItems("Straordinario");
     const onCallItems = uniqueItems("Reperibilita");
     const permissionHours = sumItemHours("Permesso");
     const vacationHours = sumItemHours("Ferie");
-    const sicknessHours = sumItemHours("Malattia");
     const overtimeHours = sumItemHours("Straordinario");
     const workedDays = input.dataset.groupedLogs.filter((day) => day.entries.length > 0).length;
 
@@ -393,6 +401,8 @@ async function createMonthlyPdfBuffer(input: {
     const buildRowsForDay = (dayKey: string) => {
       const day = input.dataset.groupedLogs.find((entry) => entry.date === dayKey);
       const rows: Array<{
+        date?: string;
+        day?: string;
         status: string;
         type: string;
         planned: string;
@@ -405,6 +415,8 @@ async function createMonthlyPdfBuffer(input: {
 
       for (const entry of day?.entries ?? []) {
         rows.push({
+          date: formatDateRange(entry.clockIn, entry.clockOut),
+          day: formatShortDay(entry.clockIn),
           status: "Lavorato",
           type: "Turno",
           planned: formatRange(entry.plannedStart, entry.plannedEnd),
@@ -545,8 +557,8 @@ async function createMonthlyPdfBuffer(input: {
       rows.forEach((row, index) => {
         drawRow(
           {
-            date: index === 0 ? formatDateOnly(dayDate) : "",
-            day: index === 0 ? formatShortDay(dayDate) : "",
+            date: row.date ?? (index === 0 ? formatDateOnly(dayDate) : ""),
+            day: row.day ?? (index === 0 ? formatShortDay(dayDate) : ""),
             status: row.status,
             type: row.type,
             planned: row.planned,
