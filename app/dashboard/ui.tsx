@@ -36,9 +36,9 @@ const shellCardStyle: CSSProperties = {
 };
 
 const softCardStyle: CSSProperties = {
-  background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+  background: "linear-gradient(180deg, var(--workbit-surface) 0%, var(--workbit-purple-soft) 100%)",
   border: "1px solid var(--workbit-border)",
-  boxShadow: "0 14px 34px rgba(124, 58, 237, 0.10)",
+  boxShadow: "var(--workbit-shadow)",
 };
 
 const focusRing = "var(--workbit-focus)";
