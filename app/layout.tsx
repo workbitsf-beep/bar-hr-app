@@ -138,7 +138,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-surface-elevated: #fbf8ff;
                 --workbit-field-bg: #ffffff;
                 --workbit-popup: #f7f2ff;
-                --workbit-navigation: rgba(251, 248, 255, 0.92);
+                --workbit-navigation: rgba(229, 219, 255, 0.94);
                 --workbit-calendar: #f7f2ff;
                 --workbit-navy: #160f2f;
                 --workbit-deep-navy: #24124f;
@@ -372,7 +372,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] .dashboard-bottom-nav a,
               html[data-theme="dark"] .dashboard-bottom-nav button {
                 color: var(--workbit-text) !important;
-                background: var(--workbit-surface-elevated) !important;
+                background: linear-gradient(180deg, var(--workbit-surface-secondary) 0%, var(--workbit-purple-soft) 100%) !important;
                 border-color: var(--workbit-border) !important;
               }
 
