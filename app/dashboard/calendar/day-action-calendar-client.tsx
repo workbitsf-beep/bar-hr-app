@@ -809,12 +809,15 @@ function renderTaskCard(
   isPending = false
 ) {
   const canComplete = task.status !== "DONE" && Boolean(onComplete);
+  const isDone = task.status === "DONE";
 
   return (
     <div
       key={task.id}
       style={{
+        position: "relative",
         padding: mobile ? 10 : "10px 12px",
+        paddingRight: isDone ? (mobile ? 46 : 50) : undefined,
         borderRadius: mobile ? 14 : 16,
         background: "#f8fafc",
         border: "1px solid #e2e8f0",
@@ -822,6 +825,31 @@ function renderTaskCard(
         gap: mobile ? 6 : 6,
       }}
     >
+      {isDone ? (
+        <span
+          aria-label="Nota completata"
+          title="Nota completata"
+          style={{
+            position: "absolute",
+            top: mobile ? 10 : 12,
+            right: mobile ? 10 : 12,
+            width: mobile ? 28 : 30,
+            height: mobile ? 28 : 30,
+            borderRadius: 999,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#dcfce7",
+            color: "#166534",
+            border: "1px solid #bbf7d0",
+            fontSize: mobile ? 15 : 16,
+            fontWeight: 950,
+            boxShadow: "0 10px 22px rgba(22, 101, 52, 0.12)",
+          }}
+        >
+          ✓
+        </span>
+      ) : null}
       <div
         style={{
           display: "grid",
@@ -836,10 +864,12 @@ function renderTaskCard(
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-        <StatusPill
-          label={task.status === "DONE" ? "Completata" : task.isUrgent ? "Urgente" : "Da fare"}
-          tone={task.status === "DONE" ? "success" : task.isUrgent ? "danger" : "warning"}
-        />
+        {!isDone ? (
+          <StatusPill
+            label={task.isUrgent ? "Urgente" : "Da fare"}
+            tone={task.isUrgent ? "danger" : "warning"}
+          />
+        ) : null}
         {task.completedByLabel ? (
           <span style={{ color: "#64748b", fontSize: mobile ? 12 : 12, fontWeight: 700 }}>
             Completata da: {task.completedByLabel}

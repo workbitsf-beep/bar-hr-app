@@ -3136,12 +3136,17 @@ export function OwnerCalendarClient({
                     <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {day.tasks.map((task) => (
+                      {day.tasks.map((task) => {
+                        const isDone = task.status === "DONE";
+
+                        return (
                         <div
                           key={task.id}
                           className="dashboard-list-card"
                           style={{
+                            position: "relative",
                             padding: 14,
+                            paddingRight: isDone ? 52 : 14,
                             borderRadius: 18,
                             background: "#f8fafc",
                             border: "1px solid #e2e8f0",
@@ -3149,6 +3154,31 @@ export function OwnerCalendarClient({
                             gap: 10,
                           }}
                         >
+                          {isDone ? (
+                            <span
+                              aria-label="Nota completata"
+                              title="Nota completata"
+                              style={{
+                                position: "absolute",
+                                top: 12,
+                                right: 12,
+                                width: 30,
+                                height: 30,
+                                borderRadius: 999,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "#dcfce7",
+                                color: "#166534",
+                                border: "1px solid #bbf7d0",
+                                fontSize: 16,
+                                fontWeight: 950,
+                                boxShadow: "0 10px 22px rgba(22, 101, 52, 0.12)",
+                              }}
+                            >
+                              ✓
+                            </span>
+                          ) : null}
                           <div
                             style={{
                               display: "grid",
@@ -3163,22 +3193,18 @@ export function OwnerCalendarClient({
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-                            <StatusPill
-                              label={task.status === "DONE" ? "Completata" : task.isUrgent ? "Urgente" : "Da fare"}
-                              tone={
-                                task.status === "DONE"
-                                  ? "success"
-                                  : task.isUrgent
-                                    ? "danger"
-                                  : "warning"
-                              }
-                            />
+                            {!isDone ? (
+                              <StatusPill
+                                label={task.isUrgent ? "Urgente" : "Da fare"}
+                                tone={task.isUrgent ? "danger" : "warning"}
+                              />
+                            ) : null}
                             {task.completedByLabel ? (
                               <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
                                 Completata da: {task.completedByLabel}
                               </span>
                             ) : null}
-                            {task.status !== "DONE" ? (
+                            {!isDone ? (
                               <IconButton
                                 type="button"
                                 aria-label="Conferma nota"
@@ -3201,7 +3227,8 @@ export function OwnerCalendarClient({
                             ) : null}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       {day.notes.map((note) => (
                         <div
                           key={note.id}

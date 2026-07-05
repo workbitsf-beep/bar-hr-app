@@ -49,6 +49,8 @@ export default async function DashboardTimeLogsPage({
 
   const isOwner = role === Role.OWNER;
   const successMessage = success === "timelog-created" ? "Timbratura manuale salvata correttamente." : null;
+  const now = new Date();
+  const personalLogStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
   const [settings, members, logs, ownTotals, todayTotals] = await Promise.all([
     isOwner
       ? Promise.resolve(null)
@@ -87,12 +89,12 @@ export default async function DashboardTimeLogsPage({
     prisma.timeLog.findMany({
       where: {
         barId: activeBarId,
-        ...(isOwner ? {} : { userId: session.user.id }),
+        ...(isOwner ? {} : { userId: session.user.id, timestamp: { gte: personalLogStart } }),
       },
       orderBy: {
         timestamp: "desc",
       },
-      take: isOwner ? 50 : 20,
+      take: isOwner ? 50 : 500,
       select: {
         id: true,
         type: true,
@@ -111,10 +113,10 @@ export default async function DashboardTimeLogsPage({
     }),
     isOwner
       ? Promise.resolve(null)
-      : buildMonthlyTotals(activeBarId, session.user.id, new Date().getMonth() + 1, new Date().getFullYear()),
+      : buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear()),
     isOwner
       ? Promise.resolve(null)
-      : buildDailyTotals(activeBarId, session.user.id, new Date()),
+      : buildDailyTotals(activeBarId, session.user.id, now),
   ]);
 
   return (

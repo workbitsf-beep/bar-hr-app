@@ -1406,12 +1406,14 @@ export function ItemCard({
   meta,
   footer,
   className,
+  style,
 }: {
   title: string;
   subtitle?: ReactNode;
   meta?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <div
@@ -1422,6 +1424,7 @@ export function ItemCard({
         borderRadius: 20,
         display: "grid",
         gap: 6,
+        ...style,
       }}
     >
       <strong style={{ color: "var(--workbit-navy)" }}>{title}</strong>

@@ -283,7 +283,7 @@ export default async function DashboardDocumentsPage({
                                 fontWeight: 900,
                               }}
                             >
-                              {document.isActive ? "V" : "X"}
+                              {document.isActive ? "✓" : "×"}
                             </span>
                             <strong style={{ color: "var(--workbit-navy)" }}>{document.title}</strong>
                             <div style={{ color: "#334155" }}>{audienceLabel}</div>

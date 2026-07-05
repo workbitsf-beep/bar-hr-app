@@ -16,6 +16,7 @@ import {
   ItemList,
   Panel,
   PrimaryButton,
+  Select,
   Stack,
   TextInput,
   formatDateTime,
@@ -60,9 +61,27 @@ type Totals = {
 
 export type ClockActionStatus = "CAN_CLOCK_IN" | "CAN_CLOCK_OUT" | "DONE";
 
-function getDayKey(value: string) {
+function getDayKey(value: string | Date) {
   const parts = getZonedDateParts(value, APP_TIME_ZONE);
   return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function getMonthKey(value: string | Date) {
+  const parts = getZonedDateParts(value, APP_TIME_ZONE);
+  return `${parts.year}-${parts.month}`;
+}
+
+function getCurrentMonthKey() {
+  return getMonthKey(new Date());
+}
+
+function formatMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("it-IT", {
+    month: "long",
+    year: "numeric",
+    timeZone: APP_TIME_ZONE,
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12)));
 }
 
 function formatDayLabel(value: string) {
@@ -239,9 +258,23 @@ function formatShiftCount(logs: LogItem[]) {
   return formatPairCount(buildClockLogPairs(logs));
 }
 
+function buildMonthOptions(logs: LogItem[]) {
+  const monthKeys = new Set<string>([getCurrentMonthKey()]);
+
+  for (const pair of buildClockLogPairs(logs)) {
+    monthKeys.add(getMonthKey(pair.startTimestamp));
+  }
+
+  return Array.from(monthKeys)
+    .sort((a, b) => b.localeCompare(a))
+    .map((value) => ({
+      value,
+      label: formatMonthLabel(value),
+    }));
+}
+
 function getTodayKey() {
-  const parts = getZonedDateParts(new Date(), APP_TIME_ZONE);
-  return `${parts.year}-${parts.month}-${parts.day}`;
+  return getDayKey(new Date());
 }
 
 function groupLogsByDay(logs: LogItem[]) {
@@ -939,22 +972,46 @@ function PersonalTimeLogsPanel({
   role: Role | string;
   todayTotals: Totals;
 }) {
+  const monthOptions = useMemo(() => buildMonthOptions(initialLogs), [initialLogs]);
+  const [monthFilter, setMonthFilter] = useState(getCurrentMonthKey());
   const [dayFilter, setDayFilter] = useState("");
 
+  useEffect(() => {
+    if (monthOptions.some((option) => option.value === monthFilter)) {
+      return;
+    }
+    setMonthFilter(monthOptions[0]?.value ?? getCurrentMonthKey());
+  }, [monthFilter, monthOptions]);
+
+  const allDayGroups = useMemo(() => groupLogsByDay(initialLogs), [initialLogs]);
+  const monthDayGroups = useMemo(
+    () => allDayGroups.filter((group) => group.dayKey.startsWith(monthFilter)),
+    [allDayGroups, monthFilter]
+  );
   const dayGroups = useMemo(
-    () => groupLogsByDay(initialLogs).filter((group) => (dayFilter ? group.dayKey === dayFilter : true)),
-    [dayFilter, initialLogs]
+    () => monthDayGroups.filter((group) => (dayFilter ? group.dayKey === dayFilter : true)),
+    [dayFilter, monthDayGroups]
   );
-  const visiblePairCount = useMemo(
-    () => dayGroups.reduce((total, group) => total + group.pairs.length, 0),
-    [dayGroups]
-  );
+  const monthSummary = useMemo(() => {
+    const allPairs = monthDayGroups.flatMap((group) => group.pairs);
+    const completedPairs = allPairs.filter((pair) => pair.clockIn && pair.clockOut);
+    const pendingPairs = allPairs.length - completedPairs.length;
+    const workedMs = monthDayGroups.reduce((total, group) => total + getDayWorkedDurationMs(group.pairs), 0);
+
+    return {
+      workedMs,
+      shiftCount: allPairs.length,
+      completedCount: completedPairs.length,
+      pendingCount: pendingPairs,
+      workedDays: monthDayGroups.filter((group) => group.pairs.length > 0).length,
+    };
+  }, [monthDayGroups]);
   const todayKey = getTodayKey();
 
   return (
     <Panel
       title={role === "OWNER" ? "Timbrature del team" : "Le tue timbrature"}
-      action={`${visiblePairCount} ${visiblePairCount === 1 ? "turno" : "turni"}`}
+      action={formatMonthLabel(monthFilter)}
     >
       <div style={{ display: "grid", gap: 16 }}>
         {todayTotals ? (
@@ -972,17 +1029,60 @@ function PersonalTimeLogsPanel({
           </div>
         ) : null}
 
-        <FormField label="Filtra per giorno">
-          <TextInput
-            type="date"
-            value={dayFilter}
-            onChange={(event) => setDayFilter(event.target.value)}
+        <div
+          className="dashboard-inline-grid"
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}
+        >
+          <FormField label="Mese">
+            <Select
+              value={monthFilter}
+              onChange={(event) => {
+                setMonthFilter(event.target.value);
+                setDayFilter("");
+              }}
+            >
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <FormField label="Giorno">
+            <TextInput
+              type="date"
+              value={dayFilter}
+              min={`${monthFilter}-01`}
+              max={`${monthFilter}-31`}
+              onChange={(event) => setDayFilter(event.target.value)}
+            />
+          </FormField>
+        </div>
+
+        <div
+          className="dashboard-summary-grid"
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}
+        >
+          <ItemCard title="Ore mese" meta={formatDurationFromMilliseconds(monthSummary.workedMs)} />
+          <ItemCard title="Turni" meta={`${monthSummary.shiftCount}`} />
+          <ItemCard title="Giorni" meta={`${monthSummary.workedDays}`} />
+          <ItemCard
+            title="Da completare"
+            meta={`${monthSummary.pendingCount}`}
+            style={{
+              borderColor: monthSummary.pendingCount > 0 ? "rgba(245, 158, 11, 0.28)" : "rgba(34, 197, 94, 0.16)",
+              background:
+                monthSummary.pendingCount > 0
+                  ? "linear-gradient(135deg, #fff7ed, #ffffff)"
+                  : "linear-gradient(135deg, #f0fdf4, #ffffff)",
+            }}
           />
-        </FormField>
+        </div>
 
         {dayGroups.length === 0 ? (
           <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-            Nessuna timbratura registrata.
+            Nessuna timbratura registrata per questo periodo.
           </p>
         ) : (
           <ItemList scrollable>
