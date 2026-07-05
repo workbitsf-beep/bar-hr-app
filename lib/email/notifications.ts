@@ -115,7 +115,7 @@ export async function sendWeeklyShiftsPublishedEmail(
     title: "Turni confermati",
     message: `Ciao ${userName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${weekLabel} per ${barName}.`,
     ctaLabel: "Apri i turni",
-    ctaUrl: getEmailAppUrl("/dashboard/shifts"),
+    ctaUrl: getEmailAppUrl("/dashboard/calendar"),
   });
 }
 

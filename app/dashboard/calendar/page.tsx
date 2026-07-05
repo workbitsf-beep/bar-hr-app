@@ -278,7 +278,7 @@ export default async function DashboardCalendarPage({
 
   if (!activeBarId) {
     return (
-      <Panel title="Calendario">
+      <Panel title="Turni">
         <EmptyState message="Seleziona un locale attivo per visualizzare il calendario turni." />
       </Panel>
     );
@@ -298,7 +298,7 @@ export default async function DashboardCalendarPage({
 
   if (!hasCalendarModules) {
     return (
-      <Panel title="Calendario">
+      <Panel title="Turni">
         <EmptyState message="Nessuna funzione calendario attiva nelle impostazioni." />
       </Panel>
     );
@@ -974,7 +974,7 @@ export default async function DashboardCalendarPage({
 
   return (
     <Stack columns="minmax(0, 1fr)">
-      <Panel title="Calendario">
+      <Panel title="Turni">
         {canManageRestaurantShifts ? (
           <OwnerCalendarClient
             locale={locale}

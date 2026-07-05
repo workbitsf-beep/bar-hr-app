@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
   useTransition,
-  type PointerEvent,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -17,16 +16,12 @@ import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import type { FeatureFlags } from "@/lib/features";
-import { DateTimeInput } from "@/app/components/date-time-input";
 import { TimeInput } from "@/app/components/time-input";
 import {
   completeTaskAction,
-  createAvailabilityAction,
   createBoardNoteAction,
-  createCourseAction,
   createShiftAction,
   createTaskAction,
-  createTimeOffRequestAction,
   confirmBoardNoteReadAction,
   confirmShiftAction,
 } from "../actions";
@@ -729,11 +724,6 @@ function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = fals
   );
 }
 
-function toDateTimeLocal(dateIso: string, hour: number, minute: number) {
-  const day = toDateInputValueInTimeZone(dateIso);
-  return `${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
 function chunkByWeek<T>(items: T[]) {
   return Array.from({ length: Math.ceil(items.length / 7) }, (_, index) =>
     items.slice(index * 7, index * 7 + 7)
@@ -742,13 +732,6 @@ function chunkByWeek<T>(items: T[]) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Operazione non riuscita.";
-}
-
-function formatNoteTime(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }
 
 function CountBadge({ count }: { count: number }) {
@@ -775,14 +758,12 @@ function CountBadge({ count }: { count: number }) {
 
 export function OwnerCalendarClient({
   locale,
-  weekdayLabels,
   days,
   members,
   presets,
   filteredDay,
   initialFocusedDay,
   initialCalendarView,
-  role,
   currentUserId,
   features,
   todayAction,
@@ -819,10 +800,7 @@ export function OwnerCalendarClient({
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
-  const [showRequestComposer, setShowRequestComposer] = useState(false);
-  const [showAvailabilityComposer, setShowAvailabilityComposer] = useState(false);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
-  const [showCourseComposer, setShowCourseComposer] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
   const [savedShiftDrafts, setSavedShiftDrafts] = useState<ShiftDraft[]>([]);
@@ -830,21 +808,6 @@ export function OwnerCalendarClient({
   const [shiftInsertMode, setShiftInsertMode] = useState<ShiftInsertMode>("DAY");
   const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
-  const [requestStart, setRequestStart] = useState("");
-  const [requestEnd, setRequestEnd] = useState("");
-  const [requestReason, setRequestReason] = useState("");
-  const [certificateCode, setCertificateCode] = useState("");
-  const [availabilityStart, setAvailabilityStart] = useState("");
-  const [availabilityEnd, setAvailabilityEnd] = useState("");
-  const [availabilityReason, setAvailabilityReason] = useState("");
-  const [courseTitle, setCourseTitle] = useState("");
-  const [courseDescription, setCourseDescription] = useState("");
-  const [courseLocation, setCourseLocation] = useState("");
-  const [courseStart, setCourseStart] = useState("");
-  const [courseEnd, setCourseEnd] = useState("");
-  const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
-  const [courseAssignedToId, setCourseAssignedToId] = useState("");
-  const daySwipeRef = useRef<{ x: number; y: number } | null>(null);
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
   const skipDayScrollIntoViewRef = useRef(false);
@@ -1069,33 +1032,12 @@ export function OwnerCalendarClient({
 
     return blocked;
   }
-  const canCreatePersonalEntries = role === "MANAGER";
-
-  function openRequestComposer() {
-    setShowShiftComposer(false);
-    setShowAvailabilityComposer(false);
-    setShowCourseComposer(false);
-    setQuickComposer(null);
-    setShowRequestComposer(true);
-  }
-
-  function openAvailabilityComposer() {
-    setShowShiftComposer(false);
-    setShowRequestComposer(false);
-    setShowCourseComposer(false);
-    setQuickComposer(null);
-    setShowAvailabilityComposer(true);
-  }
-
   function openDay(day: DayItem, mode: CalendarModalMode = "day") {
     setSelectedDate(day.date);
     setActiveCalendarModal(mode);
     setEditingShiftId(null);
     setShowShiftComposer(false);
-    setShowRequestComposer(false);
-    setShowAvailabilityComposer(false);
     setQuickComposer(null);
-    setShowCourseComposer(false);
     setFeedback(null);
     setShiftDrafts([]);
     setSavedShiftDrafts([]);
@@ -1103,20 +1045,6 @@ export function OwnerCalendarClient({
     setShiftInsertMode("DAY");
     setSelectedShiftWeekdays([]);
     setRequestType(RequestType.VACATION);
-    setRequestStart(`${day.date.slice(0, 10)}T`);
-    setRequestEnd(`${day.date.slice(0, 10)}T`);
-    setRequestReason("");
-    setCertificateCode("");
-    setAvailabilityStart(`${day.date.slice(0, 10)}T`);
-    setAvailabilityEnd(`${day.date.slice(0, 10)}T`);
-    setAvailabilityReason("");
-    setCourseTitle("");
-    setCourseDescription("");
-    setCourseLocation("");
-    setCourseStart(`${day.date.slice(0, 10)}T`);
-    setCourseEnd(`${day.date.slice(0, 10)}T`);
-    setCourseAssignedToAll(true);
-    setCourseAssignedToId("");
   }
 
   function moveFocusedDay(direction: -1 | 1) {
@@ -1138,24 +1066,6 @@ export function OwnerCalendarClient({
     setFeedback(null);
   }
 
-  function handleDayPointerEnd(event: PointerEvent<HTMLElement>) {
-    const start = daySwipeRef.current;
-    daySwipeRef.current = null;
-
-    if (!start) {
-      return;
-    }
-
-    const deltaX = event.clientX - start.x;
-    const deltaY = event.clientY - start.y;
-
-    if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) {
-      return;
-    }
-
-    moveFocusedDay(deltaX < 0 ? 1 : -1);
-  }
-
   function closeModal() {
     if (isPending) {
       return;
@@ -1165,10 +1075,7 @@ export function OwnerCalendarClient({
     setActiveCalendarModal(null);
     setSelectedNoteId(null);
     setShowShiftComposer(false);
-    setShowRequestComposer(false);
-    setShowAvailabilityComposer(false);
     setQuickComposer(null);
-    setShowCourseComposer(false);
     setSelectedDate(null);
     setFeedback(null);
     setCurrentShiftDraft(null);
@@ -1364,110 +1271,6 @@ export function OwnerCalendarClient({
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
       }
     });
-  }
-
-  function handleCreateShifts() {
-    if (!selectedDay) {
-      return;
-    }
-
-    const validDrafts = shiftDrafts
-      .concat(currentShiftDraft && isShiftDraftValid(currentShiftDraft) ? [currentShiftDraft] : [])
-      .filter(
-      (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
-    );
-
-    if (validDrafts.length === 0) {
-      return;
-    }
-
-    runAction(async () => {
-      for (const draft of validDrafts) {
-        const formData = new FormData();
-        formData.set("title", "");
-        formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
-        formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
-        if (draft.isOnCall) {
-          formData.set("isOnCall", "on");
-        }
-
-        for (const memberId of draft.memberIds) {
-          formData.append("employeeIds", memberId);
-        }
-
-        await createShiftAction(formData);
-      }
-
-      setShiftDrafts([]);
-      setCurrentShiftDraft(createShiftDraft(selectedDay.date));
-      setShowShiftComposer(false);
-    }, validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.", true);
-  }
-
-  function handleCreateRequest() {
-    if (!selectedDay || !requestStart || !requestEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("type", requestType);
-    formData.set("startsAt", requestStart);
-    formData.set("endsAt", requestEnd);
-    formData.set("reason", requestReason);
-    formData.set("certificateCode", certificateCode);
-
-    runAction(async () => {
-      await createTimeOffRequestAction(formData);
-      setRequestReason("");
-      setCertificateCode("");
-      setShowRequestComposer(false);
-    }, "Richiesta salvata.");
-  }
-
-  function handleCreateAvailability() {
-    if (!selectedDay || !availabilityStart || !availabilityEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("startsAt", availabilityStart);
-    formData.set("endsAt", availabilityEnd);
-    formData.set("reason", availabilityReason);
-
-    runAction(async () => {
-      await createAvailabilityAction(formData);
-      setAvailabilityReason("");
-      setShowAvailabilityComposer(false);
-    }, "Indisponibilita salvata.");
-  }
-
-  function handleCreateCourse() {
-    if (!selectedDay || !courseTitle.trim() || !courseStart || !courseEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("title", courseTitle);
-    formData.set("description", courseDescription);
-    formData.set("location", courseLocation);
-    formData.set("startsAt", courseStart);
-    formData.set("endsAt", courseEnd);
-
-    if (courseAssignedToAll) {
-      formData.set("assignedToAll", "on");
-    } else if (courseAssignedToId) {
-      formData.set("assignedToId", courseAssignedToId);
-    }
-
-    runAction(async () => {
-      await createCourseAction(formData);
-      setCourseTitle("");
-      setCourseDescription("");
-      setCourseLocation("");
-      setCourseAssignedToAll(true);
-      setCourseAssignedToId("");
-      setShowCourseComposer(false);
-    }, "Corso aggiunto.");
   }
 
   function handleCompleteTask(taskId: string) {

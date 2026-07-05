@@ -162,7 +162,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
   const notesEnabled = features.tasks || features.noticeBoard;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
-  const calendarNavLabel = isCompany ? t.calendar : t.shifts;
+  const calendarNavLabel = t.shifts;
 
   const navItems: DashboardNavItem[] =
     String(role) === "SUPER_ADMIN"

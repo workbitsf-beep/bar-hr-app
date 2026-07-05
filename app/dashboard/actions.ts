@@ -1753,7 +1753,7 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function createTaskAction(formData: FormData) {
@@ -2069,7 +2069,7 @@ export async function createShiftAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function updateShiftAction(formData: FormData) {
@@ -2149,7 +2149,7 @@ export async function updateShiftAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function confirmShiftAction(formData: FormData) {
@@ -2229,7 +2229,7 @@ export async function confirmShiftAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
 }
 
 export async function deleteShiftAction(formData: FormData) {
@@ -2298,7 +2298,7 @@ export async function deleteShiftAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/requests");
 }
 
@@ -2673,13 +2673,13 @@ export async function createAvailabilityAction(formData: FormData) {
     const returnPath = await getReturnPathFromReferer("/dashboard/requests");
 
     revalidatePath("/dashboard/requests");
-    revalidatePath("/dashboard/shifts");
+    revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/calendar");
     redirect(appendStatusToPath(returnPath, { success: "availability-created" }));
   }
 
   revalidatePath("/dashboard/requests");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/calendar");
 }
 
@@ -3413,7 +3413,7 @@ export async function removeEmployeeAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/people");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/requests");
   redirect(appendStatusToPath(returnPath, { success: "employee-removed" }));
 }
@@ -3560,7 +3560,7 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/timelogs");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/tasks");
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard/documents");
@@ -4172,7 +4172,7 @@ export async function reviewRequestAction(formData: FormData) {
     revalidatePath("/dashboard/requests");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/export");
-    revalidatePath("/dashboard/shifts");
+    revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/calendar");
     redirect(appendStatusToPath(returnPath, { success: "request-reviewed" }));
   }
@@ -4180,6 +4180,6 @@ export async function reviewRequestAction(formData: FormData) {
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/export");
-  revalidatePath("/dashboard/shifts");
+  revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/calendar");
 }

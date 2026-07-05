@@ -1,6 +1,6 @@
 "use client";
 
-import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
+import { ActivityType, RequestType, Role } from "@prisma/client";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -10,29 +10,23 @@ import {
   useRef,
   useState,
   useTransition,
-  type PointerEvent,
   type ReactNode,
 } from "react";
 import { combineDateAndTime } from "@/lib/shift-datetime";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import type { FeatureFlags } from "@/lib/features";
-import { DateTimeInput } from "@/app/components/date-time-input";
 import { TimeInput } from "@/app/components/time-input";
 import {
   completeTaskAction,
-  createAvailabilityAction,
   createBoardNoteAction,
-  createCourseAction,
   createShiftAction,
   createTaskAction,
-  createTimeOffRequestAction,
   confirmBoardNoteReadAction,
   confirmShiftAction,
-  reviewRequestAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
-import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout, TextArea, TextInput } from "../ui";
+import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout, TextInput } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 import { scrollToTodayCard } from "./scroll-to-today-button";
@@ -957,7 +951,6 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
 
 export function DayActionCalendarClient({
   locale,
-  weekdayLabels,
   days,
   filteredDay,
   initialFocusedDay,
@@ -1005,8 +998,6 @@ export function DayActionCalendarClient({
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
-  const [showRequestComposer, setShowRequestComposer] = useState(false);
-  const [showAvailabilityComposer, setShowAvailabilityComposer] = useState(false);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
@@ -1015,22 +1006,6 @@ export function DayActionCalendarClient({
   const [shiftInsertMode, setShiftInsertMode] = useState<ShiftInsertMode>("DAY");
   const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
-  const [requestStart, setRequestStart] = useState("");
-  const [requestEnd, setRequestEnd] = useState("");
-  const [requestReason, setRequestReason] = useState("");
-  const [certificateCode, setCertificateCode] = useState("");
-  const [availabilityStart, setAvailabilityStart] = useState("");
-  const [availabilityEnd, setAvailabilityEnd] = useState("");
-  const [availabilityReason, setAvailabilityReason] = useState("");
-  const [courseTitle, setCourseTitle] = useState("");
-  const [courseDescription, setCourseDescription] = useState("");
-  const [courseLocation, setCourseLocation] = useState("");
-  const [courseStart, setCourseStart] = useState("");
-  const [courseEnd, setCourseEnd] = useState("");
-  const [courseAssignedToAll, setCourseAssignedToAll] = useState(true);
-  const [courseAssignedToId, setCourseAssignedToId] = useState("");
-  const [showCourseComposer, setShowCourseComposer] = useState(false);
-  const daySwipeRef = useRef<{ x: number; y: number } | null>(null);
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
   const skipDayScrollIntoViewRef = useRef(false);
@@ -1220,9 +1195,6 @@ export function DayActionCalendarClient({
   const isCompany = activityType === ActivityType.COMPANY;
   const canManageOptionalShifts =
     features.shifts && isCompany && companyShiftsEnabled && (role === Role.OWNER || role === Role.MANAGER);
-  const canCreateCourse = features.courses && (role === Role.OWNER || role === Role.MANAGER);
-  const canCreateClosure = features.requests && (role === Role.OWNER || role === Role.MANAGER);
-  const canReviewRequests = features.requests && isCompany && (role === Role.OWNER || role === Role.MANAGER);
   const canOpenTaskComposer = features.tasks;
 
   function getBlockedMemberReasons(draft: ShiftDraft) {
@@ -1270,9 +1242,6 @@ export function DayActionCalendarClient({
     setActiveCalendarModal(mode);
     setEditingShiftId(null);
     setShowShiftComposer(false);
-    setShowRequestComposer(false);
-    setShowAvailabilityComposer(false);
-    setShowCourseComposer(false);
     setQuickComposer(null);
     setFeedback(null);
     setShiftDrafts([]);
@@ -1281,20 +1250,6 @@ export function DayActionCalendarClient({
     setShiftInsertMode("DAY");
     setSelectedShiftWeekdays([]);
     setRequestType(RequestType.VACATION);
-    setRequestStart(`${day.date.slice(0, 10)}T`);
-    setRequestEnd(`${day.date.slice(0, 10)}T`);
-    setRequestReason("");
-    setCertificateCode("");
-    setAvailabilityStart(`${day.date.slice(0, 10)}T`);
-    setAvailabilityEnd(`${day.date.slice(0, 10)}T`);
-    setAvailabilityReason("");
-    setCourseTitle("");
-    setCourseDescription("");
-    setCourseLocation("");
-    setCourseStart(`${day.date.slice(0, 10)}T`);
-    setCourseEnd(`${day.date.slice(0, 10)}T`);
-    setCourseAssignedToAll(true);
-    setCourseAssignedToId("");
   }
 
   function moveFocusedDay(direction: -1 | 1) {
@@ -1316,24 +1271,6 @@ export function DayActionCalendarClient({
     setFeedback(null);
   }
 
-  function handleDayPointerEnd(event: PointerEvent<HTMLElement>) {
-    const start = daySwipeRef.current;
-    daySwipeRef.current = null;
-
-    if (!start) {
-      return;
-    }
-
-    const deltaX = event.clientX - start.x;
-    const deltaY = event.clientY - start.y;
-
-    if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) {
-      return;
-    }
-
-    moveFocusedDay(deltaX < 0 ? 1 : -1);
-  }
-
   function closeModal() {
     if (isPending) {
       return;
@@ -1343,9 +1280,6 @@ export function DayActionCalendarClient({
     setActiveCalendarModal(null);
     setSelectedNoteId(null);
     setShowShiftComposer(false);
-    setShowRequestComposer(false);
-    setShowAvailabilityComposer(false);
-    setShowCourseComposer(false);
     setSelectedDate(null);
     setQuickComposer(null);
     setFeedback(null);
@@ -1546,127 +1480,6 @@ export function DayActionCalendarClient({
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
       }
     });
-  }
-
-  function submitRequest() {
-    if (!selectedDay || !requestStart || !requestEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("type", requestType);
-    formData.set("startsAt", requestStart);
-    formData.set("endsAt", requestEnd);
-    formData.set("reason", requestReason);
-    formData.set("certificateCode", certificateCode);
-
-    runAction(async () => {
-      await createTimeOffRequestAction(formData);
-      setRequestReason("");
-      setCertificateCode("");
-      setShowRequestComposer(false);
-    }, "Richiesta salvata.");
-  }
-
-  function submitShifts() {
-    if (!selectedDay) {
-      return;
-    }
-
-    const validDrafts = shiftDrafts
-      .concat(currentShiftDraft && isShiftDraftValid(currentShiftDraft) ? [currentShiftDraft] : [])
-      .filter(
-      (draft) => draft.date && draft.startTime && draft.endTime && draft.memberIds.length > 0
-    );
-
-    if (validDrafts.length === 0) {
-      return;
-    }
-
-    runAction(
-      async () => {
-        for (const draft of validDrafts) {
-        const formData = new FormData();
-        formData.set("title", "");
-        formData.set("startTime", combineDateAndTime(draft.date, draft.startTime));
-        formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
-        if (draft.isOnCall) {
-          formData.set("isOnCall", "on");
-        }
-
-        for (const memberId of draft.memberIds) {
-          formData.append("employeeIds", memberId);
-        }
-
-          await createShiftAction(formData);
-        }
-
-        setShiftDrafts([]);
-        setCurrentShiftDraft(createShiftDraft(selectedDay.date));
-        setShowShiftComposer(false);
-      },
-      validDrafts.length === 1 ? "Turno aggiunto." : "Turni aggiunti.",
-      true
-    );
-  }
-
-  function submitAvailability() {
-    if (!selectedDay || !availabilityStart || !availabilityEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("startsAt", availabilityStart);
-    formData.set("endsAt", availabilityEnd);
-    formData.set("reason", availabilityReason);
-
-    runAction(async () => {
-      await createAvailabilityAction(formData);
-      setAvailabilityReason("");
-      setShowAvailabilityComposer(false);
-    }, "Indisponibilita salvata.");
-  }
-
-  function submitCourse() {
-    if (!selectedDay || !courseTitle.trim() || !courseStart || !courseEnd) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.set("title", courseTitle);
-    formData.set("description", courseDescription);
-    formData.set("location", courseLocation);
-    formData.set("startsAt", courseStart);
-    formData.set("endsAt", courseEnd);
-
-    if (courseAssignedToAll) {
-      formData.set("assignedToAll", "on");
-    } else if (courseAssignedToId) {
-      formData.set("assignedToId", courseAssignedToId);
-    }
-
-    runAction(async () => {
-      await createCourseAction(formData);
-      setCourseTitle("");
-      setCourseDescription("");
-      setCourseLocation("");
-      setCourseAssignedToAll(true);
-      setCourseAssignedToId("");
-      setShowCourseComposer(false);
-    }, "Corso inserito.");
-  }
-
-  function submitReview(requestId: string, decision: RequestStatus) {
-    const formData = new FormData();
-    formData.set("requestId", requestId);
-    formData.set("decision", decision);
-
-    runAction(
-      async () => {
-        await reviewRequestAction(formData);
-      },
-      decision === RequestStatus.APPROVED ? "Richiesta approvata." : "Richiesta rifiutata."
-    );
   }
 
   function submitOnCallApproval(shiftId: string) {

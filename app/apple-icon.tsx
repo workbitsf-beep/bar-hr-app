@@ -29,6 +29,7 @@ export default async function AppleIcon() {
           background: "#ffffff",
         }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse cannot render next/image. */}
         <img
           src={logoDataUrl}
           alt="Workbit"

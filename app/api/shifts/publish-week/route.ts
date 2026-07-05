@@ -158,7 +158,7 @@ export const POST = withBar(
           title: "Turni pubblicati",
           message: `Ciao ${recipient.firstName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${weekLabel} per ${bar.name}.`,
           type: INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
-          actionUrl: "/dashboard/shifts",
+          actionUrl: "/dashboard/calendar",
         })
       )
     );
@@ -183,7 +183,7 @@ export const POST = withBar(
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
-    revalidatePath("/dashboard/shifts");
+    revalidatePath("/dashboard/calendar");
 
     return Response.json({
       ok: true,
