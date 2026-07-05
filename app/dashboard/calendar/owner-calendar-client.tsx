@@ -1904,23 +1904,44 @@ export function OwnerCalendarClient({
                             toggleExpandedWeekDay(day.date);
                           }}
                           style={{
-                            width: 28,
-                            height: 28,
                             borderRadius: 999,
                             display: "inline-flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            background: isExpanded ? "#f5f3ff" : "#ffffff",
+                            gap: 6,
+                            minHeight: 28,
+                            padding: "5px 10px",
+                            background: isExpanded ? "linear-gradient(135deg, #f5f3ff, #ffffff)" : "#ffffff",
                             border: "1px solid rgba(124, 58, 237, 0.18)",
                             color: "#6d28d9",
-                            fontSize: 16,
+                            fontSize: 11,
                             fontWeight: 900,
                             cursor: "pointer",
-                            transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                            transition: "transform 140ms ease, background 140ms ease",
+                            lineHeight: 1,
+                            boxShadow: isExpanded ? "0 8px 18px rgba(124, 58, 237, 0.10)" : "none",
+                            transition: "background 140ms ease, box-shadow 140ms ease, border-color 140ms ease",
                           }}
                         >
-                          ˅
+                          <span>{isExpanded ? "Chiudi" : "Dettagli"}</span>
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                            style={{
+                              transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                              transition: "transform 140ms ease",
+                            }}
+                          >
+                            <path
+                              d="M7 10l5 5 5-5"
+                              stroke="currentColor"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
                         </span>
                       </span>
                     </div>
@@ -1960,18 +1981,6 @@ export function OwnerCalendarClient({
                           animation: "dashboardModalEnter 140ms ease-out",
                         }}
                       >
-                        {features.shifts && day.shifts.length > 0
-                          ? renderWeekSection(
-                              "👤 Turni",
-                              day.shifts.map((shift) =>
-                                renderCompactShiftCard(shift, locale, true, () => {
-                                  setSelectedDate(day.date);
-                                  setActiveCalendarModal("shifts");
-                                  setEditingShiftId(null);
-                                })
-                              )
-                            )
-                          : null}
                         {features.requests && day.requests.filter((request) => request.type === RequestType.PERMISSION).length > 0
                           ? renderWeekSection(
                               "🟠 Permessi",
