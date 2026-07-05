@@ -82,6 +82,7 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
     "/dashboard",
     "/dashboard/calendar",
     "/dashboard/tasks",
+    "/dashboard/documents",
     "/dashboard/timelogs",
     "/dashboard/requests",
   ];

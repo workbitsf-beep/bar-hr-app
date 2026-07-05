@@ -1,25 +1,15 @@
 import Link from "next/link";
 import { ActivityType, BillingInterval, PlanType, Role, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { SuperAdminHomeCreateActions } from "./home-create-actions";
 
 const MONTHLY_PRICE = 29.99;
 const YEARLY_PRICE = 299;
 
-type RevenueActivity = {
-  name: string;
-  activityType: ActivityType;
-  owner: {
-    firstName: string;
-    lastName: string;
-  };
-  subscription: {
-    planType: PlanType;
-    status: SubscriptionStatus;
-    billingInterval: BillingInterval | null;
-    monthlyDiscountPercent: number;
-    currentPeriodEnd: Date | null;
-  } | null;
+type RevenueSubscription = {
+  planType: PlanType;
+  status: SubscriptionStatus;
+  billingInterval: BillingInterval | null;
+  monthlyDiscountPercent: number;
 };
 
 function formatCurrency(value: number) {
@@ -48,32 +38,22 @@ function getDiscountMultiplier(discountPercent: number) {
   return 1 - Math.max(0, Math.min(100, discountPercent)) / 100;
 }
 
-function isPaidActive(activity: RevenueActivity) {
+function isPaidActive(subscription: RevenueSubscription) {
   return (
-    activity.subscription?.planType === PlanType.PAID &&
-    (activity.subscription.status === SubscriptionStatus.ACTIVE ||
-      activity.subscription.status === SubscriptionStatus.TRIALING)
+    subscription.planType === PlanType.PAID &&
+    (subscription.status === SubscriptionStatus.ACTIVE ||
+      subscription.status === SubscriptionStatus.TRIALING)
   );
 }
 
-function getEstimatedMonthlyRevenue(activity: RevenueActivity) {
-  if (!isPaidActive(activity)) return 0;
+function getEstimatedMonthlyRevenue(subscription: RevenueSubscription) {
+  if (!isPaidActive(subscription)) return 0;
 
-  const multiplier = getDiscountMultiplier(activity.subscription?.monthlyDiscountPercent ?? 0);
+  const multiplier = getDiscountMultiplier(subscription.monthlyDiscountPercent);
 
-  return activity.subscription?.billingInterval === BillingInterval.YEARLY
+  return subscription.billingInterval === BillingInterval.YEARLY
     ? (YEARLY_PRICE * multiplier) / 12
     : MONTHLY_PRICE * multiplier;
-}
-
-function getEstimatedAnnualRevenue(activity: RevenueActivity) {
-  if (!isPaidActive(activity)) return 0;
-
-  const multiplier = getDiscountMultiplier(activity.subscription?.monthlyDiscountPercent ?? 0);
-
-  return activity.subscription?.billingInterval === BillingInterval.YEARLY
-    ? YEARLY_PRICE * multiplier
-    : MONTHLY_PRICE * 12 * multiplier;
 }
 
 function statusLabel(planType: PlanType, status: SubscriptionStatus) {
@@ -112,17 +92,21 @@ export async function SuperAdminHomeHub() {
     ownerCount,
     staffCount,
     subscriptions,
-    ownerOptions,
     recentActivities,
     billingStatusCounts,
   ] = await Promise.all([
     prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
     prisma.user.count({ where: { role: Role.OWNER } }),
-    prisma.user.count({ where: { role: { in: [Role.MANAGER, Role.AMMINISTRAZIONE, Role.EMPLOYEE] } } }),
+    prisma.user.count({
+      where: { role: { in: [Role.MANAGER, Role.AMMINISTRAZIONE, Role.EMPLOYEE] } },
+    }),
     prisma.subscription.findMany({
       where: {
         OR: [
-          { planType: PlanType.PAID, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] } },
+          {
+            planType: PlanType.PAID,
+            status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
+          },
           { planType: PlanType.TRIAL },
         ],
       },
@@ -131,25 +115,11 @@ export async function SuperAdminHomeHub() {
         status: true,
         billingInterval: true,
         monthlyDiscountPercent: true,
-        currentPeriodEnd: true,
-        bar: {
-          select: {
-            name: true,
-            activityType: true,
-            owner: { select: { firstName: true, lastName: true } },
-          },
-        },
       },
-    }),
-    prisma.user.findMany({
-      where: { role: Role.OWNER },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-      take: 200,
-      select: { id: true, firstName: true, lastName: true, email: true },
     }),
     prisma.bar.findMany({
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 4,
       select: {
         id: true,
         name: true,
@@ -174,18 +144,11 @@ export async function SuperAdminHomeHub() {
   const restaurantCount =
     activityCounts.find((entry) => entry.activityType === ActivityType.RESTAURANT)?._count._all ?? 0;
   const totalActivities = companyCount + restaurantCount;
-  const revenueActivities: RevenueActivity[] = subscriptions.map((subscription) => ({
-    ...subscription.bar,
-    subscription: {
-      planType: subscription.planType,
-      status: subscription.status,
-      billingInterval: subscription.billingInterval,
-      monthlyDiscountPercent: subscription.monthlyDiscountPercent,
-      currentPeriodEnd: subscription.currentPeriodEnd,
-    },
-  }));
-  const monthlyRevenue = revenueActivities.reduce((sum, activity) => sum + getEstimatedMonthlyRevenue(activity), 0);
-  const annualRevenue = revenueActivities.reduce((sum, activity) => sum + getEstimatedAnnualRevenue(activity), 0);
+  const monthlyRevenue = subscriptions.reduce(
+    (sum, subscription) => sum + getEstimatedMonthlyRevenue(subscription),
+    0
+  );
+  const annualRevenue = monthlyRevenue * 12;
   const activeBillingCount = billingStatusCounts.reduce(
     (sum, bucket) =>
       sum +
@@ -205,14 +168,6 @@ export async function SuperAdminHomeHub() {
         : 0),
     0
   );
-  const topRevenueActivities = revenueActivities
-    .map((activity) => ({
-      ...activity,
-      monthlyRevenue: getEstimatedMonthlyRevenue(activity),
-    }))
-    .filter((activity) => activity.monthlyRevenue > 0)
-    .sort((a, b) => b.monthlyRevenue - a.monthlyRevenue)
-    .slice(0, 5);
   const rssMb = Math.round(memoryUsage.rss / 1024 / 1024);
   const heapMb = Math.round(memoryUsage.heapUsed / 1024 / 1024);
   const cpuSeconds = Math.round((cpuUsage.user + cpuUsage.system) / 1_000_000);
@@ -225,18 +180,21 @@ export async function SuperAdminHomeHub() {
           <span className="sa-lite-eyebrow">Controllo rapido</span>
           <h2>{formatCurrency(annualRevenue)} / anno</h2>
           <p>
-            Vista sintetica su attività, titolari e abbonamenti. I dettagli operativi sono separati
-            nelle sezioni sotto, senza doppioni.
+            Panoramica leggera su attivita, titolari e abbonamenti. I dettagli completi
+            restano nelle sezioni dedicate.
           </p>
         </div>
-        <SuperAdminHomeCreateActions owners={ownerOptions} />
+        <div className="sa-quick-actions" aria-label="Azioni rapide Super Admin">
+          <Link href="/dashboard/super-admin/bars">+ Nuova attivita</Link>
+          <Link href="/dashboard/super-admin/owners">+ Nuovo titolare</Link>
+        </div>
       </section>
 
       <section className="sa-lite-metrics" aria-label="Metriche principali">
         <AdminMetric
-          label="Attività"
+          label="Attivita"
           value={String(totalActivities)}
-          detail={`${restaurantCount} ristorazione · ${companyCount} aziende`}
+          detail={`${restaurantCount} ristorazione - ${companyCount} aziende`}
         />
         <AdminMetric
           label="Ricavi"
@@ -246,7 +204,7 @@ export async function SuperAdminHomeHub() {
         <AdminMetric
           label="Persone"
           value={String(ownerCount + staffCount)}
-          detail={`${ownerCount} titolari · ${staffCount} staff`}
+          detail={`${ownerCount} titolari - ${staffCount} staff`}
         />
         <AdminMetric
           label="Abbonamenti"
@@ -256,7 +214,7 @@ export async function SuperAdminHomeHub() {
         <AdminMetric
           label="Runtime"
           value={`${rssMb} MB`}
-          detail={`Heap ${heapMb} MB · CPU ${cpuSeconds}s`}
+          detail={`Heap ${heapMb} MB - CPU ${cpuSeconds}s`}
         />
       </section>
 
@@ -269,14 +227,14 @@ export async function SuperAdminHomeHub() {
             </div>
           </div>
           <div className="sa-lite-actions">
-            <Link href="/dashboard/super-admin/bars">Attività</Link>
+            <Link href="/dashboard/super-admin/bars">Attivita</Link>
             <Link href="/dashboard/super-admin/owners">Titolari</Link>
             <Link href="/dashboard/super-admin/billing">Abbonamenti</Link>
             <Link href="/dashboard/super-admin/revenue">Incassi</Link>
             <Link href="/dashboard/super-admin/system">Sistema</Link>
             <Link href="/dashboard/super-admin/gps">Impostazioni globali</Link>
           </div>
-          <div className="sa-lite-bars" aria-label="Distribuzione attività">
+          <div className="sa-lite-bars" aria-label="Distribuzione attivita">
             <div>
               <span>Ristorazione</span>
               <strong>{restaurantCount}</strong>
@@ -298,27 +256,25 @@ export async function SuperAdminHomeHub() {
           <div className="sa-lite-card-head">
             <div>
               <span className="sa-lite-eyebrow">Ricavi</span>
-              <h3>Attività più redditizie</h3>
+              <h3>Incassi</h3>
             </div>
-            <Link href="/dashboard/super-admin/billing">Apri</Link>
+            <Link href="/dashboard/super-admin/revenue">Apri</Link>
           </div>
           <div className="sa-lite-list">
-            {topRevenueActivities.length > 0 ? (
-              topRevenueActivities.map((activity) => (
-                <div key={activity.name} className="sa-lite-row">
-                  <div>
-                    <strong>{activity.name}</strong>
-                    <small>
-                      {getActivityLabel(activity.activityType)} · {activity.owner.firstName}{" "}
-                      {activity.owner.lastName}
-                    </small>
-                  </div>
-                  <span>{formatCurrency(activity.monthlyRevenue)}</span>
-                </div>
-              ))
-            ) : (
-              <p>Nessun abbonamento attivo da conteggiare.</p>
-            )}
+            <div className="sa-lite-row">
+              <div>
+                <strong>{formatCurrency(monthlyRevenue)} / mese</strong>
+                <small>Ricorrente stimato da abbonamenti attivi</small>
+              </div>
+              <span>{formatCurrency(annualRevenue)} / anno</span>
+            </div>
+            <div className="sa-lite-row">
+              <div>
+                <strong>{activeBillingCount} abbonamenti attivi</strong>
+                <small>{riskBillingCount > 0 ? `${riskBillingCount} da verificare` : "Nessuna criticita"}</small>
+              </div>
+              <span>Dettagli</span>
+            </div>
           </div>
         </article>
 
@@ -326,7 +282,7 @@ export async function SuperAdminHomeHub() {
           <div className="sa-lite-card-head">
             <div>
               <span className="sa-lite-eyebrow">Clienti</span>
-              <h3>Ultime attività</h3>
+              <h3>Ultime attivita</h3>
             </div>
             <Link href="/dashboard/super-admin/bars">Cerca</Link>
           </div>
@@ -336,7 +292,7 @@ export async function SuperAdminHomeHub() {
                 <div>
                   <strong>{activity.name}</strong>
                   <small>
-                    {getActivityLabel(activity.activityType)} · {activity.owner.firstName}{" "}
+                    {getActivityLabel(activity.activityType)} - {activity.owner.firstName}{" "}
                     {activity.owner.lastName}
                   </small>
                 </div>
@@ -406,7 +362,7 @@ export async function SuperAdminHomeHub() {
               flex-wrap: wrap;
               justify-content: flex-end;
             }
-            .sa-quick-actions button,
+            .sa-quick-actions a,
             .sa-lite-card-head a,
             .sa-lite-actions a {
               display: inline-flex;
@@ -421,7 +377,6 @@ export async function SuperAdminHomeHub() {
               text-decoration: none;
               font-size: 12px;
               font-weight: 900;
-              cursor: pointer;
             }
             .sa-lite-metrics {
               display: grid;
@@ -479,6 +434,12 @@ export async function SuperAdminHomeHub() {
               display: grid;
               gap: 8px;
             }
+            .sa-lite-actions a {
+              width: 100%;
+              min-height: 44px;
+              justify-content: flex-start;
+              padding: 0 16px;
+            }
             .sa-lite-bars {
               display: grid;
               gap: 10px;
@@ -506,24 +467,9 @@ export async function SuperAdminHomeHub() {
               border-radius: inherit;
               background: linear-gradient(135deg, #111936, #8b5cf6);
             }
-            .sa-lite-actions a {
-              width: 100%;
-              min-height: 44px;
-              justify-content: flex-start;
-              padding: 0 16px;
-            }
             .sa-lite-list {
               display: grid;
               gap: 8px;
-            }
-            .sa-lite-list p {
-              margin: 0;
-              padding: 16px;
-              border-radius: 18px;
-              background: #f8fafc;
-              color: #64748b;
-              font-size: 13px;
-              font-weight: 750;
             }
             .sa-lite-row {
               display: flex;
