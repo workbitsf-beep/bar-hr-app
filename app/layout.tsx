@@ -132,40 +132,40 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               html[data-theme="dark"] {
                 color-scheme: dark;
-                --workbit-background: #060817;
-                --workbit-surface: #11162a;
-                --workbit-surface-secondary: #171d35;
-                --workbit-surface-elevated: #171d35;
-                --workbit-field-bg: #0f1528;
-                --workbit-popup: #171d35;
-                --workbit-navigation: rgba(17, 22, 42, 0.94);
-                --workbit-calendar: #11162a;
+                --workbit-background: #080b18;
+                --workbit-surface: #11172d;
+                --workbit-surface-secondary: #171f3a;
+                --workbit-surface-elevated: #1b2442;
+                --workbit-field-bg: #10172d;
+                --workbit-popup: #121a33;
+                --workbit-navigation: rgba(16, 23, 45, 0.94);
+                --workbit-calendar: #11172d;
                 --workbit-navy: #f8fafc;
-                --workbit-deep-navy: #eef2ff;
+                --workbit-deep-navy: #f1f5f9;
                 --workbit-ink: #f8fafc;
                 --workbit-text: #f8fafc;
                 --workbit-text-secondary: #cbd5e1;
-                --workbit-muted: #94a3b8;
-                --workbit-purple: #8b5cf6;
-                --workbit-electric-purple: #a855f7;
+                --workbit-muted: #a8b3c7;
+                --workbit-purple: #a78bfa;
+                --workbit-electric-purple: #c084fc;
                 --workbit-purple-dark: #ddd6fe;
-                --workbit-purple-soft: #1c2340;
-                --workbit-lavender: #272044;
-                --workbit-border: rgba(168, 85, 247, 0.18);
-                --workbit-card: linear-gradient(180deg, rgba(17,22,42,0.98) 0%, rgba(13,18,35,0.98) 100%);
-                --workbit-app-bg: radial-gradient(circle at 84% 0%, rgba(139,92,246,0.18), transparent 31%),
-                  radial-gradient(circle at 10% 6%, rgba(168,85,247,0.10), transparent 25%),
-                  linear-gradient(180deg, #070a16 0%, #0b1024 100%);
-                --workbit-gradient: linear-gradient(135deg, #1b2350 0%, #7c3aed 54%, #a855f7 100%);
-                --workbit-gradient-soft: linear-gradient(135deg, rgba(139,92,246,0.16) 0%, rgba(168,85,247,0.12) 100%);
-                --workbit-shadow: 0 16px 38px rgba(0, 0, 0, 0.28);
-                --workbit-shadow-strong: 0 24px 54px rgba(0, 0, 0, 0.42);
-                --workbit-focus: 0 0 0 4px rgba(139, 92, 246, 0.28);
+                --workbit-purple-soft: #211b3f;
+                --workbit-lavender: #2b2450;
+                --workbit-border: rgba(196, 181, 253, 0.24);
+                --workbit-card: linear-gradient(180deg, rgba(24, 32, 59, 0.98) 0%, rgba(17, 23, 45, 0.98) 100%);
+                --workbit-app-bg: radial-gradient(circle at 84% 0%, rgba(124,58,237,0.20), transparent 31%),
+                  radial-gradient(circle at 10% 6%, rgba(192,132,252,0.10), transparent 25%),
+                  linear-gradient(180deg, #080b18 0%, #10152b 100%);
+                --workbit-gradient: linear-gradient(135deg, #263063 0%, #7c3aed 52%, #c084fc 100%);
+                --workbit-gradient-soft: linear-gradient(135deg, rgba(124,58,237,0.20) 0%, rgba(192,132,252,0.12) 100%);
+                --workbit-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+                --workbit-shadow-strong: 0 26px 62px rgba(0, 0, 0, 0.48);
+                --workbit-focus: 0 0 0 4px rgba(167, 139, 250, 0.28);
                 --workbit-success: #22c55e;
                 --workbit-warning: #f59e0b;
-                --workbit-danger: #ef4444;
+                --workbit-danger: #f87171;
                 --workbit-info: #38bdf8;
-                --workbit-badge: rgba(139, 92, 246, 0.16);
+                --workbit-badge: rgba(167, 139, 250, 0.16);
               }
 
               html,
@@ -205,7 +205,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] .dashboard-item-card *,
               html[data-theme="dark"] .dashboard-compact-list-item *,
               html[data-theme="dark"] .dashboard-modal-panel * {
-                border-color: var(--workbit-border);
+                border-color: rgba(196, 181, 253, 0.20);
               }
 
               html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
@@ -304,31 +304,31 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 color: #fecaca !important;
               }
 
-              html[data-theme="dark"] [style*="background: #ffffff"],
-              html[data-theme="dark"] [style*="background:#ffffff"],
-              html[data-theme="dark"] [style*="background: #fff"],
-              html[data-theme="dark"] [style*="background:#fff"],
-              html[data-theme="dark"] [style*="background: rgb(255, 255, 255)"],
-              html[data-theme="dark"] [style*="background-color: #ffffff"],
-              html[data-theme="dark"] [style*="background-color:#ffffff"],
-              html[data-theme="dark"] [style*="background-color: rgb(255, 255, 255)"] {
+              html[data-theme="dark"] .dashboard-shell [style*="background: #ffffff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background:#ffffff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: #fff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background:#fff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: rgb(255, 255, 255)"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color: #ffffff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color:#ffffff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color: rgb(255, 255, 255)"] {
                 background: var(--workbit-surface) !important;
               }
 
-              html[data-theme="dark"] [style*="background: #f8fafc"],
-              html[data-theme="dark"] [style*="background:#f8fafc"],
-              html[data-theme="dark"] [style*="background: #f1f5f9"],
-              html[data-theme="dark"] [style*="background:#f1f5f9"],
-              html[data-theme="dark"] [style*="background: #f7f3ff"],
-              html[data-theme="dark"] [style*="background:#f7f3ff"],
-              html[data-theme="dark"] [style*="background-color: #f8fafc"],
-              html[data-theme="dark"] [style*="background-color:#f8fafc"],
-              html[data-theme="dark"] [style*="background-color: #f1f5f9"],
-              html[data-theme="dark"] [style*="background-color:#f1f5f9"],
-              html[data-theme="dark"] [style*="background-color: #f7f3ff"],
-              html[data-theme="dark"] [style*="background-color:#f7f3ff"],
-              html[data-theme="dark"] [style*="background: rgb(248, 250, 252)"],
-              html[data-theme="dark"] [style*="background: rgb(241, 245, 249)"] {
+              html[data-theme="dark"] .dashboard-shell [style*="background: #f8fafc"],
+              html[data-theme="dark"] .dashboard-shell [style*="background:#f8fafc"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: #f1f5f9"],
+              html[data-theme="dark"] .dashboard-shell [style*="background:#f1f5f9"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: #f7f3ff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background:#f7f3ff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color: #f8fafc"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color:#f8fafc"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color: #f1f5f9"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color:#f1f5f9"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color: #f7f3ff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background-color:#f7f3ff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: rgb(248, 250, 252)"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: rgb(241, 245, 249)"] {
                 background: var(--workbit-surface-secondary) !important;
               }
 
@@ -373,10 +373,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] .dashboard-bottom-nav button {
                 color: var(--workbit-text) !important;
                 background: var(--workbit-surface-elevated) !important;
-                border-color: rgba(168, 85, 247, 0.22) !important;
+                border-color: rgba(196, 181, 253, 0.24) !important;
               }
 
-              html[data-theme="dark"] .dashboard-button {
+              html[data-theme="dark"] .dashboard-button,
+              html[data-theme="dark"] button[style*="linear-gradient(135deg"],
+              html[data-theme="dark"] a[style*="linear-gradient(135deg"] {
                 color: #ffffff !important;
               }
 
