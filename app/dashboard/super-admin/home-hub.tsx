@@ -272,8 +272,9 @@ export async function SuperAdminHomeHub() {
             <Link href="/dashboard/super-admin/bars">Attività</Link>
             <Link href="/dashboard/super-admin/owners">Titolari</Link>
             <Link href="/dashboard/super-admin/billing">Abbonamenti</Link>
-            <Link href="/dashboard/super-admin/gps">Range globale</Link>
+            <Link href="/dashboard/super-admin/revenue">Incassi</Link>
             <Link href="/dashboard/super-admin/system">Sistema</Link>
+            <Link href="/dashboard/super-admin/gps">Impostazioni globali</Link>
           </div>
           <div className="sa-lite-bars" aria-label="Distribuzione attività">
             <div>

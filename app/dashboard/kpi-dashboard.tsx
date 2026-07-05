@@ -74,6 +74,12 @@ export function KpiDashboard({
       return cached.data;
     }
 
+    if (initialData) {
+      const seededAt = Date.now();
+      kpiCache.set(activeBarId, { data: initialData, updatedAt: seededAt });
+      return initialData;
+    }
+
     return initialData ?? null;
   });
   const [loading, setLoading] = useState(data === null);

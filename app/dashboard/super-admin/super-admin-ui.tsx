@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { EmptyState, Panel } from "../ui";
 
-type AdminSection = "home" | "owners" | "bars" | "billing" | "gps" | "legal" | "system";
+type AdminSection = "home" | "owners" | "bars" | "billing" | "revenue" | "gps" | "legal" | "system";
 
 const superAdminItems: Array<{
   href: string;
@@ -13,6 +13,15 @@ const superAdminItems: Array<{
   color: string;
   tint: string;
 }> = [
+  {
+    href: "/dashboard/super-admin",
+    title: "Panoramica",
+    description: "Numeri essenziali e stato rapido.",
+    eyebrow: "Control room",
+    section: "home",
+    color: "#111936",
+    tint: "#f8fafc",
+  },
   {
     href: "/dashboard/super-admin/owners",
     title: "Titolari",
@@ -33,12 +42,21 @@ const superAdminItems: Array<{
   },
   {
     href: "/dashboard/super-admin/billing",
-    title: "Pagamenti",
+    title: "Abbonamenti",
     description: "Trial, rinnovi, sconti e stato Stripe.",
     eyebrow: "Revenue",
     section: "billing",
     color: "#5b21b6",
     tint: "#f7f3ff",
+  },
+  {
+    href: "/dashboard/super-admin/revenue",
+    title: "Incassi",
+    description: "MRR, ARR e attivita paganti.",
+    eyebrow: "Cashflow",
+    section: "revenue",
+    color: "#8b5cf6",
+    tint: "#faf5ff",
   },
   {
     href: "/dashboard/super-admin/system",
@@ -48,6 +66,15 @@ const superAdminItems: Array<{
     section: "system",
     color: "#0b1024",
     tint: "#f7f3ff",
+  },
+  {
+    href: "/dashboard/super-admin/gps",
+    title: "Impostazioni globali",
+    description: "Range timbrature e regole condivise.",
+    eyebrow: "Global",
+    section: "gps",
+    color: "#4c1d95",
+    tint: "#f5f3ff",
   },
 ];
 
@@ -78,11 +105,11 @@ function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: numbe
     );
   }
 
-  if (section === "billing") {
+  if (section === "billing" || section === "revenue") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="3" {...common} />
-        <path d="M3 10h18M7 15h4" {...common} />
+        <path d={section === "revenue" ? "M7 15h2.5M12 15h5M8 12c1.7-1.4 3.4-1.4 5 0s3.3 1.4 5 0" : "M3 10h18M7 15h4"} {...common} />
       </svg>
     );
   }
@@ -153,11 +180,6 @@ export function SuperAdminFrame({
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-
-        <Link className="super-admin-home-link" href="/dashboard/super-admin">
-          <AdminIcon section="home" size={18} />
-          Panoramica
-        </Link>
       </section>
 
       <nav className="super-admin-section-nav" aria-label="Sezioni Super Admin">

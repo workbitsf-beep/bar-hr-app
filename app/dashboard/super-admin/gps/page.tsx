@@ -4,7 +4,7 @@ import { Panel } from "../../ui";
 import { GlobalGpsRadiusForm } from "../global-gps-radius-form";
 import { SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
 
-export default async function SuperAdminGpsPage() {
+export default async function SuperAdminGlobalSettingsPage() {
   const { role } = await getDashboardContext();
 
   if (String(role) !== "SUPER_ADMIN") {
@@ -15,8 +15,8 @@ export default async function SuperAdminGpsPage() {
 
   return (
     <SuperAdminFrame
-      title="GPS globale"
-      description="Imposta il range timbrature valido per tutte le attività."
+      title="Impostazioni globali"
+      description="Range timbrature e impostazioni condivise per tutte le attivita."
     >
       <Panel title="Range globale timbrature">
         <GlobalGpsRadiusForm initialRadius={globalGpsRadius} />

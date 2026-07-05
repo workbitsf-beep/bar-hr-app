@@ -183,7 +183,6 @@ export const POST = withBar(
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
-    revalidatePath("/dashboard/calendar");
 
     return Response.json({
       ok: true,
