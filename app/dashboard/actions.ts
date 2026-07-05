@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import {
   ActivityType,
   AppLanguage,
+  AppTheme,
   BillingInterval,
   CalendarClosureType,
   ClockType,
@@ -30,6 +31,7 @@ import {
   invalidateBillingStatusCache,
 } from "@/lib/billing";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
+import { THEME_COOKIE_NAME, normalizeTheme } from "@/lib/theme";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
@@ -774,6 +776,10 @@ function parseLanguage(value: FormDataEntryValue | null): AppLanguage {
   return AppLanguage.it;
 }
 
+function parseTheme(value: FormDataEntryValue | null): AppTheme {
+  return normalizeTheme(value);
+}
+
 function parseActivityType(value: FormDataEntryValue | null): ActivityType {
   return String(value ?? "") === ActivityType.COMPANY
     ? ActivityType.COMPANY
@@ -1221,6 +1227,38 @@ export async function setLanguageAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");
   revalidatePath("/onboarding");
+  redirect(returnPath);
+}
+
+export async function setThemeAction(formData: FormData) {
+  const session = await getSession();
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const theme = parseTheme(formData.get("theme"));
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: {
+      theme,
+    },
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(THEME_COOKIE_NAME, theme, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  const returnPath = await getReturnPathFromReferer("/dashboard");
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
   redirect(returnPath);
 }
 

@@ -126,33 +126,16 @@ export async function closeClockOutReminders(input: {
   });
 }
 
-async function getShiftClockState(input: {
-  userId: string;
-  barId: string;
-  shiftId: string;
-}) {
-  const logs = await prisma.timeLog.findMany({
-    where: {
-      userId: input.userId,
-      barId: input.barId,
-      shiftId: input.shiftId,
-      type: {
-        in: [ClockType.IN, ClockType.OUT],
-      },
-    },
-    orderBy: {
-      timestamp: "asc",
-    },
-    select: {
-      id: true,
-      type: true,
-      timestamp: true,
-    },
-  });
-
-  const lastIn = [...logs].reverse().find((log) => log.type === ClockType.IN) ?? null;
+function getShiftClockStateFromLogs(
+  logs: Array<{
+    type: ClockType;
+    timestamp: Date;
+  }>
+) {
+  const orderedLogs = logs.slice().sort((left, right) => left.timestamp.getTime() - right.timestamp.getTime());
+  const lastIn = [...orderedLogs].reverse().find((log) => log.type === ClockType.IN) ?? null;
   const outAfterLastIn = lastIn
-    ? logs.find((log) => log.type === ClockType.OUT && log.timestamp >= lastIn.timestamp) ?? null
+    ? orderedLogs.find((log) => log.type === ClockType.OUT && log.timestamp >= lastIn.timestamp) ?? null
     : null;
 
   return {
@@ -205,6 +188,53 @@ export async function runTimeLogReminders(now = new Date()) {
 
   let createdReminderCount = 0;
   let autoClockOutCount = 0;
+  const shiftIds = shifts.map((shift) => shift.id);
+  const userIds = Array.from(
+    new Set(
+      shifts.flatMap((shift) =>
+        shift.assignments
+          .filter((assignment) => assignment.user.role !== Role.OWNER)
+          .map((assignment) => assignment.userId)
+      )
+    )
+  );
+  const logs =
+    shiftIds.length > 0 && userIds.length > 0
+      ? await prisma.timeLog.findMany({
+          where: {
+            shiftId: {
+              in: shiftIds,
+            },
+            userId: {
+              in: userIds,
+            },
+            type: {
+              in: [ClockType.IN, ClockType.OUT],
+            },
+          },
+          orderBy: {
+            timestamp: "asc",
+          },
+          select: {
+            type: true,
+            timestamp: true,
+            userId: true,
+            shiftId: true,
+          },
+        })
+      : [];
+  const logsByUserAndShift = new Map<string, typeof logs>();
+
+  for (const log of logs) {
+    if (!log.shiftId) {
+      continue;
+    }
+
+    const key = `${log.userId}:${log.shiftId}`;
+    const current = logsByUserAndShift.get(key) ?? [];
+    current.push(log);
+    logsByUserAndShift.set(key, current);
+  }
 
   for (const shift of shifts) {
     for (const assignment of shift.assignments) {
@@ -212,11 +242,7 @@ export async function runTimeLogReminders(now = new Date()) {
         continue;
       }
 
-      const state = await getShiftClockState({
-        userId: assignment.userId,
-        barId: shift.barId,
-        shiftId: shift.id,
-      });
+      const state = getShiftClockStateFromLogs(logsByUserAndShift.get(`${assignment.userId}:${shift.id}`) ?? []);
 
       if (!state.hasClockIn) {
         const beforeStart = new Date(shift.startTime.getTime() - CLOCK_IN_REMINDER_LEAD_MS);

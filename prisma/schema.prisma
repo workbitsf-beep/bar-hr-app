@@ -43,6 +43,12 @@ enum AppLanguage {
   fr
 }
 
+enum AppTheme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
 enum ActivityType {
   RESTAURANT
   COMPANY
@@ -104,6 +110,7 @@ model User {
   lastName            String
   role                Role              @default(EMPLOYEE)
   language            AppLanguage       @default(it)
+  theme               AppTheme          @default(SYSTEM)
   mustChangePwd       Boolean           @default(true)
   ownedBars           Bar[]             @relation("BarOwner")
   barMemberships      EmployeeBar[]

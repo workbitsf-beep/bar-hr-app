@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
+import { ThemeSelect } from "@/app/components/theme-select";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
@@ -90,6 +91,8 @@ export default async function DashboardLayout({
                 label: option.label,
               }))}
             />
+
+            <ThemeSelect defaultValue={session.user.theme ?? "SYSTEM"} />
           </div>
         }
         headerAction={

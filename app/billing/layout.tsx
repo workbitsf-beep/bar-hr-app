@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
+import { ThemeSelect } from "@/app/components/theme-select";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { getDashboardContext } from "@/app/dashboard/context";
 import {
@@ -85,6 +86,8 @@ export default async function BillingLayout({
                 label: option.label,
               }))}
             />
+
+            <ThemeSelect defaultValue={session.user.theme ?? "SYSTEM"} />
           </div>
         }
         headerAction={

@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
+import { THEME_COOKIE_NAME } from "@/lib/theme";
 import { getAccessibleBarsForUser, getPostLoginDestination } from "@/lib/permissions";
 
 type LoginBody = {
@@ -39,6 +40,7 @@ export async function POST(req: Request): Promise<Response> {
       passwordHash: true,
       role: true,
       language: true,
+      theme: true,
       mustChangePwd: true,
     },
   });
@@ -75,6 +77,13 @@ export async function POST(req: Request): Promise<Response> {
     getSessionPersistenceCookieOptions(sessionMaxAge)
   );
   cookieStore.set(LANGUAGE_COOKIE_NAME, user.language, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  cookieStore.set(THEME_COOKIE_NAME, user.theme, {
     httpOnly: false,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

@@ -37,6 +37,25 @@ function toStringData(input: Record<string, string | number | boolean | null | u
   );
 }
 
+function buildPushLink(actionUrl: string | undefined) {
+  const rawActionUrl = actionUrl?.trim();
+
+  if (!rawActionUrl) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//i.test(rawActionUrl)) {
+    return rawActionUrl;
+  }
+
+  const appUrl = process.env.APP_URL?.trim().replace(/\/$/, "");
+  if (!appUrl) {
+    return rawActionUrl;
+  }
+
+  return `${appUrl}${rawActionUrl.startsWith("/") ? rawActionUrl : `/${rawActionUrl}`}`;
+}
+
 export async function sendPushNotification(
   input: PushNotificationInput
 ): Promise<PushNotificationResult> {
@@ -84,6 +103,7 @@ export async function sendPushNotification(
   const data = toStringData(input.data);
   data.title = input.title;
   data.body = input.body;
+  const pushLink = buildPushLink(data.actionUrl);
   const successfulTokenIds = new Set<string>();
   let sentCount = 0;
 
@@ -95,7 +115,20 @@ export async function sendPushNotification(
     for (const batch of chunk(uniqueTokens, 500)) {
       const response = await messaging.sendEachForMulticast({
         tokens: batch.map((entry) => entry.token),
+        notification: {
+          title: input.title,
+          body: input.body,
+        },
         data,
+        webpush: {
+          notification: {
+            title: input.title,
+            body: input.body,
+            icon: "/logo.png",
+            badge: "/logo.png",
+          },
+          fcmOptions: pushLink ? { link: pushLink } : undefined,
+        },
       });
 
       response.responses.forEach((result, index) => {

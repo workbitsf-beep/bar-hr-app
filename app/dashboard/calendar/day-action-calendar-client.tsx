@@ -1025,6 +1025,7 @@ export function DayActionCalendarClient({
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
+  const [modalContentReady, setModalContentReady] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
@@ -1046,13 +1047,18 @@ export function DayActionCalendarClient({
 
   useEffect(() => {
     if (!selectedDate) {
+      setModalContentReady(false);
       return;
     }
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const frame = window.requestAnimationFrame(() => {
+      setModalContentReady(true);
+    });
 
     return () => {
+      window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
     };
   }, [selectedDate]);
@@ -1268,6 +1274,7 @@ export function DayActionCalendarClient({
   }
 
   function openDay(day: DayItem, mode: CalendarModalMode = "day") {
+    setModalContentReady(false);
     setSelectedDate(day.date);
     setActiveCalendarModal(mode);
     setEditingShiftId(null);
@@ -1308,6 +1315,7 @@ export function DayActionCalendarClient({
 
     setEditingShiftId(null);
     setActiveCalendarModal(null);
+    setModalContentReady(false);
     setSelectedNoteId(null);
     setShowShiftComposer(false);
     setSelectedDate(null);
@@ -2368,7 +2376,30 @@ export function DayActionCalendarClient({
                   )
                 ) : null}
 
-                {features.shifts && activeCalendarModal !== "notes" ? (
+                {!modalContentReady ? (
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 10,
+                      padding: "8px 0",
+                    }}
+                  >
+                    {[0, 1, 2].map((item) => (
+                      <div
+                        key={item}
+                        style={{
+                          height: item === 0 ? 42 : 58,
+                          borderRadius: 18,
+                          background:
+                            "linear-gradient(90deg, rgba(245,243,255,0.9), rgba(255,255,255,0.95), rgba(245,243,255,0.9))",
+                          border: "1px solid rgba(124, 58, 237, 0.10)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                {modalContentReady && features.shifts && activeCalendarModal !== "notes" ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
@@ -3194,7 +3225,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {(activeCalendarModal === "day" || activeCalendarModal === "shifts") && (selectedDay?.pendingOnCallShifts ?? []).filter(
+                {modalContentReady && (activeCalendarModal === "day" || activeCalendarModal === "shifts") && (selectedDay?.pendingOnCallShifts ?? []).filter(
                   (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
                   <div style={{ display: "grid", gap: 12 }}>
@@ -3258,7 +3289,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {(features.tasks || features.noticeBoard) && activeCalendarModal !== "shifts" ? (
+                {modalContentReady && (features.tasks || features.noticeBoard) && activeCalendarModal !== "shifts" ? (
                   <div style={{ display: "grid", gap: 10 }}>
                     <div
                       style={{

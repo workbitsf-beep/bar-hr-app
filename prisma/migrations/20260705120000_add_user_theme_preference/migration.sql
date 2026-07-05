@@ -1,0 +1,9 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AppTheme') THEN
+    CREATE TYPE "AppTheme" AS ENUM ('LIGHT', 'DARK', 'SYSTEM');
+  END IF;
+END $$;
+
+ALTER TABLE "User"
+ADD COLUMN IF NOT EXISTS "theme" "AppTheme" NOT NULL DEFAULT 'SYSTEM';

@@ -16,3 +16,44 @@ if (process.env.SKIP_PRISMA_MIGRATE !== "true") {
 }
 
 require("../server");
+
+if (process.env.DISABLE_INTERNAL_CRON !== "true") {
+  const port = process.env.PORT || "3000";
+  const cronUrl = `http://127.0.0.1:${port}/api/cron/timelog-reminders`;
+  let running = false;
+
+  async function runInternalCron() {
+    if (running) {
+      return;
+    }
+
+    running = true;
+    try {
+      const response = await fetch(cronUrl, {
+        method: "GET",
+        headers: {
+          "x-workbit-internal-cron": "1",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("[internal-cron] Cron endpoint returned an error.", {
+          status: response.status,
+        });
+      }
+    } catch (error) {
+      console.error("[internal-cron] Failed to run scheduled tasks.", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      running = false;
+    }
+  }
+
+  setTimeout(() => {
+    void runInternalCron();
+    setInterval(() => {
+      void runInternalCron();
+    }, 60_000).unref?.();
+  }, 20_000).unref?.();
+}
