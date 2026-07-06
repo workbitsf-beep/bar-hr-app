@@ -104,6 +104,10 @@ export async function sendPushNotification(
   data.title = input.title;
   data.body = input.body;
   const pushLink = buildPushLink(data.actionUrl);
+  const notificationTag = `${data.type || "workbit-notification"}:${data.barId || "global"}:${data.actionUrl || ""}`.slice(
+    0,
+    120
+  );
   const successfulTokenIds = new Set<string>();
   let sentCount = 0;
 
@@ -126,6 +130,12 @@ export async function sendPushNotification(
             body: input.body,
             icon: "/logo.png",
             badge: "/logo.png",
+            tag: notificationTag,
+            renotify: false,
+          },
+          headers: {
+            Urgency: "normal",
+            Topic: String(input.data?.type ?? "workbit-notification").slice(0, 32),
           },
           fcmOptions: pushLink ? { link: pushLink } : undefined,
         },

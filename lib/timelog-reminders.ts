@@ -6,10 +6,18 @@ import { prisma } from "@/lib/prisma";
 const CLOCK_IN_REMINDER_LEAD_MS = 60 * 1000;
 const CLOCK_OUT_REMINDER_DELAY_MS = 60 * 1000;
 const AUTO_CLOCK_OUT_DELAY_MS = 2 * 60 * 60 * 1000;
+const REMINDER_GRACE_MS = 10 * 60 * 1000;
 const ACTION_URL = "/dashboard?clock=1";
 
 function isDue(now: Date, triggerAt: Date) {
   return now.getTime() >= triggerAt.getTime();
+}
+
+function isWithinReminderWindow(now: Date, triggerAt: Date) {
+  const nowTime = now.getTime();
+  const triggerTime = triggerAt.getTime();
+
+  return nowTime >= triggerTime && nowTime <= triggerTime + REMINDER_GRACE_MS;
 }
 
 async function hasClockReminder(input: {
@@ -247,13 +255,16 @@ export async function runTimeLogReminders(now = new Date()) {
       if (!state.hasClockIn) {
         const beforeStart = new Date(shift.startTime.getTime() - CLOCK_IN_REMINDER_LEAD_MS);
 
-        if (isDue(now, beforeStart)) {
+        if (isWithinReminderWindow(now, beforeStart)) {
+          const hasStarted = now.getTime() >= shift.startTime.getTime();
           createdReminderCount += await notifyClockReminder({
             userId: assignment.userId,
             barId: shift.barId,
             shiftId: shift.id,
             title: "Ricorda entrata",
-            message: "Tra un minuto inizia il tuo turno. Ricordati di registrare l'entrata.",
+            message: hasStarted
+              ? "Il tuo turno è iniziato. Ricordati di registrare l'entrata."
+              : "Tra un minuto inizia il tuo turno. Ricordati di registrare l'entrata.",
             type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE,
           });
         }
@@ -278,7 +289,7 @@ export async function runTimeLogReminders(now = new Date()) {
 
       const afterEnd = new Date(shift.endTime.getTime() + CLOCK_OUT_REMINDER_DELAY_MS);
 
-      if (isDue(now, afterEnd)) {
+      if (isWithinReminderWindow(now, afterEnd)) {
         createdReminderCount += await notifyClockReminder({
           userId: assignment.userId,
           barId: shift.barId,

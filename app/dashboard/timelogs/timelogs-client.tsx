@@ -629,13 +629,17 @@ export function ClockActionsPanel({
             aria-label="Aggiorna posizione"
             title={locating ? "Aggiornamento posizione..." : "Aggiorna posizione"}
             style={{
-              width: 46,
-              height: 46,
-              minWidth: 46,
+              width: 44,
+              height: 44,
+              minWidth: 44,
               padding: 0,
-              borderRadius: 16,
-              fontSize: 21,
+              borderRadius: 999,
+              fontSize: locating ? 22 : 27,
               flex: "0 0 auto",
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              color: "#5b21b6",
             }}
           >
             {locating ? "…" : "🔄"}

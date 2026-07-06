@@ -35,11 +35,17 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload) {
   const notification = payload && payload.notification ? payload.notification : {};
   const data = payload && payload.data ? payload.data : {};
+  if (notification && (notification.title || notification.body)) {
+    return;
+  }
+
   const title = data.title || notification.title || "Workbit";
   const options = {
     body: data.body || notification.body || "",
     icon: "/logo.png",
     badge: "/logo.png",
+    tag: data.type && data.actionUrl ? data.type + ":" + data.actionUrl : undefined,
+    renotify: false,
     data: data,
   };
 
