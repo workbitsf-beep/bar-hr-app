@@ -107,6 +107,7 @@ export async function sendPushNotification(
   data.title = input.title;
   data.body = input.body;
   const pushLink = buildPushLink(data.actionUrl);
+  const isTimeSensitiveReminder = data.type.startsWith("timelog.");
   const notificationTag = `${data.type || "workbit-notification"}:${data.barId || "global"}:${data.actionUrl || ""}`.slice(
     0,
     120
@@ -150,7 +151,8 @@ export async function sendPushNotification(
             renotify: false,
           },
           headers: {
-            Urgency: "normal",
+            Urgency: isTimeSensitiveReminder ? "high" : "normal",
+            TTL: isTimeSensitiveReminder ? "900" : "3600",
             Topic: String(input.data?.type ?? "workbit-notification").slice(0, 32),
           },
           fcmOptions: pushLink ? { link: pushLink } : undefined,
