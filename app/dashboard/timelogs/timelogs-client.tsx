@@ -1065,19 +1065,6 @@ function PersonalTimeLogsPanel({
           style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}
         >
           <ItemCard title="Ore mese" meta={formatDurationFromMilliseconds(monthSummary.workedMs)} />
-          <ItemCard title="Turni" meta={`${monthSummary.shiftCount}`} />
-          <ItemCard title="Giorni" meta={`${monthSummary.workedDays}`} />
-          <ItemCard
-            title="Da completare"
-            meta={`${monthSummary.pendingCount}`}
-            style={{
-              borderColor: monthSummary.pendingCount > 0 ? "rgba(245, 158, 11, 0.28)" : "rgba(34, 197, 94, 0.16)",
-              background:
-                monthSummary.pendingCount > 0
-                  ? "linear-gradient(135deg, #fff7ed, #ffffff)"
-                  : "linear-gradient(135deg, #f0fdf4, #ffffff)",
-            }}
-          />
         </div>
 
         {dayGroups.length === 0 ? (
