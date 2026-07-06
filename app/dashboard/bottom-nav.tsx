@@ -155,12 +155,14 @@ export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) 
               justifyContent: "center",
               flexDirection: "column",
               gap: 3,
-              color: active ? "#ffffff" : "var(--workbit-purple-dark)",
+              color: "var(--workbit-purple-dark)",
               background: active
-                ? "linear-gradient(135deg, #20124c 0%, #7c3aed 52%, #a855f7 100%)"
+                ? "linear-gradient(180deg, #ffffff 0%, var(--workbit-purple-soft) 100%)"
                 : "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%)",
-              border: active ? "1px solid rgba(255, 255, 255, 0.42)" : "1px solid var(--workbit-border)",
-              boxShadow: active ? "0 14px 30px rgba(124, 58, 237, 0.28)" : "none",
+              border: active ? "1px solid rgba(124, 58, 237, 0.42)" : "1px solid var(--workbit-border)",
+              boxShadow: active
+                ? "0 0 0 4px rgba(168, 85, 247, 0.14), 0 16px 30px rgba(124, 58, 237, 0.20)"
+                : "none",
               textDecoration: "none",
               transform: active ? "translateY(-3px)" : "translateY(0)",
             }}
