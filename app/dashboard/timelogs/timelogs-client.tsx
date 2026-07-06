@@ -621,29 +621,48 @@ export function ClockActionsPanel({
           }}
         >
           <div style={{ flex: "1 1 180px", minWidth: 0 }}>{locationSummary}</div>
-          <PrimaryButton
+          <button
             type="button"
-            tone="sand"
             onClick={captureGeolocation}
             disabled={locating || !gpsConfigured}
             aria-label="Aggiorna posizione"
             title={locating ? "Aggiornamento posizione..." : "Aggiorna posizione"}
             style={{
-              width: 44,
-              height: 44,
-              minWidth: 44,
+              width: 62,
+              height: 62,
+              minWidth: 62,
               padding: 0,
-              borderRadius: 999,
-              fontSize: locating ? 22 : 27,
+              borderRadius: 0,
+              fontSize: locating ? 34 : 42,
+              lineHeight: 1,
               flex: "0 0 auto",
               background: "transparent",
               border: "none",
               boxShadow: "none",
               color: "#5b21b6",
+              cursor: locating || !gpsConfigured ? "not-allowed" : "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: locating || !gpsConfigured ? 0.5 : 1,
+              WebkitAppearance: "none",
+              appearance: "none",
             }}
           >
-            {locating ? "…" : "🔄"}
-          </PrimaryButton>
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "1em",
+                height: "1em",
+                lineHeight: 1,
+              }}
+            >
+              {locating ? "…" : "🔄"}
+            </span>
+          </button>
           {settings?.roundingEnabled && settings.roundingMinutes ? (
             <div style={{ flex: "1 1 100%", fontSize: 13, color: "#64748b" }}>
               Arrotondamento ore attivo.
