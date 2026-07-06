@@ -178,13 +178,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
         ]
       : [
           { label: "Profilo", href: "/dashboard" },
-          ...(features.shifts ||
-          features.requests ||
-          features.availability ||
-          notesEnabled ||
-          features.courses
-            ? [{ label: calendarNavLabel, href: "/dashboard/calendar" }]
-            : []),
+          ...(features.shifts ? [{ label: calendarNavLabel, href: "/dashboard/calendar" }] : []),
           ...(notesEnabled
             ? [{ label: "Note", href: "/dashboard/tasks" }]
             : []),

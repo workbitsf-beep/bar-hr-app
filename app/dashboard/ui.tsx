@@ -278,65 +278,6 @@ function getBottomNavLabel(item: DashboardNavItem, index: number) {
   return item.label;
 }
 
-function BottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
-  const bottomNavItems = getBottomNavItems(navItems);
-
-  if (bottomNavItems.length <= 1) {
-    return null;
-  }
-
-  return (
-    <nav
-      aria-label="Navigazione principale"
-      className="dashboard-bottom-nav"
-      style={{
-        position: "fixed",
-        left: "50%",
-        bottom: "max(12px, env(safe-area-inset-bottom))",
-        transform: "translateX(-50%)",
-        zIndex: 200,
-        display: "flex",
-        gap: 8,
-        padding: 10,
-        borderRadius: 999,
-        border: "1px solid var(--workbit-border)",
-        background: "var(--workbit-navigation)",
-        boxShadow: "var(--workbit-shadow-strong)",
-        backdropFilter: "blur(18px)",
-        WebkitBackdropFilter: "blur(18px)",
-      }}
-    >
-      {bottomNavItems.map((item, index) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          aria-label={item.label}
-          title={item.label}
-          style={{
-            width: 58,
-            minHeight: 54,
-            borderRadius: 24,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexDirection: "column",
-            gap: 3,
-            color: "var(--workbit-purple-dark)",
-            background: "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%)",
-            border: "1px solid var(--workbit-border)",
-            textDecoration: "none",
-          }}
-        >
-          <BottomNavIcon href={item.href} />
-          <span style={{ fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
-            {getBottomNavLabel(item, index)}
-          </span>
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
 function DashboardResponsiveStyles() {
   return (
     <style

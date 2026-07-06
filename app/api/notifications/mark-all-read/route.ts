@@ -1,5 +1,13 @@
 import { getSession } from "@/lib/auth";
+import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+
+const persistentTimelogTypes = [
+  INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE,
+  INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_START,
+  INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_BEFORE,
+  INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_END,
+];
 
 export async function POST() {
   const session = await getSession();
@@ -19,6 +27,9 @@ export async function POST() {
             barId: null,
           }),
       read: false,
+      type: {
+        notIn: persistentTimelogTypes,
+      },
     },
     data: {
       read: true,

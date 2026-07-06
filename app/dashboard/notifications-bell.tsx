@@ -63,6 +63,10 @@ function getNotificationEmoji(type: string) {
   return "🔔";
 }
 
+function isPersistentTimelogNotification(type: string) {
+  return type.startsWith("timelog.clock-in.") || type.startsWith("timelog.clock-out.");
+}
+
 export function NotificationsBell() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -194,6 +198,14 @@ export function NotificationsBell() {
   }
 
   function handleNotificationClick(notification: NotificationItem) {
+    if (isPersistentTimelogNotification(notification.type)) {
+      if (notification.actionUrl) {
+        setOpen(false);
+        router.push(notification.actionUrl);
+      }
+      return;
+    }
+
     const markPromise = markAsRead(notification.id);
 
     void markPromise.finally(() => {
@@ -215,8 +227,10 @@ export function NotificationsBell() {
           throw new Error("Impossibile aggiornare le notifiche.");
         }
 
-        setNotifications([]);
-        setUnreadCount(0);
+        setNotifications((current) =>
+          current.filter((notification) => isPersistentTimelogNotification(notification.type))
+        );
+        await loadNotifications(true);
       } catch {
         // Silenzioso per non interrompere l'esperienza.
       }
