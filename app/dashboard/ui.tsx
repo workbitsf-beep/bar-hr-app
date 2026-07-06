@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
 import { PendingButton } from "@/app/components/pending-button";
+import { ActiveBottomNav } from "./bottom-nav";
 import {
   formatDateInTimeZone,
   formatDateTimeInTimeZone,
@@ -1066,7 +1067,7 @@ export function DashboardShell({
 
         <div style={{ display: "grid", gap: 18, alignItems: "start" }}>{children}</div>
       </div>
-      <BottomNav navItems={navItems} />
+      <ActiveBottomNav navItems={navItems} />
       <DashboardResponsiveStyles />
     </main>
   );
