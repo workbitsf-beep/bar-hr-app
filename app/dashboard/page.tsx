@@ -228,10 +228,7 @@ export default async function DashboardPage() {
   const clockStatus: ClockActionStatus =
     latestTimeLog?.type === "IN"
       ? "CAN_CLOCK_OUT"
-      : latestTimeLog?.type === "OUT" &&
-          toDateInputValueInTimeZone(latestTimeLog.timestamp) === todayKey
-        ? "DONE"
-        : "CAN_CLOCK_IN";
+      : "CAN_CLOCK_IN";
 
   return (
     <Stack>

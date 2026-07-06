@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { closeClockInReminders } from "@/lib/timelog-reminders";
-import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { withBar } from "@/lib/withBar";
 
 type ClockInBody = {
@@ -80,6 +79,42 @@ export const POST = withBar(
     }
 
     const now = new Date();
+    const lastClockIn = await prisma.timeLog.findFirst({
+      where: {
+        userId: session.user.id,
+        barId: session.activeBarId,
+        type: ClockType.IN,
+      },
+      orderBy: {
+        timestamp: "desc",
+      },
+      select: {
+        timestamp: true,
+      },
+    });
+
+    if (lastClockIn) {
+      const closingClockOut = await prisma.timeLog.findFirst({
+        where: {
+          userId: session.user.id,
+          barId: session.activeBarId,
+          type: ClockType.OUT,
+          timestamp: {
+            gt: lastClockIn.timestamp,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!closingClockOut) {
+        return Response.json(
+          { ok: false, message: "Prima registra l'uscita." },
+          { status: 400 }
+        );
+      }
+    }
 
     const shiftWindowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
