@@ -1,14 +1,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ActivityType, Prisma, Role } from "@prisma/client";
-import { ThemeSelect } from "@/app/components/theme-select";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
 import { featureToggleDefinitions, getFeatureFlags } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { getLegalDocumentsWithAcceptance, legalDocumentTypeLabels } from "@/lib/legal-documents";
 import { prisma } from "@/lib/prisma";
-import { getThemeOptions } from "@/lib/theme";
 import { deleteOwnerAccountAndBarAction, updateSettingsAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -306,7 +304,6 @@ export default async function DashboardSettingsPage({
   const { session, role, activeBarId, activeBarName, activeBarActivityType, billingStatus } =
     await getDashboardContext();
   const passkeyCount = await getPasskeyCount(session.user.id);
-  const themeOptions = getThemeOptions();
 
   const securityContent = (
     <div style={{ display: "grid", gap: 14 }}>
@@ -316,22 +313,10 @@ export default async function DashboardSettingsPage({
       </Panel>
     </div>
   );
-  const themePopup = (
-    <PopupAction title="Tema app" ariaLabel="Apri tema app" triggerContent="Gestisci" closeOnSubmit>
-      <ThemeSelect defaultValue={session.user.theme ?? "SYSTEM"} />
-    </PopupAction>
-  );
 
   if (role !== Role.OWNER) {
     return (
       <Stack columns="minmax(0, 760px)">
-        <SettingsSectionCard
-          icon="🎨"
-          title="Tema app"
-          description="Chiaro, scuro o automatico in base al dispositivo."
-          status={themeOptions.find((option) => option.value === session.user.theme)?.label ?? "Automatico"}
-          action={themePopup}
-        />
         <SettingsSectionCard
           icon="🔐"
           title="Sicurezza"
@@ -349,13 +334,6 @@ export default async function DashboardSettingsPage({
   if (!activeBarId) {
     return (
       <Stack columns="minmax(0, 760px)">
-        <SettingsSectionCard
-          icon="🎨"
-          title="Tema app"
-          description="Chiaro, scuro o automatico in base al dispositivo."
-          status={themeOptions.find((option) => option.value === session.user.theme)?.label ?? "Automatico"}
-          action={themePopup}
-        />
         <SettingsSectionCard
           icon="🔐"
           title="Sicurezza"
@@ -478,14 +456,6 @@ export default async function DashboardSettingsPage({
           <StatusPill label="Locale eliminato" tone="success" />
         </Panel>
       ) : null}
-
-      <SettingsSectionCard
-        icon="🎨"
-        title="Tema app"
-        description="Chiaro, scuro o automatico in base al dispositivo."
-        status={themeOptions.find((option) => option.value === session.user.theme)?.label ?? "Automatico"}
-        action={themePopup}
-      />
 
       <SettingsSectionCard
         icon="🏢"
