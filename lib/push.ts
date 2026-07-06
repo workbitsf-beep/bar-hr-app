@@ -89,6 +89,9 @@ export async function sendPushNotification(
       id: true,
       token: true,
       userId: true,
+      platform: true,
+      lastUsedAt: true,
+      updatedAt: true,
     },
   });
 
@@ -112,8 +115,21 @@ export async function sendPushNotification(
   let sentCount = 0;
 
   try {
+    const latestTokensByUserPlatform = new Map<string, (typeof tokens)[number]>();
+
+    for (const tokenEntry of tokens) {
+      const key = `${tokenEntry.userId}:${tokenEntry.platform}`;
+      const current = latestTokensByUserPlatform.get(key);
+      const tokenTime = (tokenEntry.lastUsedAt ?? tokenEntry.updatedAt).getTime();
+      const currentTime = current ? (current.lastUsedAt ?? current.updatedAt).getTime() : 0;
+
+      if (!current || tokenTime > currentTime) {
+        latestTokensByUserPlatform.set(key, tokenEntry);
+      }
+    }
+
     const uniqueTokens = Array.from(
-      new Map(tokens.map((entry) => [entry.token, entry])).values()
+      new Map(Array.from(latestTokensByUserPlatform.values()).map((entry) => [entry.token, entry])).values()
     );
 
     for (const batch of chunk(uniqueTokens, 500)) {

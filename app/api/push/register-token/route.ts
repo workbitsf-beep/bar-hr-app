@@ -40,6 +40,16 @@ export async function POST(req: Request) {
     },
   });
 
+  await prisma.pushToken.deleteMany({
+    where: {
+      userId: session.user.id,
+      platform,
+      token: {
+        not: token,
+      },
+    },
+  });
+
   return Response.json({
     ok: true,
     pushTokenId: registered.id,
