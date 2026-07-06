@@ -417,7 +417,7 @@ export function ClockActionsPanel({
     distance !== null &&
     accuracy !== null &&
     distance <= ((settings?.gpsRadius ?? 0) + accuracy);
-  const canClockIn = insideRadius && geoReady && clockStatus === "CAN_CLOCK_IN";
+  const canClockIn = insideRadius && geoReady;
   const canClockOut = insideRadius && geoReady && clockStatus === "CAN_CLOCK_OUT";
 
   const locationSummary = useMemo(() => {

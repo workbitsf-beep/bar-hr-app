@@ -80,36 +80,6 @@ export const POST = withBar(
     }
 
     const now = new Date();
-    const latestLog = await prisma.timeLog.findFirst({
-      where: {
-        userId: session.user.id,
-        barId: session.activeBarId,
-      },
-      orderBy: {
-        timestamp: "desc",
-      },
-      select: {
-        type: true,
-        timestamp: true,
-      },
-    });
-
-    if (latestLog?.type === ClockType.IN) {
-      return Response.json(
-        { ok: false, message: "Prima registra l'uscita." },
-        { status: 400 }
-      );
-    }
-
-    if (
-      latestLog?.type === ClockType.OUT &&
-      toDateInputValueInTimeZone(latestLog.timestamp) === toDateInputValueInTimeZone(now)
-    ) {
-      return Response.json(
-        { ok: false, message: "Turno gia completato." },
-        { status: 400 }
-      );
-    }
 
     const shiftWindowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
