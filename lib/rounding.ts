@@ -106,6 +106,11 @@ function floorToStep(date: Date, stepMinutes: number) {
   return roundTimeToStep(date, stepMinutes, RoundingMode.DOWN);
 }
 
+function floorDurationToStep(durationMs: number, stepMinutes: number) {
+  const stepMs = normalizeRoundingStep(stepMinutes) * 60 * 1000;
+  return Math.floor(Math.max(0, durationMs) / stepMs) * stepMs;
+}
+
 export function calculateShiftAwareRoundedWorkDuration(
   realStart: Date,
   realEnd: Date,
@@ -131,13 +136,18 @@ export function calculateShiftAwareRoundedWorkDuration(
       ? new Date(scheduledEnd)
       : floorToStep(realEnd, stepMinutes);
 
+  const realMs = Math.max(0, realEnd.getTime() - realStart.getTime());
+  const roundedBoundaryMs = Math.max(0, roundedEnd.getTime() - roundedStart.getTime());
+  const roundedMs =
+    roundedBoundaryMs > 0 ? roundedBoundaryMs : floorDurationToStep(realMs, stepMinutes);
+
   return {
     realStart: new Date(realStart),
     realEnd: new Date(realEnd),
     roundedStart,
     roundedEnd,
-    realMs: Math.max(0, realEnd.getTime() - realStart.getTime()),
-    roundedMs: Math.max(0, roundedEnd.getTime() - roundedStart.getTime()),
+    realMs,
+    roundedMs,
   };
 }
 
