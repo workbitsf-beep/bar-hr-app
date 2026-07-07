@@ -132,6 +132,7 @@ model User {
   documentsDeactivated Document[]       @relation("DocumentDeactivated")
   legalAcceptances    LegalAcceptance[]
   notificationsReceived Notification[]  @relation("NotificationRecipient")
+  scheduledNotifications ScheduledNotification[]
   pushTokens          PushToken[]
   requests            Request[]         @relation("RequestEmployee")
   reviewedReqs        Request[]         @relation("RequestReviewer")
@@ -232,6 +233,7 @@ model Bar {
   documents         Document[]
   legalAcceptances  LegalAcceptance[]
   notifications     Notification[]
+  scheduledNotifications ScheduledNotification[]
   sessions          Session[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -314,6 +316,32 @@ model Notification {
   @@index([type, createdAt])
 }
 
+model ScheduledNotification {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  barId      String?   @db.Uuid
+  shiftId    String?   @db.Uuid
+  type       String
+  title      String
+  message    String
+  actionUrl  String?
+  sendAt     DateTime
+  sentAt     DateTime?
+  canceledAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bar        Bar?      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  shift      Shift?    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, actionUrl])
+  @@index([sendAt, sentAt, canceledAt])
+  @@index([userId, sendAt])
+  @@index([barId, sendAt])
+  @@index([shiftId])
+  @@index([type, sendAt])
+}
+
 model PushToken {
   id         String   @id @default(uuid()) @db.Uuid
   userId     String   @db.Uuid
@@ -366,6 +394,7 @@ model Shift {
   assignments  ShiftAssignment[]
   timeLogs     TimeLog[]
   requests     Request[]
+  scheduledNotifications ScheduledNotification[]
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 

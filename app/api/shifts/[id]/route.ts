@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
+import { cancelShiftClockReminders } from "@/lib/shift-clock-reminders";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
@@ -71,6 +72,8 @@ export const PATCH = withBar(
       return Response.json({ ok: false, message: "Invalid shift update" }, { status: 400 });
     }
 
+    await cancelShiftClockReminders([shiftId]);
+
     const updatedShift = await prisma.shift.update({
       where: { id: shiftId },
       data: {
@@ -112,6 +115,7 @@ export const DELETE = withBar(
       return Response.json({ ok: false, message: "Missing shift id" }, { status: 400 });
     }
 
+    await cancelShiftClockReminders([shiftId]);
     const result = await deleteShiftWithCleanup(shiftId, {
       barId: session.activeBarId,
     });

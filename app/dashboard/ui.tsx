@@ -105,7 +105,7 @@ function DashboardResponsiveStyles() {
         width: 100%;
         max-width: 100%;
         overflow-x: hidden;
-        padding-bottom: 100px !important;
+        padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
         background: var(--workbit-app-bg) !important;
       }
 
@@ -306,6 +306,10 @@ function DashboardResponsiveStyles() {
         border-color: rgba(124, 58, 237, 0.12) !important;
       }
 
+      .dashboard-bottom-nav {
+        max-width: calc(100vw - 24px) !important;
+      }
+
       .dashboard-audience-options {
         grid-template-columns: 1fr 1fr;
       }
@@ -357,6 +361,7 @@ function DashboardResponsiveStyles() {
       .dashboard-week-strip {
         display: flex;
         align-items: flex-start;
+        flex-wrap: nowrap;
         gap: 16px;
         width: 100%;
         max-width: 100%;
@@ -390,10 +395,9 @@ function DashboardResponsiveStyles() {
         max-width: 100%;
       }
 
-      .dashboard-week-card,
       .dashboard-calendar-day {
         content-visibility: auto;
-        contain-intrinsic-size: 420px 720px;
+        contain-intrinsic-size: auto 360px;
       }
 
       .dashboard-modal-wrap {
@@ -438,7 +442,7 @@ function DashboardResponsiveStyles() {
       @media (max-width: 900px) {
         .dashboard-shell {
           padding: 12px !important;
-          padding-bottom: 100px !important;
+          padding-bottom: calc(132px + env(safe-area-inset-bottom)) !important;
           font-size: 16px !important;
           overflow-x: hidden;
         }
@@ -665,6 +669,7 @@ function DashboardResponsiveStyles() {
         .dashboard-mobile-only.dashboard-week-strip {
           display: flex !important;
           align-items: flex-start !important;
+          flex-wrap: nowrap !important;
           gap: 12px !important;
           width: 100% !important;
           max-width: 100% !important;
@@ -677,6 +682,17 @@ function DashboardResponsiveStyles() {
           scroll-padding-inline: 0 !important;
         }
 
+        .dashboard-bottom-nav {
+          width: min(360px, calc(100vw - 24px)) !important;
+          justify-content: space-between !important;
+          gap: 6px !important;
+        }
+
+        .dashboard-bottom-nav a {
+          width: clamp(52px, 16vw, 58px) !important;
+          min-height: 52px !important;
+        }
+
         .dashboard-week-card {
           flex: 0 0 100% !important;
           align-self: flex-start !important;
@@ -685,6 +701,8 @@ function DashboardResponsiveStyles() {
           min-width: 0 !important;
           scroll-snap-align: start !important;
           scroll-snap-stop: always !important;
+          content-visibility: visible !important;
+          contain-intrinsic-size: none !important;
         }
 
         .super-admin-mobile-list {

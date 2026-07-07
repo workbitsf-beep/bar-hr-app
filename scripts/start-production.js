@@ -54,6 +54,6 @@ if (process.env.DISABLE_INTERNAL_CRON !== "true") {
     void runInternalCron();
     setInterval(() => {
       void runInternalCron();
-    }, 15_000).unref?.();
+    }, 60_000).unref?.();
   }, 20_000).unref?.();
 }

@@ -56,6 +56,10 @@ import {
 import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { closeClockInReminders, closeClockOutReminders } from "@/lib/timelog-reminders";
 import {
+  cancelShiftClockReminders,
+  scheduleShiftClockReminders,
+} from "@/lib/shift-clock-reminders";
+import {
   INTERNAL_NOTIFICATION_TYPES,
   notifyUsers,
 } from "@/lib/notifications";
@@ -1773,7 +1777,7 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
     throw new Error("Invalid range");
   }
 
-  await prisma.shift.updateMany({
+  const shiftsToConfirm = await prisma.shift.findMany({
     where: {
       barId: activeBarId,
       confirmedAt: null,
@@ -1783,11 +1787,31 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
         lte: rangeEnd,
       },
     },
+    select: {
+      id: true,
+    },
+  });
+
+  if (shiftsToConfirm.length === 0) {
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    return;
+  }
+
+  await prisma.shift.updateMany({
+    where: {
+      id: {
+        in: shiftsToConfirm.map((shift) => shift.id),
+      },
+      barId: activeBarId,
+      confirmedAt: null,
+    },
     data: {
       confirmedAt: new Date(),
       confirmedById: session.user.id,
     },
   });
+  await scheduleShiftClockReminders(shiftsToConfirm.map((shift) => shift.id));
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
@@ -2085,7 +2109,7 @@ export async function createShiftAction(formData: FormData) {
   });
   const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
 
-  await prisma.shift.create({
+  const shift = await prisma.shift.create({
     data: {
       title: title || null,
       startTime,
@@ -2102,7 +2126,14 @@ export async function createShiftAction(formData: FormData) {
         },
       },
     },
+    select: {
+      id: true,
+    },
   });
+
+  if (autoConfirm && !isOnCall) {
+    await scheduleShiftClockReminders([shift.id]);
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
@@ -2162,6 +2193,8 @@ export async function updateShiftAction(formData: FormData) {
     throw new Error("Shift not found");
   }
 
+  await cancelShiftClockReminders([shiftId]);
+
   await prisma.shift.update({
     where: {
       id: shiftId,
@@ -2182,6 +2215,10 @@ export async function updateShiftAction(formData: FormData) {
       },
     },
   });
+
+  if (autoConfirm && !isOnCall) {
+    await scheduleShiftClockReminders([shiftId]);
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
@@ -2300,6 +2337,7 @@ export async function deleteShiftAction(formData: FormData) {
     },
   });
 
+  await cancelShiftClockReminders([shiftId]);
   const result = await deleteShiftWithCleanup(shiftId, { barId: activeBarId });
 
   if (!result.deleted) {

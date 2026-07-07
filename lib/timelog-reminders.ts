@@ -1,69 +1,18 @@
 import { ClockType, Role } from "@prisma/client";
 import { invalidateReportingCache } from "@/lib/reporting";
-import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
+import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import {
+  cancelUserShiftClockReminders,
+  runDueScheduledClockNotifications,
+} from "@/lib/shift-clock-reminders";
 
-const CLOCK_IN_REMINDER_LEAD_MS = 5 * 60 * 1000;
-const CLOCK_OUT_REMINDER_LEAD_MS = 5 * 60 * 1000;
 const AUTO_CLOCK_OUT_DELAY_MS = 2 * 60 * 60 * 1000;
-const REMINDER_GRACE_MS = 2 * 60 * 1000;
+const AUTO_CLOCK_OUT_LOOKBACK_MS = 36 * 60 * 60 * 1000;
 const ACTION_URL = "/dashboard?clock=1";
 
 function isDue(now: Date, triggerAt: Date) {
   return now.getTime() >= triggerAt.getTime();
-}
-
-function isWithinReminderWindow(now: Date, triggerAt: Date) {
-  const nowTime = now.getTime();
-  const triggerTime = triggerAt.getTime();
-
-  return nowTime >= triggerTime && nowTime <= triggerTime + REMINDER_GRACE_MS;
-}
-
-async function hasClockReminder(input: {
-  userId: string;
-  barId: string;
-  type: string;
-  shiftId: string;
-}) {
-  const existing = await prisma.notification.findFirst({
-    where: {
-      userId: input.userId,
-      barId: input.barId,
-      type: input.type,
-      actionUrl: `${ACTION_URL}&shift=${input.shiftId}`,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  return Boolean(existing);
-}
-
-async function notifyClockReminder(input: {
-  userId: string;
-  barId: string;
-  shiftId: string;
-  title: string;
-  message: string;
-  type: string;
-}) {
-  const exists = await hasClockReminder(input);
-
-  if (exists) {
-    return 0;
-  }
-
-  const result = await notifyUsers([input.userId], {
-    barId: input.barId,
-    title: input.title,
-    message: input.message,
-    type: input.type,
-    actionUrl: `${ACTION_URL}&shift=${input.shiftId}`,
-  });
-
-  return result.createdCount;
 }
 
 async function markClockRemindersRead(input: {
@@ -103,6 +52,13 @@ async function markClockRemindersRead(input: {
     data: {
       read: true,
     },
+  });
+
+  await cancelUserShiftClockReminders({
+    userId: input.userId,
+    barId: input.barId,
+    shiftId: input.shiftId,
+    direction: input.direction,
   });
 
   return result.count;
@@ -149,7 +105,6 @@ function getShiftClockStateFromLogs(
   return {
     hasClockIn: Boolean(lastIn),
     hasClockOut: Boolean(outAfterLastIn),
-    lastClockIn: lastIn,
   };
 }
 
@@ -174,10 +129,9 @@ function shouldReceiveClockReminder(assignment: {
   return assignment.user.role !== Role.OWNER;
 }
 
-export async function runTimeLogReminders(now = new Date()) {
-  const windowStart = new Date(now.getTime() - AUTO_CLOCK_OUT_DELAY_MS - 24 * 60 * 60 * 1000);
-  const windowEnd = new Date(now.getTime() + CLOCK_IN_REMINDER_LEAD_MS);
-
+async function runAutoClockOut(now: Date) {
+  const cutoff = new Date(now.getTime() - AUTO_CLOCK_OUT_DELAY_MS);
+  const windowStart = new Date(now.getTime() - AUTO_CLOCK_OUT_DELAY_MS - AUTO_CLOCK_OUT_LOOKBACK_MS);
   const shifts = await prisma.shift.findMany({
     where: {
       confirmedAt: {
@@ -186,9 +140,7 @@ export async function runTimeLogReminders(now = new Date()) {
       isOnCall: false,
       endTime: {
         gte: windowStart,
-      },
-      startTime: {
-        lte: windowEnd,
+        lte: cutoff,
       },
       bar: {
         settings: {
@@ -199,7 +151,6 @@ export async function runTimeLogReminders(now = new Date()) {
     select: {
       id: true,
       barId: true,
-      startTime: true,
       endTime: true,
       assignments: {
         select: {
@@ -221,10 +172,6 @@ export async function runTimeLogReminders(now = new Date()) {
     },
     take: 500,
   });
-
-  let createdReminderCount = 0;
-  let autoClockOutCount = 0;
-  const shiftIds = shifts.map((shift) => shift.id);
   const userIds = Array.from(
     new Set(
       shifts.flatMap((shift) =>
@@ -234,6 +181,7 @@ export async function runTimeLogReminders(now = new Date()) {
       )
     )
   );
+  const shiftIds = shifts.map((shift) => shift.id);
   const logs =
     shiftIds.length > 0 && userIds.length > 0
       ? await prisma.timeLog.findMany({
@@ -272,6 +220,8 @@ export async function runTimeLogReminders(now = new Date()) {
     logsByUserAndShift.set(key, current);
   }
 
+  let autoClockOutCount = 0;
+
   for (const shift of shifts) {
     for (const assignment of shift.assignments) {
       if (!shouldReceiveClockReminder(assignment, shift.barId)) {
@@ -280,104 +230,58 @@ export async function runTimeLogReminders(now = new Date()) {
 
       const state = getShiftClockStateFromLogs(logsByUserAndShift.get(`${assignment.userId}:${shift.id}`) ?? []);
 
-      if (!state.hasClockIn) {
-        const beforeStart = new Date(shift.startTime.getTime() - CLOCK_IN_REMINDER_LEAD_MS);
-
-        if (isWithinReminderWindow(now, beforeStart) && now.getTime() <= shift.startTime.getTime()) {
-          createdReminderCount += await notifyClockReminder({
-            userId: assignment.userId,
-            barId: shift.barId,
-            shiftId: shift.id,
-            title: "Workbit",
-            message: "Tra 5 minuti inizia il tuo turno. Ricordati di timbrare.",
-            type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE,
-          });
-        }
-
-        if (isWithinReminderWindow(now, shift.startTime)) {
-          createdReminderCount += await notifyClockReminder({
-            userId: assignment.userId,
-            barId: shift.barId,
-            shiftId: shift.id,
-            title: "Workbit",
-            message: "Ei, sta iniziando il tuo turno. Ricordati di timbrare! Buon lavoro 💕",
-            type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_START,
-          });
-        }
-
+      if (!state.hasClockIn || state.hasClockOut) {
         continue;
       }
 
-      await closeClockInReminders({
+      const autoClockOutAt = new Date(shift.endTime.getTime() + AUTO_CLOCK_OUT_DELAY_MS);
+
+      if (!isDue(now, autoClockOutAt)) {
+        continue;
+      }
+
+      await prisma.timeLog.create({
+        data: {
+          type: ClockType.OUT,
+          userId: assignment.userId,
+          barId: shift.barId,
+          shiftId: shift.id,
+          timestamp: shift.endTime,
+          isManual: false,
+          autoClockOut: true,
+          note: "Uscita automatica registrata all'orario previsto di fine turno.",
+        },
+      });
+
+      await closeClockOutReminders({
         userId: assignment.userId,
         barId: shift.barId,
         shiftId: shift.id,
       });
 
-      if (state.hasClockOut) {
-        await closeClockOutReminders({
-          userId: assignment.userId,
-          barId: shift.barId,
-          shiftId: shift.id,
-        });
-        continue;
-      }
-
-      const beforeEnd = new Date(shift.endTime.getTime() - CLOCK_OUT_REMINDER_LEAD_MS);
-
-      if (isWithinReminderWindow(now, beforeEnd) && now.getTime() <= shift.endTime.getTime()) {
-        createdReminderCount += await notifyClockReminder({
-          userId: assignment.userId,
-          barId: shift.barId,
-          shiftId: shift.id,
-          title: "Workbit",
-          message: "Tra 5 minuti finisce il tuo turno. Ricordati di timbrare l'uscita.",
-          type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_BEFORE,
-        });
-      }
-
-      if (isWithinReminderWindow(now, shift.endTime)) {
-        createdReminderCount += await notifyClockReminder({
-          userId: assignment.userId,
-          barId: shift.barId,
-          shiftId: shift.id,
-          title: "Workbit",
-          message: "Ei, il tuo turno è finito. Ricordati di timbrare l'uscita! Ottimo lavoro 💕",
-          type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_END,
-        });
-      }
-
-      const autoClockOutAt = new Date(shift.endTime.getTime() + AUTO_CLOCK_OUT_DELAY_MS);
-
-      if (isDue(now, autoClockOutAt)) {
-        await prisma.timeLog.create({
-          data: {
-            type: ClockType.OUT,
-            userId: assignment.userId,
-            barId: shift.barId,
-            shiftId: shift.id,
-            timestamp: shift.endTime,
-            isManual: false,
-            autoClockOut: true,
-            note: "Uscita automatica registrata all'orario previsto di fine turno.",
-          },
-        });
-
-        await closeClockOutReminders({
-          userId: assignment.userId,
-          barId: shift.barId,
-          shiftId: shift.id,
-        });
-
-        invalidateReportingCache(shift.barId, assignment.userId);
-        autoClockOutCount += 1;
-      }
+      invalidateReportingCache(shift.barId, assignment.userId);
+      autoClockOutCount += 1;
     }
   }
 
   return {
     checkedShiftCount: shifts.length,
-    createdReminderCount,
     autoClockOutCount,
+  };
+}
+
+export async function runTimeLogReminders(now = new Date()) {
+  const [scheduledResult, autoClockOutResult] = await Promise.all([
+    runDueScheduledClockNotifications(now),
+    runAutoClockOut(now),
+  ]);
+
+  return {
+    checkedShiftCount: autoClockOutResult.checkedShiftCount,
+    createdReminderCount: scheduledResult.sentScheduledNotificationCount,
+    autoClockOutCount: autoClockOutResult.autoClockOutCount,
+    checkedScheduledNotificationCount: scheduledResult.checkedScheduledNotificationCount,
+    sentScheduledNotificationCount: scheduledResult.sentScheduledNotificationCount,
+    skippedScheduledNotificationCount: scheduledResult.skippedScheduledNotificationCount,
   };
 }

@@ -4,6 +4,7 @@ import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
+import { scheduleShiftClockReminders } from "@/lib/shift-clock-reminders";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
@@ -180,6 +181,7 @@ export const POST = withBar(
         confirmedById: session.user.id,
       },
     });
+    await scheduleShiftClockReminders(shifts.map((shift) => shift.id));
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
