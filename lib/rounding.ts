@@ -21,6 +21,7 @@ export type ScheduledShiftWindow = {
 };
 
 const DEFAULT_ROUNDING_STEP_MINUTES = 15;
+const SHIFT_TOLERANCE_MINUTES = 5;
 
 export function normalizeRoundingStep(_stepMinutes?: number | null): number {
   void _stepMinutes;
@@ -98,10 +99,33 @@ function roundDurationToNearestStep(durationMs: number, stepMinutes: number) {
 export function calculateShiftAwareRoundedWorkDuration(
   realStart: Date,
   realEnd: Date,
-  _shift: ScheduledShiftWindow | null | undefined,
+  shift: ScheduledShiftWindow | null | undefined,
   settings?: RoundingSettings | null
 ): RoundedWorkDuration {
-  return calculateRoundedWorkDuration(realStart, realEnd, settings);
+  if (!isRoundingEnabled(settings) || !shift) {
+    return calculateRoundedWorkDuration(realStart, realEnd, settings);
+  }
+
+  const stepMinutes = normalizeRoundingStep(settings?.roundingMinutes);
+  const toleranceMs = SHIFT_TOLERANCE_MINUTES * 60 * 1000;
+  const realMs = Math.max(0, realEnd.getTime() - realStart.getTime());
+  const roundedStart =
+    Math.abs(realStart.getTime() - shift.startTime.getTime()) <= toleranceMs
+      ? new Date(shift.startTime)
+      : roundTimeToStep(realStart, stepMinutes, RoundingMode.UP);
+  const roundedEnd =
+    Math.abs(realEnd.getTime() - shift.endTime.getTime()) <= toleranceMs
+      ? new Date(shift.endTime)
+      : roundTimeToStep(realEnd, stepMinutes, RoundingMode.NEAREST);
+
+  return {
+    realStart: new Date(realStart),
+    realEnd: new Date(realEnd),
+    roundedStart,
+    roundedEnd,
+    realMs,
+    roundedMs: Math.max(0, roundedEnd.getTime() - roundedStart.getTime()),
+  };
 }
 
 export function calculateDailyRoundedMinutes(
