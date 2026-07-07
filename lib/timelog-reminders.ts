@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 const CLOCK_IN_REMINDER_LEAD_MS = 5 * 60 * 1000;
 const CLOCK_OUT_REMINDER_LEAD_MS = 5 * 60 * 1000;
 const AUTO_CLOCK_OUT_DELAY_MS = 2 * 60 * 60 * 1000;
-const REMINDER_GRACE_MS = 90 * 1000;
+const REMINDER_GRACE_MS = 2 * 60 * 1000;
 const ACTION_URL = "/dashboard?clock=1";
 
 function isDue(now: Date, triggerAt: Date) {
@@ -153,6 +153,27 @@ function getShiftClockStateFromLogs(
   };
 }
 
+function shouldReceiveClockReminder(assignment: {
+  user: {
+    role: Role;
+    barMemberships: Array<{
+      barId: string;
+      role: Role;
+      isActive: boolean;
+    }>;
+  };
+}, barId: string) {
+  const membership = assignment.user.barMemberships.find(
+    (item) => item.barId === barId && item.isActive
+  );
+
+  if (membership) {
+    return membership.role !== Role.OWNER;
+  }
+
+  return assignment.user.role !== Role.OWNER;
+}
+
 export async function runTimeLogReminders(now = new Date()) {
   const windowStart = new Date(now.getTime() - AUTO_CLOCK_OUT_DELAY_MS - 24 * 60 * 60 * 1000);
   const windowEnd = new Date(now.getTime() + CLOCK_IN_REMINDER_LEAD_MS);
@@ -186,6 +207,13 @@ export async function runTimeLogReminders(now = new Date()) {
           user: {
             select: {
               role: true,
+              barMemberships: {
+                select: {
+                  barId: true,
+                  role: true,
+                  isActive: true,
+                },
+              },
             },
           },
         },
@@ -201,7 +229,7 @@ export async function runTimeLogReminders(now = new Date()) {
     new Set(
       shifts.flatMap((shift) =>
         shift.assignments
-          .filter((assignment) => assignment.user.role !== Role.OWNER)
+          .filter((assignment) => shouldReceiveClockReminder(assignment, shift.barId))
           .map((assignment) => assignment.userId)
       )
     )
@@ -246,7 +274,7 @@ export async function runTimeLogReminders(now = new Date()) {
 
   for (const shift of shifts) {
     for (const assignment of shift.assignments) {
-      if (assignment.user.role === Role.OWNER) {
+      if (!shouldReceiveClockReminder(assignment, shift.barId)) {
         continue;
       }
 
