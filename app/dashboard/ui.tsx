@@ -307,7 +307,13 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-bottom-nav {
+        width: min(360px, calc(var(--workbit-vw, 100vw) - 24px)) !important;
         max-width: calc(var(--workbit-vw, 100vw) - 24px) !important;
+        left: max(12px, env(safe-area-inset-left)) !important;
+        right: max(12px, env(safe-area-inset-right)) !important;
+        margin-inline: auto !important;
+        transform: translateZ(0) !important;
+        contain: layout paint;
       }
 
       .dashboard-audience-options {
@@ -693,6 +699,10 @@ function DashboardResponsiveStyles() {
 
         .dashboard-bottom-nav {
           width: min(360px, calc(var(--workbit-vw, 100vw) - 24px)) !important;
+          left: max(12px, env(safe-area-inset-left)) !important;
+          right: max(12px, env(safe-area-inset-right)) !important;
+          margin-inline: auto !important;
+          transform: translateZ(0) !important;
           justify-content: space-between !important;
           gap: 6px !important;
         }

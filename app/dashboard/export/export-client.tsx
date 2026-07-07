@@ -171,7 +171,7 @@ export function ExportClient({
   const initialPreviewMessage =
     activityType === ActivityType.COMPANY
       ? "Genera un'anteprima per vedere indisponibilita, ferie, permessi e corsi registrati nel mese."
-      : "Genera un'anteprima per vedere ore reali, ore lavorate e ferie o permessi.";
+      : "Genera un'anteprima per vedere ore reali, ore riconosciute e ferie o permessi.";
   const monthOptions = Array.from({ length: 12 }, (_, index) => {
     const value = String(index + 1);
     const label = new Intl.DateTimeFormat("it-IT", { month: "long" }).format(
@@ -284,7 +284,7 @@ export function ExportClient({
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <ItemCard title="Ore reali" meta={formatDurationClock(result.totals.realHours)} />
                 <ItemCard
-                  title="Ore lavorate"
+                  title="Ore riconosciute"
                   meta={formatDurationClock(result.totals.roundedHours)}
                 />
               </div>
@@ -307,7 +307,7 @@ export function ExportClient({
                     subtitle={
                       result.mode === "company"
                         ? `${day.items?.length ?? 0} registrazioni`
-                        : `Ore reali ${formatDurationClock(day.totals.realHours)} - Ore lavorate ${formatDurationClock(day.totals.roundedHours)}`
+                        : `Ore reali ${formatDurationClock(day.totals.realHours)} - Ore riconosciute ${formatDurationClock(day.totals.roundedHours)}`
                     }
                     meta={
                       result.mode === "company"
@@ -373,7 +373,7 @@ export function ExportClient({
                                 minute: "2-digit",
                                 timeZone: APP_TIME_ZONE,
                               })}{" "}
-                                - reali {formatDurationClock(entry.realHours)} - lavorate{" "}
+                                - reali {formatDurationClock(entry.realHours)} - riconosciute{" "}
                                 {formatDurationClock(entry.roundedHours)}
                               </div>
                             ))

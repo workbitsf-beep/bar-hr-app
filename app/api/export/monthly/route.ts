@@ -318,9 +318,8 @@ async function createMonthlyPdfBuffer(input: {
       { key: "type", label: "Tipo", width: 76 },
       { key: "planned", label: "Previsto", width: 88 },
       { key: "real", label: "Reale", width: 88 },
-      { key: "rounded", label: "Arrotondato", width: 88 },
-      { key: "total", label: "Totale ore", width: 56 },
-      { key: "notes", label: "Note", width: pageWidth - 544 },
+      { key: "total", label: "Ore ricon.", width: 64 },
+      { key: "notes", label: "Note", width: pageWidth - 464 },
     ];
     const tableWidth = columns.reduce((total, column) => total + column.width, 0);
     const rowHeight = 24;
@@ -355,7 +354,6 @@ async function createMonthlyPdfBuffer(input: {
         type: string;
         planned: string;
         real: string;
-        rounded: string;
         total: string;
         notes: string;
       },
@@ -374,7 +372,6 @@ async function createMonthlyPdfBuffer(input: {
         values.type,
         values.planned,
         values.real,
-        values.rounded,
         values.total,
         values.notes,
       ];
@@ -387,7 +384,7 @@ async function createMonthlyPdfBuffer(input: {
           drawText(value, x + 4, y + 7, column.width - 8, {
             size: column.key === "notes" ? 6.8 : 7,
             color: column.key === "notes" ? "#344054" : "#111827",
-            align: ["date", "day", "planned", "real", "rounded", "total"].includes(column.key)
+            align: ["date", "day", "planned", "real", "total"].includes(column.key)
               ? "center"
               : "left",
             height: 10,
@@ -407,7 +404,6 @@ async function createMonthlyPdfBuffer(input: {
         type: string;
         planned: string;
         real: string;
-        rounded: string;
         total: string;
         notes: string;
         color: BadgeColor;
@@ -421,7 +417,6 @@ async function createMonthlyPdfBuffer(input: {
           type: "Turno",
           planned: formatRange(entry.plannedStart, entry.plannedEnd),
           real: formatRange(entry.clockIn, entry.clockOut),
-          rounded: formatRange(entry.roundedClockIn, entry.roundedClockOut),
           total: getHours(entry.roundedHours),
           notes: entry.realHours !== entry.roundedHours ? `Reali ${getHours(entry.realHours)}` : "-",
           color: colors.worked,
@@ -443,7 +438,6 @@ async function createMonthlyPdfBuffer(input: {
           type: item.title || itemType,
           planned: formatRange(item.startsAt, item.endsAt),
           real: "-",
-          rounded: formatRange(item.startsAt, item.endsAt),
           total,
           notes: item.note || `${itemType} ${formatTime(item.startsAt)} - ${formatTime(item.endsAt)}`,
           color: badgeFor(itemType),
@@ -456,7 +450,6 @@ async function createMonthlyPdfBuffer(input: {
           type: "-",
           planned: "-",
           real: "-",
-          rounded: "-",
           total: "-",
           notes: "-",
           color: colors.empty,
@@ -476,7 +469,7 @@ async function createMonthlyPdfBuffer(input: {
 
       const metrics = [
         ["Ore reali", formatDurationClock(input.dataset.totals.realHours), colors.onCall.dot],
-        ["Ore arrotondate", formatDurationClock(input.dataset.totals.roundedHours), colors.worked.dot],
+        ["Ore riconosciute", formatDurationClock(input.dataset.totals.roundedHours), colors.worked.dot],
         ["Giorni lavorati", String(workedDays), navy],
         ["Permessi", `${permissionItems.length} / ${formatDurationClock(permissionHours)}`, colors.permission.dot],
         ["Ferie", `${vacationItems.length} / ${formatDurationClock(vacationHours)}`, colors.vacation.dot],
@@ -507,7 +500,7 @@ async function createMonthlyPdfBuffer(input: {
       drawText("Riepilogo finale", marginX + 14, y + 20, 105, { size: 11, color: navy });
       const footerMetrics = [
         ["Ore reali", formatDurationClock(input.dataset.totals.realHours)],
-        ["Ore arrotondate", formatDurationClock(input.dataset.totals.roundedHours)],
+        ["Ore riconosciute", formatDurationClock(input.dataset.totals.roundedHours)],
         ["Giorni lavorati", String(workedDays)],
         ["Permessi", `${permissionItems.length} / ${formatDurationClock(permissionHours)}`],
         ["Ferie", `${vacationItems.length} / ${formatDurationClock(vacationHours)}`],
@@ -563,7 +556,6 @@ async function createMonthlyPdfBuffer(input: {
             type: row.type,
             planned: row.planned,
             real: row.real,
-            rounded: row.rounded,
             total: row.total,
             notes: row.notes,
           },

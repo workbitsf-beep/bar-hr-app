@@ -75,7 +75,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           dangerouslySetInnerHTML={{
             __html: `
               html {
-                width: min(100%, var(--workbit-vw, 100vw));
+                width: 100%;
                 max-width: 100%;
                 overflow-x: hidden;
                 overscroll-behavior-x: none;
@@ -83,7 +83,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               body {
-                width: min(100%, var(--workbit-vw, 100vw));
+                width: 100%;
                 max-width: 100%;
                 min-height: var(--workbit-vh, 100dvh);
                 overflow-x: hidden;
@@ -99,6 +99,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               :root {
                 --workbit-vw: 100vw;
                 --workbit-vh: 100dvh;
+                --workbit-orientation: portrait;
                 --workbit-background: #f7f3ff;
                 --workbit-surface: #ffffff;
                 --workbit-surface-secondary: #f8fafc;

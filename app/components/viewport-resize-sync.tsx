@@ -5,6 +5,7 @@ import { useEffect } from "react";
 export function ViewportResizeSync() {
   useEffect(() => {
     let frame = 0;
+    const timers = new Set<number>();
 
     function syncViewport() {
       window.cancelAnimationFrame(frame);
@@ -16,21 +17,42 @@ export function ViewportResizeSync() {
 
         root.style.setProperty("--workbit-vw", `${width}px`);
         root.style.setProperty("--workbit-vh", `${height}px`);
+        root.style.setProperty(
+          "--workbit-orientation",
+          width > height ? "landscape" : "portrait"
+        );
+        root.dataset.viewportSync = `${width}x${height}`;
       });
+    }
+
+    function syncViewportSettled() {
+      syncViewport();
+
+      for (const delay of [80, 240, 600, 1000]) {
+        const timer = window.setTimeout(() => {
+          timers.delete(timer);
+          syncViewport();
+        }, delay);
+        timers.add(timer);
+      }
     }
 
     syncViewport();
 
-    window.addEventListener("resize", syncViewport);
-    window.addEventListener("orientationchange", syncViewport);
-    window.visualViewport?.addEventListener("resize", syncViewport);
+    window.addEventListener("resize", syncViewportSettled);
+    window.addEventListener("orientationchange", syncViewportSettled);
+    window.visualViewport?.addEventListener("resize", syncViewportSettled);
     window.visualViewport?.addEventListener("scroll", syncViewport);
 
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", syncViewport);
-      window.removeEventListener("orientationchange", syncViewport);
-      window.visualViewport?.removeEventListener("resize", syncViewport);
+      for (const timer of timers) {
+        window.clearTimeout(timer);
+      }
+      timers.clear();
+      window.removeEventListener("resize", syncViewportSettled);
+      window.removeEventListener("orientationchange", syncViewportSettled);
+      window.visualViewport?.removeEventListener("resize", syncViewportSettled);
       window.visualViewport?.removeEventListener("scroll", syncViewport);
     };
   }, []);
