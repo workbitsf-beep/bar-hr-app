@@ -685,6 +685,9 @@ export default async function DashboardCalendarPage({
                   createdAt: true,
                   employeeId: true,
                   readReceipts: {
+                    where: {
+                      userId: session.user.id,
+                    },
                     orderBy: {
                       readAt: "desc",
                     },
@@ -697,6 +700,11 @@ export default async function DashboardCalendarPage({
                           lastName: true,
                         },
                       },
+                    },
+                  },
+                  _count: {
+                    select: {
+                      readReceipts: true,
                     },
                   },
                   author: {
@@ -938,6 +946,7 @@ export default async function DashboardCalendarPage({
       activityDate: (note.activityDate ?? note.createdAt).toISOString(),
       createdAt: note.createdAt.toISOString(),
       authorName: `${note.author.firstName} ${note.author.lastName}`.trim(),
+      confirmationCount: note._count.readReceipts,
       confirmations: note.readReceipts.map((receipt) => ({
         userId: receipt.userId,
         userName: `${receipt.user.firstName} ${receipt.user.lastName}`.trim(),

@@ -124,6 +124,7 @@ type NoteItem = {
   activityDate: string;
   createdAt: string;
   authorName: string;
+  confirmationCount: number;
   confirmations: Array<{
     userId: string;
     userName: string;
@@ -907,6 +908,8 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
   const currentUserConfirmed = note.confirmations.some(
     (confirmation) => confirmation.userId === currentUserId
   );
+  const confirmationCount = Math.max(note.confirmationCount, note.confirmations.length);
+  const hasFullConfirmationList = note.confirmations.length >= confirmationCount;
   const canConfirm =
     note.requiresConfirmation && !currentUserConfirmed && (!note.employeeId || note.employeeId === currentUserId);
 
@@ -941,11 +944,11 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
           }}
         >
           <div style={{ display: "grid", gap: 4 }}>
-            {note.confirmations.length === 0 ? (
+            {confirmationCount === 0 ? (
               <span style={{ color: "#94a3b8", fontSize: mobile ? 11 : 12 }}>
                 Nessuna conferma
               </span>
-            ) : (
+            ) : hasFullConfirmationList ? (
               note.confirmations.map((confirmation) => (
                 <span
                   key={`${note.id}-${confirmation.userId}`}
@@ -954,6 +957,10 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
                   ✓ {confirmation.userName} - {formatTime(confirmation.readAt, locale)}
                 </span>
               ))
+            ) : (
+              <span style={{ color: "#64748b", fontSize: mobile ? 11 : 12 }}>
+                {confirmationCount} {confirmationCount === 1 ? "conferma" : "conferme"}
+              </span>
             )}
           </div>
           {canConfirm ? (
@@ -1039,6 +1046,7 @@ export function DayActionCalendarClient({
   const [shiftInsertMode, setShiftInsertMode] = useState<ShiftInsertMode>("DAY");
   const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
+  const [noteConfirmationsById, setNoteConfirmationsById] = useState<Record<string, NoteItem["confirmations"]>>({});
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
   const skipDayScrollIntoViewRef = useRef(false);
@@ -1153,10 +1161,12 @@ export function DayActionCalendarClient({
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
   );
-  const selectedNote = useMemo(
-    () => selectedDay?.notes.find((note) => note.id === selectedNoteId) ?? null,
-    [selectedDay, selectedNoteId]
-  );
+  const selectedNote = useMemo(() => {
+    const note = selectedDay?.notes.find((item) => item.id === selectedNoteId) ?? null;
+    const confirmations = selectedNoteId ? noteConfirmationsById[selectedNoteId] : null;
+
+    return note && confirmations ? { ...note, confirmations } : note;
+  }, [noteConfirmationsById, selectedDay, selectedNoteId]);
   const editingShift = useMemo(
     () => selectedDay?.shifts.find((shift) => shift.id === editingShiftId) ?? null,
     [editingShiftId, selectedDay]
@@ -1334,6 +1344,44 @@ export function DayActionCalendarClient({
     url.searchParams.set("view", calendarView);
     router.push(`${url.pathname}${url.search}${url.hash}`);
   }
+
+  useEffect(() => {
+    if (!selectedNoteId || noteConfirmationsById[selectedNoteId]) {
+      return;
+    }
+
+    const noteId = selectedNoteId;
+    let cancelled = false;
+
+    async function loadNoteConfirmations() {
+      try {
+        const response = await fetch(`/api/notes/${noteId}/confirmations`, {
+          cache: "no-store",
+        });
+        const result = (await response.json().catch(() => null)) as
+          | {
+              ok?: boolean;
+              confirmations?: NoteItem["confirmations"];
+            }
+          | null;
+
+        if (!cancelled && response.ok && result?.ok && Array.isArray(result.confirmations)) {
+          setNoteConfirmationsById((current) => ({
+            ...current,
+            [noteId]: result.confirmations ?? [],
+          }));
+        }
+      } catch {
+        // The note modal can still render from the lightweight calendar payload.
+      }
+    }
+
+    void loadNoteConfirmations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [noteConfirmationsById, selectedNoteId]);
 
   function isAtCalendarBoundary(element: HTMLElement, direction: -1 | 1) {
     const maxScrollLeft = element.scrollWidth - element.clientWidth;
