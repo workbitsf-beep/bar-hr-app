@@ -973,7 +973,7 @@ export default async function DashboardCalendarPage({
   const todayAction = <ScrollToTodayButton fallbackHref="/dashboard/calendar" variant="segment" />;
 
   return (
-    <Stack columns="minmax(0, 1fr)">
+    <Stack className="dashboard-calendar-page" columns="minmax(0, 1fr)">
       <Panel title="Turni">
         {canManageRestaurantShifts ? (
           <OwnerCalendarClient

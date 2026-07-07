@@ -359,7 +359,7 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-week-strip {
-        display: flex;
+        display: none !important;
         align-items: flex-start;
         flex-wrap: nowrap;
         gap: 16px;
@@ -374,17 +374,26 @@ function DashboardResponsiveStyles() {
         -ms-overflow-style: none;
       }
 
+      .dashboard-calendar-page .dashboard-week-strip {
+        display: flex !important;
+      }
+
       .dashboard-week-strip::-webkit-scrollbar {
         display: none;
       }
 
       .dashboard-week-card {
+        display: none !important;
         flex: 0 0 min(360px, 100%);
         align-self: flex-start;
         width: min(360px, 100%);
         max-width: 100%;
         box-sizing: border-box;
         scroll-snap-align: start;
+      }
+
+      .dashboard-calendar-page .dashboard-week-card {
+        display: grid !important;
       }
 
       .dashboard-week-card,
