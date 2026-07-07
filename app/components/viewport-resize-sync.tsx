@@ -21,6 +21,7 @@ export function ViewportResizeSync() {
           "--workbit-orientation",
           width > height ? "landscape" : "portrait"
         );
+        root.dataset.workbitCompact = width <= 900 ? "true" : "false";
         root.dataset.viewportSync = `${width}x${height}`;
       });
     }

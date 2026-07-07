@@ -131,6 +131,47 @@ function DashboardResponsiveStyles() {
         letter-spacing: -0.025em;
       }
 
+      html[data-workbit-compact="true"] .dashboard-shell {
+        padding-inline: 12px !important;
+        overflow-x: hidden !important;
+      }
+
+      html[data-workbit-compact="true"] .dashboard-profile-summary-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+      }
+
+      html[data-workbit-compact="true"] .dashboard-profile-summary-row > * {
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+
+      html[data-workbit-compact="true"] .dashboard-profile-hours-card {
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+
+      html[data-workbit-compact="true"] .dashboard-profile-shift-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100% !important;
+      }
+
+      html[data-workbit-compact="true"] .dashboard-clock-actions-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+        width: 100% !important;
+      }
+
+      html[data-workbit-compact="true"] .dashboard-shell-card,
+      html[data-workbit-compact="true"] .dashboard-panel,
+      html[data-workbit-compact="true"] .dashboard-card,
+      html[data-workbit-compact="true"] .dashboard-item-card {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+      }
+
       .dashboard-shell-inner,
       .dashboard-shell-card,
       .dashboard-panel,

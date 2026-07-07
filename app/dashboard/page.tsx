@@ -236,6 +236,7 @@ export default async function DashboardPage() {
         <Panel title="Profilo">
           <div className="dashboard-profile-layout" style={{ display: "grid", gap: 18 }}>
             <div
+              className="dashboard-profile-summary-row"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -273,6 +274,7 @@ export default async function DashboardPage() {
 
               {features.timeTracking && ownHours ? (
                 <div
+                  className="dashboard-profile-hours-card"
                   style={{
                     padding: "14px 16px",
                     borderRadius: 24,
@@ -297,6 +299,7 @@ export default async function DashboardPage() {
             </div>
 
             <div
+              className="dashboard-profile-shift-grid"
               style={{
                 display: "grid",
                 gap: 12,
