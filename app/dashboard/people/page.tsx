@@ -68,7 +68,9 @@ export default async function DashboardPeoplePage({
       isActive: true,
     },
     orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
-    include: {
+    select: {
+      id: true,
+      role: true,
       user: {
         select: {
           firstName: true,

@@ -41,7 +41,7 @@ export default async function DashboardExportPage() {
     orderBy: {
       hiredAt: "desc",
     },
-    include: {
+    select: {
       user: {
         select: {
           id: true,
