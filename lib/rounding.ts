@@ -22,15 +22,9 @@ export type ScheduledShiftWindow = {
 
 const DEFAULT_ROUNDING_STEP_MINUTES = 15;
 const SHIFT_TOLERANCE_MINUTES = 5;
-const SUPPORTED_STEPS = new Set([5, 10, 15, 30]);
 
 export function normalizeRoundingStep(stepMinutes?: number | null): number {
-  if (!stepMinutes || !Number.isFinite(stepMinutes)) {
-    return DEFAULT_ROUNDING_STEP_MINUTES;
-  }
-
-  const normalized = Math.round(stepMinutes);
-  return SUPPORTED_STEPS.has(normalized) ? normalized : DEFAULT_ROUNDING_STEP_MINUTES;
+  return DEFAULT_ROUNDING_STEP_MINUTES;
 }
 
 function normalizeRoundingMode(mode?: RoundingMode | string | null): RoundingMode {
@@ -83,14 +77,14 @@ export function calculateRoundedWorkDuration(
     ? roundTimeToStep(
         realStart,
         normalizeRoundingStep(settings?.roundingMinutes),
-        settings?.roundingMode ?? RoundingMode.NEAREST
+        RoundingMode.NEAREST
       )
     : new Date(realStart);
   const roundedEnd = isRoundingEnabled(settings)
     ? roundTimeToStep(
         realEnd,
         normalizeRoundingStep(settings?.roundingMinutes),
-        settings?.roundingMode ?? RoundingMode.NEAREST
+        RoundingMode.NEAREST
       )
     : new Date(realEnd);
 

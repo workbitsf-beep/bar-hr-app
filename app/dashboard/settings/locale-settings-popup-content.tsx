@@ -214,34 +214,16 @@ export function LocaleSettingsPopupContent({
               />
               Attiva arrotondamento
             </label>
-            <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
-              Intervallo
-              <select
-                name="roundingMinutes"
-                defaultValue={String(settings?.roundingMinutes ?? 15)}
-                style={{
-                  width: "100%",
-                  border: "1px solid rgba(148, 163, 184, 0.28)",
-                  borderRadius: 16,
-                  padding: "10px 12px",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  fontWeight: 800,
-                }}
-              >
-                <option value="5">5 minuti</option>
-                <option value="10">10 minuti</option>
-                <option value="15">15 minuti</option>
-                <option value="30">30 minuti</option>
-              </select>
-            </label>
+            <input type="hidden" name="roundingMinutes" value="15" />
             <input type="hidden" name="roundingMode" value="NEAREST" />
             <input
               type="hidden"
               name="roundingAcknowledged"
               value={roundingAcknowledged ? "on" : ""}
             />
-            <span style={{ color: "#64748b", fontSize: 13 }}>Modalità: al più vicino</span>
+            <span style={{ color: "#64748b", fontSize: 13 }}>
+              Regola fissa: tolleranza 5 minuti, poi scatto al quarto d&apos;ora.
+            </span>
           </div>
           <div className="dashboard-form-actions">
             <PrimaryButton type="button" tone="sand" data-popup-close>
@@ -285,7 +267,7 @@ export function LocaleSettingsPopupContent({
               Come funziona l&apos;arrotondamento?
             </h3>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.55 }}>
-              Workbit continuerà a salvare gli orari reali di entrata e uscita. Le ore lavorate e i report verranno invece calcolati arrotondando entrata e uscita all&apos;intervallo impostato.
+              Workbit continuerà a salvare gli orari reali di entrata e uscita. Le ore lavorate e i report verranno invece calcolati con tolleranza di 5 minuti e scatto al quarto d&apos;ora.
             </p>
             <div
               style={{
