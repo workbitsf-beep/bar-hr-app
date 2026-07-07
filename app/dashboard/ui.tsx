@@ -307,7 +307,7 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-bottom-nav {
-        max-width: calc(100vw - 24px) !important;
+        max-width: calc(var(--workbit-vw, 100vw) - 24px) !important;
       }
 
       .dashboard-audience-options {
@@ -421,8 +421,8 @@ function DashboardResponsiveStyles() {
 
       .dashboard-modal-panel {
         width: 100% !important;
-        max-width: min(92vw, 820px) !important;
-        max-height: calc(100dvh - 32px) !important;
+        max-width: min(calc(var(--workbit-vw, 100vw) - 32px), 820px) !important;
+        max-height: calc(var(--workbit-vh, 100dvh) - 32px) !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         padding: clamp(18px, 2.8vw, 24px) !important;
@@ -442,7 +442,7 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-scroll-list {
-        max-height: min(420px, 60vh);
+        max-height: min(420px, calc(var(--workbit-vh, 100dvh) * 0.6));
         overflow-y: auto;
         padding-right: 4px;
         overscroll-behavior: contain;
@@ -586,8 +586,8 @@ function DashboardResponsiveStyles() {
 
         .dashboard-modal-panel {
           width: 100% !important;
-          max-width: min(420px, calc(100vw - 32px)) !important;
-          max-height: calc(100dvh - 32px) !important;
+          max-width: min(420px, calc(var(--workbit-vw, 100vw) - 32px)) !important;
+          max-height: calc(var(--workbit-vh, 100dvh) - 32px) !important;
           padding: 18px !important;
           border-radius: 24px !important;
           overscroll-behavior: contain;
@@ -692,7 +692,7 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-bottom-nav {
-          width: min(360px, calc(100vw - 24px)) !important;
+          width: min(360px, calc(var(--workbit-vw, 100vw) - 24px)) !important;
           justify-content: space-between !important;
           gap: 6px !important;
         }
@@ -762,7 +762,7 @@ export function DashboardShell({
     <main
       className="dashboard-shell"
       style={{
-        minHeight: "100vh",
+        minHeight: "var(--workbit-vh, 100dvh)",
         background:
           "var(--workbit-app-bg)",
         padding: 18,
@@ -1169,7 +1169,7 @@ export function ItemList({
               maxHeight:
                 typeof maxHeight === "number"
                   ? `${maxHeight}px`
-                  : maxHeight ?? "min(420px, 60vh)",
+                  : maxHeight ?? "min(420px, calc(var(--workbit-vh, 100dvh) * 0.6))",
               overflowY: "auto",
               paddingRight: 4,
             }

@@ -5,6 +5,7 @@ import { PwaRegister } from "@/app/components/pwa-register";
 import { PasskeySetupPrompt } from "@/app/components/passkey-setup-prompt";
 import { RuntimeLanguageSync } from "@/app/components/runtime-language-sync";
 import { RuntimeThemeSync } from "@/app/components/runtime-theme-sync";
+import { ViewportResizeSync } from "@/app/components/viewport-resize-sync";
 import { LANGUAGE_COOKIE_NAME, normalizeLanguage } from "@/lib/language";
 import { THEME_COOKIE_NAME, normalizeTheme } from "@/lib/theme";
 
@@ -74,17 +75,19 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           dangerouslySetInnerHTML={{
             __html: `
               html {
-                width: 100%;
+                width: min(100%, var(--workbit-vw, 100vw));
                 max-width: 100%;
                 overflow-x: hidden;
+                overscroll-behavior-x: none;
                 background: #f7f3ff;
               }
 
               body {
-                width: 100%;
+                width: min(100%, var(--workbit-vw, 100vw));
                 max-width: 100%;
-                min-height: 100dvh;
+                min-height: var(--workbit-vh, 100dvh);
                 overflow-x: hidden;
+                overscroll-behavior-x: none;
               }
 
               *,
@@ -94,6 +97,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               :root {
+                --workbit-vw: 100vw;
+                --workbit-vh: 100dvh;
                 --workbit-background: #f7f3ff;
                 --workbit-surface: #ffffff;
                 --workbit-surface-secondary: #f8fafc;
@@ -450,10 +455,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           color: "var(--workbit-ink)",
           width: "100%",
           maxWidth: "100%",
-          minHeight: "100dvh",
+          minHeight: "var(--workbit-vh, 100dvh)",
           overflowX: "hidden",
         }}
       >
+        <ViewportResizeSync />
         <RuntimeLanguageSync language={htmlLang} />
         <RuntimeThemeSync theme={themePreference} />
         <PwaRegister />
