@@ -990,12 +990,18 @@ function PersonalTimeLogsPanel({
   initialLogs,
   role,
   todayTotals,
+  hasMoreInitialLogs,
 }: {
   initialLogs: LogItem[];
   role: Role | string;
   todayTotals: Totals;
+  hasMoreInitialLogs: boolean;
 }) {
-  const monthOptions = useMemo(() => buildMonthOptions(initialLogs), [initialLogs]);
+  const [logs, setLogs] = useState(initialLogs);
+  const [hasMoreLogs, setHasMoreLogs] = useState(hasMoreInitialLogs);
+  const [loadingMoreLogs, setLoadingMoreLogs] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState("");
+  const monthOptions = useMemo(() => buildMonthOptions(logs), [logs]);
   const [monthFilter, setMonthFilter] = useState(getCurrentMonthKey());
   const [dayFilter, setDayFilter] = useState("");
 
@@ -1006,7 +1012,7 @@ function PersonalTimeLogsPanel({
     setMonthFilter(monthOptions[0]?.value ?? getCurrentMonthKey());
   }, [monthFilter, monthOptions]);
 
-  const allDayGroups = useMemo(() => groupLogsByDay(initialLogs), [initialLogs]);
+  const allDayGroups = useMemo(() => groupLogsByDay(logs), [logs]);
   const monthDayGroups = useMemo(
     () => allDayGroups.filter((group) => group.dayKey.startsWith(monthFilter)),
     [allDayGroups, monthFilter]
@@ -1030,6 +1036,47 @@ function PersonalTimeLogsPanel({
     };
   }, [monthDayGroups]);
   const todayKey = getTodayKey();
+  const oldestLoadedLog = logs[logs.length - 1] ?? null;
+
+  async function loadMoreLogs() {
+    if (!oldestLoadedLog || loadingMoreLogs || !hasMoreLogs) {
+      return;
+    }
+
+    setLoadingMoreLogs(true);
+    setLoadMoreError("");
+
+    try {
+      const response = await fetch(
+        `/api/timelogs?before=${encodeURIComponent(oldestLoadedLog.timestamp)}`,
+        { cache: "no-store" }
+      );
+      const result = (await response.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            hasMore?: boolean;
+            logs?: LogItem[];
+            message?: string;
+          }
+        | null;
+
+      if (!response.ok || !result?.ok || !Array.isArray(result.logs)) {
+        setLoadMoreError(result?.message || "Impossibile caricare lo storico.");
+        return;
+      }
+
+      setLogs((current) => {
+        const seen = new Set(current.map((log) => log.id));
+        const nextLogs = result.logs?.filter((log) => !seen.has(log.id)) ?? [];
+        return current.concat(nextLogs);
+      });
+      setHasMoreLogs(Boolean(result.hasMore));
+    } catch {
+      setLoadMoreError("Impossibile caricare lo storico.");
+    } finally {
+      setLoadingMoreLogs(false);
+    }
+  }
 
   return (
     <Panel
@@ -1135,6 +1182,22 @@ function PersonalTimeLogsPanel({
             ))}
           </ItemList>
         )}
+
+        {hasMoreLogs ? (
+          <PrimaryButton
+            type="button"
+            tone="sand"
+            onClick={loadMoreLogs}
+            disabled={loadingMoreLogs}
+            style={{ justifySelf: "center", minHeight: 38, padding: "0 16px", borderRadius: 999 }}
+          >
+            {loadingMoreLogs ? "Caricamento..." : "Carica storico precedente"}
+          </PrimaryButton>
+        ) : null}
+
+        {loadMoreError ? (
+          <p style={{ margin: 0, color: "#b91c1c", lineHeight: 1.6 }}>{loadMoreError}</p>
+        ) : null}
       </div>
     </Panel>
   );
@@ -1145,12 +1208,14 @@ export function TimeLogsClient({
   initialLogs,
   totals,
   todayTotals,
+  hasMoreInitialLogs = false,
 }: {
   role: Role | string;
   initialLogs: LogItem[];
   settings: BarSettingsSummary;
   totals: Totals;
   todayTotals: Totals;
+  hasMoreInitialLogs?: boolean;
 }) {
   return (
     <>
@@ -1169,10 +1234,15 @@ export function TimeLogsClient({
 
       <Stack>
         {role === "OWNER" ? (
-          <OwnerTimeLogsPanel initialLogs={initialLogs} />
-        ) : (
-          <PersonalTimeLogsPanel initialLogs={initialLogs} role={role} todayTotals={todayTotals} />
-        )}
+        <OwnerTimeLogsPanel initialLogs={initialLogs} />
+      ) : (
+          <PersonalTimeLogsPanel
+            initialLogs={initialLogs}
+            role={role}
+            todayTotals={todayTotals}
+            hasMoreInitialLogs={hasMoreInitialLogs}
+          />
+      )}
       </Stack>
     </>
   );

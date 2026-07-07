@@ -51,6 +51,7 @@ export default async function DashboardTimeLogsPage({
   const successMessage = success === "timelog-created" ? "Timbratura manuale salvata correttamente." : null;
   const now = new Date();
   const personalLogStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const personalInitialLogLimit = 120;
   const [settings, members, logs, ownTotals, todayTotals] = await Promise.all([
     isOwner
       ? Promise.resolve(null)
@@ -94,7 +95,7 @@ export default async function DashboardTimeLogsPage({
       orderBy: {
         timestamp: "desc",
       },
-      take: isOwner ? 50 : 500,
+      take: isOwner ? 50 : personalInitialLogLimit + 1,
       select: {
         id: true,
         type: true,
@@ -118,6 +119,8 @@ export default async function DashboardTimeLogsPage({
       ? Promise.resolve(null)
       : buildDailyTotals(activeBarId, session.user.id, now),
   ]);
+
+  const initialLogs = isOwner ? logs : logs.slice(0, personalInitialLogLimit);
 
   return (
     <Stack>
@@ -233,7 +236,7 @@ export default async function DashboardTimeLogsPage({
 
       <TimeLogsClient
         role={role}
-        initialLogs={logs.map((log) => ({
+        initialLogs={initialLogs.map((log) => ({
           id: log.id,
           type: log.type,
           timestamp: log.timestamp.toISOString(),
@@ -246,6 +249,7 @@ export default async function DashboardTimeLogsPage({
             lastName: log.user.lastName,
           },
         }))}
+        hasMoreInitialLogs={!isOwner && logs.length > personalInitialLogLimit}
         settings={settings}
         totals={
           ownTotals
