@@ -1048,7 +1048,7 @@ function PersonalTimeLogsPanel({
               fontWeight: 850,
             }}
           >
-            Oggi hai lavorato {formatDurationClock(todayTotals.roundedHours)}
+            Oggi ore riconosciute {formatDurationClock(todayTotals.roundedHours)}
           </div>
         ) : null}
 
@@ -1160,7 +1160,7 @@ export function TimeLogsClient({
             <ItemCard className="dashboard-summary-card" title="Ore reali" meta={formatDurationClock(totals.realHours)} />
             <ItemCard
               className="dashboard-summary-card"
-              title="Ore lavorate"
+              title="Ore riconosciute"
               meta={formatDurationClock(totals.roundedHours)}
             />
           </div>
