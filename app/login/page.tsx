@@ -268,7 +268,7 @@ export default function LoginPage() {
               <span style={{ display: "grid", gap: 2 }}>
                 <span style={{ fontWeight: 700, color: "var(--workbit-navy)" }}>Ricordami</span>
                 <span style={{ fontSize: 13, color: "var(--workbit-muted)", lineHeight: 1.5 }}>
-                  Mantieni l&apos;accesso piu a lungo su questo dispositivo.
+                  Mantieni l&apos;accesso più a lungo su questo dispositivo.
                 </span>
               </span>
             </label>

@@ -108,7 +108,7 @@ export function PasskeySetupPrompt() {
           <div style={{ display: "grid", gap: 4 }}>
             <strong style={{ fontSize: 20, color: "#0f172a" }}>Attiva Face ID / impronta</strong>
             <span style={{ color: "#64748b", lineHeight: 1.5 }}>
-              Ti basta una volta sola. Poi al prossimo accesso potrai entrare piu velocemente.
+              Ti basta una volta sola. Poi al prossimo accesso potrai entrare più velocemente.
             </span>
           </div>
           <button

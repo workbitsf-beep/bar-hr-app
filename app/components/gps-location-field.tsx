@@ -66,7 +66,7 @@ export function GpsLocationField({
       const sample = await getBestAccuracyPosition({
         onLowAccuracy() {
           setMessage(
-            `Segnale GPS debole. Attendo una posizione piu stabile entro circa ${LOW_ACCURACY_WARNING_METERS} m.`
+            `Segnale GPS debole. Attendo una posizione più stabile entro circa ${LOW_ACCURACY_WARNING_METERS} m.`
           );
         },
       });

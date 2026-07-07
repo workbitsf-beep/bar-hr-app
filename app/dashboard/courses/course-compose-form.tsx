@@ -261,7 +261,7 @@ export function CourseComposeForm({
             fontWeight: 800,
           }}
         >
-          Piu giorni
+          Più giorni
         </button>
       </div>
 

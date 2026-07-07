@@ -1193,7 +1193,7 @@ export function SuperAdminOverviewClient({
         </div>
         <span style={{ color: "#64748b", lineHeight: 1.6 }}>
           La console completa resta disponibile, ma mostro una directory pesante per volta per
-          rendere il caricamento piu fluido.
+          rendere il caricamento più fluido.
         </span>
       </section>
 
@@ -1218,7 +1218,7 @@ export function SuperAdminOverviewClient({
           <SectionTitle
             eyebrow="Ricerca titolari"
             title="Directory responsabili"
-            subtitle="Trova subito chi gestisce piu attivita, chi vale di piu e dove intervenire."
+            subtitle="Trova subito chi gestisce più attivita, chi vale di più e dove intervenire."
           />
           <div style={{ width: "min(320px, 100%)" }}>
             <TextInput

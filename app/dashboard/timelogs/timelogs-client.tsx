@@ -442,7 +442,7 @@ export function ClockActionsPanel({
     }
 
     if (!insideRadius) {
-      return "Avvicinati di piu al punto impostato dal titolare.";
+      return "Avvicinati di più al punto impostato dal titolare.";
     }
 
     return "Posizione aggiornata.";
