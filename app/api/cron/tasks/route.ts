@@ -1,7 +1,13 @@
+import { isAuthorizedCronRequest, unauthorizedCronResponse } from "@/lib/internal-cron";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
+  if (!isAuthorizedCronRequest(request)) {
+    return unauthorizedCronResponse();
+  }
+
   const [{ runTaskEscalation }, { runShiftRetentionCleanup }, { runTimeLogReminders }] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/shiftCleanup"),

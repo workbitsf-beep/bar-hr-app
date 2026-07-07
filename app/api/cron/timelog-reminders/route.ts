@@ -1,7 +1,13 @@
+import { isAuthorizedCronRequest, unauthorizedCronResponse } from "@/lib/internal-cron";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
+  if (!isAuthorizedCronRequest(request)) {
+    return unauthorizedCronResponse();
+  }
+
   const { runTimeLogReminders } = await import("@/lib/timelog-reminders");
   const result = await runTimeLogReminders();
 

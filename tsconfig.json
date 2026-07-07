@@ -24,8 +24,8 @@
     ],
     "paths": {
       "@/*": [
-        "./src/*",
-        "./*"
+        "./*",
+        "./src/*"
       ]
     }
   },
@@ -35,11 +35,6 @@
     "**/*.tsx",
     "**/*.mts",
     "next.config.js",
-    "src/app/api/stores/register/route.js",
-    "src/app/login/page.js",
-    "src/app/api/stores/login.js",
-    "src/app/api/stores/register.js",
-    "src/app/layout.jsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
