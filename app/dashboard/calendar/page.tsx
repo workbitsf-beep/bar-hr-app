@@ -28,8 +28,8 @@ type CalendarPageSettings = {
   standardShiftPresets?: unknown;
 };
 
-const CALENDAR_LOOKBACK_WEEKS = 4;
-const CALENDAR_LOOKAHEAD_WEEKS = 12;
+const CALENDAR_LOOKBACK_WEEKS = 1;
+const CALENDAR_LOOKAHEAD_WEEKS = 3;
 const AVAILABILITY_VISIBILITY_HOURS = 24;
 
 function getLocale(language: string) {

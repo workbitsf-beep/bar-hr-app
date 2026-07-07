@@ -1308,6 +1308,20 @@ export function DayActionCalendarClient({
     setFeedback(null);
   }
 
+  function navigateCalendarWindow(direction: -1 | 1) {
+    const anchorKey = focusedDayDate?.slice(0, 10) || days[0]?.date.slice(0, 10);
+
+    if (!anchorKey) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("anchor", addDaysToDateKey(anchorKey, direction * 7));
+    url.searchParams.delete("day");
+    url.searchParams.set("view", calendarView);
+    router.push(`${url.pathname}${url.search}${url.hash}`);
+  }
+
   function closeModal() {
     if (isPending) {
       return;
@@ -1566,7 +1580,7 @@ export function DayActionCalendarClient({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: todayAction ? "1fr 1fr 1fr" : "1fr 1fr",
+            gridTemplateColumns: todayAction ? "44px 1fr 1fr 1fr 44px" : "44px 1fr 1fr 44px",
             alignItems: "center",
             gap: 0,
             padding: 4,
@@ -1579,6 +1593,23 @@ export function DayActionCalendarClient({
             overflow: "hidden",
           }}
         >
+          <button
+            type="button"
+            onClick={() => navigateCalendarWindow(-1)}
+            aria-label="Settimana precedente"
+            style={{
+              border: 0,
+              borderRadius: 999,
+              minHeight: 42,
+              background: "transparent",
+              color: "#4c1d95",
+              fontWeight: 900,
+              fontSize: 20,
+              cursor: "pointer",
+            }}
+          >
+            {"<"}
+          </button>
           {(["week", "day"] as const).map((mode) => (
             <button
               key={mode}
@@ -1607,6 +1638,23 @@ export function DayActionCalendarClient({
             </button>
           ))}
           {todayAction}
+          <button
+            type="button"
+            onClick={() => navigateCalendarWindow(1)}
+            aria-label="Settimana successiva"
+            style={{
+              border: 0,
+              borderRadius: 999,
+              minHeight: 42,
+              background: "transparent",
+              color: "#4c1d95",
+              fontWeight: 900,
+              fontSize: 20,
+              cursor: "pointer",
+            }}
+          >
+            {">"}
+          </button>
         </div>
         {publishAction ? <div style={{ width: "100%" }}>{publishAction}</div> : null}
       </div>
