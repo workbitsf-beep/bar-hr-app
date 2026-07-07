@@ -11,6 +11,8 @@ import {
   useState,
   useTransition,
   type ReactNode,
+  type TouchEvent,
+  type WheelEvent,
 } from "react";
 import { combineDateAndTime } from "@/lib/shift-datetime";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
@@ -1040,6 +1042,8 @@ export function DayActionCalendarClient({
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
   const skipDayScrollIntoViewRef = useRef(false);
+  const boundaryTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const boundaryNavigationLockedRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -1309,17 +1313,91 @@ export function DayActionCalendarClient({
   }
 
   function navigateCalendarWindow(direction: -1 | 1) {
+    if (boundaryNavigationLockedRef.current) {
+      return;
+    }
+
     const anchorKey = focusedDayDate?.slice(0, 10) || days[0]?.date.slice(0, 10);
 
     if (!anchorKey) {
       return;
     }
 
+    boundaryNavigationLockedRef.current = true;
+    window.setTimeout(() => {
+      boundaryNavigationLockedRef.current = false;
+    }, 1200);
+
     const url = new URL(window.location.href);
     url.searchParams.set("anchor", addDaysToDateKey(anchorKey, direction * 7));
     url.searchParams.delete("day");
     url.searchParams.set("view", calendarView);
     router.push(`${url.pathname}${url.search}${url.hash}`);
+  }
+
+  function isAtCalendarBoundary(element: HTMLElement, direction: -1 | 1) {
+    const maxScrollLeft = element.scrollWidth - element.clientWidth;
+
+    if (maxScrollLeft <= 0) {
+      return true;
+    }
+
+    return direction < 0 ? element.scrollLeft <= 8 : element.scrollLeft >= maxScrollLeft - 8;
+  }
+
+  function handleCalendarBoundaryWheel(event: WheelEvent<HTMLElement>) {
+    const delta = Math.abs(event.deltaX) >= Math.abs(event.deltaY) ? event.deltaX : event.shiftKey ? event.deltaY : 0;
+
+    if (Math.abs(delta) < 24) {
+      return;
+    }
+
+    const direction = delta > 0 ? 1 : -1;
+
+    if (!isAtCalendarBoundary(event.currentTarget, direction)) {
+      return;
+    }
+
+    event.preventDefault();
+    navigateCalendarWindow(direction);
+  }
+
+  function handleCalendarBoundaryTouchStart(event: TouchEvent<HTMLElement>) {
+    const touch = event.touches[0];
+
+    if (!touch) {
+      return;
+    }
+
+    boundaryTouchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  }
+
+  function handleCalendarBoundaryTouchEnd(event: TouchEvent<HTMLElement>) {
+    const start = boundaryTouchStartRef.current;
+    const touch = event.changedTouches[0];
+    boundaryTouchStartRef.current = null;
+
+    if (!start || !touch) {
+      return;
+    }
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+
+    if (Math.abs(deltaX) < 52 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) {
+      return;
+    }
+
+    const direction = deltaX < 0 ? 1 : -1;
+
+    if (!isAtCalendarBoundary(event.currentTarget, direction)) {
+      return;
+    }
+
+    navigateCalendarWindow(direction);
   }
 
   function closeModal() {
@@ -1580,7 +1658,7 @@ export function DayActionCalendarClient({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: todayAction ? "44px 1fr 1fr 1fr 44px" : "44px 1fr 1fr 44px",
+            gridTemplateColumns: todayAction ? "1fr 1fr 1fr" : "1fr 1fr",
             alignItems: "center",
             gap: 0,
             padding: 4,
@@ -1593,23 +1671,6 @@ export function DayActionCalendarClient({
             overflow: "hidden",
           }}
         >
-          <button
-            type="button"
-            onClick={() => navigateCalendarWindow(-1)}
-            aria-label="Settimana precedente"
-            style={{
-              border: 0,
-              borderRadius: 999,
-              minHeight: 42,
-              background: "transparent",
-              color: "#4c1d95",
-              fontWeight: 900,
-              fontSize: 20,
-              cursor: "pointer",
-            }}
-          >
-            {"<"}
-          </button>
           {(["week", "day"] as const).map((mode) => (
             <button
               key={mode}
@@ -1638,23 +1699,6 @@ export function DayActionCalendarClient({
             </button>
           ))}
           {todayAction}
-          <button
-            type="button"
-            onClick={() => navigateCalendarWindow(1)}
-            aria-label="Settimana successiva"
-            style={{
-              border: 0,
-              borderRadius: 999,
-              minHeight: 42,
-              background: "transparent",
-              color: "#4c1d95",
-              fontWeight: 900,
-              fontSize: 20,
-              cursor: "pointer",
-            }}
-          >
-            {">"}
-          </button>
         </div>
         {publishAction ? <div style={{ width: "100%" }}>{publishAction}</div> : null}
       </div>
@@ -1663,6 +1707,9 @@ export function DayActionCalendarClient({
         <div
           ref={dayStripRef}
           onScroll={handleDayStripScroll}
+          onWheel={handleCalendarBoundaryWheel}
+          onTouchStart={handleCalendarBoundaryTouchStart}
+          onTouchEnd={handleCalendarBoundaryTouchEnd}
           style={{
             display: "flex",
             gap: 14,
@@ -1874,6 +1921,9 @@ export function DayActionCalendarClient({
       ) : (
       <CalendarWeekStrip
         className="dashboard-week-strip"
+        onWheel={handleCalendarBoundaryWheel}
+        onTouchStart={handleCalendarBoundaryTouchStart}
+        onTouchEnd={handleCalendarBoundaryTouchEnd}
         style={{
           display: "flex",
           gap: 14,
