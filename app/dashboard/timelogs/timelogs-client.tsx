@@ -1142,7 +1142,7 @@ function PersonalTimeLogsPanel({
             Nessuna timbratura registrata per questo periodo.
           </p>
         ) : (
-          <ItemList scrollable>
+          <ItemList>
             {dayGroups.map((dayGroup) => (
               <ClockDayCard
                 key={dayGroup.dayKey}
