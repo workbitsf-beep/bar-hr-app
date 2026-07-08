@@ -272,23 +272,23 @@ export function startPreciseGeolocationWatch({
 
   let active = true;
   let watchId: number | null = null;
-  let restartTimer: number | null = null;
+  let batchTimer: number | null = null;
   let sampleCount = 0;
   const wakeLock = createScreenWakeLockController();
   const previousSampleRef: { current: GeolocationSample | null } = {
     current: null,
   };
 
-  const clearRestartTimer = () => {
-    if (restartTimer !== null) {
-      window.clearTimeout(restartTimer);
-      restartTimer = null;
+  const clearBatchTimer = () => {
+    if (batchTimer !== null) {
+      window.clearTimeout(batchTimer);
+      batchTimer = null;
     }
   };
 
   const stop = () => {
     active = false;
-    clearRestartTimer();
+    clearBatchTimer();
 
     if (watchId !== null) {
       navigator.geolocation.clearWatch(watchId);
@@ -303,10 +303,11 @@ export function startPreciseGeolocationWatch({
       return;
     }
 
-    clearRestartTimer();
+    clearBatchTimer();
 
     if (watchId !== null) {
       navigator.geolocation.clearWatch(watchId);
+      watchId = null;
     }
 
     const collector = createBatchCollector({
@@ -320,6 +321,19 @@ export function startPreciseGeolocationWatch({
       onLowAccuracy,
       previousSampleRef,
     });
+
+    const scheduleBatchFlush = () => {
+      clearBatchTimer();
+
+      batchTimer = window.setTimeout(() => {
+        if (!active) {
+          return;
+        }
+
+        collector.flush();
+        scheduleBatchFlush();
+      }, GEOLOCATION_BATCH_WAIT_MS);
+    };
 
     watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -345,14 +359,7 @@ export function startPreciseGeolocationWatch({
       }
     );
 
-    restartTimer = window.setTimeout(() => {
-      if (!active) {
-        return;
-      }
-
-      collector.flush();
-      startWatch();
-    }, GEOLOCATION_BATCH_WAIT_MS);
+    scheduleBatchFlush();
   };
 
   void wakeLock.start();

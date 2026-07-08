@@ -597,8 +597,8 @@ export function ClockActionsPanel({
       setActionMessage("");
     }
 
-    // Collect a short batch, keep the most reliable point, then stop so iOS
-    // does not keep asking for precise location while the profile is open.
+    // Keep one browser watch open and publish the best point from each short
+    // batch, avoiding repeated GPS restarts while the profile is open.
     stopWatchRef.current = startPreciseGeolocationWatch({
       onSample(sample) {
         applyGeolocationSample(sample);
@@ -619,7 +619,7 @@ export function ClockActionsPanel({
         );
       },
       maximumAgeMs: DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS,
-      stopAfterFirstSample: true,
+      stopAfterFirstSample: false,
     });
   }, [applyGeolocationSample, canClock, settings, stopGeolocationWatch]);
 
@@ -634,10 +634,28 @@ export function ClockActionsPanel({
       applyGeolocationSample(cachedSample, false);
     }
 
+    startGeolocationWatch(false);
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        startGeolocationWatch(false);
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopGeolocationWatch();
     };
-  }, [applyGeolocationSample, canClock, gpsConfigured, settings, stopGeolocationWatch]);
+  }, [
+    applyGeolocationSample,
+    canClock,
+    gpsConfigured,
+    settings,
+    startGeolocationWatch,
+    stopGeolocationWatch,
+  ]);
 
   async function getClockActionLocation() {
     if (!hasConfiguredGps(settings)) {
