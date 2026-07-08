@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
-import { startPreciseGeolocationWatch } from "@/lib/browser-gps";
+import {
+  DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS,
+  startPreciseGeolocationWatch,
+} from "@/lib/browser-gps";
+import type { GeolocationSample } from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
 import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 import {
@@ -60,6 +64,95 @@ type Totals = {
 } | null;
 
 export type ClockActionStatus = "CAN_CLOCK_IN" | "CAN_CLOCK_OUT" | "DONE";
+
+const CLOCK_LOCATION_CACHE_KEY = "workbit.clock.location";
+const CLOCK_LOCATION_CACHE_MAX_AGE_MS = 2 * 60 * 1000;
+
+type CachedClockLocation = GeolocationSample & {
+  capturedAt: number;
+  barLatitude: number;
+  barLongitude: number;
+  barRadius: number;
+};
+
+function hasConfiguredGps(settings: BarSettingsSummary): settings is NonNullable<BarSettingsSummary> & {
+  gpsLatitude: number;
+  gpsLongitude: number;
+  gpsRadius: number;
+} {
+  return (
+    settings !== null &&
+    settings.gpsLatitude !== null &&
+    settings.gpsLongitude !== null &&
+    settings.gpsRadius !== null
+  );
+}
+
+function readCachedClockLocation(settings: BarSettingsSummary): GeolocationSample | null {
+  if (!hasConfiguredGps(settings) || typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(CLOCK_LOCATION_CACHE_KEY);
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const cached = JSON.parse(rawValue) as Partial<CachedClockLocation>;
+    const isSameGpsPoint =
+      cached.barLatitude === settings.gpsLatitude &&
+      cached.barLongitude === settings.gpsLongitude &&
+      cached.barRadius === settings.gpsRadius;
+    const isFresh =
+      typeof cached.capturedAt === "number" &&
+      Date.now() - cached.capturedAt <= CLOCK_LOCATION_CACHE_MAX_AGE_MS;
+    const cachedLatitude = cached.latitude;
+    const cachedLongitude = cached.longitude;
+    const cachedAccuracy = cached.accuracy;
+    const hasUsableCoordinates =
+      typeof cachedLatitude === "number" &&
+      typeof cachedLongitude === "number" &&
+      typeof cachedAccuracy === "number" &&
+      Number.isFinite(cachedLatitude) &&
+      Number.isFinite(cachedLongitude) &&
+      Number.isFinite(cachedAccuracy);
+
+    if (!isSameGpsPoint || !isFresh || !hasUsableCoordinates) {
+      return null;
+    }
+
+    return {
+      latitude: cachedLatitude,
+      longitude: cachedLongitude,
+      accuracy: cachedAccuracy,
+      sampleCount: typeof cached.sampleCount === "number" ? cached.sampleCount : 1,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedClockLocation(settings: BarSettingsSummary, sample: GeolocationSample) {
+  if (!hasConfiguredGps(settings) || typeof window === "undefined") {
+    return;
+  }
+
+  const cached: CachedClockLocation = {
+    ...sample,
+    capturedAt: Date.now(),
+    barLatitude: settings.gpsLatitude,
+    barLongitude: settings.gpsLongitude,
+    barRadius: settings.gpsRadius,
+  };
+
+  try {
+    window.localStorage.setItem(CLOCK_LOCATION_CACHE_KEY, JSON.stringify(cached));
+  } catch {
+    // Local storage can be unavailable in private or restricted browsing modes.
+  }
+}
 
 function getDayKey(value: string | Date) {
   const parts = getZonedDateParts(value, APP_TIME_ZONE);
@@ -404,11 +497,7 @@ export function ClockActionsPanel({
   const [weakAccuracy, setWeakAccuracy] = useState<number | null>(null);
   const stopWatchRef = useRef<(() => void) | null>(null);
 
-  const gpsConfigured =
-    settings &&
-    settings.gpsLatitude !== null &&
-    settings.gpsLongitude !== null &&
-    settings.gpsRadius !== null;
+  const gpsConfigured = hasConfiguredGps(settings);
   const canClock = role !== "OWNER";
   const insideRadius =
     gpsConfigured &&
@@ -462,8 +551,39 @@ export function ClockActionsPanel({
     stopWatchRef.current = null;
   }, []);
 
+  const applyGeolocationSample = useCallback((sample: GeolocationSample, persist = true) => {
+    if (!hasConfiguredGps(settings)) {
+      return;
+    }
+
+    const nextDistance = calculateDistance(
+      sample.latitude,
+      sample.longitude,
+      settings.gpsLatitude,
+      settings.gpsLongitude
+    );
+
+    setLatitude(String(sample.latitude));
+    setLongitude(String(sample.longitude));
+    setAccuracy(sample.accuracy);
+    setDistance(nextDistance);
+    setGeoReady(true);
+    setWeakAccuracy(null);
+    setLocationError("");
+    setLocating(false);
+
+    if (persist) {
+      writeCachedClockLocation(settings, sample);
+    }
+  }, [settings]);
+
   const startGeolocationWatch = useCallback((manual = false) => {
-    if (!canClock || !gpsConfigured || !navigator.geolocation) {
+    if (
+      !canClock ||
+      !hasConfiguredGps(settings) ||
+      typeof navigator === "undefined" ||
+      !navigator.geolocation
+    ) {
       return;
     }
 
@@ -476,25 +596,11 @@ export function ClockActionsPanel({
       setActionMessage("");
     }
 
-    // Continuous tracking collects multiple fresh samples and only keeps the
-    // most reliable point before enabling clock in/out.
+    // Collect a short batch, keep the most reliable point, then stop so iOS
+    // does not keep asking for precise location while the profile is open.
     stopWatchRef.current = startPreciseGeolocationWatch({
       onSample(sample) {
-        const nextDistance = calculateDistance(
-          sample.latitude,
-          sample.longitude,
-          settings.gpsLatitude as number,
-          settings.gpsLongitude as number
-        );
-
-        setLatitude(String(sample.latitude));
-        setLongitude(String(sample.longitude));
-        setAccuracy(sample.accuracy);
-        setDistance(nextDistance);
-        setGeoReady(true);
-        setWeakAccuracy(null);
-        setLocationError("");
-        setLocating(false);
+        applyGeolocationSample(sample);
       },
       onLowAccuracy(nextAccuracy) {
         setAccuracy(nextAccuracy);
@@ -511,29 +617,26 @@ export function ClockActionsPanel({
             : "Impossibile aggiornare automaticamente la posizione."
         );
       },
+      maximumAgeMs: DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS,
+      stopAfterFirstSample: true,
     });
-  }, [canClock, gpsConfigured, settings, stopGeolocationWatch]);
+  }, [applyGeolocationSample, canClock, settings, stopGeolocationWatch]);
 
   useEffect(() => {
-    if (!canClock || !gpsConfigured || !navigator.geolocation) {
+    if (!canClock || !gpsConfigured) {
       return;
     }
 
-    startGeolocationWatch(false);
+    const cachedSample = readCachedClockLocation(settings);
 
-    function handleVisibilityChange() {
-      if (document.visibilityState === "visible") {
-        startGeolocationWatch(false);
-      }
+    if (cachedSample) {
+      applyGeolocationSample(cachedSample, false);
     }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopGeolocationWatch();
     };
-  }, [canClock, gpsConfigured, settings?.gpsLatitude, settings?.gpsLongitude, settings?.gpsRadius, startGeolocationWatch, stopGeolocationWatch]);
+  }, [applyGeolocationSample, canClock, gpsConfigured, settings, stopGeolocationWatch]);
 
   async function runClockAction(endpoint: "clock-in" | "clock-out") {
     setSubmitting(endpoint === "clock-in" ? "in" : "out");

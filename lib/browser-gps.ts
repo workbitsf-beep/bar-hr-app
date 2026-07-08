@@ -11,6 +11,8 @@ type GeolocationWatchCallbacks = {
   onSample: (sample: GeolocationSample) => void;
   onError?: (error: GeolocationPositionError | Error) => void;
   onLowAccuracy?: (accuracy: number) => void;
+  maximumAgeMs?: number;
+  stopAfterFirstSample?: boolean;
 };
 
 const MIN_SAMPLE_COUNT = 2;
@@ -20,12 +22,13 @@ const LOW_ACCURACY_WARNING_METERS = 80;
 const MAX_ACCEPTABLE_ACCURACY_METERS = 250;
 const GEOLOCATION_TIMEOUT_MS = 15000;
 const GEOLOCATION_BATCH_WAIT_MS = 22000;
+const DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS = 30000;
 const LARGE_JUMP_METERS = 750;
 
 const GEOLOCATION_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
   timeout: GEOLOCATION_TIMEOUT_MS,
-  maximumAge: 0,
+  maximumAge: DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS,
 };
 
 type WakeLockNavigator = Navigator & {
@@ -259,6 +262,8 @@ export function startPreciseGeolocationWatch({
   onSample,
   onError,
   onLowAccuracy,
+  maximumAgeMs,
+  stopAfterFirstSample = false,
 }: GeolocationWatchCallbacks) {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
     onError?.(new Error("Geolocation unavailable"));
@@ -281,6 +286,18 @@ export function startPreciseGeolocationWatch({
     }
   };
 
+  const stop = () => {
+    active = false;
+    clearRestartTimer();
+
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+
+    void wakeLock.stop();
+  };
+
   const startWatch = () => {
     if (!active) {
       return;
@@ -293,7 +310,13 @@ export function startPreciseGeolocationWatch({
     }
 
     const collector = createBatchCollector({
-      onSample,
+      onSample(sample) {
+        onSample(sample);
+
+        if (stopAfterFirstSample) {
+          window.setTimeout(stop, 0);
+        }
+      },
       onLowAccuracy,
       previousSampleRef,
     });
@@ -316,7 +339,10 @@ export function startPreciseGeolocationWatch({
           onError?.(error);
         }
       },
-      GEOLOCATION_OPTIONS
+      {
+        ...GEOLOCATION_OPTIONS,
+        maximumAge: maximumAgeMs ?? GEOLOCATION_OPTIONS.maximumAge,
+      }
     );
 
     restartTimer = window.setTimeout(() => {
@@ -332,16 +358,7 @@ export function startPreciseGeolocationWatch({
   void wakeLock.start();
   startWatch();
 
-  return () => {
-    active = false;
-    clearRestartTimer();
-
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-    }
-
-    void wakeLock.stop();
-  };
+  return stop;
 }
 
 export function getBestAccuracyPosition(options?: {
@@ -392,6 +409,7 @@ export function getBestAccuracyPosition(options?: {
 export {
   GEOLOCATION_OPTIONS,
   GEOLOCATION_TIMEOUT_MS,
+  DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS,
   LOW_ACCURACY_WARNING_METERS,
   MAX_ACCEPTABLE_ACCURACY_METERS,
 };
