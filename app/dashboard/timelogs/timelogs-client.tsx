@@ -8,6 +8,7 @@ import type { ClockType, Role } from "@prisma/client";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
 import {
   DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS,
+  getBestAccuracyPosition,
   startPreciseGeolocationWatch,
 } from "@/lib/browser-gps";
 import type { GeolocationSample } from "@/lib/browser-gps";
@@ -506,8 +507,8 @@ export function ClockActionsPanel({
     distance !== null &&
     accuracy !== null &&
     distance <= ((settings?.gpsRadius ?? 0) + accuracy);
-  const canClockIn = insideRadius && geoReady && clockStatus !== "CAN_CLOCK_OUT";
-  const canClockOut = insideRadius && geoReady && clockStatus === "CAN_CLOCK_OUT";
+  const canClockIn = gpsConfigured && clockStatus !== "CAN_CLOCK_OUT";
+  const canClockOut = gpsConfigured && clockStatus === "CAN_CLOCK_OUT";
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
@@ -638,20 +639,83 @@ export function ClockActionsPanel({
     };
   }, [applyGeolocationSample, canClock, gpsConfigured, settings, stopGeolocationWatch]);
 
+  async function getClockActionLocation() {
+    if (!hasConfiguredGps(settings)) {
+      setLocationError("Geolocalizzazione non disponibile.");
+      return null;
+    }
+
+    const cachedSample = readCachedClockLocation(settings);
+
+    if (cachedSample) {
+      applyGeolocationSample(cachedSample, false);
+      return cachedSample;
+    }
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocationError("Geolocalizzazione non disponibile.");
+      return null;
+    }
+
+    setLocating(true);
+    setLocationError("");
+    setWeakAccuracy(null);
+    setActionMessage("Rilevo la posizione...");
+
+    try {
+      const sample = await getBestAccuracyPosition({
+        maxWaitMs: 25000,
+        onLowAccuracy(nextAccuracy) {
+          setAccuracy(nextAccuracy);
+          setWeakAccuracy(nextAccuracy);
+          setLocationError("");
+        },
+      });
+
+      applyGeolocationSample(sample);
+      return sample;
+    } catch {
+      setWeakAccuracy(null);
+      setLocating(false);
+      setLocationError("Impossibile leggere la posizione attuale.");
+      setActionMessage("Impossibile leggere la posizione attuale.");
+      return null;
+    }
+  }
+
   async function runClockAction(endpoint: "clock-in" | "clock-out") {
     setSubmitting(endpoint === "clock-in" ? "in" : "out");
     setActionMessage("");
 
     try {
+      const sample = await getClockActionLocation();
+
+      if (!sample || !hasConfiguredGps(settings)) {
+        return;
+      }
+
+      const nextDistance = calculateDistance(
+        sample.latitude,
+        sample.longitude,
+        settings.gpsLatitude,
+        settings.gpsLongitude
+      );
+
+      if (nextDistance > settings.gpsRadius + sample.accuracy) {
+        setLocationError("");
+        setActionMessage("Avvicinati di più al punto impostato dal titolare.");
+        return;
+      }
+
       const response = await fetch(`/api/timelogs/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          latitude: Number(latitude),
-          longitude: Number(longitude),
-          accuracy,
+          latitude: sample.latitude,
+          longitude: sample.longitude,
+          accuracy: sample.accuracy,
         }),
       });
       const payload = (await response.json().catch(() => null)) as
