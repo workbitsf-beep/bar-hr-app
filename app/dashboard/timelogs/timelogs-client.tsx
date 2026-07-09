@@ -1079,8 +1079,8 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                 className="dashboard-modal-panel"
                 style={{
                   position: "relative",
-                  width: "min(760px, calc(100vw - 32px))",
-                  maxHeight: "calc(100vh - 32px)",
+                  width: "min(760px, calc(var(--workbit-vw, 100vw) - 32px))",
+                  maxHeight: "calc(var(--workbit-vh, 100dvh) - 32px)",
                   overflowY: "auto",
                   background: "rgba(255,255,255,0.98)",
                   border: "1px solid #e2e8f0",
@@ -1125,7 +1125,7 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                 {selectedDayGroups.length === 0 ? (
                   <EmptyState message="Nessuna timbratura trovata per il giorno selezionato." />
                 ) : (
-                  <ItemList scrollable={selectedDayGroups.length > 4}>
+                  <ItemList>
                     {selectedDayGroups.map((dayGroup) => (
                       <ClockDayCard
                         key={dayGroup.dayKey}
