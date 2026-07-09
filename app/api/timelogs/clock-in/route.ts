@@ -1,5 +1,5 @@
 ﻿import { ClockType, Role } from "@prisma/client";
-import { isWithinRadiusWithAccuracy } from "@/lib/gps";
+import { isWithinRadius } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
@@ -32,11 +32,6 @@ export const POST = withBar(
 
     const body = (await req.json()) as ClockInBody;
     const { latitude, longitude } = body;
-    const accuracy =
-      typeof body.accuracy === "number" && Number.isFinite(body.accuracy)
-        ? Math.max(0, body.accuracy)
-        : 0;
-
     if (typeof latitude !== "number" || typeof longitude !== "number") {
       return Response.json(
         { ok: false, message: "Missing coordinates" },
@@ -62,13 +57,12 @@ export const POST = withBar(
       );
     }
 
-    const allowed = isWithinRadiusWithAccuracy(
+    const allowed = isWithinRadius(
       latitude,
       longitude,
       settings.gpsLatitude,
       settings.gpsLongitude,
-      settings.gpsRadius,
-      accuracy
+      settings.gpsRadius
     );
 
     if (!allowed) {

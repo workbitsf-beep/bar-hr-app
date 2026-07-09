@@ -505,10 +505,9 @@ export function ClockActionsPanel({
     latitude !== "" &&
     longitude !== "" &&
     distance !== null &&
-    accuracy !== null &&
-    distance <= ((settings?.gpsRadius ?? 0) + accuracy);
-  const canClockIn = gpsConfigured && clockStatus !== "CAN_CLOCK_OUT";
-  const canClockOut = gpsConfigured && clockStatus === "CAN_CLOCK_OUT";
+    distance <= (settings?.gpsRadius ?? 0);
+  const canClockIn = insideRadius && geoReady && clockStatus !== "CAN_CLOCK_OUT";
+  const canClockOut = insideRadius && geoReady && clockStatus === "CAN_CLOCK_OUT";
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
@@ -719,7 +718,7 @@ export function ClockActionsPanel({
         settings.gpsLongitude
       );
 
-      if (nextDistance > settings.gpsRadius + sample.accuracy) {
+      if (nextDistance > settings.gpsRadius) {
         setLocationError("");
         setActionMessage("Avvicinati di più al punto impostato dal titolare.");
         return;
