@@ -155,6 +155,22 @@ function writeCachedClockLocation(settings: BarSettingsSummary, sample: Geolocat
   }
 }
 
+async function getGeolocationPermissionState(): Promise<PermissionState | "unsupported"> {
+  if (typeof navigator === "undefined" || !("permissions" in navigator)) {
+    return "unsupported";
+  }
+
+  try {
+    const status = await navigator.permissions.query({
+      name: "geolocation" as PermissionName,
+    });
+
+    return status.state;
+  } catch {
+    return "unsupported";
+  }
+}
+
 function getDayKey(value: string | Date) {
   const parts = getZonedDateParts(value, APP_TIME_ZONE);
   return `${parts.year}-${parts.month}-${parts.day}`;
@@ -587,6 +603,10 @@ export function ClockActionsPanel({
       return;
     }
 
+    if (!manual && stopWatchRef.current) {
+      return;
+    }
+
     stopGeolocationWatch();
     setLocating(true);
     setLocationError("");
@@ -627,23 +647,42 @@ export function ClockActionsPanel({
       return;
     }
 
+    let cancelled = false;
     const cachedSample = readCachedClockLocation(settings);
 
     if (cachedSample) {
       applyGeolocationSample(cachedSample, false);
     }
 
-    startGeolocationWatch(false);
+    async function startGrantedWatch() {
+      const permissionState = await getGeolocationPermissionState();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (permissionState === "denied") {
+        setLocationError("Consenti la posizione dalle impostazioni del dispositivo.");
+        return;
+      }
+
+      if (permissionState === "granted") {
+        startGeolocationWatch(false);
+      }
+    }
+
+    void startGrantedWatch();
 
     function handleVisibilityChange() {
       if (document.visibilityState === "visible") {
-        startGeolocationWatch(false);
+        void startGrantedWatch();
       }
     }
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopGeolocationWatch();
     };
