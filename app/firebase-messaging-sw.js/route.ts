@@ -55,19 +55,27 @@ messaging.onBackgroundMessage(function(payload) {
 self.addEventListener("notificationclick", function(event) {
   event.notification.close();
 
-  const actionUrl = event.notification && event.notification.data && event.notification.data.actionUrl
-    ? event.notification.data.actionUrl
+  const notificationData = event.notification && event.notification.data ? event.notification.data : {};
+  const firebaseData = notificationData.FCM_MSG && notificationData.FCM_MSG.data
+    ? notificationData.FCM_MSG.data
+    : {};
+  const actionUrl = notificationData.actionUrl || firebaseData.actionUrl
+    ? notificationData.actionUrl || firebaseData.actionUrl
     : "/dashboard";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function(clients) {
       for (const client of clients) {
-        if ("focus" in client) {
-          client.focus();
-        }
-
         if ("navigate" in client && "url" in client && client.url && client.url.indexOf(actionUrl) !== -1) {
-          return client;
+          return client.focus ? client.focus() : client;
+        }
+      }
+
+      for (const client of clients) {
+        if ("navigate" in client) {
+          return client.navigate(actionUrl).then(function(navigatedClient) {
+            return navigatedClient && navigatedClient.focus ? navigatedClient.focus() : navigatedClient;
+          });
         }
       }
 

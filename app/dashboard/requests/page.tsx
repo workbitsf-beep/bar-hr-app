@@ -22,6 +22,7 @@ import {
   reviewRequestAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
+import { SwipeRevealAction } from "../swipe-reveal-action";
 import {
   BillingRequiredState,
   EmptyState,
@@ -253,7 +254,7 @@ export default async function DashboardRequestsPage({
           },
         })
       : Promise.resolve([]),
-    canCreateRequests && !isCompany && canUseOvertime
+    canCreateRequests && !isCompany
       ? prisma.employeeBar.findMany({
           where: {
             barId: activeBarId,
@@ -824,64 +825,79 @@ export default async function DashboardRequestsPage({
                       : request.reason || "Nessun dettaglio aggiuntivo";
 
                   return (
-                    <ItemCard
+                    <SwipeRevealAction
                       key={request.id}
-                      title={requestLabel(request.type)}
-                      subtitle={`${request.employee.firstName} ${request.employee.lastName}`}
-                      meta={
-                        <>
-                          {request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}
-                          {request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}
-                        </>
+                      enabled={canDeleteRequest}
+                      action={
+                        <form action={deleteRequestAction}>
+                          <input type="hidden" name="requestId" value={request.id} />
+                          <button
+                            type="submit"
+                            aria-label="Elimina richiesta"
+                            style={{
+                              width: 54,
+                              height: 54,
+                              borderRadius: 18,
+                              border: "1px solid #fecaca",
+                              background: "#ef4444",
+                              color: "#ffffff",
+                              fontWeight: 900,
+                              cursor: "pointer",
+                            }}
+                          >
+                            X
+                          </button>
+                        </form>
                       }
-                      footer={
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <StatusPill label={request.status} tone={requestTone(request.status)} />
-                            {request.peerStatus ? (
-                              <StatusPill label={request.peerStatus} tone={requestTone(request.peerStatus)} />
-                            ) : null}
-                            {request.ownerStatus ? (
-                              <StatusPill label={request.ownerStatus} tone={requestTone(request.ownerStatus)} />
+                    >
+                      <ItemCard
+                        title={requestLabel(request.type)}
+                        subtitle={`${request.employee.firstName} ${request.employee.lastName}`}
+                        meta={
+                          <>
+                            {request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}
+                            {request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}
+                          </>
+                        }
+                        footer={
+                          <div style={{ display: "grid", gap: 10 }}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <StatusPill label={request.status} tone={requestTone(request.status)} />
+                              {request.peerStatus ? (
+                                <StatusPill label={request.peerStatus} tone={requestTone(request.peerStatus)} />
+                              ) : null}
+                              {request.ownerStatus ? (
+                                <StatusPill label={request.ownerStatus} tone={requestTone(request.ownerStatus)} />
+                              ) : null}
+                            </div>
+
+                            <div style={{ color: "#64748b", lineHeight: 1.5 }}>{requestSummary}</div>
+
+                            {canPeerReview || canOwnerReview ? (
+                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                <form action={reviewRequestAction}>
+                                  <input type="hidden" name="requestId" value={request.id} />
+                                  <input type="hidden" name="decision" value="APPROVED" />
+                                  <input type="hidden" name="notifySuccess" value="1" />
+                                  <PrimaryButton type="submit" tone="green">
+                                    Approva
+                                  </PrimaryButton>
+                                </form>
+
+                                <form action={reviewRequestAction}>
+                                  <input type="hidden" name="requestId" value={request.id} />
+                                  <input type="hidden" name="decision" value="REJECTED" />
+                                  <input type="hidden" name="notifySuccess" value="1" />
+                                  <PrimaryButton type="submit" tone="red">
+                                    Rifiuta
+                                  </PrimaryButton>
+                                </form>
+                              </div>
                             ) : null}
                           </div>
-
-                          <div style={{ color: "#64748b", lineHeight: 1.5 }}>{requestSummary}</div>
-
-                          {canPeerReview || canOwnerReview ? (
-                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                              <form action={reviewRequestAction}>
-                                <input type="hidden" name="requestId" value={request.id} />
-                                <input type="hidden" name="decision" value="APPROVED" />
-                                <input type="hidden" name="notifySuccess" value="1" />
-                                <PrimaryButton type="submit" tone="green">
-                                  Approva
-                                </PrimaryButton>
-                              </form>
-
-                              <form action={reviewRequestAction}>
-                                <input type="hidden" name="requestId" value={request.id} />
-                                <input type="hidden" name="decision" value="REJECTED" />
-                                <input type="hidden" name="notifySuccess" value="1" />
-                                <PrimaryButton type="submit" tone="red">
-                                  Rifiuta
-                                </PrimaryButton>
-                              </form>
-                            </div>
-                          ) : null}
-                          {canDeleteRequest ? (
-                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                              <form action={deleteRequestAction}>
-                                <input type="hidden" name="requestId" value={request.id} />
-                                <PrimaryButton type="submit" tone="red">
-                                  Elimina
-                                </PrimaryButton>
-                              </form>
-                            </div>
-                          ) : null}
-                        </div>
-                      }
-                    />
+                        }
+                      />
+                    </SwipeRevealAction>
                   );
                 })}
               </ItemList>

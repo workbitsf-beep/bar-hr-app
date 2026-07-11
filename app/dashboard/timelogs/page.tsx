@@ -51,11 +51,10 @@ export default async function DashboardTimeLogsPage({
   const successMessage = success === "timelog-created" ? "Timbratura manuale salvata correttamente." : null;
   const now = new Date();
   const personalLogStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const ownerLogStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const personalInitialLogLimit = 120;
   const [settings, members, logs, ownTotals, todayTotals] = await Promise.all([
-    isOwner
-      ? Promise.resolve(null)
-      : prisma.barSettings.findUnique({
+    prisma.barSettings.findUnique({
           where: { barId: activeBarId },
           select: {
             gpsLatitude: true,
@@ -90,12 +89,14 @@ export default async function DashboardTimeLogsPage({
     prisma.timeLog.findMany({
       where: {
         barId: activeBarId,
-        ...(isOwner ? {} : { userId: session.user.id, timestamp: { gte: personalLogStart } }),
+        ...(isOwner
+          ? { timestamp: { gte: ownerLogStart } }
+          : { userId: session.user.id, timestamp: { gte: personalLogStart } }),
       },
       orderBy: {
         timestamp: "desc",
       },
-      take: isOwner ? 50 : personalInitialLogLimit + 1,
+      take: isOwner ? 1500 : personalInitialLogLimit + 1,
       select: {
         id: true,
         type: true,
@@ -106,6 +107,7 @@ export default async function DashboardTimeLogsPage({
         note: true,
         user: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           },
@@ -126,63 +128,12 @@ export default async function DashboardTimeLogsPage({
     <Stack>
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
       {isOwner ? (
-        <Panel
-          title="Timbrature manuali"
-          action={
-            <PopupAction title="Aggiungi timbratura manuale" ariaLabel="Aggiungi timbratura manuale">
-              {members.length === 0 ? (
-                <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
-              ) : (
-                <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
-                  <div
-                    className="dashboard-inline-grid"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <FormField label="Dipendente">
-                      <Select name="userId" required defaultValue="">
-                        <option value="" disabled>
-                          Seleziona
-                        </option>
-                        {members.map((member) => (
-                          <option key={member.user.id} value={member.user.id}>
-                            {member.user.firstName} {member.user.lastName}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormField>
-
-                    <FormField label="Data e ora entrata">
-                      <DateTimeInput name="clockInAt" required allowPast />
-                    </FormField>
-
-                    <FormField label="Data e ora uscita">
-                      <DateTimeInput name="clockOutAt" required allowPast />
-                    </FormField>
-
-                    <FormField label="Nota">
-                      <TextInput name="note" />
-                    </FormField>
-                  </div>
-
-                  <input type="hidden" name="notifySuccess" value="1" />
-
-                  <div className="dashboard-form-actions">
-                    <PrimaryButton type="submit">Salva turno manuale</PrimaryButton>
-                  </div>
-                </form>
-              )}
-            </PopupAction>
-          }
-        >
+        <Panel title="Timbrature manuali">
           {members.length === 0 ? (
             <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
-              <EmptyState message="Aggiungi un turno completo oppure una singola timbratura mancante." />
+              <EmptyState message="Aggiungi una singola timbratura mancante scegliendo entrata oppure uscita." />
               <PopupAction title="Aggiungi singola timbratura" ariaLabel="Aggiungi singola timbratura">
                 <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
                   <div
@@ -245,6 +196,7 @@ export default async function DashboardTimeLogsPage({
           isManual: log.isManual,
           note: log.note,
           user: {
+            id: log.user.id,
             firstName: log.user.firstName,
             lastName: log.user.lastName,
           },

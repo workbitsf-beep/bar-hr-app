@@ -206,6 +206,30 @@ function parseRequiredDate(value: FormDataEntryValue | null): Date {
   }
 }
 
+function parseTimeOffDateRange(
+  type: RequestType,
+  startsAtValue: FormDataEntryValue | null,
+  endsAtValue: FormDataEntryValue | null
+) {
+  const parsedStartsAt = parseRequiredDate(startsAtValue);
+  const parsedEndsAt = parseRequiredDate(endsAtValue);
+
+  if (type !== RequestType.VACATION && type !== RequestType.SICKNESS) {
+    return {
+      startsAt: parsedStartsAt,
+      endsAt: parsedEndsAt,
+    };
+  }
+
+  const startDay = toDateInputValueInTimeZone(parsedStartsAt);
+  const endDay = toDateInputValueInTimeZone(parsedEndsAt);
+
+  return {
+    startsAt: parseDateTimeLocal(`${startDay}T00:00`),
+    endsAt: parseDateTimeLocal(`${endDay}T23:59`),
+  };
+}
+
 function ensureValidDateRange(startsAt: Date, endsAt: Date, message = "Intervallo date non valido") {
   if (
     Number.isNaN(startsAt.getTime()) ||
@@ -3774,8 +3798,6 @@ export async function createTimeOffRequestAction(formData: FormData) {
 
   const typeRaw = String(formData.get("type") ?? "").trim();
   const targetEmployeeId = String(formData.get("employeeId") ?? "").trim();
-  const startsAt = parseRequiredDate(formData.get("startsAt"));
-  const endsAt = parseRequiredDate(formData.get("endsAt"));
   const reason = String(formData.get("reason") ?? "").trim();
   const certificateCode = String(formData.get("certificateCode") ?? "").trim();
   const type =
@@ -3786,6 +3808,7 @@ export async function createTimeOffRequestAction(formData: FormData) {
         : typeRaw === RequestType.SICKNESS
           ? RequestType.SICKNESS
           : RequestType.VACATION;
+  const { startsAt, endsAt } = parseTimeOffDateRange(type, formData.get("startsAt"), formData.get("endsAt"));
   const isOwnerOvertimeRequest = role === Role.OWNER && type === RequestType.OVERTIME;
 
   if (!activeBarId || (role === Role.OWNER && !isOwnerOvertimeRequest)) {

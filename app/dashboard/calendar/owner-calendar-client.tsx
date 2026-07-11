@@ -830,6 +830,7 @@ export function OwnerCalendarClient({
   const [noteConfirmationsById, setNoteConfirmationsById] = useState<Record<string, NoteItem["confirmations"]>>({});
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
+  const daySnapTimerRef = useRef<number | null>(null);
   const skipDayScrollIntoViewRef = useRef(false);
   const boundaryTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const boundaryNavigationLockedRef = useRef(false);
@@ -935,6 +936,9 @@ export function OwnerCalendarClient({
       if (dayScrollTimerRef.current !== null) {
         window.cancelAnimationFrame(dayScrollTimerRef.current);
       }
+      if (daySnapTimerRef.current !== null) {
+        window.clearTimeout(daySnapTimerRef.current);
+      }
     };
   }, []);
 
@@ -1021,6 +1025,33 @@ export function OwnerCalendarClient({
         setFocusedDayDate(nearestDate);
       }
     });
+
+    if (daySnapTimerRef.current !== null) {
+      window.clearTimeout(daySnapTimerRef.current);
+    }
+
+    daySnapTimerRef.current = window.setTimeout(() => {
+      const strip = dayStripRef.current;
+      const cards = strip ? Array.from(strip.querySelectorAll<HTMLElement>("[data-day-date]")) : [];
+      const center = strip ? strip.scrollLeft + strip.clientWidth / 2 : 0;
+      let target: HTMLElement | null = null;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      for (const card of cards) {
+        const distance = Math.abs(card.offsetLeft + card.offsetWidth / 2 - center);
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          target = card;
+        }
+      }
+
+      target?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }, 160);
   }
   function getBlockedMemberReasons(draft: ShiftDraft) {
     if (!selectedDay || !draft.date || !draft.startTime || !draft.endTime) {

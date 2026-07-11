@@ -217,6 +217,37 @@ export function BoardComposeForm({
 
             {canManage ? (
               <div style={{ display: "grid", gap: 8 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gap: 8,
+                  }}
+                >
+                  {[
+                    { value: false, label: "Promemoria" },
+                    { value: true, label: "Richiesta conferma" },
+                  ].map((option) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setDraft({ ...draft, requiresConfirmation: option.value })}
+                      style={{
+                        minHeight: 42,
+                        borderRadius: 14,
+                        border: draft.requiresConfirmation === option.value
+                          ? "1px solid rgba(124, 58, 237, 0.46)"
+                          : "1px solid #e2e8f0",
+                        background: draft.requiresConfirmation === option.value ? "#f3e8ff" : "#ffffff",
+                        color: draft.requiresConfirmation === option.value ? "#4c1d95" : "#334155",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
                 <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
                     type="checkbox"
@@ -224,16 +255,6 @@ export function BoardComposeForm({
                     onChange={(event) => setDraft({ ...draft, isPinned: event.target.checked })}
                   />
                   In evidenza
-                </label>
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={draft.requiresConfirmation}
-                    onChange={(event) =>
-                      setDraft({ ...draft, requiresConfirmation: event.target.checked })
-                    }
-                  />
-                  Richiedi conferma lettura
                 </label>
               </div>
             ) : null}

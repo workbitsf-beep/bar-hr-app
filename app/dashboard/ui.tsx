@@ -334,6 +334,16 @@ function DashboardResponsiveStyles() {
         cursor: pointer;
       }
 
+      html[data-theme="dark"] .dashboard-form-field input[type="checkbox"],
+      html[data-theme="dark"] .dashboard-form-field input[type="radio"],
+      html[data-theme="dark"] .dashboard-modal-panel input[type="checkbox"],
+      html[data-theme="dark"] .dashboard-modal-panel input[type="radio"] {
+        color-scheme: light !important;
+        accent-color: #7c3aed !important;
+        background-color: #ffffff !important;
+        border-color: #cbd5e1 !important;
+      }
+
       .dashboard-button:hover:not(:disabled),
       .dashboard-icon-button:hover:not(:disabled),
       .dashboard-menu-button:hover:not(:disabled) {

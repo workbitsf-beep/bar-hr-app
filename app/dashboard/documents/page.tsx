@@ -5,6 +5,7 @@ import { canViewDocument, formatDocumentSize, getDocumentPreviewKind } from "@/l
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { deleteDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
+import { SwipeRevealAction } from "../swipe-reveal-action";
 import { DocumentComposeForm } from "./document-compose-form";
 import {
   BillingRequiredState,
@@ -251,19 +252,43 @@ export default async function DashboardDocumentsPage({
                         const previewKind = getDocumentPreviewKind(document.fileName, document.mimeType);
 
                         return (
-                          <div
+                          <SwipeRevealAction
                             key={document.id}
-                            className="dashboard-item-card"
-                            style={{
-                              position: "relative",
-                              padding: "16px 48px 16px 16px",
-                              borderRadius: 20,
-                              display: "grid",
-                              gap: 8,
-                              background: "#ffffff",
-                              border: "1px solid var(--workbit-border)",
-                            }}
+                            enabled={canManage}
+                            action={
+                              <form action={deleteDocumentAction}>
+                                <input type="hidden" name="documentId" value={document.id} />
+                                <button
+                                  type="submit"
+                                  aria-label="Elimina documento"
+                                  style={{
+                                    width: 54,
+                                    height: 54,
+                                    borderRadius: 18,
+                                    border: "1px solid #fecaca",
+                                    background: "#ef4444",
+                                    color: "#ffffff",
+                                    fontWeight: 900,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  X
+                                </button>
+                              </form>
+                            }
                           >
+                            <div
+                              className="dashboard-item-card"
+                              style={{
+                                position: "relative",
+                                padding: "16px 48px 16px 16px",
+                                borderRadius: 20,
+                                display: "grid",
+                                gap: 8,
+                                background: "#ffffff",
+                                border: "1px solid var(--workbit-border)",
+                              }}
+                            >
                             <span
                               aria-label={document.isActive ? "Documento attivo" : "Documento disattivato"}
                               title={document.isActive ? "Documento attivo" : "Documento disattivato"}
@@ -371,6 +396,24 @@ export default async function DashboardDocumentsPage({
                                       >
                                         Apri
                                       </Link>
+                                      <Link
+                                        href={`/api/documents/${document.id}?download=1`}
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          minHeight: 38,
+                                          padding: "0 14px",
+                                          borderRadius: 999,
+                                          background: "#f8fafc",
+                                          color: "#4c1d95",
+                                          border: "1px solid rgba(124, 58, 237, 0.18)",
+                                          textDecoration: "none",
+                                          fontWeight: 800,
+                                        }}
+                                      >
+                                        Download
+                                      </Link>
                                     </div>
                                   </div>
                                 </PopupAction>
@@ -385,16 +428,9 @@ export default async function DashboardDocumentsPage({
                                   </PrimaryButton>
                                 </form>
                               ) : null}
-                              {canManage ? (
-                                <form action={deleteDocumentAction}>
-                                  <input type="hidden" name="documentId" value={document.id} />
-                                  <PrimaryButton type="submit" tone="red">
-                                    Elimina
-                                  </PrimaryButton>
-                                </form>
-                              ) : null}
                             </div>
                           </div>
+                          </SwipeRevealAction>
                         );
                       })}
                     </ItemList>

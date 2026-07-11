@@ -3,6 +3,32 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef } from "react";
 
+function scrollToNearestCard(strip: HTMLDivElement, behavior: ScrollBehavior = "smooth") {
+  const cards = Array.from(strip.querySelectorAll<HTMLElement>(".dashboard-week-card"));
+
+  if (cards.length === 0) {
+    return;
+  }
+
+  const targetLeft = strip.scrollLeft;
+  let nearestCard = cards[0];
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  for (const card of cards) {
+    const distance = Math.abs(card.offsetLeft - targetLeft);
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestCard = card;
+    }
+  }
+
+  strip.scrollTo({
+    left: nearestCard.offsetLeft,
+    behavior,
+  });
+}
+
 export function CalendarWeekStrip({
   children,
   className,
@@ -15,6 +41,7 @@ export function CalendarWeekStrip({
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "className" | "style">) {
   const stripRef = useRef<HTMLDivElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
+  const snapTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (hasAutoScrolledRef.current) {
@@ -36,10 +63,39 @@ export function CalendarWeekStrip({
     });
   }, [children]);
 
+  useEffect(() => {
+    return () => {
+      if (snapTimerRef.current !== null) {
+        window.clearTimeout(snapTimerRef.current);
+      }
+    };
+  }, []);
+
+  function scheduleSnap() {
+    const strip = stripRef.current;
+
+    if (!strip) {
+      return;
+    }
+
+    if (snapTimerRef.current !== null) {
+      window.clearTimeout(snapTimerRef.current);
+    }
+
+    snapTimerRef.current = window.setTimeout(() => {
+      const currentStrip = stripRef.current;
+
+      if (currentStrip) {
+        scrollToNearestCard(currentStrip);
+      }
+    }, 120);
+  }
+
   return (
     <div
       ref={stripRef}
       className={className}
+      onScroll={scheduleSnap}
       {...props}
       style={{
         alignItems: "flex-start",

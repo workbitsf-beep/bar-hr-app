@@ -149,6 +149,7 @@ export async function sendPushNotification(
             badge: "/logo.png",
             tag: notificationTag,
             renotify: false,
+            data,
           },
           headers: {
             Urgency: isTimeSensitiveReminder ? "high" : "normal",

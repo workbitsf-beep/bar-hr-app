@@ -2,9 +2,8 @@
 
 import { RequestType } from "@prisma/client";
 import { useState } from "react";
-import { DateTimeInput } from "@/app/components/date-time-input";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
-import { FormField, Select } from "../ui";
+import { FormField, Select, TextInput } from "../ui";
 
 export function RequestDateFields() {
   const [type, setType] = useState<string>(RequestType.VACATION);
@@ -33,11 +32,11 @@ export function RequestDateFields() {
       ) : (
         <>
           <FormField label="Da">
-            <DateTimeInput name="startsAt" required />
+            <TextInput type="date" name="startsAt" required />
           </FormField>
 
           <FormField label="A">
-            <DateTimeInput name="endsAt" required />
+            <TextInput type="date" name="endsAt" required />
           </FormField>
         </>
       )}

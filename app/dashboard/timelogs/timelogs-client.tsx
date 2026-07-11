@@ -27,6 +27,7 @@ import {
   formatDateTime,
 } from "../ui";
 import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-format";
+import { calculateRoundedWorkDuration } from "@/lib/rounding";
 
 type LogItem = {
   id: string;
@@ -37,6 +38,7 @@ type LogItem = {
   isManual: boolean;
   note: string | null;
   user: {
+    id: string;
     firstName: string;
     lastName: string;
   };
@@ -357,6 +359,28 @@ function getClockPairDurationMs(pair: ClockLogPair) {
 
 function getDayWorkedDurationMs(pairs: ClockLogPair[]) {
   return pairs.reduce((total, pair) => total + (getClockPairDurationMs(pair) ?? 0), 0);
+}
+
+function getMonthWorkSummary(logs: LogItem[], monthKey: string, settings: BarSettingsSummary) {
+  return buildClockLogPairs(logs).reduce(
+    (summary, pair) => {
+      if (getMonthKey(pair.startTimestamp) !== monthKey || !pair.clockIn || !pair.clockOut) {
+        return summary;
+      }
+
+      const rounded = calculateRoundedWorkDuration(
+        new Date(pair.clockIn.timestamp),
+        new Date(pair.clockOut.timestamp),
+        settings
+      );
+
+      return {
+        realMs: summary.realMs + rounded.realMs,
+        roundedMs: summary.roundedMs + rounded.roundedMs,
+      };
+    },
+    { realMs: 0, roundedMs: 0 }
+  );
 }
 
 function formatPairCount(pairs: ClockLogPair[]) {
@@ -963,7 +987,13 @@ export function ClockActionsPanel({
   );
 }
 
-function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
+function OwnerTimeLogsPanel({
+  initialLogs,
+  settings,
+}: {
+  initialLogs: LogItem[];
+  settings: BarSettingsSummary;
+}) {
   const [mounted, setMounted] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [dayFilter, setDayFilter] = useState("");
@@ -988,15 +1018,17 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
   const groupedLogs = useMemo(() => {
     const groups = new Map<
       string,
-      { name: string; logs: LogItem[]; latest: string }
+      { id: string; name: string; logs: LogItem[]; latest: string }
     >();
 
     for (const log of initialLogs) {
+      const groupKey = log.user.id;
       const name = `${log.user.firstName} ${log.user.lastName}`;
-      const current = groups.get(name);
+      const current = groups.get(groupKey);
 
       if (!current) {
-        groups.set(name, {
+        groups.set(groupKey, {
+          id: groupKey,
           name,
           logs: [log],
           latest: log.timestamp,
@@ -1016,8 +1048,13 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
   }, [initialLogs]);
 
   const selectedGroup = useMemo(
-    () => groupedLogs.find((group) => group.name === selectedUser) ?? null,
+    () => groupedLogs.find((group) => group.id === selectedUser) ?? null,
     [groupedLogs, selectedUser]
+  );
+
+  const selectedMonthSummary = useMemo(
+    () => (selectedGroup ? getMonthWorkSummary(selectedGroup.logs, getCurrentMonthKey(), settings) : null),
+    [selectedGroup, settings]
   );
 
   const selectedDayGroups = useMemo(() => {
@@ -1046,9 +1083,9 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
           <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
             {groupedLogs.map((group) => (
               <button
-                key={group.name}
+                key={group.id}
                 type="button"
-                onClick={() => setSelectedUser(group.name)}
+                onClick={() => setSelectedUser(group.id)}
                 className="dashboard-list-button"
                 style={{
                   width: "100%",
@@ -1146,6 +1183,12 @@ function OwnerTimeLogsPanel({ initialLogs }: { initialLogs: LogItem[] }) {
                     <span style={{ color: "#475569" }}>
                       {selectedDayGroups.reduce((total, group) => total + group.pairs.length, 0)} visibili
                     </span>
+                    {selectedMonthSummary ? (
+                      <span style={{ color: "#4c1d95", fontWeight: 800 }}>
+                        Mese: reali {formatDurationFromMilliseconds(selectedMonthSummary.realMs)} · arrotondate{" "}
+                        {formatDurationFromMilliseconds(selectedMonthSummary.roundedMs)}
+                      </span>
+                    ) : null}
                   </div>
 
                   <PrimaryButton type="button" tone="sand" onClick={closeModal}>
@@ -1429,6 +1472,7 @@ function PersonalTimeLogsPanel({
 export function TimeLogsClient({
   role,
   initialLogs,
+  settings,
   totals,
   todayTotals,
   hasMoreInitialLogs = false,
@@ -1457,7 +1501,7 @@ export function TimeLogsClient({
 
       <Stack>
         {role === "OWNER" ? (
-        <OwnerTimeLogsPanel initialLogs={initialLogs} />
+        <OwnerTimeLogsPanel initialLogs={initialLogs} settings={settings} />
       ) : (
           <PersonalTimeLogsPanel
             initialLogs={initialLogs}

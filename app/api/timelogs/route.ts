@@ -22,6 +22,7 @@ function serializeTimeLog(log: {
   isManual: boolean;
   note: string | null;
   user: {
+    id: string;
     firstName: string;
     lastName: string;
   };
@@ -35,6 +36,7 @@ function serializeTimeLog(log: {
     isManual: log.isManual,
     note: log.note,
     user: {
+      id: log.user.id,
       firstName: log.user.firstName,
       lastName: log.user.lastName,
     },
@@ -84,6 +86,7 @@ export const GET = withBar(
         note: true,
         user: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           },
