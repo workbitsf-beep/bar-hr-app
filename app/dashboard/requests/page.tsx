@@ -17,6 +17,7 @@ import {
   createShiftChangeRequestAction,
   createTimeOffRequestAction,
   deleteCalendarClosureAction,
+  deleteAvailabilityAction,
   deleteRequestAction,
   updateCalendarClosureAction,
   reviewRequestAction,
@@ -43,6 +44,7 @@ import {
 import { PopupAction } from "../popup-action";
 import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
+import { ShiftChangeForm } from "./shift-change-form";
 
 const AVAILABILITY_VISIBILITY_HOURS = 24;
 
@@ -165,7 +167,7 @@ export default async function DashboardRequestsPage({
               : success === "closure-deleted"
                 ? "Chiusura eliminata correttamente."
             : null;
-  const [requests, ownShifts, teammates, availabilities, overtimeMembers, closures] = await Promise.all([
+  const [requests, ownShifts, teammates, teammateShifts, availabilities, overtimeMembers, closures] = await Promise.all([
     features.requests
       ? prisma.request.findMany({
       where: {
@@ -227,6 +229,13 @@ export default async function DashboardRequestsPage({
             endTime: true,
           },
         },
+        swapShift: {
+          select: {
+            title: true,
+            startTime: true,
+            endTime: true,
+          },
+        },
       },
     })
       : Promise.resolve([]),
@@ -276,6 +285,48 @@ export default async function DashboardRequestsPage({
                 id: true,
                 firstName: true,
                 lastName: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
+    canCreateRequests && !isCompany
+      ? prisma.shift.findMany({
+          where: {
+            barId: activeBarId,
+            startTime: {
+              gte: new Date(),
+            },
+            assignments: {
+              some: {
+                userId: {
+                  not: session.user.id,
+                },
+              },
+            },
+          },
+          orderBy: {
+            startTime: "asc",
+          },
+          select: {
+            id: true,
+            title: true,
+            startTime: true,
+            endTime: true,
+            assignments: {
+              where: {
+                userId: {
+                  not: session.user.id,
+                },
+              },
+              select: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
               },
             },
           },
@@ -398,46 +449,30 @@ export default async function DashboardRequestsPage({
                 action={
                   ownShifts.length === 0 ? null : (
                     <PopupAction title="Cambio turno" ariaLabel="Aggiungi cambio turno">
-                      <form
+                      <ShiftChangeForm
                         action={createShiftChangeRequestAction}
-                        style={{ display: "grid", gap: 16 }}
-                      >
-                        <FormField label="Turno da cambiare">
-                          <Select name="shiftId" required defaultValue="">
-                            <option value="" disabled>
-                              Seleziona un turno
-                            </option>
-                            {ownShifts.map((shift) => (
-                              <option key={shift.id} value={shift.id}>
-                                {(shift.title || "Turno")} - {formatDateTime(shift.startTime)}
-                              </option>
-                            ))}
-                          </Select>
-                        </FormField>
-
-                        <FormField label="Collega coinvolto">
-                          <Select name="swapWithUserId" required defaultValue="">
-                            <option value="" disabled>
-                              Seleziona un collega
-                            </option>
-                            {teammates.map((teammate) => (
-                              <option key={teammate.user.id} value={teammate.user.id}>
-                                {teammate.user.firstName} {teammate.user.lastName}
-                              </option>
-                            ))}
-                          </Select>
-                        </FormField>
-
-                        <FormField label="Motivo">
-                          <TextArea name="reason" placeholder="Spiega il motivo del cambio turno" />
-                        </FormField>
-
-                        <input type="hidden" name="notifySuccess" value="1" />
-
-                        <div className="dashboard-form-actions">
-                          <PrimaryButton type="submit">Invia cambio turno</PrimaryButton>
-                        </div>
-                      </form>
+                        ownShifts={ownShifts.map((shift) => ({
+                          id: shift.id,
+                          title: shift.title,
+                          startTime: shift.startTime.toISOString(),
+                          endTime: shift.endTime.toISOString(),
+                        }))}
+                        teammates={teammates.map((teammate) => ({
+                          id: teammate.user.id,
+                          firstName: teammate.user.firstName,
+                          lastName: teammate.user.lastName,
+                        }))}
+                        teammateShifts={teammateShifts.flatMap((shift) =>
+                          shift.assignments.map((assignment) => ({
+                            id: shift.id,
+                            title: shift.title,
+                            startTime: shift.startTime.toISOString(),
+                            endTime: shift.endTime.toISOString(),
+                            userId: assignment.user.id,
+                            userName: `${assignment.user.firstName} ${assignment.user.lastName}`.trim(),
+                          }))
+                        )}
+                      />
                     </PopupAction>
                   )
                 }
@@ -779,18 +814,56 @@ export default async function DashboardRequestsPage({
                 <EmptyState message="Nessuna indisponibilita registrata." />
               ) : (
                 <ItemList scrollable>
-                  {availabilities.map((availability) => (
-                    <ItemCard
-                      key={availability.id}
-                      title={
-                        availability.user.id === session.user.id
-                          ? "La tua indisponibilita"
-                          : availability.user.firstName + " " + availability.user.lastName
-                      }
-                      subtitle={formatDateTime(availability.startsAt) + " - " + formatDateTime(availability.endsAt)}
-                      meta={availability.reason || "Nessuna nota aggiuntiva"}
-                    />
-                  ))}
+                  {availabilities.map((availability) => {
+                    const canDeleteAvailability =
+                      canManageClosures || availability.user.id === session.user.id;
+
+                    return (
+                      <SwipeRevealAction
+                        key={availability.id}
+                        enabled={canDeleteAvailability}
+                        action={
+                          <form action={deleteAvailabilityAction}>
+                            <input type="hidden" name="availabilityId" value={availability.id} />
+                            <button
+                              type="submit"
+                              aria-label="Elimina indisponibilita"
+                              style={{
+                                width: 54,
+                                height: 54,
+                                borderRadius: 18,
+                                border: "1px solid #fecaca",
+                                background: "#ef4444",
+                                color: "#ffffff",
+                                fontWeight: 900,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path
+                                  d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                                  stroke="currentColor"
+                                  strokeWidth="1.9"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </form>
+                        }
+                      >
+                        <ItemCard
+                          title={
+                            availability.user.id === session.user.id
+                              ? "La tua indisponibilita"
+                              : availability.user.firstName + " " + availability.user.lastName
+                          }
+                          subtitle={formatDateTime(availability.startsAt) + " - " + formatDateTime(availability.endsAt)}
+                          meta={availability.reason || "Nessuna nota aggiuntiva"}
+                        />
+                      </SwipeRevealAction>
+                    );
+                  })}
                 </ItemList>
               )}
               </div>
@@ -814,12 +887,14 @@ export default async function DashboardRequestsPage({
                     request.type !== RequestType.SICKNESS &&
                     (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
                   const canDeleteRequest =
-                    request.type !== RequestType.SHIFT_CHANGE &&
-                    request.type !== RequestType.OVERTIME &&
                     (canManageClosures || request.employee.id === session.user.id);
 
-                  const requestSummary = request.shift
-                    ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
+                  const requestSummary = request.shift && request.swapShift
+                    ? `${request.shift.title || "Tuo turno"} ${formatDateTime(request.shift.startTime)} ⇄ ${
+                        request.swapShift.title || "Turno collega"
+                      } ${formatDateTime(request.swapShift.startTime)}`
+                    : request.shift
+                      ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
                     : request.certificateCode
                       ? `Certificato: ${request.certificateCode}`
                       : request.reason || "Nessun dettaglio aggiuntivo";
@@ -845,7 +920,15 @@ export default async function DashboardRequestsPage({
                               cursor: "pointer",
                             }}
                           >
-                            X
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                                stroke="currentColor"
+                                strokeWidth="1.9"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
                           </button>
                         </form>
                       }

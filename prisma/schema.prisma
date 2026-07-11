@@ -393,7 +393,8 @@ model Shift {
   confirmedBy  User?             @relation("ShiftConfirmed", fields: [confirmedById], references: [id], onDelete: SetNull)
   assignments  ShiftAssignment[]
   timeLogs     TimeLog[]
-  requests     Request[]
+  requests     Request[]         @relation("RequestShift")
+  swapRequests Request[]         @relation("RequestSwapShift")
   scheduledNotifications ScheduledNotification[]
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
@@ -450,6 +451,7 @@ model Task {
   status        TaskStatus       @default(TODO)
   dueDate       DateTime
   isUrgent      Boolean          @default(false)
+  requiresConfirmation Boolean   @default(true)
   assignedToAll Boolean          @default(false)
   barId         String           @db.Uuid
   bar           Bar              @relation(fields: [barId], references: [id], onDelete: Cascade)
@@ -542,6 +544,7 @@ model Request {
   barId            String         @db.Uuid
   employeeId       String         @db.Uuid
   shiftId          String?        @db.Uuid
+  swapShiftId      String?        @db.Uuid
   reviewedById     String?        @db.Uuid
   swapWithUserId   String?        @db.Uuid
   peerReviewedById String?        @db.Uuid
@@ -558,7 +561,8 @@ model Request {
   appliedAt        DateTime?
   bar              Bar            @relation(fields: [barId], references: [id], onDelete: Cascade)
   employee         User           @relation("RequestEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
-  shift            Shift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  shift            Shift?         @relation("RequestShift", fields: [shiftId], references: [id], onDelete: SetNull)
+  swapShift        Shift?         @relation("RequestSwapShift", fields: [swapShiftId], references: [id], onDelete: SetNull)
   reviewedBy       User?          @relation("RequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   swapWith         User?          @relation("RequestSwapEmployee", fields: [swapWithUserId], references: [id], onDelete: SetNull)
   peerReviewedBy   User?          @relation("RequestPeerReviewer", fields: [peerReviewedById], references: [id], onDelete: SetNull)
@@ -570,6 +574,7 @@ model Request {
   @@index([barId, type, status])
   @@index([barId, startsAt])
   @@index([employeeId, createdAt])
+  @@index([swapShiftId])
   @@index([swapWithUserId])
 }
 

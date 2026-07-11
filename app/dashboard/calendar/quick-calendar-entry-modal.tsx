@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AudienceSelector } from "@/app/components/audience-selector";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
-import { IconButton, TextInput } from "../ui";
+import { IconButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -171,10 +171,11 @@ export function QuickCalendarEntryModal({
               border: "1px solid #e2e8f0",
             }}
           >
-            <TextInput
+            <TextArea
               value={draft.value}
               onChange={(event) => setDraft({ ...draft, value: event.target.value })}
               placeholder="Scrivi la nota"
+              style={{ minHeight: 96 }}
             />
 
             {canChooseAudience ? (

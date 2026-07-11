@@ -610,6 +610,7 @@ type ParsedTaskDraft = {
   assignedToAll: boolean;
   assignedToId: string;
   isUrgent: boolean;
+  requiresConfirmation: boolean;
 };
 
 function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
@@ -622,12 +623,14 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
     const assignedToId = String(formData.get("assignedToId") ?? "").trim();
     const assignedToAll = formData.get("assignedToAll") === "on";
     const isUrgent = formData.get("isUrgent") === "on";
+    const requiresConfirmation = formData.get("requiresConfirmation") !== "off";
 
     return collectBulkTextEntries(formData, "title").map((title) => ({
       title,
       assignedToAll,
       assignedToId,
       isUrgent,
+      requiresConfirmation,
     }));
   }
 
@@ -637,12 +640,14 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
       const assignedToAll = formData.get(`assignedToAll_${entryId}`) === "on";
       const assignedToId = String(formData.get(`assignedToId_${entryId}`) ?? "").trim();
       const isUrgent = formData.get(`isUrgent_${entryId}`) === "on";
+      const requiresConfirmation = formData.get(`requiresConfirmation_${entryId}`) !== "off";
 
       return {
         title,
         assignedToAll,
         assignedToId,
         isUrgent,
+        requiresConfirmation,
       };
     })
     .filter((entry) => entry.title.length > 0);
@@ -1110,6 +1115,11 @@ async function applyShiftChangeIfApproved(requestId: string) {
           assignments: true,
         },
       },
+      swapShift: {
+        include: {
+          assignments: true,
+        },
+      },
     },
   });
 
@@ -1136,11 +1146,65 @@ async function applyShiftChangeIfApproved(requestId: string) {
     return;
   }
 
+  if (!request.swapShift) {
+    const nextAssignmentIds = Array.from(
+      new Set(
+        currentAssignmentIds
+          .filter((userId) => userId !== request.employeeId)
+          .concat(request.swapWithUserId)
+      )
+    );
+
+    await prisma.$transaction([
+      prisma.shift.update({
+        where: { id: request.shift.id },
+        data: {
+          assignedToId: nextAssignmentIds[0] ?? request.swapWithUserId,
+          assignments: {
+            deleteMany: {},
+            createMany: {
+              data: nextAssignmentIds.map((userId) => ({ userId })),
+            },
+          },
+        },
+      }),
+      prisma.request.update({
+        where: { id: request.id },
+        data: {
+          appliedAt: new Date(),
+        },
+      }),
+    ]);
+
+    await cancelShiftClockReminders([request.shift.id]);
+    await scheduleShiftClockReminders([request.shift.id]);
+    return;
+  }
+
+  const swapAssignmentIds = request.swapShift.assignments.map((assignment) => assignment.userId);
+
+  if (!swapAssignmentIds.includes(request.swapWithUserId)) {
+    await prisma.request.update({
+      where: { id: request.id },
+      data: {
+        appliedAt: new Date(),
+      },
+    });
+    return;
+  }
+
   const nextAssignmentIds = Array.from(
     new Set(
       currentAssignmentIds
         .filter((userId) => userId !== request.employeeId)
         .concat(request.swapWithUserId)
+    )
+  );
+  const nextSwapAssignmentIds = Array.from(
+    new Set(
+      swapAssignmentIds
+        .filter((userId) => userId !== request.swapWithUserId)
+        .concat(request.employeeId)
     )
   );
 
@@ -1157,6 +1221,18 @@ async function applyShiftChangeIfApproved(requestId: string) {
         },
       },
     }),
+    prisma.shift.update({
+      where: { id: request.swapShift.id },
+      data: {
+        assignedToId: nextSwapAssignmentIds[0] ?? request.employeeId,
+        assignments: {
+          deleteMany: {},
+          createMany: {
+            data: nextSwapAssignmentIds.map((userId) => ({ userId })),
+          },
+        },
+      },
+    }),
     prisma.request.update({
       where: { id: request.id },
       data: {
@@ -1164,6 +1240,9 @@ async function applyShiftChangeIfApproved(requestId: string) {
       },
     }),
   ]);
+
+  await cancelShiftClockReminders([request.shift.id, request.swapShift.id]);
+  await scheduleShiftClockReminders([request.shift.id, request.swapShift.id]);
 }
 
 export async function selectBarAction(formData: FormData) {
@@ -1894,6 +1973,7 @@ export async function createTaskAction(formData: FormData) {
       createdById: session.user.id,
       status: TaskStatus.TODO,
       isUrgent: taskDraft.isUrgent,
+      requiresConfirmation: taskDraft.requiresConfirmation,
     })),
   });
 
@@ -2077,8 +2157,49 @@ export async function deleteCompletedTaskAction(formData: FormData) {
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
-    revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/tasks");
+}
+
+export async function deleteTaskAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
   }
+
+  const taskId = String(formData.get("taskId") ?? "").trim();
+
+  if (!taskId) {
+    throw new Error("Missing task id");
+  }
+
+  const task = await prisma.task.findFirst({
+    where: {
+      id: taskId,
+      barId: activeBarId,
+    },
+    select: {
+      id: true,
+      createdById: true,
+    },
+  });
+
+  if (!task) {
+    throw new Error("Task not found");
+  }
+
+  if (task.createdById !== session.user.id && !canManageOperations(role)) {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.task.delete({
+    where: { id: task.id },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/calendar");
+}
 
 export async function deleteAllCompletedTasksAction() {
   const { role, activeBarId } = await getActionContext();
@@ -3291,9 +3412,6 @@ export async function deleteRequestAction(formData: FormData) {
     where: {
       id: requestId,
       barId: activeBarId,
-      type: {
-        in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
-      },
     },
     select: {
       id: true,
@@ -3311,6 +3429,47 @@ export async function deleteRequestAction(formData: FormData) {
 
   await prisma.request.delete({
     where: { id: request.id },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/requests");
+}
+
+export async function deleteAvailabilityAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const availabilityId = String(formData.get("availabilityId") ?? "").trim();
+
+  if (!availabilityId) {
+    throw new Error("Missing availability id");
+  }
+
+  const availability = await prisma.availability.findFirst({
+    where: {
+      id: availabilityId,
+      barId: activeBarId,
+    },
+    select: {
+      id: true,
+      userId: true,
+    },
+  });
+
+  if (!availability) {
+    throw new Error("Availability not found");
+  }
+
+  if (availability.userId !== session.user.id && !canReviewOperationalRequests(role)) {
+    throw new Error("Not authorized");
+  }
+
+  await prisma.availability.delete({
+    where: { id: availability.id },
   });
 
   revalidatePath("/dashboard");
@@ -3953,9 +4112,10 @@ export async function createShiftChangeRequestAction(formData: FormData) {
 
   const shiftId = String(formData.get("shiftId") ?? "").trim();
   const swapWithUserId = String(formData.get("swapWithUserId") ?? "").trim();
+  const swapShiftId = String(formData.get("swapShiftId") ?? "").trim();
   const reason = String(formData.get("reason") ?? "").trim();
 
-  if (!shiftId || !swapWithUserId) {
+  if (!shiftId || !swapWithUserId || !swapShiftId) {
     throw new Error("Missing shift change data");
   }
 
@@ -3979,9 +4139,29 @@ export async function createShiftChangeRequestAction(formData: FormData) {
       endTime: true,
     },
   });
+  const swapShift = await prisma.shift.findFirst({
+    where: {
+      id: swapShiftId,
+      barId: activeBarId,
+      assignments: {
+        some: {
+          userId: swapWithUserId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      startTime: true,
+      endTime: true,
+    },
+  });
 
   if (!shift) {
     throw new Error("Shift not found");
+  }
+
+  if (!swapShift) {
+    throw new Error("Turno del collega non trovato");
   }
 
   await ensureUsersBelongToBar(activeBarId, [swapWithUserId]);
@@ -3991,14 +4171,15 @@ export async function createShiftChangeRequestAction(formData: FormData) {
       barId: activeBarId,
       employeeId: session.user.id,
       shiftId: shift.id,
+      swapShiftId: swapShift.id,
       swapWithUserId,
       type: RequestType.SHIFT_CHANGE,
       status: RequestStatus.PENDING,
       peerStatus: RequestStatus.PENDING,
       ownerStatus: RequestStatus.PENDING,
       reason: reason || null,
-      startsAt: shift.startTime,
-      endsAt: shift.endTime,
+      startsAt: shift.startTime < swapShift.startTime ? shift.startTime : swapShift.startTime,
+      endsAt: shift.endTime > swapShift.endTime ? shift.endTime : swapShift.endTime,
     },
   });
 

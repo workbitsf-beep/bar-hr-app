@@ -32,12 +32,12 @@ export function SwipeRevealAction({
     const deltaX = event.clientX - startXRef.current;
     startXRef.current = null;
 
-    if (deltaX > 46) {
+    if (deltaX < -46) {
       setRevealed(true);
       return;
     }
 
-    if (deltaX < -24) {
+    if (deltaX > 24) {
       setRevealed(false);
     }
   }
@@ -58,7 +58,7 @@ export function SwipeRevealAction({
         aria-hidden={!revealed}
         style={{
           position: "absolute",
-          inset: "0 auto 0 0",
+          inset: "0 0 0 auto",
           width: 78,
           display: "grid",
           placeItems: "center",
@@ -79,7 +79,7 @@ export function SwipeRevealAction({
         style={{
           position: "relative",
           zIndex: 1,
-          transform: revealed ? "translateX(78px)" : "translateX(0)",
+          transform: revealed ? "translateX(-78px)" : "translateX(0)",
           transition: "transform 180ms ease",
           touchAction: "pan-y",
         }}

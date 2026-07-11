@@ -5,6 +5,7 @@ import {
   createTaskAction,
   deleteAllCompletedTasksAction,
   deleteCompletedTaskAction,
+  deleteTaskAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
 import {
@@ -22,6 +23,7 @@ import {
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
+import { SwipeRevealAction } from "../swipe-reveal-action";
 import { TaskComposeForm } from "./task-compose-form";
 
 export default async function DashboardTasksPage({
@@ -80,6 +82,7 @@ export default async function DashboardTasksPage({
             dueDate: true,
             status: true,
             isUrgent: true,
+            requiresConfirmation: true,
             assignedToAll: true,
             assignedToId: true,
             assignedTo: {
@@ -91,6 +94,7 @@ export default async function DashboardTasksPage({
             },
             createdBy: {
               select: {
+                id: true,
                 firstName: true,
                 lastName: true,
               },
@@ -183,12 +187,45 @@ export default async function DashboardTasksPage({
               const isDone = task.status === "DONE";
               const canComplete =
                 !isDone &&
+                task.requiresConfirmation &&
                 (canManage || task.assignedToAll || task.assignedToId === session.user.id);
-              const canDeleteCompleted = canManage && isDone;
+              const canDeleteTask = canManage || task.createdBy.id === session.user.id;
 
               return (
-                <ItemCard
+                <SwipeRevealAction
                   key={task.id}
+                  enabled={canDeleteTask}
+                  action={
+                    <form action={deleteTaskAction}>
+                      <input type="hidden" name="taskId" value={task.id} />
+                      <button
+                        type="submit"
+                        aria-label="Elimina nota"
+                        style={{
+                          width: 54,
+                          height: 54,
+                          borderRadius: 18,
+                          border: "1px solid #fecaca",
+                          background: "#ef4444",
+                          color: "#ffffff",
+                          fontWeight: 900,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                            stroke="currentColor"
+                            strokeWidth="1.9"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    </form>
+                  }
+                >
+                <ItemCard
                   title={task.title}
                   subtitle={`Data ${formatDate(task.dueDate)}`}
                   style={{
@@ -237,7 +274,7 @@ export default async function DashboardTasksPage({
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           {!isDone ? (
                             <StatusPill
-                              label={task.isUrgent ? "Urgente" : "Da fare"}
+                              label={!task.requiresConfirmation ? "Promemoria" : task.isUrgent ? "Urgente" : "Da fare"}
                               tone={task.isUrgent ? "danger" : "warning"}
                             />
                           ) : null}
@@ -277,7 +314,7 @@ export default async function DashboardTasksPage({
                         </div>
                       ) : null}
 
-                      {canDeleteCompleted ? (
+                      {false ? (
                         <div className="dashboard-action-row" style={{ justifyContent: "flex-end" }}>
                           <form action={deleteCompletedTaskAction}>
                             <input type="hidden" name="taskId" value={task.id} />
@@ -299,6 +336,7 @@ export default async function DashboardTasksPage({
                     </div>
                   }
                 />
+                </SwipeRevealAction>
               );
             })}
           </ItemList>

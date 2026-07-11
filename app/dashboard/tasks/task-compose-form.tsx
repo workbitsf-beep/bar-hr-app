@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AudienceSelector } from "@/app/components/audience-selector";
-import { FormField, IconButton, PrimaryButton, TextInput } from "../ui";
+import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
   id: string;
@@ -17,6 +17,7 @@ function createEmptyEntry() {
     assignedToAll: true,
     assignedToId: "",
     isUrgent: false,
+    requiresConfirmation: true,
   };
 }
 
@@ -94,6 +95,11 @@ export function TaskComposeForm({
           <input type="hidden" name={`assignedToId_${entry.id}`} value={entry.assignedToId} />
         ) : null}
         {entry.isUrgent ? <input type="hidden" name={`isUrgent_${entry.id}`} value="on" /> : null}
+        <input
+          type="hidden"
+          name={`requiresConfirmation_${entry.id}`}
+          value={entry.requiresConfirmation ? "on" : "off"}
+        />
       </div>
     );
   }
@@ -160,10 +166,11 @@ export function TaskComposeForm({
           >
             <strong style={{ color: "#0f172a", fontSize: 14 }}>Nuova nota</strong>
 
-            <TextInput
+            <TextArea
               value={draft.value}
               onChange={(event) => setDraft({ ...draft, value: event.target.value })}
               placeholder="Scrivi la nota"
+              style={{ minHeight: 96 }}
             />
 
             <div
@@ -207,6 +214,39 @@ export function TaskComposeForm({
                 />
                 Urgente
               </label>
+              {canChooseAudience ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gap: 8,
+                  }}
+                >
+                  {[
+                    { value: true, label: "Richiesta conferma" },
+                    { value: false, label: "Promemoria" },
+                  ].map((option) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setDraft({ ...draft, requiresConfirmation: option.value })}
+                      style={{
+                        minHeight: 42,
+                        borderRadius: 14,
+                        border: draft.requiresConfirmation === option.value
+                          ? "1px solid rgba(124, 58, 237, 0.46)"
+                          : "1px solid #e2e8f0",
+                        background: draft.requiresConfirmation === option.value ? "#f3e8ff" : "#ffffff",
+                        color: draft.requiresConfirmation === option.value ? "#4c1d95" : "#334155",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <IconButton

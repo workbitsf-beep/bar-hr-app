@@ -29,6 +29,22 @@ function scrollToNearestCard(strip: HTMLDivElement, behavior: ScrollBehavior = "
   });
 }
 
+function centerCurrentDay(currentWeek: HTMLElement) {
+  const currentDay = currentWeek.querySelector<HTMLElement>('[data-calendar-today="true"]');
+
+  if (!currentDay) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    currentDay.scrollIntoView({
+      behavior: "instant",
+      block: "center",
+      inline: "nearest",
+    });
+  });
+}
+
 export function CalendarWeekStrip({
   children,
   className,
@@ -61,6 +77,7 @@ export function CalendarWeekStrip({
       block: "nearest",
       inline: "center",
     });
+    centerCurrentDay(currentWeek);
   }, [children]);
 
   useEffect(() => {
