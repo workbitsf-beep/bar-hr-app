@@ -469,7 +469,7 @@ async function createMonthlyPdfBuffer(input: {
 
       const metrics = [
         ["Ore reali", formatDurationClock(input.dataset.totals.realHours), colors.onCall.dot],
-        ["Ore riconosciute", formatDurationClock(input.dataset.totals.roundedHours), colors.worked.dot],
+        ["Ore arrotondate", formatDurationClock(input.dataset.totals.roundedHours), colors.worked.dot],
         ["Giorni lavorati", String(workedDays), navy],
         ["Permessi", `${permissionItems.length} / ${formatDurationClock(permissionHours)}`, colors.permission.dot],
         ["Ferie", `${vacationItems.length} / ${formatDurationClock(vacationHours)}`, colors.vacation.dot],
@@ -500,7 +500,7 @@ async function createMonthlyPdfBuffer(input: {
       drawText("Riepilogo finale", marginX + 14, y + 20, 105, { size: 11, color: navy });
       const footerMetrics = [
         ["Ore reali", formatDurationClock(input.dataset.totals.realHours)],
-        ["Ore riconosciute", formatDurationClock(input.dataset.totals.roundedHours)],
+        ["Ore arrotondate", formatDurationClock(input.dataset.totals.roundedHours)],
         ["Giorni lavorati", String(workedDays)],
         ["Permessi", `${permissionItems.length} / ${formatDurationClock(permissionHours)}`],
         ["Ferie", `${vacationItems.length} / ${formatDurationClock(vacationHours)}`],

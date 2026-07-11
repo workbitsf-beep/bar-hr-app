@@ -1318,7 +1318,7 @@ function PersonalTimeLogsPanel({
               fontWeight: 850,
             }}
           >
-            Oggi ore riconosciute {formatDurationClock(todayTotals.roundedHours)}
+            Oggi ore arrotondate {formatDurationClock(todayTotals.roundedHours)}
           </div>
         ) : null}
 
@@ -1448,7 +1448,7 @@ export function TimeLogsClient({
             <ItemCard className="dashboard-summary-card" title="Ore reali" meta={formatDurationClock(totals.realHours)} />
             <ItemCard
               className="dashboard-summary-card"
-              title="Ore riconosciute"
+              title="Ore arrotondate"
               meta={formatDurationClock(totals.roundedHours)}
             />
           </div>
