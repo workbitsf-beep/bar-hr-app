@@ -9,6 +9,8 @@ const documentMimeTypesByExtension: Record<string, string> = {
   xlsm: "application/vnd.ms-excel.sheet.macroenabled.12",
 };
 
+export type DocumentPreviewKind = "pdf" | "word" | "spreadsheet" | "unsupported";
+
 export type DocumentVisibility = {
   assignedToAll: boolean;
   assignedToId: string | null;
@@ -57,4 +59,34 @@ export function getDocumentMimeType(fileName: string, storedMimeType?: string | 
   const extension = fileName.split(".").pop()?.trim().toLowerCase() ?? "";
 
   return documentMimeTypesByExtension[extension] ?? cleanStoredMimeType ?? "application/octet-stream";
+}
+
+export function getDocumentPreviewKind(
+  fileName: string,
+  storedMimeType?: string | null
+): DocumentPreviewKind {
+  const extension = fileName.split(".").pop()?.trim().toLowerCase() ?? "";
+  const mimeType = getDocumentMimeType(fileName, storedMimeType).toLowerCase();
+
+  if (extension === "pdf" || mimeType === "application/pdf") {
+    return "pdf";
+  }
+
+  if (
+    extension === "docx" ||
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return "word";
+  }
+
+  if (
+    extension === "xlsx" ||
+    extension === "xlsm" ||
+    mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mimeType === "application/vnd.ms-excel.sheet.macroenabled.12"
+  ) {
+    return "spreadsheet";
+  }
+
+  return "unsupported";
 }

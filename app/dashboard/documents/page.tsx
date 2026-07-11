@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { canViewDocument, formatDocumentSize } from "@/lib/documents";
+import { canViewDocument, formatDocumentSize, getDocumentPreviewKind } from "@/lib/documents";
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { deleteDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
@@ -248,6 +248,7 @@ export default async function DashboardDocumentsPage({
                             ? `${document.assignedTo.firstName} ${document.assignedTo.lastName}`
                             : "Dipendente";
                         const canOpen = canViewDocument(document, session.user.id, role);
+                        const previewKind = getDocumentPreviewKind(document.fileName, document.mimeType);
 
                         return (
                           <div
@@ -311,10 +312,17 @@ export default async function DashboardDocumentsPage({
                                         maxWidth: "100%",
                                       }}
                                     >
-                                      {document.mimeType.includes("pdf") ? (
+                                      {previewKind === "pdf" ? (
                                         <iframe
                                           title={document.title}
                                           src={`/api/documents/${document.id}`}
+                                          style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+                                        />
+                                      ) : previewKind === "word" || previewKind === "spreadsheet" ? (
+                                        <iframe
+                                          title={document.title}
+                                          src={`/api/documents/${document.id}/preview`}
+                                          sandbox=""
                                           style={{ width: "100%", height: "100%", border: 0, display: "block" }}
                                         />
                                       ) : (
@@ -334,7 +342,7 @@ export default async function DashboardDocumentsPage({
                                               Anteprima non disponibile
                                             </strong>
                                             <span>
-                                              Word ed Excel non sempre vengono visualizzati dentro l&apos;app. Usa Apri per consultarli.
+                                              Questo formato richiede un&apos;app esterna. Usa Apri per consultarlo.
                                             </span>
                                           </div>
                                         </div>
