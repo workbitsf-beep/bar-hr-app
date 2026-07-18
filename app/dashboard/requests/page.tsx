@@ -5,12 +5,10 @@ import {
   RequestType,
   Role,
 } from "@prisma/client";
-import { Fragment } from "react";
 import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
-import { APP_TIME_ZONE } from "@/lib/time-zone";
 import {
   createCalendarClosureAction,
   createAvailabilityAction,
@@ -72,14 +70,6 @@ function closureTypeTone(type: CalendarClosureType) {
   return "neutral" as const;
 }
 
-function formatClosureCompactDate(value: Date) {
-  return new Intl.DateTimeFormat("it-IT", {
-    day: "2-digit",
-    month: "short",
-    timeZone: APP_TIME_ZONE,
-  }).format(value);
-}
-
 function requestTone(status: RequestStatus) {
   if (status === RequestStatus.APPROVED) {
     return "success" as const;
@@ -110,6 +100,35 @@ function requestLabel(type: RequestType | string) {
   }
 
   return "Cambio turno";
+}
+
+function DeleteSwipeButton({ label }: { label: string }) {
+  return (
+    <button
+      type="submit"
+      aria-label={label}
+      style={{
+        width: 54,
+        height: 54,
+        borderRadius: 18,
+        border: "1px solid #fecaca",
+        background: "#ef4444",
+        color: "#ffffff",
+        fontWeight: 900,
+        cursor: "pointer",
+      }}
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
 }
 
 export default async function DashboardRequestsPage({
@@ -541,17 +560,31 @@ export default async function DashboardRequestsPage({
                 <EmptyState message="Nessuno straordinario registrato." />
               ) : (
                 <ItemList scrollable>
-                  {overtimeRequests.map((request) => (
-                    <ItemCard
-                      key={request.id}
-                      title={`${request.employee.firstName} ${request.employee.lastName}`}
-                      subtitle={`${formatDateTime(request.startsAt ?? request.createdAt)} - ${formatDateTime(
-                        request.endsAt ?? request.createdAt
-                      )}`}
-                      meta={request.reason || "Straordinario"}
-                      footer={<StatusPill label={request.status} tone={requestTone(request.status)} />}
-                    />
-                  ))}
+                  {overtimeRequests.map((request) => {
+                    const canDeleteRequest = canManageClosures || request.employee.id === session.user.id;
+
+                    return (
+                      <SwipeRevealAction
+                        key={request.id}
+                        enabled={canDeleteRequest}
+                        action={
+                          <form action={deleteRequestAction}>
+                            <input type="hidden" name="requestId" value={request.id} />
+                            <DeleteSwipeButton label="Elimina straordinario" />
+                          </form>
+                        }
+                      >
+                        <ItemCard
+                          title={`${request.employee.firstName} ${request.employee.lastName}`}
+                          subtitle={`${formatDateTime(request.startsAt ?? request.createdAt)} - ${formatDateTime(
+                            request.endsAt ?? request.createdAt
+                          )}`}
+                          meta={request.reason || "Straordinario"}
+                          footer={<StatusPill label={request.status} tone={requestTone(request.status)} />}
+                        />
+                      </SwipeRevealAction>
+                    );
+                  })}
                 </ItemList>
               )}
             </div>
@@ -570,217 +603,93 @@ export default async function DashboardRequestsPage({
             {closures.length === 0 ? (
               <EmptyState message="Nessuna chiusura registrata." />
             ) : (
-              <div
-                style={{
-                  overflowX: "auto",
-                  borderRadius: 22,
-                  border: "1px solid #e2e8f0",
-                  background: "#ffffff",
-                }}
-              >
-                <div
-                  style={{
-                    minWidth: 0,
-                    display: "grid",
-                    gridTemplateColumns: "minmax(78px, 0.8fr) minmax(100px, 1fr) 92px",
-                  }}
-                >
-                  {["Titolo", "Date", "Azioni"].map((label) => (
-                    <div
-                      key={label}
-                      style={{
-                        padding: "10px 12px",
-                        background: "#f8fafc",
-                        borderBottom: "1px solid #e2e8f0",
-                        fontWeight: 700,
-                        color: "#475569",
-                        fontSize: 11,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        textAlign: label === "Azioni" ? "center" : "left",
-                      }}
-                    >
-                      {label}
-                    </div>
-                  ))}
-
-                  {closures.map((closure) => (
-                    <Fragment key={closure.id}>
-                      <div
-                        key={`${closure.id}-title`}
-                        style={{
-                          padding: "12px",
-                          borderBottom: "1px solid #eef2f7",
-                          color: "#0f172a",
-                          fontWeight: 700,
-                          fontSize: 14,
-                          display: "grid",
-                          gap: 4,
-                          minWidth: 0,
-                        }}
-                      >
-                        <span
+              <ItemList scrollable>
+                {closures.map((closure) => (
+                  <SwipeRevealAction
+                    key={closure.id}
+                    action={
+                      <form action={deleteCalendarClosureAction}>
+                        <input type="hidden" name="closureId" value={closure.id} />
+                        <input type="hidden" name="notifySuccess" value="1" />
+                        <DeleteSwipeButton label="Elimina chiusura" />
+                      </form>
+                    }
+                  >
+                    <ItemCard
+                      title={closure.title}
+                      subtitle={`${formatDate(closure.startsAt)}${
+                        closure.startsAt.toDateString() !== closure.endsAt.toDateString()
+                          ? ` - ${formatDate(closure.endsAt)}`
+                          : ""
+                      }`}
+                      meta={<StatusPill label={closureTypeLabel(closure.type)} tone={closureTypeTone(closure.type)} />}
+                      footer={
+                        <div
                           style={{
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                            display: "flex",
+                            gap: 10,
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
                           }}
                         >
-                          {closure.title}
-                        </span>
-                      </div>
+                          <span style={{ color: "#64748b", fontSize: 13 }}>
+                            {closure.createdBy
+                              ? `${closure.createdBy.firstName} ${closure.createdBy.lastName}`.trim()
+                              : "Autore non disponibile"}
+                          </span>
 
-                      <div
-                        key={`${closure.id}-type`}
-                        style={{
-                          padding: "16px",
-                          borderBottom: "1px solid #eef2f7",
-                          display: "none",
-                          alignItems: "center",
-                        }}
-                      >
-                        <StatusPill label={closureTypeLabel(closure.type)} tone={closureTypeTone(closure.type)} />
-                      </div>
+                          <PopupAction
+                            title="Modifica chiusura"
+                            ariaLabel={`Modifica ${closure.title}`}
+                            closeOnSubmit
+                            triggerContent={
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path
+                                  d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            }
+                          >
+                            <form action={updateCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
+                              <input type="hidden" name="closureId" value={closure.id} />
+                              <input type="hidden" name="notifySuccess" value="1" />
 
-                      <div
-                        key={`${closure.id}-hours`}
-                        style={{
-                          padding: "12px",
-                          borderBottom: "1px solid #eef2f7",
-                          color: "#334155",
-                          lineHeight: 1.2,
-                          fontSize: 13,
-                          fontWeight: 650,
-                          whiteSpace: "nowrap",
-                          minWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                        title={`${formatDate(closure.startsAt)}${
-                          closure.startsAt.toDateString() !== closure.endsAt.toDateString()
-                            ? ` - ${formatDate(closure.endsAt)}`
-                            : ""
-                        }`}
-                      >
-                        {formatClosureCompactDate(closure.startsAt)}
-                        {closure.startsAt.toDateString() !== closure.endsAt.toDateString()
-                          ? ` - ${formatClosureCompactDate(closure.endsAt)}`
-                          : ""}
-                      </div>
+                              <FormField label="Nome">
+                                <TextInput name="title" defaultValue={closure.title} />
+                              </FormField>
 
-                      <div
-                        key={`${closure.id}-author`}
-                        style={{
-                          padding: "16px",
-                          borderBottom: "1px solid #eef2f7",
-                          color: "#334155",
-                          display: "none",
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {closure.createdBy ? (
-                          <>
-                            {closure.createdBy.firstName} {closure.createdBy.lastName}
-                          </>
-                        ) : (
-                          "-"
-                        )}
-                      </div>
+                              <FormField label="Tipo attivita">
+                                <Select name="type" defaultValue={closure.type}>
+                                  <option value={CalendarClosureType.CLOSURE}>Chiusura</option>
+                                  <option value={CalendarClosureType.HOLIDAY}>Festivita</option>
+                                  <option value={CalendarClosureType.VACATION}>Ferie aziendali</option>
+                                </Select>
+                              </FormField>
 
-                      <div
-                        key={`${closure.id}-actions`}
-                        style={{
-                          padding: "8px 10px",
-                          borderBottom: "1px solid #eef2f7",
-                          display: "flex",
-                          gap: 6,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexWrap: "nowrap",
-                        }}
-                      >
-                        <PopupAction
-                          title="Modifica chiusura"
-                          ariaLabel={`Modifica ${closure.title}`}
-                          closeOnSubmit
-                          triggerContent={
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                              <path
-                                d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                              <ClosureDateRangeInput
+                                startName="startsAt"
+                                endName="endsAt"
+                                startValue={closure.startsAt.toISOString()}
+                                endValue={closure.endsAt.toISOString()}
+                                required
                               />
-                            </svg>
-                          }
-                        >
-                          <form action={updateCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
-                            <input type="hidden" name="closureId" value={closure.id} />
-                            <input type="hidden" name="notifySuccess" value="1" />
 
-                            <FormField label="Nome">
-                              <TextInput name="title" defaultValue={closure.title} />
-                            </FormField>
-
-                            <FormField label="Tipo attività">
-                              <Select name="type" defaultValue={closure.type}>
-                                <option value={CalendarClosureType.CLOSURE}>Chiusura</option>
-                                <option value={CalendarClosureType.HOLIDAY}>Festività</option>
-                                <option value={CalendarClosureType.VACATION}>Ferie aziendali</option>
-                              </Select>
-                            </FormField>
-
-                            <ClosureDateRangeInput
-                              startName="startsAt"
-                              endName="endsAt"
-                              startValue={closure.startsAt.toISOString()}
-                              endValue={closure.endsAt.toISOString()}
-                              required
-                            />
-
-                            <div className="dashboard-form-actions">
-                              <PrimaryButton type="submit">Salva modifiche</PrimaryButton>
-                            </div>
-                          </form>
-                        </PopupAction>
-
-                        <PopupAction
-                          title="Elimina chiusura"
-                          ariaLabel={`Elimina ${closure.title}`}
-                          closeOnSubmit
-                          triggerContent={
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                              <path
-                                d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          }
-                        >
-                          <form action={deleteCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
-                            <input type="hidden" name="closureId" value={closure.id} />
-                            <input type="hidden" name="notifySuccess" value="1" />
-
-                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                              Vuoi eliminare questa chiusura? L&apos;azione non si può annullare.
-                            </p>
-
-                            <div className="dashboard-form-actions">
-                              <PrimaryButton type="submit" tone="red">
-                                Elimina chiusura
-                              </PrimaryButton>
-                            </div>
-                          </form>
-                        </PopupAction>
-                      </div>
-                    </Fragment>
-                  ))}
-                </div>
-              </div>
+                              <div className="dashboard-form-actions">
+                                <PrimaryButton type="submit">Salva modifiche</PrimaryButton>
+                              </div>
+                            </form>
+                          </PopupAction>
+                        </div>
+                      }
+                    />
+                  </SwipeRevealAction>
+                ))}
+              </ItemList>
             )}
           </Panel>
         ) : null}
@@ -825,30 +734,7 @@ export default async function DashboardRequestsPage({
                         action={
                           <form action={deleteAvailabilityAction}>
                             <input type="hidden" name="availabilityId" value={availability.id} />
-                            <button
-                              type="submit"
-                              aria-label="Elimina indisponibilita"
-                              style={{
-                                width: 54,
-                                height: 54,
-                                borderRadius: 18,
-                                border: "1px solid #fecaca",
-                                background: "#ef4444",
-                                color: "#ffffff",
-                                fontWeight: 900,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path
-                                  d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
-                                  stroke="currentColor"
-                                  strokeWidth="1.9"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
+                            <DeleteSwipeButton label="Elimina indisponibilita" />
                           </form>
                         }
                       >
@@ -906,30 +792,7 @@ export default async function DashboardRequestsPage({
                       action={
                         <form action={deleteRequestAction}>
                           <input type="hidden" name="requestId" value={request.id} />
-                          <button
-                            type="submit"
-                            aria-label="Elimina richiesta"
-                            style={{
-                              width: 54,
-                              height: 54,
-                              borderRadius: 18,
-                              border: "1px solid #fecaca",
-                              background: "#ef4444",
-                              color: "#ffffff",
-                              fontWeight: 900,
-                              cursor: "pointer",
-                            }}
-                          >
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                              <path
-                                d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
-                                stroke="currentColor"
-                                strokeWidth="1.9"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
+                          <DeleteSwipeButton label="Elimina richiesta" />
                         </form>
                       }
                     >

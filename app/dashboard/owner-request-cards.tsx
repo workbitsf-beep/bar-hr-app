@@ -4,7 +4,8 @@ import { RequestStatus, RequestType } from "@prisma/client";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { reviewRequestAction } from "./actions";
+import { deleteRequestAction, reviewRequestAction } from "./actions";
+import { SwipeRevealAction } from "./swipe-reveal-action";
 import { EmptyState, PrimaryButton, StatusPill } from "./ui";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 
@@ -95,6 +96,44 @@ function formatReviewerName(
   return `${reviewer.firstName} ${reviewer.lastName}`.trim();
 }
 
+function DeleteSwipeButton({
+  disabled,
+  onClick,
+}: {
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label="Elimina richiesta"
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        width: 54,
+        height: 54,
+        borderRadius: 18,
+        border: "1px solid #fecaca",
+        background: "#ef4444",
+        color: "#ffffff",
+        fontWeight: 900,
+        cursor: disabled ? "progress" : "pointer",
+        opacity: disabled ? 0.75 : 1,
+      }}
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+}
+
 export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -143,6 +182,21 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
     });
   }
 
+  async function handleDelete(requestId: string) {
+    const formData = new FormData();
+    formData.set("requestId", requestId);
+
+    startTransition(async () => {
+      await deleteRequestAction(formData);
+
+      if (selectedRequestId === requestId) {
+        setSelectedRequestId(null);
+      }
+
+      router.refresh();
+    });
+  }
+
   if (requests.length === 0) {
     return <EmptyState message="Nessuna richiesta in sospeso." />;
   }
@@ -158,57 +212,63 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
           const peerReviewerName = formatReviewerName(request.peerReviewedBy);
 
           return (
-            <button
+            <SwipeRevealAction
               key={request.id}
-              type="button"
-              onClick={() => setSelectedRequestId(request.id)}
-              className="dashboard-list-button"
-              style={{
-                width: "100%",
-                padding: 16,
-                borderRadius: 20,
-                border: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                textAlign: "left",
-                cursor: "pointer",
-              }}
+              action={
+                <DeleteSwipeButton disabled={isPending} onClick={() => handleDelete(request.id)} />
+              }
             >
-              <div style={{ display: "grid", gap: 4 }}>
-                <strong style={{ color: "#0f172a" }}>
-                  {requestLabel(request.type)} - {request.employee.firstName} {request.employee.lastName}
-                </strong>
-                <span style={{ color: "#475569", fontSize: 14 }}>
-                  {request.shift
-                    ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
-                    : request.startsAt
-                      ? `${formatDateTime(request.startsAt)}${request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}`
-                      : "Dettagli richiesta"}
-                </span>
-                <span style={{ color: "#64748b", fontSize: 12 }}>
-                  {peerReviewerName
-                    ? `Collega: ${peerReviewerName}`
-                    : canOwnerReview
-                      ? "Apri per approvare o rifiutare"
-                      : "In attesa di revisione del collega"}
-                </span>
-              </div>
-
-              <span
-                className="dashboard-list-button-arrow"
+              <button
+                type="button"
+                onClick={() => setSelectedRequestId(request.id)}
+                className="dashboard-list-button"
                 style={{
-                  color: "#64748b",
-                  fontSize: 18,
-                  fontWeight: 700,
-                  lineHeight: 1,
+                  width: "100%",
+                  padding: 16,
+                  borderRadius: 20,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  textAlign: "left",
+                  cursor: "pointer",
                 }}
               >
-                &rsaquo;
-              </span>
-            </button>
+                <div style={{ display: "grid", gap: 4 }}>
+                  <strong style={{ color: "#0f172a" }}>
+                    {requestLabel(request.type)} - {request.employee.firstName} {request.employee.lastName}
+                  </strong>
+                  <span style={{ color: "#475569", fontSize: 14 }}>
+                    {request.shift
+                      ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
+                      : request.startsAt
+                        ? `${formatDateTime(request.startsAt)}${request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}`
+                        : "Dettagli richiesta"}
+                  </span>
+                  <span style={{ color: "#64748b", fontSize: 12 }}>
+                    {peerReviewerName
+                      ? `Collega: ${peerReviewerName}`
+                      : canOwnerReview
+                        ? "Apri per approvare o rifiutare"
+                        : "In attesa di revisione del collega"}
+                  </span>
+                </div>
+
+                <span
+                  className="dashboard-list-button-arrow"
+                  style={{
+                    color: "#64748b",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                  }}
+                >
+                  &rsaquo;
+                </span>
+              </button>
+            </SwipeRevealAction>
           );
         })}
       </div>
