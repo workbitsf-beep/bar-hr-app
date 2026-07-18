@@ -10,12 +10,12 @@ import {
   ItemCard,
   ItemList,
   Panel,
-  PrimaryButton,
   Stack,
   SuccessCallout,
   formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
+import { SwipeRevealAction } from "../swipe-reveal-action";
 
 export default async function DashboardCoursesPage({
   searchParams,
@@ -142,45 +142,66 @@ export default async function DashboardCoursesPage({
         ) : (
           <ItemList>
             {courses.map((course) => (
-              <ItemCard
+              <SwipeRevealAction
                 key={course.id}
-                title={course.title}
-                subtitle={`${formatDateTime(course.startsAt)} - ${formatDateTime(course.endsAt)}`}
-                meta={
-                  <>
-                    {course.assignedToAll
-                      ? "Assegnato a tutto il team"
-                      : course.assignedTo
-                        ? `Assegnato a ${course.assignedTo.firstName} ${course.assignedTo.lastName}`
-                        : "Non assegnato"}
-                    <br />
-                    Creato da {course.createdBy.firstName} {course.createdBy.lastName}
-                    {course.location ? (
-                      <>
-                        <br />
-                        Luogo: {course.location}
-                      </>
-                    ) : null}
-                  </>
+                enabled={canManage}
+                action={
+                  <form action={deleteCourseAction}>
+                    <input type="hidden" name="courseId" value={course.id} />
+                    <button
+                      type="submit"
+                      aria-label="Elimina corso"
+                      style={{
+                        width: 54,
+                        height: 54,
+                        borderRadius: 18,
+                        border: "1px solid #fecaca",
+                        background: "#ef4444",
+                        color: "#ffffff",
+                        fontWeight: 900,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                          stroke="currentColor"
+                          strokeWidth="1.9"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </form>
                 }
-                footer={
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {course.description ? (
-                      <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                        {course.description}
-                      </div>
-                    ) : null}
-                    {canManage ? (
-                      <form action={deleteCourseAction}>
-                        <input type="hidden" name="courseId" value={course.id} />
-                        <PrimaryButton type="submit" tone="red">
-                          Elimina corso
-                        </PrimaryButton>
-                      </form>
-                    ) : null}
-                  </div>
-                }
-              />
+              >
+                <ItemCard
+                  title={course.title}
+                  subtitle={`${formatDateTime(course.startsAt)} - ${formatDateTime(course.endsAt)}`}
+                  meta={
+                    <>
+                      {course.assignedToAll
+                        ? "Assegnato a tutto il team"
+                        : course.assignedTo
+                          ? `Assegnato a ${course.assignedTo.firstName} ${course.assignedTo.lastName}`
+                          : "Non assegnato"}
+                      <br />
+                      Creato da {course.createdBy.firstName} {course.createdBy.lastName}
+                      {course.location ? (
+                        <>
+                          <br />
+                          Luogo: {course.location}
+                        </>
+                      ) : null}
+                    </>
+                  }
+                  footer={
+                    course.description ? (
+                      <div style={{ color: "#334155", lineHeight: 1.6 }}>{course.description}</div>
+                    ) : null
+                  }
+                />
+              </SwipeRevealAction>
             ))}
           </ItemList>
         )}

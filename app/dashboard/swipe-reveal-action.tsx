@@ -1,45 +1,79 @@
 "use client";
 
-import type { PointerEvent, ReactNode } from "react";
+import type { CSSProperties, PointerEvent, ReactNode } from "react";
 import { useRef, useState } from "react";
+
+const REVEAL_WIDTH = 82;
+const OPEN_THRESHOLD = 42;
 
 export function SwipeRevealAction({
   children,
   action,
   enabled = true,
+  className,
+  style,
 }: {
   children: ReactNode;
   action: ReactNode;
   enabled?: boolean;
+  className?: string;
+  style?: CSSProperties;
 }) {
-  const startXRef = useRef<number | null>(null);
+  const startXRef = useRef(0);
+  const startOffsetRef = useRef(0);
+  const pointerIdRef = useRef<number | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
     if (!enabled) {
       return;
     }
 
+    pointerIdRef.current = event.pointerId;
     startXRef.current = event.clientX;
+    startOffsetRef.current = revealed ? -REVEAL_WIDTH : 0;
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
-    if (!enabled || startXRef.current === null) {
-      startXRef.current = null;
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!enabled || pointerIdRef.current !== event.pointerId) {
       return;
     }
 
     const deltaX = event.clientX - startXRef.current;
-    startXRef.current = null;
+    const nextOffset = Math.max(-REVEAL_WIDTH, Math.min(0, startOffsetRef.current + deltaX));
+    setDragOffset(nextOffset);
+  }
 
-    if (deltaX < -46) {
-      setRevealed(true);
+  function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (!enabled || pointerIdRef.current !== event.pointerId) {
+      pointerIdRef.current = null;
       return;
     }
 
-    if (deltaX > 24) {
-      setRevealed(false);
+    const deltaX = event.clientX - startXRef.current;
+    const finalOffset = Math.max(-REVEAL_WIDTH, Math.min(0, startOffsetRef.current + deltaX));
+    const shouldReveal = finalOffset <= -OPEN_THRESHOLD;
+
+    setRevealed(shouldReveal);
+    setDragOffset(shouldReveal ? -REVEAL_WIDTH : 0);
+    setDragging(false);
+    pointerIdRef.current = null;
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // The browser can release capture first during fast native scroll gestures.
     }
+  }
+
+  function handlePointerCancel() {
+    pointerIdRef.current = null;
+    setDragging(false);
+    setDragOffset(revealed ? -REVEAL_WIDTH : 0);
   }
 
   if (!enabled) {
@@ -48,10 +82,12 @@ export function SwipeRevealAction({
 
   return (
     <div
+      className={className}
       style={{
         position: "relative",
         overflow: "hidden",
         borderRadius: 20,
+        ...style,
       }}
     >
       <div
@@ -59,7 +95,7 @@ export function SwipeRevealAction({
         style={{
           position: "absolute",
           inset: "0 0 0 auto",
-          width: 78,
+          width: REVEAL_WIDTH,
           display: "grid",
           placeItems: "center",
           background: "#fee2e2",
@@ -72,16 +108,16 @@ export function SwipeRevealAction({
       </div>
       <div
         onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={() => {
-          startXRef.current = null;
-        }}
+        onPointerCancel={handlePointerCancel}
         style={{
           position: "relative",
           zIndex: 1,
-          transform: revealed ? "translateX(-78px)" : "translateX(0)",
-          transition: "transform 180ms ease",
+          transform: `translateX(${dragging ? dragOffset : revealed ? -REVEAL_WIDTH : 0}px)`,
+          transition: dragging ? "none" : "transform 190ms cubic-bezier(0.22, 1, 0.36, 1)",
           touchAction: "pan-y",
+          willChange: "transform",
         }}
       >
         {children}
