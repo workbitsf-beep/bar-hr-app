@@ -3371,8 +3371,7 @@ export async function toggleDocumentActiveAction(formData: FormData) {
 }
 
 export async function deleteDocumentAction(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
-  ensureTrainingDocumentRole(role);
+  const { session, role, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3384,10 +3383,28 @@ export async function deleteDocumentAction(formData: FormData) {
     throw new Error("Missing document id");
   }
 
-  await prisma.document.deleteMany({
+  const document = await prisma.document.findFirst({
     where: {
       id: documentId,
       barId: activeBarId,
+    },
+    select: {
+      id: true,
+      createdById: true,
+    },
+  });
+
+  if (!document) {
+    throw new Error("Document not found");
+  }
+
+  if (document.createdById !== session.user.id && !canManageTrainingAndDocuments(role)) {
+    throw new Error("Not authorized");
+  }
+
+  await prisma.document.delete({
+    where: {
+      id: document.id,
     },
   });
 

@@ -4,7 +4,6 @@ import {
   completeTaskAction,
   createTaskAction,
   deleteAllCompletedTasksAction,
-  deleteCompletedTaskAction,
   deleteTaskAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
@@ -314,25 +313,6 @@ export default async function DashboardTasksPage({
                         </div>
                       ) : null}
 
-                      {false ? (
-                        <div className="dashboard-action-row" style={{ justifyContent: "flex-end" }}>
-                          <form action={deleteCompletedTaskAction}>
-                            <input type="hidden" name="taskId" value={task.id} />
-                            <PrimaryButton
-                              type="submit"
-                              tone="red"
-                              style={{
-                                minHeight: 36,
-                                padding: "0 14px",
-                                borderRadius: 999,
-                                fontSize: 13,
-                              }}
-                            >
-                              Elimina
-                            </PrimaryButton>
-                          </form>
-                        </div>
-                      ) : null}
                     </div>
                   }
                 />

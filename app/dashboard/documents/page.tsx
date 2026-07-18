@@ -65,8 +65,11 @@ export default async function DashboardDocumentsPage({
         ...(canManage
           ? {}
           : {
-              isActive: true,
-              OR: [{ assignedToAll: true }, { assignedToId: session.user.id }],
+              OR: [
+                { createdById: session.user.id },
+                { isActive: true, assignedToAll: true },
+                { isActive: true, assignedToId: session.user.id },
+              ],
             }),
       },
       orderBy: {
@@ -93,6 +96,7 @@ export default async function DashboardDocumentsPage({
         },
         createdBy: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           },
@@ -124,6 +128,10 @@ export default async function DashboardDocumentsPage({
   ]);
 
   const filteredDocuments = documents.filter((document) => {
+    if (document.createdBy.id === session.user.id) {
+      return true;
+    }
+
     if (!canViewDocument(document, session.user.id, role)) {
       return false;
     }
@@ -250,11 +258,12 @@ export default async function DashboardDocumentsPage({
                             : "Dipendente";
                         const canOpen = canViewDocument(document, session.user.id, role);
                         const previewKind = getDocumentPreviewKind(document.fileName, document.mimeType);
+                        const canDeleteDocument = canManage || document.createdBy.id === session.user.id;
 
                         return (
                           <SwipeRevealAction
                             key={document.id}
-                            enabled={canManage}
+                            enabled={canDeleteDocument}
                             action={
                               <form action={deleteDocumentAction}>
                                 <input type="hidden" name="documentId" value={document.id} />
