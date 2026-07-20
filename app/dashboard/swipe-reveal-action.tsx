@@ -9,6 +9,8 @@ const FULL_SWIPE_MIN = 180;
 const FULL_SWIPE_MAX = 320;
 const FULL_SWIPE_RATIO = 0.62;
 const DRAG_RESISTANCE = 0.34;
+const RELEASE_ACTION_RATIO = 0.72;
+const RELEASE_ACTION_MIN = 44;
 
 type RevealedSide = "leading" | "trailing" | null;
 
@@ -88,6 +90,10 @@ export function SwipeRevealAction({
     return Math.min(FULL_SWIPE_MAX, Math.max(FULL_SWIPE_MIN, width * FULL_SWIPE_RATIO));
   }
 
+  function getReleaseActionThreshold() {
+    return Math.min(getFullSwipeThreshold(), Math.max(RELEASE_ACTION_MIN, safeRevealWidth * RELEASE_ACTION_RATIO));
+  }
+
   function getResistedOffset(rawOffset: number) {
     const fullSwipeLimit = getFullSwipeThreshold() + 18;
 
@@ -121,6 +127,7 @@ export function SwipeRevealAction({
 
     if (form) {
       form.requestSubmit();
+      settleAfterAction(side);
       return;
     }
 
@@ -181,9 +188,9 @@ export function SwipeRevealAction({
       Math.min(maxOffset, startOffsetRef.current + deltaX)
     );
     const finalOffset = getResistedOffset(finalRawOffset);
-    const fullSwipeThreshold = getFullSwipeThreshold();
+    const releaseActionThreshold = getReleaseActionThreshold();
 
-    if (horizontalDragRef.current && finalRawOffset <= -fullSwipeThreshold) {
+    if (horizontalDragRef.current && finalRawOffset <= -releaseActionThreshold) {
       setCompletingOffset(-(safeRevealWidth + 10));
       setRevealedSide("trailing");
       setDragOffset(-(safeRevealWidth + 10));
@@ -193,7 +200,7 @@ export function SwipeRevealAction({
       return;
     }
 
-    if (horizontalDragRef.current && leadingAction && finalRawOffset >= fullSwipeThreshold) {
+    if (horizontalDragRef.current && leadingAction && finalRawOffset >= releaseActionThreshold) {
       setCompletingOffset(safeRevealWidth + 10);
       setRevealedSide("leading");
       setDragOffset(safeRevealWidth + 10);
