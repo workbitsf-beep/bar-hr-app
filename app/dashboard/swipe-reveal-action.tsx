@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, PointerEvent, ReactNode, TouchEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const REVEAL_WIDTH = 82;
 const OPEN_THRESHOLD = 42;
@@ -18,6 +18,10 @@ export function SwipeRevealAction({
   enabled = true,
   className,
   style,
+  resetKey,
+  revealWidth = REVEAL_WIDTH,
+  actionInset = 14,
+  borderRadius = 20,
 }: {
   children: ReactNode;
   action: ReactNode;
@@ -25,6 +29,10 @@ export function SwipeRevealAction({
   enabled?: boolean;
   className?: string;
   style?: CSSProperties;
+  resetKey?: string | number;
+  revealWidth?: number;
+  actionInset?: number;
+  borderRadius?: number;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const trailingActionRef = useRef<HTMLDivElement | null>(null);
@@ -40,9 +48,38 @@ export function SwipeRevealAction({
   const [dragOffset, setDragOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [completingOffset, setCompletingOffset] = useState<number | null>(null);
+  const safeRevealWidth = Math.max(48, Math.min(120, revealWidth));
+  const openThreshold = Math.min(OPEN_THRESHOLD, safeRevealWidth * 0.58);
+
+  function resetSwipe() {
+    pointerIdRef.current = null;
+    touchIdRef.current = null;
+    horizontalDragRef.current = false;
+    actionTriggeredRef.current = false;
+    setRevealedSide(null);
+    setDragOffset(0);
+    setDragging(false);
+    setCompletingOffset(null);
+  }
+
+  useEffect(() => {
+    resetSwipe();
+  }, [resetKey]);
+
+  useEffect(() => {
+    window.addEventListener("workbit:swipe-reset", resetSwipe);
+    window.addEventListener("workbit:calendar-cleanup", resetSwipe);
+    window.addEventListener("workbit:dashboard-route-change", resetSwipe);
+
+    return () => {
+      window.removeEventListener("workbit:swipe-reset", resetSwipe);
+      window.removeEventListener("workbit:calendar-cleanup", resetSwipe);
+      window.removeEventListener("workbit:dashboard-route-change", resetSwipe);
+    };
+  }, []);
 
   function getContainerWidth() {
-    return containerRef.current?.offsetWidth ?? REVEAL_WIDTH;
+    return containerRef.current?.offsetWidth ?? safeRevealWidth;
   }
 
   function getFullSwipeThreshold() {
@@ -78,11 +115,11 @@ export function SwipeRevealAction({
 
   function getOffsetForSide(side: RevealedSide) {
     if (side === "leading") {
-      return REVEAL_WIDTH;
+      return safeRevealWidth;
     }
 
     if (side === "trailing") {
-      return -REVEAL_WIDTH;
+      return -safeRevealWidth;
     }
 
     return 0;
@@ -148,9 +185,9 @@ export function SwipeRevealAction({
     }
 
     const nextRevealedSide = horizontalDragRef.current
-      ? finalOffset >= OPEN_THRESHOLD && leadingAction
+      ? finalOffset >= openThreshold && leadingAction
         ? "leading"
-        : finalOffset <= -OPEN_THRESHOLD
+        : finalOffset <= -openThreshold
           ? "trailing"
           : null
       : revealedSide;
@@ -277,7 +314,7 @@ export function SwipeRevealAction({
       style={{
         position: "relative",
         overflow: "hidden",
-        borderRadius: 20,
+        borderRadius,
         ...style,
       }}
     >
@@ -290,10 +327,10 @@ export function SwipeRevealAction({
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-start",
-          paddingLeft: 14,
+          paddingLeft: actionInset,
           background: "#ede9fe",
           border: "1px solid #ddd6fe",
-          borderRadius: 20,
+          borderRadius,
           zIndex: activeSide === "leading" ? 2 : 0,
           opacity: activeSide === "leading" ? 1 : 0,
           visibility: leadingAction ? "visible" : "hidden",
@@ -310,10 +347,10 @@ export function SwipeRevealAction({
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
-          paddingRight: 14,
+          paddingRight: actionInset,
           background: "#fee2e2",
           border: "1px solid #fecaca",
-          borderRadius: 20,
+          borderRadius,
           zIndex: activeSide === "trailing" ? 2 : 0,
           opacity: activeSide === "trailing" ? 1 : 0,
         }}

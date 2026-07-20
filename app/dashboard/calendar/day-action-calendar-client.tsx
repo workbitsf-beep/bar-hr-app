@@ -1586,6 +1586,7 @@ export function DayActionCalendarClient({
           setEditingShiftId(null);
         }
 
+        window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => {
           router.refresh();
         }, 0);
@@ -1606,6 +1607,7 @@ export function DayActionCalendarClient({
       try {
         await deleteTaskAction(formData);
         setFeedback(null);
+        window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
@@ -1625,6 +1627,7 @@ export function DayActionCalendarClient({
         await deleteBoardNoteAction(formData);
         setSelectedNoteId(null);
         setFeedback(null);
+        window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
@@ -1643,6 +1646,7 @@ export function DayActionCalendarClient({
       try {
         await deleteAvailabilityAction(formData);
         setFeedback(null);
+        window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
@@ -1661,6 +1665,7 @@ export function DayActionCalendarClient({
       try {
         await deleteRequestAction(formData);
         setFeedback(null);
+        window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
@@ -1682,9 +1687,9 @@ export function DayActionCalendarClient({
           onDelete();
         }}
         style={{
-          width: 54,
-          height: 54,
-          borderRadius: 18,
+          width: 42,
+          height: 42,
+          borderRadius: 14,
           border: "1px solid #fecaca",
           background: "#ef4444",
           color: "#ffffff",
@@ -1692,7 +1697,7 @@ export function DayActionCalendarClient({
           fontWeight: 900,
         }}
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
             stroke="currentColor"
@@ -1707,7 +1712,14 @@ export function DayActionCalendarClient({
 
   function renderDeleteSwipeCard(key: string, card: ReactNode, label: string, onDelete: () => void) {
     return (
-      <SwipeRevealAction key={key} action={renderDeleteSwipeAction(label, onDelete)}>
+      <SwipeRevealAction
+        key={key}
+        action={renderDeleteSwipeAction(label, onDelete)}
+        resetKey={key}
+        revealWidth={64}
+        actionInset={9}
+        borderRadius={12}
+      >
         {card}
       </SwipeRevealAction>
     );
@@ -1721,6 +1733,10 @@ export function DayActionCalendarClient({
     return (
       <SwipeRevealAction
         key={shift.id}
+        resetKey={`${dayDate ?? "day"}-${shift.id}-${shift.startTime}-${shift.endTime}-${shift.assignments.length}`}
+        revealWidth={62}
+        actionInset={8}
+        borderRadius={12}
         leadingAction={
           <button
             type="button"
@@ -1731,9 +1747,9 @@ export function DayActionCalendarClient({
               openShiftEditor(shift.id, dayDate);
             }}
             style={{
-              width: 46,
-              height: 46,
-              borderRadius: 15,
+              width: 38,
+              height: 38,
+              borderRadius: 13,
               border: "1px solid #ddd6fe",
               background: "#7c3aed",
               color: "#ffffff",
@@ -1741,7 +1757,7 @@ export function DayActionCalendarClient({
               fontWeight: 900,
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
                 stroke="currentColor"
@@ -1762,9 +1778,9 @@ export function DayActionCalendarClient({
               handleDeleteShift(shift.id);
             }}
             style={{
-              width: 46,
-              height: 46,
-              borderRadius: 15,
+              width: 38,
+              height: 38,
+              borderRadius: 13,
               border: "1px solid #fecaca",
               background: "#ef4444",
               color: "#ffffff",
@@ -1772,7 +1788,7 @@ export function DayActionCalendarClient({
               fontWeight: 900,
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
                 stroke="currentColor"
@@ -1966,6 +1982,7 @@ export function DayActionCalendarClient({
           setEditingShiftId(null);
           setSelectedDate(null);
         }
+        window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => {
           if (refreshDate) {
             const url = new URL(window.location.href);
@@ -2382,13 +2399,22 @@ export function DayActionCalendarClient({
                   const hasDayEvents = day.shifts.length > 0 || categoryBadges.length > 0;
 
                   return (
-                  <button
+                  <div
                     key={day.date}
-                    type="button"
+                    role={isPastDay ? undefined : "button"}
+                    tabIndex={isPastDay ? undefined : 0}
                     onClick={() => {
                       if (!isPastDay) {
                         openDay(day);
                       }
+                    }}
+                    onKeyDown={(event) => {
+                      if (isPastDay || (event.key !== "Enter" && event.key !== " ")) {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      openDay(day);
                     }}
                     title={
                       isPastDay
@@ -2825,7 +2851,7 @@ export function DayActionCalendarClient({
                         </>
                       );
                     })()}
-                  </button>
+                  </div>
                   );
                 })}
               </div>
