@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import type { DashboardNavItem } from "./context";
 
 function getBottomNavItems(navItems: DashboardNavItem[]) {
@@ -110,6 +111,23 @@ function isNavItemActive(pathname: string, href: string) {
 export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
   const pathname = usePathname();
   const bottomNavItems = getBottomNavItems(navItems);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("workbit:dashboard-route-change", {
+        detail: { pathname },
+      })
+    );
+
+    if (!pathname.startsWith("/dashboard/calendar")) {
+      window.dispatchEvent(new CustomEvent("workbit:calendar-cleanup"));
+      document
+        .querySelectorAll<HTMLElement>(".dashboard-week-strip, .dashboard-calendar-scroll")
+        .forEach((element) => {
+          element.scrollLeft = 0;
+        });
+    }
+  }, [pathname]);
 
   if (bottomNavItems.length <= 1) {
     return null;

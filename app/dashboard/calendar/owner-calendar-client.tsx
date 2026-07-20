@@ -26,7 +26,11 @@ import {
   createTaskAction,
   confirmBoardNoteReadAction,
   confirmShiftAction,
+  deleteAvailabilityAction,
+  deleteBoardNoteAction,
+  deleteRequestAction,
   deleteShiftAction,
+  deleteTaskAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { SwipeRevealAction } from "../swipe-reveal-action";
@@ -1306,6 +1310,121 @@ export function OwnerCalendarClient({
     });
   }
 
+  function handleDeleteTask(taskId: string) {
+    const formData = new FormData();
+    formData.set("taskId", taskId);
+
+    startTransition(async () => {
+      try {
+        await deleteTaskAction(formData);
+        setFeedback(null);
+        window.setTimeout(() => router.refresh(), 0);
+      } catch (error) {
+        setFeedback({
+          tone: "danger",
+          message: error instanceof Error ? error.message : "Impossibile eliminare la nota.",
+        });
+      }
+    });
+  }
+
+  function handleDeleteBoardNote(noteId: string) {
+    const formData = new FormData();
+    formData.set("noteId", noteId);
+
+    startTransition(async () => {
+      try {
+        await deleteBoardNoteAction(formData);
+        setSelectedNoteId(null);
+        setFeedback(null);
+        window.setTimeout(() => router.refresh(), 0);
+      } catch (error) {
+        setFeedback({
+          tone: "danger",
+          message: error instanceof Error ? error.message : "Impossibile eliminare la nota.",
+        });
+      }
+    });
+  }
+
+  function handleDeleteAvailability(availabilityId: string) {
+    const formData = new FormData();
+    formData.set("availabilityId", availabilityId);
+
+    startTransition(async () => {
+      try {
+        await deleteAvailabilityAction(formData);
+        setFeedback(null);
+        window.setTimeout(() => router.refresh(), 0);
+      } catch (error) {
+        setFeedback({
+          tone: "danger",
+          message: error instanceof Error ? error.message : "Impossibile eliminare l'indisponibilita.",
+        });
+      }
+    });
+  }
+
+  function handleDeleteRequest(requestId: string) {
+    const formData = new FormData();
+    formData.set("requestId", requestId);
+
+    startTransition(async () => {
+      try {
+        await deleteRequestAction(formData);
+        setFeedback(null);
+        window.setTimeout(() => router.refresh(), 0);
+      } catch (error) {
+        setFeedback({
+          tone: "danger",
+          message: error instanceof Error ? error.message : "Impossibile eliminare la richiesta.",
+        });
+      }
+    });
+  }
+
+  function renderDeleteSwipeAction(label: string, onDelete: () => void) {
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        disabled={isPending}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete();
+        }}
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: 18,
+          border: "1px solid #fecaca",
+          background: "#ef4444",
+          color: "#ffffff",
+          cursor: isPending ? "progress" : "pointer",
+          fontWeight: 900,
+        }}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    );
+  }
+
+  function renderDeleteSwipeCard(key: string, card: ReactNode, label: string, onDelete: () => void) {
+    return (
+      <SwipeRevealAction key={key} action={renderDeleteSwipeAction(label, onDelete)}>
+        {card}
+      </SwipeRevealAction>
+    );
+  }
+
   function renderShiftSwipeActions(shift: ShiftItem, card: ReactNode) {
     return (
       <SwipeRevealAction
@@ -1806,13 +1925,27 @@ export function OwnerCalendarClient({
                 {features.requests && day.requests.length > 0 ? (
                   <div style={{ display: "grid", gap: 6 }}>
                     <strong>🏖️ Ferie / Permessi / Assenze</strong>
-                    {day.requests.map((request) => renderApprovedRequestCard(request, true))}
+                    {day.requests.map((request) =>
+                      renderDeleteSwipeCard(
+                        `request-${request.id}`,
+                        renderApprovedRequestCard(request, true),
+                        "Elimina richiesta",
+                        () => handleDeleteRequest(request.id)
+                      )
+                    )}
                   </div>
                 ) : null}
                 {features.availability && day.availabilities.length > 0 ? (
                   <div style={{ display: "grid", gap: 6 }}>
                     <strong>🚫 Indisponibilità</strong>
-                    {day.availabilities.map((availability) => renderAvailabilityCard(availability, true))}
+                    {day.availabilities.map((availability) =>
+                      renderDeleteSwipeCard(
+                        `availability-${availability.id}`,
+                        renderAvailabilityCard(availability, true),
+                        "Elimina indisponibilita",
+                        () => handleDeleteAvailability(availability.id)
+                      )
+                    )}
                   </div>
                 ) : null}
                 {false && features.shifts && day.pendingOnCallShifts.length > 0 ? (
@@ -1844,14 +1977,28 @@ export function OwnerCalendarClient({
                     {day.tasks.length === 0 && day.notes.length === 0 ? (
                       <div style={{ color: "#64748b" }}>Nessuna nota in questa giornata.</div>
                     ) : null}
-                    {day.tasks.map((task) => renderTaskPreviewCard(task, true, () => {
-                      setSelectedDate(day.date);
-                      setActiveCalendarModal("notes");
-                    }))}
-                    {day.notes.map((note) => renderNotePreviewCard(note, true, () => {
-                      setSelectedDate(day.date);
-                      setActiveCalendarModal("notes");
-                    }))}
+                    {day.tasks.map((task) =>
+                      renderDeleteSwipeCard(
+                        `task-${task.id}`,
+                        renderTaskPreviewCard(task, true, () => {
+                          setSelectedDate(day.date);
+                          setActiveCalendarModal("notes");
+                        }),
+                        "Elimina nota",
+                        () => handleDeleteTask(task.id)
+                      )
+                    )}
+                    {day.notes.map((note) =>
+                      renderDeleteSwipeCard(
+                        `note-${note.id}`,
+                        renderNotePreviewCard(note, true, () => {
+                          setSelectedDate(day.date);
+                          setActiveCalendarModal("notes");
+                        }),
+                        "Elimina nota",
+                        () => handleDeleteBoardNote(note.id)
+                      )
+                    )}
                   </div>
                 ) : null}
                 {features.courses && day.courses.length > 0 ? (
@@ -2097,7 +2244,14 @@ export function OwnerCalendarClient({
                               "🟠 Permessi",
                               day.requests
                                 .filter((request) => request.type === RequestType.PERMISSION)
-                                .map((request) => renderApprovedRequestCard(request, true))
+                                .map((request) =>
+                                  renderDeleteSwipeCard(
+                                    `request-${request.id}`,
+                                    renderApprovedRequestCard(request, true),
+                                    "Elimina richiesta",
+                                    () => handleDeleteRequest(request.id)
+                                  )
+                                )
                             )
                           : null}
                         {features.requests && day.requests.filter((request) => request.type === RequestType.VACATION).length > 0
@@ -2105,7 +2259,14 @@ export function OwnerCalendarClient({
                               "🏖️ Ferie",
                               day.requests
                                 .filter((request) => request.type === RequestType.VACATION)
-                                .map((request) => renderApprovedRequestCard(request, true))
+                                .map((request) =>
+                                  renderDeleteSwipeCard(
+                                    `request-${request.id}`,
+                                    renderApprovedRequestCard(request, true),
+                                    "Elimina richiesta",
+                                    () => handleDeleteRequest(request.id)
+                                  )
+                                )
                             )
                           : null}
                         {features.courses && day.courses.length > 0
@@ -2127,18 +2288,28 @@ export function OwnerCalendarClient({
                               <>
                                 {features.tasks
                                   ? day.tasks.map((task) =>
-                                      renderTaskPreviewCard(task, true, () => {
-                                        setSelectedDate(day.date);
-                                        setActiveCalendarModal("notes");
-                                      })
+                                      renderDeleteSwipeCard(
+                                        `task-${task.id}`,
+                                        renderTaskPreviewCard(task, true, () => {
+                                          setSelectedDate(day.date);
+                                          setActiveCalendarModal("notes");
+                                        }),
+                                        "Elimina nota",
+                                        () => handleDeleteTask(task.id)
+                                      )
                                     )
                                   : null}
                                 {features.noticeBoard
                                   ? day.notes.map((note) =>
-                                      renderNotePreviewCard(note, true, () => {
-                                        setSelectedDate(day.date);
-                                        setActiveCalendarModal("notes");
-                                      })
+                                      renderDeleteSwipeCard(
+                                        `note-${note.id}`,
+                                        renderNotePreviewCard(note, true, () => {
+                                          setSelectedDate(day.date);
+                                          setActiveCalendarModal("notes");
+                                        }),
+                                        "Elimina nota",
+                                        () => handleDeleteBoardNote(note.id)
+                                      )
                                     )
                                   : null}
                               </>
@@ -2147,7 +2318,14 @@ export function OwnerCalendarClient({
                         {features.availability && day.availabilities.length > 0
                           ? renderWeekSection(
                               "🚫 Indisponibilità",
-                              day.availabilities.map((availability) => renderAvailabilityCard(availability, true))
+                              day.availabilities.map((availability) =>
+                                renderDeleteSwipeCard(
+                                  `availability-${availability.id}`,
+                                  renderAvailabilityCard(availability, true),
+                                  "Elimina indisponibilita",
+                                  () => handleDeleteAvailability(availability.id)
+                                )
+                              )
                             )
                           : null}
                         {features.shifts && day.shifts.filter((shift) => shift.isOnCall).length > 0
@@ -2163,7 +2341,14 @@ export function OwnerCalendarClient({
                               "⭐ Straordinari",
                               day.requests
                                 .filter((request) => request.type === RequestType.OVERTIME)
-                                .map((request) => renderApprovedRequestCard(request, true))
+                                .map((request) =>
+                                  renderDeleteSwipeCard(
+                                    `request-${request.id}`,
+                                    renderApprovedRequestCard(request, true),
+                                    "Elimina richiesta",
+                                    () => handleDeleteRequest(request.id)
+                                  )
+                                )
                             )
                           : null}
                         {day.closures.length > 0

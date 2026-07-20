@@ -461,9 +461,27 @@ function DashboardResponsiveStyles() {
         max-width: 100%;
       }
 
+      .dashboard-calendar-page {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+        contain: layout paint;
+        isolation: isolate;
+      }
+
+      @supports not (overflow: clip) {
+        .dashboard-calendar-page {
+          overflow-x: hidden;
+        }
+      }
+
+      .dashboard-calendar-page .dashboard-week-strip,
+      .dashboard-calendar-page .dashboard-calendar-scroll {
+        contain: layout paint;
+      }
+
       .dashboard-calendar-day {
-        content-visibility: auto;
-        contain-intrinsic-size: auto 360px;
+        contain: layout paint;
       }
 
       .dashboard-modal-wrap {
