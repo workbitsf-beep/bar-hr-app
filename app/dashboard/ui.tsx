@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
 import { PendingButton } from "@/app/components/pending-button";
-import { AnimatedBackground, RevealOnScroll } from "@/app/components/workbit-animations";
+import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { ActiveBottomNav } from "./bottom-nav";
 import {
   formatDateInTimeZone,
@@ -845,12 +845,10 @@ export function DashboardShell({
         position: "relative",
         isolation: "isolate",
         minHeight: "var(--workbit-vh, 100dvh)",
-        background:
-          "var(--workbit-app-bg)",
+        background: "transparent",
         padding: 18,
       }}
     >
-      <AnimatedBackground level="soft" />
       <div
         className="dashboard-shell-inner workbit-animated-page__content"
         style={{

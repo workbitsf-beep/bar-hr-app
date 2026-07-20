@@ -89,6 +89,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 min-height: var(--workbit-vh, 100dvh);
                 overflow-x: hidden;
                 overscroll-behavior-x: none;
+                position: relative;
               }
 
               *,
@@ -465,7 +466,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               .workbit-global-ambient {
                 position: fixed;
-                inset: -18%;
+                inset: 0;
                 z-index: 0;
                 overflow: hidden;
                 pointer-events: none;
@@ -838,12 +839,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               .sa-overview-metric,
               .workbit-login-card {
                 position: relative;
-                overflow: hidden;
+                overflow: visible;
                 background:
-                  radial-gradient(circle at 92% 0%, rgba(255,255,255,0.72), transparent 30%),
-                  linear-gradient(180deg, rgba(255,255,255,0.90) 0%, rgba(247,243,255,0.82) 100%) !important;
-                backdrop-filter: blur(18px) saturate(1.08);
-                -webkit-backdrop-filter: blur(18px) saturate(1.08);
+                  radial-gradient(circle at 92% 0%, rgba(255,255,255,0.64), transparent 30%),
+                  linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(247,243,255,0.66) 100%) !important;
+                backdrop-filter: blur(16px) saturate(1.08);
+                -webkit-backdrop-filter: blur(16px) saturate(1.08);
               }
 
               .dashboard-shell-card::before,
