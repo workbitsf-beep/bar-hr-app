@@ -850,7 +850,7 @@ export function DashboardShell({
         padding: 18,
       }}
     >
-      <AnimatedBackground level="minimal" />
+      <AnimatedBackground level="soft" />
       <div
         className="dashboard-shell-inner workbit-animated-page__content"
         style={{
@@ -1287,7 +1287,7 @@ export function ItemCard({
   style?: CSSProperties;
 }) {
   return (
-    <div
+    <RevealOnScroll
       className={joinClassNames("dashboard-item-card", className)}
       style={{
         ...softCardStyle,
@@ -1302,7 +1302,7 @@ export function ItemCard({
       {subtitle ? <div style={{ color: "#334155" }}>{subtitle}</div> : null}
       {meta ? <div style={{ color: "var(--workbit-muted)", fontSize: 14 }}>{meta}</div> : null}
       {footer ? <div style={{ marginTop: 8 }}>{footer}</div> : null}
-    </div>
+    </RevealOnScroll>
   );
 }
 
@@ -1318,7 +1318,7 @@ export function CompactListItem({
   action?: ReactNode;
 }) {
   return (
-    <div
+    <RevealOnScroll
       className="dashboard-compact-list-item"
       style={{
         ...softCardStyle,
@@ -1336,7 +1336,7 @@ export function CompactListItem({
         {meta ? <span style={{ color: "var(--workbit-muted)", fontSize: 12, fontWeight: 700 }}>{meta}</span> : null}
       </div>
       {action ? <div style={{ flex: "0 0 auto" }}>{action}</div> : null}
-    </div>
+    </RevealOnScroll>
   );
 }
 

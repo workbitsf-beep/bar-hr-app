@@ -6,6 +6,7 @@ import { PasskeySetupPrompt } from "@/app/components/passkey-setup-prompt";
 import { RuntimeLanguageSync } from "@/app/components/runtime-language-sync";
 import { RuntimeThemeSync } from "@/app/components/runtime-theme-sync";
 import { ViewportResizeSync } from "@/app/components/viewport-resize-sync";
+import { WorkbitRouteTransition } from "@/app/components/workbit-route-transition";
 import { LANGUAGE_COOKIE_NAME, normalizeLanguage } from "@/lib/language";
 import { THEME_COOKIE_NAME, normalizeTheme } from "@/lib/theme";
 
@@ -456,6 +457,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 min-width: 0;
               }
 
+              .dashboard-shell,
+              .workbit-login-page {
+                background-size: 140% 140% !important;
+                animation: workbit-page-gradient 18s ease-in-out infinite alternate;
+              }
+
               .workbit-animated-background {
                 position: absolute;
                 inset: 0;
@@ -467,7 +474,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-animated-background__orb,
-              .workbit-animated-background__fog {
+              .workbit-animated-background__fog,
+              .workbit-animated-background__mesh,
+              .workbit-animated-background__ray {
                 position: absolute;
                 display: block;
                 pointer-events: none;
@@ -486,23 +495,52 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 animation: workbit-orb-drift 14s ease-in-out infinite alternate;
               }
 
+              .dashboard-shell > .workbit-animated-background {
+                position: fixed;
+                border-radius: 0;
+                min-height: var(--workbit-vh, 100dvh);
+              }
+
               .workbit-animated-background__orb--one {
-                top: -14%;
-                right: -12%;
+                top: -10%;
+                right: -8%;
               }
 
               .workbit-animated-background__orb--two {
-                left: -16%;
-                bottom: -18%;
-                opacity: 0.28;
+                left: -12%;
+                bottom: -12%;
+                opacity: 0.36;
                 background: radial-gradient(circle, rgba(11, 16, 36, 0.20), rgba(124, 58, 237, 0.14) 42%, transparent 72%);
                 animation-duration: 18s;
                 animation-direction: alternate-reverse;
               }
 
+              .workbit-animated-background__mesh {
+                inset: -18%;
+                opacity: 0.30;
+                background:
+                  linear-gradient(115deg, transparent 18%, rgba(124, 58, 237, 0.16) 38%, transparent 58%),
+                  linear-gradient(28deg, transparent 20%, rgba(59, 130, 246, 0.12) 42%, transparent 64%);
+                filter: blur(1px);
+                animation: workbit-mesh-shift 12s ease-in-out infinite alternate;
+              }
+
+              .workbit-animated-background__ray {
+                width: 72vmax;
+                height: 18vmax;
+                left: 50%;
+                top: 14%;
+                border-radius: 999px;
+                opacity: 0.22;
+                background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.34), rgba(59, 130, 246, 0.18), transparent);
+                filter: blur(10px);
+                transform: translate3d(-50%, 0, 0) rotate(-12deg);
+                animation: workbit-ray-drift 16s ease-in-out infinite alternate;
+              }
+
               .workbit-animated-background__fog {
                 inset: 0;
-                opacity: 0.28;
+                opacity: 0.34;
                 background:
                   linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.42) 34%, transparent 64%),
                   radial-gradient(circle at 42% 12%, rgba(255,255,255,0.30), transparent 28%);
@@ -511,18 +549,23 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-animated-background--full .workbit-animated-background__orb {
-                opacity: 0.54;
+                opacity: 0.68;
               }
 
               .workbit-animated-background--soft .workbit-animated-background__orb {
-                opacity: 0.30;
-                filter: blur(14px);
+                opacity: 0.48;
+                filter: blur(16px);
               }
 
               .workbit-animated-background--minimal .workbit-animated-background__orb {
-                opacity: 0.16;
+                opacity: 0.24;
                 filter: blur(12px);
                 animation-duration: 24s;
+              }
+
+              .workbit-animated-background--minimal .workbit-animated-background__mesh,
+              .workbit-animated-background--minimal .workbit-animated-background__ray {
+                opacity: 0.16;
               }
 
               html[data-theme="dark"] .workbit-animated-background__orb {
@@ -539,20 +582,20 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               .workbit-reveal {
                 opacity: 0;
-                transform: translate3d(0, 12px, 0);
+                transform: translate3d(0, 22px, 0) scale(.992);
                 transition:
-                  opacity 260ms ease,
-                  transform 260ms cubic-bezier(.2, .8, .2, 1);
-                transition-delay: var(--workbit-reveal-delay, 0ms);
+                  opacity 340ms ease,
+                  transform 340ms cubic-bezier(.2, .8, .2, 1);
+                transition-delay: calc(var(--workbit-reveal-delay, 0ms) + var(--workbit-reveal-extra-delay, 0ms));
                 will-change: opacity, transform;
               }
 
               .workbit-reveal--left {
-                transform: translate3d(-12px, 0, 0);
+                transform: translate3d(-18px, 0, 0);
               }
 
               .workbit-reveal--right {
-                transform: translate3d(12px, 0, 0);
+                transform: translate3d(18px, 0, 0);
               }
 
               .workbit-reveal--scale {
@@ -563,6 +606,24 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 opacity: 1;
                 transform: translate3d(0, 0, 0) scale(1);
                 will-change: auto;
+              }
+
+              .dashboard-stack > .workbit-reveal:nth-child(2),
+              .dashboard-item-list > .workbit-reveal:nth-child(2),
+              .sa-overview-grid > .workbit-reveal:nth-child(2) {
+                --workbit-reveal-extra-delay: 45ms;
+              }
+
+              .dashboard-stack > .workbit-reveal:nth-child(3),
+              .dashboard-item-list > .workbit-reveal:nth-child(3),
+              .sa-overview-grid > .workbit-reveal:nth-child(3) {
+                --workbit-reveal-extra-delay: 80ms;
+              }
+
+              .dashboard-stack > .workbit-reveal:nth-child(n + 4),
+              .dashboard-item-list > .workbit-reveal:nth-child(n + 4),
+              .sa-overview-grid > .workbit-reveal:nth-child(n + 4) {
+                --workbit-reveal-extra-delay: 110ms;
               }
 
               .workbit-animated-card,
@@ -578,6 +639,70 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                   box-shadow 140ms ease,
                   border-color 140ms ease,
                   background 140ms ease;
+              }
+
+              .dashboard-shell-card,
+              .dashboard-panel,
+              .dashboard-card,
+              .dashboard-item-card,
+              .dashboard-list-card,
+              .dashboard-compact-list-item,
+              .sa-overview-card,
+              .sa-overview-metric,
+              .workbit-login-card {
+                position: relative;
+                overflow: hidden;
+              }
+
+              .dashboard-shell-card::before,
+              .dashboard-panel::before,
+              .dashboard-card::before,
+              .dashboard-item-card::before,
+              .dashboard-list-card::before,
+              .dashboard-compact-list-item::before,
+              .sa-overview-card::before,
+              .sa-overview-metric::before,
+              .workbit-login-card::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                opacity: 0.42;
+                background:
+                  radial-gradient(circle at 92% 0%, rgba(168, 85, 247, 0.13), transparent 28%),
+                  linear-gradient(120deg, transparent 8%, rgba(255,255,255,0.24) 38%, transparent 58%);
+                transform: translate3d(-6%, 0, 0);
+                animation: workbit-container-sheen 9s ease-in-out infinite alternate;
+              }
+
+              .dashboard-shell-card > *,
+              .dashboard-panel > *,
+              .dashboard-card > *,
+              .dashboard-item-card > *,
+              .dashboard-list-card > *,
+              .dashboard-compact-list-item > *,
+              .sa-overview-card > *,
+              .sa-overview-metric > *,
+              .workbit-login-card > * {
+                position: relative;
+                z-index: 1;
+              }
+
+              .workbit-route-transition {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483000;
+                pointer-events: none;
+                opacity: 0;
+                background:
+                  radial-gradient(circle at 50% 44%, rgba(168, 85, 247, 0.22), transparent 32%),
+                  linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.42) 42%, transparent 64%);
+                transform: translate3d(-18%, 0, 0) scale(1.04);
+              }
+
+              .workbit-route-transition--active {
+                animation: workbit-route-sweep 520ms cubic-bezier(.2, .8, .2, 1) both;
               }
 
               .workbit-press-feedback,
@@ -688,6 +813,62 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 }
               }
 
+              @keyframes workbit-page-gradient {
+                from {
+                  background-position: 0% 0%;
+                }
+                to {
+                  background-position: 100% 100%;
+                }
+              }
+
+              @keyframes workbit-mesh-shift {
+                from {
+                  transform: translate3d(-2%, -1%, 0) rotate(-1deg);
+                  opacity: .22;
+                }
+                to {
+                  transform: translate3d(2%, 2%, 0) rotate(1deg);
+                  opacity: .38;
+                }
+              }
+
+              @keyframes workbit-ray-drift {
+                from {
+                  transform: translate3d(-58%, -4%, 0) rotate(-14deg) scale(.98);
+                  opacity: .14;
+                }
+                to {
+                  transform: translate3d(-44%, 8%, 0) rotate(-8deg) scale(1.06);
+                  opacity: .30;
+                }
+              }
+
+              @keyframes workbit-container-sheen {
+                from {
+                  transform: translate3d(-8%, 0, 0);
+                  opacity: .22;
+                }
+                to {
+                  transform: translate3d(8%, 0, 0);
+                  opacity: .44;
+                }
+              }
+
+              @keyframes workbit-route-sweep {
+                0% {
+                  opacity: 0;
+                  transform: translate3d(-22%, 0, 0) scale(1.04);
+                }
+                38% {
+                  opacity: 1;
+                }
+                100% {
+                  opacity: 0;
+                  transform: translate3d(18%, 0, 0) scale(1.04);
+                }
+              }
+
               @keyframes workbit-fog-drift {
                 from {
                   transform: translate3d(-3%, 0, 0);
@@ -748,7 +929,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 }
 
                 .workbit-animated-background__orb,
-                .workbit-animated-background__fog {
+                .workbit-animated-background__fog,
+                .workbit-animated-background__mesh,
+                .workbit-animated-background__ray,
+                .workbit-route-transition {
                   animation: none !important;
                   transform: none !important;
                 }
@@ -760,14 +944,21 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               @media (max-width: 720px), (pointer: coarse) {
-                .workbit-animated-background--soft .workbit-animated-background__fog,
                 .workbit-animated-background--minimal .workbit-animated-background__fog {
                   display: none;
                 }
 
                 .workbit-animated-background__orb {
                   filter: blur(10px);
-                  opacity: 0.22;
+                  opacity: 0.38;
+                }
+
+                .workbit-animated-background__mesh {
+                  opacity: 0.24;
+                }
+
+                .workbit-animated-background__ray {
+                  opacity: 0.18;
                 }
               }
             `,
@@ -792,6 +983,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <RuntimeThemeSync theme={themePreference} />
         <PwaRegister />
         <PasskeySetupPrompt />
+        <WorkbitRouteTransition />
         {children}
       </body>
     </html>

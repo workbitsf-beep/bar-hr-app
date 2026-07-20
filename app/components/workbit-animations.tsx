@@ -45,6 +45,8 @@ export function AnimatedBackground({
     >
       <span className="workbit-animated-background__orb workbit-animated-background__orb--one" />
       <span className="workbit-animated-background__orb workbit-animated-background__orb--two" />
+      <span className="workbit-animated-background__mesh" />
+      <span className="workbit-animated-background__ray" />
       {level !== "minimal" ? <span className="workbit-animated-background__fog" /> : null}
     </div>
   );
