@@ -26,8 +26,10 @@ import {
   createTaskAction,
   confirmBoardNoteReadAction,
   confirmShiftAction,
+  deleteShiftAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
+import { SwipeRevealAction } from "../swipe-reveal-action";
 import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
@@ -1272,6 +1274,110 @@ export function OwnerCalendarClient({
     setSelectedShiftWeekdays([]);
   }
 
+  function openShiftEditor(shiftId: string) {
+    setActiveCalendarModal("shifts");
+    setEditingShiftId(shiftId);
+    setShowShiftComposer(false);
+    setQuickComposer(null);
+  }
+
+  function handleDeleteShift(shiftId: string) {
+    const formData = new FormData();
+    formData.set("shiftId", shiftId);
+
+    startTransition(async () => {
+      try {
+        await deleteShiftAction(formData);
+        setFeedback(null);
+
+        if (editingShiftId === shiftId) {
+          setEditingShiftId(null);
+        }
+
+        window.setTimeout(() => {
+          router.refresh();
+        }, 0);
+      } catch (error) {
+        setFeedback({
+          tone: "danger",
+          message: error instanceof Error ? error.message : "Impossibile eliminare il turno.",
+        });
+      }
+    });
+  }
+
+  function renderShiftSwipeActions(shift: ShiftItem, card: ReactNode) {
+    return (
+      <SwipeRevealAction
+        key={shift.id}
+        leadingAction={
+          <button
+            type="button"
+            aria-label="Modifica turno"
+            disabled={isPending}
+            onClick={(event) => {
+              event.stopPropagation();
+              openShiftEditor(shift.id);
+            }}
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 18,
+              border: "1px solid #ddd6fe",
+              background: "#7c3aed",
+              color: "#ffffff",
+              cursor: isPending ? "progress" : "pointer",
+              fontWeight: 900,
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        }
+        action={
+          <button
+            type="button"
+            aria-label="Elimina turno"
+            disabled={isPending}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleDeleteShift(shift.id);
+            }}
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 18,
+              border: "1px solid #fecaca",
+              background: "#ef4444",
+              color: "#ffffff",
+              cursor: isPending ? "progress" : "pointer",
+              fontWeight: 900,
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        }
+      >
+        {card}
+      </SwipeRevealAction>
+    );
+  }
+
   function isShiftDraftValid(draft: ShiftDraft | null) {
     return Boolean(draft?.date && draft.startTime && draft.endTime && draft.memberIds.length > 0);
   }
@@ -1685,11 +1791,16 @@ export function OwnerCalendarClient({
                     {day.shifts.length === 0 ? (
                       <div style={{ color: "#64748b" }}>Nessun turno in questa giornata.</div>
                     ) : null}
-                    {day.shifts.map((shift) => renderCompactShiftCard(shift, locale, true, () => {
-                      setSelectedDate(day.date);
-                      setActiveCalendarModal("shifts");
-                      setEditingShiftId(null);
-                    }))}
+                    {day.shifts.map((shift) =>
+                      renderShiftSwipeActions(
+                        shift,
+                        renderCompactShiftCard(shift, locale, true, () => {
+                          setSelectedDate(day.date);
+                          setActiveCalendarModal("shifts");
+                          setEditingShiftId(null);
+                        })
+                      )
+                    )}
                   </div>
                 ) : null}
                 {features.requests && day.requests.length > 0 ? (
@@ -1950,11 +2061,14 @@ export function OwnerCalendarClient({
                     {features.shifts && day.shifts.length > 0 ? (
                       <div style={{ display: "grid", gap: 6 }}>
                         {day.shifts.map((shift) =>
-                          renderCompactShiftCard(shift, locale, true, () => {
-                            setSelectedDate(day.date);
-                            setActiveCalendarModal("shifts");
-                            setEditingShiftId(null);
-                          })
+                          renderShiftSwipeActions(
+                            shift,
+                            renderCompactShiftCard(shift, locale, true, () => {
+                              setSelectedDate(day.date);
+                              setActiveCalendarModal("shifts");
+                              setEditingShiftId(null);
+                            })
+                          )
                         )}
                       </div>
                     ) : null}
@@ -2081,11 +2195,14 @@ export function OwnerCalendarClient({
                         for (const shift of day.shifts) {
                           pushCard(
                             `shift-${shift.id}`,
-                            renderCompactShiftCard(shift, locale, true, () => {
-                              setSelectedDate(day.date);
-                              setActiveCalendarModal("shifts");
-                              setEditingShiftId(null);
-                            })
+                            renderShiftSwipeActions(
+                              shift,
+                              renderCompactShiftCard(shift, locale, true, () => {
+                                setSelectedDate(day.date);
+                                setActiveCalendarModal("shifts");
+                                setEditingShiftId(null);
+                              })
+                            )
                           );
                         }
                       }
@@ -3175,7 +3292,7 @@ export function OwnerCalendarClient({
                     <div style={{ color: "#64748b" }}>Nessun turno presente in questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {day.shifts.map((shift) => (
+                      {day.shifts.map((shift) => renderShiftSwipeActions(shift, (
                         <div
                           className="dashboard-list-card"
                           key={shift.id}
@@ -3239,7 +3356,7 @@ export function OwnerCalendarClient({
                             ✎
                           </IconButton>
                         </div>
-                      ))}
+                      )))}
                     </div>
                   )}
                   </div>

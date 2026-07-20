@@ -5,36 +5,89 @@ import { useRef, useState } from "react";
 
 const REVEAL_WIDTH = 82;
 const OPEN_THRESHOLD = 42;
+const FULL_SWIPE_MIN = 180;
+const FULL_SWIPE_MAX = 320;
+const FULL_SWIPE_RATIO = 0.62;
+
+type RevealedSide = "leading" | "trailing" | null;
 
 export function SwipeRevealAction({
   children,
   action,
+  leadingAction,
   enabled = true,
   className,
   style,
 }: {
   children: ReactNode;
   action: ReactNode;
+  leadingAction?: ReactNode;
   enabled?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const trailingActionRef = useRef<HTMLDivElement | null>(null);
+  const leadingActionRef = useRef<HTMLDivElement | null>(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const startOffsetRef = useRef(0);
   const pointerIdRef = useRef<number | null>(null);
   const touchIdRef = useRef<number | null>(null);
   const horizontalDragRef = useRef(false);
-  const [revealed, setRevealed] = useState(false);
+  const actionTriggeredRef = useRef(false);
+  const [revealedSide, setRevealedSide] = useState<RevealedSide>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [completingOffset, setCompletingOffset] = useState<number | null>(null);
+
+  function getContainerWidth() {
+    return containerRef.current?.offsetWidth ?? REVEAL_WIDTH;
+  }
+
+  function getFullSwipeThreshold() {
+    const width = getContainerWidth();
+    return Math.min(FULL_SWIPE_MAX, Math.max(FULL_SWIPE_MIN, width * FULL_SWIPE_RATIO));
+  }
+
+  function triggerAction(side: Exclude<RevealedSide, null>) {
+    if (actionTriggeredRef.current) {
+      return;
+    }
+
+    actionTriggeredRef.current = true;
+    const actionRoot = side === "leading" ? leadingActionRef.current : trailingActionRef.current;
+    const form = actionRoot?.querySelector("form");
+
+    if (form) {
+      form.requestSubmit();
+      return;
+    }
+
+    const button = actionRoot?.querySelector("button");
+    button?.click();
+  }
+
+  function getOffsetForSide(side: RevealedSide) {
+    if (side === "leading") {
+      return REVEAL_WIDTH;
+    }
+
+    if (side === "trailing") {
+      return -REVEAL_WIDTH;
+    }
+
+    return 0;
+  }
 
   function beginDrag(clientX: number, clientY: number) {
     startXRef.current = clientX;
     startYRef.current = clientY;
-    startOffsetRef.current = revealed ? -REVEAL_WIDTH : 0;
+    startOffsetRef.current = getOffsetForSide(revealedSide);
     horizontalDragRef.current = false;
-    setDragOffset(revealed ? -REVEAL_WIDTH : 0);
+    actionTriggeredRef.current = false;
+    setCompletingOffset(null);
+    setDragOffset(getOffsetForSide(revealedSide));
   }
 
   function updateDrag(clientX: number, clientY: number) {
@@ -51,19 +104,51 @@ export function SwipeRevealAction({
 
     horizontalDragRef.current = true;
     setDragging(true);
-    const nextOffset = Math.max(-REVEAL_WIDTH, Math.min(0, startOffsetRef.current + deltaX));
+    const width = getContainerWidth();
+    const minOffset = -width;
+    const maxOffset = leadingAction ? width : 0;
+    const nextOffset = Math.max(minOffset, Math.min(maxOffset, startOffsetRef.current + deltaX));
     setDragOffset(nextOffset);
   }
 
   function finishDrag(clientX: number) {
     const deltaX = clientX - startXRef.current;
-    const finalOffset = Math.max(-REVEAL_WIDTH, Math.min(0, startOffsetRef.current + deltaX));
-    const shouldReveal = horizontalDragRef.current
-      ? finalOffset <= -OPEN_THRESHOLD
-      : revealed;
+    const width = getContainerWidth();
+    const minOffset = -width;
+    const maxOffset = leadingAction ? width : 0;
+    const finalOffset = Math.max(minOffset, Math.min(maxOffset, startOffsetRef.current + deltaX));
+    const fullSwipeThreshold = getFullSwipeThreshold();
 
-    setRevealed(shouldReveal);
-    setDragOffset(shouldReveal ? -REVEAL_WIDTH : 0);
+    if (horizontalDragRef.current && finalOffset <= -fullSwipeThreshold) {
+      setCompletingOffset(-width);
+      setRevealedSide(null);
+      setDragOffset(-width);
+      setDragging(false);
+      horizontalDragRef.current = false;
+      window.setTimeout(() => triggerAction("trailing"), 120);
+      return;
+    }
+
+    if (horizontalDragRef.current && leadingAction && finalOffset >= fullSwipeThreshold) {
+      setCompletingOffset(width);
+      setRevealedSide(null);
+      setDragOffset(width);
+      setDragging(false);
+      horizontalDragRef.current = false;
+      window.setTimeout(() => triggerAction("leading"), 120);
+      return;
+    }
+
+    const nextRevealedSide = horizontalDragRef.current
+      ? finalOffset >= OPEN_THRESHOLD && leadingAction
+        ? "leading"
+        : finalOffset <= -OPEN_THRESHOLD
+          ? "trailing"
+          : null
+      : revealedSide;
+
+    setRevealedSide(nextRevealedSide);
+    setDragOffset(getOffsetForSide(nextRevealedSide));
     setDragging(false);
     horizontalDragRef.current = false;
   }
@@ -105,7 +190,7 @@ export function SwipeRevealAction({
   function handlePointerCancel() {
     pointerIdRef.current = null;
     setDragging(false);
-    setDragOffset(revealed ? -REVEAL_WIDTH : 0);
+    setDragOffset(getOffsetForSide(revealedSide));
     horizontalDragRef.current = false;
   }
 
@@ -165,7 +250,7 @@ export function SwipeRevealAction({
   function handleTouchCancel() {
     touchIdRef.current = null;
     setDragging(false);
-    setDragOffset(revealed ? -REVEAL_WIDTH : 0);
+    setDragOffset(getOffsetForSide(revealedSide));
     horizontalDragRef.current = false;
   }
 
@@ -175,6 +260,7 @@ export function SwipeRevealAction({
 
   return (
     <div
+      ref={containerRef}
       className={className}
       style={{
         position: "relative",
@@ -184,13 +270,34 @@ export function SwipeRevealAction({
       }}
     >
       <div
-        aria-hidden={!revealed}
+        ref={leadingActionRef}
+        aria-hidden={revealedSide !== "leading"}
         style={{
           position: "absolute",
-          inset: "0 0 0 auto",
-          width: REVEAL_WIDTH,
-          display: "grid",
-          placeItems: "center",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          paddingLeft: 14,
+          background: "#ede9fe",
+          border: "1px solid #ddd6fe",
+          borderRadius: 20,
+          zIndex: 0,
+          visibility: leadingAction ? "visible" : "hidden",
+        }}
+      >
+        {leadingAction}
+      </div>
+      <div
+        ref={trailingActionRef}
+        aria-hidden={revealedSide !== "trailing"}
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          paddingRight: 14,
           background: "#fee2e2",
           border: "1px solid #fecaca",
           borderRadius: 20,
@@ -211,7 +318,7 @@ export function SwipeRevealAction({
         style={{
           position: "relative",
           zIndex: 1,
-          transform: `translateX(${dragging ? dragOffset : revealed ? -REVEAL_WIDTH : 0}px)`,
+          transform: `translateX(${completingOffset ?? (dragging ? dragOffset : getOffsetForSide(revealedSide))}px)`,
           transition: dragging ? "none" : "transform 190ms cubic-bezier(0.22, 1, 0.36, 1)",
           touchAction: "pan-y pinch-zoom",
           willChange: "transform",

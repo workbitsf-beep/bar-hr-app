@@ -607,6 +607,53 @@ export default async function DashboardRequestsPage({
                 {closures.map((closure) => (
                   <SwipeRevealAction
                     key={closure.id}
+                    leadingAction={
+                      <PopupAction
+                        title="Modifica chiusura"
+                        ariaLabel={`Modifica ${closure.title}`}
+                        closeOnSubmit
+                        triggerContent={
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        }
+                      >
+                        <form action={updateCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
+                          <input type="hidden" name="closureId" value={closure.id} />
+                          <input type="hidden" name="notifySuccess" value="1" />
+
+                          <FormField label="Nome">
+                            <TextInput name="title" defaultValue={closure.title} />
+                          </FormField>
+
+                          <FormField label="Tipo attivita">
+                            <Select name="type" defaultValue={closure.type}>
+                              <option value={CalendarClosureType.CLOSURE}>Chiusura</option>
+                              <option value={CalendarClosureType.HOLIDAY}>Festivita</option>
+                              <option value={CalendarClosureType.VACATION}>Ferie aziendali</option>
+                            </Select>
+                          </FormField>
+
+                          <ClosureDateRangeInput
+                            startName="startsAt"
+                            endName="endsAt"
+                            startValue={closure.startsAt.toISOString()}
+                            endValue={closure.endsAt.toISOString()}
+                            required
+                          />
+
+                          <div className="dashboard-form-actions">
+                            <PrimaryButton type="submit">Salva modifiche</PrimaryButton>
+                          </div>
+                        </form>
+                      </PopupAction>
+                    }
                     action={
                       <form action={deleteCalendarClosureAction}>
                         <input type="hidden" name="closureId" value={closure.id} />
@@ -624,67 +671,11 @@ export default async function DashboardRequestsPage({
                       }`}
                       meta={<StatusPill label={closureTypeLabel(closure.type)} tone={closureTypeTone(closure.type)} />}
                       footer={
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span style={{ color: "#64748b", fontSize: 13 }}>
-                            {closure.createdBy
-                              ? `${closure.createdBy.firstName} ${closure.createdBy.lastName}`.trim()
-                              : "Autore non disponibile"}
-                          </span>
-
-                          <PopupAction
-                            title="Modifica chiusura"
-                            ariaLabel={`Modifica ${closure.title}`}
-                            closeOnSubmit
-                            triggerContent={
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path
-                                  d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            }
-                          >
-                            <form action={updateCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
-                              <input type="hidden" name="closureId" value={closure.id} />
-                              <input type="hidden" name="notifySuccess" value="1" />
-
-                              <FormField label="Nome">
-                                <TextInput name="title" defaultValue={closure.title} />
-                              </FormField>
-
-                              <FormField label="Tipo attivita">
-                                <Select name="type" defaultValue={closure.type}>
-                                  <option value={CalendarClosureType.CLOSURE}>Chiusura</option>
-                                  <option value={CalendarClosureType.HOLIDAY}>Festivita</option>
-                                  <option value={CalendarClosureType.VACATION}>Ferie aziendali</option>
-                                </Select>
-                              </FormField>
-
-                              <ClosureDateRangeInput
-                                startName="startsAt"
-                                endName="endsAt"
-                                startValue={closure.startsAt.toISOString()}
-                                endValue={closure.endsAt.toISOString()}
-                                required
-                              />
-
-                              <div className="dashboard-form-actions">
-                                <PrimaryButton type="submit">Salva modifiche</PrimaryButton>
-                              </div>
-                            </form>
-                          </PopupAction>
-                        </div>
+                        <span style={{ color: "#64748b", fontSize: 13 }}>
+                          {closure.createdBy
+                            ? `${closure.createdBy.firstName} ${closure.createdBy.lastName}`.trim()
+                            : "Autore non disponibile"}
+                        </span>
                       }
                     />
                   </SwipeRevealAction>
