@@ -457,10 +457,162 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 min-width: 0;
               }
 
+              .workbit-app-content {
+                position: relative;
+                z-index: 1;
+                min-height: var(--workbit-vh, 100dvh);
+              }
+
+              .workbit-global-ambient {
+                position: fixed;
+                inset: -18%;
+                z-index: 0;
+                overflow: hidden;
+                pointer-events: none;
+                background:
+                  radial-gradient(circle at 18% 12%, rgba(124, 58, 237, 0.38), transparent 28%),
+                  radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.28), transparent 30%),
+                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.34), transparent 32%),
+                  linear-gradient(140deg, #fbf8ff 0%, #eee7ff 42%, #e7efff 100%);
+                animation: workbit-global-bg-pan 11s ease-in-out infinite alternate;
+                will-change: transform, background-position;
+              }
+
+              .workbit-global-ambient__light,
+              .workbit-global-ambient__smoke,
+              .workbit-global-ambient__beam,
+              .workbit-global-ambient__veil,
+              .workbit-global-ambient__orbit {
+                position: absolute;
+                display: block;
+                pointer-events: none;
+                transform: translate3d(0, 0, 0);
+              }
+
+              .workbit-global-ambient__light {
+                width: 58vmax;
+                height: 58vmax;
+                border-radius: 999px;
+                filter: blur(22px);
+                opacity: 0.74;
+                mix-blend-mode: multiply;
+                background: radial-gradient(circle, rgba(168, 85, 247, 0.58), rgba(59, 130, 246, 0.24) 42%, transparent 72%);
+                animation: workbit-global-light-one 8s ease-in-out infinite alternate;
+              }
+
+              .workbit-global-ambient__light--one {
+                top: -8%;
+                left: -10%;
+              }
+
+              .workbit-global-ambient__light--two {
+                right: -12%;
+                top: 12%;
+                opacity: 0.68;
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.50), rgba(168, 85, 247, 0.28) 44%, transparent 74%);
+                animation-name: workbit-global-light-two;
+                animation-duration: 10s;
+              }
+
+              .workbit-global-ambient__light--three {
+                left: 18%;
+                bottom: -24%;
+                width: 70vmax;
+                height: 70vmax;
+                opacity: 0.52;
+                background: radial-gradient(circle, rgba(124, 58, 237, 0.44), rgba(14, 165, 233, 0.18) 45%, transparent 76%);
+                animation-name: workbit-global-light-three;
+                animation-duration: 12s;
+              }
+
+              .workbit-global-ambient__smoke {
+                inset: 0;
+                opacity: 0.64;
+                filter: blur(20px);
+                mix-blend-mode: screen;
+                background:
+                  radial-gradient(ellipse at 18% 24%, rgba(255,255,255,0.68), transparent 32%),
+                  radial-gradient(ellipse at 74% 32%, rgba(255,255,255,0.46), transparent 34%),
+                  radial-gradient(ellipse at 46% 72%, rgba(233,213,255,0.56), transparent 38%);
+                animation: workbit-global-smoke 9s ease-in-out infinite alternate;
+              }
+
+              .workbit-global-ambient__beam {
+                width: 118vmax;
+                height: 24vmax;
+                left: 50%;
+                top: 28%;
+                border-radius: 999px;
+                opacity: 0.42;
+                filter: blur(13px);
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.26), rgba(168,85,247,0.42), rgba(59,130,246,0.24), transparent);
+                transform: translate3d(-50%, 0, 0) rotate(-14deg);
+                animation: workbit-global-beam 7s ease-in-out infinite alternate;
+              }
+
+              .workbit-global-ambient__veil {
+                inset: -8%;
+                opacity: 0.34;
+                background:
+                  linear-gradient(105deg, transparent 4%, rgba(255,255,255,0.32) 34%, transparent 58%),
+                  linear-gradient(28deg, transparent 18%, rgba(124,58,237,0.20) 44%, transparent 68%);
+                filter: blur(8px);
+                animation: workbit-global-veil 13s ease-in-out infinite alternate;
+              }
+
+              .workbit-global-ambient__orbit {
+                left: 50%;
+                top: 50%;
+                width: 26vmax;
+                height: 26vmax;
+                border-radius: 999px;
+                opacity: 0.72;
+                filter: blur(14px);
+                mix-blend-mode: screen;
+                background: radial-gradient(circle, rgba(255,255,255,0.74), rgba(168,85,247,0.46) 28%, transparent 68%);
+                transform-origin: 0 0;
+                animation: workbit-global-orbit-one 10s linear infinite;
+              }
+
+              .workbit-global-ambient__orbit--two {
+                width: 20vmax;
+                height: 20vmax;
+                opacity: 0.62;
+                background: radial-gradient(circle, rgba(191,219,254,0.72), rgba(59,130,246,0.44) 30%, transparent 70%);
+                animation-name: workbit-global-orbit-two;
+                animation-duration: 14s;
+                animation-direction: reverse;
+              }
+
+              .workbit-global-ambient__orbit--three {
+                width: 16vmax;
+                height: 16vmax;
+                opacity: 0.56;
+                background: radial-gradient(circle, rgba(245,208,254,0.72), rgba(124,58,237,0.46) 30%, transparent 70%);
+                animation-name: workbit-global-orbit-three;
+                animation-duration: 18s;
+              }
+
+              html[data-theme="dark"] .workbit-global-ambient {
+                background:
+                  radial-gradient(circle at 16% 12%, rgba(124, 58, 237, 0.42), transparent 30%),
+                  radial-gradient(circle at 86% 18%, rgba(14, 165, 233, 0.28), transparent 30%),
+                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.36), transparent 32%),
+                  linear-gradient(140deg, #150d2c 0%, #24124f 46%, #0b1835 100%);
+              }
+
+              html[data-theme="dark"] .workbit-global-ambient__light {
+                mix-blend-mode: screen;
+                opacity: 0.58;
+              }
+
+              html[data-theme="dark"] .workbit-global-ambient__smoke {
+                opacity: 0.32;
+              }
+
               .dashboard-shell,
               .workbit-login-page {
-                background-size: 140% 140% !important;
-                animation: workbit-page-gradient 18s ease-in-out infinite alternate;
+                background: transparent !important;
               }
 
               .workbit-animated-background {
@@ -879,6 +1031,104 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 }
               }
 
+              @keyframes workbit-global-bg-pan {
+                from {
+                  transform: translate3d(-2%, -1%, 0) scale(1.02);
+                  background-position: 0% 0%;
+                }
+                to {
+                  transform: translate3d(2%, 1.5%, 0) scale(1.06);
+                  background-position: 100% 100%;
+                }
+              }
+
+              @keyframes workbit-global-light-one {
+                from {
+                  transform: translate3d(-8%, -5%, 0) scale(.96);
+                }
+                to {
+                  transform: translate3d(26%, 18%, 0) scale(1.14);
+                }
+              }
+
+              @keyframes workbit-global-light-two {
+                from {
+                  transform: translate3d(10%, -8%, 0) scale(1);
+                }
+                to {
+                  transform: translate3d(-24%, 20%, 0) scale(1.18);
+                }
+              }
+
+              @keyframes workbit-global-light-three {
+                from {
+                  transform: translate3d(-16%, 10%, 0) scale(.94);
+                }
+                to {
+                  transform: translate3d(18%, -18%, 0) scale(1.12);
+                }
+              }
+
+              @keyframes workbit-global-smoke {
+                from {
+                  transform: translate3d(-5%, -3%, 0) rotate(-1deg) scale(1);
+                  opacity: .48;
+                }
+                to {
+                  transform: translate3d(6%, 4%, 0) rotate(1deg) scale(1.06);
+                  opacity: .72;
+                }
+              }
+
+              @keyframes workbit-global-beam {
+                from {
+                  transform: translate3d(-62%, -10%, 0) rotate(-18deg) scale(.96);
+                  opacity: .28;
+                }
+                to {
+                  transform: translate3d(-38%, 18%, 0) rotate(-7deg) scale(1.12);
+                  opacity: .58;
+                }
+              }
+
+              @keyframes workbit-global-veil {
+                from {
+                  transform: translate3d(-6%, -2%, 0) rotate(-1deg);
+                  opacity: .22;
+                }
+                to {
+                  transform: translate3d(6%, 3%, 0) rotate(1deg);
+                  opacity: .44;
+                }
+              }
+
+              @keyframes workbit-global-orbit-one {
+                from {
+                  transform: rotate(0deg) translate3d(30vmax, -4vmax, 0) rotate(0deg) scale(.92);
+                }
+                to {
+                  transform: rotate(360deg) translate3d(30vmax, -4vmax, 0) rotate(-360deg) scale(1.08);
+                }
+              }
+
+              @keyframes workbit-global-orbit-two {
+                from {
+                  transform: rotate(0deg) translate3d(-24vmax, 16vmax, 0) rotate(0deg) scale(1.04);
+                }
+                to {
+                  transform: rotate(360deg) translate3d(-24vmax, 16vmax, 0) rotate(-360deg) scale(.92);
+                }
+              }
+
+              @keyframes workbit-global-orbit-three {
+                from {
+                  transform: rotate(0deg) translate3d(12vmax, 28vmax, 0) rotate(0deg) scale(.96);
+                }
+                to {
+                  transform: rotate(360deg) translate3d(12vmax, 28vmax, 0) rotate(-360deg) scale(1.12);
+                }
+              }
+
               @keyframes workbit-mesh-shift {
                 from {
                   transform: translate3d(-5%, -3%, 0) rotate(-2deg);
@@ -1011,6 +1261,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 .workbit-animated-background__fog,
                 .workbit-animated-background__mesh,
                 .workbit-animated-background__ray,
+                .workbit-global-ambient,
+                .workbit-global-ambient *,
                 .workbit-route-transition {
                   animation: none !important;
                   transform: none !important;
@@ -1044,6 +1296,27 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 .workbit-animated-background__ray {
                   opacity: 0.32;
                 }
+
+                .workbit-global-ambient {
+                  inset: -28%;
+                }
+
+                .workbit-global-ambient__light {
+                  width: 72vmax;
+                  height: 72vmax;
+                  opacity: 0.78;
+                  filter: blur(18px);
+                }
+
+                .workbit-global-ambient__smoke {
+                  opacity: 0.66;
+                  filter: blur(16px);
+                }
+
+                .workbit-global-ambient__beam {
+                  opacity: 0.48;
+                  filter: blur(11px);
+                }
               }
             `,
           }}
@@ -1068,7 +1341,18 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <PwaRegister />
         <PasskeySetupPrompt />
         <WorkbitRouteTransition />
-        {children}
+        <div className="workbit-global-ambient" aria-hidden="true">
+          <span className="workbit-global-ambient__light workbit-global-ambient__light--one" />
+          <span className="workbit-global-ambient__light workbit-global-ambient__light--two" />
+          <span className="workbit-global-ambient__light workbit-global-ambient__light--three" />
+          <span className="workbit-global-ambient__smoke" />
+          <span className="workbit-global-ambient__beam" />
+          <span className="workbit-global-ambient__veil" />
+          <span className="workbit-global-ambient__orbit workbit-global-ambient__orbit--one" />
+          <span className="workbit-global-ambient__orbit workbit-global-ambient__orbit--two" />
+          <span className="workbit-global-ambient__orbit workbit-global-ambient__orbit--three" />
+        </div>
+        <div className="workbit-app-content">{children}</div>
       </body>
     </html>
   );

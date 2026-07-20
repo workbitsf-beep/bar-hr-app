@@ -107,7 +107,7 @@ function DashboardResponsiveStyles() {
         max-width: 100%;
         overflow-x: hidden;
         padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
-        background: var(--workbit-app-bg) !important;
+        background: transparent !important;
       }
 
       .dashboard-profile-layout > div:first-child {
