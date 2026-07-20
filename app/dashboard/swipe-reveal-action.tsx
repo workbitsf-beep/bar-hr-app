@@ -185,7 +185,6 @@ export function SwipeRevealAction({
       -getFullSwipeThreshold() - 18,
       Math.min(maxOffset, startOffsetRef.current + deltaX)
     );
-    const finalOffset = getResistedOffset(finalRawOffset);
     const releaseActionThreshold = getReleaseActionThreshold();
 
     if (horizontalDragRef.current && finalRawOffset <= -releaseActionThreshold) {
