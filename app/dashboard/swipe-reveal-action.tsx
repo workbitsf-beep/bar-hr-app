@@ -4,13 +4,12 @@ import type { CSSProperties, PointerEvent, ReactNode, TouchEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 const REVEAL_WIDTH = 82;
-const OPEN_THRESHOLD = 42;
 const FULL_SWIPE_MIN = 180;
 const FULL_SWIPE_MAX = 320;
 const FULL_SWIPE_RATIO = 0.62;
 const DRAG_RESISTANCE = 0.34;
-const RELEASE_ACTION_RATIO = 0.72;
-const RELEASE_ACTION_MIN = 44;
+const RELEASE_ACTION_RATIO = 0.94;
+const RELEASE_ACTION_MIN = 76;
 
 type RevealedSide = "leading" | "trailing" | null;
 
@@ -52,7 +51,6 @@ export function SwipeRevealAction({
   const [dragging, setDragging] = useState(false);
   const [completingOffset, setCompletingOffset] = useState<number | null>(null);
   const safeRevealWidth = Math.max(48, Math.min(120, revealWidth));
-  const openThreshold = Math.min(OPEN_THRESHOLD, safeRevealWidth * 0.58);
 
   function resetSwipe() {
     pointerIdRef.current = null;
@@ -210,13 +208,7 @@ export function SwipeRevealAction({
       return;
     }
 
-    const nextRevealedSide = horizontalDragRef.current
-      ? finalOffset >= openThreshold && leadingAction
-        ? "leading"
-        : finalOffset <= -openThreshold
-          ? "trailing"
-          : null
-      : revealedSide;
+    const nextRevealedSide = horizontalDragRef.current ? null : revealedSide;
 
     setRevealedSide(nextRevealedSide);
     setDragOffset(getOffsetForSide(nextRevealedSide));
@@ -334,6 +326,12 @@ export function SwipeRevealAction({
   const activeSide: RevealedSide =
     visualOffset > 0 ? "leading" : visualOffset < 0 ? "trailing" : revealedSide;
   const actionProgress = Math.min(1, Math.abs(visualOffset) / safeRevealWidth);
+  const actionScale = 0.82 + actionProgress * 0.18;
+  const actionRotate = activeSide === "leading"
+    ? -8 + actionProgress * 8
+    : activeSide === "trailing"
+      ? 8 - actionProgress * 8
+      : 0;
 
   return (
     <div
@@ -348,6 +346,7 @@ export function SwipeRevealAction({
     >
       <div
         ref={leadingActionRef}
+        className="workbit-swipe-action workbit-swipe-action-leading"
         aria-hidden={revealedSide !== "leading"}
         style={{
           position: "absolute",
@@ -364,12 +363,16 @@ export function SwipeRevealAction({
           visibility: leadingAction ? "visible" : "hidden",
           transform: `translateX(${activeSide === "leading" ? 0 : -6}px)`,
           transition: dragging ? "none" : "opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+          ["--workbit-swipe-action-color" as string]: "#6d28d9",
+          ["--workbit-swipe-action-scale" as string]: actionScale,
+          ["--workbit-swipe-action-rotate" as string]: `${actionRotate}deg`,
         }}
       >
         {leadingAction}
       </div>
       <div
         ref={trailingActionRef}
+        className="workbit-swipe-action workbit-swipe-action-trailing"
         aria-hidden={revealedSide !== "trailing"}
         style={{
           position: "absolute",
@@ -385,6 +388,9 @@ export function SwipeRevealAction({
           opacity: activeSide === "trailing" ? actionProgress : 0,
           transform: `translateX(${activeSide === "trailing" ? 0 : 6}px)`,
           transition: dragging ? "none" : "opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+          ["--workbit-swipe-action-color" as string]: "#dc2626",
+          ["--workbit-swipe-action-scale" as string]: actionScale,
+          ["--workbit-swipe-action-rotate" as string]: `${actionRotate}deg`,
         }}
       >
         {action}
@@ -409,6 +415,27 @@ export function SwipeRevealAction({
       >
         {children}
       </div>
+      <style jsx>{`
+        .workbit-swipe-action :global(button) {
+          background: rgba(255, 255, 255, 0.78) !important;
+          border-color: rgba(255, 255, 255, 0.82) !important;
+          color: var(--workbit-swipe-action-color) !important;
+          box-shadow:
+            0 12px 26px rgba(15, 23, 42, 0.13),
+            inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+          backdrop-filter: blur(12px);
+          transform: scale(var(--workbit-swipe-action-scale)) rotate(var(--workbit-swipe-action-rotate));
+          transition:
+            transform 220ms cubic-bezier(0.2, 0.82, 0.24, 1),
+            box-shadow 180ms ease,
+            background 180ms ease,
+            color 180ms ease !important;
+        }
+
+        .workbit-swipe-action :global(button:active) {
+          transform: scale(0.94) rotate(var(--workbit-swipe-action-rotate));
+        }
+      `}</style>
     </div>
   );
 }
