@@ -183,6 +183,35 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 transition: background-color 140ms ease, background 140ms ease, color 140ms ease, border-color 140ms ease;
               }
 
+              html,
+              body,
+              .dashboard-shell,
+              .dashboard-shell *,
+              .dashboard-modal-wrap,
+              .dashboard-modal-wrap *,
+              .dashboard-menu-overlay,
+              .dashboard-menu-overlay *,
+              .workbit-login-page,
+              .workbit-login-page * {
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+              }
+
+              html::-webkit-scrollbar,
+              body::-webkit-scrollbar,
+              .dashboard-shell::-webkit-scrollbar,
+              .dashboard-shell *::-webkit-scrollbar,
+              .dashboard-modal-wrap::-webkit-scrollbar,
+              .dashboard-modal-wrap *::-webkit-scrollbar,
+              .dashboard-menu-overlay::-webkit-scrollbar,
+              .dashboard-menu-overlay *::-webkit-scrollbar,
+              .workbit-login-page::-webkit-scrollbar,
+              .workbit-login-page *::-webkit-scrollbar {
+                width: 0;
+                height: 0;
+                display: none;
+              }
+
               html[data-theme="dark"] body {
                 background: var(--workbit-app-bg) !important;
                 color: var(--workbit-text) !important;
@@ -616,6 +645,17 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 opacity: 0.24;
               }
 
+              html[data-workbit-overlay-open="true"] .workbit-global-ambient,
+              html[data-workbit-overlay-open="true"] .workbit-global-ambient *,
+              html[data-workbit-overlay-open="true"] .workbit-animated-background,
+              html[data-workbit-overlay-open="true"] .workbit-animated-background * {
+                animation-play-state: paused !important;
+              }
+
+              html[data-workbit-overlay-open="true"] .workbit-global-ambient {
+                opacity: 0.55;
+              }
+
               .dashboard-shell,
               .workbit-login-page {
                 background: transparent !important;
@@ -637,7 +677,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                   radial-gradient(circle at 18% 18%, rgba(168,85,247,0.14), transparent 30%),
                   radial-gradient(circle at 84% 28%, rgba(59,130,246,0.10), transparent 32%),
                   radial-gradient(circle at 52% 88%, rgba(124,58,237,0.10), transparent 34%);
-                animation: workbit-popup-orbit 22s ease-in-out infinite alternate;
+                opacity: 0.82;
               }
 
               .dashboard-modal-panel > * {

@@ -38,7 +38,9 @@ export function PopupAction({
       return;
     }
 
+    const previousOverlayState = document.documentElement.getAttribute("data-workbit-overlay-open");
     const previousOverflow = document.body.style.overflow;
+    document.documentElement.setAttribute("data-workbit-overlay-open", "true");
     document.body.style.overflow = "hidden";
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -51,6 +53,11 @@ export function PopupAction({
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      if (previousOverlayState === null) {
+        document.documentElement.removeAttribute("data-workbit-overlay-open");
+      } else {
+        document.documentElement.setAttribute("data-workbit-overlay-open", previousOverlayState);
+      }
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
@@ -114,8 +121,9 @@ export function PopupAction({
                   position: "absolute",
                   inset: 0,
                   border: 0,
-                  background: "rgba(15, 23, 42, 0.28)",
-                  backdropFilter: "blur(8px)",
+                  background: "rgba(15, 23, 42, 0.18)",
+                  backdropFilter: "blur(2px)",
+                  WebkitBackdropFilter: "blur(2px)",
                   cursor: "pointer",
                 }}
               />

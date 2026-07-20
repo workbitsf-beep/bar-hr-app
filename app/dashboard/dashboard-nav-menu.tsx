@@ -72,10 +72,17 @@ export function DashboardNavMenu({
       return;
     }
 
+    const previousOverlayState = document.documentElement.getAttribute("data-workbit-overlay-open");
     const previousOverflow = document.body.style.overflow;
+    document.documentElement.setAttribute("data-workbit-overlay-open", "true");
     document.body.style.overflow = "hidden";
 
     return () => {
+      if (previousOverlayState === null) {
+        document.documentElement.removeAttribute("data-workbit-overlay-open");
+      } else {
+        document.documentElement.setAttribute("data-workbit-overlay-open", previousOverlayState);
+      }
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
@@ -119,13 +126,11 @@ export function DashboardNavMenu({
 
     syncPosition();
     window.addEventListener("resize", syncPosition);
-    window.addEventListener("scroll", syncPosition, true);
     window.addEventListener("keydown", handleEscape);
     window.addEventListener("dashboard-menu-close", handleMenuClose);
 
     return () => {
       window.removeEventListener("resize", syncPosition);
-      window.removeEventListener("scroll", syncPosition, true);
       window.removeEventListener("keydown", handleEscape);
       window.removeEventListener("dashboard-menu-close", handleMenuClose);
     };
@@ -200,15 +205,16 @@ export function DashboardNavMenu({
               />
 
               <div
+                className="dashboard-menu-overlay"
                 onMouseDown={handleOutsidePointerDown}
                 style={{
                   position: "fixed",
                   inset: 0,
                   zIndex: 9999,
                   overflow: "hidden",
-                  background: isCompact ? "rgba(15, 23, 42, 0.22)" : "rgba(15, 23, 42, 0.12)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
+                  background: isCompact ? "rgba(15, 23, 42, 0.16)" : "rgba(15, 23, 42, 0.08)",
+                  backdropFilter: "blur(2px)",
+                  WebkitBackdropFilter: "blur(2px)",
                   display: isCompact ? "grid" : "block",
                   placeItems: isCompact ? "center" : undefined,
                   padding: isCompact ? 16 : 0,

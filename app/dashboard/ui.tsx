@@ -504,7 +504,7 @@ function DashboardResponsiveStyles() {
         padding: clamp(18px, 2.8vw, 24px) !important;
         border-radius: 28px !important;
         box-shadow: 0 22px 56px rgba(88, 28, 135, 0.18) !important;
-        animation: dashboardModalEnter 140ms cubic-bezier(0.22, 1, 0.36, 1);
+        animation: none;
         transform-origin: center;
         -webkit-overflow-scrolling: touch;
       }
@@ -520,7 +520,7 @@ function DashboardResponsiveStyles() {
       .dashboard-scroll-list {
         max-height: min(420px, calc(var(--workbit-vh, 100dvh) * 0.6));
         overflow-y: auto;
-        padding-right: 4px;
+        padding-right: 0;
         overscroll-behavior: contain;
       }
 
@@ -1259,7 +1259,7 @@ export function ItemList({
                   ? `${maxHeight}px`
                   : maxHeight ?? "min(420px, calc(var(--workbit-vh, 100dvh) * 0.6))",
               overflowY: "auto",
-              paddingRight: 4,
+              paddingRight: 0,
             }
           : {}),
       }}

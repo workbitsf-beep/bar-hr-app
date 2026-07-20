@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
-import { AnimatedBackground, RevealOnScroll } from "@/app/components/workbit-animations";
+import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { EmptyState, Panel } from "../ui";
 
 type AdminSection =
@@ -198,7 +198,6 @@ export function SuperAdminFrame({
   return (
     <div className="super-admin-workspace">
       <RevealOnScroll as="section" className="super-admin-hero">
-        <AnimatedBackground level="full" />
         <div className="super-admin-hero-glow" aria-hidden="true" />
         <div className="super-admin-hero-copy">
           <div className="super-admin-live-pill">

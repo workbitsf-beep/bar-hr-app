@@ -229,7 +229,6 @@ export default async function DashboardTasksPage({
                   subtitle={`Data ${formatDate(task.dueDate)}`}
                   style={{
                     position: "relative",
-                    paddingRight: isDone ? 76 : undefined,
                   }}
                   meta={
                     <>
@@ -244,39 +243,16 @@ export default async function DashboardTasksPage({
                   }
                   footer={
                     <div style={{ display: "grid", gap: 12 }}>
-                      {isDone ? (
-                        <span
-                          aria-label="Nota completata"
-                          title="Nota completata"
-                          style={{
-                            position: "absolute",
-                            top: 14,
-                            right: 14,
-                            width: 30,
-                            height: 30,
-                            borderRadius: 999,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "#dcfce7",
-                            color: "#166534",
-                            border: "1px solid #bbf7d0",
-                            fontSize: 16,
-                            fontWeight: 950,
-                            boxShadow: "0 10px 22px rgba(22, 101, 52, 0.12)",
-                          }}
-                        >
-                          ✓
-                        </span>
-                      ) : null}
                       <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                          {!isDone ? (
+                          {isDone ? (
+                            <StatusPill label="Completata" tone="success" />
+                          ) : (
                             <StatusPill
                               label={!task.requiresConfirmation ? "Promemoria" : task.isUrgent ? "Urgente" : "Da fare"}
                               tone={task.isUrgent ? "danger" : "warning"}
                             />
-                          ) : null}
+                          )}
                         </div>
                         {canComplete ? (
                           <form action={completeTaskAction}>

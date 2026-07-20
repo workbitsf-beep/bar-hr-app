@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
-import { AnimatedBackground, RevealOnScroll } from "@/app/components/workbit-animations";
+import { RevealOnScroll } from "@/app/components/workbit-animations";
 import {
   clearRememberedLoginEmail,
   clearPersistentSession,
@@ -46,7 +46,6 @@ export default function LoginPage() {
         if (response.ok) {
           active = false;
           router.replace("/dashboard");
-          router.refresh();
           return;
         }
 
@@ -127,7 +126,6 @@ export default function LoginPage() {
 
       markPersistentSession();
       router.push(data.redirectTo || "/dashboard");
-      router.refresh();
     } catch {
       setError("Impossibile accedere in questo momento");
     } finally {
@@ -146,7 +144,6 @@ export default function LoginPage() {
 
     markPersistentSession();
     router.push(redirectTo);
-    router.refresh();
   }
 
   return (
@@ -162,7 +159,6 @@ export default function LoginPage() {
         background: "var(--workbit-app-bg)",
       }}
     >
-      <AnimatedBackground level="full" />
       <RevealOnScroll
         as="section"
         className="workbit-animated-page__content"
