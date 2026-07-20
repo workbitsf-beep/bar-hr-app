@@ -63,11 +63,7 @@ function getNotificationEmoji(type: string) {
   return "🔔";
 }
 
-function isPersistentTimelogNotification(type: string) {
-  return type.startsWith("timelog.clock-in.") || type.startsWith("timelog.clock-out.");
-}
-
-export function NotificationsBell() {
+export function NotificationsBell({ activeBarId }: { activeBarId: string | null }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -197,21 +193,32 @@ export function NotificationsBell() {
     }
   }
 
-  function handleNotificationClick(notification: NotificationItem) {
-    if (isPersistentTimelogNotification(notification.type)) {
-      if (notification.actionUrl) {
-        setOpen(false);
-        router.push(notification.actionUrl);
-      }
-      return;
+  async function selectNotificationBar(notification: NotificationItem) {
+    if (!notification.barId || notification.barId === activeBarId) {
+      return true;
     }
 
+    const response = await fetch("/api/bars/select", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ barId: notification.barId }),
+    });
+
+    return response.ok;
+  }
+
+  function handleNotificationClick(notification: NotificationItem) {
     const markPromise = markAsRead(notification.id);
 
-    void markPromise.finally(() => {
+    void markPromise.finally(async () => {
       if (notification.actionUrl) {
+        await selectNotificationBar(notification);
         setOpen(false);
         router.push(notification.actionUrl);
+        router.refresh();
       }
     });
   }
@@ -224,12 +231,11 @@ export function NotificationsBell() {
         });
 
         if (!response.ok) {
-          throw new Error("Impossibile aggiornare le notifiche.");
-        }
+        throw new Error("Impossibile aggiornare le notifiche.");
+      }
 
-        setNotifications((current) =>
-          current.filter((notification) => isPersistentTimelogNotification(notification.type))
-        );
+        setNotifications([]);
+        setUnreadCount(0);
         await loadNotifications(true);
       } catch {
         // Silenzioso per non interrompere l'esperienza.

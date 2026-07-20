@@ -56,6 +56,50 @@ function buildPushLink(actionUrl: string | undefined) {
   return `${appUrl}${rawActionUrl.startsWith("/") ? rawActionUrl : `/${rawActionUrl}`}`;
 }
 
+function appendActionParam(actionUrl: string | undefined, action: "in" | "out") {
+  const rawActionUrl = actionUrl?.trim();
+
+  if (!rawActionUrl) {
+    return `/dashboard?clock=1&clockAction=${action}`;
+  }
+
+  const baseUrl = /^https?:\/\//i.test(rawActionUrl) ? rawActionUrl : `https://workbit.local${rawActionUrl.startsWith("/") ? rawActionUrl : `/${rawActionUrl}`}`;
+  const url = new URL(baseUrl);
+  url.searchParams.set("clock", "1");
+  url.searchParams.set("clockAction", action);
+
+  if (/^https?:\/\//i.test(rawActionUrl)) {
+    return url.toString();
+  }
+
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function getClockPushActions(data: Record<string, string>) {
+  if (data.type.startsWith("timelog.clock-in.")) {
+    return {
+      actions: [{ action: "clock-in", title: "Entra" }],
+      actionUrls: {
+        clockInUrl: appendActionParam(data.actionUrl, "in"),
+      },
+    };
+  }
+
+  if (data.type.startsWith("timelog.clock-out.")) {
+    return {
+      actions: [{ action: "clock-out", title: "Esci" }],
+      actionUrls: {
+        clockOutUrl: appendActionParam(data.actionUrl, "out"),
+      },
+    };
+  }
+
+  return {
+    actions: undefined,
+    actionUrls: {},
+  };
+}
+
 export async function sendPushNotification(
   input: PushNotificationInput
 ): Promise<PushNotificationResult> {
@@ -108,6 +152,8 @@ export async function sendPushNotification(
   data.body = input.body;
   const pushLink = buildPushLink(data.actionUrl);
   const isTimeSensitiveReminder = data.type.startsWith("timelog.");
+  const clockPushActions = getClockPushActions(data);
+  Object.assign(data, clockPushActions.actionUrls);
   const notificationTag = `${data.type || "workbit-notification"}:${data.barId || "global"}:${data.actionUrl || ""}`.slice(
     0,
     120
@@ -149,6 +195,7 @@ export async function sendPushNotification(
             badge: "/logo.png",
             tag: notificationTag,
             renotify: false,
+            actions: clockPushActions.actions,
             data,
           },
           headers: {

@@ -353,7 +353,12 @@ export default async function DashboardPage() {
             </div>
 
             {features.timeTracking ? (
-              <ClockActionsPanel role={role} settings={settings} clockStatus={clockStatus} />
+              <ClockActionsPanel
+                role={role}
+                settings={settings}
+                activeBarId={activeBarId}
+                clockStatus={clockStatus}
+              />
             ) : null}
           </div>
         </Panel>

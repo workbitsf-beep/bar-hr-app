@@ -5,6 +5,7 @@ import { ThemeSelect } from "@/app/components/theme-select";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
+import { NotificationBarSync } from "./notification-bar-sync";
 import { NotificationsBell } from "./notifications-bell";
 import { PushRegistration } from "./push-registration";
 import { logoutAction, selectBarAction, setLanguageAction } from "./actions";
@@ -32,6 +33,7 @@ export default async function DashboardLayout({
   return (
     <>
       <SessionKeepAlive />
+      <NotificationBarSync activeBarId={activeBarId} />
       <PushRegistration />
       <DashboardRouteGuard
         redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings?billing=1" : null}
@@ -97,7 +99,7 @@ export default async function DashboardLayout({
         }
         headerAction={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <NotificationsBell />
+            <NotificationsBell activeBarId={activeBarId} />
             <LogoutForm
               action={logoutAction}
               style={{

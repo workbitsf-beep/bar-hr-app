@@ -8,8 +8,6 @@ const CLOCK_IN_REMINDER_LEAD_MS = 5 * 60 * 1000;
 const CLOCK_OUT_REMINDER_LEAD_MS = 5 * 60 * 1000;
 const CLOCK_REMINDER_BACKFILL_LOOKBACK_MS = 15 * 60 * 1000;
 const CLOCK_REMINDER_BACKFILL_LOOKAHEAD_MS = 14 * 24 * 60 * 60 * 1000;
-const ACTION_URL = "/dashboard?clock=1";
-
 const CLOCK_IN_TYPES: string[] = [
   INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE,
   INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_START,
@@ -52,8 +50,21 @@ function shouldReceiveClockReminder(assignment: ShiftAssignmentForReminder, barI
   return assignment.user.role !== Role.OWNER;
 }
 
-function getActionUrl(shiftId: string) {
-  return `${ACTION_URL}&shift=${shiftId}`;
+export function getClockReminderActionUrl(shiftId: string, barId?: string | null, action?: "in" | "out") {
+  const params = new URLSearchParams({
+    clock: "1",
+    shift: shiftId,
+  });
+
+  if (barId) {
+    params.set("barId", barId);
+  }
+
+  if (action) {
+    params.set("clockAction", action);
+  }
+
+  return `/dashboard?${params.toString()}`;
 }
 
 function getClockReminderSchedule(shift: Pick<ShiftForReminder, "startTime" | "endTime">) {
@@ -157,7 +168,7 @@ export async function scheduleShiftClockReminders(shiftIds: string[]) {
 
   await prisma.$transaction(async (tx) => {
     for (const shift of shifts) {
-      const actionUrl = getActionUrl(shift.id);
+      const actionUrl = getClockReminderActionUrl(shift.id, shift.barId);
       const schedule = getClockReminderSchedule(shift);
 
       for (const assignment of shift.assignments) {

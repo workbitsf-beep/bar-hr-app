@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
@@ -515,15 +515,19 @@ function ClockDayCard({
 export function ClockActionsPanel({
   role,
   settings,
+  activeBarId,
   compact = false,
   clockStatus = "CAN_CLOCK_IN",
 }: {
   role: Role | string;
   settings: BarSettingsSummary;
+  activeBarId?: string | null;
   compact?: boolean;
   clockStatus?: ClockActionStatus;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoClockActionRef = useRef<string | null>(null);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [distance, setDistance] = useState<number | null>(null);
@@ -533,6 +537,8 @@ export function ClockActionsPanel({
   const [actionMessage, setActionMessage] = useState("");
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [confirmationKey, setConfirmationKey] = useState(0);
+  const [temporaryWarning, setTemporaryWarning] = useState("");
+  const [temporaryWarningKey, setTemporaryWarningKey] = useState(0);
   const [submitting, setSubmitting] = useState<"in" | "out" | null>(null);
   const [locating, setLocating] = useState(false);
   const [weakAccuracy, setWeakAccuracy] = useState<number | null>(null);
@@ -719,6 +725,11 @@ export function ClockActionsPanel({
     stopGeolocationWatch,
   ]);
 
+  function showTemporaryWarning(message: string) {
+    setTemporaryWarning(message);
+    setTemporaryWarningKey((current) => current + 1);
+  }
+
   async function getClockActionLocation() {
     if (!hasConfiguredGps(settings)) {
       setLocationError("Geolocalizzazione non disponibile.");
@@ -783,7 +794,9 @@ export function ClockActionsPanel({
 
       if (nextDistance > settings.gpsRadius) {
         setLocationError("");
-        setActionMessage("Avvicinati di più al punto impostato dal titolare.");
+        const message = "Non sei ancora nel tuo luogo di lavoro, avvicinati.";
+        setActionMessage(message);
+        showTemporaryWarning(message);
         return;
       }
 
@@ -803,7 +816,14 @@ export function ClockActionsPanel({
         | null;
 
       if (!response.ok || payload?.ok === false) {
-        setActionMessage(payload?.message || "Operazione non riuscita");
+        const message =
+          payload?.message === "Outside allowed radius"
+            ? "Non sei ancora nel tuo luogo di lavoro, avvicinati."
+            : payload?.message || "Operazione non riuscita";
+        setActionMessage(message);
+        if (payload?.message === "Outside allowed radius") {
+          showTemporaryWarning(message);
+        }
         return;
       }
 
@@ -828,6 +848,34 @@ export function ClockActionsPanel({
       setSubmitting(null);
     }
   }
+
+  useEffect(() => {
+    const requestedAction = searchParams.get("clockAction");
+    const targetBarId = searchParams.get("barId");
+
+    if (
+      !canClock ||
+      submitting !== null ||
+      autoClockActionRef.current === requestedAction ||
+      (requestedAction !== "in" && requestedAction !== "out") ||
+      (targetBarId && activeBarId && targetBarId !== activeBarId)
+    ) {
+      return;
+    }
+
+    autoClockActionRef.current = requestedAction;
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("clockAction");
+    const nextUrl = nextParams.size > 0
+      ? `${window.location.pathname}?${nextParams.toString()}`
+      : window.location.pathname;
+    window.history.replaceState(null, "", `${nextUrl}${window.location.hash}`);
+
+    void runClockAction(requestedAction === "in" ? "clock-in" : "clock-out");
+    // runClockAction intentionally stays local to the component so the push
+    // intent uses the same validation and GPS flow as the visible buttons.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBarId, canClock, searchParams, submitting]);
 
   function captureGeolocation() {
     if (locating) {
@@ -977,6 +1025,10 @@ export function ClockActionsPanel({
           <ConfirmationToast key={confirmationKey}>{confirmationMessage}</ConfirmationToast>
         ) : null}
 
+        {temporaryWarning ? (
+          <TemporaryWarningToast key={temporaryWarningKey}>{temporaryWarning}</TemporaryWarningToast>
+        ) : null}
+
         {compact && !gpsConfigured ? (
           <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
             Configura il GPS del locale per abilitare la timbratura.
@@ -984,6 +1036,97 @@ export function ClockActionsPanel({
         ) : null}
       </div>
     </Panel>
+  );
+}
+
+function TemporaryWarningToast({
+  children,
+  duration = 2400,
+}: {
+  children: ReactNode;
+  duration?: number;
+}) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setVisible(false), duration);
+    return () => window.clearTimeout(timeout);
+  }, [duration]);
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-live="polite"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 2147483647,
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+        pointerEvents: "none",
+      }}
+    >
+      <div
+        style={{
+          width: "min(88vw, 360px)",
+          borderRadius: 28,
+          border: "1px solid rgba(251, 146, 60, 0.28)",
+          background: "rgba(255, 251, 235, 0.96)",
+          boxShadow: "0 28px 70px rgba(124, 45, 18, 0.22)",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
+          padding: "22px 20px",
+          textAlign: "center",
+          animation: "workbit-warning-pop 170ms ease-out",
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 54,
+            height: 54,
+            margin: "0 auto 12px",
+            borderRadius: 22,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#ffedd5",
+            color: "#c2410c",
+            fontSize: 28,
+            fontWeight: 900,
+          }}
+        >
+          !
+        </span>
+        <strong
+          style={{
+            display: "block",
+            color: "#7c2d12",
+            fontSize: 18,
+            lineHeight: 1.25,
+            fontWeight: 900,
+          }}
+        >
+          {children}
+        </strong>
+      </div>
+      <style jsx>{`
+        @keyframes workbit-warning-pop {
+          from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   backfillMissingShiftClockReminders,
   cancelUserShiftClockReminders,
+  getClockReminderActionUrl,
   runDueScheduledClockNotifications,
 } from "@/lib/shift-clock-reminders";
 
@@ -46,7 +47,21 @@ async function markClockRemindersRead(input: {
       },
       ...(input.shiftId
         ? {
-            actionUrl: `${ACTION_URL}&shift=${input.shiftId}`,
+            OR: [
+              {
+                actionUrl: `${ACTION_URL}&shift=${input.shiftId}`,
+              },
+              {
+                actionUrl: getClockReminderActionUrl(input.shiftId, input.barId),
+              },
+              {
+                actionUrl: getClockReminderActionUrl(
+                  input.shiftId,
+                  input.barId,
+                  input.direction === "in" || input.direction === "out" ? input.direction : undefined
+                ),
+              },
+            ],
           }
         : {}),
     },

@@ -59,12 +59,35 @@ self.addEventListener("notificationclick", function(event) {
   const firebaseData = notificationData.FCM_MSG && notificationData.FCM_MSG.data
     ? notificationData.FCM_MSG.data
     : {};
-  const actionUrl = notificationData.actionUrl || firebaseData.actionUrl
-    ? notificationData.actionUrl || firebaseData.actionUrl
-    : "/dashboard";
+  const data = Object.assign({}, firebaseData, notificationData);
+  const actionUrl =
+    event.action === "clock-in"
+      ? data.clockInUrl || data.actionUrl || "/dashboard?clock=1&clockAction=in"
+      : event.action === "clock-out"
+        ? data.clockOutUrl || data.actionUrl || "/dashboard?clock=1&clockAction=out"
+        : data.actionUrl || "/dashboard";
+
+  function selectNotificationBarIfNeeded() {
+    if (!data.barId) {
+      return Promise.resolve();
+    }
+
+    return fetch("/api/bars/select", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ barId: data.barId }),
+    }).catch(function() {
+      return null;
+    });
+  }
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function(clients) {
+    selectNotificationBarIfNeeded().then(function() {
+      return self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    }).then(function(clients) {
       for (const client of clients) {
         if ("navigate" in client && "url" in client && client.url && client.url.indexOf(actionUrl) !== -1) {
           return client.focus ? client.focus() : client;
