@@ -8,6 +8,7 @@ const OPEN_THRESHOLD = 42;
 const FULL_SWIPE_MIN = 180;
 const FULL_SWIPE_MAX = 320;
 const FULL_SWIPE_RATIO = 0.62;
+const DRAG_RESISTANCE = 0.34;
 
 type RevealedSide = "leading" | "trailing" | null;
 
@@ -87,6 +88,28 @@ export function SwipeRevealAction({
     return Math.min(FULL_SWIPE_MAX, Math.max(FULL_SWIPE_MIN, width * FULL_SWIPE_RATIO));
   }
 
+  function getResistedOffset(rawOffset: number) {
+    const fullSwipeLimit = getFullSwipeThreshold() + 18;
+
+    if (rawOffset > safeRevealWidth) {
+      return Math.min(fullSwipeLimit, safeRevealWidth + (rawOffset - safeRevealWidth) * DRAG_RESISTANCE);
+    }
+
+    if (rawOffset < -safeRevealWidth) {
+      return Math.max(-fullSwipeLimit, -safeRevealWidth + (rawOffset + safeRevealWidth) * DRAG_RESISTANCE);
+    }
+
+    return rawOffset;
+  }
+
+  function settleAfterAction(side: Exclude<RevealedSide, null>) {
+    window.setTimeout(() => {
+      setCompletingOffset(null);
+      setRevealedSide(null);
+      setDragOffset(getOffsetForSide(null));
+    }, side === "trailing" ? 260 : 180);
+  }
+
   function triggerAction(side: Exclude<RevealedSide, null>) {
     if (actionTriggeredRef.current) {
       return;
@@ -104,13 +127,7 @@ export function SwipeRevealAction({
     const button = actionRoot?.querySelector("button");
     button?.click();
 
-    if (side === "leading") {
-      window.setTimeout(() => {
-        setCompletingOffset(null);
-        setRevealedSide(null);
-        setDragOffset(0);
-      }, 180);
-    }
+    settleAfterAction(side);
   }
 
   function getOffsetForSide(side: RevealedSide) {
@@ -149,38 +166,40 @@ export function SwipeRevealAction({
 
     horizontalDragRef.current = true;
     setDragging(true);
-    const width = getContainerWidth();
-    const minOffset = -width;
-    const maxOffset = leadingAction ? width : 0;
-    const nextOffset = Math.max(minOffset, Math.min(maxOffset, startOffsetRef.current + deltaX));
-    setDragOffset(nextOffset);
+    const rawOffset = startOffsetRef.current + deltaX;
+    const minOffset = -getFullSwipeThreshold() - 18;
+    const maxOffset = leadingAction ? getFullSwipeThreshold() + 18 : 0;
+    const boundedRawOffset = Math.max(minOffset, Math.min(maxOffset, rawOffset));
+    setDragOffset(getResistedOffset(boundedRawOffset));
   }
 
   function finishDrag(clientX: number) {
     const deltaX = clientX - startXRef.current;
-    const width = getContainerWidth();
-    const minOffset = -width;
-    const maxOffset = leadingAction ? width : 0;
-    const finalOffset = Math.max(minOffset, Math.min(maxOffset, startOffsetRef.current + deltaX));
+    const maxOffset = leadingAction ? getFullSwipeThreshold() + 18 : 0;
+    const finalRawOffset = Math.max(
+      -getFullSwipeThreshold() - 18,
+      Math.min(maxOffset, startOffsetRef.current + deltaX)
+    );
+    const finalOffset = getResistedOffset(finalRawOffset);
     const fullSwipeThreshold = getFullSwipeThreshold();
 
-    if (horizontalDragRef.current && finalOffset <= -fullSwipeThreshold) {
-      setCompletingOffset(-width);
-      setRevealedSide(null);
-      setDragOffset(-width);
+    if (horizontalDragRef.current && finalRawOffset <= -fullSwipeThreshold) {
+      setCompletingOffset(-(safeRevealWidth + 10));
+      setRevealedSide("trailing");
+      setDragOffset(-(safeRevealWidth + 10));
       setDragging(false);
       horizontalDragRef.current = false;
-      window.setTimeout(() => triggerAction("trailing"), 120);
+      window.setTimeout(() => triggerAction("trailing"), 150);
       return;
     }
 
-    if (horizontalDragRef.current && leadingAction && finalOffset >= fullSwipeThreshold) {
-      setCompletingOffset(width);
-      setRevealedSide(null);
-      setDragOffset(width);
+    if (horizontalDragRef.current && leadingAction && finalRawOffset >= fullSwipeThreshold) {
+      setCompletingOffset(safeRevealWidth + 10);
+      setRevealedSide("leading");
+      setDragOffset(safeRevealWidth + 10);
       setDragging(false);
       horizontalDragRef.current = false;
-      window.setTimeout(() => triggerAction("leading"), 120);
+      window.setTimeout(() => triggerAction("leading"), 150);
       return;
     }
 
@@ -285,6 +304,7 @@ export function SwipeRevealAction({
     if (!enabled || !touch) {
       touchIdRef.current = null;
       setDragging(false);
+      setDragOffset(getOffsetForSide(revealedSide));
       return;
     }
 
@@ -306,6 +326,7 @@ export function SwipeRevealAction({
   const visualOffset = completingOffset ?? (dragging ? dragOffset : getOffsetForSide(revealedSide));
   const activeSide: RevealedSide =
     visualOffset > 0 ? "leading" : visualOffset < 0 ? "trailing" : revealedSide;
+  const actionProgress = Math.min(1, Math.abs(visualOffset) / safeRevealWidth);
 
   return (
     <div
@@ -332,8 +353,10 @@ export function SwipeRevealAction({
           border: "1px solid #ddd6fe",
           borderRadius,
           zIndex: activeSide === "leading" ? 2 : 0,
-          opacity: activeSide === "leading" ? 1 : 0,
+          opacity: activeSide === "leading" ? actionProgress : 0,
           visibility: leadingAction ? "visible" : "hidden",
+          transform: `translateX(${activeSide === "leading" ? 0 : -6}px)`,
+          transition: dragging ? "none" : "opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         {leadingAction}
@@ -352,7 +375,9 @@ export function SwipeRevealAction({
           border: "1px solid #fecaca",
           borderRadius,
           zIndex: activeSide === "trailing" ? 2 : 0,
-          opacity: activeSide === "trailing" ? 1 : 0,
+          opacity: activeSide === "trailing" ? actionProgress : 0,
+          transform: `translateX(${activeSide === "trailing" ? 0 : 6}px)`,
+          transition: dragging ? "none" : "opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         {action}
@@ -370,7 +395,7 @@ export function SwipeRevealAction({
           position: "relative",
           zIndex: 1,
           transform: `translateX(${visualOffset}px)`,
-          transition: dragging ? "none" : "transform 190ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transition: dragging ? "none" : "transform 240ms cubic-bezier(0.2, 0.82, 0.24, 1)",
           touchAction: "pan-y pinch-zoom",
           willChange: "transform",
         }}
