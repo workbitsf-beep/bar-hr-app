@@ -11,8 +11,26 @@ export function NotificationBarSync({ activeBarId }: { activeBarId: string | nul
 
   useEffect(() => {
     const targetBarId = searchParams.get("barId");
+    const hasPendingClockAction = searchParams.has("clockAction");
 
-    if (!targetBarId || targetBarId === activeBarId || switchingRef.current === targetBarId) {
+    if (!targetBarId) {
+      return;
+    }
+
+    if (targetBarId === activeBarId) {
+      switchingRef.current = null;
+
+      if (!hasPendingClockAction) {
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete("barId");
+        const nextUrl = nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname;
+        router.replace(nextUrl, { scroll: false });
+      }
+
+      return;
+    }
+
+    if (switchingRef.current === targetBarId) {
       return;
     }
 
@@ -33,11 +51,6 @@ export function NotificationBarSync({ activeBarId }: { activeBarId: string | nul
         return;
       }
 
-      const nextParams = new URLSearchParams(searchParams.toString());
-      nextParams.delete("barId");
-      const nextUrl = nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname;
-
-      router.replace(nextUrl, { scroll: false });
       router.refresh();
     }
 

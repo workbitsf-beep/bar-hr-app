@@ -63,6 +63,33 @@ function getNotificationEmoji(type: string) {
   return "🔔";
 }
 
+function appendClockActionParam(actionUrl: string, action: "in" | "out") {
+  try {
+    const url = new URL(actionUrl, window.location.origin);
+    url.searchParams.set("clock", "1");
+    url.searchParams.set("clockAction", action);
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return `/dashboard?clock=1&clockAction=${action}`;
+  }
+}
+
+function getNotificationActionUrl(notification: NotificationItem) {
+  if (!notification.actionUrl) {
+    return null;
+  }
+
+  if (notification.type.startsWith("timelog.clock-in.")) {
+    return appendClockActionParam(notification.actionUrl, "in");
+  }
+
+  if (notification.type.startsWith("timelog.clock-out.")) {
+    return appendClockActionParam(notification.actionUrl, "out");
+  }
+
+  return notification.actionUrl;
+}
+
 export function NotificationsBell({ activeBarId }: { activeBarId: string | null }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -211,13 +238,14 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
   }
 
   function handleNotificationClick(notification: NotificationItem) {
+    const actionUrl = getNotificationActionUrl(notification);
     const markPromise = markAsRead(notification.id);
 
     void markPromise.finally(async () => {
-      if (notification.actionUrl) {
+      if (actionUrl) {
         await selectNotificationBar(notification);
         setOpen(false);
-        router.push(notification.actionUrl);
+        router.push(actionUrl);
         router.refresh();
       }
     });

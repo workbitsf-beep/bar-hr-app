@@ -67,6 +67,14 @@ export function getClockReminderActionUrl(shiftId: string, barId?: string | null
   return `/dashboard?${params.toString()}`;
 }
 
+function getClockReminderAction(type: string): "in" | "out" {
+  return CLOCK_IN_TYPES.includes(type) ? "in" : "out";
+}
+
+function getClockReminderActionUrlForType(shiftId: string, barId: string | null | undefined, type: string) {
+  return getClockReminderActionUrl(shiftId, barId, getClockReminderAction(type));
+}
+
 function getClockReminderSchedule(shift: Pick<ShiftForReminder, "startTime" | "endTime">) {
   return [
     {
@@ -168,7 +176,6 @@ export async function scheduleShiftClockReminders(shiftIds: string[]) {
 
   await prisma.$transaction(async (tx) => {
     for (const shift of shifts) {
-      const actionUrl = getClockReminderActionUrl(shift.id, shift.barId);
       const schedule = getClockReminderSchedule(shift);
 
       for (const assignment of shift.assignments) {
@@ -177,32 +184,61 @@ export async function scheduleShiftClockReminders(shiftIds: string[]) {
         }
 
         for (const item of schedule) {
-          await tx.scheduledNotification.upsert({
+          const actionUrl = getClockReminderActionUrlForType(shift.id, shift.barId, item.type);
+          const existing = await tx.scheduledNotification.findFirst({
             where: {
-              userId_type_actionUrl: {
-                userId: assignment.userId,
-                type: item.type,
-                actionUrl,
-              },
-            },
-            update: {
-              barId: shift.barId,
-              shiftId: shift.id,
-              title: item.title,
-              message: item.message,
-              sendAt: item.sendAt,
-              sentAt: null,
-              canceledAt: null,
-            },
-            create: {
               userId: assignment.userId,
-              barId: shift.barId,
-              shiftId: shift.id,
               type: item.type,
-              title: item.title,
-              message: item.message,
-              actionUrl,
-              sendAt: item.sendAt,
+              shiftId: shift.id,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          if (existing) {
+            await tx.scheduledNotification.update({
+              where: {
+                id: existing.id,
+              },
+              data: {
+                barId: shift.barId,
+                shiftId: shift.id,
+                title: item.title,
+                message: item.message,
+                actionUrl,
+                sendAt: item.sendAt,
+                sentAt: null,
+                canceledAt: null,
+              },
+            });
+          } else {
+            await tx.scheduledNotification.create({
+              data: {
+                userId: assignment.userId,
+                barId: shift.barId,
+                shiftId: shift.id,
+                type: item.type,
+                title: item.title,
+                message: item.message,
+                actionUrl,
+                sendAt: item.sendAt,
+              },
+            });
+          }
+
+          await tx.scheduledNotification.updateMany({
+            where: {
+              userId: assignment.userId,
+              type: item.type,
+              shiftId: shift.id,
+              actionUrl: {
+                not: actionUrl,
+              },
+              sentAt: null,
+            },
+            data: {
+              canceledAt: new Date(),
             },
           });
           scheduledCount += 1;
@@ -431,7 +467,9 @@ export async function runDueScheduledClockNotifications(now = new Date()) {
       title: item.title,
       message: item.message,
       type: item.type,
-      actionUrl: item.actionUrl,
+      actionUrl: item.shiftId
+        ? getClockReminderActionUrlForType(item.shiftId, item.barId, item.type)
+        : item.actionUrl,
     });
     await prisma.scheduledNotification.update({
       where: {

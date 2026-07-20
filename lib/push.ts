@@ -77,25 +77,32 @@ function appendActionParam(actionUrl: string | undefined, action: "in" | "out") 
 
 function getClockPushActions(data: Record<string, string>) {
   if (data.type.startsWith("timelog.clock-in.")) {
+    const clockInUrl = appendActionParam(data.actionUrl, "in");
+
     return {
       actions: [{ action: "clock-in", title: "Entra" }],
+      primaryActionUrl: clockInUrl,
       actionUrls: {
-        clockInUrl: appendActionParam(data.actionUrl, "in"),
+        clockInUrl,
       },
     };
   }
 
   if (data.type.startsWith("timelog.clock-out.")) {
+    const clockOutUrl = appendActionParam(data.actionUrl, "out");
+
     return {
       actions: [{ action: "clock-out", title: "Esci" }],
+      primaryActionUrl: clockOutUrl,
       actionUrls: {
-        clockOutUrl: appendActionParam(data.actionUrl, "out"),
+        clockOutUrl,
       },
     };
   }
 
   return {
     actions: undefined,
+    primaryActionUrl: undefined,
     actionUrls: {},
   };
 }
@@ -150,10 +157,13 @@ export async function sendPushNotification(
   const data = toStringData(input.data);
   data.title = input.title;
   data.body = input.body;
-  const pushLink = buildPushLink(data.actionUrl);
   const isTimeSensitiveReminder = data.type.startsWith("timelog.");
   const clockPushActions = getClockPushActions(data);
   Object.assign(data, clockPushActions.actionUrls);
+  if (clockPushActions.primaryActionUrl) {
+    data.actionUrl = clockPushActions.primaryActionUrl;
+  }
+  const pushLink = buildPushLink(data.actionUrl);
   const notificationTag = `${data.type || "workbit-notification"}:${data.barId || "global"}:${data.actionUrl || ""}`.slice(
     0,
     120
