@@ -66,6 +66,14 @@ export function SwipeRevealAction({
 
     const button = actionRoot?.querySelector("button");
     button?.click();
+
+    if (side === "leading") {
+      window.setTimeout(() => {
+        setCompletingOffset(null);
+        setRevealedSide(null);
+        setDragOffset(0);
+      }, 180);
+    }
   }
 
   function getOffsetForSide(side: RevealedSide) {
@@ -258,6 +266,10 @@ export function SwipeRevealAction({
     return <>{children}</>;
   }
 
+  const visualOffset = completingOffset ?? (dragging ? dragOffset : getOffsetForSide(revealedSide));
+  const activeSide: RevealedSide =
+    visualOffset > 0 ? "leading" : visualOffset < 0 ? "trailing" : revealedSide;
+
   return (
     <div
       ref={containerRef}
@@ -282,7 +294,8 @@ export function SwipeRevealAction({
           background: "#ede9fe",
           border: "1px solid #ddd6fe",
           borderRadius: 20,
-          zIndex: 0,
+          zIndex: activeSide === "leading" ? 1 : 0,
+          opacity: activeSide === "leading" ? 1 : 0,
           visibility: leadingAction ? "visible" : "hidden",
         }}
       >
@@ -301,7 +314,8 @@ export function SwipeRevealAction({
           background: "#fee2e2",
           border: "1px solid #fecaca",
           borderRadius: 20,
-          zIndex: 0,
+          zIndex: activeSide === "trailing" ? 1 : 0,
+          opacity: activeSide === "trailing" ? 1 : 0,
         }}
       >
         {action}
@@ -318,7 +332,7 @@ export function SwipeRevealAction({
         style={{
           position: "relative",
           zIndex: 1,
-          transform: `translateX(${completingOffset ?? (dragging ? dragOffset : getOffsetForSide(revealedSide))}px)`,
+          transform: `translateX(${visualOffset}px)`,
           transition: dragging ? "none" : "transform 190ms cubic-bezier(0.22, 1, 0.36, 1)",
           touchAction: "pan-y pinch-zoom",
           willChange: "transform",

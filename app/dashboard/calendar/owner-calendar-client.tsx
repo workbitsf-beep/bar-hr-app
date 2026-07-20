@@ -3347,14 +3347,6 @@ export function OwnerCalendarClient({
                             </svg>
                             ›
                           </span>
-                          <IconButton
-                            type="button"
-                            onClick={() => setEditingShiftId(shift.id)}
-                            disabled={isPending}
-                            aria-label="Modifica turno"
-                          >
-                            ✎
-                          </IconButton>
                         </div>
                       )))}
                     </div>

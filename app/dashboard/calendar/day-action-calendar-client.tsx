@@ -3513,16 +3513,6 @@ export function DayActionCalendarClient({
                                   {renderShiftStateIcon(Boolean(shift.confirmedAt), 18)}
                                 </span>
                               </div>
-                              {canManageOptionalShifts ? (
-                                <IconButton
-                                  type="button"
-                                  onClick={() => setEditingShiftId(shift.id)}
-                                  disabled={isPending}
-                                  aria-label="Modifica turno"
-                                >
-                                  ✎
-                                </IconButton>
-                              ) : null}
                             </div>
                           </div>
                         )))}
