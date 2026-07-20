@@ -468,15 +468,15 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 position: fixed;
                 inset: 0;
                 z-index: 0;
-                overflow: hidden;
                 pointer-events: none;
                 background:
-                  radial-gradient(circle at 18% 12%, rgba(124, 58, 237, 0.38), transparent 28%),
-                  radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.28), transparent 30%),
-                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.34), transparent 32%),
+                  radial-gradient(circle at 18% 12%, rgba(124, 58, 237, 0.18), transparent 32%),
+                  radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.14), transparent 34%),
+                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.16), transparent 36%),
                   linear-gradient(140deg, #fbf8ff 0%, #eee7ff 42%, #e7efff 100%);
-                animation: workbit-global-bg-pan 11s ease-in-out infinite alternate;
+                animation: workbit-global-bg-pan 24s ease-in-out infinite alternate;
                 will-change: transform, background-position;
+                overflow: clip;
               }
 
               .workbit-global-ambient__light,
@@ -491,14 +491,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-global-ambient__light {
-                width: 58vmax;
-                height: 58vmax;
+                width: 42vmax;
+                height: 42vmax;
                 border-radius: 999px;
-                filter: blur(22px);
-                opacity: 0.74;
-                mix-blend-mode: multiply;
-                background: radial-gradient(circle, rgba(168, 85, 247, 0.58), rgba(59, 130, 246, 0.24) 42%, transparent 72%);
-                animation: workbit-global-light-one 8s ease-in-out infinite alternate;
+                filter: blur(8px);
+                opacity: 0.28;
+                background: radial-gradient(circle, rgba(168, 85, 247, 0.34), rgba(59, 130, 246, 0.10) 42%, transparent 72%);
+                animation: workbit-global-light-one 22s ease-in-out infinite alternate;
               }
 
               .workbit-global-ambient__light--one {
@@ -509,13 +508,14 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               .workbit-global-ambient__light--two {
                 right: -12%;
                 top: 12%;
-                opacity: 0.68;
-                background: radial-gradient(circle, rgba(59, 130, 246, 0.50), rgba(168, 85, 247, 0.28) 44%, transparent 74%);
+                opacity: 0.24;
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.30), rgba(168, 85, 247, 0.12) 44%, transparent 74%);
                 animation-name: workbit-global-light-two;
-                animation-duration: 10s;
+                animation-duration: 26s;
               }
 
               .workbit-global-ambient__light--three {
+                display: none;
                 left: 18%;
                 bottom: -24%;
                 width: 70vmax;
@@ -528,17 +528,15 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               .workbit-global-ambient__smoke {
                 inset: 0;
-                opacity: 0.64;
-                filter: blur(20px);
-                mix-blend-mode: screen;
+                opacity: 0.20;
                 background:
-                  radial-gradient(ellipse at 18% 24%, rgba(255,255,255,0.68), transparent 32%),
-                  radial-gradient(ellipse at 74% 32%, rgba(255,255,255,0.46), transparent 34%),
-                  radial-gradient(ellipse at 46% 72%, rgba(233,213,255,0.56), transparent 38%);
-                animation: workbit-global-smoke 9s ease-in-out infinite alternate;
+                  radial-gradient(ellipse at 18% 24%, rgba(255,255,255,0.38), transparent 34%),
+                  radial-gradient(ellipse at 74% 32%, rgba(255,255,255,0.24), transparent 36%);
+                animation: workbit-global-smoke 30s ease-in-out infinite alternate;
               }
 
               .workbit-global-ambient__beam {
+                display: none;
                 width: 118vmax;
                 height: 24vmax;
                 left: 50%;
@@ -552,6 +550,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-global-ambient__veil {
+                display: none;
                 inset: -8%;
                 opacity: 0.34;
                 background:
@@ -562,6 +561,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-global-ambient__orbit {
+                display: none;
                 left: 50%;
                 top: 50%;
                 width: 26vmax;
@@ -841,10 +841,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 position: relative;
                 overflow: visible;
                 background:
-                  radial-gradient(circle at 92% 0%, rgba(255,255,255,0.64), transparent 30%),
-                  linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(247,243,255,0.66) 100%) !important;
-                backdrop-filter: blur(16px) saturate(1.08);
-                -webkit-backdrop-filter: blur(16px) saturate(1.08);
+                  radial-gradient(circle at 92% 0%, rgba(255,255,255,0.52), transparent 28%),
+                  linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(247,243,255,0.88) 100%) !important;
               }
 
               .dashboard-shell-card::before,
@@ -856,17 +854,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               .sa-overview-card::before,
               .sa-overview-metric::before,
               .workbit-login-card::before {
-                content: "";
-                position: absolute;
-                inset: 0;
-                z-index: 0;
-                pointer-events: none;
-                opacity: 0.42;
-                background:
-                  radial-gradient(circle at 92% 0%, rgba(168, 85, 247, 0.13), transparent 28%),
-                  linear-gradient(120deg, transparent 8%, rgba(255,255,255,0.24) 38%, transparent 58%);
-                transform: translate3d(-6%, 0, 0);
-                animation: workbit-container-sheen 9s ease-in-out infinite alternate;
+                content: none;
               }
 
               .dashboard-shell-card > *,
@@ -899,14 +887,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-scroll-reveal {
-                opacity: 0;
-                transform: translate3d(0, 26px, 0) scale(.988);
-                transition:
-                  opacity 380ms ease,
-                  transform 380ms cubic-bezier(.2, .8, .2, 1),
-                  box-shadow 180ms ease;
-                transition-delay: var(--workbit-scroll-reveal-delay, 0ms);
-                will-change: opacity, transform;
+                opacity: 1;
+                transform: none;
+                transition: none;
               }
 
               .workbit-scroll-reveal--visible {
@@ -967,6 +950,18 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               .dashboard-bottom-nav a[aria-current="page"] {
                 animation: workbit-nav-active 180ms ease both;
+              }
+
+              .dashboard-bottom-nav {
+                z-index: 2147482500 !important;
+                overflow: visible !important;
+                contain: none !important;
+                isolation: isolate;
+              }
+
+              .dashboard-bottom-nav,
+              .dashboard-bottom-nav * {
+                will-change: auto !important;
               }
 
               .dashboard-clock-button {
@@ -1299,19 +1294,18 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 }
 
                 .workbit-global-ambient {
-                  inset: -28%;
+                  inset: 0;
                 }
 
                 .workbit-global-ambient__light {
-                  width: 72vmax;
-                  height: 72vmax;
-                  opacity: 0.78;
-                  filter: blur(18px);
+                  width: 52vmax;
+                  height: 52vmax;
+                  opacity: 0.24;
+                  filter: blur(6px);
                 }
 
                 .workbit-global-ambient__smoke {
-                  opacity: 0.66;
-                  filter: blur(16px);
+                  opacity: 0.14;
                 }
 
                 .workbit-global-ambient__beam {
