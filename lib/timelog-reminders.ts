@@ -3,6 +3,7 @@ import { invalidateReportingCache } from "@/lib/reporting";
 import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import {
+  backfillMissingShiftClockReminders,
   cancelUserShiftClockReminders,
   runDueScheduledClockNotifications,
 } from "@/lib/shift-clock-reminders";
@@ -271,6 +272,7 @@ async function runAutoClockOut(now: Date) {
 }
 
 export async function runTimeLogReminders(now = new Date()) {
+  const backfillResult = await backfillMissingShiftClockReminders(now);
   const [scheduledResult, autoClockOutResult] = await Promise.all([
     runDueScheduledClockNotifications(now),
     runAutoClockOut(now),
@@ -280,6 +282,8 @@ export async function runTimeLogReminders(now = new Date()) {
     checkedShiftCount: autoClockOutResult.checkedShiftCount,
     createdReminderCount: scheduledResult.sentScheduledNotificationCount,
     autoClockOutCount: autoClockOutResult.autoClockOutCount,
+    backfilledReminderShiftCount: backfillResult.checkedShiftCount,
+    backfilledReminderCount: backfillResult.scheduledCount,
     checkedScheduledNotificationCount: scheduledResult.checkedScheduledNotificationCount,
     sentScheduledNotificationCount: scheduledResult.sentScheduledNotificationCount,
     skippedScheduledNotificationCount: scheduledResult.skippedScheduledNotificationCount,

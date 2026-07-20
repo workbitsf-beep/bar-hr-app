@@ -33,6 +33,8 @@ export async function GET(request: Request): Promise<Response> {
     deletedNoteCount: shiftResult.deletedNoteCount,
     checkedReminderShiftCount: timelogReminderResult.checkedShiftCount,
     createdClockReminderCount: timelogReminderResult.createdReminderCount,
+    backfilledReminderShiftCount: timelogReminderResult.backfilledReminderShiftCount,
+    backfilledClockReminderCount: timelogReminderResult.backfilledReminderCount,
     autoClockOutCount: timelogReminderResult.autoClockOutCount,
     restaurantCutoff: shiftResult.restaurantCutoff,
     companyCutoff: shiftResult.companyCutoff,

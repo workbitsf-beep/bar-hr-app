@@ -15,6 +15,8 @@ export async function GET(request: Request): Promise<Response> {
     ok: true,
     checkedReminderShiftCount: result.checkedShiftCount,
     createdClockReminderCount: result.createdReminderCount,
+    backfilledReminderShiftCount: result.backfilledReminderShiftCount,
+    backfilledClockReminderCount: result.backfilledReminderCount,
     autoClockOutCount: result.autoClockOutCount,
   });
 }

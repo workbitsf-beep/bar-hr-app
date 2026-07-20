@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 
 const CLOCK_IN_REMINDER_LEAD_MS = 5 * 60 * 1000;
 const CLOCK_OUT_REMINDER_LEAD_MS = 5 * 60 * 1000;
+const CLOCK_REMINDER_BACKFILL_LOOKBACK_MS = 15 * 60 * 1000;
+const CLOCK_REMINDER_BACKFILL_LOOKAHEAD_MS = 14 * 24 * 60 * 60 * 1000;
 const ACTION_URL = "/dashboard?clock=1";
 
 const CLOCK_IN_TYPES: string[] = [
@@ -200,6 +202,55 @@ export async function scheduleShiftClockReminders(shiftIds: string[]) {
 
   return {
     scheduledCount,
+  };
+}
+
+export async function backfillMissingShiftClockReminders(now = new Date()) {
+  const windowStart = new Date(now.getTime() - CLOCK_REMINDER_BACKFILL_LOOKBACK_MS);
+  const windowEnd = new Date(now.getTime() + CLOCK_REMINDER_BACKFILL_LOOKAHEAD_MS);
+  const shifts = await prisma.shift.findMany({
+    where: {
+      confirmedAt: {
+        not: null,
+      },
+      isOnCall: false,
+      startTime: {
+        lte: windowEnd,
+      },
+      endTime: {
+        gte: windowStart,
+      },
+      bar: {
+        settings: {
+          timeTrackingEnabled: true,
+        },
+      },
+      scheduledNotifications: {
+        none: {
+          type: {
+            in: CLOCK_REMINDER_TYPES,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+    take: 500,
+  });
+
+  if (shifts.length === 0) {
+    return {
+      checkedShiftCount: 0,
+      scheduledCount: 0,
+    };
+  }
+
+  const result = await scheduleShiftClockReminders(shifts.map((shift) => shift.id));
+
+  return {
+    checkedShiftCount: shifts.length,
+    scheduledCount: result.scheduledCount,
   };
 }
 
