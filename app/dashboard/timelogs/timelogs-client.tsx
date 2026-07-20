@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
+import { SuccessPulse } from "@/app/components/workbit-animations";
 import {
   DEFAULT_GEOLOCATION_MAXIMUM_AGE_MS,
   getBestAccuracyPosition,
@@ -537,6 +538,8 @@ export function ClockActionsPanel({
   const [actionMessage, setActionMessage] = useState("");
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [confirmationKey, setConfirmationKey] = useState(0);
+  const [successPulse, setSuccessPulse] = useState<"in" | "out" | null>(null);
+  const [successPulseKey, setSuccessPulseKey] = useState(0);
   const [temporaryWarning, setTemporaryWarning] = useState("");
   const [temporaryWarningKey, setTemporaryWarningKey] = useState(0);
   const [submitting, setSubmitting] = useState<"in" | "out" | null>(null);
@@ -828,6 +831,8 @@ export function ClockActionsPanel({
       }
 
       if (endpoint === "clock-out") {
+        setSuccessPulse("out");
+        setSuccessPulseKey((current) => current + 1);
         setActionMessage(
           typeof payload?.duration === "number"
             ? `Uscita registrata. Durata ${formatDurationFromMilliseconds(payload.duration)}.`
@@ -836,6 +841,8 @@ export function ClockActionsPanel({
         setConfirmationMessage("Per oggi hai finito");
         setConfirmationKey((current) => current + 1);
       } else {
+        setSuccessPulse("in");
+        setSuccessPulseKey((current) => current + 1);
         setActionMessage("Entrata registrata.");
         setConfirmationMessage("Buon lavoro");
         setConfirmationKey((current) => current + 1);
@@ -990,6 +997,7 @@ export function ClockActionsPanel({
               boxShadow: "0 14px 28px rgba(22, 163, 74, 0.24)",
             }}
           >
+            <SuccessPulse key={`in-${successPulseKey}`} active={successPulse === "in"} tone="green" />
             {submitting === "in" ? "..." : "ENTRA"}
           </PrimaryButton>
           <PrimaryButton
@@ -1012,6 +1020,7 @@ export function ClockActionsPanel({
               boxShadow: "0 14px 28px rgba(220, 38, 38, 0.24)",
             }}
           >
+            <SuccessPulse key={`out-${successPulseKey}`} active={successPulse === "out"} tone="red" />
             {submitting === "out" ? "..." : "ESCI"}
           </PrimaryButton>
         </div>

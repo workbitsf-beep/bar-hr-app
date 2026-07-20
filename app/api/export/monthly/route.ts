@@ -653,6 +653,8 @@ export const POST = withBar(
       const canExportAll =
         access.role === Role.OWNER ||
         (access.role === Role.AMMINISTRAZIONE && activityType === ActivityType.COMPANY);
+      const canViewPrivateAbsenceDetails =
+        access.role === Role.OWNER || access.role === Role.MANAGER;
 
       if (
         Number.isNaN(month) ||
@@ -699,7 +701,10 @@ export const POST = withBar(
               membership.user.id,
               month,
               year,
-              activityType
+              activityType,
+              {
+                includePrivateAbsenceDetails: canViewPrivateAbsenceDetails,
+              }
             ),
           }))
         );
@@ -761,7 +766,11 @@ export const POST = withBar(
         requestedUserId,
         month,
         year,
-        activityType
+        activityType,
+        {
+          includePrivateAbsenceDetails:
+            canViewPrivateAbsenceDetails || requestedUserId === session.user.id,
+        }
       );
 
       if (format === "pdf") {

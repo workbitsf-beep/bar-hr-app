@@ -79,6 +79,10 @@ export type MonthlyDataset =
       summary: CompanyMonthlySummary;
     };
 
+type MonthlyDatasetOptions = {
+  includePrivateAbsenceDetails?: boolean;
+};
+
 export type MonthlyTotals = {
   realHours: number;
   roundedHours: number;
@@ -217,7 +221,8 @@ async function buildRestaurantMonthlyDataset(
   barId: string,
   userId: string,
   monthStart: Date,
-  monthEnd: Date
+  monthEnd: Date,
+  options: MonthlyDatasetOptions = {}
 ): Promise<MonthlyDataset> {
   const [timeLogs, settings, approvedRequests] = await Promise.all([
     prisma.timeLog.findMany({
@@ -302,10 +307,10 @@ async function buildRestaurantMonthlyDataset(
         items.push({
           id: request.id,
           type: label === "Richiesta" ? "Permesso" : label,
-          title: request.reason?.trim() || label,
+          title: options.includePrivateAbsenceDetails ? request.reason?.trim() || label : label,
           startsAt: request.startsAt.toISOString(),
           endsAt: request.endsAt.toISOString(),
-          note: request.reason?.trim() || null,
+          note: options.includePrivateAbsenceDetails ? request.reason?.trim() || null : null,
         });
         requestItemsByDay.set(key, items);
       }
@@ -401,7 +406,8 @@ async function buildCompanyMonthlyDataset(
   barId: string,
   userId: string,
   monthStart: Date,
-  monthEnd: Date
+  monthEnd: Date,
+  options: MonthlyDatasetOptions = {}
 ): Promise<MonthlyDataset> {
   const [availabilities, approvedRequests, courses, closures] = await Promise.all([
     prisma.availability.findMany({
@@ -527,7 +533,9 @@ async function buildCompanyMonthlyDataset(
     upsertCompanyDayItem(groupedMap, dayKey, {
       id: availability.id,
       type: "Indisponibilita",
-      title: availability.reason?.trim() || "Indisponibilita registrata",
+      title: options.includePrivateAbsenceDetails
+        ? availability.reason?.trim() || "Indisponibilita registrata"
+        : "Indisponibilita registrata",
       startsAt: availability.startsAt.toISOString(),
       endsAt: availability.endsAt.toISOString(),
     });
@@ -547,7 +555,9 @@ async function buildCompanyMonthlyDataset(
     upsertCompanyDayItem(groupedMap, dayKey, {
       id: request.id,
       type: label === "Richiesta" ? "Permesso" : label,
-      title: request.reason?.trim() || `${label} registrati`,
+      title: options.includePrivateAbsenceDetails
+        ? request.reason?.trim() || `${label} registrati`
+        : `${label} registrati`,
       startsAt: request.startsAt.toISOString(),
       endsAt: request.endsAt.toISOString(),
     });
@@ -733,20 +743,23 @@ export async function buildMonthlyDataset(
   userId: string,
   month: number,
   year: number,
-  activityType: ActivityType = ActivityType.RESTAURANT
+  activityType: ActivityType = ActivityType.RESTAURANT,
+  options: MonthlyDatasetOptions = {}
 ): Promise<MonthlyDataset> {
+  const privateDetailsCacheKey = options.includePrivateAbsenceDetails ? "private" : "redacted";
+
   return getOrSetRuntimeCache(
-    `monthly-dataset:${barId}:${userId}:${year}:${month}:${activityType}`,
+    `monthly-dataset:${barId}:${userId}:${year}:${month}:${activityType}:${privateDetailsCacheKey}`,
     20_000,
     async () => {
       const monthStart = new Date(year, month - 1, 1);
       const monthEnd = new Date(year, month, 1);
 
       if (activityType === ActivityType.COMPANY) {
-        return buildCompanyMonthlyDataset(barId, userId, monthStart, monthEnd);
+        return buildCompanyMonthlyDataset(barId, userId, monthStart, monthEnd, options);
       }
 
-      return buildRestaurantMonthlyDataset(barId, userId, monthStart, monthEnd);
+      return buildRestaurantMonthlyDataset(barId, userId, monthStart, monthEnd, options);
     }
   );
 }

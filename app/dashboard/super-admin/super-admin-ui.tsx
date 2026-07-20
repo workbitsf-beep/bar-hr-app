@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { AnimatedBackground, RevealOnScroll } from "@/app/components/workbit-animations";
 import { EmptyState, Panel } from "../ui";
 
 type AdminSection =
@@ -196,7 +197,8 @@ export function SuperAdminFrame({
 }) {
   return (
     <div className="super-admin-workspace">
-      <section className="super-admin-hero">
+      <RevealOnScroll as="section" className="super-admin-hero">
+        <AnimatedBackground level="full" />
         <div className="super-admin-hero-glow" aria-hidden="true" />
         <div className="super-admin-hero-copy">
           <div className="super-admin-live-pill">
@@ -206,18 +208,18 @@ export function SuperAdminFrame({
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-      </section>
+      </RevealOnScroll>
 
-      <nav className="super-admin-section-nav" aria-label="Sezioni Super Admin">
+      <RevealOnScroll as="nav" className="super-admin-section-nav" aria-label="Sezioni Super Admin" delay={45}>
         {superAdminItems.map((item) => (
           <Link key={item.href} href={item.href} style={{ "--admin-accent": item.color } as CSSProperties}>
             <AdminIcon section={item.section} size={18} />
             {item.title}
           </Link>
         ))}
-      </nav>
+      </RevealOnScroll>
 
-      <div className="super-admin-content">{children}</div>
+      <RevealOnScroll className="super-admin-content" delay={80}>{children}</RevealOnScroll>
 
       <style
         dangerouslySetInnerHTML={{

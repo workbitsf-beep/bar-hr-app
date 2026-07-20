@@ -316,8 +316,9 @@ export default async function DashboardCalendarPage({
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
   const canManageRestaurantShifts =
     features.shifts && isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
+  const canSeePrivateRequestDetails = canReviewOperationalRequests(role as Role);
   const canReviewCompanyRequests =
-    features.requests && !isRestaurant && canReviewOperationalRequests(role as Role);
+    features.requests && !isRestaurant && canSeePrivateRequestDetails;
 
   const loadShifts = async () => {
     if (!features.shifts) {
@@ -900,8 +901,8 @@ export default async function DashboardCalendarPage({
       lastName: request.employee.lastName,
       startsAt: request.startsAt?.toISOString() ?? day.date.toISOString(),
       endsAt: request.endsAt?.toISOString() ?? request.startsAt?.toISOString() ?? day.date.toISOString(),
-      reason: role === Role.OWNER ? request.reason ?? null : null,
-      certificateCode: role === Role.OWNER ? request.certificateCode ?? null : null,
+      reason: canSeePrivateRequestDetails ? request.reason ?? null : null,
+      certificateCode: canSeePrivateRequestDetails ? request.certificateCode ?? null : null,
     })),
     courses: (coursesByDay.get(toLocalDateKey(day.date)) ?? []).map((course) => ({
       id: course.id,

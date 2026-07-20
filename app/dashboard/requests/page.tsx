@@ -102,6 +102,15 @@ function requestLabel(type: RequestType | string) {
   return "Cambio turno";
 }
 
+function isPrivateAbsenceRequest(type: RequestType | string) {
+  return (
+    type === RequestType.VACATION ||
+    type === RequestType.PERMISSION ||
+    type === RequestType.SICKNESS ||
+    type === RequestType.OVERTIME
+  );
+}
+
 function DeleteSwipeButton({ label }: { label: string }) {
   return (
     <button
@@ -717,6 +726,8 @@ export default async function DashboardRequestsPage({
                   {availabilities.map((availability) => {
                     const canDeleteAvailability =
                       canManageClosures || availability.user.id === session.user.id;
+                    const canSeeAvailabilityReason =
+                      canManageClosures || availability.user.id === session.user.id;
 
                     return (
                       <SwipeRevealAction
@@ -736,7 +747,11 @@ export default async function DashboardRequestsPage({
                               : availability.user.firstName + " " + availability.user.lastName
                           }
                           subtitle={formatDateTime(availability.startsAt) + " - " + formatDateTime(availability.endsAt)}
-                          meta={availability.reason || "Nessuna nota aggiuntiva"}
+                          meta={
+                            canSeeAvailabilityReason
+                              ? availability.reason || "Nessuna nota aggiuntiva"
+                              : "Dettaglio riservato"
+                          }
                         />
                       </SwipeRevealAction>
                     );
@@ -765,6 +780,10 @@ export default async function DashboardRequestsPage({
                     (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
                   const canDeleteRequest =
                     (canManageClosures || request.employee.id === session.user.id);
+                  const canSeeRequestDetails =
+                    canManageClosures ||
+                    request.employee.id === session.user.id ||
+                    !isPrivateAbsenceRequest(request.type);
 
                   const requestSummary = request.shift && request.swapShift
                     ? `${request.shift.title || "Tuo turno"} ${formatDateTime(request.shift.startTime)} ⇄ ${
@@ -772,6 +791,8 @@ export default async function DashboardRequestsPage({
                       } ${formatDateTime(request.swapShift.startTime)}`
                     : request.shift
                       ? `${request.shift.title || "Turno"} - ${formatDateTime(request.shift.startTime)}`
+                    : !canSeeRequestDetails
+                      ? "Dettaglio riservato"
                     : request.certificateCode
                       ? `Certificato: ${request.certificateCode}`
                       : request.reason || "Nessun dettaglio aggiuntivo";

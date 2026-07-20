@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
 import { PendingButton } from "@/app/components/pending-button";
+import { AnimatedBackground, RevealOnScroll } from "@/app/components/workbit-animations";
 import { ActiveBottomNav } from "./bottom-nav";
 import {
   formatDateInTimeZone,
@@ -839,24 +840,30 @@ export function DashboardShell({
 
   return (
     <main
-      className="dashboard-shell"
+      className="dashboard-shell workbit-animated-page"
       style={{
+        position: "relative",
+        isolation: "isolate",
         minHeight: "var(--workbit-vh, 100dvh)",
         background:
           "var(--workbit-app-bg)",
         padding: 18,
       }}
     >
+      <AnimatedBackground level="minimal" />
       <div
-        className="dashboard-shell-inner"
+        className="dashboard-shell-inner workbit-animated-page__content"
         style={{
+          position: "relative",
+          zIndex: 1,
           maxWidth: 1320,
           margin: "0 auto",
           display: "grid",
           gap: 18,
         }}
       >
-        <section
+        <RevealOnScroll
+          as="section"
           className="dashboard-shell-card"
           style={{
             ...shellCardStyle,
@@ -927,9 +934,9 @@ export function DashboardShell({
               />
             </div>
           </div>
-        </section>
+        </RevealOnScroll>
 
-        <div style={{ display: "grid", gap: 18, alignItems: "start" }}>{children}</div>
+        <div style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}>{children}</div>
       </div>
       <ActiveBottomNav navItems={navItems} />
       <DashboardResponsiveStyles />
@@ -949,7 +956,9 @@ export function PageHero({
   action?: ReactNode;
 }) {
   return (
-    <section
+    <RevealOnScroll
+      as="section"
+      className="dashboard-page-hero"
       style={{
         ...shellCardStyle,
         padding: 28,
@@ -995,7 +1004,7 @@ export function PageHero({
         <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.7 }}>{subtitle}</p>
       </div>
       {action ? <div>{action}</div> : null}
-    </section>
+    </RevealOnScroll>
   );
 }
 
@@ -1011,7 +1020,8 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section
+    <RevealOnScroll
+      as="section"
       className={joinClassNames("dashboard-panel", className)}
       style={{
         ...shellCardStyle,
@@ -1053,7 +1063,7 @@ export function Panel({
         {action ? <div style={{ color: "#64748b", fontWeight: 600 }}>{action}</div> : null}
       </div>
       {children}
-    </section>
+    </RevealOnScroll>
   );
 }
 
@@ -1067,7 +1077,8 @@ export function Card({
   style?: CSSProperties;
 }) {
   return (
-    <section
+    <RevealOnScroll
+      as="section"
       className={joinClassNames("dashboard-card", className)}
       style={{
         ...shellCardStyle,
@@ -1076,7 +1087,7 @@ export function Card({
       }}
     >
       {children}
-    </section>
+    </RevealOnScroll>
   );
 }
 

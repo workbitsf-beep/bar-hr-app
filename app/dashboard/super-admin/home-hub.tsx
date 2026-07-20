@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
+import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { prisma } from "@/lib/prisma";
 
 function AdminMetric({
@@ -105,11 +106,11 @@ export async function SuperAdminHomeHub() {
 
   return (
     <div className="sa-overview">
-      <section className="sa-overview-head">
+      <RevealOnScroll as="section" className="sa-overview-head">
         <span>Control room</span>
         <h2>Super Admin leggero</h2>
         <p>Solo accessi rapidi e numeri essenziali. Le liste pesanti restano nelle pagine dedicate.</p>
-      </section>
+      </RevealOnScroll>
 
       <section className="sa-overview-metrics" aria-label="Metriche Super Admin">
         <AdminMetric
@@ -127,12 +128,14 @@ export async function SuperAdminHomeHub() {
       </section>
 
       <section className="sa-overview-grid" aria-label="Sezioni operative">
-        {quickSections.map((section) => (
-          <Link key={section.href} href={section.href} className="sa-overview-card">
+        {quickSections.map((section, index) => (
+          <RevealOnScroll key={section.href} delay={Math.min(index * 28, 160)}>
+          <Link href={section.href} className="sa-overview-card">
             <span>{section.icon}</span>
             <strong>{section.title}</strong>
             <small>{section.description}</small>
           </Link>
+          </RevealOnScroll>
         ))}
       </section>
 

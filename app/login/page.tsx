@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
+import { AnimatedBackground, RevealOnScroll } from "@/app/components/workbit-animations";
 import {
   clearRememberedLoginEmail,
   clearPersistentSession,
@@ -150,7 +151,10 @@ export default function LoginPage() {
 
   return (
     <main
+      className="workbit-animated-page workbit-login-page"
       style={{
+        position: "relative",
+        isolation: "isolate",
         minHeight: "100dvh",
         display: "grid",
         placeItems: "center",
@@ -158,21 +162,27 @@ export default function LoginPage() {
         background: "var(--workbit-app-bg)",
       }}
     >
-      <section
+      <AnimatedBackground level="full" />
+      <RevealOnScroll
+        as="section"
+        className="workbit-animated-page__content"
         style={{
+          position: "relative",
+          zIndex: 1,
           width: "100%",
           maxWidth: 460,
           padding: "24px 0",
         }}
       >
         <div
+          className="workbit-login-card"
           style={{
             display: "grid",
             gap: 26,
             padding: 28,
             borderRadius: 30,
             background:
-              "radial-gradient(circle at 90% 0%, rgba(168,85,247,0.12), transparent 30%), var(--workbit-card)",
+              "radial-gradient(circle at 90% 0%, rgba(168,85,247,0.16), transparent 30%), var(--workbit-card)",
             border: "1px solid var(--workbit-border)",
             boxShadow: "var(--workbit-shadow)",
             backdropFilter: "blur(14px)",
@@ -204,6 +214,7 @@ export default function LoginPage() {
                   padding: "14px 16px",
                   fontSize: 16,
                   background: "linear-gradient(180deg, #ffffff 0%, #fdfbff 100%)",
+                  color: "var(--workbit-text)",
                 }}
               />
             </label>
@@ -222,9 +233,11 @@ export default function LoginPage() {
                     padding: "14px 16px",
                     fontSize: 16,
                     background: "linear-gradient(180deg, #ffffff 0%, #fdfbff 100%)",
+                    color: "var(--workbit-text)",
                   }}
                 />
                 <button
+                  className="workbit-press-feedback"
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
                   style={{
@@ -274,6 +287,7 @@ export default function LoginPage() {
             </label>
 
             <button
+              className="workbit-press-feedback"
               type="button"
               onClick={() => router.push("/forgot-password")}
               style={{
@@ -298,6 +312,7 @@ export default function LoginPage() {
               }}
             >
               <button
+                className="workbit-press-feedback"
                 type="submit"
                 disabled={loading}
                 style={{
@@ -327,7 +342,7 @@ export default function LoginPage() {
             </div>
           </form>
         </div>
-      </section>
+      </RevealOnScroll>
     </main>
   );
 }

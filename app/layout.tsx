@@ -443,6 +443,333 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 background: rgba(124, 58, 237, 0.18);
                 color: var(--workbit-ink);
               }
+
+              .workbit-animated-page {
+                position: relative;
+                isolation: isolate;
+                min-width: 0;
+              }
+
+              .workbit-animated-page__content {
+                position: relative;
+                z-index: 1;
+                min-width: 0;
+              }
+
+              .workbit-animated-background {
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+                overflow: hidden;
+                pointer-events: none;
+                border-radius: inherit;
+                contain: layout paint;
+              }
+
+              .workbit-animated-background__orb,
+              .workbit-animated-background__fog {
+                position: absolute;
+                display: block;
+                pointer-events: none;
+                transform: translate3d(0, 0, 0);
+              }
+
+              .workbit-animated-background__orb {
+                width: 34vmax;
+                height: 34vmax;
+                max-width: 520px;
+                max-height: 520px;
+                border-radius: 999px;
+                opacity: 0.46;
+                filter: blur(18px);
+                background: radial-gradient(circle, rgba(168, 85, 247, 0.30), rgba(59, 130, 246, 0.08) 46%, transparent 70%);
+                animation: workbit-orb-drift 14s ease-in-out infinite alternate;
+              }
+
+              .workbit-animated-background__orb--one {
+                top: -14%;
+                right: -12%;
+              }
+
+              .workbit-animated-background__orb--two {
+                left: -16%;
+                bottom: -18%;
+                opacity: 0.28;
+                background: radial-gradient(circle, rgba(11, 16, 36, 0.20), rgba(124, 58, 237, 0.14) 42%, transparent 72%);
+                animation-duration: 18s;
+                animation-direction: alternate-reverse;
+              }
+
+              .workbit-animated-background__fog {
+                inset: 0;
+                opacity: 0.28;
+                background:
+                  linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.42) 34%, transparent 64%),
+                  radial-gradient(circle at 42% 12%, rgba(255,255,255,0.30), transparent 28%);
+                mix-blend-mode: screen;
+                animation: workbit-fog-drift 20s ease-in-out infinite alternate;
+              }
+
+              .workbit-animated-background--full .workbit-animated-background__orb {
+                opacity: 0.54;
+              }
+
+              .workbit-animated-background--soft .workbit-animated-background__orb {
+                opacity: 0.30;
+                filter: blur(14px);
+              }
+
+              .workbit-animated-background--minimal .workbit-animated-background__orb {
+                opacity: 0.16;
+                filter: blur(12px);
+                animation-duration: 24s;
+              }
+
+              html[data-theme="dark"] .workbit-animated-background__orb {
+                background: radial-gradient(circle, rgba(168, 85, 247, 0.34), rgba(14, 165, 233, 0.12) 44%, transparent 72%);
+              }
+
+              html[data-theme="dark"] .workbit-animated-background__orb--two {
+                background: radial-gradient(circle, rgba(11, 16, 36, 0.16), rgba(124, 58, 237, 0.22) 44%, transparent 72%);
+              }
+
+              html[data-theme="dark"] .workbit-animated-background__fog {
+                opacity: 0.18;
+              }
+
+              .workbit-reveal {
+                opacity: 0;
+                transform: translate3d(0, 12px, 0);
+                transition:
+                  opacity 260ms ease,
+                  transform 260ms cubic-bezier(.2, .8, .2, 1);
+                transition-delay: var(--workbit-reveal-delay, 0ms);
+                will-change: opacity, transform;
+              }
+
+              .workbit-reveal--left {
+                transform: translate3d(-12px, 0, 0);
+              }
+
+              .workbit-reveal--right {
+                transform: translate3d(12px, 0, 0);
+              }
+
+              .workbit-reveal--scale {
+                transform: scale(.985);
+              }
+
+              .workbit-reveal--visible {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                will-change: auto;
+              }
+
+              .workbit-animated-card,
+              .dashboard-panel,
+              .dashboard-card,
+              .dashboard-item-card,
+              .dashboard-list-card,
+              .sa-overview-card,
+              .sa-overview-metric {
+                transform: translate3d(0, 0, 0);
+                transition:
+                  transform 140ms ease,
+                  box-shadow 140ms ease,
+                  border-color 140ms ease,
+                  background 140ms ease;
+              }
+
+              .workbit-press-feedback,
+              .dashboard-button,
+              .dashboard-icon-button,
+              .dashboard-bottom-nav a,
+              .dashboard-clock-button,
+              button[type="submit"],
+              button[type="button"],
+              a[role="button"] {
+                -webkit-tap-highlight-color: transparent;
+                transition:
+                  transform 120ms ease,
+                  box-shadow 120ms ease,
+                  opacity 120ms ease,
+                  background 120ms ease,
+                  border-color 120ms ease;
+              }
+
+              .workbit-press-feedback:active,
+              .dashboard-button:active,
+              .dashboard-icon-button:active,
+              .dashboard-bottom-nav a:active,
+              .dashboard-clock-button:active,
+              button[type="submit"]:active,
+              button[type="button"]:active,
+              a[role="button"]:active {
+                transform: scale(.985);
+              }
+
+              .dashboard-button:hover:not(:disabled),
+              .dashboard-icon-button:hover:not(:disabled),
+              .workbit-press-feedback:hover {
+                box-shadow: 0 14px 30px rgba(124, 58, 237, 0.16);
+              }
+
+              .dashboard-modal-wrap {
+                animation: workbit-modal-backdrop 150ms ease both;
+              }
+
+              .dashboard-modal-wrap::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                background: radial-gradient(circle at 50% 42%, rgba(168, 85, 247, 0.22), transparent 34%);
+              }
+
+              .dashboard-modal-panel {
+                animation: workbit-modal-enter 170ms cubic-bezier(.2, .8, .2, 1) both;
+              }
+
+              .dashboard-bottom-nav a[aria-current="page"] {
+                animation: workbit-nav-active 180ms ease both;
+              }
+
+              .dashboard-clock-button {
+                position: relative;
+                overflow: hidden;
+                isolation: isolate;
+              }
+
+              .dashboard-clock-button::after {
+                content: "";
+                position: absolute;
+                inset: -30%;
+                z-index: -1;
+                opacity: 0;
+                background: radial-gradient(circle, rgba(255,255,255,0.52), transparent 48%);
+                transform: scale(.45);
+                transition: opacity 160ms ease, transform 220ms ease;
+              }
+
+              .dashboard-clock-button:active::after {
+                opacity: .75;
+                transform: scale(1);
+              }
+
+              .workbit-success-pulse {
+                position: absolute;
+                inset: -12px;
+                border-radius: inherit;
+                pointer-events: none;
+                animation: workbit-success-pulse 620ms ease-out both;
+              }
+
+              .workbit-success-pulse--green {
+                color: rgba(34, 197, 94, .34);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, .34);
+              }
+
+              .workbit-success-pulse--red {
+                color: rgba(239, 68, 68, .32);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, .32);
+              }
+
+              .workbit-success-pulse--purple {
+                color: rgba(124, 58, 237, .30);
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, .30);
+              }
+
+              @keyframes workbit-orb-drift {
+                from {
+                  transform: translate3d(-2%, -1%, 0) scale(1);
+                }
+                to {
+                  transform: translate3d(4%, 3%, 0) scale(1.06);
+                }
+              }
+
+              @keyframes workbit-fog-drift {
+                from {
+                  transform: translate3d(-3%, 0, 0);
+                }
+                to {
+                  transform: translate3d(3%, 1%, 0);
+                }
+              }
+
+              @keyframes workbit-modal-backdrop {
+                from {
+                  opacity: 0;
+                }
+                to {
+                  opacity: 1;
+                }
+              }
+
+              @keyframes workbit-modal-enter {
+                from {
+                  opacity: 0;
+                  transform: translate3d(0, 6px, 0) scale(.98);
+                }
+                to {
+                  opacity: 1;
+                  transform: translate3d(0, 0, 0) scale(1);
+                }
+              }
+
+              @keyframes workbit-nav-active {
+                from {
+                  transform: translateY(0) scale(.98);
+                }
+                to {
+                  transform: translateY(-3px) scale(1);
+                }
+              }
+
+              @keyframes workbit-success-pulse {
+                0% {
+                  opacity: .9;
+                  box-shadow: 0 0 0 0 currentColor;
+                }
+                100% {
+                  opacity: 0;
+                  box-shadow: 0 0 0 18px transparent;
+                }
+              }
+
+              @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                  animation-duration: 1ms !important;
+                  animation-iteration-count: 1 !important;
+                  scroll-behavior: auto !important;
+                  transition-duration: 1ms !important;
+                }
+
+                .workbit-animated-background__orb,
+                .workbit-animated-background__fog {
+                  animation: none !important;
+                  transform: none !important;
+                }
+
+                .workbit-reveal {
+                  opacity: 1 !important;
+                  transform: none !important;
+                }
+              }
+
+              @media (max-width: 720px), (pointer: coarse) {
+                .workbit-animated-background--soft .workbit-animated-background__fog,
+                .workbit-animated-background--minimal .workbit-animated-background__fog {
+                  display: none;
+                }
+
+                .workbit-animated-background__orb {
+                  filter: blur(10px);
+                  opacity: 0.22;
+                }
+              }
             `,
           }}
         />
