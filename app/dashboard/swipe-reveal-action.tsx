@@ -340,6 +340,8 @@ export function SwipeRevealAction({
         position: "relative",
         overflow: "hidden",
         borderRadius,
+        isolation: "isolate",
+        background: "transparent",
         ...style,
       }}
     >
@@ -349,14 +351,14 @@ export function SwipeRevealAction({
         aria-hidden={revealedSide !== "leading"}
         style={{
           position: "absolute",
-          inset: 0,
+          inset: "1px 0",
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-start",
           paddingLeft: actionInset,
           background: "#ede9fe",
-          border: "1px solid #ddd6fe",
           borderRadius,
+          boxShadow: "inset 0 0 0 1px rgba(221, 214, 254, 0.72)",
           zIndex: activeSide === "leading" ? 2 : 0,
           opacity: activeSide === "leading" ? actionProgress : 0,
           visibility: leadingAction ? "visible" : "hidden",
@@ -375,14 +377,14 @@ export function SwipeRevealAction({
         aria-hidden={revealedSide !== "trailing"}
         style={{
           position: "absolute",
-          inset: 0,
+          inset: "1px 0",
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
           paddingRight: actionInset,
           background: "#fee2e2",
-          border: "1px solid #fecaca",
           borderRadius,
+          boxShadow: "inset 0 0 0 1px rgba(254, 202, 202, 0.72)",
           zIndex: activeSide === "trailing" ? 2 : 0,
           opacity: activeSide === "trailing" ? actionProgress : 0,
           transform: `translateX(${activeSide === "trailing" ? 0 : 6}px)`,

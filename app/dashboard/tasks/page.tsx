@@ -229,7 +229,7 @@ export default async function DashboardTasksPage({
                   subtitle={`Data ${formatDate(task.dueDate)}`}
                   style={{
                     position: "relative",
-                    paddingRight: isDone ? 52 : undefined,
+                    paddingRight: isDone ? 76 : undefined,
                   }}
                   meta={
                     <>

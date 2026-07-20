@@ -123,9 +123,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-lavender: #ede9fe;
                 --workbit-border: rgba(124, 58, 237, 0.16);
                 --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(247,243,255,0.97) 100%);
-                --workbit-app-bg: radial-gradient(circle at 88% 2%, rgba(168,85,247,0.16), transparent 28%),
-                  radial-gradient(circle at 8% 4%, rgba(91,33,182,0.08), transparent 26%),
-                  linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%);
+                --workbit-app-bg: radial-gradient(circle at 88% 2%, rgba(168,85,247,0.11), transparent 30%),
+                  radial-gradient(circle at 8% 4%, rgba(91,33,182,0.06), transparent 28%),
+                  linear-gradient(180deg, #ffffff 0%, #fbf8ff 48%, #f6f0ff 100%);
                 --workbit-gradient: linear-gradient(135deg, #0b1024 0%, #5b21b6 48%, #a855f7 100%);
                 --workbit-gradient-soft: linear-gradient(135deg, rgba(11,16,36,0.08) 0%, rgba(91,33,182,0.10) 45%, rgba(168,85,247,0.14) 100%);
                 --workbit-shadow: 0 20px 52px rgba(124, 58, 237, 0.12);
@@ -161,9 +161,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-lavender: #d8c7ff;
                 --workbit-border: rgba(124, 58, 237, 0.22);
                 --workbit-card: linear-gradient(180deg, rgba(251,248,255,0.98) 0%, rgba(229,219,255,0.97) 100%);
-                --workbit-app-bg: radial-gradient(circle at 86% 2%, rgba(168,85,247,0.28), transparent 29%),
-                  radial-gradient(circle at 12% 4%, rgba(124,58,237,0.16), transparent 26%),
-                  linear-gradient(180deg, #f7f2ff 0%, #e5dbff 52%, #d9c9ff 100%);
+                --workbit-app-bg: radial-gradient(circle at 86% 2%, rgba(168,85,247,0.18), transparent 31%),
+                  radial-gradient(circle at 12% 4%, rgba(124,58,237,0.10), transparent 28%),
+                  linear-gradient(180deg, #fbf8ff 0%, #f1eaff 54%, #e9ddff 100%);
                 --workbit-gradient: linear-gradient(135deg, #28164f 0%, #7c3aed 52%, #a855f7 100%);
                 --workbit-gradient-soft: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(168,85,247,0.16) 100%);
                 --workbit-shadow: 0 18px 42px rgba(91, 33, 182, 0.16);
@@ -470,10 +470,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 z-index: 0;
                 pointer-events: none;
                 background:
-                  radial-gradient(circle at 18% 12%, rgba(124, 58, 237, 0.18), transparent 32%),
-                  radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.14), transparent 34%),
-                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.16), transparent 36%),
-                  linear-gradient(140deg, #fbf8ff 0%, #eee7ff 42%, #e7efff 100%);
+                  radial-gradient(circle at 18% 12%, rgba(124, 58, 237, 0.11), transparent 34%),
+                  radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.09), transparent 36%),
+                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.10), transparent 38%),
+                  linear-gradient(140deg, #ffffff 0%, #f8f4ff 44%, #f2f6ff 100%);
                 animation: workbit-global-bg-pan 24s ease-in-out infinite alternate;
                 will-change: transform, background-position;
                 overflow: clip;
@@ -491,13 +491,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-global-ambient__light {
-                width: 42vmax;
-                height: 42vmax;
+                width: 38vmax;
+                height: 38vmax;
                 border-radius: 999px;
-                filter: blur(8px);
-                opacity: 0.28;
-                background: radial-gradient(circle, rgba(168, 85, 247, 0.34), rgba(59, 130, 246, 0.10) 42%, transparent 72%);
-                animation: workbit-global-light-one 22s ease-in-out infinite alternate;
+                filter: blur(12px);
+                opacity: 0.20;
+                background: radial-gradient(circle, rgba(168, 85, 247, 0.24), rgba(59, 130, 246, 0.08) 44%, transparent 74%);
+                animation: workbit-global-light-one 28s ease-in-out infinite alternate;
               }
 
               .workbit-global-ambient__light--one {
@@ -508,10 +508,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               .workbit-global-ambient__light--two {
                 right: -12%;
                 top: 12%;
-                opacity: 0.24;
-                background: radial-gradient(circle, rgba(59, 130, 246, 0.30), rgba(168, 85, 247, 0.12) 44%, transparent 74%);
+                opacity: 0.18;
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.20), rgba(168, 85, 247, 0.08) 46%, transparent 76%);
                 animation-name: workbit-global-light-two;
-                animation-duration: 26s;
+                animation-duration: 32s;
               }
 
               .workbit-global-ambient__light--three {
@@ -528,11 +528,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               .workbit-global-ambient__smoke {
                 inset: 0;
-                opacity: 0.20;
+                opacity: 0.14;
                 background:
-                  radial-gradient(ellipse at 18% 24%, rgba(255,255,255,0.38), transparent 34%),
-                  radial-gradient(ellipse at 74% 32%, rgba(255,255,255,0.24), transparent 36%);
-                animation: workbit-global-smoke 30s ease-in-out infinite alternate;
+                  radial-gradient(ellipse at 18% 24%, rgba(255,255,255,0.24), transparent 36%),
+                  radial-gradient(ellipse at 74% 32%, rgba(255,255,255,0.16), transparent 38%);
+                animation: workbit-global-smoke 38s ease-in-out infinite alternate;
               }
 
               .workbit-global-ambient__beam {
@@ -561,59 +561,88 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               .workbit-global-ambient__orbit {
-                display: none;
+                display: block;
                 left: 50%;
                 top: 50%;
-                width: 26vmax;
-                height: 26vmax;
+                width: 18vmax;
+                height: 18vmax;
                 border-radius: 999px;
-                opacity: 0.72;
-                filter: blur(14px);
-                mix-blend-mode: screen;
-                background: radial-gradient(circle, rgba(255,255,255,0.74), rgba(168,85,247,0.46) 28%, transparent 68%);
+                opacity: 0.28;
+                filter: blur(18px);
+                mix-blend-mode: multiply;
+                background: radial-gradient(circle, rgba(197,181,255,0.42), rgba(168,85,247,0.22) 32%, transparent 70%);
                 transform-origin: 0 0;
-                animation: workbit-global-orbit-one 10s linear infinite;
+                animation: workbit-global-orbit-one 24s linear infinite;
               }
 
               .workbit-global-ambient__orbit--two {
-                width: 20vmax;
-                height: 20vmax;
-                opacity: 0.62;
-                background: radial-gradient(circle, rgba(191,219,254,0.72), rgba(59,130,246,0.44) 30%, transparent 70%);
+                width: 16vmax;
+                height: 16vmax;
+                opacity: 0.24;
+                background: radial-gradient(circle, rgba(191,219,254,0.38), rgba(59,130,246,0.18) 34%, transparent 72%);
                 animation-name: workbit-global-orbit-two;
-                animation-duration: 14s;
+                animation-duration: 30s;
                 animation-direction: reverse;
               }
 
               .workbit-global-ambient__orbit--three {
-                width: 16vmax;
-                height: 16vmax;
-                opacity: 0.56;
-                background: radial-gradient(circle, rgba(245,208,254,0.72), rgba(124,58,237,0.46) 30%, transparent 70%);
+                width: 12vmax;
+                height: 12vmax;
+                opacity: 0.20;
+                background: radial-gradient(circle, rgba(245,208,254,0.36), rgba(124,58,237,0.18) 34%, transparent 72%);
                 animation-name: workbit-global-orbit-three;
-                animation-duration: 18s;
+                animation-duration: 36s;
               }
 
               html[data-theme="dark"] .workbit-global-ambient {
                 background:
-                  radial-gradient(circle at 16% 12%, rgba(124, 58, 237, 0.42), transparent 30%),
-                  radial-gradient(circle at 86% 18%, rgba(14, 165, 233, 0.28), transparent 30%),
-                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.36), transparent 32%),
-                  linear-gradient(140deg, #150d2c 0%, #24124f 46%, #0b1835 100%);
+                  radial-gradient(circle at 16% 12%, rgba(124, 58, 237, 0.18), transparent 34%),
+                  radial-gradient(circle at 86% 18%, rgba(14, 165, 233, 0.10), transparent 36%),
+                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.14), transparent 38%),
+                  linear-gradient(140deg, #fbf8ff 0%, #f1eaff 48%, #e9ddff 100%);
               }
 
               html[data-theme="dark"] .workbit-global-ambient__light {
-                mix-blend-mode: screen;
-                opacity: 0.58;
+                mix-blend-mode: multiply;
+                opacity: 0.22;
               }
 
               html[data-theme="dark"] .workbit-global-ambient__smoke {
-                opacity: 0.32;
+                opacity: 0.16;
+              }
+
+              html[data-theme="dark"] .workbit-global-ambient__orbit {
+                mix-blend-mode: multiply;
+                opacity: 0.24;
               }
 
               .dashboard-shell,
               .workbit-login-page {
                 background: transparent !important;
+              }
+
+              .dashboard-modal-panel {
+                isolation: isolate;
+                overflow-x: hidden !important;
+                background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(250,247,255,0.94) 100%) !important;
+              }
+
+              .dashboard-modal-panel::before {
+                content: "";
+                position: absolute;
+                inset: -18%;
+                z-index: 0;
+                pointer-events: none;
+                background:
+                  radial-gradient(circle at 18% 18%, rgba(168,85,247,0.14), transparent 30%),
+                  radial-gradient(circle at 84% 28%, rgba(59,130,246,0.10), transparent 32%),
+                  radial-gradient(circle at 52% 88%, rgba(124,58,237,0.10), transparent 34%);
+                animation: workbit-popup-orbit 22s ease-in-out infinite alternate;
+              }
+
+              .dashboard-modal-panel > * {
+                position: relative;
+                z-index: 1;
               }
 
               .workbit-animated-background {
@@ -1122,6 +1151,17 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 }
                 to {
                   transform: rotate(360deg) translate3d(12vmax, 28vmax, 0) rotate(-360deg) scale(1.12);
+                }
+              }
+
+              @keyframes workbit-popup-orbit {
+                from {
+                  transform: translate3d(-3%, -2%, 0) rotate(-2deg) scale(1);
+                  opacity: .72;
+                }
+                to {
+                  transform: translate3d(3%, 2%, 0) rotate(2deg) scale(1.04);
+                  opacity: .92;
                 }
               }
 

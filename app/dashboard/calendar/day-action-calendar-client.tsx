@@ -826,7 +826,7 @@ function renderTaskCard(
       style={{
         position: "relative",
         padding: mobile ? 10 : "10px 12px",
-        paddingRight: isDone ? (mobile ? 46 : 50) : undefined,
+        paddingRight: isDone ? (mobile ? 58 : 64) : undefined,
         borderRadius: mobile ? 14 : 16,
         background: "#f8fafc",
         border: "1px solid #e2e8f0",
@@ -949,7 +949,7 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ display: "grid", gap: 4, minWidth: 0, flex: "1 1 auto" }}>
             {confirmationCount === 0 ? (
               <span style={{ color: "#94a3b8", fontSize: mobile ? 11 : 12 }}>
                 Nessuna conferma
@@ -970,7 +970,11 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
             )}
           </div>
           {canConfirm ? (
-            <form action={confirmBoardNoteReadAction} onClick={(event) => event.stopPropagation()}>
+            <form
+              action={confirmBoardNoteReadAction}
+              onClick={(event) => event.stopPropagation()}
+              style={{ flex: "0 0 auto" }}
+            >
               <input type="hidden" name="noteId" value={note.id} />
               <IconButton
                 type="submit"

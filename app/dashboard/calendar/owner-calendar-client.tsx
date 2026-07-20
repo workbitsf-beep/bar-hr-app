@@ -3734,7 +3734,7 @@ export function OwnerCalendarClient({
                           style={{
                             position: "relative",
                             padding: 14,
-                            paddingRight: isDone ? 52 : 14,
+                            paddingRight: isDone ? 72 : 14,
                             borderRadius: 18,
                             background: "#f8fafc",
                             border: "1px solid #e2e8f0",
@@ -3853,13 +3853,19 @@ export function OwnerCalendarClient({
                               justifyContent: "space-between",
                             }}
                           >
-                            <div>{renderNoteConfirmations(note, locale)}</div>
+                            <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                              {renderNoteConfirmations(note, locale)}
+                            </div>
                             {note.requiresConfirmation &&
                             !note.confirmations.some(
                               (confirmation) => confirmation.userId === currentUserId
                             ) &&
                             (!note.employeeId || note.employeeId === currentUserId) ? (
-                              <form action={confirmBoardNoteReadAction} onClick={(event) => event.stopPropagation()}>
+                              <form
+                                action={confirmBoardNoteReadAction}
+                                onClick={(event) => event.stopPropagation()}
+                                style={{ flex: "0 0 auto" }}
+                              >
                                 <input type="hidden" name="noteId" value={note.id} />
                                 <IconButton
                                   type="submit"
@@ -3929,11 +3935,17 @@ export function OwnerCalendarClient({
                           {selectedNote.authorName} - {formatDayTime(selectedNote.createdAt, locale)}
                         </span>
                         <div style={{ display: "flex", gap: 10, alignItems: "flex-start", justifyContent: "space-between" }}>
-                          <div>{renderNoteConfirmations(selectedNote, locale)}</div>
+                          <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                            {renderNoteConfirmations(selectedNote, locale)}
+                          </div>
                           {selectedNote.requiresConfirmation &&
                           !selectedNote.confirmations.some((confirmation) => confirmation.userId === currentUserId) &&
                           (!selectedNote.employeeId || selectedNote.employeeId === currentUserId) ? (
-                            <form action={confirmBoardNoteReadAction} onClick={(event) => event.stopPropagation()}>
+                            <form
+                              action={confirmBoardNoteReadAction}
+                              onClick={(event) => event.stopPropagation()}
+                              style={{ flex: "0 0 auto" }}
+                            >
                               <input type="hidden" name="noteId" value={selectedNote.id} />
                               <IconButton type="submit" aria-label="Conferma lettura" title="Conferma lettura" style={{ background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0" }}>
                                 ✓

@@ -749,7 +749,7 @@ export default async function DashboardRequestsPage({
                           subtitle={formatDateTime(availability.startsAt) + " - " + formatDateTime(availability.endsAt)}
                           meta={
                             canSeeAvailabilityReason
-                              ? availability.reason || "Nessuna nota aggiuntiva"
+                              ? availability.reason || null
                               : "Dettaglio riservato"
                           }
                         />
@@ -795,7 +795,7 @@ export default async function DashboardRequestsPage({
                       ? "Dettaglio riservato"
                     : request.certificateCode
                       ? `Certificato: ${request.certificateCode}`
-                      : request.reason || "Nessun dettaglio aggiuntivo";
+                    : request.reason || null;
 
                   return (
                     <SwipeRevealAction
@@ -829,7 +829,9 @@ export default async function DashboardRequestsPage({
                               ) : null}
                             </div>
 
-                            <div style={{ color: "#64748b", lineHeight: 1.5 }}>{requestSummary}</div>
+                            {requestSummary ? (
+                              <div style={{ color: "#64748b", lineHeight: 1.5 }}>{requestSummary}</div>
+                            ) : null}
 
                             {canPeerReview || canOwnerReview ? (
                               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
