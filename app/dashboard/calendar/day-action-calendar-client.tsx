@@ -1083,6 +1083,56 @@ export function DayActionCalendarClient({
   }, [selectedDate]);
 
   useEffect(() => {
+    function resetCalendarDom() {
+      if (dayScrollTimerRef.current !== null) {
+        window.cancelAnimationFrame(dayScrollTimerRef.current);
+        dayScrollTimerRef.current = null;
+      }
+
+      if (daySnapTimerRef.current !== null) {
+        window.clearTimeout(daySnapTimerRef.current);
+        daySnapTimerRef.current = null;
+      }
+
+      skipDayScrollIntoViewRef.current = false;
+      boundaryTouchStartRef.current = null;
+      boundaryNavigationLockedRef.current = false;
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      dayStripRef.current?.scrollTo({ left: 0, behavior: "auto" });
+      document.querySelectorAll<HTMLElement>(".dashboard-week-strip, .dashboard-calendar-scroll").forEach((element) => {
+        element.scrollLeft = 0;
+      });
+    }
+
+    function handleCalendarCleanup() {
+      setEditingShiftId(null);
+      setActiveCalendarModal(null);
+      setModalContentReady(false);
+      setSelectedNoteId(null);
+      setShowShiftComposer(false);
+      setSelectedDate(null);
+      setQuickComposer(null);
+      setFeedback(null);
+      setCurrentShiftDraft(null);
+      setSavedShiftDrafts([]);
+      setShiftDrafts([]);
+      setShiftInsertMode("DAY");
+      setSelectedShiftWeekdays([]);
+      resetCalendarDom();
+    }
+
+    window.addEventListener("workbit:calendar-cleanup", handleCalendarCleanup);
+    window.addEventListener("pagehide", resetCalendarDom);
+
+    return () => {
+      window.removeEventListener("workbit:calendar-cleanup", handleCalendarCleanup);
+      window.removeEventListener("pagehide", resetCalendarDom);
+      resetCalendarDom();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!features.overtime && requestType === RequestType.OVERTIME) {
       setRequestType(RequestType.VACATION);
     }
@@ -1504,9 +1554,13 @@ export function DayActionCalendarClient({
     setSelectedShiftWeekdays([]);
   }
 
-  function openShiftEditor(shiftId: string) {
+  function openShiftEditor(shiftId: string, dayDate?: string) {
     if (!canManageOptionalShifts) {
       return;
+    }
+
+    if (dayDate) {
+      setSelectedDate(dayDate);
     }
 
     setActiveCalendarModal("shifts");
@@ -1659,7 +1713,7 @@ export function DayActionCalendarClient({
     );
   }
 
-  function renderShiftSwipeActions(shift: ShiftItem, card: ReactNode) {
+  function renderShiftSwipeActions(shift: ShiftItem, card: ReactNode, dayDate?: string) {
     if (!canManageOptionalShifts) {
       return card;
     }
@@ -1674,12 +1728,12 @@ export function DayActionCalendarClient({
             disabled={isPending}
             onClick={(event) => {
               event.stopPropagation();
-              openShiftEditor(shift.id);
+              openShiftEditor(shift.id, dayDate);
             }}
             style={{
-              width: 54,
-              height: 54,
-              borderRadius: 18,
+              width: 46,
+              height: 46,
+              borderRadius: 15,
               border: "1px solid #ddd6fe",
               background: "#7c3aed",
               color: "#ffffff",
@@ -1687,7 +1741,7 @@ export function DayActionCalendarClient({
               fontWeight: 900,
             }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
                 stroke="currentColor"
@@ -1708,9 +1762,9 @@ export function DayActionCalendarClient({
               handleDeleteShift(shift.id);
             }}
             style={{
-              width: 54,
-              height: 54,
-              borderRadius: 18,
+              width: 46,
+              height: 46,
+              borderRadius: 15,
               border: "1px solid #fecaca",
               background: "#ef4444",
               color: "#ffffff",
@@ -1718,7 +1772,7 @@ export function DayActionCalendarClient({
               fontWeight: 900,
             }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
                 stroke="currentColor"
@@ -2161,7 +2215,8 @@ export function DayActionCalendarClient({
                           setSelectedDate(day.date);
                           setActiveCalendarModal("shifts");
                           setEditingShiftId(null);
-                        })
+                        }),
+                        day.date
                       )
                     )}
                   </div>
@@ -2450,7 +2505,8 @@ export function DayActionCalendarClient({
                               setSelectedDate(day.date);
                               setActiveCalendarModal("shifts");
                               setEditingShiftId(null);
-                            })
+                            }),
+                            day.date
                           )
                         )}
                       </div>
@@ -2627,10 +2683,11 @@ export function DayActionCalendarClient({
                             renderShiftSwipeActions(
                               shift,
                               renderShiftCard(shift, locale, true, () => {
-                                setSelectedDate(day.date);
-                                setActiveCalendarModal("shifts");
-                                setEditingShiftId(null);
-                              })
+                              setSelectedDate(day.date);
+                              setActiveCalendarModal("shifts");
+                              setEditingShiftId(null);
+                              }),
+                              day.date
                             )
                           );
                         }
@@ -3724,7 +3781,7 @@ export function DayActionCalendarClient({
                               </div>
                             </div>
                           </div>
-                        )))}
+                        ), selectedDay.date))}
                       </div>
                     )}
                   </div>

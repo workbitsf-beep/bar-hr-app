@@ -294,7 +294,7 @@ export function SwipeRevealAction({
           background: "#ede9fe",
           border: "1px solid #ddd6fe",
           borderRadius: 20,
-          zIndex: activeSide === "leading" ? 1 : 0,
+          zIndex: activeSide === "leading" ? 2 : 0,
           opacity: activeSide === "leading" ? 1 : 0,
           visibility: leadingAction ? "visible" : "hidden",
         }}
@@ -314,7 +314,7 @@ export function SwipeRevealAction({
           background: "#fee2e2",
           border: "1px solid #fecaca",
           borderRadius: 20,
-          zIndex: activeSide === "trailing" ? 1 : 0,
+          zIndex: activeSide === "trailing" ? 2 : 0,
           opacity: activeSide === "trailing" ? 1 : 0,
         }}
       >
