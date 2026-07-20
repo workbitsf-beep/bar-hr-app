@@ -62,6 +62,70 @@ function KpiSkeletonCard() {
   );
 }
 
+function TaskProgressRing({
+  completed,
+  total,
+}: {
+  completed: number;
+  total: number;
+}) {
+  const progress = total > 0 ? Math.max(0, Math.min(1, completed / total)) : 0;
+  const size = 58;
+  const stroke = 6;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - progress);
+
+  return (
+    <div
+      aria-label={`Note completate ${completed} su ${total}`}
+      style={{
+        width: size,
+        height: size,
+        position: "relative",
+        display: "inline-grid",
+        placeItems: "center",
+        flex: "0 0 auto",
+      }}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(124, 58, 237, 0.12)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#7c3aed"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ transition: "stroke-dashoffset 220ms ease" }}
+        />
+      </svg>
+      <span
+        style={{
+          position: "absolute",
+          color: "#4c1d95",
+          fontSize: 13,
+          fontWeight: 900,
+          lineHeight: 1,
+        }}
+      >
+        {completed}/{total}
+      </span>
+    </div>
+  );
+}
+
 export function KpiDashboard({
   activeBarId,
   role,
@@ -246,34 +310,14 @@ export function KpiDashboard({
   }
 
   const teamStats = [
-    features.shifts
-      ? {
-          label: "Persone in turno",
-          value: String(data.today.scheduledUsers),
-          detail:
-            data.today.scheduledUsers > 0
-              ? "persone uniche oggi"
-              : "nessuna persona in turno",
-        }
-      : null,
     features.timeTracking
       ? {
-          label: "Presenti ora",
+          label: "Persone presenti ora",
           value: String(data.today.presentUsers),
           detail:
             data.today.presentUsers > 0
               ? "entrata timbrata"
               : "nessuna entrata attiva",
-        }
-      : null,
-    features.tasks
-      ? {
-          label: "Hanno fatto",
-          value: String(data.tasks.completedToday),
-          detail:
-            data.tasks.totalToday > 0
-              ? `su ${data.tasks.totalToday} note`
-              : "Nessuna nota oggi",
         }
       : null,
     features.requests
@@ -364,19 +408,32 @@ export function KpiDashboard({
               {features.tasks ? (
                 <div
                   style={{
-                    padding: "12px 14px",
+                    padding: "10px 12px",
                     borderRadius: 22,
                     background: "#ffffff",
                     border: "1px solid rgba(148, 163, 184, 0.18)",
-                    minWidth: 140,
+                    minWidth: 166,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
                   }}
                 >
-                  <div style={{ color: "#64748b", fontSize: 12, fontWeight: 760 }}>
-                    Note oggi
+                  <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
+                    <div style={{ color: "#64748b", fontSize: 12, fontWeight: 760 }}>
+                      Note oggi
+                    </div>
+                    <div style={{ color: "#0f172a", fontSize: 18, fontWeight: 850 }}>
+                      {data.tasks.completedToday}/{data.tasks.totalToday}
+                    </div>
+                    <div style={{ color: "#64748b", fontSize: 11, lineHeight: 1.25 }}>
+                      completate
+                    </div>
                   </div>
-                  <div style={{ color: "#4c1d95", fontSize: 25, fontWeight: 850 }}>
-                    {data.tasks.completionRate}%
-                  </div>
+                  <TaskProgressRing
+                    completed={data.tasks.completedToday}
+                    total={data.tasks.totalToday}
+                  />
                 </div>
               ) : null}
             </div>
