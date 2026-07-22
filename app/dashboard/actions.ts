@@ -59,6 +59,7 @@ import {
   cancelShiftClockReminders,
   scheduleShiftClockReminders,
 } from "@/lib/shift-clock-reminders";
+import { notifyPublishedShiftRecipients } from "@/lib/shift-publish-notifications";
 import {
   INTERNAL_NOTIFICATION_TYPES,
   notifyUsers,
@@ -1913,6 +1914,12 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
       confirmedAt: new Date(),
       confirmedById: session.user.id,
     },
+  });
+  await notifyPublishedShiftRecipients({
+    barId: activeBarId,
+    rangeStart,
+    rangeEnd,
+    shiftIds: shiftsToConfirm.map((shift) => shift.id),
   });
   await scheduleShiftClockReminders(shiftsToConfirm.map((shift) => shift.id));
 

@@ -3,8 +3,8 @@ import { Role } from "@prisma/client";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
-import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { scheduleShiftClockReminders } from "@/lib/shift-clock-reminders";
+import { notifyPublishedShiftRecipients } from "@/lib/shift-publish-notifications";
 import { withBar } from "@/lib/withBar";
 
 type SessionWithBar = {
@@ -38,25 +38,6 @@ function parseEndDate(value: unknown) {
   return Number.isNaN(endOfDay.getTime()) ? null : endOfDay;
 }
 
-function getRangeLabel(rangeStart: Date, rangeEnd: Date) {
-  if (
-    rangeStart.getMonth() === rangeEnd.getMonth() &&
-    rangeStart.getFullYear() === rangeEnd.getFullYear()
-  ) {
-    return new Intl.DateTimeFormat("it-IT", {
-      month: "long",
-      year: "numeric",
-    }).format(rangeStart);
-  }
-
-  const formatter = new Intl.DateTimeFormat("it-IT", {
-    day: "numeric",
-    month: "long",
-  });
-
-  return `${formatter.format(rangeStart)} - ${formatter.format(rangeEnd)}`;
-}
-
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     const access = await getActiveBarAccess(session as never);
@@ -85,15 +66,6 @@ export const POST = withBar(
     if (!rangeStart || !rangeEnd || rangeEnd < rangeStart) {
       return Response.json({ ok: false, message: "Invalid date range" }, { status: 400 });
     }
-    const bar = await prisma.bar.findUnique({
-      where: { id: session.activeBarId },
-      select: { name: true },
-    });
-
-    if (!bar) {
-      return Response.json({ ok: false, message: "Bar not found" }, { status: 404 });
-    }
-
     const shifts = await prisma.shift.findMany({
       where: {
         barId: session.activeBarId,
@@ -106,17 +78,8 @@ export const POST = withBar(
           gte: rangeStart,
         },
       },
-      include: {
-        assignments: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-              },
-            },
-          },
-        },
+      select: {
+        id: true,
       },
     });
 
@@ -129,44 +92,13 @@ export const POST = withBar(
       });
     }
 
-    const recipientMap = new Map<
-      string,
-      {
-        id: string;
-        firstName: string;
-      }
-    >();
-
-    for (const shift of shifts) {
-      for (const assignment of shift.assignments) {
-        if (assignment.user.id === session.user.id) {
-          continue;
-        }
-
-        recipientMap.set(assignment.user.id, {
-          id: assignment.user.id,
-          firstName: assignment.user.firstName,
-        });
-      }
-    }
-
-    const weekLabel = getRangeLabel(rangeStart, rangeEnd);
-    const recipients = Array.from(recipientMap.values());
-    const notificationResults = await Promise.all(
-      recipients.map((recipient) =>
-        notifyUsers([recipient.id], {
-          barId: session.activeBarId,
-          title: "Turni pubblicati",
-          message: `Ciao ${recipient.firstName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${weekLabel} per ${bar.name}.`,
-          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
-          actionUrl: "/dashboard/calendar",
-        })
-      )
-    );
-    const sentCount = notificationResults.reduce(
-      (total, result) => total + result.createdCount,
-      0
-    );
+    const shiftIds = shifts.map((shift) => shift.id);
+    const notificationResult = await notifyPublishedShiftRecipients({
+      barId: session.activeBarId,
+      rangeStart,
+      rangeEnd,
+      shiftIds,
+    });
 
     await prisma.shift.updateMany({
       where: {
@@ -181,14 +113,16 @@ export const POST = withBar(
         confirmedById: session.user.id,
       },
     });
-    await scheduleShiftClockReminders(shifts.map((shift) => shift.id));
+    await scheduleShiftClockReminders(shiftIds);
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
 
     return Response.json({
       ok: true,
-      sentCount,
+      sentCount: notificationResult.notificationCount,
+      pushSentCount: notificationResult.pushSentCount,
+      recipientCount: notificationResult.recipientCount,
       confirmedCount: shifts.length,
     });
   }

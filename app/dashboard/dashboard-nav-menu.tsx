@@ -212,9 +212,11 @@ export function DashboardNavMenu({
                   inset: 0,
                   zIndex: 9999,
                   overflow: "hidden",
-                  background: isCompact ? "rgba(15, 23, 42, 0.16)" : "rgba(15, 23, 42, 0.08)",
-                  backdropFilter: "blur(2px)",
-                  WebkitBackdropFilter: "blur(2px)",
+                  background: isCompact
+                    ? "linear-gradient(180deg, rgba(255,255,255,0.84) 0%, rgba(247,243,255,0.78) 100%)"
+                    : "rgba(255,255,255,0.34)",
+                  backdropFilter: "none",
+                  WebkitBackdropFilter: "none",
                   display: isCompact ? "grid" : "block",
                   placeItems: isCompact ? "center" : undefined,
                   padding: isCompact ? 16 : 0,
@@ -237,10 +239,10 @@ export function DashboardNavMenu({
                     borderRadius: isCompact ? 28 : 24,
                     border: "1px solid rgba(124, 58, 237, 0.12)",
                     background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,247,255,0.98) 100%)",
+                      "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,255,0.97) 100%)",
                     boxShadow: isCompact
-                      ? "0 28px 60px rgba(15, 23, 42, 0.20)"
-                      : "0 20px 44px rgba(15, 23, 42, 0.16)",
+                      ? "0 24px 52px rgba(88, 28, 135, 0.16)"
+                      : "0 18px 38px rgba(88, 28, 135, 0.13)",
                     display: "grid",
                     gap: 14,
                     animation: "dashboardMenuEnter 180ms cubic-bezier(0.22, 1, 0.36, 1)",
