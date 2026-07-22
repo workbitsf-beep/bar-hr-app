@@ -207,6 +207,7 @@ function DashboardResponsiveStyles() {
       .dashboard-menu-button,
       .dashboard-icon-button,
       .dashboard-bottom-nav a,
+      .dashboard-work-session-timer,
       .dashboard-select-pill {
         transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease, background 140ms ease;
         touch-action: manipulation;
@@ -594,6 +595,21 @@ function DashboardResponsiveStyles() {
         .dashboard-top-nav .dashboard-menu-button,
         .dashboard-top-nav .dashboard-icon-button {
           flex: 0 0 auto;
+        }
+
+        .dashboard-work-session-timer {
+          min-height: 36px !important;
+          max-width: 88px !important;
+          padding: 7px 10px !important;
+          gap: 6px !important;
+        }
+
+        .dashboard-work-session-timer-label {
+          display: none !important;
+        }
+
+        .dashboard-work-session-timer-value {
+          font-size: 15px !important;
         }
 
         .dashboard-stack {
