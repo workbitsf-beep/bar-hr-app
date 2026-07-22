@@ -264,16 +264,6 @@ function DashboardResponsiveStyles() {
         color: var(--workbit-purple-dark) !important;
       }
 
-      .dashboard-modal-wrap::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-          radial-gradient(circle at 82% 10%, rgba(168, 85, 247, 0.12), transparent 28%),
-          radial-gradient(circle at 18% 18%, rgba(11, 16, 36, 0.06), transparent 24%);
-      }
-
       .dashboard-clock-button {
         min-height: 74px !important;
         padding: 0 18px !important;

@@ -664,25 +664,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               .dashboard-modal-panel {
                 isolation: isolate;
                 overflow-x: hidden !important;
-                background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(250,247,255,0.94) 100%) !important;
-              }
-
-              .dashboard-modal-panel::before {
-                content: "";
-                position: absolute;
-                inset: -18%;
-                z-index: 0;
-                pointer-events: none;
                 background:
-                  radial-gradient(circle at 18% 18%, rgba(168,85,247,0.14), transparent 30%),
-                  radial-gradient(circle at 84% 28%, rgba(59,130,246,0.10), transparent 32%),
-                  radial-gradient(circle at 52% 88%, rgba(124,58,237,0.10), transparent 34%);
-                opacity: 0.82;
-              }
-
-              .dashboard-modal-panel > * {
-                position: relative;
-                z-index: 1;
+                  radial-gradient(circle at 18% 18%, rgba(168,85,247,0.10), transparent 32%),
+                  radial-gradient(circle at 84% 28%, rgba(59,130,246,0.07), transparent 34%),
+                  linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(250,247,255,0.96) 100%) !important;
               }
 
               .workbit-animated-background {
@@ -1003,14 +988,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               .dashboard-modal-wrap {
                 animation: workbit-modal-backdrop 150ms ease both;
-              }
-
-              .dashboard-modal-wrap::before {
-                content: "";
-                position: fixed;
-                inset: 0;
-                pointer-events: none;
-                background: radial-gradient(circle at 50% 42%, rgba(168, 85, 247, 0.22), transparent 34%);
               }
 
               .dashboard-modal-panel {
