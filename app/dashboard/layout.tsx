@@ -68,6 +68,7 @@ export default async function DashboardLayout({
         appName={t.appName}
         menuLabel={t.menu}
         navItems={navItems}
+        belowHeader={<WorkSessionTimer activeClockInAt={activeClockInAt} />}
         menuContent={
           <div style={{ display: "grid", gap: 14 }}>
             <div
@@ -121,7 +122,6 @@ export default async function DashboardLayout({
         }
         headerAction={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <WorkSessionTimer activeClockInAt={activeClockInAt} />
             <NotificationsBell activeBarId={activeBarId} />
             <LogoutForm
               action={logoutAction}

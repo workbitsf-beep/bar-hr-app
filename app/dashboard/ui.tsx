@@ -598,18 +598,18 @@ function DashboardResponsiveStyles() {
         }
 
         .dashboard-work-session-timer {
-          min-height: 36px !important;
-          max-width: 88px !important;
-          padding: 7px 10px !important;
-          gap: 6px !important;
+          min-height: 40px !important;
+          padding: 8px 14px !important;
+          gap: 8px !important;
         }
 
-        .dashboard-work-session-timer-label {
-          display: none !important;
+        .dashboard-work-session-timer-dot {
+          width: 7px !important;
+          height: 7px !important;
         }
 
         .dashboard-work-session-timer-value {
-          font-size: 15px !important;
+          font-size: 17px !important;
         }
 
         .dashboard-stack {
@@ -824,6 +824,7 @@ export function DashboardShell({
   navItems,
   menuContent,
   headerAction,
+  belowHeader,
   children,
 }: {
   userName: string;
@@ -834,6 +835,7 @@ export function DashboardShell({
   navItems: DashboardNavItem[];
   menuContent?: ReactNode;
   headerAction?: ReactNode;
+  belowHeader?: ReactNode;
   children: ReactNode;
 }) {
   const bottomNavItems = getBottomNavItems(navItems);
@@ -939,6 +941,23 @@ export function DashboardShell({
             </div>
           </div>
         </RevealOnScroll>
+
+        {belowHeader ? (
+          <div
+            className="dashboard-shell-below-header"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: 0,
+              marginTop: -6,
+              marginBottom: -2,
+              pointerEvents: "none",
+            }}
+          >
+            {belowHeader}
+          </div>
+        ) : null}
 
         <div style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}>{children}</div>
       </div>

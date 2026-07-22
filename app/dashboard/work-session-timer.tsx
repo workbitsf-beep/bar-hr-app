@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatDurationFromMilliseconds } from "@/lib/time-format";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 
-const TIMER_TICK_MS = 60 * 1000;
+const TIMER_TICK_MS = 1000;
 
 function parseClockInTime(value: string | null | undefined) {
   if (!value) {
@@ -27,6 +26,15 @@ function formatClockStart(value: string | null | undefined) {
     minute: "2-digit",
     timeZone: APP_TIME_ZONE,
   }).format(new Date(timestamp));
+}
+
+function formatDurationWithSeconds(duration: number) {
+  const totalSeconds = Math.max(0, Math.floor(duration / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 export function WorkSessionTimer({ activeClockInAt }: { activeClockInAt?: string | null }) {
@@ -61,18 +69,20 @@ export function WorkSessionTimer({ activeClockInAt }: { activeClockInAt?: string
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 8,
-        minHeight: 42,
-        maxWidth: 128,
-        padding: "8px 12px",
+        justifyContent: "center",
+        gap: 10,
+        minHeight: 44,
+        width: "fit-content",
+        maxWidth: "100%",
+        margin: "0 auto",
+        padding: "9px 16px",
         borderRadius: 999,
-        background: "rgba(255,255,255,0.9)",
-        border: "1px solid rgba(124,58,237,0.18)",
-        boxShadow: "0 14px 30px rgba(88,28,135,0.12)",
+        background: "rgba(255,255,255,0.46)",
+        border: "1px solid rgba(255,255,255,0.58)",
+        boxShadow: "0 12px 28px rgba(88,28,135,0.08)",
         color: "#4c1d95",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        flex: "0 0 auto",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
       }}
     >
       <span
@@ -95,15 +105,16 @@ export function WorkSessionTimer({ activeClockInAt }: { activeClockInAt?: string
           fontWeight: 900,
           lineHeight: 1,
           textTransform: "uppercase",
+          whiteSpace: "nowrap",
         }}
       >
-        Ora
+        In turno
       </span>
       <strong
         className="dashboard-work-session-timer-value"
         style={{
           color: "#4c1d95",
-          fontSize: 17,
+          fontSize: 19,
           fontWeight: 950,
           lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
@@ -111,7 +122,7 @@ export function WorkSessionTimer({ activeClockInAt }: { activeClockInAt?: string
           whiteSpace: "nowrap",
         }}
       >
-        {formatDurationFromMilliseconds(workedMs)}
+        {formatDurationWithSeconds(workedMs)}
       </strong>
     </div>
   );
