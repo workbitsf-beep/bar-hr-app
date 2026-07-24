@@ -7,7 +7,6 @@ import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
-import { BarLogoSwitcher } from "./bar-logo-switcher";
 import { NotificationBarSync } from "./notification-bar-sync";
 import { NotificationsBell } from "./notifications-bell";
 import { PushRegistration } from "./push-registration";
@@ -70,59 +69,13 @@ export default async function DashboardLayout({
         menuLabel={t.menu}
         navItems={navItems}
         belowHeader={<WorkSessionTimer activeClockInAt={activeClockInAt} />}
-        brandContent={
-          <BarLogoSwitcher
-            appName={t.appName}
-            brandHref={navItems[0]?.href ?? "/dashboard"}
-            activeBarId={activeBarId}
-            bars={accessibleBars.map((bar) => ({ id: bar.id, name: bar.name }))}
-          />
-        }
-        headerHint={
-          role !== "SUPER_ADMIN" &&
-          activeBarId &&
-          accessibleBars.some((bar) => bar.id !== activeBarId) ? (
-            <div
-              aria-hidden="true"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                color: "#7c3aed",
-                fontSize: 12,
-                fontWeight: 800,
-                opacity: 0.86,
-              }}
-            >
-              <span style={{ fontSize: 15 }}>‹</span>
-              <span
-                style={{
-                  width: 128,
-                  height: 7,
-                  borderRadius: 999,
-                  background:
-                    "linear-gradient(90deg, rgba(124,58,237,0.12), rgba(124,58,237,0.34), rgba(124,58,237,0.12))",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 1,
-                    left: "calc(50% - 13px)",
-                    width: 26,
-                    height: 5,
-                    borderRadius: 999,
-                    background: "#7c3aed",
-                  }}
-                />
-              </span>
-              <span>scorri sul logo per cambiare locale</span>
-              <span style={{ fontSize: 15 }}>›</span>
-            </div>
-          ) : null
+        headerSwitch={
+          role !== "SUPER_ADMIN"
+            ? {
+                activeBarId,
+                bars: accessibleBars.map((bar) => ({ id: bar.id, name: bar.name })),
+              }
+            : undefined
         }
         menuContent={
           <div style={{ display: "grid", gap: 14 }}>

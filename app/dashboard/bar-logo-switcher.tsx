@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BrandLogo } from "@/components/brand-logo";
+import { SwipeRevealAction } from "./swipe-reveal-action";
 
 const WELCOME_STORAGE_KEY = "workbit:last-bar-welcome";
 
@@ -11,22 +11,18 @@ type BarOption = {
   name: string;
 };
 
-export function BarLogoSwitcher({
-  appName,
-  brandHref,
+export function BarHeaderSwitcher({
   activeBarId,
   bars,
+  children,
 }: {
-  appName: string;
-  brandHref: string;
   activeBarId: string | null;
   bars: BarOption[];
+  children: ReactNode;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
-  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const welcomeTimerRef = useRef<number | null>(null);
   const uniqueBars = useMemo(
     () => bars.filter((bar, index) => bars.findIndex((item) => item.id === bar.id) === index),
@@ -61,12 +57,10 @@ export function BarLogoSwitcher({
   useEffect(() => {
     const storedName = window.sessionStorage.getItem(WELCOME_STORAGE_KEY);
 
-    if (!storedName) {
-      return;
+    if (storedName) {
+      window.sessionStorage.removeItem(WELCOME_STORAGE_KEY);
+      showWelcome(storedName);
     }
-
-    window.sessionStorage.removeItem(WELCOME_STORAGE_KEY);
-    showWelcome(storedName);
 
     return () => {
       if (welcomeTimerRef.current !== null) {
@@ -99,92 +93,69 @@ export function BarLogoSwitcher({
     });
   }
 
-  function resetSwipe() {
-    swipeStartRef.current = null;
-    setDragOffset(0);
-  }
-
-  function updateSwipe(clientX: number, clientY: number) {
-    const start = swipeStartRef.current;
-
-    if (!start || !canSwitch || isPending) {
-      return;
-    }
-
-    const deltaX = clientX - start.x;
-    const deltaY = clientY - start.y;
-
-    if (Math.abs(deltaX) < 6 || Math.abs(deltaX) < Math.abs(deltaY)) {
-      return;
-    }
-
-    setDragOffset(Math.max(-34, Math.min(34, deltaX)));
-  }
-
-  function finishSwipe(clientX: number, clientY: number) {
-    const start = swipeStartRef.current;
-    resetSwipe();
-
-    if (!start || !canSwitch || isPending) {
-      return;
-    }
-
-    const deltaX = clientX - start.x;
-    const deltaY = clientY - start.y;
-
-    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) {
-      return;
-    }
-
-    switchBar(deltaX < 0 ? switchTargets.next : switchTargets.previous);
+  function renderSwitchAction(direction: "previous" | "next", targetBar: BarOption | null) {
+    return (
+      <button
+        type="button"
+        aria-label={targetBar ? `Cambia locale: ${targetBar.name}` : "Cambia locale"}
+        disabled={!targetBar || isPending}
+        onClick={(event) => {
+          event.stopPropagation();
+          switchBar(targetBar);
+        }}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 16,
+          border: "1px solid rgba(221, 214, 254, 0.9)",
+          background: "#7c3aed",
+          color: "#ffffff",
+          cursor: isPending ? "progress" : "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 900,
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d={direction === "previous" ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"}
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    );
   }
 
   return (
     <>
       {canSwitch ? (
-        <button
-          type="button"
-          onPointerDown={(event) => {
-            swipeStartRef.current = { x: event.clientX, y: event.clientY };
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }}
-          onPointerMove={(event) => {
-            updateSwipe(event.clientX, event.clientY);
-          }}
-          onPointerUp={(event) => {
-            finishSwipe(event.clientX, event.clientY);
-            try {
-              event.currentTarget.releasePointerCapture(event.pointerId);
-            } catch {
-              // Pointer capture can already be released by the browser.
-            }
-          }}
-          onPointerCancel={resetSwipe}
-          onLostPointerCapture={resetSwipe}
-          disabled={isPending}
-          aria-label="Scorri sul logo per cambiare locale"
-          title="Scorri sul logo per cambiare locale"
-          style={{
-            border: 0,
-            padding: 0,
-            margin: 0,
-            background: "transparent",
-            color: "inherit",
-            cursor: isPending ? "progress" : "grab",
-            textAlign: "left",
-            borderRadius: 16,
-            display: "inline-flex",
-            opacity: isPending ? 0.72 : 1,
-            touchAction: "pan-y",
-            userSelect: "none",
-            transform: `translateX(${dragOffset}px)`,
-            transition: dragOffset === 0 ? "transform 180ms ease" : "none",
-          }}
+        <SwipeRevealAction
+          enabled={!isPending}
+          leadingAction={renderSwitchAction("previous", switchTargets.previous)}
+          action={renderSwitchAction("next", switchTargets.next)}
+          resetKey={activeBarId ?? "no-bar"}
+          revealWidth={76}
+          actionInset={12}
+          borderRadius={28}
         >
-          <BrandLogo size={40} showIcon label={appName} style={{ gap: 12 }} />
-        </button>
+          <div
+            aria-label="Scorri il contenitore per cambiare locale"
+            title="Scorri il contenitore per cambiare locale"
+            style={{
+              cursor: isPending ? "progress" : "grab",
+              borderRadius: 28,
+              touchAction: "pan-y",
+            }}
+          >
+            {children}
+          </div>
+        </SwipeRevealAction>
       ) : (
-        <BrandLogo href={brandHref} size={40} showIcon label={appName} style={{ gap: 12 }} />
+        children
       )}
 
       {welcomeName ? (
@@ -193,25 +164,29 @@ export function BarLogoSwitcher({
           aria-live="polite"
           style={{
             position: "fixed",
-            top: "max(18px, env(safe-area-inset-top))",
+            top: "50%",
             left: "50%",
-            transform: "translateX(-50%)",
+            transform: "translate(-50%, -50%)",
             zIndex: 2147483647,
-            width: "min(calc(100vw - 32px), 420px)",
-            padding: "14px 16px",
-            borderRadius: 22,
+            width: "min(calc(100vw - 42px), 360px)",
+            padding: "18px 18px",
+            borderRadius: 26,
             background: "rgba(255,255,255,0.96)",
             border: "1px solid rgba(124, 58, 237, 0.16)",
-            boxShadow: "0 18px 42px rgba(88, 28, 135, 0.18)",
+            boxShadow: "0 24px 58px rgba(88, 28, 135, 0.22)",
             color: "#0f172a",
             display: "grid",
-            gap: 3,
+            gap: 8,
+            justifyItems: "center",
             textAlign: "center",
             pointerEvents: "none",
           }}
         >
-          <strong style={{ fontSize: 16 }}>Benvenuto</strong>
-          <span style={{ color: "#6d28d9", fontWeight: 800 }}>{welcomeName}</span>
+          <span style={{ fontSize: 30, lineHeight: 1 }} aria-hidden="true">
+            👋
+          </span>
+          <strong style={{ fontSize: 17 }}>Benvenuto</strong>
+          <span style={{ color: "#6d28d9", fontWeight: 900, fontSize: 20 }}>{welcomeName}</span>
         </div>
       ) : null}
     </>

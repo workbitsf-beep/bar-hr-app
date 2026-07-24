@@ -11,6 +11,7 @@ import {
   formatDateTimeLocalInTimeZone,
 } from "@/lib/time-zone";
 import type { DashboardNavItem } from "./context";
+import { BarHeaderSwitcher } from "./bar-logo-switcher";
 import { DashboardNavMenu } from "./dashboard-nav-menu";
 
 function joinClassNames(...values: Array<string | undefined>) {
@@ -826,7 +827,7 @@ export function DashboardShell({
   headerAction,
   belowHeader,
   brandContent,
-  headerHint,
+  headerSwitch,
   children,
 }: {
   userName: string;
@@ -839,7 +840,10 @@ export function DashboardShell({
   headerAction?: ReactNode;
   belowHeader?: ReactNode;
   brandContent?: ReactNode;
-  headerHint?: ReactNode;
+  headerSwitch?: {
+    activeBarId: string | null;
+    bars: Array<{ id: string; name: string }>;
+  };
   children: ReactNode;
 }) {
   const bottomNavItems = getBottomNavItems(navItems);
@@ -849,6 +853,84 @@ export function DashboardShell({
           (item) => !bottomNavItems.some((bottomItem) => bottomItem.href === item.href)
         )
       : navItems;
+
+  const headerCard = (
+    <RevealOnScroll
+      as="section"
+      className="dashboard-shell-card"
+      style={{
+        ...shellCardStyle,
+        padding: 22,
+      }}
+    >
+      <div
+        className="dashboard-shell-top"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 16,
+        }}
+      >
+        <div
+          className="dashboard-shell-header"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            minWidth: 0,
+          }}
+        >
+          <div className="dashboard-shell-brand" style={{ display: "grid", gap: 10, minWidth: 0 }}>
+            {brandContent ?? (
+              <BrandLogo
+                href={navItems[0]?.href ?? "/dashboard"}
+                size={40}
+                showIcon
+                label={appName}
+                style={{ gap: 12 }}
+              />
+            )}
+            <div className="dashboard-shell-meta" style={{ display: "grid", gap: 4 }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 28,
+                  lineHeight: 1.05,
+                  color: "var(--workbit-navy)",
+                  fontWeight: 700,
+                }}
+              >
+                {barName}
+              </h1>
+              <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.6 }}>
+                {userName} - {role}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="dashboard-top-nav"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 10,
+            flexShrink: 0,
+          }}
+        >
+          {headerAction ? <div className="dashboard-header-action">{headerAction}</div> : null}
+          <DashboardNavMenu
+            navItems={menuNavItems}
+            menuLabel={menuLabel}
+            menuContent={menuContent}
+            brandHref={navItems[0]?.href ?? "/dashboard"}
+          />
+        </div>
+      </div>
+    </RevealOnScroll>
+  );
 
   return (
     <main
@@ -872,82 +954,13 @@ export function DashboardShell({
           gap: 18,
         }}
       >
-        <RevealOnScroll
-          as="section"
-          className="dashboard-shell-card"
-          style={{
-            ...shellCardStyle,
-            padding: 22,
-          }}
-        >
-          <div
-            className="dashboard-shell-top"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: 16,
-            }}
-          >
-            <div
-              className="dashboard-shell-header"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-                minWidth: 0,
-              }}
-            >
-              <div className="dashboard-shell-brand" style={{ display: "grid", gap: 10, minWidth: 0 }}>
-                {brandContent ?? (
-                  <BrandLogo
-                    href={navItems[0]?.href ?? "/dashboard"}
-                    size={40}
-                    showIcon
-                    label={appName}
-                    style={{ gap: 12 }}
-                  />
-                )}
-                <div className="dashboard-shell-meta" style={{ display: "grid", gap: 4 }}>
-                  <h1
-                    style={{
-                      margin: 0,
-                      fontSize: 28,
-                      lineHeight: 1.05,
-                      color: "var(--workbit-navy)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {barName}
-                  </h1>
-                  <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.6 }}>
-                    {userName} - {role}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div
-              className="dashboard-top-nav"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                gap: 10,
-                flexShrink: 0,
-              }}
-            >
-              {headerAction ? <div className="dashboard-header-action">{headerAction}</div> : null}
-              <DashboardNavMenu
-                navItems={menuNavItems}
-                menuLabel={menuLabel}
-                menuContent={menuContent}
-                brandHref={navItems[0]?.href ?? "/dashboard"}
-              />
-            </div>
-          </div>
-          {headerHint ? <div style={{ marginTop: 14 }}>{headerHint}</div> : null}
-        </RevealOnScroll>
+        {headerSwitch ? (
+          <BarHeaderSwitcher activeBarId={headerSwitch.activeBarId} bars={headerSwitch.bars}>
+            {headerCard}
+          </BarHeaderSwitcher>
+        ) : (
+          headerCard
+        )}
 
         {belowHeader ? (
           <div
