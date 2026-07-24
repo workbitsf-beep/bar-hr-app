@@ -13,6 +13,7 @@ import { TimeInput } from "@/app/components/time-input";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import { confirmShiftAction, deleteShiftAction, updateShiftAction } from "../actions";
 import { IconButton, PrimaryButton, Select, SuccessCallout } from "../ui";
+import { useOverlayLock } from "../use-overlay-lock";
 
 type MemberOption = {
   id: string;
@@ -107,23 +108,11 @@ export function ShiftEditorModal({
   );
   const isPastShift = shift ? toDateInputValueInTimeZone(shift.startTime) < todayKey : false;
   const canEditShift = canManage && !isPastShift;
+  useOverlayLock(open);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!shift) {

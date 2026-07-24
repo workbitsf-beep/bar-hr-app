@@ -649,11 +649,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-workbit-overlay-open="true"] .workbit-global-ambient *,
               html[data-workbit-overlay-open="true"] .workbit-animated-background,
               html[data-workbit-overlay-open="true"] .workbit-animated-background * {
-                animation-play-state: paused !important;
+                animation: none !important;
+                transform: none !important;
+                will-change: auto !important;
               }
 
               html[data-workbit-overlay-open="true"] .workbit-global-ambient {
-                opacity: 0.55;
+                opacity: 0.38;
               }
 
               .dashboard-shell,
@@ -986,12 +988,22 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 box-shadow: 0 14px 30px rgba(124, 58, 237, 0.16);
               }
 
-              .dashboard-modal-wrap {
-                animation: workbit-modal-backdrop 150ms ease both;
+              .dashboard-modal-wrap,
+              .dashboard-menu-overlay {
+                animation: none !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+              }
+
+              .dashboard-modal-wrap *,
+              .dashboard-menu-overlay * {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
               }
 
               .dashboard-modal-panel {
-                animation: workbit-modal-enter 170ms cubic-bezier(.2, .8, .2, 1) both;
+                animation: none !important;
+                box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16) !important;
               }
 
               .dashboard-bottom-nav a[aria-current="page"] {
@@ -1333,13 +1345,21 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               @media (max-width: 720px), (pointer: coarse) {
+                .workbit-global-ambient,
+                .workbit-global-ambient *,
+                .workbit-animated-background,
+                .workbit-animated-background * {
+                  animation: none !important;
+                  will-change: auto !important;
+                }
+
                 .workbit-animated-background--minimal .workbit-animated-background__fog {
                   display: none;
                 }
 
                 .workbit-animated-background__orb {
-                  filter: blur(10px);
-                  opacity: 0.62;
+                  filter: blur(6px);
+                  opacity: 0.48;
                 }
 
                 .workbit-animated-background__mesh {
@@ -1357,17 +1377,21 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 .workbit-global-ambient__light {
                   width: 52vmax;
                   height: 52vmax;
-                  opacity: 0.24;
-                  filter: blur(6px);
+                  opacity: 0.16;
+                  filter: blur(4px);
                 }
 
                 .workbit-global-ambient__smoke {
-                  opacity: 0.14;
+                  display: none;
                 }
 
                 .workbit-global-ambient__beam {
-                  opacity: 0.48;
-                  filter: blur(11px);
+                  display: none;
+                }
+
+                .workbit-global-ambient__orbit {
+                  opacity: 0.14;
+                  filter: blur(7px);
                 }
               }
             `,

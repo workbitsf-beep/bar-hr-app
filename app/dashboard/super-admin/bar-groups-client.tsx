@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { deleteBarBySuperAdminAction, updateBarSubscriptionAction } from "../actions";
 import { PrimaryButton } from "../ui";
+import { useOverlayLock } from "../use-overlay-lock";
 
 type OwnerOption = {
   id: string;
@@ -236,6 +237,7 @@ export function BarGroupsClient({
   const [trialEndsAt, setTrialEndsAt] = useState("");
   const [additionalOwnerIds, setAdditionalOwnerIds] = useState<string[]>([]);
   const [additionalOwnerDraftId, setAdditionalOwnerDraftId] = useState("");
+  useOverlayLock(Boolean(selectedBarId));
 
   useEffect(() => {
     setMounted(true);
@@ -266,19 +268,6 @@ export function BarGroupsClient({
     setAdditionalOwnerIds(getAdditionalOwnersForBar(selectedBar).map((owner) => owner.id));
     setAdditionalOwnerDraftId("");
   }, [selectedBar]);
-
-  useEffect(() => {
-    if (!selectedBarId) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [selectedBarId]);
 
   function closeModal() {
     if (isPending) {

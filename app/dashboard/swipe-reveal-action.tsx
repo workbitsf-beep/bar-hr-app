@@ -351,14 +351,14 @@ export function SwipeRevealAction({
         aria-hidden={revealedSide !== "leading"}
         style={{
           position: "absolute",
-          inset: "1px 0",
+          inset: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-start",
           paddingLeft: actionInset,
-          background: "#ede9fe",
+          background: "linear-gradient(90deg, #ede9fe 0%, rgba(237, 233, 254, 0.42) 100%)",
           borderRadius,
-          boxShadow: "inset 0 0 0 1px rgba(221, 214, 254, 0.72)",
+          boxShadow: "none",
           zIndex: activeSide === "leading" ? 2 : 0,
           opacity: activeSide === "leading" ? actionProgress : 0,
           visibility: leadingAction ? "visible" : "hidden",
@@ -377,14 +377,14 @@ export function SwipeRevealAction({
         aria-hidden={revealedSide !== "trailing"}
         style={{
           position: "absolute",
-          inset: "1px 0",
+          inset: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
           paddingRight: actionInset,
-          background: "#fee2e2",
+          background: "linear-gradient(270deg, #fee2e2 0%, rgba(254, 226, 226, 0.42) 100%)",
           borderRadius,
-          boxShadow: "inset 0 0 0 1px rgba(254, 202, 202, 0.72)",
+          boxShadow: "none",
           zIndex: activeSide === "trailing" ? 2 : 0,
           opacity: activeSide === "trailing" ? actionProgress : 0,
           transform: `translateX(${activeSide === "trailing" ? 0 : 6}px)`,
@@ -411,7 +411,7 @@ export function SwipeRevealAction({
           transform: `translateX(${visualOffset}px)`,
           transition: dragging ? "none" : "transform 240ms cubic-bezier(0.2, 0.82, 0.24, 1)",
           touchAction: "pan-y pinch-zoom",
-          willChange: "transform",
+          willChange: dragging || completingOffset !== null ? "transform" : "auto",
         }}
       >
         {children}
@@ -424,7 +424,7 @@ export function SwipeRevealAction({
           box-shadow:
             0 12px 26px rgba(15, 23, 42, 0.13),
             inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
-          backdrop-filter: blur(12px);
+          backdrop-filter: none;
           transform: scale(var(--workbit-swipe-action-scale)) rotate(var(--workbit-swipe-action-rotate));
           transition:
             transform 220ms cubic-bezier(0.2, 0.82, 0.24, 1),

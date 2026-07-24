@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Panel, PrimaryButton, SuccessCallout, TextInput } from "../ui";
+import { useOverlayLock } from "../use-overlay-lock";
 
 export function PasswordChangePanel() {
   const [mounted, setMounted] = useState(false);
@@ -14,23 +15,11 @@ export function PasswordChangePanel() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  useOverlayLock(open);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [open]);
 
   function closeModal() {
     if (loading) {

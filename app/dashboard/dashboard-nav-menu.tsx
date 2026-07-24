@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import type { DashboardNavItem } from "./context";
+import { useOverlayLock } from "./use-overlay-lock";
 
 type MenuPosition = {
   top: number;
@@ -49,6 +50,7 @@ export function DashboardNavMenu({
     left: 0,
     width: 320,
   });
+  useOverlayLock(open);
 
   useEffect(() => {
     setMounted(true);
@@ -66,26 +68,6 @@ export function DashboardNavMenu({
       window.removeEventListener("resize", syncViewportMode);
     };
   }, []);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const previousOverlayState = document.documentElement.getAttribute("data-workbit-overlay-open");
-    const previousOverflow = document.body.style.overflow;
-    document.documentElement.setAttribute("data-workbit-overlay-open", "true");
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      if (previousOverlayState === null) {
-        document.documentElement.removeAttribute("data-workbit-overlay-open");
-      } else {
-        document.documentElement.setAttribute("data-workbit-overlay-open", previousOverlayState);
-      }
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -191,14 +173,8 @@ export function DashboardNavMenu({
                 dangerouslySetInnerHTML={{
                   __html: `
                     @keyframes dashboardMenuEnter {
-                      from {
-                        opacity: 0;
-                        transform: translateY(14px) scale(0.98);
-                      }
-                      to {
-                        opacity: 1;
-                        transform: translateY(0) scale(1);
-                      }
+                      from { opacity: 0; }
+                      to { opacity: 1; }
                     }
                   `,
                 }}
@@ -212,9 +188,7 @@ export function DashboardNavMenu({
                   inset: 0,
                   zIndex: 9999,
                   overflow: "hidden",
-                  background: isCompact
-                    ? "linear-gradient(180deg, rgba(255,255,255,0.84) 0%, rgba(247,243,255,0.78) 100%)"
-                    : "rgba(255,255,255,0.34)",
+                  background: isCompact ? "rgba(255,255,255,0.78)" : "rgba(255,255,255,0.28)",
                   backdropFilter: "none",
                   WebkitBackdropFilter: "none",
                   display: isCompact ? "grid" : "block",
@@ -240,12 +214,10 @@ export function DashboardNavMenu({
                     border: "1px solid rgba(124, 58, 237, 0.12)",
                     background:
                       "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,255,0.97) 100%)",
-                    boxShadow: isCompact
-                      ? "0 24px 52px rgba(88, 28, 135, 0.16)"
-                      : "0 18px 38px rgba(88, 28, 135, 0.13)",
+                    boxShadow: "0 18px 34px rgba(88, 28, 135, 0.12)",
                     display: "grid",
                     gap: 14,
-                    animation: "dashboardMenuEnter 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    animation: "dashboardMenuEnter 90ms ease-out",
                     touchAction: "pan-y",
                     overscrollBehavior: "contain",
                   }}

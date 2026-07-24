@@ -1,7 +1,8 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useOverlayLock } from "./use-overlay-lock";
 
 export function PopupAction({
   title,
@@ -22,6 +23,12 @@ export function PopupAction({
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  useOverlayLock(open);
+
+  const closePopup = useCallback(() => {
+    setOpen(false);
+    window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -38,14 +45,9 @@ export function PopupAction({
       return;
     }
 
-    const previousOverlayState = document.documentElement.getAttribute("data-workbit-overlay-open");
-    const previousOverflow = document.body.style.overflow;
-    document.documentElement.setAttribute("data-workbit-overlay-open", "true");
-    document.body.style.overflow = "hidden";
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false);
+        closePopup();
       }
     }
 
@@ -53,14 +55,8 @@ export function PopupAction({
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      if (previousOverlayState === null) {
-        document.documentElement.removeAttribute("data-workbit-overlay-open");
-      } else {
-        document.documentElement.setAttribute("data-workbit-overlay-open", previousOverlayState);
-      }
-      document.body.style.overflow = previousOverflow;
     };
-  }, [open]);
+  }, [closePopup, open]);
 
   return (
     <>
@@ -116,14 +112,12 @@ export function PopupAction({
               <button
                 type="button"
                 aria-label={`Chiudi ${title}`}
-                onClick={() => setOpen(false)}
+                onClick={closePopup}
                 style={{
                   position: "absolute",
                   inset: 0,
                   border: 0,
-                  background: "rgba(15, 23, 42, 0.18)",
-                  backdropFilter: "blur(2px)",
-                  WebkitBackdropFilter: "blur(2px)",
+                  background: "rgba(15, 23, 42, 0.16)",
                   cursor: "pointer",
                 }}
               />
@@ -145,7 +139,7 @@ export function PopupAction({
                   borderRadius: 28,
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
-                  boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
+                  boxShadow: "0 18px 42px rgba(15, 23, 42, 0.18)",
                   display: "grid",
                   gap: 16,
                   boxSizing: "border-box",
@@ -154,7 +148,7 @@ export function PopupAction({
                   closeOnSubmit
                     ? () => {
                         window.setTimeout(() => {
-                          setOpen(false);
+                          closePopup();
                         }, 0);
                       }
                     : undefined
@@ -162,7 +156,7 @@ export function PopupAction({
                 onClickCapture={(event) => {
                   const target = event.target as HTMLElement | null;
                   if (target?.closest("[data-popup-close]")) {
-                    setOpen(false);
+                    closePopup();
                   }
                 }}
               >
@@ -177,7 +171,7 @@ export function PopupAction({
                   <strong style={{ fontSize: 20, color: "#0f172a" }}>{title}</strong>
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
+                    onClick={closePopup}
                     aria-label={`Chiudi ${title}`}
                     style={{
                       width: 40,

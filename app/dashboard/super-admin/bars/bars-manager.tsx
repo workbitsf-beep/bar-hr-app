@@ -22,6 +22,7 @@ import {
   SuccessCallout,
   TextInput,
 } from "../../ui";
+import { useOverlayLock } from "../../use-overlay-lock";
 
 type OwnerOption = {
   id: string;
@@ -304,6 +305,7 @@ export function BarsManager({
   const [additionalOwnerDraftId, setAdditionalOwnerDraftId] = useState("");
   const [newAdditionalOwnerDraftId, setNewAdditionalOwnerDraftId] = useState("");
   const nowMs = useMemo(() => Date.now(), []);
+  useOverlayLock(open || Boolean(selectedBarId));
 
   useEffect(() => {
     setMounted(true);
@@ -318,12 +320,6 @@ export function BarsManager({
     setNewAdditionalOwnerIds([]);
     setNewAdditionalOwnerDraftId("");
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previous;
-    };
   }, [open]);
 
   const selectedBar = useMemo(() => bars.find((bar) => bar.id === selectedBarId) ?? null, [bars, selectedBarId]);
@@ -364,19 +360,6 @@ export function BarsManager({
     setAdditionalOwnerIds(getAdditionalOwnersForBar(selectedBar).map((owner) => owner.id));
     setAdditionalOwnerDraftId("");
   }, [selectedBar, selectedSubscription]);
-
-  useEffect(() => {
-    if (!selectedBarId) {
-      return;
-    }
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [selectedBarId]);
 
   const hasOwners = owners.length > 0;
 

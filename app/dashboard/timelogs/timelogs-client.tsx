@@ -27,6 +27,7 @@ import {
   TextInput,
   formatDateTime,
 } from "../ui";
+import { useOverlayLock } from "../use-overlay-lock";
 import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-format";
 import { calculateRoundedWorkDuration } from "@/lib/rounding";
 
@@ -1149,23 +1150,11 @@ function OwnerTimeLogsPanel({
   const [mounted, setMounted] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [dayFilter, setDayFilter] = useState("");
+  useOverlayLock(Boolean(selectedUser));
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!selectedUser) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [selectedUser]);
 
   const groupedLogs = useMemo(() => {
     const groups = new Map<

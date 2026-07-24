@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { deleteRequestAction, reviewRequestAction } from "./actions";
 import { SwipeRevealAction } from "./swipe-reveal-action";
 import { EmptyState, PrimaryButton, StatusPill } from "./ui";
+import { useOverlayLock } from "./use-overlay-lock";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 type RequestCardItem = {
@@ -139,23 +140,11 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  useOverlayLock(Boolean(selectedRequestId));
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!selectedRequestId) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [selectedRequestId]);
 
   const selectedRequest = useMemo(
     () => requests.find((request) => request.id === selectedRequestId) ?? null,

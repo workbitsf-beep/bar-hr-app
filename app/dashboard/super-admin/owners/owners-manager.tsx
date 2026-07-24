@@ -14,6 +14,7 @@ import {
   SuccessCallout,
   TextInput,
 } from "../../ui";
+import { useOverlayLock } from "../../use-overlay-lock";
 
 type OwnerItem = {
   id: string;
@@ -76,23 +77,11 @@ export function OwnersManager({
 }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  useOverlayLock(open);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [open]);
 
   return (
     <>

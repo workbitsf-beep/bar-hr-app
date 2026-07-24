@@ -9,6 +9,7 @@ import {
   isWorkbitPushDisabled,
 } from "@/lib/push-client";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
+import { useOverlayLock } from "./use-overlay-lock";
 
 const NOTIFICATION_CACHE_TTL_MS = 30_000;
 
@@ -105,24 +106,12 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
   const [error, setError] = useState<string | null>(null);
   const lastLoadedAtRef = useRef(0);
   const loadingRef = useRef(false);
+  useOverlayLock(mounted && open);
 
   useEffect(() => {
     setMounted(true);
     setPushDisabled(isWorkbitPushDisabled());
   }, []);
-
-  useEffect(() => {
-    if (!mounted) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = open ? "hidden" : previousOverflow;
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [mounted, open]);
 
   useEffect(() => {
     if (!mounted) {

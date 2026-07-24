@@ -7,6 +7,7 @@ import {
   getWorkbitPushPermissionState,
   isWorkbitPushDisabled,
 } from "@/lib/push-client";
+import { useOverlayLock } from "./use-overlay-lock";
 
 const PUSH_PROMPT_DISMISSED_KEY = "workbit.push.first-access-dismissed";
 
@@ -15,6 +16,7 @@ export function PushRegistration() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  useOverlayLock(mounted && showPrompt);
 
   useEffect(() => {
     setMounted(true);
@@ -39,19 +41,6 @@ export function PushRegistration() {
       setShowPrompt(true);
     }
   }, []);
-
-  useEffect(() => {
-    if (!mounted || !showPrompt) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [mounted, showPrompt]);
 
   async function enablePush() {
     setLoading(true);

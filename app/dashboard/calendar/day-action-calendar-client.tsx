@@ -33,7 +33,9 @@ import {
   deleteTaskAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
+import { SwipeRevealAction } from "../swipe-reveal-action";
 import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout, TextInput } from "../ui";
+import { useOverlayLock } from "../use-overlay-lock";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 import { scrollToTodayCard } from "./scroll-to-today-button";
@@ -1066,6 +1068,7 @@ export function DayActionCalendarClient({
   const skipDayScrollIntoViewRef = useRef(false);
   const boundaryTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const boundaryNavigationLockedRef = useRef(false);
+  useOverlayLock(Boolean(selectedDate));
 
   useEffect(() => {
     setMounted(true);
@@ -1077,15 +1080,12 @@ export function DayActionCalendarClient({
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const frame = window.requestAnimationFrame(() => {
       setModalContentReady(true);
     });
 
     return () => {
       window.cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
     };
   }, [selectedDate]);
 
@@ -1104,8 +1104,6 @@ export function DayActionCalendarClient({
       skipDayScrollIntoViewRef.current = false;
       boundaryTouchStartRef.current = null;
       boundaryNavigationLockedRef.current = false;
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
       dayStripRef.current?.scrollTo({ left: 0, behavior: "auto" });
       document.querySelectorAll<HTMLElement>(".dashboard-week-strip, .dashboard-calendar-scroll").forEach((element) => {
         element.scrollLeft = 0;
@@ -1698,92 +1696,152 @@ export function DayActionCalendarClient({
     });
   }
 
-  function renderDeleteSwipeCard(key: string, card: ReactNode, label: string, onDelete: () => void) {
-    void label;
-    void onDelete;
-    return <div key={key}>{card}</div>;
+  function renderDeleteSwipeAction(label: string, onDelete: () => void) {
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        disabled={isPending}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete();
+        }}
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 14,
+          border: "1px solid #fecaca",
+          background: "#ef4444",
+          color: "#ffffff",
+          cursor: isPending ? "progress" : "pointer",
+          fontWeight: 900,
+        }}
+      >
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    );
   }
 
-  function renderShiftSwipeActions(shift: ShiftItem, card: ReactNode, dayDate?: string) {
+  function renderDeleteSwipeCard(
+    key: string,
+    card: ReactNode,
+    label: string,
+    onDelete: () => void,
+    allowSwipe = false
+  ) {
+    if (!allowSwipe) {
+      return <div key={key}>{card}</div>;
+    }
+
+    return (
+      <SwipeRevealAction
+        key={key}
+        action={renderDeleteSwipeAction(label, onDelete)}
+        resetKey={key}
+        revealWidth={64}
+        actionInset={9}
+        borderRadius={12}
+      >
+        {card}
+      </SwipeRevealAction>
+    );
+  }
+
+  function renderShiftSwipeActions(shift: ShiftItem, card: ReactNode, dayDate?: string, allowSwipe = false) {
     const canEditShift = canManageOptionalShifts && !isShiftPastDay(shift, todayKey);
 
     if (!canEditShift) {
       return <div key={shift.id}>{card}</div>;
     }
 
-    return (
-      <div
-        key={shift.id}
+    const editAction = (
+      <button
+        type="button"
+        aria-label="Modifica turno"
+        disabled={isPending}
+        onClick={(event) => {
+          event.stopPropagation();
+          openShiftEditor(shift.id, dayDate);
+        }}
         style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) auto",
-          alignItems: "center",
-          gap: 8,
+          width: 38,
+          height: 38,
+          borderRadius: 13,
+          border: "1px solid #ddd6fe",
+          background: "#7c3aed",
+          color: "#ffffff",
+          cursor: isPending ? "progress" : "pointer",
+          fontWeight: 900,
         }}
       >
-        <div style={{ minWidth: 0 }}>{card}</div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <button
-            type="button"
-            aria-label="Modifica turno"
-            disabled={isPending}
-            onClick={(event) => {
-              event.stopPropagation();
-              openShiftEditor(shift.id, dayDate);
-            }}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 13,
-              border: "1px solid #ddd6fe",
-              background: "#7c3aed",
-              color: "#ffffff",
-              cursor: isPending ? "progress" : "pointer",
-              fontWeight: 900,
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            aria-label="Elimina turno"
-            disabled={isPending}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleDeleteShift(shift.id);
-            }}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 13,
-              border: "1px solid #fecaca",
-              background: "#ef4444",
-              color: "#ffffff",
-              cursor: isPending ? "progress" : "pointer",
-              fontWeight: 900,
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
     );
+    const deleteAction = (
+      <button
+        type="button"
+        aria-label="Elimina turno"
+        disabled={isPending}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleDeleteShift(shift.id);
+        }}
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 13,
+          border: "1px solid #fecaca",
+          background: "#ef4444",
+          color: "#ffffff",
+          cursor: isPending ? "progress" : "pointer",
+          fontWeight: 900,
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    );
+
+    if (allowSwipe) {
+      return (
+        <SwipeRevealAction
+          key={shift.id}
+          resetKey={`${dayDate ?? "day"}-${shift.id}-${shift.startTime}-${shift.endTime}-${shift.assignments.length}`}
+          revealWidth={62}
+          actionInset={8}
+          borderRadius={12}
+          leadingAction={editAction}
+          action={deleteAction}
+        >
+          {card}
+        </SwipeRevealAction>
+      );
+    }
+
+    return <div key={shift.id}>{card}</div>;
   }
 
   function isShiftDraftValid(draft: ShiftDraft | null) {
@@ -1959,7 +2017,6 @@ export function DayActionCalendarClient({
       try {
         await task();
         setFeedback({ tone: "success", message: successMessage });
-        setShowShiftComposer(false);
         if (closeOnSuccess) {
           setEditingShiftId(null);
           setSelectedDate(null);
@@ -2161,48 +2218,12 @@ export function DayActionCalendarClient({
                   </IconButton>
                 </div>
 
-                <div style={{ display: "none" }}>
-                  {features.shifts &&
-                  day.date.slice(0, 10) >= todayKey &&
-                  canManageOptionalShifts ? (
-                    <PrimaryButton
-                      type="button"
-                      tone="sand"
-                      onClick={() => {
-                        setSelectedDate(day.date);
-                        setActiveCalendarModal("shifts");
-                        setShowShiftComposer(true);
-                        setCurrentShiftDraft(createShiftDraft(day.date));
-                      }}
-                      style={{ minHeight: 38, borderRadius: 999, paddingInline: 14 }}
-                    >
-                      + Turni
-                    </PrimaryButton>
-                  ) : null}
-                </div>
-
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
 
                 {features.shifts && (day.shifts.length > 0 || canManageOptionalShifts) ? (
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <strong>👤 Turni</strong>
-                      {day.date.slice(0, 10) >= todayKey && canManageOptionalShifts ? (
-                        <IconButton
-                          type="button"
-                          onClick={() => {
-                            setSelectedDate(day.date);
-                            setActiveCalendarModal("shifts");
-                            setShowShiftComposer(true);
-                            setCurrentShiftDraft(createShiftDraft(day.date));
-                          }}
-                          aria-label="Aggiungi turni"
-                          disabled={isPending}
-                          style={{ width: 32, height: 32 }}
-                        >
-                          +
-                        </IconButton>
-                      ) : null}
                     </div>
                     {day.shifts.length === 0 ? (
                       <div style={{ color: "#64748b" }}>Nessun turno in questa giornata.</div>
@@ -2991,8 +3012,9 @@ export function DayActionCalendarClient({
                     >
                       <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>
                       {canManageOptionalShifts ? (
-                        <IconButton
+                        <PrimaryButton
                           type="button"
+                          tone="sand"
                           onClick={() => {
                             setShowShiftComposer(true);
                             if (!currentShiftDraft) {
@@ -3001,16 +3023,10 @@ export function DayActionCalendarClient({
                           }}
                           aria-label="Aggiungi turno"
                           disabled={isPending}
+                          style={{ minHeight: 38, borderRadius: 999, paddingInline: 14 }}
                         >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path
-                              d="M12 5v14M5 12h14"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </IconButton>
+                          + Turni
+                        </PrimaryButton>
                       ) : null}
                     </div>
 
@@ -3789,7 +3805,7 @@ export function DayActionCalendarClient({
                               </div>
                             </div>
                           </div>
-                        ), selectedDay.date))}
+                        ), selectedDay.date, true))}
                       </div>
                     )}
                   </div>
@@ -3911,7 +3927,8 @@ export function DayActionCalendarClient({
                             `task-${task.id}`,
                             renderTaskCard(task, true, submitTaskCompletion, isPending),
                             "Elimina nota",
-                            () => handleDeleteTask(task.id)
+                            () => handleDeleteTask(task.id),
+                            true
                           )
                         )}
                         {selectedDay.notes.map((note) => (
@@ -3938,7 +3955,8 @@ export function DayActionCalendarClient({
                               `note-${note.id}`,
                               renderNoteCard(note, locale, currentUserId, true),
                               "Elimina nota",
-                              () => handleDeleteBoardNote(note.id)
+                              () => handleDeleteBoardNote(note.id),
+                              true
                             )}
                           </div>
                         ))}
