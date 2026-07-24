@@ -826,6 +826,7 @@ export function DashboardShell({
   headerAction,
   belowHeader,
   brandContent,
+  headerHint,
   children,
 }: {
   userName: string;
@@ -838,6 +839,7 @@ export function DashboardShell({
   headerAction?: ReactNode;
   belowHeader?: ReactNode;
   brandContent?: ReactNode;
+  headerHint?: ReactNode;
   children: ReactNode;
 }) {
   const bottomNavItems = getBottomNavItems(navItems);
@@ -944,6 +946,7 @@ export function DashboardShell({
               />
             </div>
           </div>
+          {headerHint ? <div style={{ marginTop: 14 }}>{headerHint}</div> : null}
         </RevealOnScroll>
 
         {belowHeader ? (

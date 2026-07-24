@@ -25,20 +25,38 @@ export function BarLogoSwitcher({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
-  const canSwitch = bars.length > 1 && Boolean(activeBarId);
+  const welcomeTimerRef = useRef<number | null>(null);
+  const uniqueBars = useMemo(
+    () => bars.filter((bar, index) => bars.findIndex((item) => item.id === bar.id) === index),
+    [bars]
+  );
+  const canSwitch = Boolean(activeBarId) && uniqueBars.some((bar) => bar.id !== activeBarId);
 
   const switchTargets = useMemo(() => {
-    if (!activeBarId || bars.length <= 1) {
+    if (!activeBarId || uniqueBars.length <= 1) {
       return { next: null, previous: null };
     }
 
-    const currentIndex = Math.max(0, bars.findIndex((bar) => bar.id === activeBarId));
+    const currentIndex = Math.max(0, uniqueBars.findIndex((bar) => bar.id === activeBarId));
     return {
-      next: bars[(currentIndex + 1) % bars.length] ?? null,
-      previous: bars[(currentIndex - 1 + bars.length) % bars.length] ?? null,
+      next: uniqueBars[(currentIndex + 1) % uniqueBars.length] ?? null,
+      previous: uniqueBars[(currentIndex - 1 + uniqueBars.length) % uniqueBars.length] ?? null,
     };
-  }, [activeBarId, bars]);
+  }, [activeBarId, uniqueBars]);
+
+  function showWelcome(name: string) {
+    if (welcomeTimerRef.current !== null) {
+      window.clearTimeout(welcomeTimerRef.current);
+    }
+
+    setWelcomeName(name);
+    welcomeTimerRef.current = window.setTimeout(() => {
+      setWelcomeName(null);
+      welcomeTimerRef.current = null;
+    }, 2400);
+  }
 
   useEffect(() => {
     const storedName = window.sessionStorage.getItem(WELCOME_STORAGE_KEY);
@@ -48,10 +66,14 @@ export function BarLogoSwitcher({
     }
 
     window.sessionStorage.removeItem(WELCOME_STORAGE_KEY);
-    setWelcomeName(storedName);
-    const timer = window.setTimeout(() => setWelcomeName(null), 2200);
+    showWelcome(storedName);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      if (welcomeTimerRef.current !== null) {
+        window.clearTimeout(welcomeTimerRef.current);
+        welcomeTimerRef.current = null;
+      }
+    };
   }, []);
 
   function switchBar(targetBar: BarOption | null) {
@@ -71,16 +93,39 @@ export function BarLogoSwitcher({
       }
 
       window.sessionStorage.setItem(WELCOME_STORAGE_KEY, targetBar.name);
+      showWelcome(targetBar.name);
       window.dispatchEvent(new CustomEvent("workbit:calendar-cleanup"));
       router.refresh();
     });
   }
 
+  function resetSwipe() {
+    swipeStartRef.current = null;
+    setDragOffset(0);
+  }
+
+  function updateSwipe(clientX: number, clientY: number) {
+    const start = swipeStartRef.current;
+
+    if (!start || !canSwitch || isPending) {
+      return;
+    }
+
+    const deltaX = clientX - start.x;
+    const deltaY = clientY - start.y;
+
+    if (Math.abs(deltaX) < 6 || Math.abs(deltaX) < Math.abs(deltaY)) {
+      return;
+    }
+
+    setDragOffset(Math.max(-34, Math.min(34, deltaX)));
+  }
+
   function finishSwipe(clientX: number, clientY: number) {
     const start = swipeStartRef.current;
-    swipeStartRef.current = null;
+    resetSwipe();
 
-    if (!start) {
+    if (!start || !canSwitch || isPending) {
       return;
     }
 
@@ -101,13 +146,21 @@ export function BarLogoSwitcher({
           type="button"
           onPointerDown={(event) => {
             swipeStartRef.current = { x: event.clientX, y: event.clientY };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            updateSwipe(event.clientX, event.clientY);
           }}
           onPointerUp={(event) => {
             finishSwipe(event.clientX, event.clientY);
+            try {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            } catch {
+              // Pointer capture can already be released by the browser.
+            }
           }}
-          onPointerCancel={() => {
-            swipeStartRef.current = null;
-          }}
+          onPointerCancel={resetSwipe}
+          onLostPointerCapture={resetSwipe}
           disabled={isPending}
           aria-label="Scorri sul logo per cambiare locale"
           title="Scorri sul logo per cambiare locale"
@@ -124,6 +177,8 @@ export function BarLogoSwitcher({
             opacity: isPending ? 0.72 : 1,
             touchAction: "pan-y",
             userSelect: "none",
+            transform: `translateX(${dragOffset}px)`,
+            transition: dragOffset === 0 ? "transform 180ms ease" : "none",
           }}
         >
           <BrandLogo size={40} showIcon label={appName} style={{ gap: 12 }} />
