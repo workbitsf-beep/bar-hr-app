@@ -33,7 +33,6 @@ import {
   deleteTaskAction,
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
-import { SwipeRevealAction } from "../swipe-reveal-action";
 import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout, TextInput } from "../ui";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
@@ -304,6 +303,10 @@ function formatRange(start: string, end: string, locale: string) {
 
 function hasTimeOverlap(rangeStart: string, rangeEnd: string, shiftStart: string, shiftEnd: string) {
   return new Date(rangeStart) < new Date(shiftEnd) && new Date(rangeEnd) > new Date(shiftStart);
+}
+
+function isShiftPastDay(shift: ShiftItem, todayKey: string) {
+  return toDateInputValueInTimeZone(shift.startTime) < todayKey;
 }
 
 function formatRoleLabel(role: string) {
@@ -1554,12 +1557,20 @@ export function DayActionCalendarClient({
     setFeedback(null);
     setCurrentShiftDraft(null);
     setSavedShiftDrafts([]);
+    setShiftDrafts([]);
     setShiftInsertMode("DAY");
     setSelectedShiftWeekdays([]);
   }
 
   function openShiftEditor(shiftId: string, dayDate?: string) {
     if (!canManageOptionalShifts) {
+      return;
+    }
+
+    const shift = days.flatMap((day) => day.shifts).find((entry) => entry.id === shiftId);
+
+    if (shift && isShiftPastDay(shift, todayKey)) {
+      setFeedback({ tone: "danger", message: "I turni dei giorni passati non si possono modificare." });
       return;
     }
 
@@ -1575,6 +1586,13 @@ export function DayActionCalendarClient({
 
   function handleDeleteShift(shiftId: string) {
     if (!canManageOptionalShifts) {
+      return;
+    }
+
+    const shift = days.flatMap((day) => day.shifts).find((entry) => entry.id === shiftId);
+
+    if (shift && isShiftPastDay(shift, todayKey)) {
+      setFeedback({ tone: "danger", message: "I turni dei giorni passati non si possono eliminare." });
       return;
     }
 
@@ -1680,68 +1698,31 @@ export function DayActionCalendarClient({
     });
   }
 
-  function renderDeleteSwipeAction(label: string, onDelete: () => void) {
-    return (
-      <button
-        type="button"
-        aria-label={label}
-        disabled={isPending}
-        onClick={(event) => {
-          event.stopPropagation();
-          onDelete();
-        }}
-        style={{
-          width: 42,
-          height: 42,
-          borderRadius: 14,
-          border: "1px solid #fecaca",
-          background: "#ef4444",
-          color: "#ffffff",
-          cursor: isPending ? "progress" : "pointer",
-          fontWeight: 900,
-        }}
-      >
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-    );
-  }
-
   function renderDeleteSwipeCard(key: string, card: ReactNode, label: string, onDelete: () => void) {
-    return (
-      <SwipeRevealAction
-        key={key}
-        action={renderDeleteSwipeAction(label, onDelete)}
-        resetKey={key}
-        revealWidth={64}
-        actionInset={9}
-        borderRadius={12}
-      >
-        {card}
-      </SwipeRevealAction>
-    );
+    void label;
+    void onDelete;
+    return <div key={key}>{card}</div>;
   }
 
   function renderShiftSwipeActions(shift: ShiftItem, card: ReactNode, dayDate?: string) {
-    if (!canManageOptionalShifts) {
-      return card;
+    const canEditShift = canManageOptionalShifts && !isShiftPastDay(shift, todayKey);
+
+    if (!canEditShift) {
+      return <div key={shift.id}>{card}</div>;
     }
 
     return (
-      <SwipeRevealAction
+      <div
         key={shift.id}
-        resetKey={`${dayDate ?? "day"}-${shift.id}-${shift.startTime}-${shift.endTime}-${shift.assignments.length}`}
-        revealWidth={62}
-        actionInset={8}
-        borderRadius={12}
-        leadingAction={
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <div style={{ minWidth: 0 }}>{card}</div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <button
             type="button"
             aria-label="Modifica turno"
@@ -1771,8 +1752,6 @@ export function DayActionCalendarClient({
               />
             </svg>
           </button>
-        }
-        action={
           <button
             type="button"
             aria-label="Elimina turno"
@@ -1802,10 +1781,8 @@ export function DayActionCalendarClient({
               />
             </svg>
           </button>
-        }
-      >
-        {card}
-      </SwipeRevealAction>
+        </div>
+      </div>
     );
   }
 
@@ -1982,6 +1959,7 @@ export function DayActionCalendarClient({
       try {
         await task();
         setFeedback({ tone: "success", message: successMessage });
+        setShowShiftComposer(false);
         if (closeOnSuccess) {
           setEditingShiftId(null);
           setSelectedDate(null);

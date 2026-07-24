@@ -105,6 +105,8 @@ export function ShiftEditorModal({
       !shift.confirmedAt &&
       shift.assignments.some((assignment) => assignment.id === currentUserId)
   );
+  const isPastShift = shift ? toDateInputValueInTimeZone(shift.startTime) < todayKey : false;
+  const canEditShift = canManage && !isPastShift;
 
   useEffect(() => {
     setMounted(true);
@@ -174,7 +176,7 @@ export function ShiftEditorModal({
   async function handleUpdate() {
     if (
       !shift ||
-      !canManage ||
+      !canEditShift ||
       selectedMembers.length === 0 ||
       !shiftDate ||
       !startTime ||
@@ -211,7 +213,7 @@ export function ShiftEditorModal({
   }
 
   async function handleDelete() {
-    if (!shift || !canManage) {
+    if (!shift || !canEditShift) {
       return;
     }
 
@@ -357,7 +359,7 @@ export function ShiftEditorModal({
           </div>
         </div>
 
-        {canManage ? (
+        {canEditShift ? (
           <>
             <div style={{ display: "grid", gap: 12 }}>
               {feedback ? (
@@ -572,6 +574,11 @@ export function ShiftEditorModal({
               {shift.createdBy ? (
                 <div style={{ color: "#64748b", fontSize: 14 }}>
                   Creato da {shift.createdBy.firstName} {shift.createdBy.lastName}
+                </div>
+              ) : null}
+              {isPastShift ? (
+                <div style={{ color: "#7c2d12", fontSize: 14, fontWeight: 700 }}>
+                  Turno passato: modifica ed eliminazione non disponibili.
                 </div>
               ) : null}
               {canApproveReperibility ? (

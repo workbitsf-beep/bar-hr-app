@@ -247,6 +247,12 @@ function ensureShiftIsNotBeforeToday(startTime: Date) {
   }
 }
 
+function ensureShiftCanStillBeChanged(startTime: Date) {
+  if (toDateInputValueInTimeZone(startTime) < toDateInputValueInTimeZone(new Date())) {
+    throw new Error("I turni dei giorni passati non si possono modificare o eliminare");
+  }
+}
+
 function ensureDateIsNotBeforeToday(value: Date, message = "Non puoi inserire date precedenti a oggi") {
   if (toDateInputValueInTimeZone(value) < toDateInputValueInTimeZone(new Date())) {
     throw new Error(message);
@@ -2313,6 +2319,7 @@ export async function updateShiftAction(formData: FormData) {
   }
 
   ensureValidDateRange(startTime, endTime, "Invalid shift range");
+  ensureShiftIsNotBeforeToday(startTime);
 
   await ensureUsersBelongToBar(activeBarId, employeeIds);
   await assertNoShiftAssignmentConflicts({
@@ -2344,6 +2351,8 @@ export async function updateShiftAction(formData: FormData) {
   if (!existingShift) {
     throw new Error("Shift not found");
   }
+
+  ensureShiftCanStillBeChanged(existingShift.startTime);
 
   await cancelShiftClockReminders([shiftId]);
 
@@ -2488,6 +2497,12 @@ export async function deleteShiftAction(formData: FormData) {
       },
     },
   });
+
+  if (!existingShift) {
+    throw new Error("Shift not found");
+  }
+
+  ensureShiftCanStillBeChanged(existingShift.startTime);
 
   await cancelShiftClockReminders([shiftId]);
   const result = await deleteShiftWithCleanup(shiftId, { barId: activeBarId });
