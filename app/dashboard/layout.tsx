@@ -7,6 +7,7 @@ import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
+import { BarLogoSwitcher } from "./bar-logo-switcher";
 import { NotificationBarSync } from "./notification-bar-sync";
 import { NotificationsBell } from "./notifications-bell";
 import { PushRegistration } from "./push-registration";
@@ -69,6 +70,14 @@ export default async function DashboardLayout({
         menuLabel={t.menu}
         navItems={navItems}
         belowHeader={<WorkSessionTimer activeClockInAt={activeClockInAt} />}
+        brandContent={
+          <BarLogoSwitcher
+            appName={t.appName}
+            brandHref={navItems[0]?.href ?? "/dashboard"}
+            activeBarId={activeBarId}
+            bars={accessibleBars.map((bar) => ({ id: bar.id, name: bar.name }))}
+          />
+        }
         menuContent={
           <div style={{ display: "grid", gap: 14 }}>
             <div

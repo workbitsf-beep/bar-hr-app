@@ -75,6 +75,8 @@ export function ShiftEditorModal({
   members,
   presets,
   onClose,
+  onDeleted,
+  onUpdated,
 }: {
   open: boolean;
   locale: string;
@@ -84,6 +86,8 @@ export function ShiftEditorModal({
   members: MemberOption[];
   presets: ShiftPreset[];
   onClose: () => void;
+  onDeleted?: (shiftId: string) => void;
+  onUpdated?: (shiftId: string) => void;
 }) {
   const router = useRouter();
   const todayKey = toDateInputValueInTimeZone(new Date());
@@ -191,6 +195,7 @@ export function ShiftEditorModal({
       try {
         await updateShiftAction(formData);
         setFeedback(null);
+        onUpdated?.(shift.id);
         onClose();
         window.setTimeout(() => {
           router.refresh();
@@ -213,6 +218,7 @@ export function ShiftEditorModal({
       try {
         await deleteShiftAction(formData);
         setFeedback(null);
+        onDeleted?.(shift.id);
         onClose();
         window.setTimeout(() => {
           router.refresh();

@@ -2295,6 +2295,8 @@ export async function createShiftAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
+
+  return { id: shift.id };
 }
 
 export async function updateShiftAction(formData: FormData) {

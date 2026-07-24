@@ -825,6 +825,7 @@ export function DashboardShell({
   menuContent,
   headerAction,
   belowHeader,
+  brandContent,
   children,
 }: {
   userName: string;
@@ -836,6 +837,7 @@ export function DashboardShell({
   menuContent?: ReactNode;
   headerAction?: ReactNode;
   belowHeader?: ReactNode;
+  brandContent?: ReactNode;
   children: ReactNode;
 }) {
   const bottomNavItems = getBottomNavItems(navItems);
@@ -895,13 +897,15 @@ export function DashboardShell({
               }}
             >
               <div className="dashboard-shell-brand" style={{ display: "grid", gap: 10, minWidth: 0 }}>
-                <BrandLogo
-                  href={navItems[0]?.href ?? "/dashboard"}
-                  size={40}
-                  showIcon
-                  label={appName}
-                  style={{ gap: 12 }}
-                />
+                {brandContent ?? (
+                  <BrandLogo
+                    href={navItems[0]?.href ?? "/dashboard"}
+                    size={40}
+                    showIcon
+                    label={appName}
+                    style={{ gap: 12 }}
+                  />
+                )}
                 <div className="dashboard-shell-meta" style={{ display: "grid", gap: 4 }}>
                   <h1
                     style={{

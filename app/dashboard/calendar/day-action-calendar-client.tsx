@@ -166,6 +166,7 @@ type ShiftInsertMode = "DAY" | "EMPLOYEE";
 
 type ShiftDraft = {
   id: string;
+  shiftId?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -252,6 +253,30 @@ function sortShiftDraftsByDateTime(drafts: ShiftDraft[]) {
     const rightKey = `${right.date}T${right.startTime || "00:00"}`;
     return leftKey.localeCompare(rightKey);
   });
+}
+
+function shiftDraftToShiftItem(draft: ShiftDraft | null | undefined, members: MemberOption[]): ShiftItem | null {
+  if (!draft?.shiftId) {
+    return null;
+  }
+
+  return {
+    id: draft.shiftId,
+    title: null,
+    startTime: combineDateAndTime(draft.date, draft.startTime),
+    endTime: combineDateAndTime(draft.date, draft.endTime),
+    confirmedAt: null,
+    isOnCall: draft.isOnCall,
+    assignments: draft.memberIds
+      .map((memberId) => members.find((member) => member.id === memberId))
+      .filter((member): member is MemberOption => Boolean(member))
+      .map((member) => ({
+        id: member.id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        role: member.role,
+      })),
+  };
 }
 
 function CountBadge({ count }: { count: number }) {
@@ -1233,8 +1258,13 @@ export function DayActionCalendarClient({
     return note && confirmations ? { ...note, confirmations } : note;
   }, [noteConfirmationsById, selectedDay, selectedNoteId]);
   const editingShift = useMemo(
-    () => selectedDay?.shifts.find((shift) => shift.id === editingShiftId) ?? null,
-    [editingShiftId, selectedDay]
+    () =>
+      selectedDay?.shifts.find((shift) => shift.id === editingShiftId) ??
+      shiftDraftToShiftItem(
+        savedShiftDrafts.find((draft) => draft.shiftId === editingShiftId) ?? null,
+        members
+      ),
+    [editingShiftId, members, savedShiftDrafts, selectedDay]
   );
   const weeks = useMemo(() => chunkByWeek(days), [days]);
   const focusedDayIndex = useMemo(
@@ -1606,6 +1636,9 @@ export function DayActionCalendarClient({
           setEditingShiftId(null);
         }
 
+        setSavedShiftDrafts((current) =>
+          current.filter((draft) => draft.shiftId !== shiftId && draft.id !== shiftId)
+        );
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => {
           router.refresh();
@@ -1877,6 +1910,8 @@ export function DayActionCalendarClient({
     }
 
     runAction(async () => {
+      const savedDrafts: ShiftDraft[] = [];
+
       for (const draft of draftsToAdd) {
         const formData = new FormData();
         formData.set("title", "");
@@ -1890,10 +1925,11 @@ export function DayActionCalendarClient({
           formData.append("employeeIds", memberId);
         }
 
-        await createShiftAction(formData);
+        const createdShift = await createShiftAction(formData);
+        savedDrafts.push({ ...draft, id: createdShift.id, shiftId: createdShift.id });
       }
 
-      setSavedShiftDrafts((current) => sortShiftDraftsByDateTime(current.concat(draftsToAdd)));
+      setSavedShiftDrafts((current) => sortShiftDraftsByDateTime(current.concat(savedDrafts)));
       setShiftDrafts([]);
       setCurrentShiftDraft(createShiftDraft(selectedDay.date));
     }, draftsToAdd.length === 1 ? "Turno salvato." : "Turni salvati.");
@@ -3118,7 +3154,8 @@ export function DayActionCalendarClient({
                                   .map((member) => `${member?.firstName} ${member?.lastName}`)
                                   .join(", ") || "Nessuna persona";
 
-                              return (
+                              const savedShift = shiftDraftToShiftItem(draft, members);
+                              const savedCard = (
                                 <div
                                   key={draft.id}
                                   style={{
@@ -3169,6 +3206,10 @@ export function DayActionCalendarClient({
                                   </span>
                                 </div>
                               );
+
+                              return savedShift
+                                ? renderShiftSwipeActions(savedShift, savedCard, draft.date, true)
+                                : savedCard;
                             })}
                           </div>
                         ) : null}
@@ -4041,6 +4082,12 @@ export function DayActionCalendarClient({
         shift={editingShift}
         members={members}
         presets={presets}
+        onDeleted={(shiftId) => {
+          setSavedShiftDrafts((current) => current.filter((draft) => draft.shiftId !== shiftId));
+        }}
+        onUpdated={(shiftId) => {
+          setSavedShiftDrafts((current) => current.filter((draft) => draft.shiftId !== shiftId));
+        }}
         onClose={closeModal}
       />
     </>
