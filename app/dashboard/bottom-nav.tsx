@@ -30,6 +30,54 @@ function BottomNavIcon({ href }: { href: string }) {
     strokeLinejoin: "round" as const,
   };
 
+  if (href === "/dashboard/super-admin") {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="7" height="7" rx="2" {...common} />
+        <rect x="13.5" y="3.5" width="7" height="7" rx="2" {...common} />
+        <rect x="3.5" y="13.5" width="7" height="7" rx="2" {...common} />
+        <rect x="13.5" y="13.5" width="7" height="7" rx="2" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/owners")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M15.5 19v-1.1a4.2 4.2 0 0 0-4.2-4.2H8a4.2 4.2 0 0 0-4.2 4.2V19" {...common} />
+        <circle cx="9.6" cy="7.5" r="3.3" {...common} />
+        <path d="M17 8h4M19 6v4" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/bars")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 10h16v10H4V10Z" {...common} />
+        <path d="m3 10 2-6h14l2 6M8 20v-6h4v6M16 14h1.5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/billing")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="3" {...common} />
+        <path d="M3 10h18M7 15h4" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/gps")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z" {...common} />
+        <circle cx="12" cy="10" r="2.2" {...common} />
+      </svg>
+    );
+  }
+
   if (href.includes("/calendar")) {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">

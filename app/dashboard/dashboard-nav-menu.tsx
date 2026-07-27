@@ -29,6 +29,169 @@ function ArrowIcon() {
   );
 }
 
+function NavMenuIcon({ href }: { href: string }) {
+  const common = {
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (href === "/dashboard/super-admin") {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="7" height="7" rx="2" {...common} />
+        <rect x="13.5" y="3.5" width="7" height="7" rx="2" {...common} />
+        <rect x="3.5" y="13.5" width="7" height="7" rx="2" {...common} />
+        <rect x="13.5" y="13.5" width="7" height="7" rx="2" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/owners")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M15.5 19v-1.1a4.2 4.2 0 0 0-4.2-4.2H8a4.2 4.2 0 0 0-4.2 4.2V19" {...common} />
+        <circle cx="9.6" cy="7.5" r="3.3" {...common} />
+        <path d="M17 8h4M19 6v4" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/bars")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 10h16v10H4V10Z" {...common} />
+        <path d="m3 10 2-6h14l2 6M8 20v-6h4v6M16 14h1.5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/billing")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="3" {...common} />
+        <path d="M3 10h18M7 15h4" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/gps")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z" {...common} />
+        <circle cx="12" cy="10" r="2.2" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/legal")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" {...common} />
+        <path d="M14 3.5V8h4M9 12h6M9 15.5h6M9 19h3" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/system")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3" {...common} />
+        <path d="M7 5h10a3 3 0 0 1 3 3v8" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/settings")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.4" {...common} />
+        <path d="M19 12a7 7 0 0 0-.12-1.3l2.02-1.54-2-3.46-2.38.96a7.3 7.3 0 0 0-2.24-1.3L14 2.8h-4l-.28 2.56a7.3 7.3 0 0 0-2.24 1.3L5.1 5.7l-2 3.46 2.02 1.54A7 7 0 0 0 5 12c0 .44.04.87.12 1.3L3.1 14.84l2 3.46 2.38-.96a7.3 7.3 0 0 0 2.24 1.3L10 21.2h4l.28-2.56a7.3 7.3 0 0 0 2.24-1.3l2.38.96 2-3.46-2.02-1.54c.08-.43.12-.86.12-1.3Z" {...common} />
+      </svg>
+    );
+  }
+
+  if (href === "/dashboard") {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M16 19v-1.1a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4V19" {...common} />
+        <circle cx="10.5" cy="7.5" r="3.5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/calendar")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M7 3v3M17 3v3M4 9h16" {...common} />
+        <path d="M6.5 5h11A2.5 2.5 0 0 1 20 7.5v10A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-10A2.5 2.5 0 0 1 6.5 5Z" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/tasks") || href.includes("/board")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 7h11M8 12h11M8 17h7" {...common} />
+        <path d="m4 7 1 1 2-2M4 12l1 1 2-2M4 17l1 1 2-2" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/documents")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10l2 2h5.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-10Z" {...common} />
+        <path d="M8 12h8M8 15h5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/timelogs") || href.includes("/export")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" {...common} />
+        <path d="M12 8v4l2.5 2.5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/requests") || href.includes("/availability")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 4h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2Z" {...common} />
+        <path d="M8 9h8M8 13h5" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/people")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M16.5 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" {...common} />
+        <circle cx="10.2" cy="7.5" r="3.2" {...common} />
+        <path d="M17 9.5a2.5 2.5 0 0 1 2 2.4M19.5 19v-1a3.5 3.5 0 0 0-2-3.2" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/settings")) {
+    return (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.4" {...common} />
+        <path d="M19 12a7 7 0 0 0-.12-1.3l2.02-1.54-2-3.46-2.38.96a7.3 7.3 0 0 0-2.24-1.3L14 2.8h-4l-.28 2.56a7.3 7.3 0 0 0-2.24 1.3L5.1 5.7l-2 3.46 2.02 1.54A7 7 0 0 0 5 12c0 .44.04.87.12 1.3L3.1 14.84l2 3.46 2.38-.96a7.3 7.3 0 0 0 2.24 1.3L10 21.2h4l.28-2.56a7.3 7.3 0 0 0 2.24-1.3l2.38.96 2-3.46-2.02-1.54c.08-.43.12-.86.12-1.3Z" {...common} />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3.8 14.2 9l5.6.45-4.25 3.65 1.3 5.45L12 15.65l-4.85 2.9 1.3-5.45L4.2 9.45 9.8 9 12 3.8Z" {...common} />
+    </svg>
+  );
+}
+
 export function DashboardNavMenu({
   navItems,
   menuLabel,
@@ -313,8 +476,29 @@ export function DashboardNavMenu({
                             gap: 12,
                           }}
                         >
-                          <span>{item.label}</span>
-                          <span style={{ color: active ? "#4c1d95" : "#64748b", display: "inline-flex" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 13,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flex: "0 0 auto",
+                                color: active ? "#ffffff" : "#6d28d9",
+                                background: active
+                                  ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)"
+                                  : "#f5f3ff",
+                                boxShadow: active ? "0 10px 18px rgba(124, 58, 237, 0.20)" : "none",
+                              }}
+                            >
+                              <NavMenuIcon href={item.href} />
+                            </span>
+                            <span style={{ minWidth: 0 }}>{item.label}</span>
+                          </span>
+                          <span style={{ color: active ? "#4c1d95" : "#64748b", display: "inline-flex", flex: "0 0 auto" }}>
                             <ArrowIcon />
                           </span>
                         </Link>
