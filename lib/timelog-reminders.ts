@@ -304,3 +304,14 @@ export async function runTimeLogReminders(now = new Date()) {
     skippedScheduledNotificationCount: scheduledResult.skippedScheduledNotificationCount,
   };
 }
+
+export async function runDueTimeLogReminderNotifications(now = new Date()) {
+  const scheduledResult = await runDueScheduledClockNotifications(now);
+
+  return {
+    createdReminderCount: scheduledResult.sentScheduledNotificationCount,
+    checkedScheduledNotificationCount: scheduledResult.checkedScheduledNotificationCount,
+    sentScheduledNotificationCount: scheduledResult.sentScheduledNotificationCount,
+    skippedScheduledNotificationCount: scheduledResult.skippedScheduledNotificationCount,
+  };
+}

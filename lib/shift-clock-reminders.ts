@@ -170,9 +170,13 @@ async function getReminderShifts(shiftIds: string[]) {
   });
 }
 
-export async function scheduleShiftClockReminders(shiftIds: string[]) {
+export async function scheduleShiftClockReminders(
+  shiftIds: string[],
+  options: { preserveSent?: boolean } = {}
+) {
   const shifts = await getReminderShifts(shiftIds);
   let scheduledCount = 0;
+  const now = new Date();
 
   await prisma.$transaction(async (tx) => {
     for (const shift of shifts) {
@@ -193,6 +197,7 @@ export async function scheduleShiftClockReminders(shiftIds: string[]) {
             },
             select: {
               id: true,
+              sentAt: true,
             },
           });
 
@@ -208,7 +213,7 @@ export async function scheduleShiftClockReminders(shiftIds: string[]) {
                 message: item.message,
                 actionUrl,
                 sendAt: item.sendAt,
-                sentAt: null,
+                sentAt: options.preserveSent && existing.sentAt && item.sendAt <= now ? existing.sentAt : null,
                 canceledAt: null,
               },
             });
@@ -272,13 +277,6 @@ export async function backfillMissingShiftClockReminders(now = new Date()) {
           timeTrackingEnabled: true,
         },
       },
-      scheduledNotifications: {
-        none: {
-          type: {
-            in: CLOCK_REMINDER_TYPES,
-          },
-        },
-      },
     },
     select: {
       id: true,
@@ -293,7 +291,10 @@ export async function backfillMissingShiftClockReminders(now = new Date()) {
     };
   }
 
-  const result = await scheduleShiftClockReminders(shifts.map((shift) => shift.id));
+  const result = await scheduleShiftClockReminders(
+    shifts.map((shift) => shift.id),
+    { preserveSent: true }
+  );
 
   return {
     checkedShiftCount: shifts.length,
@@ -385,6 +386,7 @@ export async function runDueScheduledClockNotifications(now = new Date()) {
       title: true,
       message: true,
       actionUrl: true,
+      sendAt: true,
     },
     take: 200,
   });
@@ -462,7 +464,7 @@ export async function runDueScheduledClockNotifications(now = new Date()) {
       continue;
     }
 
-    await notifyUsers([item.userId], {
+    const notificationResult = await notifyUsers([item.userId], {
       barId: item.barId,
       title: item.title,
       message: item.message,
@@ -479,6 +481,18 @@ export async function runDueScheduledClockNotifications(now = new Date()) {
         sentAt: now,
       },
     });
+    if ((notificationResult.pushResult?.sentCount ?? 0) === 0) {
+      console.warn("[clock-reminders] Reminder created without push delivery.", {
+        userId: item.userId,
+        barId: item.barId,
+        shiftId: item.shiftId,
+        type: item.type,
+        deliveryLagMs: now.getTime() - item.sendAt.getTime(),
+        createdCount: notificationResult.createdCount,
+        pushSkipped: notificationResult.pushResult?.skipped ?? null,
+        pushError: notificationResult.pushResult?.error ?? null,
+      });
+    }
     sentScheduledNotificationCount += 1;
   }
 

@@ -8,15 +8,24 @@ export async function GET(request: Request): Promise<Response> {
     return unauthorizedCronResponse();
   }
 
-  const { runTimeLogReminders } = await import("@/lib/timelog-reminders");
-  const result = await runTimeLogReminders();
+  const mode = new URL(request.url).searchParams.get("mode");
+  const { runDueTimeLogReminderNotifications, runTimeLogReminders } = await import(
+    "@/lib/timelog-reminders"
+  );
+  const result =
+    mode === "due"
+      ? await runDueTimeLogReminderNotifications()
+      : await runTimeLogReminders();
 
   return Response.json({
     ok: true,
-    checkedReminderShiftCount: result.checkedShiftCount,
+    checkedReminderShiftCount: "checkedShiftCount" in result ? result.checkedShiftCount : 0,
     createdClockReminderCount: result.createdReminderCount,
-    backfilledReminderShiftCount: result.backfilledReminderShiftCount,
-    backfilledClockReminderCount: result.backfilledReminderCount,
-    autoClockOutCount: result.autoClockOutCount,
+    backfilledReminderShiftCount: "backfilledReminderShiftCount" in result ? result.backfilledReminderShiftCount : 0,
+    backfilledClockReminderCount: "backfilledReminderCount" in result ? result.backfilledReminderCount : 0,
+    autoClockOutCount: "autoClockOutCount" in result ? result.autoClockOutCount : 0,
+    checkedScheduledNotificationCount: result.checkedScheduledNotificationCount,
+    sentScheduledNotificationCount: result.sentScheduledNotificationCount,
+    skippedScheduledNotificationCount: result.skippedScheduledNotificationCount,
   });
 }

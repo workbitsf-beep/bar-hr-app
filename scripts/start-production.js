@@ -29,17 +29,20 @@ require("../server");
 if (process.env.DISABLE_INTERNAL_CRON !== "true") {
   const port = process.env.PORT || "3000";
   const cronSecret = process.env.INTERNAL_CRON_SECRET || process.env.CRON_SECRET || "";
-  const cronUrl = `http://127.0.0.1:${port}/api/cron/tasks`;
-  let running = false;
+  const maintenanceCronUrl = `http://127.0.0.1:${port}/api/cron/tasks`;
+  const clockReminderCronUrl = `http://127.0.0.1:${port}/api/cron/timelog-reminders?mode=due`;
+  const clockReminderIntervalMs = Number(process.env.CLOCK_REMINDER_CRON_INTERVAL_MS || 15_000);
+  const maintenanceIntervalMs = Number(process.env.MAINTENANCE_CRON_INTERVAL_MS || 300_000);
+  const running = new Set();
 
-  async function runInternalCron() {
-    if (running) {
+  async function runInternalCron(url, label) {
+    if (running.has(label)) {
       return;
     }
 
-    running = true;
+    running.add(label);
     try {
-      const response = await fetch(cronUrl, {
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           "x-workbit-internal-cron": cronSecret,
@@ -48,22 +51,31 @@ if (process.env.DISABLE_INTERNAL_CRON !== "true") {
 
       if (!response.ok) {
         console.error("[internal-cron] Cron endpoint returned an error.", {
+          label,
           status: response.status,
         });
       }
     } catch (error) {
       console.error("[internal-cron] Failed to run scheduled tasks.", {
+        label,
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      running = false;
+      running.delete(label);
     }
   }
 
   setTimeout(() => {
-    void runInternalCron();
+    void runInternalCron(clockReminderCronUrl, "clock-reminders");
     setInterval(() => {
-      void runInternalCron();
-    }, 60_000).unref?.();
+      void runInternalCron(clockReminderCronUrl, "clock-reminders");
+    }, Number.isFinite(clockReminderIntervalMs) && clockReminderIntervalMs > 0 ? clockReminderIntervalMs : 15_000).unref?.();
+  }, 5_000).unref?.();
+
+  setTimeout(() => {
+    void runInternalCron(maintenanceCronUrl, "maintenance");
+    setInterval(() => {
+      void runInternalCron(maintenanceCronUrl, "maintenance");
+    }, Number.isFinite(maintenanceIntervalMs) && maintenanceIntervalMs > 0 ? maintenanceIntervalMs : 300_000).unref?.();
   }, 20_000).unref?.();
 }
