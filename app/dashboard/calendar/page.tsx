@@ -624,6 +624,7 @@ export default async function DashboardCalendarPage({
                   dueDate: true,
                   status: true,
                   isUrgent: true,
+                  requiresConfirmation: true,
                   assignedToAll: true,
                   assignedTo: {
                     select: {
@@ -929,6 +930,7 @@ export default async function DashboardCalendarPage({
       dueDate: task.dueDate.toISOString(),
       status: task.status,
       isUrgent: task.isUrgent,
+      requiresConfirmation: task.requiresConfirmation,
       assignedLabel: task.assignedToAll
         ? "Assegnata a tutto il team"
         : task.assignedTo

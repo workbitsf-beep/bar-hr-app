@@ -118,6 +118,7 @@ type TaskItem = {
   dueDate: string;
   status: string;
   isUrgent: boolean;
+  requiresConfirmation: boolean;
   assignedLabel: string;
   completedByLabel: string | null;
 };
@@ -847,7 +848,7 @@ function renderTaskCard(
   onComplete?: (taskId: string) => void,
   isPending = false
 ) {
-  const canComplete = task.status !== "DONE" && Boolean(onComplete);
+  const canComplete = task.requiresConfirmation && task.status !== "DONE" && Boolean(onComplete);
   const isDone = task.status === "DONE";
 
   return (
@@ -905,8 +906,8 @@ function renderTaskCard(
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
         {!isDone ? (
           <StatusPill
-            label={task.isUrgent ? "Urgente" : "Da fare"}
-            tone={task.isUrgent ? "danger" : "warning"}
+            label={!task.requiresConfirmation ? "Promemoria" : task.isUrgent ? "Urgente" : "Da fare"}
+            tone={!task.requiresConfirmation ? "neutral" : task.isUrgent ? "danger" : "warning"}
           />
         ) : null}
         {task.completedByLabel ? (

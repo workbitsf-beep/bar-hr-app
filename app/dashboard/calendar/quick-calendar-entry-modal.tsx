@@ -19,6 +19,7 @@ type EntryItem = {
   assignedToAll: boolean;
   assignedToId: string;
   isUrgent: boolean;
+  requiresConfirmation: boolean;
 };
 
 function createEmptyEntry(): EntryItem {
@@ -28,6 +29,7 @@ function createEmptyEntry(): EntryItem {
     assignedToAll: true,
     assignedToId: "",
     isUrgent: false,
+    requiresConfirmation: false,
   };
 }
 
@@ -91,6 +93,7 @@ export function QuickCalendarEntryModal({
       formData.set(`isUrgent_${draft.id}`, "on");
     }
 
+    formData.set(`requiresConfirmation_${draft.id}`, draft.requiresConfirmation ? "on" : "off");
     formData.set("description", "");
     formData.set("dueDate", dueDate);
 
@@ -212,6 +215,41 @@ export function QuickCalendarEntryModal({
               />
               Urgente
             </label>
+
+            {canChooseAudience ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: 8,
+                }}
+              >
+                {[
+                  { value: false, label: "Promemoria" },
+                  { value: true, label: "Da confermare" },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => setDraft({ ...draft, requiresConfirmation: option.value })}
+                    style={{
+                      minHeight: 40,
+                      borderRadius: 14,
+                      border:
+                        draft.requiresConfirmation === option.value
+                          ? "1px solid rgba(124, 58, 237, 0.46)"
+                          : "1px solid #e2e8f0",
+                      background: draft.requiresConfirmation === option.value ? "#f3e8ff" : "#ffffff",
+                      color: draft.requiresConfirmation === option.value ? "#4c1d95" : "#334155",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <label style={{ display: "grid", gap: 8 }}>
               <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>

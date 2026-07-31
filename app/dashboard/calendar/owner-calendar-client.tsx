@@ -90,6 +90,7 @@ type TaskItem = {
   dueDate: string;
   status: string;
   isUrgent: boolean;
+  requiresConfirmation: boolean;
   assignedLabel: string;
   completedByLabel: string | null;
 };
@@ -3825,8 +3826,8 @@ export function OwnerCalendarClient({
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                             {!isDone ? (
                               <StatusPill
-                                label={task.isUrgent ? "Urgente" : "Da fare"}
-                                tone={task.isUrgent ? "danger" : "warning"}
+                                label={!task.requiresConfirmation ? "Promemoria" : task.isUrgent ? "Urgente" : "Da fare"}
+                                tone={!task.requiresConfirmation ? "neutral" : task.isUrgent ? "danger" : "warning"}
                               />
                             ) : null}
                             {task.completedByLabel ? (
@@ -3834,7 +3835,7 @@ export function OwnerCalendarClient({
                                 Completata da: {task.completedByLabel}
                               </span>
                             ) : null}
-                            {!isDone ? (
+                            {task.requiresConfirmation && !isDone ? (
                               <IconButton
                                 type="button"
                                 aria-label="Conferma nota"
