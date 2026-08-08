@@ -2446,12 +2446,14 @@ export function DayActionCalendarClient({
       >
         {visibleWeeks.map((week, weekIndex) => {
           const weekIsCurrent = week.some((day) => day.isToday);
+          const weekIsFocused = week.some((day) => day.date === focusedDayDate);
 
           return (
             <section
               key={`${week[0]?.date ?? `${weekIndex}-${filteredDay ?? "all"}`}`}
               className="dashboard-week-card"
               data-current-week={weekIsCurrent ? "true" : undefined}
+              data-focused-week={weekIsFocused ? "true" : undefined}
               style={{
                 display: "grid",
                 gap: 12,

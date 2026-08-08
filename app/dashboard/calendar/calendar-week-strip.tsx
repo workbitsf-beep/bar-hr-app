@@ -3,11 +3,32 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef } from "react";
 
+function alignWeekVertically(weekCard: HTMLElement, behavior: ScrollBehavior = "smooth") {
+  const currentDay = weekCard.querySelector<HTMLElement>('[data-calendar-today="true"]');
+
+  window.requestAnimationFrame(() => {
+    if (currentDay) {
+      currentDay.scrollIntoView({
+        behavior,
+        block: "center",
+        inline: "nearest",
+      });
+      return;
+    }
+
+    weekCard.scrollIntoView({
+      behavior,
+      block: "start",
+      inline: "nearest",
+    });
+  });
+}
+
 function scrollToNearestCard(strip: HTMLDivElement, behavior: ScrollBehavior = "smooth") {
   const cards = Array.from(strip.querySelectorAll<HTMLElement>(".dashboard-week-card"));
 
   if (cards.length === 0) {
-    return;
+    return null;
   }
 
   const targetLeft = strip.scrollLeft;
@@ -27,6 +48,8 @@ function scrollToNearestCard(strip: HTMLDivElement, behavior: ScrollBehavior = "
     left: nearestCard.offsetLeft,
     behavior,
   });
+
+  return nearestCard;
 }
 
 function centerCurrentDay(currentWeek: HTMLElement) {
@@ -98,7 +121,18 @@ export function CalendarWeekStrip({
     }
 
     window.requestAnimationFrame(() => {
-      strip.scrollTo({ left: 0, behavior: "auto" });
+      const focusedWeek =
+        strip.querySelector<HTMLElement>('[data-focused-week="true"]') ??
+        strip.querySelector<HTMLElement>('[data-current-week="true"]') ??
+        strip.querySelector<HTMLElement>(".dashboard-week-card");
+
+      if (!focusedWeek) {
+        strip.scrollTo({ left: 0, behavior: "auto" });
+        return;
+      }
+
+      strip.scrollTo({ left: focusedWeek.offsetLeft, behavior: "auto" });
+      alignWeekVertically(focusedWeek, "auto");
     });
   }, [resetKey]);
 
@@ -117,7 +151,11 @@ export function CalendarWeekStrip({
       const currentStrip = stripRef.current;
 
       if (currentStrip) {
-        scrollToNearestCard(currentStrip);
+        const targetWeek = scrollToNearestCard(currentStrip);
+
+        if (targetWeek) {
+          alignWeekVertically(targetWeek);
+        }
       }
     }, 120);
   }
