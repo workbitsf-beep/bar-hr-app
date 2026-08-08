@@ -112,7 +112,18 @@ export default async function SuperAdminLegalDocumentsPage({
 
   const documents = await prisma.legalDocument.findMany({
     orderBy: [{ isActive: "desc" }, { type: "asc" }, { updatedAt: "desc" }],
-    include: {
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      version: true,
+      revision: true,
+      content: true,
+      fileUrl: true,
+      fileName: true,
+      fileSize: true,
+      isActive: true,
+      isRequired: true,
       _count: {
         select: { acceptances: true },
       },

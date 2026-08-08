@@ -780,10 +780,14 @@ export default async function DashboardCalendarPage({
   }
 
   for (const course of courses) {
-    const start = course.startsAt > calendarStart ? course.startsAt : calendarStart;
-    const end = course.endsAt < calendarEnd ? course.endsAt : calendarEnd;
+    const courseStartKey = toDateInputValueInTimeZone(course.startsAt);
+    const courseEndKey = toDateInputValueInTimeZone(course.endsAt);
+    const visibleStartKey = toLocalDateKey(calendarStart);
+    const visibleEndKey = toLocalDateKey(calendarEnd);
+    const startKey = courseStartKey > visibleStartKey ? courseStartKey : visibleStartKey;
+    const endKey = courseEndKey < visibleEndKey ? courseEndKey : visibleEndKey;
 
-    for (const dayKey of getRangeDayKeys(start, end)) {
+    for (const dayKey of getRangeDayKeys(dateKeyToLocalDate(startKey), dateKeyToLocalDate(endKey))) {
       const dayCourses = coursesByDay.get(dayKey) ?? [];
       dayCourses.push(course);
       coursesByDay.set(dayKey, dayCourses);
@@ -855,6 +859,7 @@ export default async function DashboardCalendarPage({
         firstName: assignment.user.firstName,
         lastName: assignment.user.lastName,
         role: assignment.user.role,
+        isCurrentUser: assignment.user.id === session.user.id,
         })),
       })),
       pendingOnCallShifts: day.shifts
@@ -871,6 +876,7 @@ export default async function DashboardCalendarPage({
             firstName: assignment.user.firstName,
             lastName: assignment.user.lastName,
             role: assignment.user.role,
+            isCurrentUser: assignment.user.id === session.user.id,
           })),
         })),
     availabilities: day.availabilities.map((availability) => ({

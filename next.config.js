@@ -5,6 +5,7 @@ const nextConfig = {
   poweredByHeader: false,
   generateEtags: true,
   output: "standalone",
+  cacheMaxMemorySize: 16 * 1024 * 1024,
   async headers() {
     return [
       {

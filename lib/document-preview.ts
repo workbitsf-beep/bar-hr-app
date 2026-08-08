@@ -1,7 +1,3 @@
-import ExcelJS from "exceljs";
-import mammoth from "mammoth";
-import sanitizeHtml from "sanitize-html";
-
 const MAX_SHEETS = 20;
 const MAX_ROWS_PER_SHEET = 500;
 const MAX_COLUMNS_PER_SHEET = 50;
@@ -49,6 +45,10 @@ function buildHtmlPage(title: string, content: string) {
 }
 
 export async function renderWordPreview(title: string, bytes: Uint8Array) {
+  const [{ default: mammoth }, { default: sanitizeHtml }] = await Promise.all([
+    import("mammoth"),
+    import("sanitize-html"),
+  ]);
   const result = await mammoth.convertToHtml(
     { buffer: Buffer.from(bytes) },
     {
@@ -84,6 +84,7 @@ export async function renderWordPreview(title: string, bytes: Uint8Array) {
 }
 
 export async function renderSpreadsheetPreview(title: string, bytes: Uint8Array) {
+  const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(Uint8Array.from(bytes).buffer);
   const sheets = workbook.worksheets.slice(0, MAX_SHEETS);

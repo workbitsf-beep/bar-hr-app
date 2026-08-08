@@ -129,6 +129,7 @@ export async function runShiftRetentionCleanup(now = new Date()) {
     select: {
       id: true,
     },
+    take: 500,
   });
 
   if (expiredShifts.length === 0) {

@@ -8,7 +8,6 @@ import { prisma } from "@/lib/prisma";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
 import { NotificationBarSync } from "./notification-bar-sync";
-import { NotificationsBell } from "./notifications-bell";
 import { PushRegistration } from "./push-registration";
 import { logoutAction, selectBarAction, setLanguageAction } from "./actions";
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
@@ -129,34 +128,26 @@ export default async function DashboardLayout({
           </div>
         }
         headerAction={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <NotificationsBell activeBarId={activeBarId} />
-            <LogoutForm
-              action={logoutAction}
-              style={{
-                display: "inline-flex",
-              }}
-            >
-              <IconButton type="submit" aria-label={t.logout} title={t.logout}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M10 7V5.75C10 4.78 10.78 4 11.75 4h6.5C19.22 4 20 4.78 20 5.75v12.5c0 .97-.78 1.75-1.75 1.75h-6.5A1.75 1.75 0 0 1 10 18.25V17"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M14 12H4m0 0 3-3m-3 3 3 3"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </IconButton>
-            </LogoutForm>
-          </div>
+          <LogoutForm action={logoutAction} style={{ display: "inline-flex" }}>
+            <IconButton type="submit" aria-label={t.logout} title={t.logout}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M10 7V5.75C10 4.78 10.78 4 11.75 4h6.5C19.22 4 20 4.78 20 5.75v12.5c0 .97-.78 1.75-1.75 1.75h-6.5A1.75 1.75 0 0 1 10 18.25V17"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M14 12H4m0 0 3-3m-3 3 3 3"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </IconButton>
+          </LogoutForm>
         }
       >
         {children}

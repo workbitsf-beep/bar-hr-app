@@ -1,6 +1,5 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
 import { sendPushNotification } from "@/lib/push";
 
 export const INTERNAL_NOTIFICATION_TYPES = {
@@ -69,76 +68,6 @@ function normalizeRecipients(users: Array<NotificationRecipient | string | null 
   return Array.from(byId.values());
 }
 
-function logNotificationError(input: {
-  userId: string;
-  barId?: string | null;
-  title: string;
-  type: string;
-  error: unknown;
-}) {
-  console.error("[notifications] Failed to create notification.", {
-    userId: input.userId,
-    barId: input.barId ?? null,
-    type: input.type,
-    title: input.title,
-    error: input.error instanceof Error ? input.error.message : String(input.error),
-  });
-}
-
-export async function createNotification(input: {
-  userId: string;
-  barId?: string | null;
-  title: string;
-  message: string;
-  type: InternalNotificationType | string;
-  actionUrl?: string | null;
-}) {
-  try {
-    const duplicateWindowStart = new Date(Date.now() - 30_000);
-    const existingDuplicate = await prisma.notification.findFirst({
-      where: {
-        userId: input.userId,
-        barId: input.barId ?? null,
-        title: input.title,
-        message: input.message,
-        type: input.type,
-        actionUrl: input.actionUrl ?? null,
-        createdAt: {
-          gte: duplicateWindowStart,
-        },
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (existingDuplicate) {
-      return null;
-    }
-
-    return await prisma.notification.create({
-      data: {
-        userId: input.userId,
-        barId: input.barId ?? null,
-        title: input.title,
-        message: input.message,
-        type: input.type,
-        actionUrl: input.actionUrl ?? null,
-      },
-    });
-  } catch (error) {
-    logNotificationError({
-      userId: input.userId,
-      barId: input.barId,
-      title: input.title,
-      type: input.type,
-      error,
-    });
-
-    return null;
-  }
-}
-
 export async function notifyUsers(
   users: Array<NotificationRecipient | string | null | undefined>,
   payload: NotificationPayload
@@ -152,32 +81,8 @@ export async function notifyUsers(
     };
   }
 
-  const created = await Promise.all(
-    recipients.map((recipient) =>
-      createNotification({
-        userId: recipient.id,
-        barId: payload.barId ?? null,
-        title: payload.title,
-        message: payload.message,
-        type: payload.type,
-        actionUrl: payload.actionUrl ?? null,
-      })
-    )
-  );
-
-  const notificationIds = created.filter((notification): notification is NonNullable<typeof notification> =>
-    Boolean(notification)
-  );
-
-  if (notificationIds.length === 0) {
-    return {
-      createdCount: 0,
-      pushResult: null as Awaited<ReturnType<typeof sendPushNotification>> | null,
-    };
-  }
-
   const pushResult = await sendPushNotification({
-    userIds: notificationIds.map((notification) => notification.userId),
+    userIds: recipients.map((recipient) => recipient.id),
     title: payload.title,
     body: payload.message,
     data: {
@@ -188,7 +93,7 @@ export async function notifyUsers(
   });
 
   return {
-    createdCount: notificationIds.length,
+    createdCount: recipients.length,
     pushResult,
   };
 }

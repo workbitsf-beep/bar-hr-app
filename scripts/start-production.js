@@ -44,6 +44,7 @@ if (process.env.DISABLE_INTERNAL_CRON !== "true") {
     try {
       const response = await fetch(url, {
         method: "GET",
+        signal: AbortSignal.timeout(60_000),
         headers: {
           "x-workbit-internal-cron": cronSecret,
         },

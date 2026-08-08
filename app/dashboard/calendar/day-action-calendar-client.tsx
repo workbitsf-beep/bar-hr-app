@@ -52,6 +52,7 @@ type ShiftAssignment = {
   firstName: string;
   lastName: string;
   role: string;
+  isCurrentUser: boolean;
 };
 
 type ShiftItem = {
@@ -256,7 +257,11 @@ function sortShiftDraftsByDateTime(drafts: ShiftDraft[]) {
   });
 }
 
-function shiftDraftToShiftItem(draft: ShiftDraft | null | undefined, members: MemberOption[]): ShiftItem | null {
+function shiftDraftToShiftItem(
+  draft: ShiftDraft | null | undefined,
+  members: MemberOption[],
+  currentUserId: string
+): ShiftItem | null {
   if (!draft?.shiftId) {
     return null;
   }
@@ -276,6 +281,7 @@ function shiftDraftToShiftItem(draft: ShiftDraft | null | undefined, members: Me
         firstName: member.firstName,
         lastName: member.lastName,
         role: member.role,
+        isCurrentUser: member.id === currentUserId,
       })),
   };
 }
@@ -375,7 +381,15 @@ function getErrorMessage(error: unknown) {
 }
 
 function formatAssignmentNames(assignments: ShiftAssignment[]) {
-  return assignments.map((assignment) => `${assignment.firstName} ${assignment.lastName}`).join(", ");
+  return assignments.map((assignment, index) => {
+    const name = `${assignment.firstName} ${assignment.lastName}`;
+    return (
+      <span key={assignment.id}>
+        {index > 0 ? ", " : null}
+        {assignment.isCurrentUser ? <strong style={{ fontWeight: 900 }}>{name}</strong> : name}
+      </span>
+    );
+  });
 }
 
 function truncateCalendarText(value: string, maxLength = 25) {
@@ -1263,9 +1277,10 @@ export function DayActionCalendarClient({
       selectedDay?.shifts.find((shift) => shift.id === editingShiftId) ??
       shiftDraftToShiftItem(
         savedShiftDrafts.find((draft) => draft.shiftId === editingShiftId) ?? null,
-        members
+        members,
+        currentUserId
       ),
-    [editingShiftId, members, savedShiftDrafts, selectedDay]
+    [currentUserId, editingShiftId, members, savedShiftDrafts, selectedDay]
   );
   const weeks = useMemo(() => chunkByWeek(days), [days]);
   const focusedDayIndex = useMemo(
@@ -3155,7 +3170,7 @@ export function DayActionCalendarClient({
                                   .map((member) => `${member?.firstName} ${member?.lastName}`)
                                   .join(", ") || "Nessuna persona";
 
-                              const savedShift = shiftDraftToShiftItem(draft, members);
+                              const savedShift = shiftDraftToShiftItem(draft, members, currentUserId);
                               const savedCard = (
                                 <div
                                   key={draft.id}

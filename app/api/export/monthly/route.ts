@@ -12,6 +12,27 @@ import { withBar } from "@/lib/withBar";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>
+) {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
 type ExportBody = {
   userId?: string;
   month?: number;
@@ -693,8 +714,10 @@ export const POST = withBar(
           },
         });
 
-        const datasets = await Promise.all(
-          memberships.map(async (membership) => ({
+        const datasets = await mapWithConcurrency(
+          memberships,
+          3,
+          async (membership) => ({
             userLabel: `${membership.user.firstName} ${membership.user.lastName}`,
             dataset: await buildMonthlyDataset(
               session.activeBarId,
@@ -706,7 +729,7 @@ export const POST = withBar(
                 includePrivateAbsenceDetails: canViewPrivateAbsenceDetails,
               }
             ),
-          }))
+          })
         );
 
         const dataset = mergeCompanyDatasets(datasets);
