@@ -1102,6 +1102,7 @@ export function DayActionCalendarClient({
   const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [noteConfirmationsById, setNoteConfirmationsById] = useState<Record<string, NoteItem["confirmations"]>>({});
+  const calendarTopRef = useRef<HTMLDivElement | null>(null);
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
   const daySnapTimerRef = useRef<number | null>(null);
@@ -1214,6 +1215,13 @@ export function DayActionCalendarClient({
     setActiveCalendarModal(null);
     setSelectedNoteId(null);
     dayStripRef.current?.scrollTo({ left: 0, behavior: "auto" });
+    window.requestAnimationFrame(() => {
+      calendarTopRef.current?.scrollIntoView({
+        behavior: "auto",
+        block: "start",
+        inline: "nearest",
+      });
+    });
   }, [days, initialFocusedDay]);
 
   useEffect(() => {
@@ -2153,6 +2161,7 @@ export function DayActionCalendarClient({
   return (
     <>
       <div
+        ref={calendarTopRef}
         style={{
           display: "grid",
           gap: 12,
