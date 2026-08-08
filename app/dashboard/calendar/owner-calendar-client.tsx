@@ -885,6 +885,7 @@ export function OwnerCalendarClient({
   const skipDayScrollIntoViewRef = useRef(false);
   const boundaryTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const boundaryNavigationLockedRef = useRef(false);
+  const previousInitialFocusedDayRef = useRef(initialFocusedDay);
   useOverlayLock(Boolean(selectedDate));
 
   useEffect(() => {
@@ -971,6 +972,26 @@ export function OwnerCalendarClient({
 
     return () => cancelAnimationFrame(frame);
   }, [filteredDay, initialFocusedDay, selectedDate]);
+
+  useEffect(() => {
+    if (!initialFocusedDay || previousInitialFocusedDayRef.current === initialFocusedDay) {
+      return;
+    }
+
+    previousInitialFocusedDayRef.current = initialFocusedDay;
+    const nextFocusedDay = days.find((day) => day.date.slice(0, 10) === initialFocusedDay);
+
+    if (!nextFocusedDay) {
+      return;
+    }
+
+    skipDayScrollIntoViewRef.current = false;
+    setFocusedDayDate(nextFocusedDay.date);
+    setSelectedDate(null);
+    setActiveCalendarModal(null);
+    setSelectedNoteId(null);
+    dayStripRef.current?.scrollTo({ left: 0, behavior: "auto" });
+  }, [days, initialFocusedDay]);
 
   useEffect(() => {
     const requestedDay = filteredDay
@@ -1079,6 +1100,13 @@ export function OwnerCalendarClient({
 
     return days;
   }, [days, filteredDay, focusedDay]);
+  const calendarWindowKey = useMemo(
+    () =>
+      `${calendarView}-${initialFocusedDay ?? "auto"}-${visibleDayItems[0]?.date ?? ""}-${
+        visibleDayItems[visibleDayItems.length - 1]?.date ?? ""
+      }`,
+    [calendarView, initialFocusedDay, visibleDayItems]
+  );
 
   const toggleExpandedWeekDay = useCallback((date: string) => {
     setExpandedWeekDays((current) => {
@@ -2157,6 +2185,7 @@ export function OwnerCalendarClient({
       ) : (
       <CalendarWeekStrip
         className="dashboard-week-strip"
+        resetKey={calendarWindowKey}
         onWheel={handleCalendarBoundaryWheel}
         onTouchStart={handleCalendarBoundaryTouchStart}
         onTouchEnd={handleCalendarBoundaryTouchEnd}

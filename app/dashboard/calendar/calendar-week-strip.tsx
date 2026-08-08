@@ -48,11 +48,13 @@ function centerCurrentDay(currentWeek: HTMLElement) {
 export function CalendarWeekStrip({
   children,
   className,
+  resetKey,
   style,
   ...props
 }: {
   children: ReactNode;
   className?: string;
+  resetKey?: string;
   style?: CSSProperties;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "className" | "style">) {
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -87,6 +89,18 @@ export function CalendarWeekStrip({
       }
     };
   }, []);
+
+  useEffect(() => {
+    const strip = stripRef.current;
+
+    if (!strip || !resetKey) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      strip.scrollTo({ left: 0, behavior: "auto" });
+    });
+  }, [resetKey]);
 
   function scheduleSnap() {
     const strip = stripRef.current;
