@@ -33,8 +33,8 @@ export function formatDateTimeLocal(value: Date | string): string {
 const shellCardStyle: CSSProperties = {
   background: "#ffffff",
   border: "1px solid rgba(60, 60, 67, 0.12)",
-  borderRadius: 28,
-  boxShadow: "0 6px 16px rgba(61, 42, 153, 0.08)",
+  borderRadius: 18,
+  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
   backdropFilter: "none",
 };
 
@@ -942,6 +942,10 @@ function DashboardResponsiveStyles() {
         padding: 16px 18px !important;
       }
 
+      .dashboard-page-hero > div:first-child {
+        gap: 5px !important;
+      }
+
       .dashboard-page-hero h2,
       .dashboard-shell h1,
       .dashboard-section-header h3,
@@ -984,6 +988,12 @@ function DashboardResponsiveStyles() {
         padding: 16px !important;
       }
 
+      .dashboard-card-grid,
+      .dashboard-summary-grid,
+      .dashboard-stats-grid {
+        gap: 10px !important;
+      }
+
       .dashboard-item-card,
       .dashboard-list-card,
       .dashboard-compact-list-item,
@@ -993,6 +1003,11 @@ function DashboardResponsiveStyles() {
         border-radius: 18px !important;
       }
 
+      .dashboard-item-card,
+      .dashboard-compact-list-item {
+        padding: 14px 16px !important;
+      }
+
       .dashboard-panel-header {
         margin-bottom: 12px !important;
         padding: 0 4px 2px !important;
@@ -1000,7 +1015,13 @@ function DashboardResponsiveStyles() {
 
       .dashboard-panel-header > div:first-child > span,
       .dashboard-section-header span[aria-hidden="true"] {
-        font-size: 20px !important;
+        font-size: 22px !important;
+        line-height: 1 !important;
+      }
+
+      .dashboard-panel-header > div:first-child,
+      .dashboard-section-header > div > div:first-child {
+        gap: 9px !important;
       }
 
       .dashboard-button,
@@ -1070,7 +1091,7 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-bottom-nav {
-        width: min(390px, calc(var(--workbit-vw, 100vw) - 28px)) !important;
+        width: min(390px, calc(var(--workbit-vw, 100vw) - 36px)) !important;
         padding: 12px 8px !important;
         border-radius: 30px !important;
         background: rgba(255, 255, 255, 0.88) !important;
@@ -1131,6 +1152,62 @@ function DashboardResponsiveStyles() {
           font-size: 17px !important;
         }
       }
+
+      .dashboard-clock-actions {
+        gap: 10px !important;
+      }
+
+      .dashboard-clock-actions-row {
+        display: flex !important;
+        gap: 10px !important;
+        align-items: stretch !important;
+      }
+
+      .dashboard-clock-button {
+        min-height: 58px !important;
+        border-radius: 16px !important;
+        font-size: 16px !important;
+        font-weight: 850 !important;
+        letter-spacing: 0.04em !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-clock-actions-row .dashboard-clock-button:first-child {
+        background: linear-gradient(135deg, #16a34a 0%, #22c55e 58%, #34c759 100%) !important;
+        border: 1px solid rgba(52, 199, 89, 0.78) !important;
+        box-shadow: 0 12px 26px rgba(52, 199, 89, 0.24) !important;
+      }
+
+      .dashboard-clock-actions-row .dashboard-clock-button:last-child {
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 58%, #ff3b30 100%) !important;
+        border: 1px solid rgba(255, 59, 48, 0.78) !important;
+        box-shadow: 0 12px 26px rgba(255, 59, 48, 0.22) !important;
+      }
+
+      .dashboard-clock-actions-row .dashboard-clock-button:disabled {
+        filter: saturate(0.55);
+        opacity: 0.55 !important;
+      }
+
+      .dashboard-clock-actions-row .dashboard-clock-button:first-child:disabled {
+        background: linear-gradient(135deg, #bbf7d0 0%, #dcfce7 100%) !important;
+        color: #15803d !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-clock-actions-row .dashboard-clock-button:last-child:disabled {
+        background: linear-gradient(135deg, #fecaca 0%, #fee2e2 100%) !important;
+        color: #b91c1c !important;
+        box-shadow: none !important;
+      }
+
+      @media (max-width: 900px) {
+        .dashboard-clock-button {
+          min-height: 62px !important;
+          border-radius: 16px !important;
+        }
+      }
     `,
       }}
     />
@@ -1181,7 +1258,9 @@ export function DashboardShell({
       className="dashboard-shell-card"
       style={{
         ...shellCardStyle,
+        borderRadius: 28,
         padding: "14px 18px",
+        boxShadow: "0 6px 16px rgba(61, 42, 153, 0.08)",
       }}
     >
       <div
@@ -1338,15 +1417,15 @@ export function PageHero({
           <span
             aria-hidden="true"
             style={{
-              width: 28,
-              height: 28,
+              width: "auto",
+              height: "auto",
               borderRadius: 999,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "var(--workbit-purple-soft)",
+              background: "transparent",
               color: "var(--workbit-purple-dark)",
-              fontSize: 18,
+              fontSize: 25,
             }}
           >
             {resolveUiEmoji(title)}
@@ -1364,7 +1443,7 @@ export function PageHero({
             {eyebrow ?? "Workspace"}
           </p>
         </div>
-        <h2 style={{ margin: 0, fontSize: 24, color: "var(--workbit-navy)", fontWeight: 850, letterSpacing: "-0.03em" }}>
+        <h2 style={{ margin: 0, fontSize: 21, color: "#1C1C1E", fontWeight: 850, letterSpacing: "-0.02em" }}>
           {title}
         </h2>
         <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.45, fontSize: 13.5, fontWeight: 500 }}>
@@ -1393,7 +1472,7 @@ export function Panel({
       className={joinClassNames("dashboard-panel", className)}
       style={{
         ...shellCardStyle,
-        padding: 18,
+        padding: 16,
       }}
     >
       <div
@@ -1403,7 +1482,7 @@ export function Panel({
           justifyContent: "space-between",
           alignItems: "center",
           gap: 12,
-          marginBottom: 12,
+          marginBottom: 10,
           flexWrap: "wrap",
         }}
       >
@@ -1418,13 +1497,13 @@ export function Panel({
               justifyContent: "center",
               background: "transparent",
               color: "inherit",
-              fontSize: 20,
+              fontSize: 21,
               flex: "0 0 auto",
             }}
           >
             {resolveUiEmoji(title)}
           </span>
-          <h3 className="dashboard-panel-title" style={{ margin: 0, fontSize: 18, color: "#1C1C1E", fontWeight: 800 }}>
+          <h3 className="dashboard-panel-title" style={{ margin: 0, fontSize: 17, color: "#1C1C1E", fontWeight: 800 }}>
             {title}
           </h3>
         </div>
@@ -1450,7 +1529,7 @@ export function Card({
       className={joinClassNames("dashboard-card", className)}
       style={{
         ...shellCardStyle,
-        padding: 18,
+        padding: 16,
         ...style,
       }}
     >
