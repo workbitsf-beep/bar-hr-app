@@ -2951,19 +2951,20 @@ function DashboardResponsiveStyles() {
         }
 
         .workbit-calendar-today-segment {
+          flex: 0 0 46px !important;
           min-width: 46px !important;
           width: 46px !important;
+          max-width: 46px !important;
           height: 46px !important;
           min-height: 46px !important;
+          max-height: 46px !important;
+          aspect-ratio: 1 / 1 !important;
           padding: 0 !important;
-          border: 0 !important;
-          border-left: 0 !important;
-          border-radius: 999px !important;
-          background: #6255ed !important;
-          color: #ffffff !important;
-          font-size: 22px !important;
-          font-weight: 900 !important;
-          box-shadow: 0 7px 16px rgba(98, 85, 237, 0.24) !important;
+          border: 1px solid rgba(98, 85, 237, 0.15) !important;
+          border-radius: 50% !important;
+          background: #f4f1fb !important;
+          color: #6255ed !important;
+          box-shadow: none !important;
         }
 
         .workbit-calendar-day-strip {

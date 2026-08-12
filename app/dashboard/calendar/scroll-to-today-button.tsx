@@ -54,13 +54,17 @@ export function ScrollToTodayButton({
         alignItems: "center",
         justifyContent: "center",
         minWidth: variant === "segment" ? 46 : 54,
+        width: variant === "segment" ? 46 : undefined,
+        maxWidth: variant === "segment" ? 46 : undefined,
         height: variant === "segment" ? 46 : 36,
+        minHeight: variant === "segment" ? 46 : undefined,
+        maxHeight: variant === "segment" ? 46 : undefined,
+        aspectRatio: variant === "segment" ? "1 / 1" : undefined,
         padding: variant === "segment" ? 0 : "0 13px",
         borderRadius: 999,
-        background: variant === "segment" ? "transparent" : "linear-gradient(180deg, #ffffff 0%, #f6f2ff 100%)",
-        color: variant === "segment" ? "#111827" : "#4c1d95",
-        border: variant === "segment" ? 0 : "1px solid rgba(124, 58, 237, 0.16)",
-        borderLeft: variant === "segment" ? "1px solid rgba(124, 58, 237, 0.10)" : undefined,
+        background: variant === "segment" ? "#f4f1fb" : "linear-gradient(180deg, #ffffff 0%, #f6f2ff 100%)",
+        color: variant === "segment" ? "#6255ed" : "#4c1d95",
+        border: "1px solid rgba(98, 85, 237, 0.15)",
         boxShadow: variant === "segment" ? "none" : "0 8px 18px rgba(88, 28, 135, 0.06)",
         fontWeight: 800,
         fontSize: variant === "segment" ? 13 : 14,
@@ -70,25 +74,21 @@ export function ScrollToTodayButton({
       }}
     >
       {variant === "segment" ? (
-        <span
+        <svg
           aria-hidden="true"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: 999,
-            display: "inline-grid",
-            placeItems: "center",
-            background: "#6255ed",
-            color: "#ffffff",
-            fontSize: 22,
-            fontWeight: 900,
-            lineHeight: 1,
-            boxShadow: "0 7px 16px rgba(98, 85, 237, 0.24)",
-            flex: "0 0 38px",
+            display: "block",
+            color: "#6255ed",
+            flex: "0 0 24px",
           }}
         >
-          ◎
-        </span>
+          <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="12" cy="12" r="3" fill="currentColor" />
+        </svg>
       ) : (
         "Oggi"
       )}
