@@ -3247,8 +3247,29 @@ function DashboardResponsiveStyles() {
       /* Keep add actions legible after page-specific mobile overrides. */
       .dashboard-icon-button[data-intent="add"],
       .dashboard-popup-trigger:not(.dashboard-popup-trigger--label) {
+        position: relative !important;
         background: #6255ed !important;
         color: #ffffff !important;
+        font-size: 0 !important;
+      }
+
+      .dashboard-icon-button[data-intent="add"] > svg,
+      .dashboard-popup-trigger:not(.dashboard-popup-trigger--label) > svg {
+        display: none !important;
+      }
+
+      .dashboard-icon-button[data-intent="add"]::after,
+      .dashboard-popup-trigger:not(.dashboard-popup-trigger--label)::after {
+        content: "+";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 500;
+        line-height: 1;
+        pointer-events: none;
       }
     `,
       }}
