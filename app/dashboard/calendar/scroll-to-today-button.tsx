@@ -53,8 +53,8 @@ export function ScrollToTodayButton({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        minWidth: variant === "segment" ? 42 : 54,
-        height: variant === "segment" ? 42 : 36,
+        minWidth: variant === "segment" ? 46 : 54,
+        height: variant === "segment" ? 46 : 36,
         padding: variant === "segment" ? 0 : "0 13px",
         borderRadius: 999,
         background: variant === "segment" ? "transparent" : "linear-gradient(180deg, #ffffff 0%, #f6f2ff 100%)",
@@ -65,7 +65,7 @@ export function ScrollToTodayButton({
         fontWeight: 800,
         fontSize: variant === "segment" ? 13 : 14,
         cursor: "pointer",
-        flex: variant === "segment" ? "0 0 42px" : undefined,
+        flex: variant === "segment" ? "0 0 46px" : undefined,
         whiteSpace: "nowrap",
       }}
     >
