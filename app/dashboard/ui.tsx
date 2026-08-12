@@ -1492,20 +1492,50 @@ function DashboardResponsiveStyles() {
         border-radius: 16px !important;
       }
 
+      button[aria-label*="Elimina"],
+      button[aria-label*="Rimuovi"],
+      button[title*="Elimina"],
+      button[title*="Rimuovi"],
+      .dashboard-button[style*="b91c1c"],
+      .dashboard-button[style*="ef4444"] {
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 60%, #fb7185 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(239, 68, 68, 0.72) !important;
+        box-shadow: 0 10px 22px rgba(239, 68, 68, 0.18) !important;
+      }
+
+      button[aria-label*="Elimina"] *,
+      button[aria-label*="Rimuovi"] *,
+      button[title*="Elimina"] *,
+      button[title*="Rimuovi"] * {
+        color: #ffffff !important;
+        stroke: #ffffff !important;
+      }
+
       @media (max-width: 900px) {
+        .dashboard-shell {
+          background:
+            radial-gradient(circle at 50% -8%, rgba(255,255,255,0.72), transparent 34%),
+            linear-gradient(180deg, #F1ECFC 0%, #ECE7F8 100%) !important;
+        }
+
         .dashboard-clock-button {
           min-height: 62px !important;
           border-radius: 16px !important;
         }
 
         .dashboard-shell-card {
-          width: min(306px, calc(100vw - 56px)) !important;
-          margin: 34px auto 0 !important;
+          width: min(306px, calc(100vw - 48px)) !important;
+          min-height: 70px !important;
+          margin: 42px auto 0 !important;
           padding: 12px 18px !important;
           border-radius: 24px !important;
+          display: flex !important;
+          align-items: center !important;
         }
 
         .dashboard-shell-top {
+          width: 100% !important;
           gap: 10px !important;
         }
 
@@ -1520,6 +1550,7 @@ function DashboardResponsiveStyles() {
           height: 40px !important;
           min-width: 40px !important;
           min-height: 40px !important;
+          border-radius: 18px !important;
         }
 
         .dashboard-shell-content {
@@ -1533,7 +1564,7 @@ function DashboardResponsiveStyles() {
 
         .workbit-home-screen,
         .dashboard-calendar-page {
-          padding-top: clamp(132px, 24vh, 210px) !important;
+          padding-top: clamp(142px, 25vh, 220px) !important;
         }
 
         .workbit-hours-hero-card,
@@ -1549,6 +1580,72 @@ function DashboardResponsiveStyles() {
         .dashboard-list-card,
         .dashboard-summary-card {
           border-radius: 20px !important;
+        }
+
+        .dashboard-page-hero {
+          background: transparent !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          padding: 0 4px 2px !important;
+        }
+
+        .dashboard-page-hero > div {
+          gap: 2px !important;
+        }
+
+        .dashboard-page-hero h2 {
+          font-size: 34px !important;
+          line-height: 0.98 !important;
+          letter-spacing: -0.055em !important;
+          color: #20202A !important;
+        }
+
+        .dashboard-page-hero p {
+          font-size: 15px !important;
+          color: #8E8E93 !important;
+          font-weight: 760 !important;
+        }
+
+        .dashboard-panel {
+          padding: 16px !important;
+        }
+
+        .dashboard-panel-header {
+          margin-bottom: 8px !important;
+        }
+
+        .dashboard-panel-title {
+          font-size: 14px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.06em !important;
+          color: #8E8E93 !important;
+        }
+
+        .dashboard-item-card,
+        .dashboard-list-card {
+          padding: 16px 18px !important;
+        }
+
+        .dashboard-bottom-nav {
+          width: min(338px, calc(100vw - 42px)) !important;
+          min-height: 96px !important;
+          padding: 11px 10px !important;
+          border-radius: 26px !important;
+        }
+
+        .dashboard-bottom-nav a {
+          width: 52px !important;
+          min-height: 62px !important;
+          border-radius: 22px !important;
+        }
+
+        .dashboard-bottom-nav a svg {
+          width: 24px !important;
+          height: 24px !important;
+        }
+
+        .dashboard-bottom-nav a span {
+          font-size: 11px !important;
         }
       }
     `,
