@@ -2373,6 +2373,7 @@ export function DayActionCalendarClient({
               <section
                 key={`day-view-${day.date}`}
                 data-day-date={day.date}
+                data-calendar-closed={day.closures.length > 0 ? "true" : undefined}
                 className="workbit-calendar-day-card"
                 style={{
                   display: "grid",
@@ -2639,6 +2640,7 @@ export function DayActionCalendarClient({
                         : undefined
                     }
                     data-calendar-today={day.isToday ? "true" : undefined}
+                    data-calendar-closed={day.closures.length > 0 ? "true" : undefined}
                     style={{
                       display: "grid",
                       gap: 6,
@@ -2647,9 +2649,17 @@ export function DayActionCalendarClient({
                       boxSizing: "border-box",
                       padding: 10,
                       borderRadius: 16,
-                      background: "#ffffff",
-                      border: day.isToday ? "2px solid #0f172a" : "1px solid #e2e8f0",
-                      boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
+                      background: day.closures.length > 0 ? "#fff3f4" : "#ffffff",
+                      border:
+                        day.closures.length > 0
+                          ? "1px solid rgba(185, 78, 91, 0.24)"
+                          : day.isToday
+                            ? "2px solid #0f172a"
+                            : "1px solid #e2e8f0",
+                      boxShadow:
+                        day.closures.length > 0
+                          ? "0 8px 20px rgba(145, 61, 73, 0.08)"
+                          : "0 8px 20px rgba(15, 23, 42, 0.05)",
                       opacity:
                         isPastDay
                           ? 0.58

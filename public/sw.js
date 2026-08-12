@@ -1,4 +1,4 @@
-const STATIC_CACHE = "workbit-static-v4";
+const STATIC_CACHE = "workbit-static-v5";
 const STATIC_EXTENSIONS = [
   ".js",
   ".css",

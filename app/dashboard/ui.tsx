@@ -2985,6 +2985,14 @@ function DashboardResponsiveStyles() {
           box-shadow: none !important;
         }
 
+        .workbit-calendar-day-card[data-calendar-closed="true"] {
+          padding: 12px !important;
+          border: 1px solid rgba(185, 78, 91, 0.20) !important;
+          border-radius: 18px !important;
+          background: linear-gradient(180deg, #fff8f8 0%, #fff2f3 100%) !important;
+          box-shadow: 0 8px 20px rgba(145, 61, 73, 0.06) !important;
+        }
+
         .workbit-calendar-day-card-heading {
           display: none !important;
         }
@@ -3141,6 +3149,20 @@ function DashboardResponsiveStyles() {
         .workbit-week-day-card[data-calendar-today="true"] {
           border: 1.5px solid rgba(94, 92, 230, 0.42) !important;
           opacity: 1 !important;
+        }
+
+        .workbit-week-day-card[data-calendar-closed="true"] {
+          border-color: rgba(185, 78, 91, 0.24) !important;
+          background: #fff3f4 !important;
+          box-shadow: 0 8px 20px rgba(145, 61, 73, 0.07) !important;
+        }
+
+        .workbit-week-day-card[data-calendar-closed="true"] .workbit-week-day-header > strong {
+          color: #8f3e49 !important;
+        }
+
+        .workbit-week-day-card[data-calendar-closed="true"] .workbit-day-shift-row {
+          background: #fff8f8 !important;
         }
 
         .workbit-week-day-header {
