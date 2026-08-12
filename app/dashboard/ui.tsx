@@ -2898,8 +2898,8 @@ function DashboardResponsiveStyles() {
         }
 
         .workbit-calendar-segments {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px !important;
-          min-height: 40px !important;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 46px !important;
+          min-height: 46px !important;
           padding: 3px !important;
           border: 0 !important;
           border-radius: 12px !important;
@@ -2909,7 +2909,7 @@ function DashboardResponsiveStyles() {
         }
 
         .workbit-calendar-segments.has-publish {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px 40px !important;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 46px 40px !important;
         }
 
         .workbit-calendar-segments .calendar-publish-actions {
@@ -2951,19 +2951,19 @@ function DashboardResponsiveStyles() {
         }
 
         .workbit-calendar-today-segment {
-          min-width: 34px !important;
-          width: 34px !important;
-          height: 34px !important;
-          min-height: 34px !important;
+          min-width: 42px !important;
+          width: 42px !important;
+          height: 42px !important;
+          min-height: 42px !important;
           padding: 0 !important;
           border: 0 !important;
           border-left: 0 !important;
-          border-radius: 9px !important;
-          background: rgba(255, 255, 255, 0.36) !important;
+          border-radius: 12px !important;
+          background: rgba(255, 255, 255, 0.58) !important;
           color: #5e5ce6 !important;
-          font-size: 18px !important;
+          font-size: 21px !important;
           font-weight: 900 !important;
-          box-shadow: none !important;
+          box-shadow: 0 2px 7px rgba(28, 28, 30, 0.08) !important;
         }
 
         .workbit-calendar-day-strip {

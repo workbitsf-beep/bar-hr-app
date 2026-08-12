@@ -45,15 +45,17 @@ export function ScrollToTodayButton({
     <button
       type="button"
       className={variant === "segment" ? "workbit-calendar-today-segment" : undefined}
+      aria-label={variant === "segment" ? "Torna a oggi" : undefined}
+      title={variant === "segment" ? "Torna a oggi" : undefined}
       onClick={handleClick}
       style={{
         textDecoration: "none",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        minWidth: variant === "segment" ? 0 : 54,
+        minWidth: variant === "segment" ? 42 : 54,
         height: variant === "segment" ? 42 : 36,
-        padding: variant === "segment" ? "0 18px" : "0 13px",
+        padding: variant === "segment" ? 0 : "0 13px",
         borderRadius: 999,
         background: variant === "segment" ? "transparent" : "linear-gradient(180deg, #ffffff 0%, #f6f2ff 100%)",
         color: variant === "segment" ? "#111827" : "#4c1d95",
@@ -63,7 +65,7 @@ export function ScrollToTodayButton({
         fontWeight: 800,
         fontSize: variant === "segment" ? 13 : 14,
         cursor: "pointer",
-        flex: variant === "segment" ? "1 1 0" : undefined,
+        flex: variant === "segment" ? "0 0 42px" : undefined,
         whiteSpace: "nowrap",
       }}
     >
