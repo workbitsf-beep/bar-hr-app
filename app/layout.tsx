@@ -1091,6 +1091,174 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16) !important;
               }
 
+              .workbit-global-ambient {
+                background:
+                  radial-gradient(circle at 52% 10%, rgba(124, 58, 237, 0.12), transparent 34%),
+                  radial-gradient(circle at 12% 4%, rgba(94, 92, 230, 0.10), transparent 30%),
+                  radial-gradient(circle at 88% 18%, rgba(168, 85, 247, 0.10), transparent 34%),
+                  linear-gradient(180deg, #ffffff 0%, #f7f4ff 46%, #efebfa 100%) !important;
+                animation: none !important;
+              }
+
+              .dashboard-shell-inner {
+                gap: 16px !important;
+              }
+
+              .dashboard-shell-card {
+                padding: 20px !important;
+                background:
+                  linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.92) 100%) !important;
+                border: 1px solid rgba(94, 92, 230, 0.14) !important;
+                border-radius: 34px !important;
+                box-shadow: 0 14px 42px rgba(61, 42, 153, 0.10) !important;
+              }
+
+              .dashboard-page-hero,
+              .dashboard-panel,
+              .dashboard-card,
+              .dashboard-item-card,
+              .dashboard-list-card,
+              .dashboard-compact-list-item,
+              .dashboard-summary-card,
+              .dashboard-calendar-day,
+              .sa-overview-card,
+              .sa-overview-metric,
+              .workbit-login-card {
+                background:
+                  linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.94) 58%, rgba(250,248,255,0.92) 100%) !important;
+                border: 1px solid rgba(94, 92, 230, 0.13) !important;
+                box-shadow: 0 8px 24px rgba(61, 42, 153, 0.075) !important;
+              }
+
+              .dashboard-page-hero,
+              .dashboard-panel,
+              .dashboard-card,
+              .workbit-login-card {
+                border-radius: 32px !important;
+              }
+
+              .dashboard-item-card,
+              .dashboard-list-card,
+              .dashboard-compact-list-item,
+              .dashboard-summary-card,
+              .dashboard-calendar-day {
+                border-radius: 24px !important;
+              }
+
+              .dashboard-panel-header,
+              .dashboard-section-header {
+                padding-bottom: 2px;
+              }
+
+              .dashboard-panel-title,
+              .dashboard-section-header h3,
+              .dashboard-shell h1,
+              .dashboard-shell h2,
+              .workbit-login-card h1 {
+                color: #111827 !important;
+                font-weight: 780 !important;
+                letter-spacing: -0.045em !important;
+              }
+
+              .dashboard-shell p,
+              .dashboard-panel p,
+              .dashboard-card p,
+              .dashboard-item-card p,
+              .dashboard-list-card p {
+                color: var(--workbit-muted);
+              }
+
+              .dashboard-modal-wrap,
+              .dashboard-menu-overlay {
+                background: rgba(24, 18, 42, 0.28) !important;
+                backdrop-filter: blur(20px) saturate(145%) !important;
+                -webkit-backdrop-filter: blur(20px) saturate(145%) !important;
+              }
+
+              .dashboard-modal-wrap *,
+              .dashboard-menu-overlay * {
+                backdrop-filter: initial;
+                -webkit-backdrop-filter: initial;
+              }
+
+              .dashboard-modal-panel {
+                background:
+                  linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(252,250,255,0.97) 100%) !important;
+                border: 1px solid rgba(94, 92, 230, 0.16) !important;
+                border-radius: 32px !important;
+                box-shadow: 0 28px 86px rgba(24, 18, 42, 0.26) !important;
+              }
+
+              .dashboard-bottom-nav {
+                padding: 10px !important;
+                border-radius: 30px !important;
+                background: rgba(255, 255, 255, 0.86) !important;
+                border: 1px solid rgba(94, 92, 230, 0.14) !important;
+                box-shadow: 0 20px 54px rgba(61, 42, 153, 0.18) !important;
+                backdrop-filter: blur(26px) saturate(150%) !important;
+                -webkit-backdrop-filter: blur(26px) saturate(150%) !important;
+              }
+
+              .dashboard-bottom-nav a {
+                border-radius: 22px !important;
+                background: transparent !important;
+                border-color: transparent !important;
+                box-shadow: none !important;
+              }
+
+              .dashboard-bottom-nav a[aria-current="page"] {
+                background:
+                  linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(244,239,255,0.96) 100%) !important;
+                border-color: rgba(124, 58, 237, 0.18) !important;
+                box-shadow:
+                  0 0 0 1px rgba(124, 58, 237, 0.06),
+                  0 12px 28px rgba(124, 58, 237, 0.16) !important;
+              }
+
+              .dashboard-menu-button,
+              .dashboard-icon-button,
+              .dashboard-select-pill,
+              input:not([type="checkbox"]):not([type="radio"]),
+              select,
+              textarea {
+                background: rgba(255,255,255,0.92) !important;
+                border: 1px solid rgba(94, 92, 230, 0.14) !important;
+                box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset !important;
+              }
+
+              .dashboard-button,
+              .workbit-login-page button[type="submit"] {
+                box-shadow: 0 12px 28px rgba(91, 33, 182, 0.18) !important;
+              }
+
+              .dashboard-button[style*="background: var(--workbit-gradient)"],
+              .dashboard-button[style*="linear-gradient"],
+              .workbit-login-page button[type="submit"] {
+                color: #ffffff !important;
+              }
+
+              @media (max-width: 900px) {
+                .dashboard-shell {
+                  padding: 14px !important;
+                  padding-bottom: calc(130px + env(safe-area-inset-bottom)) !important;
+                }
+
+                .dashboard-shell-card {
+                  border-radius: 30px !important;
+                  padding: 18px !important;
+                }
+
+                .dashboard-panel,
+                .dashboard-card,
+                .workbit-login-card {
+                  border-radius: 28px !important;
+                }
+
+                .dashboard-modal-panel {
+                  border-radius: 28px !important;
+                }
+              }
+
               .dashboard-bottom-nav a[aria-current="page"] {
                 animation: workbit-nav-active 180ms ease both;
               }
