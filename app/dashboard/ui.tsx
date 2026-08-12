@@ -33,15 +33,15 @@ export function formatDateTimeLocal(value: Date | string): string {
 const shellCardStyle: CSSProperties = {
   background: "var(--workbit-card)",
   border: "1px solid var(--workbit-border)",
-  borderRadius: 30,
+  borderRadius: 32,
   boxShadow: "var(--workbit-shadow)",
-  backdropFilter: "blur(16px)",
+  backdropFilter: "blur(18px)",
 };
 
 const softCardStyle: CSSProperties = {
-  background: "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-surface-secondary) 100%)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, var(--workbit-surface-secondary) 100%)",
   border: "1px solid var(--workbit-border)",
-  boxShadow: "var(--workbit-shadow)",
+  boxShadow: "0 4px 14px rgba(61, 42, 153, 0.055)",
 };
 
 const focusRing = "var(--workbit-focus)";
@@ -218,7 +218,7 @@ function DashboardResponsiveStyles() {
         min-height: 38px !important;
         padding: 9px 15px !important;
         font-size: 13px !important;
-        box-shadow: 0 8px 18px rgba(88, 28, 135, 0.10) !important;
+        box-shadow: 0 7px 18px rgba(61, 42, 153, 0.08) !important;
       }
 
       .dashboard-icon-button {
@@ -226,7 +226,7 @@ function DashboardResponsiveStyles() {
         height: 36px !important;
         min-width: 36px !important;
         min-height: 36px !important;
-        box-shadow: 0 6px 14px rgba(88, 28, 135, 0.06) !important;
+        box-shadow: 0 5px 14px rgba(61, 42, 153, 0.055) !important;
       }
 
       .dashboard-select-pill {
@@ -234,7 +234,7 @@ function DashboardResponsiveStyles() {
         padding: 9px 13px !important;
         font-size: 14px !important;
         gap: 8px !important;
-        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.035) !important;
+        box-shadow: 0 5px 14px rgba(61, 42, 153, 0.045) !important;
       }
 
       .dashboard-panel,
@@ -242,13 +242,13 @@ function DashboardResponsiveStyles() {
       .dashboard-item-card,
       .dashboard-modal-panel,
       .dashboard-empty-state {
-        background: var(--workbit-card) !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(253,252,255,0.94) 100%) !important;
         border-color: var(--workbit-border) !important;
         box-shadow: var(--workbit-shadow) !important;
       }
 
       .dashboard-button:hover:not(:disabled) {
-        box-shadow: 0 16px 34px rgba(124, 58, 237, 0.18) !important;
+        box-shadow: 0 12px 28px rgba(124, 58, 237, 0.14) !important;
       }
 
       .dashboard-button[style*="64748b"],
@@ -262,7 +262,7 @@ function DashboardResponsiveStyles() {
       .dashboard-icon-button,
       .dashboard-menu-button {
         border-color: var(--workbit-border) !important;
-        background: linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%) !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(248,246,255,0.92) 100%) !important;
         color: var(--workbit-purple-dark) !important;
       }
 
@@ -294,7 +294,7 @@ function DashboardResponsiveStyles() {
       .dashboard-summary-card,
       .dashboard-calendar-day,
       .dashboard-modal-panel {
-        border-color: rgba(124, 58, 237, 0.10) !important;
+        border-color: rgba(94, 92, 230, 0.13) !important;
       }
 
       .dashboard-form-field input:not([type="checkbox"]):not([type="radio"]),

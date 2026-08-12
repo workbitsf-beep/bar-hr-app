@@ -102,13 +102,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-vw: 100vw;
                 --workbit-vh: 100dvh;
                 --workbit-orientation: portrait;
-                --workbit-background: #f7f3ff;
+                --workbit-background: #efebfa;
                 --workbit-surface: #ffffff;
-                --workbit-surface-secondary: #f8fafc;
+                --workbit-surface-secondary: #f8f6ff;
                 --workbit-surface-elevated: #ffffff;
                 --workbit-field-bg: #ffffff;
                 --workbit-popup: #ffffff;
-                --workbit-navigation: rgba(255,255,255,0.92);
+                --workbit-navigation: rgba(255,255,255,0.86);
                 --workbit-calendar: #ffffff;
                 --workbit-navy: #0b1024;
                 --workbit-deep-navy: #111827;
@@ -119,17 +119,17 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-purple: #7b2ff7;
                 --workbit-electric-purple: #a855f7;
                 --workbit-purple-dark: #5b21b6;
-                --workbit-purple-soft: #f7f3ff;
-                --workbit-lavender: #ede9fe;
-                --workbit-border: rgba(124, 58, 237, 0.16);
-                --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(247,243,255,0.97) 100%);
-                --workbit-app-bg: radial-gradient(circle at 88% 2%, rgba(168,85,247,0.11), transparent 30%),
-                  radial-gradient(circle at 8% 4%, rgba(91,33,182,0.06), transparent 28%),
-                  linear-gradient(180deg, #ffffff 0%, #fbf8ff 48%, #f6f0ff 100%);
+                --workbit-purple-soft: #f3edff;
+                --workbit-lavender: #e7ddff;
+                --workbit-border: rgba(94, 92, 230, 0.14);
+                --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(253,252,255,0.94) 100%);
+                --workbit-app-bg: radial-gradient(circle at 86% 0%, rgba(168,85,247,0.10), transparent 28%),
+                  radial-gradient(circle at 9% 2%, rgba(94,92,230,0.07), transparent 26%),
+                  linear-gradient(180deg, #ffffff 0%, #f8f5ff 42%, #efebfa 100%);
                 --workbit-gradient: linear-gradient(135deg, #0b1024 0%, #5b21b6 48%, #a855f7 100%);
                 --workbit-gradient-soft: linear-gradient(135deg, rgba(11,16,36,0.08) 0%, rgba(91,33,182,0.10) 45%, rgba(168,85,247,0.14) 100%);
-                --workbit-shadow: 0 20px 52px rgba(124, 58, 237, 0.12);
-                --workbit-shadow-strong: 0 24px 62px rgba(11, 16, 36, 0.18);
+                --workbit-shadow: 0 8px 26px rgba(61, 42, 153, 0.08), 0 1px 0 rgba(255,255,255,0.82) inset;
+                --workbit-shadow-strong: 0 22px 58px rgba(28, 16, 76, 0.18);
                 --workbit-focus: 0 0 0 4px rgba(168, 85, 247, 0.18);
                 --workbit-success: #16a34a;
                 --workbit-warning: #f59e0b;
@@ -897,8 +897,93 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 position: relative;
                 overflow: visible;
                 background:
-                  radial-gradient(circle at 92% 0%, rgba(255,255,255,0.52), transparent 28%),
-                  linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(247,243,255,0.88) 100%) !important;
+                  radial-gradient(circle at 92% 0%, rgba(255,255,255,0.72), transparent 30%),
+                  linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(253,252,255,0.94) 100%) !important;
+                border-color: var(--workbit-border) !important;
+                box-shadow: var(--workbit-shadow) !important;
+              }
+
+              .dashboard-shell-card,
+              .workbit-login-card {
+                border-radius: 34px !important;
+              }
+
+              .dashboard-panel,
+              .dashboard-card,
+              .sa-overview-card,
+              .sa-overview-metric {
+                border-radius: 28px !important;
+              }
+
+              .dashboard-item-card,
+              .dashboard-list-card,
+              .dashboard-compact-list-item,
+              .dashboard-calendar-day,
+              .dashboard-empty-state {
+                border-radius: 22px !important;
+                background:
+                  linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,248,255,0.92) 100%) !important;
+                border-color: rgba(94, 92, 230, 0.12) !important;
+                box-shadow: 0 4px 14px rgba(61, 42, 153, 0.055) !important;
+              }
+
+              .dashboard-modal-wrap {
+                background: rgba(18, 18, 31, 0.24) !important;
+                backdrop-filter: blur(18px) saturate(130%) !important;
+                -webkit-backdrop-filter: blur(18px) saturate(130%) !important;
+              }
+
+              .dashboard-modal-panel {
+                border-radius: 30px !important;
+                border: 1px solid rgba(94, 92, 230, 0.16) !important;
+                box-shadow: 0 24px 70px rgba(28, 16, 76, 0.22) !important;
+              }
+
+              .dashboard-bottom-nav {
+                background: rgba(255, 255, 255, 0.84) !important;
+                border: 1px solid rgba(94, 92, 230, 0.13) !important;
+                box-shadow: 0 18px 48px rgba(61, 42, 153, 0.16) !important;
+                backdrop-filter: blur(24px) saturate(145%) !important;
+                -webkit-backdrop-filter: blur(24px) saturate(145%) !important;
+              }
+
+              .dashboard-bottom-nav a,
+              .dashboard-bottom-nav button,
+              .dashboard-menu-button,
+              .dashboard-icon-button,
+              .dashboard-select-pill {
+                background:
+                  linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(247,244,255,0.90) 100%) !important;
+                border-color: rgba(94, 92, 230, 0.13) !important;
+              }
+
+              .dashboard-button,
+              .workbit-login-page button[type="submit"] {
+                border-radius: 999px !important;
+                letter-spacing: -0.01em;
+              }
+
+              input:not([type="checkbox"]):not([type="radio"]),
+              select,
+              textarea {
+                border-radius: 18px !important;
+                border-color: rgba(94, 92, 230, 0.14) !important;
+                background:
+                  linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(253,252,255,0.96) 100%) !important;
+                box-shadow: 0 1px 0 rgba(255,255,255,0.76) inset;
+              }
+
+              .dashboard-panel-title,
+              .dashboard-section-header h3,
+              .dashboard-shell h1,
+              .dashboard-shell h2,
+              .dashboard-shell h3,
+              .workbit-login-card h1 {
+                letter-spacing: -0.035em !important;
+              }
+
+              .workbit-login-card {
+                box-shadow: 0 24px 70px rgba(61, 42, 153, 0.14) !important;
               }
 
               .dashboard-shell-card::before,
