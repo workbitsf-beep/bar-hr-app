@@ -37,6 +37,7 @@ import { SwipeRevealAction } from "../swipe-reveal-action";
 import { IconButton, PrimaryButton, Select, StatusPill, SuccessCallout } from "../ui";
 import { useOverlayLock } from "../use-overlay-lock";
 import { CalendarWeekStrip } from "./calendar-week-strip";
+import { groupShiftsByTime } from "./group-shifts-by-time";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 import { scrollToTodayCard } from "./scroll-to-today-button";
 
@@ -2075,7 +2076,7 @@ export function OwnerCalendarClient({
                     {day.shifts.length === 0 ? (
                       <div style={{ color: "#64748b" }}>Nessun turno in questa giornata.</div>
                     ) : null}
-                    {day.shifts.map((shift) =>
+                    {groupShiftsByTime(day.shifts).map((shift) =>
                       renderShiftSwipeActions(
                         shift,
                         renderCompactShiftCard(shift, locale, true, () => {
@@ -2385,7 +2386,7 @@ export function OwnerCalendarClient({
 
                     {features.shifts && day.shifts.length > 0 ? (
                       <div style={{ display: "grid", gap: 6 }}>
-                        {day.shifts.map((shift) =>
+                        {groupShiftsByTime(day.shifts).map((shift) =>
                           renderShiftSwipeActions(
                             shift,
                             renderCompactShiftCard(shift, locale, true, () => {
