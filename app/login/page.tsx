@@ -156,7 +156,7 @@ export default function LoginPage() {
         display: "grid",
         placeItems: "center",
         padding: 20,
-        background: "var(--workbit-app-bg)",
+        background: "linear-gradient(180deg, #ffffff 0%, #f7f4ff 42%, #efebfa 100%)",
       }}
     >
       <RevealOnScroll
@@ -174,14 +174,13 @@ export default function LoginPage() {
           className="workbit-login-card"
           style={{
             display: "grid",
-            gap: 26,
-            padding: 28,
-            borderRadius: 30,
-            background:
-              "radial-gradient(circle at 90% 0%, rgba(168,85,247,0.16), transparent 30%), var(--workbit-card)",
-            border: "1px solid var(--workbit-border)",
-            boxShadow: "var(--workbit-shadow)",
-            backdropFilter: "blur(14px)",
+            gap: 24,
+            padding: 26,
+            borderRadius: 34,
+            background: "#ffffff",
+            border: "1px solid rgba(60, 60, 67, 0.12)",
+            boxShadow: "0 18px 54px rgba(61, 42, 153, 0.14)",
+            backdropFilter: "none",
           }}
         >
           <div style={{ display: "grid", justifyItems: "center", gap: 14, textAlign: "center" }}>
@@ -209,7 +208,8 @@ export default function LoginPage() {
                   border: "1px solid var(--workbit-border)",
                   padding: "14px 16px",
                   fontSize: 16,
-                  background: "linear-gradient(180deg, #ffffff 0%, #fdfbff 100%)",
+                  background: "#ffffff",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                   color: "var(--workbit-text)",
                 }}
               />
@@ -228,7 +228,8 @@ export default function LoginPage() {
                     border: "1px solid var(--workbit-border)",
                     padding: "14px 16px",
                     fontSize: 16,
-                    background: "linear-gradient(180deg, #ffffff 0%, #fdfbff 100%)",
+                    background: "#ffffff",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                     color: "var(--workbit-text)",
                   }}
                 />
@@ -239,7 +240,7 @@ export default function LoginPage() {
                   style={{
                     width: "fit-content",
                     border: "1px solid var(--workbit-border)",
-                    background: "linear-gradient(180deg, #ffffff, #f7f3ff)",
+                    background: "#f5f3fc",
                     color: "var(--workbit-purple-dark)",
                     borderRadius: 999,
                     padding: "9px 13px",
@@ -263,7 +264,7 @@ export default function LoginPage() {
                 gap: 10,
                 padding: "12px 14px",
                 borderRadius: 18,
-                background: "linear-gradient(180deg, #ffffff 0%, #f7f3ff 100%)",
+                background: "#ffffff",
                 border: "1px solid var(--workbit-border)",
                 color: "#334155",
               }}
@@ -312,7 +313,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 style={{
-                  background: "var(--workbit-gradient)",
+                  background: "linear-gradient(135deg, #3D2A99 0%, #5E5CE6 56%, #8B5CF6 100%)",
                   color: "#fff",
                   border: 0,
                   borderRadius: 999,

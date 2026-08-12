@@ -31,17 +31,17 @@ export function formatDateTimeLocal(value: Date | string): string {
 }
 
 const shellCardStyle: CSSProperties = {
-  background: "var(--workbit-card)",
-  border: "1px solid var(--workbit-border)",
-  borderRadius: 32,
-  boxShadow: "var(--workbit-shadow)",
-  backdropFilter: "blur(18px)",
+  background: "#ffffff",
+  border: "1px solid rgba(60, 60, 67, 0.12)",
+  borderRadius: 28,
+  boxShadow: "0 6px 16px rgba(61, 42, 153, 0.08)",
+  backdropFilter: "none",
 };
 
 const softCardStyle: CSSProperties = {
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, var(--workbit-surface-secondary) 100%)",
-  border: "1px solid var(--workbit-border)",
-  boxShadow: "0 4px 14px rgba(61, 42, 153, 0.055)",
+  background: "#ffffff",
+  border: "1px solid rgba(60, 60, 67, 0.12)",
+  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
 };
 
 const focusRing = "var(--workbit-focus)";
@@ -956,16 +956,16 @@ export function DashboardShell({
       className="dashboard-shell-card"
       style={{
         ...shellCardStyle,
-        padding: 22,
+        padding: "14px 18px",
       }}
     >
       <div
         className="dashboard-shell-top"
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 16,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
         }}
       >
         <div
@@ -973,33 +973,33 @@ export function DashboardShell({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 10,
             minWidth: 0,
           }}
         >
-          <div className="dashboard-shell-brand" style={{ display: "grid", gap: 10, minWidth: 0 }}>
+          <div className="dashboard-shell-brand" style={{ display: "grid", gap: 6, minWidth: 0 }}>
             {brandContent ?? (
               <BrandLogo
                 href={navItems[0]?.href ?? "/dashboard"}
-                size={40}
+                size={34}
                 showIcon
                 label={appName}
-                style={{ gap: 12 }}
+                style={{ gap: 10 }}
               />
             )}
             <div className="dashboard-shell-meta" style={{ display: "grid", gap: 4 }}>
               <h1
                 style={{
                   margin: 0,
-                  fontSize: 28,
+                  fontSize: 22,
                   lineHeight: 1.05,
                   color: "var(--workbit-navy)",
-                  fontWeight: 700,
+                  fontWeight: 800,
                 }}
               >
                 {barName}
               </h1>
-              <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.6 }}>
+              <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.35, fontSize: 13, fontWeight: 600 }}>
                 {userName} - {role}
               </p>
             </div>
@@ -1047,7 +1047,7 @@ export function DashboardShell({
           maxWidth: 1320,
           margin: "0 auto",
           display: "grid",
-          gap: 18,
+          gap: 16,
         }}
       >
         {headerSwitch ? (
@@ -1100,7 +1100,7 @@ export function PageHero({
       className="dashboard-page-hero"
       style={{
         ...shellCardStyle,
-        padding: 28,
+        padding: "16px 18px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -1119,9 +1119,9 @@ export function PageHero({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "var(--workbit-gradient-soft)",
+              background: "var(--workbit-purple-soft)",
               color: "var(--workbit-purple-dark)",
-              fontSize: 15,
+              fontSize: 18,
             }}
           >
             {resolveUiEmoji(title)}
@@ -1139,8 +1139,12 @@ export function PageHero({
             {eyebrow ?? "Workspace"}
           </p>
         </div>
-        <h2 style={{ margin: 0, fontSize: 30, color: "var(--workbit-navy)" }}>{title}</h2>
-        <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.7 }}>{subtitle}</p>
+        <h2 style={{ margin: 0, fontSize: 24, color: "var(--workbit-navy)", fontWeight: 850, letterSpacing: "-0.03em" }}>
+          {title}
+        </h2>
+        <p style={{ margin: 0, color: "var(--workbit-muted)", lineHeight: 1.45, fontSize: 13.5, fontWeight: 500 }}>
+          {subtitle}
+        </p>
       </div>
       {action ? <div>{action}</div> : null}
     </RevealOnScroll>
@@ -1164,7 +1168,7 @@ export function Panel({
       className={joinClassNames("dashboard-panel", className)}
       style={{
         ...shellCardStyle,
-        padding: 22,
+        padding: 18,
       }}
     >
       <div
@@ -1174,7 +1178,7 @@ export function Panel({
           justifyContent: "space-between",
           alignItems: "center",
           gap: 12,
-          marginBottom: 16,
+          marginBottom: 12,
           flexWrap: "wrap",
         }}
       >
@@ -1189,13 +1193,13 @@ export function Panel({
               justifyContent: "center",
               background: "transparent",
               color: "inherit",
-              fontSize: 18,
+              fontSize: 20,
               flex: "0 0 auto",
             }}
           >
             {resolveUiEmoji(title)}
           </span>
-          <h3 className="dashboard-panel-title" style={{ margin: 0, fontSize: 20, color: "#0f172a" }}>
+          <h3 className="dashboard-panel-title" style={{ margin: 0, fontSize: 18, color: "#1C1C1E", fontWeight: 800 }}>
             {title}
           </h3>
         </div>
@@ -1221,7 +1225,7 @@ export function Card({
       className={joinClassNames("dashboard-card", className)}
       style={{
         ...shellCardStyle,
-        padding: 22,
+        padding: 18,
         ...style,
       }}
     >
@@ -1306,7 +1310,10 @@ export function Modal({
         WebkitBackdropFilter: "blur(10px)",
       }}
     >
-      <section className="dashboard-modal-panel" style={{ ...shellCardStyle, display: "grid", gap: 18 }}>
+      <section
+        className="dashboard-modal-panel"
+        style={{ ...shellCardStyle, display: "grid", gap: 14, padding: 20, borderRadius: 30 }}
+      >
         <div
           className="dashboard-modal-header"
           style={{
@@ -1343,10 +1350,10 @@ export function EmptyState({ message }: { message: string }) {
       className="dashboard-empty-state"
       style={{
         ...softCardStyle,
-        borderRadius: 20,
-        padding: 16,
+        borderRadius: 18,
+        padding: 14,
         color: "var(--workbit-muted)",
-        lineHeight: 1.7,
+        lineHeight: 1.5,
       }}
     >
       {message}
@@ -1430,15 +1437,15 @@ export function ItemCard({
       className={joinClassNames("dashboard-item-card", className)}
       style={{
         ...softCardStyle,
-        padding: 16,
-        borderRadius: 20,
+        padding: 14,
+        borderRadius: 18,
         display: "grid",
         gap: 6,
         ...style,
       }}
     >
-      <strong style={{ color: "var(--workbit-navy)" }}>{title}</strong>
-      {subtitle ? <div style={{ color: "#334155" }}>{subtitle}</div> : null}
+      <strong style={{ color: "#1C1C1E", fontSize: 14.5, fontWeight: 700 }}>{title}</strong>
+      {subtitle ? <div style={{ color: "#8E8E93", fontSize: 13.5, lineHeight: 1.45 }}>{subtitle}</div> : null}
       {meta ? <div style={{ color: "var(--workbit-muted)", fontSize: 14 }}>{meta}</div> : null}
       {footer ? <div style={{ marginTop: 8 }}>{footer}</div> : null}
     </RevealOnScroll>
@@ -1462,7 +1469,7 @@ export function CompactListItem({
       style={{
         ...softCardStyle,
         borderRadius: 18,
-        padding: "12px 14px",
+        padding: "14px 16px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -1470,8 +1477,8 @@ export function CompactListItem({
       }}
     >
       <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
-        <strong style={{ color: "var(--workbit-navy)", fontSize: 15 }}>{title}</strong>
-        {subtitle ? <span style={{ color: "#475569", fontSize: 14 }}>{subtitle}</span> : null}
+        <strong style={{ color: "#1C1C1E", fontSize: 14.5, fontWeight: 700 }}>{title}</strong>
+        {subtitle ? <span style={{ color: "#8E8E93", fontSize: 12.5, lineHeight: 1.35 }}>{subtitle}</span> : null}
         {meta ? <span style={{ color: "var(--workbit-muted)", fontSize: 12, fontWeight: 700 }}>{meta}</span> : null}
       </div>
       {action ? <div style={{ flex: "0 0 auto" }}>{action}</div> : null}
@@ -1500,15 +1507,15 @@ export function FormField({
 }
 
 const fieldStyle: CSSProperties = {
-  borderRadius: 18,
-  border: "1px solid var(--workbit-border)",
+  borderRadius: 14,
+  border: "1px solid rgba(60, 60, 67, 0.12)",
   padding: "13px 15px",
   fontSize: 15,
-  background: "linear-gradient(180deg, var(--workbit-field-bg) 0%, var(--workbit-surface-secondary) 100%)",
+  background: "#ffffff",
   width: "100%",
-  color: "var(--workbit-navy)",
+  color: "#1C1C1E",
   boxSizing: "border-box",
-  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 18px rgba(124, 58, 237, 0.035)",
+  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
 };
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {

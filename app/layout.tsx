@@ -90,6 +90,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 overflow-x: hidden;
                 overscroll-behavior-x: none;
                 position: relative;
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
+                background: var(--workbit-background);
               }
 
               *,
@@ -104,7 +106,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-orientation: portrait;
                 --workbit-background: #efebfa;
                 --workbit-surface: #ffffff;
-                --workbit-surface-secondary: #f8f6ff;
+                --workbit-surface-secondary: #f6f3ff;
                 --workbit-surface-elevated: #ffffff;
                 --workbit-field-bg: #ffffff;
                 --workbit-popup: #ffffff;
@@ -123,9 +125,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 --workbit-lavender: #e7ddff;
                 --workbit-border: rgba(94, 92, 230, 0.14);
                 --workbit-card: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(253,252,255,0.94) 100%);
-                --workbit-app-bg: radial-gradient(circle at 86% 0%, rgba(168,85,247,0.10), transparent 28%),
-                  radial-gradient(circle at 9% 2%, rgba(94,92,230,0.07), transparent 26%),
-                  linear-gradient(180deg, #ffffff 0%, #f8f5ff 42%, #efebfa 100%);
+                --workbit-app-bg: linear-gradient(180deg, #ffffff 0%, #f7f4ff 38%, #efebfa 100%);
                 --workbit-gradient: linear-gradient(135deg, #0b1024 0%, #5b21b6 48%, #a855f7 100%);
                 --workbit-gradient-soft: linear-gradient(135deg, rgba(11,16,36,0.08) 0%, rgba(91,33,182,0.10) 45%, rgba(168,85,247,0.14) 100%);
                 --workbit-shadow: 0 8px 26px rgba(61, 42, 153, 0.08), 0 1px 0 rgba(255,255,255,0.82) inset;
@@ -499,11 +499,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 z-index: 0;
                 pointer-events: none;
                 background:
-                  radial-gradient(circle at 18% 12%, rgba(124, 58, 237, 0.11), transparent 34%),
-                  radial-gradient(circle at 86% 18%, rgba(59, 130, 246, 0.09), transparent 36%),
-                  radial-gradient(circle at 48% 88%, rgba(168, 85, 247, 0.10), transparent 38%),
-                  linear-gradient(140deg, #ffffff 0%, #f8f4ff 44%, #f2f6ff 100%);
-                animation: workbit-global-bg-pan 24s ease-in-out infinite alternate;
+                  radial-gradient(circle at 50% -8%, rgba(124, 58, 237, 0.13), transparent 30%),
+                  linear-gradient(180deg, #ffffff 0%, #f8f5ff 38%, #efebfa 100%);
+                animation: none;
                 will-change: transform, background-position;
                 overflow: clip;
               }

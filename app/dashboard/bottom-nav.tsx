@@ -192,14 +192,14 @@ export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) 
         transform: "translateX(-50%)",
         zIndex: 200,
         display: "flex",
-        gap: 8,
-        padding: 10,
-        borderRadius: 999,
-        border: "1px solid var(--workbit-border)",
-        background: "var(--workbit-navigation)",
-        boxShadow: "var(--workbit-shadow-strong)",
-        backdropFilter: "blur(18px)",
-        WebkitBackdropFilter: "blur(18px)",
+        gap: 6,
+        padding: "12px 10px",
+        borderRadius: 30,
+        border: "1px solid rgba(60, 60, 67, 0.12)",
+        background: "rgba(255, 255, 255, 0.88)",
+        boxShadow: "0 10px 24px rgba(61, 42, 153, 0.14)",
+        backdropFilter: "blur(22px) saturate(140%)",
+        WebkitBackdropFilter: "blur(22px) saturate(140%)",
       }}
     >
       {bottomNavItems.map((item, index) => {
@@ -214,27 +214,27 @@ export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) 
             title={item.label}
             style={{
               width: 58,
-              minHeight: 54,
-              borderRadius: 24,
+              minHeight: 58,
+              borderRadius: 22,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               flexDirection: "column",
-              gap: 3,
-              color: "var(--workbit-purple-dark)",
+              gap: 5,
+              color: active ? "var(--workbit-purple-dark)" : "rgba(61, 42, 153, 0.78)",
               background: active
-                ? "linear-gradient(180deg, #ffffff 0%, var(--workbit-purple-soft) 100%)"
-                : "linear-gradient(180deg, var(--workbit-surface-elevated) 0%, var(--workbit-purple-soft) 100%)",
-              border: active ? "1px solid rgba(124, 58, 237, 0.42)" : "1px solid var(--workbit-border)",
+                ? "linear-gradient(180deg, #ffffff 0%, #f1edff 100%)"
+                : "transparent",
+              border: active ? "1px solid rgba(94, 92, 230, 0.22)" : "1px solid transparent",
               boxShadow: active
-                ? "0 0 0 4px rgba(168, 85, 247, 0.14), 0 16px 30px rgba(124, 58, 237, 0.20)"
+                ? "0 0 0 6px rgba(94, 92, 230, 0.08), 0 8px 18px rgba(61, 42, 153, 0.14)"
                 : "none",
               textDecoration: "none",
-              transform: active ? "translateY(-3px)" : "translateY(0)",
+              transform: "translateY(0)",
             }}
           >
             <BottomNavIcon href={item.href} />
-            <span style={{ fontSize: 10, fontWeight: 800, lineHeight: 1 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1 }}>
               {getBottomNavLabel(item, index)}
             </span>
           </Link>

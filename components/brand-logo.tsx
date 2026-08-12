@@ -46,11 +46,11 @@ function BrandLogoContent({
           style={{
             width: size,
             height: size,
-            borderRadius: 14,
+            borderRadius: Math.max(9, Math.round(size * 0.28)),
             overflow: "hidden",
             background: "#ffffff",
-            border: "1px solid rgba(15, 23, 42, 0.08)",
-            boxShadow: "0 10px 22px rgba(15, 23, 42, 0.08)",
+            border: "1px solid rgba(60, 60, 67, 0.12)",
+            boxShadow: "0 6px 16px rgba(61, 42, 153, 0.08)",
             flexShrink: 0,
             display: "inline-flex",
             alignItems: "center",
@@ -94,7 +94,7 @@ function BrandLogoContent({
         <span
           style={{
             color: textColor,
-            fontWeight: 600,
+            fontWeight: 800,
             fontSize: size >= 40 ? 18 : 16,
             letterSpacing: "-0.02em",
             lineHeight: 1.05,
