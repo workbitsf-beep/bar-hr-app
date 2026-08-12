@@ -902,59 +902,6 @@ export function ClockActionsPanel({
     return null;
   }
 
-  if (compact) {
-    return (
-      <section className="workbit-clock-card" aria-label="Entrata e uscita">
-        <div className="workbit-clock-card-header">
-          <div>
-            <strong>Entrata / uscita</strong>
-            <span>📍 {locationSummary.toLowerCase()}</span>
-          </div>
-          <span className={gpsConfigured && insideRadius ? "workbit-ready-pill" : "workbit-ready-pill is-muted"}>
-            <i aria-hidden="true" />
-            {gpsConfigured && insideRadius ? "Pronta" : "Non pronta"}
-          </span>
-        </div>
-
-        <div className="dashboard-clock-actions-row workbit-clock-card-actions">
-          <PrimaryButton
-            className="dashboard-clock-button workbit-clock-in"
-            type="button"
-            tone="green"
-            onClick={() => runClockAction("clock-in")}
-            disabled={submitting !== null || !canClockIn}
-            aria-label={submitting === "in" ? "Registrazione entrata" : "Registra entrata"}
-          >
-            <SuccessPulse key={`in-${successPulseKey}`} active={successPulse === "in"} tone="green" />
-            {submitting === "in" ? "..." : "Entra"}
-          </PrimaryButton>
-          <PrimaryButton
-            className="dashboard-clock-button workbit-clock-out"
-            type="button"
-            tone="red"
-            onClick={() => runClockAction("clock-out")}
-            disabled={submitting !== null || !canClockOut}
-            aria-label={submitting === "out" ? "Registrazione uscita" : "Registra uscita"}
-          >
-            <SuccessPulse key={`out-${successPulseKey}`} active={successPulse === "out"} tone="red" />
-            {submitting === "out" ? "..." : "Esci"}
-          </PrimaryButton>
-        </div>
-
-        {actionMessage ? <p className="workbit-clock-feedback">{actionMessage}</p> : null}
-        {confirmationMessage ? (
-          <ConfirmationToast key={confirmationKey}>{confirmationMessage}</ConfirmationToast>
-        ) : null}
-        {temporaryWarning ? (
-          <TemporaryWarningToast key={temporaryWarningKey}>{temporaryWarning}</TemporaryWarningToast>
-        ) : null}
-        {!gpsConfigured ? (
-          <p className="workbit-clock-feedback">Configura il GPS del locale per abilitare la timbratura.</p>
-        ) : null}
-      </section>
-    );
-  }
-
   return (
     <Panel
       title={compact ? "Timbratura veloce" : "Entrata / uscita"}
