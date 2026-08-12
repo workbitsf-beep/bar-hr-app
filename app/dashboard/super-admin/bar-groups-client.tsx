@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { deleteBarBySuperAdminAction, updateBarSubscriptionAction } from "../actions";
-import { PrimaryButton } from "../ui";
+import { IconButton, PrimaryButton } from "../ui";
 import { useOverlayLock } from "../use-overlay-lock";
 
 type OwnerOption = {
@@ -833,15 +833,14 @@ export function BarGroupsClient({
                         </select>
                       </div>
 
-                      <PrimaryButton
+                      <IconButton
                         type="button"
-                        tone="sand"
                         onClick={addAdditionalOwner}
                         disabled={!additionalOwnerDraftId}
-                        style={{ minWidth: 52 }}
+                        aria-label="Aggiungi titolare"
                       >
                         +
-                      </PrimaryButton>
+                      </IconButton>
                     </div>
 
                     <div

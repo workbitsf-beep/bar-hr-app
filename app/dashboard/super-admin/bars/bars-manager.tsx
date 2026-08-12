@@ -13,6 +13,7 @@ import {
 import {
   EmptyState,
   FormField,
+  IconButton,
   ItemCard,
   ItemList,
   Panel,
@@ -817,15 +818,14 @@ export function BarsManager({
                           </Select>
                         </div>
 
-                        <PrimaryButton
+                        <IconButton
                           type="button"
-                          tone="sand"
                           onClick={addNewAdditionalOwner}
                           disabled={!newAdditionalOwnerDraftId}
-                          style={{ minWidth: 52 }}
+                          aria-label="Aggiungi titolare"
                         >
                           +
-                        </PrimaryButton>
+                        </IconButton>
                       </div>
 
                       <div
@@ -1115,15 +1115,14 @@ export function BarsManager({
                         </select>
                       </div>
 
-                      <PrimaryButton
+                      <IconButton
                         type="button"
-                        tone="sand"
                         onClick={addAdditionalOwner}
                         disabled={!additionalOwnerDraftId}
-                        style={{ minWidth: 52 }}
+                        aria-label="Aggiungi titolare"
                       >
                         +
-                      </PrimaryButton>
+                      </IconButton>
                     </div>
 
                     <div
