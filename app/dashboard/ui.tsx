@@ -3243,6 +3243,13 @@ function DashboardResponsiveStyles() {
           box-shadow: none !important;
         }
       }
+
+      /* Keep add actions legible after page-specific mobile overrides. */
+      .dashboard-icon-button[data-intent="add"],
+      .dashboard-popup-trigger:not(.dashboard-popup-trigger--label) {
+        background: #6255ed !important;
+        color: #ffffff !important;
+      }
     `,
       }}
     />
