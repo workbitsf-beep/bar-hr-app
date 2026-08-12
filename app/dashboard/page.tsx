@@ -213,8 +213,19 @@ export default async function DashboardPage() {
   ]);
 
   const todayKey = toDateInputValueInTimeZone(now);
-  const todayShift = shifts.find((shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey);
-  const nextShift = shifts.find((shift) => shift.id !== todayShift?.id) ?? null;
+  const todayShift = shifts.find((shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey) as
+    | (typeof shifts)[number]
+    | undefined;
+  const nextShiftCandidate = shifts.find((shift) => shift.id !== todayShift?.id) ?? null;
+  const nextShift =
+    nextShiftCandidate ??
+    ({
+      id: "__empty",
+      title: "",
+      startTime: now,
+      endTime: now,
+      assignments: [],
+    } as (typeof shifts)[number]);
   const todayColleagues =
     todayShift?.assignments
       .filter((entry) => entry.user.id !== session.user.id)
@@ -229,139 +240,67 @@ export default async function DashboardPage() {
     latestTimeLog?.type === "IN"
       ? "CAN_CLOCK_OUT"
       : "CAN_CLOCK_IN";
+  const monthTargetMs = 120 * 60 * 60 * 1000;
+  const monthlyProgress = ownHours
+    ? Math.max(0, Math.min(100, Math.round((ownHours.roundedHours / monthTargetMs) * 100)))
+    : 0;
 
   return (
     <Stack>
       {isOperationalProfile ? (
-        <Panel title="Profilo">
-          <div className="dashboard-profile-layout" style={{ display: "grid", gap: 18 }}>
-            <div
-              className="dashboard-profile-summary-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 14,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  aria-hidden="true"
-                  style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: 22,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #ede9fe, #f5f3ff)",
-                    color: "#5b21b6",
-                    fontSize: 25,
-                    fontWeight: 800,
-                  }}
-                >
-                  👤
-                </div>
-                <div>
-                  <div style={{ color: "#64748b", fontWeight: 700 }}>Ciao</div>
-                  <h1 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.1 }}>
-                    {session.user.firstName} {session.user.lastName}
-                  </h1>
-                  <div style={{ color: "#64748b", marginTop: 4 }}>{roleLabel}</div>
-                </div>
+        <div className="workbit-home-screen">
+          {features.timeTracking && ownHours ? (
+            <section className="workbit-hours-hero-card" aria-label="Ore del mese">
+              <div
+                className="workbit-progress-ring"
+                style={{
+                  background: `conic-gradient(#5E5CE6 0 ${monthlyProgress}%, rgba(60,60,67,0.14) ${monthlyProgress}% 100%)`,
+                }}
+              >
+                <span>{monthlyProgress}%</span>
               </div>
+              <div>
+                <strong>{formatDurationClock(ownHours.roundedHours)} ore</strong>
+                <span>questo mese</span>
+              </div>
+            </section>
+          ) : null}
 
-              {features.timeTracking && ownHours ? (
-                <div
-                  className="dashboard-profile-hours-card"
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: 24,
-                    background: "linear-gradient(135deg, #f5f3ff, #ffffff)",
-                    border: "1px solid rgba(124,58,237,0.12)",
-                    minWidth: 170,
-                  }}
-                >
-                  <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                    Le tue ore del mese
-                  </div>
-                  <div style={{ color: "#4c1d95", fontSize: 26, fontWeight: 800 }}>
-                    {formatDurationClock(ownHours.roundedHours)}
-                  </div>
-                  {todayHours ? (
-                    <div style={{ color: "#64748b", fontSize: 12, fontWeight: 750, marginTop: 2 }}>
-                      Oggi {formatDurationClock(todayHours.roundedHours)}
-                    </div>
-                  ) : null}
-                </div>
+          {features.timeTracking ? (
+            <ClockActionsPanel
+              role={role}
+              settings={settings}
+              activeBarId={activeBarId}
+              clockStatus={clockStatus}
+              compact
+            />
+          ) : null}
+
+          <section className="workbit-today-shift-card">
+            <span aria-hidden="true">🧭</span>
+            <div>
+              <strong>
+                {todayShift
+                  ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
+                  : "Oggi non hai turni programmati"}
+              </strong>
+              {todayColleagues.length > 0 ? (
+                <small>Con te: {todayColleagues.join(", ")}</small>
               ) : null}
             </div>
+          </section>
 
-            <div
-              className="dashboard-profile-shift-grid"
-              style={{
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <div
-                style={{
-                  padding: 18,
-                  borderRadius: 26,
-                  background: "#ffffff",
-                  border: "1px solid #e9d5ff",
-                  boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
-                }}
-              >
-                <strong style={{ display: "block", color: "#0f172a", fontSize: 18 }}>
-                  {todayShift
-                    ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
-                    : "Oggi non hai turni programmati"}
-                </strong>
-                {todayColleagues.length > 0 ? (
-                  <p style={{ margin: "8px 0 0", color: "#64748b" }}>
-                    Con te: {todayColleagues.join(", ")}
-                  </p>
-                ) : null}
-              </div>
-
-              <div
-                style={{
-                  padding: 18,
-                  borderRadius: 26,
-                  background: "#ffffff",
-                  border: "1px solid #e9d5ff",
-                  boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
-                }}
-              >
-                <strong style={{ display: "block", color: "#0f172a", fontSize: 18 }}>
-                  {nextShift
-                    ? `Prossimo turno: ${toDateInputValueInTimeZone(nextShift.startTime)} · ${toTimeInputValueInTimeZone(nextShift.startTime)}-${toTimeInputValueInTimeZone(nextShift.endTime)}`
-                    : "Nessun prossimo turno programmato"}
-                </strong>
-                {nextShift ? (
-                  <p style={{ margin: "8px 0 0", color: "#64748b" }}>
-                    {nextShift.assignments
-                      .filter((entry) => entry.user.id !== session.user.id)
-                      .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
-                      .join(", ") || "Nessun collega indicato"}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-
-            {features.timeTracking ? (
-              <ClockActionsPanel
-                role={role}
-                settings={settings}
-                activeBarId={activeBarId}
-                clockStatus={clockStatus}
-              />
-            ) : null}
-          </div>
-        </Panel>
+          {nextShiftCandidate ? (
+            <section className="workbit-next-shift-card">
+              <strong>
+                Prossimo turno · {toDateInputValueInTimeZone(nextShift.startTime)} ·{" "}
+                {toTimeInputValueInTimeZone(nextShift.startTime)}-
+                {toTimeInputValueInTimeZone(nextShift.endTime)}
+              </strong>
+            </section>
+          ) : null}
+          <span className="sr-only">{roleLabel}</span>
+        </div>
       ) : null}
 
       {isOwner && features.shifts && nextWeekShiftCount === 0 ? (

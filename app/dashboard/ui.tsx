@@ -111,6 +111,197 @@ function DashboardResponsiveStyles() {
         background: transparent !important;
       }
 
+      .workbit-home-screen {
+        display: grid;
+        gap: 18px;
+        padding-top: clamp(110px, 20vh, 190px);
+      }
+
+      .workbit-hours-hero-card,
+      .workbit-today-shift-card,
+      .workbit-next-shift-card {
+        width: 100%;
+        border-radius: 22px;
+        background: #ffffff;
+        border: 1px solid rgba(94, 92, 230, 0.10);
+        box-shadow: 0 14px 28px rgba(61, 42, 153, 0.07);
+      }
+
+      .workbit-hours-hero-card {
+        min-height: 122px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .workbit-hours-hero-card strong {
+        display: block;
+        color: #0b1024;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-hours-hero-card span {
+        color: #8e8e93;
+        font-weight: 750;
+      }
+
+      .workbit-progress-ring {
+        width: 74px;
+        height: 74px;
+        border-radius: 999px;
+        padding: 8px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+      }
+
+      .workbit-progress-ring span {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: #ffffff;
+        color: #0b1024;
+        font-size: 16px;
+        font-weight: 900;
+      }
+
+      .workbit-clock-card {
+        display: grid;
+        gap: 20px;
+        padding: 20px 24px 24px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #635BFF 0%, #4531D4 100%);
+        color: #ffffff;
+        box-shadow: 0 20px 34px rgba(69, 49, 212, 0.23);
+      }
+
+      .workbit-clock-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .workbit-clock-card-header strong {
+        display: block;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-clock-card-header span {
+        display: block;
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .workbit-ready-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .workbit-ready-pill i {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #34d399;
+      }
+
+      .workbit-ready-pill.is-muted i {
+        background: #fbbf24;
+      }
+
+      .workbit-clock-card-actions {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+        gap: 12px !important;
+      }
+
+      .workbit-clock-card .dashboard-button,
+      .workbit-clock-card .dashboard-clock-button {
+        min-height: 50px !important;
+        border-radius: 13px !important;
+        color: #ffffff !important;
+        font-size: 16px !important;
+        font-weight: 900 !important;
+        box-shadow: none !important;
+      }
+
+      .workbit-clock-in {
+        background: #34D35F !important;
+        border-color: rgba(52, 211, 95, 0.55) !important;
+      }
+
+      .workbit-clock-out {
+        background: #EF4444 !important;
+        border-color: rgba(239, 68, 68, 0.55) !important;
+      }
+
+      .workbit-clock-card .dashboard-button:disabled {
+        opacity: 0.62 !important;
+      }
+
+      .workbit-clock-feedback {
+        margin: -8px 0 0;
+        color: rgba(255, 255, 255, 0.84);
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .workbit-today-shift-card,
+      .workbit-next-shift-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 17px 20px;
+      }
+
+      .workbit-today-shift-card > span {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: #f1edff;
+        font-size: 14px;
+      }
+
+      .workbit-today-shift-card strong,
+      .workbit-next-shift-card strong {
+        display: block;
+        color: #0b1024;
+        font-size: 17px;
+        font-weight: 900;
+        line-height: 1.18;
+      }
+
+      .workbit-today-shift-card small {
+        display: block;
+        margin-top: 4px;
+        color: #8e8e93;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .workbit-next-shift-card {
+        padding-block: 14px;
+      }
+
       .dashboard-profile-layout > div:first-child {
         order: 1;
       }
@@ -1202,10 +1393,162 @@ function DashboardResponsiveStyles() {
         box-shadow: none !important;
       }
 
+      .dashboard-shell {
+        background:
+          radial-gradient(circle at 74% 6%, rgba(255,255,255,0.62), transparent 28%),
+          linear-gradient(180deg, #F1ECFC 0%, #ECE7F8 100%) !important;
+      }
+
+      .dashboard-shell-content > .dashboard-panel:first-child,
+      .dashboard-shell-content > .dashboard-page-hero:first-child {
+        margin-top: clamp(96px, 17vh, 170px) !important;
+      }
+
+      .dashboard-shell-card {
+        border-radius: 26px !important;
+        background: rgba(255, 255, 255, 0.92) !important;
+        border: 1px solid rgba(94, 92, 230, 0.11) !important;
+        box-shadow: 0 14px 30px rgba(61, 42, 153, 0.08) !important;
+      }
+
+      .dashboard-menu-button,
+      .dashboard-icon-button {
+        background: #F7F5FF !important;
+        color: #3D2A99 !important;
+        border: 1px solid rgba(94, 92, 230, 0.18) !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-panel,
+      .dashboard-card,
+      .dashboard-item-card,
+      .dashboard-list-card,
+      .dashboard-summary-card,
+      .dashboard-calendar-day,
+      .dashboard-modal-panel {
+        border-radius: 22px !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(94, 92, 230, 0.10) !important;
+        box-shadow: 0 12px 26px rgba(61, 42, 153, 0.055) !important;
+      }
+
+      .dashboard-panel-header,
+      .dashboard-section-header {
+        align-items: center !important;
+      }
+
+      .dashboard-panel-title,
+      .dashboard-section-header h3,
+      .dashboard-page-hero h2 {
+        color: #151526 !important;
+        letter-spacing: -0.03em !important;
+      }
+
+      .dashboard-calendar-page {
+        padding-top: clamp(110px, 19vh, 180px) !important;
+      }
+
+      .dashboard-calendar-page .dashboard-panel:first-child,
+      .dashboard-calendar-page .dashboard-page-hero:first-child {
+        margin-top: 0 !important;
+      }
+
+      .dashboard-calendar-day {
+        overflow: hidden !important;
+      }
+
+      .dashboard-calendar-day strong {
+        color: #151526 !important;
+      }
+
+      .dashboard-calendar-day .dashboard-item-card {
+        padding: 8px 10px !important;
+        border-radius: 13px !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-bottom-nav {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border: 1px solid rgba(94, 92, 230, 0.12) !important;
+        box-shadow: 0 18px 34px rgba(61, 42, 153, 0.14) !important;
+      }
+
+      .dashboard-bottom-nav a[aria-current="page"] {
+        background: #EFECFF !important;
+        outline: 6px solid rgba(94, 92, 230, 0.10) !important;
+        outline-offset: 0 !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-menu-overlay nav {
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        padding-inline: 18px !important;
+      }
+
+      .dashboard-menu-overlay nav > div:nth-child(2),
+      .dashboard-menu-overlay nav > div:nth-child(3) {
+        border-radius: 16px !important;
+      }
+
       @media (max-width: 900px) {
         .dashboard-clock-button {
           min-height: 62px !important;
           border-radius: 16px !important;
+        }
+
+        .dashboard-shell-card {
+          width: min(306px, calc(100vw - 56px)) !important;
+          margin: 34px auto 0 !important;
+          padding: 12px 18px !important;
+          border-radius: 24px !important;
+        }
+
+        .dashboard-shell-top {
+          gap: 10px !important;
+        }
+
+        .dashboard-shell-brand > a {
+          font-size: 20px !important;
+          font-weight: 900 !important;
+        }
+
+        .dashboard-menu-button,
+        .dashboard-icon-button {
+          width: 40px !important;
+          height: 40px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+        }
+
+        .dashboard-shell-content {
+          gap: 16px !important;
+        }
+
+        .dashboard-shell-content > .dashboard-panel:first-child,
+        .dashboard-shell-content > .dashboard-page-hero:first-child {
+          margin-top: clamp(110px, 20vh, 185px) !important;
+        }
+
+        .workbit-home-screen,
+        .dashboard-calendar-page {
+          padding-top: clamp(132px, 24vh, 210px) !important;
+        }
+
+        .workbit-hours-hero-card,
+        .workbit-clock-card,
+        .workbit-today-shift-card,
+        .workbit-next-shift-card {
+          border-radius: 22px !important;
+        }
+
+        .dashboard-panel,
+        .dashboard-card,
+        .dashboard-item-card,
+        .dashboard-list-card,
+        .dashboard-summary-card {
+          border-radius: 20px !important;
         }
       }
     `,
@@ -1379,7 +1722,7 @@ export function DashboardShell({
           </div>
         ) : null}
 
-        <div style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}>{children}</div>
+        <div className="dashboard-shell-content" style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}>{children}</div>
       </div>
       <ActiveBottomNav navItems={navItems} />
       <DashboardResponsiveStyles />

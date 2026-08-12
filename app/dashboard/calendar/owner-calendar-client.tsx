@@ -1578,12 +1578,48 @@ export function OwnerCalendarClient({
     );
   }
 
+  function renderEditSwipeAction(label: string, onEdit: () => void) {
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        disabled={isPending}
+        onClick={(event) => {
+          event.stopPropagation();
+          onEdit();
+        }}
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 14,
+          border: "1px solid rgba(94, 92, 230, 0.24)",
+          background: "#ede9fe",
+          color: "#3D2A99",
+          cursor: isPending ? "progress" : "pointer",
+          fontWeight: 900,
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m5 19 4.2-1 9.1-9.1a2.1 2.1 0 0 0-3-3L6.2 15 5 19Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="m14 7 3 3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+        </svg>
+      </button>
+    );
+  }
+
   function renderDeleteSwipeCard(
     key: string,
     card: ReactNode,
     label: string,
     onDelete: () => void,
-    allowSwipe = false
+    allowSwipe = false,
+    leadingAction?: ReactNode
   ) {
     if (!allowSwipe) {
       return <div key={key}>{card}</div>;
@@ -1593,6 +1629,7 @@ export function OwnerCalendarClient({
       <SwipeRevealAction
         key={key}
         action={renderDeleteSwipeAction(label, onDelete)}
+        leadingAction={leadingAction}
         resetKey={key}
         revealWidth={64}
         actionInset={9}
@@ -1940,13 +1977,13 @@ export function OwnerCalendarClient({
             gridTemplateColumns: todayAction ? "1fr 1fr 1fr" : "1fr 1fr",
             alignItems: "center",
             gap: 0,
-            padding: 4,
-            borderRadius: 999,
-            background: "linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%)",
-            border: "1px solid rgba(124, 58, 237, 0.16)",
+            padding: 3,
+            borderRadius: 16,
+            background: "#E9E9EE",
+            border: "0.5px solid rgba(60, 60, 67, 0.12)",
             maxWidth: "100%",
             width: "100%",
-            boxShadow: "0 12px 26px rgba(88, 28, 135, 0.08)",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
             overflow: "hidden",
           }}
         >
@@ -1963,18 +2000,31 @@ export function OwnerCalendarClient({
               }}
               style={{
                 border: 0,
-                borderRadius: 999,
-                minHeight: 42,
+                borderRadius: 14,
+                minHeight: 44,
                 padding: "0 12px",
-                background: calendarView === mode ? "linear-gradient(135deg, #111936, #7c3aed)" : "transparent",
-                color: calendarView === mode ? "#ffffff" : "#475569",
+                background: calendarView === mode ? "#ffffff" : "transparent",
+                color: calendarView === mode ? "#3D2A99" : "#1C1C1E",
                 fontWeight: 800,
                 fontSize: 13,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
+                boxShadow: calendarView === mode ? "0 1px 3px rgba(0, 0, 0, 0.12)" : "none",
+                display: "inline-grid",
+                placeItems: "center",
+                gap: 2,
               }}
             >
-              {mode === "week" ? "Settimana" : "Giorno"}
+              <span>{mode === "week" ? "Settimana" : "Giorno"}</span>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 999,
+                  background: calendarView === mode ? "#5E5CE6" : "transparent",
+                }}
+              />
             </button>
           ))}
           {todayAction}
@@ -2163,7 +2213,13 @@ export function OwnerCalendarClient({
                           setActiveCalendarModal("notes");
                         }),
                         "Elimina nota",
-                        () => handleDeleteBoardNote(note.id)
+                        () => handleDeleteBoardNote(note.id),
+                        true,
+                        renderEditSwipeAction("Modifica nota", () => {
+                          setSelectedDate(day.date);
+                          setSelectedNoteId(note.id);
+                          setActiveCalendarModal("notes");
+                        })
                       )
                     )}
                   </div>
@@ -2488,7 +2544,13 @@ export function OwnerCalendarClient({
                                           setActiveCalendarModal("notes");
                                         }),
                                         "Elimina nota",
-                                        () => handleDeleteBoardNote(note.id)
+                                        () => handleDeleteBoardNote(note.id),
+                                        true,
+                                        renderEditSwipeAction("Modifica nota", () => {
+                                          setSelectedDate(day.date);
+                                          setSelectedNoteId(note.id);
+                                          setActiveCalendarModal("notes");
+                                        })
                                       )
                                     )
                                   : null}
@@ -3988,7 +4050,11 @@ export function OwnerCalendarClient({
                           </div>,
                           "Elimina nota",
                           () => handleDeleteBoardNote(note.id),
-                          true
+                          true,
+                          renderEditSwipeAction("Modifica nota", () => {
+                            setSelectedNoteId(note.id);
+                            setActiveCalendarModal("notes");
+                          })
                         )
                       )}
                     </div>
