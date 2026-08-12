@@ -984,6 +984,34 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 box-shadow: 0 24px 70px rgba(61, 42, 153, 0.14) !important;
               }
 
+              .workbit-login-page {
+                background: linear-gradient(180deg, #ffffff 0%, #f7f4ff 42%, #efebfa 100%) !important;
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif !important;
+              }
+
+              .workbit-login-card {
+                background: #ffffff !important;
+                border: 1px solid rgba(60, 60, 67, 0.12) !important;
+                border-radius: 34px !important;
+                box-shadow: 0 18px 54px rgba(61, 42, 153, 0.14) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+              }
+
+              .workbit-login-card input:not([type="checkbox"]):not([type="radio"]) {
+                background: #ffffff !important;
+                border: 1px solid rgba(60, 60, 67, 0.12) !important;
+                border-radius: 14px !important;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+                color: #1c1c1e !important;
+              }
+
+              .workbit-login-card button[type="submit"] {
+                background: linear-gradient(135deg, #3d2a99 0%, #5e5ce6 58%, #8b5cf6 100%) !important;
+                color: #ffffff !important;
+                box-shadow: 0 16px 32px rgba(76, 60, 220, 0.28) !important;
+              }
+
               .dashboard-shell-card::before,
               .dashboard-panel::before,
               .dashboard-card::before,
