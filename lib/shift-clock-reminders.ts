@@ -80,26 +80,26 @@ function getClockReminderSchedule(shift: Pick<ShiftForReminder, "startTime" | "e
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE,
       sendAt: new Date(shift.startTime.getTime() - CLOCK_IN_REMINDER_LEAD_MS),
-      title: "Workbit",
-      message: "Tra 5 minuti inizia il tuo turno. Ricordati di timbrare.",
+      title: "Promemoria entrata",
+      message: "Il tuo turno inizier\u00e0 tra 5 minuti. Ricordati di registrare l'entrata.",
     },
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_START,
       sendAt: shift.startTime,
-      title: "Workbit",
-      message: "Ei, sta iniziando il tuo turno. Ricordati di timbrare! Buon lavoro 💕",
+      title: "Turno iniziato",
+      message: "Il tuo turno \u00e8 iniziato. Registra l'entrata.",
     },
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_BEFORE,
       sendAt: new Date(shift.endTime.getTime() - CLOCK_OUT_REMINDER_LEAD_MS),
-      title: "Workbit",
-      message: "Tra 5 minuti finisce il tuo turno. Ricordati di timbrare l'uscita.",
+      title: "Promemoria uscita",
+      message: "Il tuo turno terminer\u00e0 tra 5 minuti. Ricordati di registrare l'uscita.",
     },
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_END,
       sendAt: shift.endTime,
-      title: "Workbit",
-      message: "Ei, il tuo turno è finito. Ricordati di timbrare l'uscita! Ottimo lavoro 💕",
+      title: "Turno terminato",
+      message: "Il tuo turno \u00e8 terminato. Registra l'uscita.",
     },
   ];
 }
