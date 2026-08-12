@@ -69,7 +69,29 @@ export function ScrollToTodayButton({
         whiteSpace: "nowrap",
       }}
     >
-      {variant === "segment" ? <span aria-hidden="true">◎</span> : "Oggi"}
+      {variant === "segment" ? (
+        <span
+          aria-hidden="true"
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 999,
+            display: "inline-grid",
+            placeItems: "center",
+            background: "#6255ed",
+            color: "#ffffff",
+            fontSize: 22,
+            fontWeight: 900,
+            lineHeight: 1,
+            boxShadow: "0 7px 16px rgba(98, 85, 237, 0.24)",
+            flex: "0 0 38px",
+          }}
+        >
+          ◎
+        </span>
+      ) : (
+        "Oggi"
+      )}
     </button>
   );
 }

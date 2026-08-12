@@ -1115,18 +1115,23 @@ function TemporaryWarningToast({
   children: ReactNode;
   duration?: number;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setVisible(false), duration);
     return () => window.clearTimeout(timeout);
   }, [duration]);
 
-  if (!visible) {
+  if (!mounted || !visible) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       aria-live="polite"
       style={{
@@ -1195,7 +1200,8 @@ function TemporaryWarningToast({
           }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }
 

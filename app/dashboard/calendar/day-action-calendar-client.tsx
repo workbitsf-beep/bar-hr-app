@@ -426,7 +426,7 @@ function formatAssignmentNames(assignments: ShiftAssignment[]) {
   return assignments.map((assignment, index) => {
     const name = `${assignment.firstName} ${assignment.lastName}`;
     return (
-      <span key={assignment.id}>
+      <span key={assignment.id} style={{ fontWeight: 400 }}>
         {index > 0 ? ", " : null}
         {assignment.isCurrentUser ? <strong style={{ fontWeight: 900 }}>{name}</strong> : name}
       </span>
@@ -1318,11 +1318,11 @@ export function DayActionCalendarClient({
         `[data-day-date="${focusedDayDate}"]`
       );
 
-      target?.scrollIntoView({
-        behavior: "auto",
-        block: "nearest",
-        inline: "center",
-      });
+      const strip = dayStripRef.current;
+
+      if (strip && target) {
+        strip.scrollTo({ left: target.offsetLeft, behavior: "auto" });
+      }
     });
 
     return () => cancelAnimationFrame(frame);
@@ -1425,14 +1425,13 @@ export function DayActionCalendarClient({
         return;
       }
 
-      const center = strip.scrollLeft + strip.clientWidth / 2;
+      const targetLeft = strip.scrollLeft;
       const cards = Array.from(strip.querySelectorAll<HTMLElement>("[data-day-date]"));
       let nearestDate = focusedDayDate;
       let nearestDistance = Number.POSITIVE_INFINITY;
 
       for (const card of cards) {
-        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-        const distance = Math.abs(cardCenter - center);
+        const distance = Math.abs(card.offsetLeft - targetLeft);
         if (distance < nearestDistance) {
           nearestDistance = distance;
           nearestDate = card.dataset.dayDate ?? nearestDate;
@@ -1452,12 +1451,12 @@ export function DayActionCalendarClient({
     daySnapTimerRef.current = window.setTimeout(() => {
       const strip = dayStripRef.current;
       const cards = strip ? Array.from(strip.querySelectorAll<HTMLElement>("[data-day-date]")) : [];
-      const center = strip ? strip.scrollLeft + strip.clientWidth / 2 : 0;
+      const targetLeft = strip?.scrollLeft ?? 0;
       let target: HTMLElement | null = null;
       let nearestDistance = Number.POSITIVE_INFINITY;
 
       for (const card of cards) {
-        const distance = Math.abs(card.offsetLeft + card.offsetWidth / 2 - center);
+        const distance = Math.abs(card.offsetLeft - targetLeft);
 
         if (distance < nearestDistance) {
           nearestDistance = distance;
@@ -1465,12 +1464,10 @@ export function DayActionCalendarClient({
         }
       }
 
-      target?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
-      });
-    }, 160);
+      if (strip && target) {
+        strip.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
+      }
+    }, 120);
   }
 
   const isCompany = activityType === ActivityType.COMPANY;
@@ -2355,8 +2352,8 @@ export function DayActionCalendarClient({
             overflowX: "auto",
             overflowY: "hidden",
             scrollSnapType: "x mandatory",
-            scrollPaddingInline: 12,
-            padding: "2px 2px 12px",
+            scrollPaddingInline: 0,
+            padding: "2px 0 12px",
             WebkitOverflowScrolling: "touch",
             scrollbarWidth: "none",
           }}
@@ -2380,9 +2377,9 @@ export function DayActionCalendarClient({
                 style={{
                   display: "grid",
                   gap: 10,
-                  flex: "0 0 min(92%, 820px)",
-                  width: "min(92%, 820px)",
-                  scrollSnapAlign: "center",
+                  flex: "0 0 100%",
+                  width: "100%",
+                  scrollSnapAlign: "start",
                   alignSelf: "start",
                   minHeight: "auto",
                   padding: "12px min(14px, 4vw)",

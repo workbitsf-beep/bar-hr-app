@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function ConfirmationToast({
   children,
@@ -9,18 +10,23 @@ export function ConfirmationToast({
   children: ReactNode;
   duration?: number;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setVisible(false), duration);
     return () => window.clearTimeout(timeout);
   }, [duration]);
 
-  if (!visible) {
+  if (!mounted || !visible) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       aria-live="polite"
       style={{
@@ -101,6 +107,7 @@ export function ConfirmationToast({
           }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }

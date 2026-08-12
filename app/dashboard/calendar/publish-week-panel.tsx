@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { IconButton } from "../ui";
 
 type PublishFeedback = {
@@ -21,9 +22,14 @@ export function PublishWeekPanel({
   variant?: "icon" | "wide";
 }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<PublishFeedback>(null);
   const hasPendingShifts = pendingCount > 0;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!feedback) {
@@ -121,7 +127,7 @@ export function PublishWeekPanel({
         {isPending ? "..." : "✓"}
       </IconButton>
 
-      {feedback ? (
+      {mounted && feedback ? createPortal(
         <div
           aria-live="polite"
           style={{
@@ -213,7 +219,8 @@ export function PublishWeekPanel({
               }
             }
           `}</style>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </div>
   );
