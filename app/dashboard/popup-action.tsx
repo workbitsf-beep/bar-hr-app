@@ -65,7 +65,13 @@ export function PopupAction({
         aria-label={ariaLabel}
         title={ariaLabel}
         onClick={() => setOpen(true)}
-        className={className}
+        className={[
+          "dashboard-popup-trigger",
+          triggerContent ? "dashboard-popup-trigger--label" : "dashboard-add-trigger",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
         style={{
           width: triggerContent ? "auto" : 40,
           minWidth: 40,

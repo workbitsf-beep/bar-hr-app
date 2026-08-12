@@ -85,7 +85,7 @@ export default async function DashboardPeoplePage({
 
   return (
     <>
-      <Stack>
+      <Stack className="workbit-people-page">
         {success === "employee-created" ? (
           <SuccessCallout>Account creato correttamente. La password temporanea automatica e stata inviata via email.</SuccessCallout>
         ) : null}
@@ -97,7 +97,8 @@ export default async function DashboardPeoplePage({
         ) : null}
 
         <Panel
-          title="Team attivo"
+          title="Team"
+          className="workbit-people-panel"
           action={
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <span>{members.length} persone</span>
@@ -159,6 +160,7 @@ export default async function DashboardPeoplePage({
             <ItemList>
               {members.map((member) => (
                 <ItemCard
+                  className="workbit-person-card"
                   key={member.id}
                   title={`${member.user.firstName} ${member.user.lastName}`}
                   subtitle={member.user.email}

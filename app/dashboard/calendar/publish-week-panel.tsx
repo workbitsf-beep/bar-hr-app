@@ -127,7 +127,7 @@ export function PublishWeekPanel({
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 9999,
+            zIndex: 2147483647,
             display: "grid",
             placeItems: "center",
             padding: 24,

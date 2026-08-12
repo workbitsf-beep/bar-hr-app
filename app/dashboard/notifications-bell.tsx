@@ -371,7 +371,7 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
               style={{
                 position: "fixed",
                 inset: 0,
-                zIndex: 80,
+                zIndex: 2147483646,
                 display: "grid",
                 placeItems: "center",
                 padding: 16,

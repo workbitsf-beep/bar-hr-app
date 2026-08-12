@@ -186,8 +186,8 @@ export function ExportClient({
   });
 
   return (
-    <Stack>
-      <Panel title="Genera report">
+    <Stack className="workbit-export-page">
+      <Panel title="Genera report" className="workbit-export-generator">
         {employees.length === 0 ? (
           <EmptyState message="Nessuna persona disponibile per l'export." />
         ) : (
@@ -266,7 +266,7 @@ export function ExportClient({
         )}
       </Panel>
 
-      <Panel title="Anteprima mensile">
+      <Panel title="Anteprima mensile" className="workbit-export-preview">
         {!result ? (
           <EmptyState message={initialPreviewMessage} />
         ) : (

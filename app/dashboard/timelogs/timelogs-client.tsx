@@ -18,7 +18,6 @@ import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 import {
   EmptyState,
   FormField,
-  ItemCard,
   ItemList,
   Panel,
   PrimaryButton,
@@ -203,7 +202,6 @@ function formatDayLabel(value: string) {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
     timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
@@ -241,13 +239,14 @@ function ClockLogRow({ log }: { log: LogItem }) {
 
   return (
     <div
+      className={`workbit-timelog-entry workbit-timelog-entry--${log.type.toLowerCase()}`}
       style={{
         display: "grid",
-        gap: 6,
-        padding: "10px 12px",
-        borderRadius: 16,
-        background: "#fff",
-        border: "1px solid #e2e8f0",
+        gap: 0,
+        padding: "11px 13px",
+        borderRadius: 13,
+        background: visual.background,
+        border: `1px solid ${visual.border}`,
         width: "100%",
         boxSizing: "border-box",
       }}
@@ -265,24 +264,21 @@ function ClockLogRow({ log }: { log: LogItem }) {
             display: "inline-flex",
             alignItems: "center",
             gap: 7,
-            padding: "7px 11px",
-            borderRadius: 999,
-            background: visual.background,
-            border: `1px solid ${visual.border}`,
+            padding: 0,
+            background: "transparent",
+            border: 0,
             color: visual.color,
-            fontSize: 12,
+            fontSize: 16,
             fontWeight: 800,
-            letterSpacing: "0.02em",
-            textTransform: "uppercase",
             whiteSpace: "nowrap",
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: 13, lineHeight: 1 }}>
+          <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>
             {visual.arrow}
           </span>
         </span>
 
-        <strong style={{ color: visual.timeColor, fontSize: 17, lineHeight: 1 }}>
+        <strong style={{ color: visual.timeColor, fontSize: 18, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
           {formatClockTime(log.timestamp)}
         </strong>
       </div>
@@ -469,7 +465,7 @@ function ClockDayCard({
 
   return (
     <div
-      className="dashboard-item-card"
+      className="dashboard-item-card workbit-timelog-day-card"
       style={{
         padding: 16,
         borderRadius: 20,
@@ -481,6 +477,7 @@ function ClockDayCard({
       }}
     >
       <div
+        className="workbit-timelog-day-header"
         style={{
           display: "flex",
           alignItems: "flex-start",
@@ -488,9 +485,12 @@ function ClockDayCard({
           gap: 12,
         }}
       >
-        <strong style={{ color: "var(--workbit-navy)", minWidth: 0 }}>{dayLabel}</strong>
+        <strong className="workbit-timelog-day-title" style={{ color: "var(--workbit-navy)", minWidth: 0 }}>
+          {dayLabel}
+        </strong>
         {workedMs > 0 ? (
           <span
+            className="workbit-timelog-duration"
             title="Ore lavorate"
             style={{
               flex: "0 0 auto",
@@ -508,8 +508,8 @@ function ClockDayCard({
           </span>
         ) : null}
       </div>
-      <div style={{ color: "#334155" }}>{subtitle}</div>
-      <div style={{ marginTop: 8 }}>{children}</div>
+      <div className="workbit-timelog-day-subtitle" style={{ color: "#334155" }}>{subtitle}</div>
+      <div className="workbit-timelog-day-entries" style={{ marginTop: 8 }}>{children}</div>
     </div>
   );
 }
@@ -900,6 +900,65 @@ export function ClockActionsPanel({
 
   if (!canClock) {
     return null;
+  }
+
+  if (compact) {
+    return (
+      <section className="workbit-home-clock-card" aria-label="Entrata e uscita">
+        <div className="workbit-home-clock-top">
+          <div>
+            <strong>Entrata / uscita</strong>
+            <span>📍 posizione aggiornata</span>
+          </div>
+          <div className="workbit-home-clock-tools">
+            <button
+              type="button"
+              onClick={captureGeolocation}
+              disabled={locating}
+              aria-label="Aggiorna posizione"
+              title="Aggiorna posizione"
+            >
+              {locating ? "…" : "↻"}
+            </button>
+            <span className={gpsConfigured && insideRadius ? "workbit-home-ready" : "workbit-home-ready is-waiting"}>
+              <i aria-hidden="true" />
+              {gpsConfigured && insideRadius ? "Pronta" : "Attendi"}
+            </span>
+          </div>
+        </div>
+
+        <div className="workbit-home-clock-actions">
+          <PrimaryButton
+            className="workbit-home-clock-button workbit-home-clock-in"
+            type="button"
+            tone="green"
+            onClick={() => runClockAction("clock-in")}
+            disabled={submitting !== null || !canClockIn}
+          >
+            <SuccessPulse key={`in-${successPulseKey}`} active={successPulse === "in"} tone="green" />
+            {submitting === "in" ? "..." : "Entra"}
+          </PrimaryButton>
+          <PrimaryButton
+            className="workbit-home-clock-button workbit-home-clock-out"
+            type="button"
+            tone="red"
+            onClick={() => runClockAction("clock-out")}
+            disabled={submitting !== null || !canClockOut}
+          >
+            <SuccessPulse key={`out-${successPulseKey}`} active={successPulse === "out"} tone="red" />
+            {submitting === "out" ? "..." : "Esci"}
+          </PrimaryButton>
+        </div>
+
+        {actionMessage ? <p className="workbit-home-clock-message">{actionMessage}</p> : null}
+        {confirmationMessage ? (
+          <ConfirmationToast key={confirmationKey}>{confirmationMessage}</ConfirmationToast>
+        ) : null}
+        {temporaryWarning ? (
+          <TemporaryWarningToast key={temporaryWarningKey}>{temporaryWarning}</TemporaryWarningToast>
+        ) : null}
+      </section>
+    );
   }
 
   return (
@@ -1428,20 +1487,6 @@ function PersonalTimeLogsPanel({
     () => monthDayGroups.filter((group) => (dayFilter ? group.dayKey === dayFilter : true)),
     [dayFilter, monthDayGroups]
   );
-  const monthSummary = useMemo(() => {
-    const allPairs = monthDayGroups.flatMap((group) => group.pairs);
-    const completedPairs = allPairs.filter((pair) => pair.clockIn && pair.clockOut);
-    const pendingPairs = allPairs.length - completedPairs.length;
-    const workedMs = monthDayGroups.reduce((total, group) => total + getDayWorkedDurationMs(group.pairs), 0);
-
-    return {
-      workedMs,
-      shiftCount: allPairs.length,
-      completedCount: completedPairs.length,
-      pendingCount: pendingPairs,
-      workedDays: monthDayGroups.filter((group) => group.pairs.length > 0).length,
-    };
-  }, [monthDayGroups]);
   const todayKey = getTodayKey();
   const oldestLoadedLog = logs[logs.length - 1] ?? null;
 
@@ -1487,12 +1532,14 @@ function PersonalTimeLogsPanel({
 
   return (
     <Panel
+      className="workbit-timelog-history-panel workbit-personal-timelog-panel"
       title={role === "OWNER" ? "Timbrature del team" : "Le tue timbrature"}
       action={formatMonthLabel(monthFilter)}
     >
-      <div style={{ display: "grid", gap: 16 }}>
+      <div className="workbit-timelog-history-content" style={{ display: "grid", gap: 16 }}>
         {todayTotals ? (
           <div
+            className="workbit-timelog-today-total"
             style={{
               padding: "12px 14px",
               borderRadius: 18,
@@ -1502,16 +1549,18 @@ function PersonalTimeLogsPanel({
               fontWeight: 850,
             }}
           >
-            Oggi ore arrotondate {formatDurationClock(todayTotals.roundedHours)}
+            Oggi hai lavorato {formatDurationClock(todayTotals.roundedHours)}
+            <span> (arrotondate)</span>
           </div>
         ) : null}
 
-        <div
-          className="dashboard-inline-grid"
-          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}
-        >
-          <FormField label="Mese">
+        <div className="workbit-time-section-label">Le tue timbrature</div>
+
+        <div className="workbit-timelog-filters">
+          <label className="workbit-timelog-filter-row">
+            <strong>Mese</strong>
             <Select
+              aria-label="Mese"
               value={monthFilter}
               onChange={(event) => {
                 setMonthFilter(event.target.value);
@@ -1524,24 +1573,23 @@ function PersonalTimeLogsPanel({
                 </option>
               ))}
             </Select>
-          </FormField>
+          </label>
 
-          <FormField label="Giorno">
-            <TextInput
-              type="date"
+          <label className="workbit-timelog-filter-row">
+            <strong>Giorno</strong>
+            <Select
+              aria-label="Giorno"
               value={dayFilter}
-              min={`${monthFilter}-01`}
-              max={`${monthFilter}-31`}
               onChange={(event) => setDayFilter(event.target.value)}
-            />
-          </FormField>
-        </div>
-
-        <div
-          className="dashboard-summary-grid"
-          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}
-        >
-          <ItemCard title="Ore mese" meta={formatDurationFromMilliseconds(monthSummary.workedMs)} />
+            >
+              <option value="">tutti</option>
+              {monthDayGroups.map((group) => (
+                <option key={group.dayKey} value={group.dayKey}>
+                  {group.dayLabel}
+                </option>
+              ))}
+            </Select>
+          </label>
         </div>
 
         {dayGroups.length === 0 ? (
@@ -1549,8 +1597,9 @@ function PersonalTimeLogsPanel({
             Nessuna timbratura registrata per questo periodo.
           </p>
         ) : (
-          <ItemList>
-            {dayGroups.map((dayGroup) => (
+          <div className="workbit-timelog-history-list">
+            <ItemList>
+              {dayGroups.map((dayGroup) => (
               <ClockDayCard
                 key={dayGroup.dayKey}
                 dayLabel={dayGroup.dayLabel}
@@ -1586,8 +1635,9 @@ function PersonalTimeLogsPanel({
                     })}
                   </div>
               </ClockDayCard>
-            ))}
-          </ItemList>
+              ))}
+            </ItemList>
+          </div>
         )}
 
         {hasMoreLogs ? (
@@ -1625,34 +1675,41 @@ export function TimeLogsClient({
   todayTotals: Totals;
   hasMoreInitialLogs?: boolean;
 }) {
-  return (
-    <>
-      {totals ? (
-        <Panel title="Totale ore personale">
-          <div className="dashboard-summary-grid" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <ItemCard className="dashboard-summary-card" title="Ore reali" meta={formatDurationClock(totals.realHours)} />
-            <ItemCard
-              className="dashboard-summary-card"
-              title="Ore arrotondate"
-              meta={formatDurationClock(totals.roundedHours)}
-            />
-          </div>
-        </Panel>
-      ) : null}
-
+  if (role === "OWNER") {
+    return (
       <Stack>
-        {role === "OWNER" ? (
         <OwnerTimeLogsPanel initialLogs={initialLogs} settings={settings} />
-      ) : (
-          <PersonalTimeLogsPanel
-            initialLogs={initialLogs}
-            role={role}
-            todayTotals={todayTotals}
-            hasMoreInitialLogs={hasMoreInitialLogs}
-          />
-      )}
       </Stack>
-    </>
+    );
+  }
+
+  return (
+    <div className="workbit-time-page">
+      <section className="workbit-time-overview" aria-labelledby="workbit-time-title">
+        <div className="workbit-time-heading">
+          <span>Riepilogo</span>
+          <h2 id="workbit-time-title">Il tuo tempo</h2>
+        </div>
+
+        <div className="workbit-time-summary-grid">
+          <div className="workbit-time-summary-card">
+            <span>Ore reali</span>
+            <strong>{formatDurationClock(totals?.realHours ?? 0)}</strong>
+          </div>
+          <div className="workbit-time-summary-card">
+            <span>Ore arrotondate</span>
+            <strong>{formatDurationClock(totals?.roundedHours ?? 0)}</strong>
+          </div>
+        </div>
+      </section>
+
+      <PersonalTimeLogsPanel
+        initialLogs={initialLogs}
+        role={role}
+        todayTotals={todayTotals}
+        hasMoreInitialLogs={hasMoreInitialLogs}
+      />
+    </div>
   );
 }
 

@@ -214,7 +214,15 @@ export default async function DashboardPage() {
 
   const todayKey = toDateInputValueInTimeZone(now);
   const todayShift = shifts.find((shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey);
-  const nextShift = shifts.find((shift) => shift.id !== todayShift?.id) ?? null;
+  const nextShift =
+    shifts.find((shift) => shift.id !== todayShift?.id) ??
+    ({
+      id: "__empty",
+      title: "",
+      startTime: now,
+      endTime: now,
+      assignments: [],
+    } as (typeof shifts)[number]);
   const todayColleagues =
     todayShift?.assignments
       .filter((entry) => entry.user.id !== session.user.id)
@@ -229,10 +237,76 @@ export default async function DashboardPage() {
     latestTimeLog?.type === "IN"
       ? "CAN_CLOCK_OUT"
       : "CAN_CLOCK_IN";
+  const monthlyTargetMs = 120 * 60 * 60 * 1000;
+  const monthlyProgress = ownHours
+    ? Math.max(0, Math.min(100, Math.round((ownHours.roundedHours / monthlyTargetMs) * 100)))
+    : 0;
 
   return (
     <Stack>
       {isOperationalProfile ? (
+        <div className="workbit-home">
+          <div className="workbit-home-title">
+            <span>Ciao {session.user.firstName}</span>
+            <h1>Oggi</h1>
+          </div>
+
+          {features.timeTracking && ownHours ? (
+            <section className="workbit-home-hours" aria-label="Ore del mese">
+              <div
+                className="workbit-home-ring"
+                style={{
+                  background: `conic-gradient(#5E5CE6 0 ${monthlyProgress}%, #E3E1EA ${monthlyProgress}% 100%)`,
+                }}
+              >
+                <span>{monthlyProgress}%</span>
+              </div>
+              <div>
+                <strong>{formatDurationClock(ownHours.roundedHours)} ore</strong>
+                <small>questo mese</small>
+              </div>
+            </section>
+          ) : null}
+
+          {features.timeTracking ? (
+            <ClockActionsPanel
+              role={role}
+              settings={settings}
+              activeBarId={activeBarId}
+              clockStatus={clockStatus}
+              compact
+            />
+          ) : null}
+
+          <section className="workbit-home-shift">
+            <span aria-hidden="true">⏱️</span>
+            <div>
+              <strong>
+                {todayShift
+                  ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
+                  : "Oggi non hai turni programmati"}
+              </strong>
+              {todayColleagues.length > 0 ? (
+                <small>Con te: {todayColleagues.join(", ")}</small>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="workbit-home-shift workbit-home-next-shift">
+            <span aria-hidden="true">📅</span>
+            <div>
+              <strong>
+                {nextShift.id !== "__empty"
+                  ? `Prossimo turno ${toDateInputValueInTimeZone(nextShift.startTime)} dalle ${toTimeInputValueInTimeZone(nextShift.startTime)} alle ${toTimeInputValueInTimeZone(nextShift.endTime)}`
+                  : "Nessun prossimo turno programmato"}
+              </strong>
+            </div>
+          </section>
+
+        </div>
+      ) : null}
+
+      {false && isOperationalProfile ? (
         <Panel title="Profilo">
           <div className="dashboard-profile-layout" style={{ display: "grid", gap: 18 }}>
             <div
@@ -287,11 +361,11 @@ export default async function DashboardPage() {
                     Le tue ore del mese
                   </div>
                   <div style={{ color: "#4c1d95", fontSize: 26, fontWeight: 800 }}>
-                    {formatDurationClock(ownHours.roundedHours)}
+                    {formatDurationClock(ownHours?.roundedHours ?? 0)}
                   </div>
                   {todayHours ? (
                     <div style={{ color: "#64748b", fontSize: 12, fontWeight: 750, marginTop: 2 }}>
-                      Oggi {formatDurationClock(todayHours.roundedHours)}
+                      Oggi {formatDurationClock(todayHours?.roundedHours ?? 0)}
                     </div>
                   ) : null}
                 </div>
@@ -317,7 +391,7 @@ export default async function DashboardPage() {
               >
                 <strong style={{ display: "block", color: "#0f172a", fontSize: 18 }}>
                   {todayShift
-                    ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
+                    ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift?.startTime ?? now)} alle ${toTimeInputValueInTimeZone(todayShift?.endTime ?? now)}`
                     : "Oggi non hai turni programmati"}
                 </strong>
                 {todayColleagues.length > 0 ? (

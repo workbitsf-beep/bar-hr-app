@@ -324,6 +324,47 @@ function formatDayLabel(value: string, locale: string) {
   }).format(new Date(value));
 }
 
+function formatCompactDayLabel(value: string, locale: string) {
+  const label = new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    day: "numeric",
+    timeZone: APP_TIME_ZONE,
+  }).format(new Date(value));
+
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function formatDayHeading(value: string, locale: string) {
+  const date = new Date(value);
+  const weekday = new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    timeZone: APP_TIME_ZONE,
+  }).format(date);
+  const dayAndMonth = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    timeZone: APP_TIME_ZONE,
+  }).format(date);
+
+  return {
+    weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1),
+    dayAndMonth,
+  };
+}
+
+function formatWeekHeading(week: DayItem[], locale: string) {
+  const first = week[0];
+  const last = week[week.length - 1];
+
+  if (!first || !last) {
+    return "";
+  }
+
+  const firstDay = new Intl.DateTimeFormat(locale, { day: "numeric", timeZone: APP_TIME_ZONE }).format(new Date(first.date));
+  const lastLabel = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: APP_TIME_ZONE }).format(new Date(last.date));
+  return `${firstDay}\u00a0—\u00a0${lastLabel}`;
+}
+
 function formatTime(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
@@ -559,8 +600,7 @@ function renderShiftStateIcon(confirmed: boolean, size = 16) {
     </svg>
   ) : (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" stroke="#f59e0b" strokeWidth="2" />
-      <path d="M12 8v4l2.5 2.5" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+      <path d="M7 12h10m-3-3 3 3-3 3" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -574,6 +614,7 @@ function renderShiftCard(
   return (
     <div
       key={shift.id}
+      className="workbit-day-shift-row"
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
       onClick={(event) => {
@@ -610,7 +651,7 @@ function renderShiftCard(
         }}
       >
         <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
-          {formatRange(shift.startTime, shift.endTime, locale)}
+          {formatTime(shift.startTime, locale)}–{formatTime(shift.endTime, locale)}
         </strong>
         {shift.isOnCall ? (
           <span style={{ color: "#b45309", fontSize: mobile ? 11 : 11, fontWeight: 600 }}>
@@ -670,6 +711,7 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
   return (
     <div
       key={task.id}
+      className="workbit-day-note-card"
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
       onClick={(event) => {
@@ -711,6 +753,7 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
   return (
     <div
       key={note.id}
+      className="workbit-day-note-card"
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
       onClick={(event) => {
@@ -869,6 +912,7 @@ function renderTaskCard(
   return (
     <div
       key={task.id}
+      className="workbit-day-note-card"
       style={{
         position: "relative",
         padding: mobile ? 10 : "10px 12px",
@@ -968,6 +1012,7 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
   return (
     <div
       key={note.id}
+      className="workbit-day-note-card"
       style={{
         padding: mobile ? 10 : "10px 12px",
         borderRadius: mobile ? 14 : 16,
@@ -1081,6 +1126,7 @@ export function DayActionCalendarClient({
   const [isPending, startTransition] = useTransition();
   const [calendarView, setCalendarView] = useState<"week" | "day">(initialCalendarView ?? "week");
   const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(() => new Set());
+  const [visibleWeekStart, setVisibleWeekStart] = useState("");
   const [focusedDayDate, setFocusedDayDate] = useState<string>(() => {
     const today = days.find((day) => day.isToday) ?? days[0];
     const initialDay = initialFocusedDay
@@ -1107,6 +1153,7 @@ export function DayActionCalendarClient({
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
   const daySnapTimerRef = useRef<number | null>(null);
+  const dayWheelLockedRef = useRef(false);
   const skipDayScrollIntoViewRef = useRef(false);
   const boundaryTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const boundaryNavigationLockedRef = useRef(false);
@@ -1332,6 +1379,15 @@ export function DayActionCalendarClient({
 
     return days;
   }, [days, filteredDay, focusedDay]);
+  const activeVisibleWeek = useMemo(
+    () =>
+      visibleWeeks.find((week) => week[0]?.date.slice(0, 10) === visibleWeekStart) ??
+      visibleWeeks.find((week) => week.some((day) => day.date === focusedDayDate)) ??
+      visibleWeeks.find((week) => week.some((day) => day.isToday)) ??
+      visibleWeeks[0] ??
+      [],
+    [focusedDayDate, visibleWeekStart, visibleWeeks]
+  );
   const calendarWindowKey = useMemo(
     () =>
       `${calendarView}-${initialFocusedDay ?? "auto"}-${visibleDayItems[0]?.date ?? ""}-${
@@ -1569,13 +1625,42 @@ export function DayActionCalendarClient({
   }
 
   function handleCalendarBoundaryWheel(event: WheelEvent<HTMLElement>) {
-    const delta = Math.abs(event.deltaX) >= Math.abs(event.deltaY) ? event.deltaX : event.shiftKey ? event.deltaY : 0;
+    const isDayStrip = calendarView === "day" && event.currentTarget === dayStripRef.current;
+    const delta = isDayStrip
+      ? Math.abs(event.deltaX) >= Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY
+      : Math.abs(event.deltaX) >= Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.shiftKey
+          ? event.deltaY
+          : 0;
 
     if (Math.abs(delta) < 24) {
       return;
     }
 
     const direction = delta > 0 ? 1 : -1;
+
+    if (isDayStrip) {
+      event.preventDefault();
+
+      if (dayWheelLockedRef.current) {
+        return;
+      }
+
+      dayWheelLockedRef.current = true;
+      window.setTimeout(() => {
+        dayWheelLockedRef.current = false;
+      }, 280);
+
+      if (isAtCalendarBoundary(event.currentTarget, direction)) {
+        navigateCalendarWindow(direction);
+      } else {
+        moveFocusedDay(direction);
+      }
+      return;
+    }
 
     if (!isAtCalendarBoundary(event.currentTarget, direction)) {
       return;
@@ -2163,6 +2248,7 @@ export function DayActionCalendarClient({
     <>
       <div
         ref={calendarTopRef}
+        className="workbit-calendar-toolbar"
         style={{
           display: "grid",
           gap: 12,
@@ -2171,10 +2257,43 @@ export function DayActionCalendarClient({
           overflow: "visible",
         }}
       >
+        {calendarView === "day" && focusedDay ? (
+          <div className="workbit-calendar-day-heading">
+            <div>
+              <span>{formatDayHeading(focusedDay.date, locale).weekday}</span>
+              <strong>{formatDayHeading(focusedDay.date, locale).dayAndMonth}</strong>
+            </div>
+            {canManageOptionalShifts && focusedDay.date.slice(0, 10) >= todayKey ? (
+              <IconButton
+                type="button"
+                className="workbit-calendar-add-shift"
+                aria-label="Aggiungi turno"
+                title="Aggiungi turno"
+                onClick={() => {
+                  openDay(focusedDay, "shifts");
+                  setShowShiftComposer(true);
+                }}
+              >
+                +
+              </IconButton>
+            ) : null}
+          </div>
+        ) : null}
+        {calendarView === "week" && activeVisibleWeek.length > 0 ? (
+          <div className="workbit-calendar-week-heading">
+            <span>{activeVisibleWeek.some((day) => day.isToday) ? "Questa settimana" : "Settimana"}</span>
+            <strong>{formatWeekHeading(activeVisibleWeek, locale)}</strong>
+          </div>
+        ) : null}
         <div
+          className={`workbit-calendar-segments${publishAction ? " has-publish" : ""}`}
           style={{
             display: "grid",
-            gridTemplateColumns: todayAction ? "1fr 1fr 1fr" : "1fr 1fr",
+            gridTemplateColumns: publishAction
+              ? "1fr 1fr auto auto"
+              : todayAction
+                ? "1fr 1fr auto"
+                : "1fr 1fr",
             alignItems: "center",
             gap: 0,
             padding: 4,
@@ -2190,6 +2309,7 @@ export function DayActionCalendarClient({
           {(["week", "day"] as const).map((mode) => (
             <button
               key={mode}
+              className={calendarView === mode ? "is-active" : undefined}
               type="button"
               onClick={() => {
                 if (calendarView === mode) {
@@ -2215,13 +2335,14 @@ export function DayActionCalendarClient({
             </button>
           ))}
           {todayAction}
+          {publishAction}
         </div>
-        {publishAction ? <div style={{ width: "100%" }}>{publishAction}</div> : null}
       </div>
 
       {calendarView === "day" ? (
         <div
           ref={dayStripRef}
+          className="workbit-calendar-day-strip"
           onScroll={handleDayStripScroll}
           onWheel={handleCalendarBoundaryWheel}
           onTouchStart={handleCalendarBoundaryTouchStart}
@@ -2255,6 +2376,7 @@ export function DayActionCalendarClient({
               <section
                 key={`day-view-${day.date}`}
                 data-day-date={day.date}
+                className="workbit-calendar-day-card"
                 style={{
                   display: "grid",
                   gap: 10,
@@ -2273,6 +2395,7 @@ export function DayActionCalendarClient({
                 }}
               >
                 <div
+                  className="workbit-calendar-day-card-heading"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -2311,8 +2434,8 @@ export function DayActionCalendarClient({
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
 
                 {features.shifts && (day.shifts.length > 0 || canManageOptionalShifts) ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div className="workbit-calendar-day-section workbit-calendar-day-shifts" style={{ display: "grid", gap: 6 }}>
+                    <div className="workbit-calendar-day-section-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <strong>👤 Turni</strong>
                     </div>
                     {day.shifts.length === 0 ? (
@@ -2368,8 +2491,8 @@ export function DayActionCalendarClient({
                 ) : null}
 
                 {features.tasks || features.noticeBoard ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div className="workbit-calendar-day-section workbit-calendar-day-notes" style={{ display: "grid", gap: 6 }}>
+                    <div className="workbit-calendar-day-section-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <strong>📌 Note</strong>
                       {(features.tasks || features.noticeBoard) && day.date.slice(0, 10) >= todayKey ? (
                         <IconButton
@@ -2434,6 +2557,7 @@ export function DayActionCalendarClient({
       <CalendarWeekStrip
         className="dashboard-week-strip"
         resetKey={calendarWindowKey}
+        onActiveWeekChange={setVisibleWeekStart}
         onWheel={handleCalendarBoundaryWheel}
         onTouchStart={handleCalendarBoundaryTouchStart}
         onTouchEnd={handleCalendarBoundaryTouchEnd}
@@ -2453,6 +2577,7 @@ export function DayActionCalendarClient({
             <section
               key={`${week[0]?.date ?? `${weekIndex}-${filteredDay ?? "all"}`}`}
               className="dashboard-week-card"
+              data-week-start={week[0]?.date.slice(0, 10)}
               data-current-week={weekIsCurrent ? "true" : undefined}
               data-focused-week={weekIsFocused ? "true" : undefined}
               style={{
@@ -2471,14 +2596,14 @@ export function DayActionCalendarClient({
                   : undefined,
               }}
             >
-              <div style={{ display: "grid", gap: 4 }}>
+              <div className="workbit-week-range" style={{ display: "grid", gap: 4 }}>
                 <span style={{ color: "#64748b", lineHeight: 1.6 }}>
                   {new Intl.DateTimeFormat(locale, {
                     day: "numeric",
                     month: "long",
                     timeZone: APP_TIME_ZONE,
                   }).format(new Date(week[0].date))}
-                  {" - "}
+                  {"\u00a0—\u00a0"}
                   {new Intl.DateTimeFormat(locale, {
                     day: "numeric",
                     month: "long",
@@ -2492,11 +2617,10 @@ export function DayActionCalendarClient({
                   const isExpanded = expandedWeekDays.has(day.date);
                   const categoryBadges = buildWeekBadges(day, features);
                   const isPastDay = day.date.slice(0, 10) < todayKey;
-                  const hasDayEvents = day.shifts.length > 0 || categoryBadges.length > 0;
-
                   return (
                   <div
                     key={day.date}
+                    className="workbit-week-day-card"
                     role={isPastDay ? undefined : "button"}
                     tabIndex={isPastDay ? undefined : 0}
                     onClick={() => {
@@ -2540,6 +2664,7 @@ export function DayActionCalendarClient({
                     }}
                   >
                     <div
+                      className="workbit-week-day-header"
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -2549,11 +2674,12 @@ export function DayActionCalendarClient({
                       }}
                     >
                       <strong style={{ color: "#0f172a", fontSize: 14 }}>
-                        {formatDayLabel(day.date, locale)}
+                        {formatCompactDayLabel(day.date, locale)}
                       </strong>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
                         <span
+                          className="workbit-week-details"
                           role="button"
                           tabIndex={0}
                           aria-label={isExpanded ? "Comprimi giorno" : "Espandi giorno"}
@@ -2614,12 +2740,8 @@ export function DayActionCalendarClient({
                       </span>
                     </div>
 
-                    {!hasDayEvents ? (
-                      <div style={{ color: "#94a3b8", fontSize: 12 }}>Nessun evento</div>
-                    ) : null}
-
                     {features.shifts && day.shifts.length > 0 ? (
-                      <div style={{ display: "grid", gap: 6 }}>
+                      <div className="workbit-week-shifts" style={{ display: "grid", gap: 6 }}>
                         {groupShiftsByTime(day.shifts).map((shift) =>
                           renderShiftSwipeActions(
                             shift,
@@ -2635,7 +2757,7 @@ export function DayActionCalendarClient({
                     ) : null}
 
                     {categoryBadges.length > 0 ? (
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      <div className="workbit-week-badges" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                         {categoryBadges.map((badge) =>
                           renderWeekBadge(badge, () => toggleExpandedWeekDay(day.date))
                         )}

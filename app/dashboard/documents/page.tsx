@@ -179,9 +179,10 @@ export default async function DashboardDocumentsPage({
   const folders = Array.from(folderMap.values()).filter((folder) => folder.documents.length > 0);
 
   return (
-    <Stack>
+    <Stack className="workbit-documents-page">
       <Panel
         title="Documenti"
+        className="workbit-documents-overview"
         action={
           canManage ? (
             <PopupAction title="Nuovo documento" ariaLabel="Carica documento">
@@ -195,8 +196,8 @@ export default async function DashboardDocumentsPage({
           ) : null
         }
       >
-        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-          {filteredDocuments.length} documenti visibili.
+        <p className="workbit-documents-count" style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+          {filteredDocuments.length} documenti visibili
         </p>
         {canManage ? (
           <form action="/dashboard/documents" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -217,16 +218,16 @@ export default async function DashboardDocumentsPage({
       </Panel>
 
       {folders.length === 0 ? (
-        <Panel title="Cartelle documenti">
+        <Panel title="Cartelle" className="workbit-document-folders-panel">
           <EmptyState message="Nessun documento disponibile." />
         </Panel>
       ) : (
-        <Panel title="Cartelle documenti">
-          <div className="dashboard-card-grid">
+        <Panel title="Cartelle" className="workbit-document-folders-panel">
+          <div className="dashboard-card-grid workbit-document-folder-grid">
             {folders.map((folder) => (
               <div
                 key={folder.key}
-                className="dashboard-item-card"
+                className="dashboard-item-card workbit-document-folder-card"
                 style={{
                   display: "grid",
                   gap: 12,
@@ -237,18 +238,20 @@ export default async function DashboardDocumentsPage({
                   boxShadow: "0 14px 34px rgba(124, 58, 237, 0.10)",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                  <div style={{ minWidth: 0 }}>
-                    <strong style={{ color: "var(--workbit-navy)" }}>Cartella - {folder.label}</strong>
+                <div className="workbit-document-folder-row" style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                  <span className="workbit-document-folder-icon" aria-hidden="true">📁</span>
+                  <div className="workbit-document-folder-copy" style={{ minWidth: 0 }}>
+                    <strong style={{ color: "var(--workbit-navy)" }}>{folder.label}</strong>
                     <div style={{ color: "var(--workbit-muted)", fontSize: 13 }}>
                       {folder.documents.length} documenti
                     </div>
                   </div>
-                  <PopupAction
-                    title={`Documenti - ${folder.label}`}
-                    ariaLabel={`Apri documenti ${folder.label}`}
-                    triggerContent="Apri"
-                  >
+                  <div className="workbit-document-folder-open">
+                    <PopupAction
+                      title={`Documenti - ${folder.label}`}
+                      ariaLabel={`Apri documenti ${folder.label}`}
+                      triggerContent="Apri"
+                    >
                     <ItemList>
                       {folder.documents.map((document) => {
                         const audienceLabel = document.assignedToAll
@@ -451,7 +454,8 @@ export default async function DashboardDocumentsPage({
                         );
                       })}
                     </ItemList>
-                  </PopupAction>
+                    </PopupAction>
+                  </div>
                 </div>
               </div>
             ))}

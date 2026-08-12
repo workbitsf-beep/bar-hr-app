@@ -985,7 +985,7 @@ export default async function DashboardCalendarPage({
       rangeStart={toLocalDateKey(calendarStart)}
       rangeEnd={toLocalDateKey(calendarEnd)}
       pendingCount={unconfirmedShiftCount}
-      variant="wide"
+      variant="icon"
     />
   ) : null;
   const todayAction = <ScrollToTodayButton fallbackHref="/dashboard/calendar" variant="segment" />;

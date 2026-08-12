@@ -76,7 +76,7 @@ export function PushRegistration() {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 120,
+        zIndex: 2147483647,
         display: "grid",
         placeItems: "center",
         padding: 18,

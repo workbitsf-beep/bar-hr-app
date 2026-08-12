@@ -215,8 +215,14 @@ export function SwipeRevealAction({
     horizontalDragRef.current = false;
   }
 
+  function isInteractiveTarget(target: EventTarget | null) {
+    return target instanceof Element && Boolean(
+      target.closest("button, a, form, input, select, textarea, [role='button'], [data-swipe-ignore]")
+    );
+  }
+
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (!enabled || event.pointerType === "touch") {
+    if (!enabled || event.pointerType === "touch" || isInteractiveTarget(event.target)) {
       return;
     }
 
@@ -257,7 +263,7 @@ export function SwipeRevealAction({
   }
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
-    if (!enabled || event.touches.length !== 1) {
+    if (!enabled || event.touches.length !== 1 || isInteractiveTarget(event.target)) {
       return;
     }
 

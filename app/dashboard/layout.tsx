@@ -77,8 +77,9 @@ export default async function DashboardLayout({
             : undefined
         }
         menuContent={
-          <div style={{ display: "grid", gap: 14 }}>
+          <div className="workbit-menu-details" style={{ display: "grid", gap: 14 }}>
             <div
+              className="workbit-menu-account-card"
               style={{
                 display: "grid",
                 gap: 4,
@@ -96,17 +97,20 @@ export default async function DashboardLayout({
               </span>
             </div>
 
+            <span className="workbit-menu-section-label">Locale</span>
+
             {role !== "SUPER_ADMIN" && accessibleBars.length > 0 ? (
               <AutoSubmitSelectForm
                 action={selectBarAction}
                 name="barId"
                 defaultValue={activeBarId ?? ""}
                 ariaLabel={t.selectBar}
-                label={t.selectBar}
+                label="Sede attiva"
+                className="workbit-menu-select-row"
                 closeMenuOnChange
                 options={accessibleBars.map((bar) => ({
                   value: bar.id,
-                  label: `${bar.name} - ${getRoleLabel(language, bar.role)}`,
+                  label: bar.name,
                 }))}
               />
             ) : null}
@@ -117,6 +121,7 @@ export default async function DashboardLayout({
               defaultValue={language}
               ariaLabel={t.language}
               label={t.language}
+              className="workbit-menu-select-row"
               closeMenuOnChange
               options={languageOptions.map((option) => ({
                 value: option.value,
@@ -124,7 +129,9 @@ export default async function DashboardLayout({
               }))}
             />
 
-            <ThemeSelect defaultValue={session.user.theme ?? "SYSTEM"} />
+            <div className="workbit-menu-theme-row">
+              <ThemeSelect defaultValue={session.user.theme ?? "SYSTEM"} />
+            </div>
           </div>
         }
         headerAction={

@@ -241,7 +241,7 @@ export function LocaleSettingsPopupContent({
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 1200,
+            zIndex: 2147483647,
             display: "grid",
             placeItems: "center",
             padding: 18,

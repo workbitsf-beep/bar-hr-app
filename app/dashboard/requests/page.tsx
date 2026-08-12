@@ -5,6 +5,7 @@ import {
   RequestType,
   Role,
 } from "@prisma/client";
+import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
@@ -140,6 +141,31 @@ function DeleteSwipeButton({ label }: { label: string }) {
   );
 }
 
+function RequestLaunchCard({
+  icon,
+  title,
+  subtitle,
+  action,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  action: ReactNode;
+}) {
+  return (
+    <section className="workbit-request-launch-card">
+      <span className="workbit-request-launch-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="workbit-request-launch-copy">
+        <strong>{title}</strong>
+        <span>{subtitle}</span>
+      </div>
+      <div className="workbit-request-launch-action">{action}</div>
+    </section>
+  );
+}
+
 export default async function DashboardRequestsPage({
   searchParams,
 }: {
@@ -178,7 +204,6 @@ export default async function DashboardRequestsPage({
   const canUseOvertime = features.requests && features.overtime;
   const availabilityVisibleAfter = new Date();
   availabilityVisibleAfter.setHours(availabilityVisibleAfter.getHours() - AVAILABILITY_VISIBILITY_HOURS);
-  const requestPanelTitle = "Richiedi ferie, permesso o malattia";
   const successMessage =
     success === "request-created"
       ? "Richiesta salvata correttamente."
@@ -433,15 +458,26 @@ export default async function DashboardRequestsPage({
   const overtimeRequests = requests.filter((request) => request.type === RequestType.OVERTIME);
 
   return (
-    <>
-      <Stack>
+    <div className="workbit-requests-page">
+      <div className="workbit-requests-heading">
+        <span>Gestisci</span>
+        <h2>{canManageClosures ? "Richieste e chiusure" : "Richieste"}</h2>
+      </div>
+
+      <Stack className="workbit-requests-stack">
         {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
         {canCreateRequests ? (
           <>
-            <Panel
+            <RequestLaunchCard
+              icon="📝"
               title="Nuova richiesta"
+              subtitle="Ferie, permesso o malattia"
               action={
-                <PopupAction title="Nuova richiesta" ariaLabel="Aggiungi richiesta">
+                <PopupAction
+                  title="Nuova richiesta"
+                  ariaLabel="Aggiungi richiesta"
+                  className="workbit-request-plus"
+                >
                   <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
                     <RequestDateFields />
 
@@ -467,16 +503,20 @@ export default async function DashboardRequestsPage({
                   </form>
                 </PopupAction>
               }
-            >
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{requestPanelTitle}.</p>
-            </Panel>
+            />
 
             {!isCompany ? (
-              <Panel
+              <RequestLaunchCard
+                icon="🔄"
                 title="Cambio turno"
+                subtitle={ownShifts.length === 0 ? "Nessun turno disponibile" : "Proponi uno scambio"}
                 action={
                   ownShifts.length === 0 ? null : (
-                    <PopupAction title="Cambio turno" ariaLabel="Aggiungi cambio turno">
+                    <PopupAction
+                      title="Cambio turno"
+                      ariaLabel="Aggiungi cambio turno"
+                      className="workbit-request-plus"
+                    >
                       <ShiftChangeForm
                         action={createShiftChangeRequestAction}
                         ownShifts={ownShifts.map((shift) => ({
@@ -504,15 +544,7 @@ export default async function DashboardRequestsPage({
                     </PopupAction>
                   )
                 }
-              >
-                {ownShifts.length === 0 ? (
-                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Nessun turno disponibile.</p>
-                ) : (
-                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    Cambio turno
-                  </p>
-                )}
-              </Panel>
+              />
             ) : null}
           </>
         ) : null}
@@ -521,7 +553,11 @@ export default async function DashboardRequestsPage({
           <Panel
             title="Straordinari"
             action={
-              <PopupAction title="Straordinario" ariaLabel="Aggiungi straordinario">
+              <PopupAction
+                title="Straordinario"
+                ariaLabel="Aggiungi straordinario"
+                className="workbit-request-plus"
+              >
                 <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
                   <input type="hidden" name="type" value="OVERTIME" />
 
@@ -604,7 +640,11 @@ export default async function DashboardRequestsPage({
           <Panel
             title="Chiusure"
             action={
-              <PopupAction title="Chiusura" ariaLabel="Aggiungi chiusura">
+              <PopupAction
+                title="Chiusura"
+                ariaLabel="Aggiungi chiusura"
+                className="workbit-request-plus"
+              >
                 <ClosureComposeForm action={createCalendarClosureAction} />
               </PopupAction>
             }
@@ -696,9 +736,14 @@ export default async function DashboardRequestsPage({
 
         {features.availability && !isCompany ? (
             <Panel
+              className="workbit-requests-list-panel workbit-availability-panel"
               title="Indisponibilita"
               action={
-                <PopupAction title="Indisponibilita" ariaLabel="Aggiungi indisponibilita">
+                <PopupAction
+                  title="Indisponibilita"
+                  ariaLabel="Aggiungi indisponibilita"
+                  className="workbit-request-plus"
+                >
                   <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
                     <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
 
@@ -762,7 +807,11 @@ export default async function DashboardRequestsPage({
             </Panel>
         ) : null}
         {features.requests ? (
-          <Panel title="Storico richieste" action={`${standardRequests.length} elementi`}>
+          <Panel
+            className="workbit-requests-list-panel workbit-requests-history-panel"
+            title="Storico richieste"
+            action={`${standardRequests.length} elementi`}
+          >
             {standardRequests.length === 0 ? (
               <EmptyState message="Nessuna richiesta presente." />
             ) : (
@@ -865,6 +914,6 @@ export default async function DashboardRequestsPage({
           </Panel>
         ) : null}
       </Stack>
-    </>
+    </div>
   );
 }

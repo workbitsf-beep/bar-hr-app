@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { ActivityType, Prisma, Role } from "@prisma/client";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
@@ -22,7 +21,6 @@ import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
-import { PushSettingsClient } from "./push-settings-client";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 
 function normalizeParam(value: string | string[] | undefined) {
@@ -31,6 +29,15 @@ function normalizeParam(value: string | string[] | undefined) {
   }
 
   return value ?? "";
+}
+
+function SettingsPageHeading() {
+  return (
+    <div className="workbit-page-heading">
+      <span>Personalizza</span>
+      <h1>Impostazioni</h1>
+    </div>
+  );
 }
 
 function parseStandardHoursFromSettings(settings?: {
@@ -93,12 +100,10 @@ function SettingsSectionCard({
   action: ReactNode;
   tone?: "default" | "danger";
 }) {
-  if (title === "Team e ruoli" || title === "Notifiche") {
-    return null;
-  }
-
   return (
     <section
+      className="workbit-settings-card"
+      data-tone={tone}
       style={{
         display: "grid",
         gap: 16,
@@ -316,7 +321,8 @@ export default async function DashboardSettingsPage({
 
   if (role !== Role.OWNER) {
     return (
-      <Stack columns="minmax(0, 760px)">
+      <Stack columns="minmax(0, 760px)" className="workbit-settings-page">
+        <SettingsPageHeading />
         <SettingsSectionCard
           icon="🔐"
           title="Sicurezza"
@@ -333,7 +339,8 @@ export default async function DashboardSettingsPage({
 
   if (!activeBarId) {
     return (
-      <Stack columns="minmax(0, 760px)">
+      <Stack columns="minmax(0, 760px)" className="workbit-settings-page">
+        <SettingsPageHeading />
         <SettingsSectionCard
           icon="🔐"
           title="Sicurezza"
@@ -450,7 +457,8 @@ export default async function DashboardSettingsPage({
   );
 
   return (
-    <Stack columns="repeat(auto-fit, minmax(280px, 1fr))">
+    <Stack columns="repeat(auto-fit, minmax(280px, 1fr))" className="workbit-settings-page">
+      <SettingsPageHeading />
       {success === "bar-deleted" ? (
         <Panel title="Operazione completata">
           <StatusPill label="Locale eliminato" tone="success" />
@@ -474,35 +482,12 @@ export default async function DashboardSettingsPage({
       />
 
       <SettingsSectionCard
-        icon="👥"
-        title="Team e ruoli"
-        description="Persone, permessi, ruoli e inviti."
-        action={
-          <Link href="/dashboard/people" style={{ textDecoration: "none" }}>
-            <PrimaryButton type="button">Gestisci</PrimaryButton>
-          </Link>
-        }
-      />
-
-      <SettingsSectionCard
         icon="📄"
         title="Documenti legali"
         description="Privacy, termini, cookie, geolocalizzazione, DPA e contratto SaaS."
         action={
           <PopupAction title="Documenti legali" ariaLabel="Apri documenti legali" triggerContent="Apri">
             <LegalDocumentsPanel userId={session.user.id} />
-          </PopupAction>
-        }
-      />
-
-      <SettingsSectionCard
-        icon="🔔"
-        title="Notifiche"
-        description="Notifiche interne e push del dispositivo."
-        status="Gestibili"
-        action={
-          <PopupAction title="Notifiche" ariaLabel="Apri notifiche" triggerContent="Apri">
-            <PushSettingsClient />
           </PopupAction>
         }
       />

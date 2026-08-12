@@ -196,12 +196,14 @@ export function DashboardNavMenu({
   navItems,
   menuLabel,
   menuContent,
-  brandHref = "/dashboard",
+  brandHref,
+  headerAction,
 }: {
   navItems: DashboardNavItem[];
   menuLabel: string;
   menuContent?: ReactNode;
   brandHref?: string;
+  headerAction?: ReactNode;
 }) {
   const pathname = usePathname();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -344,12 +346,12 @@ export function DashboardNavMenu({
               />
 
               <div
-                className="dashboard-menu-overlay"
+                className="dashboard-menu-overlay workbit-menu-page-overlay"
                 onMouseDown={handleOutsidePointerDown}
                 style={{
                   position: "fixed",
                   inset: 0,
-                  zIndex: 9999,
+                  zIndex: isCompact ? 40 : 2147483646,
                   overflow: "hidden",
                   background: isCompact ? "rgba(255,255,255,0.78)" : "rgba(255,255,255,0.28)",
                   backdropFilter: "none",
@@ -360,24 +362,36 @@ export function DashboardNavMenu({
                 }}
               >
                 <nav
+                  className="workbit-menu-panel"
                   aria-label="Navigazione dashboard"
-                  onMouseDown={(event) => event.stopPropagation()}
+                  onMouseDown={(event) => {
+                    event.stopPropagation();
+                    if (isCompact && event.target === event.currentTarget) {
+                      closeMenu();
+                    }
+                  }}
                   style={{
-                    position: isCompact ? "relative" : "absolute",
-                    top: isCompact ? undefined : position.top,
-                    left: isCompact ? undefined : position.left,
+                    position: isCompact ? "fixed" : "absolute",
+                    inset: isCompact ? 0 : undefined,
+                    top: isCompact ? 0 : position.top,
+                    left: isCompact ? 0 : position.left,
                     width: isCompact
                       ? "min(100%, 420px)"
                       : `min(${Math.max(320, Math.min(position.width, 360))}px, calc(100vw - 36px))`,
                     maxWidth: isCompact ? "min(420px, calc(100vw - 32px))" : undefined,
-                    maxHeight: "calc(100dvh - 32px)",
+                    height: isCompact ? "100dvh" : undefined,
+                    maxHeight: isCompact ? "100dvh" : "calc(100dvh - 32px)",
                     overflowY: "auto",
-                    padding: isCompact ? 14 : 16,
-                    borderRadius: isCompact ? 28 : 24,
-                    border: "1px solid rgba(124, 58, 237, 0.12)",
+                    padding: isCompact
+                      ? "calc(env(safe-area-inset-top) + 14px) 20px calc(118px + env(safe-area-inset-bottom))"
+                      : 16,
+                    borderRadius: isCompact ? 0 : 24,
+                    border: isCompact ? 0 : "1px solid rgba(124, 58, 237, 0.12)",
                     background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,255,0.97) 100%)",
-                    boxShadow: "0 18px 34px rgba(88, 28, 135, 0.12)",
+                      isCompact
+                        ? "#efebfa"
+                        : "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,247,255,0.97) 100%)",
+                    boxShadow: isCompact ? "none" : "0 18px 34px rgba(88, 28, 135, 0.12)",
                     display: "grid",
                     gap: 14,
                     animation: "dashboardMenuEnter 90ms ease-out",
@@ -385,25 +399,39 @@ export function DashboardNavMenu({
                     overscrollBehavior: "contain",
                   }}
                 >
+                  <div className="workbit-menu-header-card">
+                    <BrandLogo
+                      href={brandHref ?? "/dashboard"}
+                      size={34}
+                      showIcon
+                      label="Workbit"
+                      style={{ gap: 10 }}
+                    />
+
+                    <div className="workbit-menu-header-actions">
+                      {headerAction ? (
+                        <div className="workbit-menu-header-logout">{headerAction}</div>
+                      ) : null}
+                    </div>
+                  </div>
+
                   <div
+                    className="workbit-menu-heading"
                     style={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
                       gap: 12,
-                      padding: "8px 8px 12px",
-                      borderBottom: "1px solid rgba(124, 58, 237, 0.10)",
+                      padding: "0 4px 4px",
                     }}
                   >
-                    <BrandLogo
-                      href={brandHref}
-                      size={38}
-                      showIcon
-                      label="Workbit"
-                      style={{ gap: 12 }}
-                    />
+                    <div className="workbit-menu-heading-copy">
+                      <span>Workbit</span>
+                      <strong>Menu</strong>
+                    </div>
 
                     <button
+                      className="workbit-menu-close"
                       type="button"
                       onClick={closeMenu}
                       aria-label="Chiudi menu"
@@ -432,8 +460,9 @@ export function DashboardNavMenu({
                   </div>
 
                   {navItems.length > 0 ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div className="workbit-menu-navigation" style={{ display: "grid", gap: 8 }}>
                     <span
+                      className="workbit-menu-section-label"
                       style={{
                         paddingInline: 8,
                         fontSize: 12,
@@ -446,6 +475,7 @@ export function DashboardNavMenu({
                       Navigazione
                     </span>
 
+                    <div className="workbit-menu-navigation-list">
                     {navItems.map((item) => {
                       const active =
                         pathname === item.href ||
@@ -453,10 +483,12 @@ export function DashboardNavMenu({
 
                       return (
                         <Link
+                          className="workbit-menu-link"
                           key={item.href}
                           href={item.href}
                           onClick={closeMenu}
                           data-dashboard-menu-close="true"
+                          data-active={active ? "true" : "false"}
                           style={{
                             textDecoration: "none",
                             borderRadius: 18,
@@ -476,8 +508,9 @@ export function DashboardNavMenu({
                             gap: 12,
                           }}
                         >
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                          <span className="workbit-menu-link-copy" style={{ display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                             <span
+                              className="workbit-menu-link-icon"
                               aria-hidden="true"
                               style={{
                                 width: 36,
@@ -498,17 +531,19 @@ export function DashboardNavMenu({
                             </span>
                             <span style={{ minWidth: 0 }}>{item.label}</span>
                           </span>
-                          <span style={{ color: active ? "#4c1d95" : "#64748b", display: "inline-flex", flex: "0 0 auto" }}>
+                          <span className="workbit-menu-link-arrow" style={{ color: active ? "#4c1d95" : "#64748b", display: "inline-flex", flex: "0 0 auto" }}>
                             <ArrowIcon />
                           </span>
                         </Link>
                       );
                     })}
+                    </div>
                   </div>
                   ) : null}
 
                   {menuContent ? (
                     <div
+                      className="workbit-menu-content"
                       style={{
                         display: "grid",
                         gap: 12,

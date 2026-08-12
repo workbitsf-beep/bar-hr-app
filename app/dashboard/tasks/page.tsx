@@ -143,11 +143,12 @@ export default async function DashboardTasksPage({
   ]);
 
   return (
-    <Stack columns="1fr">
+    <Stack columns="1fr" className="workbit-notes-page">
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
       <Panel
         title="Note"
+        className="workbit-notes-panel"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {canManage && tasks.some((task) => task.status === "DONE") ? (
@@ -225,6 +226,7 @@ export default async function DashboardTasksPage({
                   }
                 >
                 <ItemCard
+                  className="workbit-note-card"
                   title={task.title}
                   subtitle={`Data ${formatDate(task.dueDate)}`}
                   style={{

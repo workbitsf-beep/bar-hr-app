@@ -530,6 +530,7 @@ export function BarGroupsClient({
                 >
                   <button
                     type="button"
+                    aria-label="Elimina attivita"
                     onClick={(event) => {
                       event.stopPropagation();
                       void saveBar(bar.id, "FREE");

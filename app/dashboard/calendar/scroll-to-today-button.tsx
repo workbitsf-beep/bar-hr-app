@@ -44,6 +44,7 @@ export function ScrollToTodayButton({
   return (
     <button
       type="button"
+      className={variant === "segment" ? "workbit-calendar-today-segment" : undefined}
       onClick={handleClick}
       style={{
         textDecoration: "none",
@@ -66,7 +67,7 @@ export function ScrollToTodayButton({
         whiteSpace: "nowrap",
       }}
     >
-      Oggi
+      {variant === "segment" ? <span aria-hidden="true">◎</span> : "Oggi"}
     </button>
   );
 }

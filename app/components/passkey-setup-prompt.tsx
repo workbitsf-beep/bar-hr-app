@@ -78,7 +78,7 @@ export function PasskeySetupPrompt() {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 1200,
+        zIndex: 2147483647,
         background: "rgba(15, 23, 42, 0.44)",
         backdropFilter: "blur(18px)",
         display: "grid",

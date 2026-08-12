@@ -72,12 +72,14 @@ export function CalendarWeekStrip({
   children,
   className,
   resetKey,
+  onActiveWeekChange,
   style,
   ...props
 }: {
   children: ReactNode;
   className?: string;
   resetKey?: string;
+  onActiveWeekChange?: (weekStart: string) => void;
   style?: CSSProperties;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "className" | "style">) {
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -102,8 +104,9 @@ export function CalendarWeekStrip({
       block: "nearest",
       inline: "center",
     });
+    onActiveWeekChange?.(currentWeek.dataset.weekStart ?? "");
     centerCurrentDay(currentWeek);
-  }, [children]);
+  }, [children, onActiveWeekChange]);
 
   useEffect(() => {
     return () => {
@@ -132,9 +135,10 @@ export function CalendarWeekStrip({
       }
 
       strip.scrollTo({ left: focusedWeek.offsetLeft, behavior: "auto" });
+      onActiveWeekChange?.(focusedWeek.dataset.weekStart ?? "");
       alignWeekVertically(focusedWeek, "auto");
     });
-  }, [resetKey]);
+  }, [onActiveWeekChange, resetKey]);
 
   function scheduleSnap() {
     const strip = stripRef.current;
@@ -154,6 +158,7 @@ export function CalendarWeekStrip({
         const targetWeek = scrollToNearestCard(currentStrip);
 
         if (targetWeek) {
+          onActiveWeekChange?.(targetWeek.dataset.weekStart ?? "");
           alignWeekVertically(targetWeek);
         }
       }

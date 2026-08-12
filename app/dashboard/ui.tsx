@@ -111,6 +111,1501 @@ function DashboardResponsiveStyles() {
         background: transparent !important;
       }
 
+      .dashboard-shell-card,
+      .dashboard-top-nav,
+      .dashboard-header-action,
+      .dashboard-menu-button {
+        position: relative;
+        z-index: 30;
+        pointer-events: auto;
+      }
+
+      .dashboard-shell-content {
+        position: relative;
+        z-index: 1;
+        margin-top: 24px;
+      }
+
+      .dashboard-shell-below-header {
+        margin-top: 24px !important;
+        margin-bottom: 0 !important;
+      }
+
+      .dashboard-shell-below-header:empty {
+        display: none !important;
+      }
+
+      .dashboard-shell-below-header:not(:empty) + .dashboard-shell-content {
+        margin-top: 16px;
+      }
+
+      .workbit-home {
+        display: grid;
+        gap: 16px;
+      }
+
+      .workbit-home-title {
+        display: grid;
+        gap: 2px;
+        padding-inline: 4px;
+      }
+
+      .workbit-home-title span {
+        color: #5E5CE6;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .workbit-home-title h1 {
+        margin: 0;
+        color: #20202A;
+        font-size: 30px;
+        line-height: 1;
+        letter-spacing: -0.045em;
+        font-weight: 950;
+      }
+
+      .workbit-home-hours,
+      .workbit-home-shift {
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(94, 92, 230, 0.08);
+        box-shadow: 0 10px 22px rgba(61, 42, 153, 0.045);
+      }
+
+      .workbit-home-hours {
+        min-height: 108px;
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .workbit-home-ring {
+        width: 72px;
+        height: 72px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        padding: 7px;
+        display: grid;
+        place-items: center;
+      }
+
+      .workbit-home-ring span {
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #151526;
+        font-size: 16px;
+        font-weight: 950;
+      }
+
+      .workbit-home-hours strong {
+        display: block;
+        color: #151526;
+        font-size: 18px;
+        font-weight: 950;
+        letter-spacing: -0.025em;
+      }
+
+      .workbit-home-hours small,
+      .workbit-home-shift small {
+        display: block;
+        color: #8E8E93;
+        font-size: 14px;
+        font-weight: 760;
+        line-height: 1.2;
+      }
+
+      .workbit-home-clock-card {
+        display: grid;
+        gap: 20px;
+        border-radius: 20px;
+        padding: 22px 20px 20px;
+        background: linear-gradient(135deg, #6958F5 0%, #442ACD 100%);
+        color: #ffffff;
+        box-shadow: 0 18px 28px rgba(68, 42, 205, 0.18);
+      }
+
+      .workbit-home-clock-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .workbit-home-clock-top strong {
+        display: block;
+        font-size: 17px;
+        line-height: 1.1;
+        font-weight: 950;
+      }
+
+      .workbit-home-clock-top span {
+        display: block;
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .workbit-home-ready {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+        margin-top: 0 !important;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        color: #ffffff !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        line-height: 1;
+      }
+
+      .workbit-home-clock-tools {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
+
+      .workbit-home-clock-tools button {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: rgba(255, 255, 255, 0.14);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .workbit-home-clock-tools button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .workbit-home-ready i {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #31D158;
+      }
+
+      .workbit-home-ready.is-waiting i {
+        background: #FFCC00;
+      }
+
+      .workbit-home-clock-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .workbit-home-clock-button {
+        min-height: 54px !important;
+        border-radius: 15px !important;
+        color: #ffffff !important;
+        font-size: 17px !important;
+        font-weight: 900 !important;
+        box-shadow: none !important;
+        border: 0 !important;
+      }
+
+      .workbit-home-clock-in {
+        background: #34D35F !important;
+      }
+
+      .workbit-home-clock-out {
+        background: #EF4444 !important;
+      }
+
+      .workbit-home-clock-button:disabled {
+        opacity: 0.78 !important;
+        filter: saturate(0.95);
+      }
+
+      .workbit-home-clock-in:disabled {
+        background: #34D35F !important;
+        color: #ffffff !important;
+      }
+
+      .workbit-home-clock-out:disabled {
+        background: #EF4444 !important;
+        color: #ffffff !important;
+      }
+
+      .workbit-home-clock-message {
+        margin: -10px 0 0;
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .workbit-home-shift {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 17px 18px;
+      }
+
+      .workbit-home-shift > span {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: #E9F7EF;
+        font-size: 17px;
+        flex: 0 0 auto;
+      }
+
+      .workbit-home-shift strong {
+        display: block;
+        color: #151526;
+        font-size: 16px;
+        line-height: 1.15;
+        font-weight: 950;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-home-next-shift {
+        margin-top: -4px;
+      }
+
+      .workbit-timelog-history-content {
+        gap: 14px !important;
+      }
+
+      .workbit-timelog-history-list .dashboard-item-list {
+        gap: 12px !important;
+      }
+
+      .workbit-timelog-day-card {
+        gap: 0 !important;
+        padding: 16px !important;
+        border-radius: 18px !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(60, 60, 67, 0.10) !important;
+        box-shadow: 0 5px 14px rgba(61, 42, 153, 0.055) !important;
+      }
+
+      .workbit-timelog-day-header {
+        align-items: center !important;
+      }
+
+      .workbit-timelog-day-title {
+        color: #111118 !important;
+        font-size: 16px !important;
+        font-weight: 900 !important;
+        line-height: 1.15 !important;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-timelog-duration {
+        min-width: 52px;
+        padding: 5px 9px !important;
+        text-align: center;
+        background: #efecff !important;
+        border: 0 !important;
+        color: #6255ed !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .workbit-timelog-day-subtitle {
+        margin-top: 5px;
+        color: #8e8e93 !important;
+        font-size: 13px !important;
+        font-weight: 500;
+        line-height: 1.25;
+      }
+
+      .workbit-timelog-day-entries {
+        margin-top: 12px !important;
+      }
+
+      .workbit-timelog-day-entries > div {
+        gap: 9px !important;
+      }
+
+      .workbit-timelog-entry {
+        min-width: 0;
+        min-height: 43px;
+        box-shadow: none !important;
+      }
+
+      .workbit-timelog-entry--in {
+        background: #e5f8eb !important;
+        border-color: #d9f3e1 !important;
+      }
+
+      .workbit-timelog-entry--out {
+        background: #fde8e8 !important;
+        border-color: #fbdada !important;
+      }
+
+      .workbit-time-page {
+        display: grid;
+        gap: 28px;
+        min-width: 0;
+      }
+
+      .workbit-time-overview {
+        display: grid;
+        gap: 16px;
+        padding-inline: 4px;
+      }
+
+      .workbit-time-heading {
+        display: grid;
+        gap: 3px;
+      }
+
+      .workbit-time-heading > span {
+        color: #6255ed;
+        font-size: 14px;
+        font-weight: 850;
+        line-height: 1;
+      }
+
+      .workbit-time-heading > h2 {
+        margin: 0;
+        color: #1c1c1e !important;
+        font-size: 29px !important;
+        font-weight: 950 !important;
+        line-height: 1.05;
+        letter-spacing: -0.045em;
+      }
+
+      .workbit-time-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .workbit-time-summary-card {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+        padding: 17px 16px;
+        border-radius: 19px;
+        background: #ffffff;
+        border: 1px solid rgba(60, 60, 67, 0.08);
+        box-shadow: 0 4px 12px rgba(61, 42, 153, 0.045);
+      }
+
+      .workbit-time-summary-card > span {
+        color: #8e8e93;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.15;
+      }
+
+      .workbit-time-summary-card > strong {
+        color: #111118;
+        font-size: 27px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .workbit-personal-timelog-panel {
+        padding: 0 4px !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+
+      .workbit-personal-timelog-panel > .dashboard-panel-header {
+        display: none !important;
+      }
+
+      .workbit-personal-timelog-panel .workbit-timelog-history-content {
+        gap: 18px !important;
+      }
+
+      .workbit-timelog-today-total {
+        padding: 0 12px !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        color: #6255ed !important;
+        font-size: 16px;
+        font-weight: 900 !important;
+        line-height: 1.15;
+      }
+
+      .workbit-timelog-today-total > span {
+        display: block;
+      }
+
+      .workbit-time-section-label {
+        color: #8e8e93;
+        font-size: 12px;
+        font-weight: 850;
+        line-height: 1;
+        letter-spacing: 0.035em;
+        text-transform: uppercase;
+      }
+
+      .workbit-timelog-filters {
+        overflow: hidden;
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(60, 60, 67, 0.09);
+        box-shadow: 0 4px 12px rgba(61, 42, 153, 0.04);
+      }
+
+      .workbit-timelog-filter-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-height: 46px;
+        padding: 0 16px;
+      }
+
+      .workbit-timelog-filter-row + .workbit-timelog-filter-row {
+        border-top: 1px solid rgba(60, 60, 67, 0.11);
+      }
+
+      .workbit-timelog-filter-row > strong {
+        color: #111118;
+        font-size: 15px;
+        font-weight: 850;
+      }
+
+      .workbit-timelog-filter-row > select {
+        width: min(68%, 210px) !important;
+        min-height: 44px !important;
+        padding: 0 20px 0 8px !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        color: #8e8e93 !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        text-align: right;
+        text-align-last: right;
+      }
+
+      .workbit-requests-page {
+        display: grid;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .workbit-requests-heading {
+        display: grid;
+        gap: 3px;
+        padding-inline: 4px;
+      }
+
+      .workbit-requests-heading > span {
+        color: #6255ed;
+        font-size: 14px;
+        font-weight: 850;
+        line-height: 1;
+      }
+
+      .workbit-requests-heading > h2 {
+        margin: 0;
+        color: #1c1c1e !important;
+        font-size: 29px !important;
+        font-weight: 950 !important;
+        line-height: 1.05;
+        letter-spacing: -0.045em;
+      }
+
+      .workbit-requests-stack {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 14px !important;
+      }
+
+      .workbit-request-launch-card {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr) 40px;
+        align-items: center;
+        gap: 11px;
+        min-height: 62px;
+        padding: 10px 12px;
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(60, 60, 67, 0.09);
+        box-shadow: 0 5px 14px rgba(61, 42, 153, 0.05);
+      }
+
+      .workbit-request-launch-icon {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 0;
+        background: transparent;
+        font-size: 20px;
+      }
+
+      .workbit-request-launch-copy {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .workbit-request-launch-copy > strong {
+        color: #111118;
+        font-size: 16px;
+        font-weight: 900;
+        line-height: 1.1;
+      }
+
+      .workbit-request-launch-copy > span {
+        overflow: hidden;
+        color: #8e8e93;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .workbit-request-launch-action {
+        display: grid;
+        place-items: center;
+      }
+
+      .workbit-request-plus,
+      .workbit-request-launch-action > button {
+        width: 36px !important;
+        min-width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: #b0aeb8 !important;
+      }
+
+      .workbit-request-plus svg,
+      .workbit-request-launch-action > button svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      .workbit-requests-list-panel {
+        padding: 0 4px !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      .workbit-requests-list-panel > .dashboard-panel-header {
+        margin-bottom: 9px !important;
+        padding-inline: 0;
+      }
+
+      .workbit-requests-list-panel > .dashboard-panel-header > div:first-child > span {
+        display: none !important;
+      }
+
+      .workbit-requests-list-panel > .dashboard-panel-header .dashboard-panel-title {
+        color: #8e8e93 !important;
+        font-size: 12px !important;
+        font-weight: 850 !important;
+        line-height: 1 !important;
+        letter-spacing: 0.035em !important;
+        text-transform: uppercase;
+      }
+
+      .workbit-requests-list-panel > .dashboard-panel-header > div:last-child {
+        color: #aaa7b2 !important;
+        font-size: 12px;
+        font-weight: 700 !important;
+      }
+
+      .workbit-requests-list-panel .dashboard-item-list {
+        gap: 10px !important;
+      }
+
+      .workbit-requests-list-panel .dashboard-item-card {
+        padding: 14px 16px !important;
+        border-radius: 17px !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(60, 60, 67, 0.09) !important;
+        box-shadow: 0 4px 12px rgba(61, 42, 153, 0.04) !important;
+      }
+
+      .workbit-requests-list-panel .dashboard-empty-state {
+        padding: 4px 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: #9a98a2 !important;
+        font-size: 13px !important;
+      }
+
+      .workbit-availability-panel .dashboard-item-card {
+        position: relative;
+        padding-left: 58px !important;
+        min-height: 62px;
+      }
+
+      .workbit-availability-panel .dashboard-item-card::before {
+        content: "👤";
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 0;
+        background: transparent;
+        transform: translateY(-50%);
+      }
+
+      .workbit-menu-heading-copy {
+        display: grid;
+        gap: 3px;
+      }
+
+      .workbit-menu-heading-copy > span {
+        color: #6255ed;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .workbit-menu-heading-copy > strong {
+        color: #1c1c1e;
+        font-size: 29px;
+        font-weight: 950;
+        line-height: 1.05;
+        letter-spacing: -0.045em;
+      }
+
+      .workbit-menu-section-label {
+        color: #8e8e93 !important;
+        font-size: 12px !important;
+        font-weight: 850 !important;
+        line-height: 1 !important;
+        letter-spacing: 0.045em !important;
+        text-transform: uppercase;
+      }
+
+      .workbit-menu-header-card {
+        display: none;
+      }
+
+      .workbit-page-heading {
+        grid-column: 1 / -1;
+        display: grid;
+        gap: 3px;
+        padding-inline: 4px;
+      }
+
+      .workbit-page-heading > span {
+        color: #6255ed;
+        font-size: 14px;
+        font-weight: 850;
+        line-height: 1;
+      }
+
+      .workbit-page-heading > h1 {
+        margin: 0;
+        color: #1c1c1e;
+        font-size: 30px;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: -0.045em;
+      }
+
+      @media (max-width: 1180px) {
+        body:has(.workbit-menu-page-overlay) .dashboard-shell {
+          isolation: auto !important;
+        }
+
+        .dashboard-menu-overlay.workbit-menu-page-overlay {
+          background: #efebfa !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+
+        .workbit-menu-panel {
+          z-index: 41;
+          width: min(100%, 430px) !important;
+          max-width: 430px !important;
+          margin-inline: auto;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: #efebfa !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-menu-header-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          width: 100%;
+          min-height: 70px;
+          padding: 11px 13px;
+          border: 1px solid rgba(94, 92, 230, 0.10);
+          border-radius: 25px;
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 7px 18px rgba(61, 42, 153, 0.06);
+        }
+
+        .workbit-menu-header-card .brand-logo-label {
+          color: #111118 !important;
+          font-size: 20px !important;
+          font-weight: 900 !important;
+          letter-spacing: -0.025em !important;
+        }
+
+        .workbit-menu-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 0 0 auto;
+        }
+
+        .workbit-menu-header-actions button {
+          width: 42px !important;
+          height: 42px !important;
+          min-width: 42px !important;
+          padding: 0 !important;
+          border-radius: 999px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-menu-header-logout button {
+          border: 1px solid rgba(94, 92, 230, 0.16) !important;
+          background: #f8f7ff !important;
+          color: #3d2a99 !important;
+        }
+
+        .workbit-menu-heading {
+          min-height: 58px;
+          margin-top: 50px;
+          border: 0 !important;
+        }
+
+        .workbit-menu-close {
+          width: 36px !important;
+          height: 36px !important;
+          border: 0 !important;
+          background: rgba(255,255,255,0.26) !important;
+          box-shadow: none !important;
+          color: #9a98a2 !important;
+        }
+
+        .workbit-menu-navigation {
+          gap: 8px !important;
+        }
+
+        .workbit-menu-navigation-list {
+          overflow: hidden;
+          border-radius: 18px;
+          background: #ffffff;
+          border: 1px solid rgba(60, 60, 67, 0.09);
+          box-shadow: 0 4px 12px rgba(61, 42, 153, 0.04);
+        }
+
+        .workbit-menu-link {
+          min-height: 46px;
+          padding: 0 15px !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: #ffffff !important;
+          box-shadow: none !important;
+          color: #111118 !important;
+          font-size: 15px !important;
+          font-weight: 850 !important;
+        }
+
+        .workbit-menu-link + .workbit-menu-link {
+          border-top: 1px solid rgba(60, 60, 67, 0.11) !important;
+        }
+
+        .workbit-menu-link-copy {
+          gap: 0 !important;
+        }
+
+        .workbit-menu-link-icon {
+          display: none !important;
+        }
+
+        .workbit-menu-link-arrow {
+          color: #c1bec8 !important;
+        }
+
+        .workbit-menu-link-arrow svg {
+          width: 14px;
+          height: 14px;
+        }
+
+        .workbit-menu-content {
+          gap: 0 !important;
+          padding-top: 0 !important;
+          border-top: 0 !important;
+        }
+
+        .workbit-menu-details {
+          gap: 0 !important;
+        }
+
+        .workbit-menu-account-card {
+          margin-bottom: 18px;
+          padding: 13px 15px !important;
+          border: 0 !important;
+          border-radius: 17px !important;
+          background: #ffffff !important;
+          box-shadow: 0 4px 12px rgba(61, 42, 153, 0.04);
+        }
+
+        .workbit-menu-details > .workbit-menu-section-label {
+          margin: 0 4px 8px;
+        }
+
+        .workbit-menu-select-row,
+        .workbit-menu-theme-row > label {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) auto !important;
+          align-items: center !important;
+          gap: 12px !important;
+          min-height: 48px;
+          padding: 0 15px;
+          background: #ffffff;
+        }
+
+        .workbit-menu-select-row:first-of-type {
+          border-radius: 17px 17px 0 0;
+        }
+
+        .workbit-menu-select-row + .workbit-menu-select-row,
+        .workbit-menu-theme-row {
+          border-top: 1px solid rgba(60, 60, 67, 0.11);
+        }
+
+        .workbit-menu-theme-row,
+        .workbit-menu-theme-row > label {
+          border-radius: 0 0 17px 17px;
+        }
+
+        .workbit-menu-select-row > span,
+        .workbit-menu-theme-row > label > span {
+          color: #111118 !important;
+          font-size: 15px !important;
+          font-weight: 850 !important;
+          letter-spacing: 0 !important;
+          text-transform: none !important;
+        }
+
+        .workbit-menu-select-row > select,
+        .workbit-menu-theme-row select {
+          width: min(52vw, 180px) !important;
+          min-height: 44px !important;
+          padding: 0 18px 0 6px !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background-color: transparent !important;
+          box-shadow: none !important;
+          color: #8e8e93 !important;
+          font-size: 15px !important;
+          font-weight: 500 !important;
+          text-align: right;
+          text-align-last: right;
+        }
+
+        .dashboard-bottom-nav a {
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+        }
+
+        .dashboard-bottom-nav a > span {
+          display: block !important;
+          width: 100% !important;
+          text-align: center !important;
+          white-space: nowrap !important;
+        }
+
+        .dashboard-bottom-nav a > svg {
+          margin-inline: auto !important;
+          flex: 0 0 auto !important;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .dashboard-shell-content,
+        .dashboard-shell-below-header {
+          margin-top: 56px !important;
+        }
+
+        .workbit-documents-page {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          gap: 0 !important;
+        }
+
+        .workbit-documents-overview,
+        .workbit-document-folders-panel {
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-documents-overview .dashboard-panel-header {
+          align-items: flex-end !important;
+          margin: 0 0 2px !important;
+          padding-inline: 4px;
+          flex-wrap: nowrap !important;
+        }
+
+        .workbit-documents-overview .dashboard-panel-header > div:first-child {
+          display: grid !important;
+          gap: 2px !important;
+        }
+
+        .workbit-documents-overview .dashboard-panel-header > div:first-child > span {
+          display: none !important;
+        }
+
+        .workbit-documents-overview .dashboard-panel-title {
+          display: grid;
+          gap: 2px;
+          color: #1c1c1e !important;
+          font-size: 30px !important;
+          font-weight: 950 !important;
+          line-height: 1 !important;
+          letter-spacing: -0.045em !important;
+        }
+
+        .workbit-documents-overview .dashboard-panel-title::before {
+          content: "Archivio";
+          color: #6255ed;
+          font-size: 14px;
+          font-weight: 850;
+          line-height: 1;
+          letter-spacing: 0;
+        }
+
+        .workbit-documents-overview .dashboard-panel-header > div:last-child button {
+          width: 38px !important;
+          height: 38px !important;
+          min-width: 38px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          background: #6255ed !important;
+          color: #ffffff !important;
+          box-shadow: none !important;
+          font-size: 0 !important;
+        }
+
+        .workbit-documents-overview .dashboard-panel-header > div:last-child button svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        .workbit-documents-count {
+          margin: 5px 4px 0 !important;
+          color: #8e8e93 !important;
+          font-size: 14px;
+          font-weight: 650;
+          line-height: 1.2 !important;
+        }
+
+        .workbit-documents-overview form {
+          margin-top: 16px !important;
+        }
+
+        .workbit-document-folders-panel {
+          margin-top: 18px;
+        }
+
+        .workbit-document-folders-panel > .dashboard-panel-header {
+          min-height: 16px;
+          margin: 0 4px 9px !important;
+        }
+
+        .workbit-document-folders-panel > .dashboard-panel-header > div > span {
+          display: none !important;
+        }
+
+        .workbit-document-folders-panel .dashboard-panel-title {
+          color: #8e8e93 !important;
+          font-size: 12px !important;
+          font-weight: 900 !important;
+          line-height: 1 !important;
+          letter-spacing: 0.055em !important;
+          text-transform: uppercase;
+        }
+
+        .workbit-document-folder-grid {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          gap: 10px !important;
+        }
+
+        .workbit-document-folder-card {
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 18px !important;
+          background: #ffffff !important;
+          box-shadow: 0 6px 16px rgba(61, 42, 153, 0.045) !important;
+          overflow: hidden;
+        }
+
+        .workbit-document-folder-row {
+          min-height: 62px;
+          padding: 10px 13px;
+          gap: 11px !important;
+        }
+
+        .workbit-document-folder-icon {
+          width: 36px;
+          height: 36px;
+          flex: 0 0 36px;
+          display: grid;
+          place-items: center;
+          border-radius: 10px;
+          background: #efecff;
+          font-size: 18px;
+        }
+
+        .workbit-document-folder-copy {
+          flex: 1 1 auto;
+        }
+
+        .workbit-document-folder-copy strong {
+          display: block;
+          overflow: hidden;
+          color: #17171f !important;
+          font-size: 15px;
+          font-weight: 900;
+          line-height: 1.2;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .workbit-document-folder-copy div {
+          margin-top: 2px;
+          color: #8e8e93 !important;
+          font-size: 13px !important;
+          line-height: 1.15;
+        }
+
+        .workbit-document-folder-open button {
+          min-width: 58px !important;
+          height: 36px !important;
+          padding: 0 15px !important;
+          border: 0 !important;
+          border-radius: 999px !important;
+          background: #efecff !important;
+          color: #6255ed !important;
+          box-shadow: none !important;
+          font-size: 13px !important;
+          font-weight: 900 !important;
+        }
+
+        .workbit-notes-page {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          gap: 12px !important;
+        }
+
+        .workbit-notes-panel {
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-notes-panel > .dashboard-panel-header {
+          align-items: flex-end !important;
+          margin: 0 4px 15px !important;
+          flex-wrap: nowrap !important;
+        }
+
+        .workbit-notes-panel > .dashboard-panel-header > div:first-child {
+          display: grid !important;
+          gap: 2px !important;
+        }
+
+        .workbit-notes-panel > .dashboard-panel-header > div:first-child > span {
+          display: none !important;
+        }
+
+        .workbit-notes-panel .dashboard-panel-title {
+          display: grid;
+          gap: 2px;
+          color: #1c1c1e !important;
+          font-size: 30px !important;
+          font-weight: 950 !important;
+          line-height: 1 !important;
+          letter-spacing: -0.045em !important;
+        }
+
+        .workbit-notes-panel .dashboard-panel-title::before {
+          content: "Team";
+          color: #6255ed;
+          font-size: 14px;
+          font-weight: 850;
+          line-height: 1;
+          letter-spacing: 0;
+        }
+
+        .workbit-notes-panel > .dashboard-panel-header > div:last-child {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 7px !important;
+          flex-wrap: nowrap !important;
+        }
+
+        .workbit-notes-panel > .dashboard-panel-header > div:last-child > button {
+          width: 38px !important;
+          height: 38px !important;
+          min-width: 38px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          background: #6255ed !important;
+          color: #ffffff !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-notes-panel > .dashboard-item-list {
+          gap: 11px !important;
+        }
+
+        .workbit-note-card {
+          gap: 7px !important;
+          padding: 20px !important;
+          border: 0 !important;
+          border-radius: 20px !important;
+          background: #ffffff !important;
+          box-shadow: 0 7px 18px rgba(61, 42, 153, 0.045) !important;
+        }
+
+        .workbit-note-card > strong {
+          color: #17171f !important;
+          font-size: 18px !important;
+          font-weight: 950 !important;
+          line-height: 1.2 !important;
+          letter-spacing: -0.025em;
+        }
+
+        .workbit-note-card > div:nth-of-type(1),
+        .workbit-note-card > div:nth-of-type(2) {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          color: #8e8e93 !important;
+          font-size: 13px !important;
+          line-height: 1.3 !important;
+        }
+
+        .workbit-note-card > div:nth-of-type(1)::before {
+          content: "🗓️";
+          flex: 0 0 auto;
+          font-size: 12px;
+        }
+
+        .workbit-note-card > div:nth-of-type(2)::before {
+          content: "👥";
+          flex: 0 0 auto;
+          font-size: 12px;
+        }
+
+        .workbit-note-card > div:last-child {
+          margin-top: 6px !important;
+          padding-top: 13px;
+          border-top: 1px solid rgba(60, 60, 67, 0.11);
+        }
+
+        .workbit-note-card > div:last-child > div {
+          gap: 8px !important;
+        }
+
+        .workbit-note-card .dashboard-status-pill {
+          min-height: 25px !important;
+          padding: 4px 11px !important;
+          border: 0 !important;
+          font-size: 11px !important;
+          font-weight: 900 !important;
+          text-transform: uppercase;
+          box-shadow: none !important;
+        }
+
+        .workbit-note-card form button[aria-label="Completa nota"] {
+          width: 38px !important;
+          height: 38px !important;
+          min-width: 38px !important;
+          border: 0 !important;
+          border-radius: 999px !important;
+          background: #e5f8eb !important;
+          color: #24b954 !important;
+          box-shadow: none !important;
+          font-size: 21px !important;
+        }
+
+        .workbit-notes-panel > .dashboard-empty-state {
+          padding: 4px !important;
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-courses-page,
+        .workbit-people-page,
+        .workbit-export-page,
+        .workbit-settings-page {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          gap: 12px !important;
+        }
+
+        .workbit-courses-panel,
+        .workbit-people-panel {
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-courses-panel > .dashboard-panel-header,
+        .workbit-people-panel > .dashboard-panel-header {
+          align-items: flex-end !important;
+          margin: 0 4px 15px !important;
+          flex-wrap: nowrap !important;
+        }
+
+        .workbit-courses-panel > .dashboard-panel-header > div:first-child,
+        .workbit-people-panel > .dashboard-panel-header > div:first-child {
+          display: grid !important;
+          gap: 2px !important;
+        }
+
+        .workbit-courses-panel > .dashboard-panel-header > div:first-child > span,
+        .workbit-people-panel > .dashboard-panel-header > div:first-child > span {
+          display: none !important;
+        }
+
+        .workbit-courses-panel .dashboard-panel-title,
+        .workbit-people-panel .dashboard-panel-title {
+          display: grid;
+          gap: 2px;
+          color: #1c1c1e !important;
+          font-size: 30px !important;
+          font-weight: 950 !important;
+          line-height: 1 !important;
+          letter-spacing: -0.045em !important;
+        }
+
+        .workbit-courses-panel .dashboard-panel-title::before {
+          content: "Formazione";
+          color: #6255ed;
+          font-size: 14px;
+          font-weight: 850;
+          line-height: 1;
+          letter-spacing: 0;
+        }
+
+        .workbit-people-panel .dashboard-panel-title::before {
+          content: "Organizza";
+          color: #6255ed;
+          font-size: 14px;
+          font-weight: 850;
+          line-height: 1;
+          letter-spacing: 0;
+        }
+
+        .workbit-courses-panel > .dashboard-panel-header > div:last-child,
+        .workbit-people-panel > .dashboard-panel-header > div:last-child {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px !important;
+          color: #8e8e93 !important;
+          font-size: 13px;
+          font-weight: 700;
+          flex-wrap: nowrap !important;
+        }
+
+        .workbit-courses-panel > .dashboard-item-list,
+        .workbit-people-panel > .dashboard-item-list {
+          gap: 10px !important;
+        }
+
+        .workbit-course-card,
+        .workbit-person-card {
+          gap: 6px !important;
+          padding: 16px !important;
+          border: 0 !important;
+          border-radius: 18px !important;
+          background: #ffffff !important;
+          box-shadow: 0 6px 16px rgba(61, 42, 153, 0.045) !important;
+        }
+
+        .workbit-course-card > strong,
+        .workbit-person-card > strong {
+          color: #17171f !important;
+          font-size: 16px !important;
+          font-weight: 900 !important;
+          line-height: 1.2 !important;
+        }
+
+        .workbit-course-card > div,
+        .workbit-person-card > div {
+          color: #8e8e93 !important;
+          font-size: 13px !important;
+          line-height: 1.35 !important;
+        }
+
+        .workbit-person-card > div:last-child form {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .workbit-export-generator,
+        .workbit-export-preview {
+          padding: 16px !important;
+          border: 0 !important;
+          border-radius: 20px !important;
+          background: #ffffff !important;
+          box-shadow: 0 6px 16px rgba(61, 42, 153, 0.045) !important;
+        }
+
+        .workbit-export-generator > .dashboard-panel-header,
+        .workbit-export-preview > .dashboard-panel-header {
+          margin-bottom: 14px !important;
+        }
+
+        .workbit-export-generator .dashboard-panel-title,
+        .workbit-export-preview .dashboard-panel-title {
+          font-size: 18px !important;
+          font-weight: 900 !important;
+        }
+
+        .workbit-export-page .dashboard-form-field {
+          gap: 6px !important;
+        }
+
+        .workbit-export-page .dashboard-form-actions,
+        .workbit-export-generator form + div {
+          gap: 8px !important;
+        }
+
+        .workbit-settings-page {
+          gap: 10px !important;
+        }
+
+        .workbit-settings-page > .workbit-page-heading {
+          margin-bottom: 5px;
+        }
+
+        .workbit-settings-card {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 12px !important;
+          min-height: 76px;
+          padding: 13px 14px !important;
+          border: 0 !important;
+          border-radius: 18px !important;
+          background: #ffffff !important;
+          box-shadow: 0 6px 16px rgba(61, 42, 153, 0.045) !important;
+        }
+
+        .workbit-settings-card[data-tone="danger"] {
+          background: #fff7f7 !important;
+        }
+
+        .workbit-settings-card > div:first-child {
+          min-width: 0;
+        }
+
+        .workbit-settings-card > div:first-child > div:first-child {
+          gap: 10px !important;
+        }
+
+        .workbit-settings-card > div:first-child > div:first-child > span {
+          width: 36px !important;
+          height: 36px !important;
+          border-radius: 10px !important;
+          font-size: 18px !important;
+        }
+
+        .workbit-settings-card > div:first-child strong {
+          color: #17171f !important;
+          font-size: 15px !important;
+          font-weight: 900 !important;
+          line-height: 1.15;
+        }
+
+        .workbit-settings-card > div:first-child strong + span {
+          margin-top: 1px;
+          color: #8e8e93 !important;
+          font-size: 12px !important;
+          line-height: 1.25 !important;
+        }
+
+        .workbit-settings-card > div:first-child > .dashboard-status-pill {
+          display: none !important;
+        }
+
+        .workbit-settings-card > div:last-child {
+          justify-content: flex-end !important;
+        }
+
+        .workbit-settings-card > div:last-child .dashboard-popup-trigger--label {
+          min-width: 56px !important;
+        }
+
+        .dashboard-shell-below-header:not(:empty) + .dashboard-shell-content {
+          margin-top: 16px !important;
+        }
+
+        .workbit-timelog-history-panel {
+          padding: 14px !important;
+        }
+
+        .workbit-personal-timelog-panel {
+          padding: 0 4px !important;
+        }
+
+        .workbit-timelog-day-card {
+          padding: 15px !important;
+        }
+
+        .workbit-timelog-entry {
+          padding: 11px 12px !important;
+        }
+      }
+
       .dashboard-profile-layout > div:first-child {
         order: 1;
       }
@@ -517,6 +2012,10 @@ function DashboardResponsiveStyles() {
       }
 
       @media (max-width: 900px) {
+        .workbit-home {
+          margin-top: 4px;
+        }
+
         .dashboard-shell {
           padding: 12px !important;
           padding-bottom: calc(132px + env(safe-area-inset-bottom)) !important;
@@ -915,7 +2414,7 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-shell-inner {
-        gap: 16px !important;
+        gap: 0 !important;
       }
 
       .dashboard-shell-card {
@@ -1027,6 +2526,7 @@ function DashboardResponsiveStyles() {
       .dashboard-button,
       .dashboard-menu-button,
       .dashboard-icon-button,
+      .dashboard-popup-trigger,
       .dashboard-select-pill,
       .dashboard-arrow-link,
       .dashboard-list-button,
@@ -1208,6 +2708,538 @@ function DashboardResponsiveStyles() {
           border-radius: 16px !important;
         }
       }
+
+      .workbit-home .workbit-home-clock-tools button {
+        width: 42px !important;
+        height: 42px !important;
+        min-width: 42px !important;
+        border-radius: 14px !important;
+        background: rgba(255, 255, 255, 0.18) !important;
+        color: #ffffff !important;
+        font-size: 24px !important;
+        font-weight: 950 !important;
+        line-height: 1 !important;
+        display: inline-grid !important;
+        place-items: center !important;
+        opacity: 1 !important;
+      }
+
+      .workbit-home .workbit-home-clock-button,
+      .workbit-home .workbit-home-clock-button:disabled {
+        min-height: 62px !important;
+        border-radius: 16px !important;
+        color: #ffffff !important;
+        font-size: 18px !important;
+        font-weight: 950 !important;
+        opacity: 1 !important;
+        filter: none !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-popup-trigger,
+      .dashboard-icon-button[data-intent="add"] {
+        width: 38px !important;
+        min-width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 999px !important;
+        background: #6255ed !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+        font-size: 0 !important;
+      }
+
+      .dashboard-popup-trigger--label {
+        width: auto !important;
+        min-width: 0 !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 0 14px !important;
+        background: #efecff !important;
+        color: #6255ed !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
+      }
+
+      .dashboard-popup-trigger svg,
+      .dashboard-icon-button[data-intent="add"] svg {
+        width: 18px !important;
+        height: 18px !important;
+      }
+
+      .dashboard-button[data-tone="red"],
+      .dashboard-icon-button[data-intent="danger"],
+      button[aria-label^="Elimina"],
+      button[aria-label^="Rimuovi"],
+      button[aria-label^="Cancella"] {
+        border-color: rgba(239, 68, 68, 0.28) !important;
+        background: linear-gradient(135deg, #dc2626 0%, #ff3b30 100%) !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-button[data-tone="green"],
+      .dashboard-icon-button[data-intent="confirm"] {
+        border-color: rgba(34, 197, 94, 0.28) !important;
+        background: #e5f8eb !important;
+        color: #168a3e !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-button[data-tone="sand"] {
+        border-color: rgba(94, 92, 230, 0.14) !important;
+        background: #f5f3fc !important;
+        color: #3d2a99 !important;
+        box-shadow: none !important;
+      }
+
+      .workbit-home .workbit-home-clock-in,
+      .workbit-home .workbit-home-clock-in:disabled,
+      .workbit-home .workbit-home-clock-in:hover,
+      .workbit-home .workbit-home-clock-in:active {
+        background: #34D35F !important;
+        border-color: rgba(52, 211, 95, 0.7) !important;
+      }
+
+      .workbit-home .workbit-home-clock-out,
+      .workbit-home .workbit-home-clock-out:disabled,
+      .workbit-home .workbit-home-clock-out:hover,
+      .workbit-home .workbit-home-clock-out:active {
+        background: #EF4444 !important;
+        border-color: rgba(239, 68, 68, 0.7) !important;
+      }
+
+      @media (max-width: 900px) {
+        .dashboard-calendar-page > .dashboard-panel {
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+        }
+
+        .dashboard-calendar-page > .dashboard-panel > .dashboard-panel-header {
+          display: none !important;
+        }
+
+        .workbit-calendar-toolbar {
+          gap: 16px !important;
+          margin: 54px 0 14px !important;
+          padding-inline: 2px;
+        }
+
+        .workbit-calendar-day-heading {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 12px;
+          padding-inline: 4px;
+        }
+
+        .workbit-calendar-day-heading > div {
+          display: grid;
+          gap: 2px;
+        }
+
+        .workbit-calendar-week-heading {
+          display: grid;
+          gap: 2px;
+          padding-inline: 4px;
+        }
+
+        .workbit-calendar-week-heading span {
+          color: #5e5ce6;
+          font-size: 13px;
+          font-weight: 850;
+          line-height: 1.1;
+        }
+
+        .workbit-calendar-week-heading strong {
+          color: #17171f;
+          font-size: 28px;
+          font-weight: 950;
+          line-height: 1;
+          letter-spacing: -0.045em;
+        }
+
+        .workbit-calendar-day-heading span {
+          color: #5e5ce6;
+          font-size: 13px;
+          font-weight: 850;
+          line-height: 1.1;
+        }
+
+        .workbit-calendar-day-heading strong {
+          color: #17171f;
+          font-size: 28px;
+          font-weight: 950;
+          line-height: 1;
+          letter-spacing: -0.045em;
+        }
+
+        .workbit-calendar-add-shift {
+          width: 36px !important;
+          height: 36px !important;
+          min-width: 36px !important;
+          min-height: 36px !important;
+          border: 0 !important;
+          border-radius: 999px !important;
+          background: #5e5ce6 !important;
+          color: #ffffff !important;
+          font-size: 22px !important;
+          font-weight: 700 !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-calendar-segments {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px !important;
+          min-height: 40px !important;
+          padding: 3px !important;
+          border: 0 !important;
+          border-radius: 12px !important;
+          background: #ece9f2 !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+        }
+
+        .workbit-calendar-segments.has-publish {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px 40px !important;
+        }
+
+        .workbit-calendar-segments .calendar-publish-actions {
+          width: 34px !important;
+          min-width: 34px !important;
+          justify-self: center;
+          align-self: center;
+        }
+
+        .workbit-calendar-segments .calendar-publish-actions .dashboard-icon-button {
+          width: 34px !important;
+          height: 34px !important;
+          min-width: 34px !important;
+          min-height: 34px !important;
+          border: 0 !important;
+          border-radius: 9px !important;
+          background: rgba(255, 255, 255, 0.42) !important;
+          color: #5e5ce6 !important;
+          font-size: 19px !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-calendar-segments > button {
+          min-height: 34px !important;
+          height: 34px !important;
+          padding: 0 10px !important;
+          border-radius: 9px !important;
+          background: transparent !important;
+          color: #929096 !important;
+          font-size: 13px !important;
+          font-weight: 800 !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-calendar-segments > button.is-active {
+          background: #ffffff !important;
+          color: #17171f !important;
+          box-shadow: 0 2px 7px rgba(28, 28, 30, 0.10) !important;
+        }
+
+        .workbit-calendar-today-segment {
+          min-width: 34px !important;
+          width: 34px !important;
+          height: 34px !important;
+          min-height: 34px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-left: 0 !important;
+          border-radius: 9px !important;
+          background: rgba(255, 255, 255, 0.36) !important;
+          color: #5e5ce6 !important;
+          font-size: 18px !important;
+          font-weight: 900 !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-calendar-day-strip {
+          gap: 12px !important;
+          padding: 0 0 12px !important;
+          scroll-padding-inline: 0 !important;
+        }
+
+        .workbit-calendar-day-card {
+          flex: 0 0 100% !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          gap: 16px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-calendar-day-card-heading {
+          display: none !important;
+        }
+
+        .workbit-calendar-day-section {
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .workbit-calendar-day-shifts {
+          gap: 0 !important;
+          overflow: hidden;
+          border: 1px solid rgba(94, 92, 230, 0.08);
+          border-radius: 18px;
+          background: #ffffff;
+          box-shadow: 0 8px 20px rgba(61, 42, 153, 0.045);
+        }
+
+        .workbit-calendar-day-shifts > .workbit-calendar-day-section-title {
+          display: none !important;
+        }
+
+        .workbit-calendar-day-shifts .workbit-day-shift-row {
+          padding: 11px 13px !important;
+          border: 0 !important;
+          border-bottom: 1px solid #ecebf0 !important;
+          border-radius: 0 !important;
+          background: #ffffff !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-calendar-day-shifts > :last-child .workbit-day-shift-row,
+        .workbit-calendar-day-shifts > .workbit-day-shift-row:last-child {
+          border-bottom: 0 !important;
+        }
+
+        .workbit-day-shift-row > div {
+          flex-wrap: nowrap !important;
+          gap: 10px !important;
+          min-height: 22px;
+        }
+
+        .workbit-day-shift-row > div > strong {
+          min-width: 90px;
+          color: #15151d !important;
+          font-size: 13px !important;
+          font-weight: 950 !important;
+          white-space: nowrap;
+        }
+
+        .workbit-day-shift-row > div > span:not(:last-child) {
+          min-width: 0;
+          color: #1f1f29 !important;
+          font-size: 13px !important;
+          line-height: 1.15;
+        }
+
+        .workbit-day-shift-row > div > span:last-child {
+          width: 23px;
+          height: 23px;
+          flex: 0 0 23px;
+          border-radius: 999px;
+          background: #e4f8e9;
+        }
+
+        .workbit-day-shift-row > div > span[aria-label="In attesa"] {
+          background: #fff3dc;
+        }
+
+        .workbit-calendar-day-notes {
+          gap: 9px !important;
+        }
+
+        .workbit-calendar-day-notes > .workbit-calendar-day-section-title {
+          min-height: 24px;
+          padding: 0 4px;
+          color: #8e8e93;
+          font-size: 0 !important;
+          font-weight: 900;
+          letter-spacing: 0.06em;
+        }
+
+        .workbit-calendar-day-notes > .workbit-calendar-day-section-title strong {
+          color: #8e8e93 !important;
+          font-size: 0 !important;
+        }
+
+        .workbit-calendar-day-notes > .workbit-calendar-day-section-title strong::after {
+          content: "NOTE";
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.06em;
+        }
+
+        .workbit-calendar-day-notes > .workbit-calendar-day-section-title .dashboard-icon-button {
+          width: 32px !important;
+          height: 32px !important;
+          min-width: 32px !important;
+          min-height: 32px !important;
+          color: #5e5ce6 !important;
+          font-size: 18px !important;
+        }
+
+        .workbit-calendar-day-notes .workbit-day-note-card {
+          padding: 14px !important;
+          border: 1px solid rgba(94, 92, 230, 0.08) !important;
+          border-radius: 18px !important;
+          background: #ffffff !important;
+          box-shadow: 0 8px 20px rgba(61, 42, 153, 0.045) !important;
+        }
+
+        .dashboard-calendar-page .dashboard-week-strip {
+          gap: 12px !important;
+          padding: 0 0 12px !important;
+          scroll-snap-type: x mandatory !important;
+          scroll-padding-inline: 0 !important;
+        }
+
+        .dashboard-calendar-page .dashboard-week-card {
+          flex: 0 0 100% !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          gap: 10px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          scroll-snap-align: start !important;
+        }
+
+        .workbit-week-range {
+          padding: 0 2px;
+        }
+
+        .workbit-week-range span {
+          color: #74747f !important;
+          font-size: 13px !important;
+          font-weight: 750;
+          line-height: 1.2 !important;
+          white-space: nowrap;
+        }
+
+        .workbit-week-day-card {
+          gap: 0 !important;
+          padding: 0 !important;
+          overflow: hidden;
+          border: 1px solid rgba(94, 92, 230, 0.09) !important;
+          border-radius: 18px !important;
+          background: #ffffff !important;
+          box-shadow: 0 8px 20px rgba(61, 42, 153, 0.045) !important;
+        }
+
+        .workbit-week-day-card[data-calendar-today="true"] {
+          border: 1.5px solid rgba(94, 92, 230, 0.42) !important;
+          opacity: 1 !important;
+        }
+
+        .workbit-week-day-header {
+          min-height: 42px;
+          padding: 9px 11px 7px;
+          flex-wrap: nowrap !important;
+        }
+
+        .workbit-week-day-header > strong {
+          color: #737178 !important;
+          font-size: 12px !important;
+          font-weight: 900 !important;
+          white-space: nowrap;
+        }
+
+        .workbit-week-day-card[data-calendar-today="true"] .workbit-week-day-header > strong {
+          color: #17171f !important;
+        }
+
+        .workbit-week-details {
+          min-height: 24px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          background: transparent !important;
+          color: #5e5ce6 !important;
+          font-size: 12px !important;
+          font-weight: 900 !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-week-details svg {
+          display: none !important;
+        }
+
+        .workbit-week-shifts {
+          gap: 0 !important;
+        }
+
+        .workbit-week-shifts .workbit-day-shift-row {
+          padding: 10px 12px !important;
+          border: 0 !important;
+          border-top: 1px solid #ecebf0 !important;
+          border-radius: 0 !important;
+          background: #ffffff !important;
+          box-shadow: none !important;
+        }
+
+        .workbit-week-shifts .workbit-day-shift-row > div {
+          flex-wrap: nowrap !important;
+          gap: 10px !important;
+          min-height: 24px;
+        }
+
+        .workbit-week-shifts .workbit-day-shift-row > div > strong {
+          min-width: 90px;
+          color: #a7a5ac !important;
+          font-size: 13px !important;
+          font-weight: 950 !important;
+          white-space: nowrap;
+        }
+
+        .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > strong {
+          color: #17171f !important;
+        }
+
+        .workbit-week-shifts .workbit-day-shift-row > div > span:not(:last-child) {
+          min-width: 0;
+          color: #8e8e93 !important;
+          font-size: 13px !important;
+          line-height: 1.15;
+        }
+
+        .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > span:not(:last-child) {
+          color: #17171f !important;
+          font-weight: 850;
+        }
+
+        .workbit-week-shifts .workbit-day-shift-row > div > span:last-child {
+          width: 23px;
+          height: 23px;
+          flex: 0 0 23px;
+          border-radius: 999px;
+          background: #e4f8e9;
+        }
+
+        .workbit-week-shifts .workbit-day-shift-row > div > span[aria-label="In attesa"] {
+          background: #fff3dc;
+        }
+
+        .workbit-week-badges {
+          gap: 6px !important;
+          padding: 8px 11px 10px;
+          border-top: 1px solid #ecebf0;
+        }
+
+        .workbit-week-badges > button {
+          min-height: 24px !important;
+          padding: 4px 9px !important;
+          border: 0 !important;
+          font-size: 11px !important;
+          box-shadow: none !important;
+        }
+      }
     `,
       }}
     />
@@ -1326,6 +3358,7 @@ export function DashboardShell({
             menuLabel={menuLabel}
             menuContent={menuContent}
             brandHref={navItems[0]?.href ?? "/dashboard"}
+            headerAction={headerAction}
           />
         </div>
       </div>
@@ -1350,8 +3383,8 @@ export function DashboardShell({
           zIndex: 1,
           maxWidth: 1320,
           margin: "0 auto",
-          display: "grid",
-          gap: 16,
+            display: "grid",
+            gap: 0,
         }}
       >
         {headerSwitch ? (
@@ -1370,8 +3403,8 @@ export function DashboardShell({
               justifyContent: "center",
               alignItems: "center",
               minHeight: 0,
-              marginTop: -6,
-              marginBottom: -2,
+              marginTop: 16,
+              marginBottom: 0,
               pointerEvents: "none",
             }}
           >
@@ -1379,7 +3412,12 @@ export function DashboardShell({
           </div>
         ) : null}
 
-        <div style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}>{children}</div>
+        <div
+          className="dashboard-shell-content"
+          style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}
+        >
+          {children}
+        </div>
       </div>
       <ActiveBottomNav navItems={navItems} />
       <DashboardResponsiveStyles />
@@ -1606,7 +3644,7 @@ export function Modal({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999,
+        zIndex: 2147483646,
         display: "grid",
         placeItems: "center",
         background: "rgba(15, 23, 42, 0.22)",
@@ -1893,6 +3931,7 @@ export function PrimaryButton({
   return (
     <PendingButton
       {...props}
+      data-tone={tone}
       pendingLabel={pendingLabel}
       className={joinClassNames("dashboard-button", props.className)}
       style={{
@@ -1938,9 +3977,19 @@ export function IconButton({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   pendingLabel?: React.ReactNode;
 }) {
+  const ariaLabel = typeof props["aria-label"] === "string" ? props["aria-label"] : "";
+  const intent = /elimina|rimuovi|cancella/i.test(ariaLabel)
+    ? "danger"
+    : /aggiungi|nuov[oa]/i.test(ariaLabel)
+      ? "add"
+      : /completa|conferma|salva|approva/i.test(ariaLabel)
+        ? "confirm"
+        : "neutral";
+
   return (
     <PendingButton
       {...props}
+      data-intent={intent}
       pendingLabel={pendingLabel}
       className={joinClassNames("dashboard-icon-button", props.className)}
       style={{
@@ -2018,6 +4067,7 @@ export function StatusPill({
 
   return (
     <span
+      className="dashboard-status-pill"
       style={{
         display: "inline-flex",
         alignItems: "center",

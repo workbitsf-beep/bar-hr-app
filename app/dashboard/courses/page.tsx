@@ -115,11 +115,12 @@ export default async function DashboardCoursesPage({
   ]);
 
   return (
-    <Stack>
+    <Stack className="workbit-courses-page">
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
       <Panel
-        title="Corsi pianificati"
+        title="Corsi"
+        className="workbit-courses-panel"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <span>{courses.length} corsi</span>
@@ -176,6 +177,7 @@ export default async function DashboardCoursesPage({
                 }
               >
                 <ItemCard
+                  className="workbit-course-card"
                   title={course.title}
                   subtitle={`${formatDateTime(course.startsAt)} - ${formatDateTime(course.endsAt)}`}
                   meta={
