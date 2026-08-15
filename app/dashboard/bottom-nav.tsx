@@ -191,9 +191,12 @@ export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) 
         bottom: "max(12px, env(safe-area-inset-bottom))",
         transform: "translateX(-50%)",
         zIndex: 200,
-        display: "flex",
-        gap: 6,
-        padding: "12px 10px",
+        display: "grid",
+        gridAutoFlow: "column",
+        gridAutoColumns: "minmax(0, 1fr)",
+        alignItems: "stretch",
+        gap: 2,
+        padding: "10px 8px",
         borderRadius: 30,
         border: "1px solid rgba(60, 60, 67, 0.12)",
         background: "rgba(255, 255, 255, 0.88)",
@@ -213,28 +216,38 @@ export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) 
             aria-current={active ? "page" : undefined}
             title={item.label}
             style={{
-              width: 58,
+              width: "100%",
+              minWidth: 0,
               minHeight: 58,
-              borderRadius: 22,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-              gap: 5,
+              borderRadius: 0,
+              display: "grid",
+              gridTemplateRows: "26px 14px",
+              alignContent: "center",
+              justifyItems: "center",
+              gap: 4,
+              padding: "6px 0 4px",
               color: active ? "var(--workbit-purple-dark)" : "rgba(61, 42, 153, 0.78)",
-              background: active
-                ? "linear-gradient(180deg, #ffffff 0%, #f1edff 100%)"
-                : "transparent",
-              border: active ? "1px solid rgba(94, 92, 230, 0.22)" : "1px solid transparent",
-              boxShadow: active
-                ? "0 0 0 6px rgba(94, 92, 230, 0.08), 0 8px 18px rgba(61, 42, 153, 0.14)"
-                : "none",
+              background: "transparent",
+              border: 0,
+              boxShadow: "none",
               textDecoration: "none",
               transform: "translateY(0)",
             }}
           >
             <BottomNavIcon href={item.href} />
-            <span style={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1 }}>
+            <span
+              style={{
+                alignSelf: "end",
+                width: "100%",
+                minWidth: 0,
+                fontSize: "clamp(8.8px, 2.55vw, 10.5px)",
+                fontWeight: 800,
+                lineHeight: 1,
+                letterSpacing: "-0.035em",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
               {getBottomNavLabel(item, index)}
             </span>
           </Link>

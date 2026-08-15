@@ -72,7 +72,6 @@ type ExportPayload = {
 
 export function ExportClient({
   employees,
-  activityType,
   defaultMonth,
   defaultYear,
   allowEmployeeSelection,
@@ -168,10 +167,6 @@ export function ExportClient({
     }
   }
 
-  const initialPreviewMessage =
-    activityType === ActivityType.COMPANY
-      ? "Genera un'anteprima per vedere indisponibilita, ferie, permessi e corsi registrati nel mese."
-      : "Genera un'anteprima per vedere ore reali, ore arrotondate e ferie o permessi.";
   const monthOptions = Array.from({ length: 12 }, (_, index) => {
     const value = String(index + 1);
     const label = new Intl.DateTimeFormat("it-IT", { month: "long" }).format(
@@ -266,10 +261,8 @@ export function ExportClient({
         )}
       </Panel>
 
-      <Panel title="Anteprima mensile" className="workbit-export-preview">
-        {!result ? (
-          <EmptyState message={initialPreviewMessage} />
-        ) : (
+      {result ? (
+        <Panel title="Anteprima mensile" className="workbit-export-preview">
           <div style={{ display: "grid", gap: 16 }}>
             {result.mode === "company" ? (
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -386,8 +379,8 @@ export function ExportClient({
               </ItemList>
             )}
           </div>
-        )}
-      </Panel>
+        </Panel>
+      ) : null}
     </Stack>
   );
 }

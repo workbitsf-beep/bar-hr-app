@@ -3294,6 +3294,152 @@ function DashboardResponsiveStyles() {
         line-height: 1;
         pointer-events: none;
       }
+
+      /* Keep the five navigation labels aligned and inside the floating bar. */
+      .dashboard-bottom-nav {
+        display: grid !important;
+        grid-auto-flow: column !important;
+        grid-auto-columns: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        gap: 2px !important;
+        padding: 10px 8px !important;
+      }
+
+      .dashboard-bottom-nav a,
+      .dashboard-bottom-nav a[aria-current="page"] {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 58px !important;
+        display: grid !important;
+        grid-template-rows: 26px 14px !important;
+        align-content: center !important;
+        justify-items: center !important;
+        gap: 4px !important;
+        padding: 6px 0 4px !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      .dashboard-bottom-nav a > svg {
+        align-self: center;
+      }
+
+      .dashboard-bottom-nav a > span {
+        width: 100% !important;
+        min-width: 0 !important;
+        align-self: end !important;
+        color: rgba(61, 42, 153, 0.86) !important;
+        font-size: clamp(8.8px, 2.55vw, 10.5px) !important;
+        line-height: 1 !important;
+        letter-spacing: -0.035em !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+      }
+
+      .dashboard-bottom-nav a[aria-current="page"] > svg {
+        color: #6255ed !important;
+        filter: drop-shadow(0 0 6px rgba(98, 85, 237, 0.34));
+      }
+
+      .dashboard-bottom-nav a[aria-current="page"] > span {
+        color: #3d2a99 !important;
+      }
+
+      /* Every request add action shares the same right-hand column. */
+      .workbit-requests-page .workbit-request-launch-action,
+      .workbit-requests-page .dashboard-panel-header > div:last-child {
+        width: 40px !important;
+        min-width: 40px !important;
+        margin-left: auto !important;
+        display: grid !important;
+        place-items: center !important;
+      }
+
+      .workbit-requests-page .dashboard-panel-header {
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+      }
+
+      .workbit-requests-page .workbit-request-plus {
+        width: 36px !important;
+        min-width: 36px !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        margin: 0 !important;
+        align-self: center !important;
+        justify-self: center !important;
+      }
+
+      /* Dark mode keeps the Workbit hierarchy without light cards leaking through. */
+      html[data-theme="dark"] .dashboard-shell-card,
+      html[data-theme="dark"] .dashboard-panel,
+      html[data-theme="dark"] .dashboard-item-card,
+      html[data-theme="dark"] .dashboard-compact-list-item,
+      html[data-theme="dark"] .dashboard-list-card,
+      html[data-theme="dark"] .dashboard-week-card,
+      html[data-theme="dark"] .dashboard-modal-panel,
+      html[data-theme="dark"] .dashboard-card,
+      html[data-theme="dark"] .workbit-request-launch-card,
+      html[data-theme="dark"] .workbit-week-day-card,
+      html[data-theme="dark"] .workbit-calendar-day-shifts,
+      html[data-theme="dark"] .workbit-day-note-card {
+        background: var(--workbit-card) !important;
+        border-color: var(--workbit-border) !important;
+        color: var(--workbit-text) !important;
+        box-shadow: var(--workbit-shadow) !important;
+      }
+
+      html[data-theme="dark"] .workbit-request-launch-copy > strong,
+      html[data-theme="dark"] .workbit-requests-heading > h2,
+      html[data-theme="dark"] .workbit-week-day-header > strong,
+      html[data-theme="dark"] .workbit-week-day-card[data-calendar-today="true"] .workbit-week-day-header > strong,
+      html[data-theme="dark"] .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > strong,
+      html[data-theme="dark"] .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > span:not(:last-child) {
+        color: var(--workbit-text) !important;
+      }
+
+      html[data-theme="dark"] .workbit-request-launch-copy > span,
+      html[data-theme="dark"] .workbit-week-day-header > strong,
+      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row > div > span:not(:last-child) {
+        color: var(--workbit-text-secondary) !important;
+      }
+
+      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row {
+        background: var(--workbit-surface) !important;
+        border-color: var(--workbit-border) !important;
+      }
+
+      html[data-theme="dark"] .workbit-week-badges {
+        border-color: var(--workbit-border) !important;
+      }
+
+      html[data-theme="dark"] .dashboard-bottom-nav {
+        background: var(--workbit-navigation) !important;
+        border-color: var(--workbit-border) !important;
+        box-shadow: var(--workbit-shadow-strong) !important;
+      }
+
+      html[data-theme="dark"] .dashboard-bottom-nav a,
+      html[data-theme="dark"] .dashboard-bottom-nav a[aria-current="page"] {
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+      }
+
+      html[data-theme="dark"] .dashboard-bottom-nav a > span {
+        color: #c4b5fd !important;
+      }
+
+      html[data-theme="dark"] .dashboard-bottom-nav a[aria-current="page"] > span {
+        color: #ffffff !important;
+      }
+
+      html[data-theme="dark"] .workbit-week-day-card[data-calendar-closed="true"] {
+        background: linear-gradient(180deg, rgba(81, 25, 38, 0.95), rgba(43, 19, 31, 0.98)) !important;
+        border-color: rgba(251, 113, 133, 0.28) !important;
+      }
     `,
       }}
     />

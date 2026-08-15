@@ -62,6 +62,8 @@ export default async function DashboardPage() {
   }
 
   const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const canManagePeople = role === Role.OWNER || role === Role.MANAGER;
   const isOwner = role === Role.OWNER;
   const isOperationalProfile = !isOwner;
@@ -82,6 +84,7 @@ export default async function DashboardPage() {
   const [
     settings,
     shifts,
+    monthlyScheduledShifts,
     ownHours,
     todayHours,
     latestTimeLog,
@@ -135,6 +138,26 @@ export default async function DashboardPage() {
                 },
               },
             },
+          },
+        })
+      : Promise.resolve([]),
+    isOperationalProfile && features.timeTracking && features.shifts
+      ? prisma.shift.findMany({
+          where: {
+            barId: activeBarId,
+            startTime: {
+              gte: monthStart,
+              lt: monthEnd,
+            },
+            assignments: {
+              some: {
+                userId: session.user.id,
+              },
+            },
+          },
+          select: {
+            startTime: true,
+            endTime: true,
           },
         })
       : Promise.resolve([]),
@@ -237,9 +260,15 @@ export default async function DashboardPage() {
     latestTimeLog?.type === "IN"
       ? "CAN_CLOCK_OUT"
       : "CAN_CLOCK_IN";
-  const monthlyTargetMs = 120 * 60 * 60 * 1000;
+  const monthlyTargetMs = monthlyScheduledShifts.reduce(
+    (total, shift) => total + Math.max(0, shift.endTime.getTime() - shift.startTime.getTime()),
+    0
+  );
+  const monthlyWorkedMs = (ownHours?.roundedHours ?? 0) * 60 * 60 * 1000;
   const monthlyProgress = ownHours
-    ? Math.max(0, Math.min(100, Math.round((ownHours.roundedHours / monthlyTargetMs) * 100)))
+    ? monthlyTargetMs > 0
+      ? Math.max(0, Math.min(100, Math.round((monthlyWorkedMs / monthlyTargetMs) * 100)))
+      : 0
     : 0;
 
   return (
