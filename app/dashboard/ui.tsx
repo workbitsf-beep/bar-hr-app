@@ -986,8 +986,7 @@ function DashboardResponsiveStyles() {
           margin: 0 4px 8px;
         }
 
-        .workbit-menu-select-row,
-        .workbit-menu-theme-row > label {
+        .workbit-menu-select-row {
           display: grid !important;
           grid-template-columns: minmax(0, 1fr) auto !important;
           align-items: center !important;
@@ -1001,18 +1000,15 @@ function DashboardResponsiveStyles() {
           border-radius: 17px 17px 0 0;
         }
 
-        .workbit-menu-select-row + .workbit-menu-select-row,
-        .workbit-menu-theme-row {
+        .workbit-menu-select-row + .workbit-menu-select-row {
           border-top: 1px solid rgba(60, 60, 67, 0.11);
         }
 
-        .workbit-menu-theme-row,
-        .workbit-menu-theme-row > label {
+        .workbit-menu-select-row:last-child {
           border-radius: 0 0 17px 17px;
         }
 
-        .workbit-menu-select-row > span,
-        .workbit-menu-theme-row > label > span {
+        .workbit-menu-select-row > span {
           color: #111118 !important;
           font-size: 15px !important;
           font-weight: 850 !important;
@@ -1020,8 +1016,7 @@ function DashboardResponsiveStyles() {
           text-transform: none !important;
         }
 
-        .workbit-menu-select-row > select,
-        .workbit-menu-theme-row select {
+        .workbit-menu-select-row > select {
           width: min(52vw, 180px) !important;
           min-height: 44px !important;
           padding: 0 18px 0 6px !important;
@@ -1822,15 +1817,6 @@ function DashboardResponsiveStyles() {
         cursor: pointer;
       }
 
-      html[data-theme="dark"] .dashboard-form-field input[type="checkbox"],
-      html[data-theme="dark"] .dashboard-form-field input[type="radio"],
-      html[data-theme="dark"] .dashboard-modal-panel input[type="checkbox"],
-      html[data-theme="dark"] .dashboard-modal-panel input[type="radio"] {
-        color-scheme: light !important;
-        accent-color: #7c3aed !important;
-        background-color: #ffffff !important;
-        border-color: #cbd5e1 !important;
-      }
 
       .dashboard-button:hover:not(:disabled),
       .dashboard-icon-button:hover:not(:disabled),
@@ -3373,8 +3359,7 @@ function DashboardResponsiveStyles() {
       }
 
       /* Menu selectors stay on one centered row on every mobile breakpoint. */
-      .workbit-menu-details .workbit-menu-select-row,
-      .workbit-menu-details .workbit-menu-theme-row > label {
+      .workbit-menu-details .workbit-menu-select-row {
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) minmax(112px, 48%) !important;
         align-items: center !important;
@@ -3383,16 +3368,14 @@ function DashboardResponsiveStyles() {
         padding: 0 15px !important;
       }
 
-      .workbit-menu-details .workbit-menu-select-row > span,
-      .workbit-menu-details .workbit-menu-theme-row > label > span {
+      .workbit-menu-details .workbit-menu-select-row > span {
         width: auto !important;
         align-self: center !important;
         margin: 0 !important;
         line-height: 1.2 !important;
       }
 
-      .workbit-menu-details .workbit-menu-select-row > select,
-      .workbit-menu-details .workbit-menu-theme-row select {
+      .workbit-menu-details .workbit-menu-select-row > select {
         width: 100% !important;
         min-width: 0 !important;
         min-height: 44px !important;
@@ -3401,517 +3384,6 @@ function DashboardResponsiveStyles() {
         line-height: 1.2 !important;
       }
 
-      /* Dark mode keeps the Workbit hierarchy without light cards leaking through. */
-      html[data-theme="dark"] .dashboard-shell-card,
-      html[data-theme="dark"] .dashboard-panel,
-      html[data-theme="dark"] .dashboard-item-card,
-      html[data-theme="dark"] .dashboard-compact-list-item,
-      html[data-theme="dark"] .dashboard-list-card,
-      html[data-theme="dark"] .dashboard-week-card,
-      html[data-theme="dark"] .dashboard-modal-panel,
-      html[data-theme="dark"] .dashboard-card,
-      html[data-theme="dark"] .workbit-request-launch-card,
-      html[data-theme="dark"] .workbit-week-day-card,
-      html[data-theme="dark"] .workbit-calendar-day-shifts,
-      html[data-theme="dark"] .workbit-day-note-card {
-        background: var(--workbit-card) !important;
-        border-color: var(--workbit-border) !important;
-        color: var(--workbit-text) !important;
-        box-shadow: var(--workbit-shadow) !important;
-      }
-
-      html[data-theme="dark"] .workbit-request-launch-copy > strong,
-      html[data-theme="dark"] .workbit-requests-heading > h2,
-      html[data-theme="dark"] .workbit-week-day-header > strong,
-      html[data-theme="dark"] .workbit-week-day-card[data-calendar-today="true"] .workbit-week-day-header > strong,
-      html[data-theme="dark"] .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > strong,
-      html[data-theme="dark"] .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > span:not(:last-child) {
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .workbit-request-launch-copy > span,
-      html[data-theme="dark"] .workbit-week-day-header > strong,
-      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row > div > span:not(:last-child) {
-        color: var(--workbit-text-secondary) !important;
-      }
-
-      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row {
-        background: var(--workbit-surface) !important;
-        border-color: var(--workbit-border) !important;
-      }
-
-      html[data-theme="dark"] .workbit-week-badges {
-        border-color: var(--workbit-border) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-bottom-nav {
-        background: var(--workbit-navigation) !important;
-        border-color: var(--workbit-border) !important;
-        box-shadow: var(--workbit-shadow-strong) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-bottom-nav a,
-      html[data-theme="dark"] .dashboard-bottom-nav a[aria-current="page"] {
-        background: transparent !important;
-        border: 0 !important;
-        box-shadow: none !important;
-      }
-
-      html[data-theme="dark"] .dashboard-bottom-nav a > span {
-        color: #c4b5fd !important;
-      }
-
-      html[data-theme="dark"] .dashboard-bottom-nav a[aria-current="page"] > span {
-        color: #ffffff !important;
-      }
-
-      html[data-theme="dark"] .dashboard-bottom-nav a[aria-current="page"] {
-        background: rgba(167, 139, 250, 0.10) !important;
-        border: 1px solid rgba(196, 181, 253, 0.20) !important;
-        box-shadow: 0 0 22px rgba(167, 139, 250, 0.20) !important;
-      }
-
-      html[data-theme="dark"] .workbit-week-day-card[data-calendar-closed="true"] {
-        background: linear-gradient(180deg, rgba(81, 25, 38, 0.95), rgba(43, 19, 31, 0.98)) !important;
-        border-color: rgba(251, 113, 133, 0.28) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-menu-overlay.workbit-menu-page-overlay,
-      html[data-theme="dark"] .workbit-menu-panel {
-        background: var(--workbit-app-bg) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-header-card,
-      html[data-theme="dark"] .workbit-menu-account-card,
-      html[data-theme="dark"] .workbit-menu-navigation-list {
-        background: linear-gradient(145deg, rgba(54,41,80,0.96), rgba(34,26,54,0.96)) !important;
-        border-color: var(--workbit-border) !important;
-        box-shadow: var(--workbit-shadow) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-link,
-      html[data-theme="dark"] .workbit-menu-select-row,
-      html[data-theme="dark"] .workbit-menu-theme-row,
-      html[data-theme="dark"] .workbit-menu-theme-row > label {
-        background: linear-gradient(135deg, rgba(48,36,72,0.92), rgba(37,28,58,0.92)) !important;
-        border-color: var(--workbit-border) !important;
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-link + .workbit-menu-link,
-      html[data-theme="dark"] .workbit-menu-select-row + .workbit-menu-select-row,
-      html[data-theme="dark"] .workbit-menu-theme-row {
-        border-top-color: rgba(196, 181, 253, 0.14) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-header-card .brand-logo-label,
-      html[data-theme="dark"] .workbit-menu-link,
-      html[data-theme="dark"] .workbit-menu-select-row > span,
-      html[data-theme="dark"] .workbit-menu-theme-row > label > span {
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-select-row > select,
-      html[data-theme="dark"] .workbit-menu-theme-row select {
-        color: var(--workbit-text-secondary) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-heading-copy > strong,
-      html[data-theme="dark"] .workbit-menu-header-card .brand-logo-label {
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-section-label,
-      html[data-theme="dark"] .workbit-menu-link-arrow {
-        color: var(--workbit-text-secondary) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-header-logout button,
-      html[data-theme="dark"] .workbit-menu-close {
-        background: var(--workbit-surface-secondary) !important;
-        border-color: var(--workbit-border) !important;
-        color: var(--workbit-purple-dark) !important;
-      }
-
-      /* Final dark-theme pass: page-specific light skins must use the same palette. */
-      html[data-theme="dark"] .dashboard-shell {
-        background: var(--workbit-app-bg) !important;
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-shell-card,
-      html[data-theme="dark"] .dashboard-page-hero,
-      html[data-theme="dark"] .dashboard-panel,
-      html[data-theme="dark"] .dashboard-card,
-      html[data-theme="dark"] .dashboard-item-card,
-      html[data-theme="dark"] .dashboard-list-card,
-      html[data-theme="dark"] .dashboard-compact-list-item,
-      html[data-theme="dark"] .dashboard-summary-card,
-      html[data-theme="dark"] .dashboard-calendar-day,
-      html[data-theme="dark"] .dashboard-calendar-weekday,
-      html[data-theme="dark"] .dashboard-empty-state,
-      html[data-theme="dark"] .workbit-home-hours,
-      html[data-theme="dark"] .workbit-home-shift,
-      html[data-theme="dark"] .workbit-time-summary-card,
-      html[data-theme="dark"] .workbit-timelog-day-card,
-      html[data-theme="dark"] .workbit-timelog-filters,
-      html[data-theme="dark"] .workbit-requests-list-panel .dashboard-item-card,
-      html[data-theme="dark"] .workbit-document-folder-card,
-      html[data-theme="dark"] .workbit-note-card,
-      html[data-theme="dark"] .workbit-course-card,
-      html[data-theme="dark"] .workbit-person-card,
-      html[data-theme="dark"] .workbit-export-generator,
-      html[data-theme="dark"] .workbit-export-preview,
-      html[data-theme="dark"] .workbit-settings-card {
-        background: var(--workbit-card) !important;
-        border-color: var(--workbit-border) !important;
-        color: var(--workbit-text) !important;
-        box-shadow: var(--workbit-shadow) !important;
-      }
-
-      html[data-theme="dark"] .workbit-notes-panel,
-      html[data-theme="dark"] .workbit-courses-panel,
-      html[data-theme="dark"] .workbit-people-panel,
-      html[data-theme="dark"] .workbit-personal-timelog-panel,
-      html[data-theme="dark"] .workbit-requests-list-panel,
-      html[data-theme="dark"] .workbit-documents-overview,
-      html[data-theme="dark"] .workbit-document-folders-panel {
-        background: transparent !important;
-        border-color: transparent !important;
-        box-shadow: none !important;
-      }
-
-      html[data-theme="dark"] .workbit-home-title h1,
-      html[data-theme="dark"] .workbit-home-hours strong,
-      html[data-theme="dark"] .workbit-home-shift strong,
-      html[data-theme="dark"] .workbit-time-heading > h2,
-      html[data-theme="dark"] .workbit-time-summary-card > strong,
-      html[data-theme="dark"] .workbit-timelog-day-title,
-      html[data-theme="dark"] .workbit-timelog-filter-row > strong,
-      html[data-theme="dark"] .workbit-page-heading > h1,
-      html[data-theme="dark"] .workbit-notes-panel .dashboard-panel-title,
-      html[data-theme="dark"] .workbit-courses-panel .dashboard-panel-title,
-      html[data-theme="dark"] .workbit-people-panel .dashboard-panel-title,
-      html[data-theme="dark"] .workbit-document-folder-copy strong,
-      html[data-theme="dark"] .workbit-note-card > strong,
-      html[data-theme="dark"] .workbit-course-card > strong,
-      html[data-theme="dark"] .workbit-person-card > strong,
-      html[data-theme="dark"] .workbit-settings-card > div:first-child strong,
-      html[data-theme="dark"] .workbit-calendar-day-heading strong,
-      html[data-theme="dark"] .workbit-day-shift-row > div > strong,
-      html[data-theme="dark"] .workbit-day-shift-row > div > span:not(:last-child) {
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .workbit-home-hours small,
-      html[data-theme="dark"] .workbit-home-shift small,
-      html[data-theme="dark"] .workbit-time-summary-card > span,
-      html[data-theme="dark"] .workbit-timelog-day-subtitle,
-      html[data-theme="dark"] .workbit-timelog-filter-row > select,
-      html[data-theme="dark"] .workbit-requests-list-panel .dashboard-panel-title,
-      html[data-theme="dark"] .workbit-requests-list-panel .dashboard-empty-state,
-      html[data-theme="dark"] .workbit-document-folders-panel .dashboard-panel-title,
-      html[data-theme="dark"] .workbit-document-folder-copy div,
-      html[data-theme="dark"] .workbit-note-card > div:nth-of-type(1),
-      html[data-theme="dark"] .workbit-note-card > div:nth-of-type(2),
-      html[data-theme="dark"] .workbit-course-card > div,
-      html[data-theme="dark"] .workbit-person-card > div,
-      html[data-theme="dark"] .workbit-settings-card > div:first-child strong + span,
-      html[data-theme="dark"] .workbit-week-range span,
-      html[data-theme="dark"] .workbit-week-day-header > strong,
-      html[data-theme="dark"] .workbit-calendar-day-notes > .workbit-calendar-day-section-title,
-      html[data-theme="dark"] .workbit-calendar-day-notes > .workbit-calendar-day-section-title strong {
-        color: var(--workbit-text-secondary) !important;
-      }
-
-      html[data-theme="dark"] .workbit-home-ring span,
-      html[data-theme="dark"] .workbit-document-folder-icon,
-      html[data-theme="dark"] .workbit-document-folder-open button {
-        background: var(--workbit-surface-elevated) !important;
-        color: var(--workbit-purple-dark) !important;
-        border-color: var(--workbit-border) !important;
-      }
-
-      html[data-theme="dark"] .workbit-home-ring span {
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .workbit-timelog-duration {
-        background: var(--workbit-purple-soft) !important;
-        color: var(--workbit-purple-dark) !important;
-      }
-
-      html[data-theme="dark"] .workbit-timelog-entry--in,
-      html[data-theme="dark"] .workbit-note-card form button[aria-label="Completa nota"] {
-        background: rgba(34, 197, 94, 0.16) !important;
-        border-color: rgba(74, 222, 128, 0.24) !important;
-        color: #86efac !important;
-      }
-
-      html[data-theme="dark"] .workbit-timelog-entry--out {
-        background: rgba(239, 68, 68, 0.16) !important;
-        border-color: rgba(251, 113, 133, 0.24) !important;
-        color: #fda4af !important;
-      }
-
-      html[data-theme="dark"] .workbit-settings-card[data-tone="danger"] {
-        background: linear-gradient(145deg, rgba(83, 35, 53, 0.94), rgba(45, 25, 42, 0.98)) !important;
-        border-color: rgba(251, 113, 133, 0.24) !important;
-      }
-
-      html[data-theme="dark"] .workbit-timelog-filter-row + .workbit-timelog-filter-row,
-      html[data-theme="dark"] .workbit-note-card > div:last-child,
-      html[data-theme="dark"] .workbit-week-badges {
-        border-color: var(--workbit-border) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-menu-button,
-      html[data-theme="dark"] .dashboard-icon-button,
-      html[data-theme="dark"] .dashboard-select-pill,
-      html[data-theme="dark"] .dashboard-popup-trigger,
-      html[data-theme="dark"] .dashboard-form-field input:not([type="checkbox"]):not([type="radio"]),
-      html[data-theme="dark"] .dashboard-form-field select,
-      html[data-theme="dark"] .dashboard-form-field textarea,
-      html[data-theme="dark"] .dashboard-modal-panel input:not([type="checkbox"]):not([type="radio"]),
-      html[data-theme="dark"] .dashboard-modal-panel select,
-      html[data-theme="dark"] .dashboard-modal-panel textarea {
-        background: var(--workbit-surface-secondary) !important;
-        border-color: var(--workbit-border) !important;
-        color: var(--workbit-text) !important;
-        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset !important;
-      }
-
-      html[data-theme="dark"] .dashboard-modal-wrap,
-      html[data-theme="dark"] .dashboard-menu-overlay {
-        background: rgba(10, 7, 19, 0.58) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-modal-panel {
-        background: linear-gradient(160deg, rgba(53, 39, 79, 0.99), rgba(31, 23, 49, 0.99)) !important;
-        border-color: var(--workbit-border) !important;
-        box-shadow: var(--workbit-shadow-strong) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-segments {
-        background: linear-gradient(135deg, var(--workbit-surface-secondary), var(--workbit-surface)) !important;
-        border-color: var(--workbit-border) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-segments > button {
-        color: var(--workbit-text-secondary) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-segments > button.is-active {
-        background: var(--workbit-surface-elevated) !important;
-        color: var(--workbit-text) !important;
-        box-shadow: 0 4px 12px rgba(10, 7, 19, 0.22) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-today-segment,
-      html[data-theme="dark"] .workbit-calendar-segments .calendar-publish-actions .dashboard-icon-button {
-        background: var(--workbit-purple-soft) !important;
-        border-color: var(--workbit-border) !important;
-        color: var(--workbit-purple-dark) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-day-shifts .workbit-day-shift-row,
-      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row {
-        background: rgba(33, 25, 52, 0.76) !important;
-        border-color: var(--workbit-border) !important;
-      }
-
-      html[data-theme="dark"] .workbit-day-shift-row > div > span:last-child,
-      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row > div > span:last-child {
-        background: rgba(34, 197, 94, 0.16) !important;
-      }
-
-      html[data-theme="dark"] .workbit-day-shift-row > div > span[aria-label="In attesa"],
-      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row > div > span[aria-label="In attesa"] {
-        background: rgba(245, 158, 11, 0.18) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-day-card[data-calendar-closed="true"],
-      html[data-theme="dark"] .workbit-week-day-card[data-calendar-closed="true"] {
-        background: linear-gradient(145deg, rgba(91, 43, 61, 0.88), rgba(48, 27, 45, 0.96)) !important;
-        border-color: rgba(251, 113, 133, 0.25) !important;
-      }
-
-      html[data-theme="dark"] .workbit-week-day-card[data-calendar-closed="true"] .workbit-day-shift-row {
-        background: rgba(62, 32, 48, 0.78) !important;
-      }
-
-      .workbit-theme-select {
-        min-height: 52px;
-        padding: 0 15px;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 12px;
-        border: 1px solid var(--workbit-border);
-        border-radius: 18px;
-        background: var(--workbit-surface);
-      }
-
-      .workbit-theme-select > span {
-        color: var(--workbit-text);
-        font-size: 14px;
-        font-weight: 760;
-      }
-
-      .workbit-theme-select > select {
-        width: auto;
-        min-width: 112px;
-        padding: 8px 24px 8px 8px;
-        border: 0 !important;
-        background-color: transparent !important;
-        color: var(--workbit-muted);
-        font-size: 14px;
-        font-weight: 700;
-        text-align: right;
-        box-shadow: none !important;
-      }
-
-      /* Final cohesive night palette, matching the deep navy Workbit reference. */
-      html[data-theme="dark"] .dashboard-shell-card,
-      html[data-theme="dark"] .dashboard-page-hero,
-      html[data-theme="dark"] .dashboard-panel,
-      html[data-theme="dark"] .dashboard-card,
-      html[data-theme="dark"] .dashboard-item-card,
-      html[data-theme="dark"] .dashboard-list-card,
-      html[data-theme="dark"] .dashboard-compact-list-item,
-      html[data-theme="dark"] .dashboard-summary-card,
-      html[data-theme="dark"] .dashboard-calendar-day,
-      html[data-theme="dark"] .dashboard-calendar-weekday,
-      html[data-theme="dark"] .dashboard-empty-state,
-      html[data-theme="dark"] .workbit-home-hours,
-      html[data-theme="dark"] .workbit-home-shift,
-      html[data-theme="dark"] .workbit-time-summary-card,
-      html[data-theme="dark"] .workbit-timelog-day-card,
-      html[data-theme="dark"] .workbit-timelog-filters,
-      html[data-theme="dark"] .workbit-note-card,
-      html[data-theme="dark"] .workbit-document-folder,
-      html[data-theme="dark"] .workbit-document-card,
-      html[data-theme="dark"] .workbit-settings-card,
-      html[data-theme="dark"] .workbit-week-day-card,
-      html[data-theme="dark"] .workbit-calendar-day-card,
-      html[data-theme="dark"] .sa-overview-card,
-      html[data-theme="dark"] .sa-overview-metric {
-        background: var(--workbit-card) !important;
-        border-color: var(--workbit-border) !important;
-        color: var(--workbit-text) !important;
-        box-shadow: var(--workbit-shadow) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-shell-card,
-      html[data-theme="dark"] .workbit-menu-header-card,
-      html[data-theme="dark"] .dashboard-bottom-nav {
-        background: linear-gradient(145deg, rgba(34, 17, 88, .98), rgba(27, 13, 75, .98)) !important;
-        border-color: rgba(88, 43, 230, .64) !important;
-        box-shadow: 0 14px 36px rgba(3, 0, 24, .34), 0 0 20px rgba(76, 29, 202, .10) !important;
-      }
-
-      html[data-theme="dark"] .workbit-home-clock-card {
-        background: linear-gradient(135deg, #2e07a2 0%, #4313b4 52%, #1d0567 100%) !important;
-        border-color: rgba(101, 71, 245, .78) !important;
-        box-shadow: 0 18px 38px rgba(18, 8, 60, .38), 0 0 20px rgba(76, 29, 202, .18) !important;
-      }
-
-      html[data-theme="dark"] .workbit-home-ring span {
-        background: #12083c !important;
-        color: #ffffff !important;
-      }
-
-      html[data-theme="dark"] .dashboard-modal-panel,
-      html[data-theme="dark"] .workbit-menu-panel {
-        background:
-          radial-gradient(circle at 90% 0%, rgba(101, 71, 245, .14), transparent 32%),
-          linear-gradient(155deg, #221158 0%, #1b0d4b 100%) !important;
-        border-color: rgba(88, 43, 230, .68) !important;
-        color: var(--workbit-text) !important;
-        box-shadow: var(--workbit-shadow-strong) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-menu-overlay,
-      html[data-theme="dark"] .dashboard-modal-wrap {
-        background: rgba(8, 3, 34, .70) !important;
-        backdrop-filter: blur(18px) saturate(125%) !important;
-        -webkit-backdrop-filter: blur(18px) saturate(125%) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-navigation-list,
-      html[data-theme="dark"] .workbit-menu-content,
-      html[data-theme="dark"] .workbit-menu-account-card,
-      html[data-theme="dark"] .workbit-menu-select-row,
-      html[data-theme="dark"] .workbit-theme-select {
-        background: rgba(34, 17, 88, .90) !important;
-        border-color: rgba(88, 43, 230, .54) !important;
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-link {
-        background: transparent !important;
-        color: var(--workbit-text) !important;
-        border-color: rgba(124, 68, 255, .24) !important;
-      }
-
-      html[data-theme="dark"] .workbit-menu-link[aria-current="page"] {
-        background: rgba(101, 71, 245, .20) !important;
-        box-shadow: inset 0 0 0 1px rgba(101, 71, 245, .34) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-bottom-nav a,
-      html[data-theme="dark"] .dashboard-bottom-nav button {
-        color: #b8a9ff !important;
-      }
-
-      html[data-theme="dark"] .dashboard-bottom-nav a[aria-current="page"] {
-        color: #ffffff !important;
-        background: transparent !important;
-        filter: drop-shadow(0 0 7px rgba(101, 71, 245, .72));
-      }
-
-      html[data-theme="dark"] .workbit-calendar-segments {
-        background: rgba(27, 13, 75, .92) !important;
-        border-color: rgba(88, 43, 230, .56) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-segments > button.is-active {
-        background: linear-gradient(135deg, #2e07a2, #6547f5) !important;
-        color: #ffffff !important;
-        box-shadow: 0 7px 18px rgba(76, 29, 202, .30) !important;
-      }
-
-      html[data-theme="dark"] .workbit-calendar-day-shifts .workbit-day-shift-row,
-      html[data-theme="dark"] .workbit-week-shifts .workbit-day-shift-row {
-        background: rgba(27, 13, 75, .78) !important;
-        border-color: rgba(88, 43, 230, .40) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-shell [style*="background: #ffffff"],
-      html[data-theme="dark"] .dashboard-shell [style*="background:#ffffff"],
-      html[data-theme="dark"] .dashboard-shell [style*="background: #fff"],
-      html[data-theme="dark"] .dashboard-shell [style*="background:#fff"],
-      html[data-theme="dark"] .dashboard-shell [style*="background: rgb(255, 255, 255)"],
-      html[data-theme="dark"] .dashboard-shell [style*="background: #f8fafc"] {
-        background: var(--workbit-card) !important;
-        border-color: var(--workbit-border) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-shell [style*="color: #0f172a"],
-      html[data-theme="dark"] .dashboard-shell [style*="color:#0f172a"],
-      html[data-theme="dark"] .dashboard-shell [style*="color: #111827"],
-      html[data-theme="dark"] .dashboard-shell [style*="color: #1C1C1E"],
-      html[data-theme="dark"] .dashboard-shell [style*="color: #151526"],
-      html[data-theme="dark"] .dashboard-shell [style*="color: #20202A"] {
-        color: var(--workbit-text) !important;
-      }
-
-      html[data-theme="dark"] .dashboard-shell [style*="color: #64748b"],
-      html[data-theme="dark"] .dashboard-shell [style*="color: #667085"],
-      html[data-theme="dark"] .dashboard-shell [style*="color: #8E8E93"],
-      html[data-theme="dark"] .dashboard-shell [style*="color: #475569"] {
-        color: var(--workbit-text-secondary) !important;
-      }
     `,
       }}
     />

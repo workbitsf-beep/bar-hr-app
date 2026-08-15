@@ -13,7 +13,6 @@ import {
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { getAccessibleBarsForUser, getPostLoginDestination } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { THEME_COOKIE_NAME } from "@/lib/theme";
 import {
   getWebAuthnConfig,
   toWebAuthnCredential,
@@ -47,7 +46,6 @@ export async function POST(req: Request): Promise<Response> {
             email: true,
             role: true,
             language: true,
-            theme: true,
             mustChangePwd: true,
           },
         },
@@ -149,14 +147,6 @@ export async function POST(req: Request): Promise<Response> {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
     });
-    cookieStore.set(THEME_COOKIE_NAME, credentialRecord.user.theme, {
-      httpOnly: false,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-
     return NextResponse.json({
       ok: true,
       email: credentialRecord.user.email,

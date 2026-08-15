@@ -61,12 +61,14 @@ export function WorkSessionTimer({
     clockInTime !== null && scheduledDurationMs > 0
       ? Math.min(100, (workedMs / scheduledDurationMs) * 100)
       : 0;
+  const ringProgress = clockInTime === null ? 0 : Math.max(2, progress);
+
   return (
     <section className="workbit-home-hours" aria-label="Avanzamento turno">
       <div
         className="workbit-home-ring workbit-home-live-ring"
         style={{
-          background: `conic-gradient(#6547f5 0 ${progress}%, #2f176c ${progress}% 100%)`,
+          background: `conic-gradient(#22c55e 0 ${ringProgress}%, #e5e7eb ${ringProgress}% 100%)`,
         }}
       >
         <span>{formatDuration(workedMs)}</span>
