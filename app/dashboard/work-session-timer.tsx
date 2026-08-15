@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 const TIMER_TICK_MS = 60 * 1000;
 
@@ -12,20 +11,6 @@ function parseTimestamp(value: string | null | undefined) {
 
   const timestamp = new Date(value).getTime();
   return Number.isFinite(timestamp) ? timestamp : null;
-}
-
-function formatClockTime(value: string | null | undefined) {
-  const timestamp = parseTimestamp(value);
-
-  if (timestamp === null) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: APP_TIME_ZONE,
-  }).format(new Date(timestamp));
 }
 
 function formatDuration(durationMs: number) {
@@ -40,12 +25,14 @@ type WorkSessionTimerProps = {
   activeClockInAt?: string | null;
   scheduledStartAt?: string | null;
   scheduledEndAt?: string | null;
+  monthlyHours: string;
 };
 
 export function WorkSessionTimer({
   activeClockInAt,
   scheduledStartAt,
   scheduledEndAt,
+  monthlyHours,
 }: WorkSessionTimerProps) {
   const [now, setNow] = useState(() => Date.now());
   const clockInTime = useMemo(() => parseTimestamp(activeClockInAt), [activeClockInAt]);
@@ -74,31 +61,19 @@ export function WorkSessionTimer({
     clockInTime !== null && scheduledDurationMs > 0
       ? Math.min(100, (workedMs / scheduledDurationMs) * 100)
       : 0;
-  const clockStart = formatClockTime(activeClockInAt);
-
   return (
     <section className="workbit-home-hours" aria-label="Avanzamento turno">
       <div
         className="workbit-home-ring workbit-home-live-ring"
         style={{
-          background: `conic-gradient(#5E5CE6 0 ${progress}%, #E3E1EA ${progress}% 100%)`,
+          background: `conic-gradient(#6547f5 0 ${progress}%, #2f176c ${progress}% 100%)`,
         }}
       >
         <span>{formatDuration(workedMs)}</span>
       </div>
       <div>
-        <strong>{clockInTime !== null ? "Turno in corso" : "Timer pronto"}</strong>
-        <small>
-          {clockInTime !== null
-            ? scheduledDurationMs > 0
-              ? `${formatDuration(scheduledDurationMs)} previste`
-              : clockStart
-                ? `Entrata alle ${clockStart}`
-                : "Timbratura attiva"
-            : scheduledDurationMs > 0
-              ? `Turno di ${formatDuration(scheduledDurationMs)}`
-              : "Si avvia con l'entrata"}
-        </small>
+        <strong>{monthlyHours} ore</strong>
+        <small>questo mese</small>
       </div>
     </section>
   );

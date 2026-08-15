@@ -19,7 +19,7 @@ function applyTheme(preference: ThemePreference) {
   root.style.colorScheme = resolvedTheme;
 
   const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  themeColor?.setAttribute("content", resolvedTheme === "dark" ? "#0d0335" : "#f7f3ff");
+  themeColor?.setAttribute("content", resolvedTheme === "dark" ? "#12083c" : "#f7f3ff");
 }
 
 export function RuntimeThemeSync({ theme }: { theme: string }) {

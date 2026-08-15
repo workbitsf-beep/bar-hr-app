@@ -259,23 +259,20 @@
 }
 
 :global(html[data-theme="dark"]) .page {
-  background:
-    radial-gradient(circle at 86% 6%, rgba(102, 46, 255, 0.24), transparent 30%),
-    radial-gradient(circle at 10% 58%, rgba(76, 29, 202, 0.16), transparent 38%),
-    linear-gradient(180deg, #10043f 0%, #0d0335 52%, #0a022c 100%) !important;
+  background: linear-gradient(180deg, #12083c 0%, #11063d 52%, #12083c 100%) !important;
   color: #ffffff;
 }
 
 :global(html[data-theme="dark"]) .brandCard,
 :global(html[data-theme="dark"]) .authCard {
-  border-color: rgba(124, 68, 255, 0.52);
-  background: linear-gradient(145deg, rgba(35, 8, 103, 0.96), rgba(19, 4, 63, 0.98));
-  box-shadow: 0 18px 42px rgba(3, 0, 24, 0.34), 0 0 24px rgba(91, 33, 182, 0.12);
+  border-color: rgba(88, 43, 230, 0.64);
+  background: linear-gradient(145deg, rgba(34, 17, 88, 0.98), rgba(27, 13, 75, 0.98));
+  box-shadow: 0 18px 42px rgba(3, 0, 24, 0.34), 0 0 20px rgba(76, 29, 202, 0.1);
 }
 
 :global(html[data-theme="dark"]) .eyebrow,
 :global(html[data-theme="dark"]) .forgotPassword {
-  color: #a78bfa;
+  color: #8f7cff;
 }
 
 :global(html[data-theme="dark"]) .heading h1,
@@ -286,27 +283,27 @@
 :global(html[data-theme="dark"]) .heading p,
 :global(html[data-theme="dark"]) .rememberMe,
 :global(html[data-theme="dark"]) .securityNote {
-  color: #b9aedb;
+  color: #b8afcf;
 }
 
 :global(html[data-theme="dark"]) .field input {
-  border-color: rgba(139, 92, 246, 0.44) !important;
-  background: #17064a !important;
+  border-color: rgba(88, 43, 230, 0.52) !important;
+  background: #1b0d4b !important;
   color: #ffffff !important;
 }
 
 :global(html[data-theme="dark"]) .field input::placeholder {
-  color: #9184b8;
+  color: #9c92b5;
 }
 
 :global(html[data-theme="dark"]) .field input:focus {
-  border-color: rgba(167, 139, 250, 0.78) !important;
-  background: #1c075c !important;
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2) !important;
+  border-color: rgba(101, 71, 245, 0.82) !important;
+  background: #221158 !important;
+  box-shadow: 0 0 0 4px rgba(101, 71, 245, 0.18) !important;
 }
 
 :global(html[data-theme="dark"]) .passwordToggle {
-  color: #c4b5fd;
+  color: #b8a9ff;
 }
 
 :global(html[data-theme="dark"]) .errorMessage {

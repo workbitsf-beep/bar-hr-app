@@ -25,7 +25,7 @@ function applyTheme(preference: ThemePreference) {
   document.cookie = `${THEME_COOKIE_NAME}=${preference}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 
   const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  themeColor?.setAttribute("content", resolvedTheme === "dark" ? "#0d0335" : "#f7f3ff");
+  themeColor?.setAttribute("content", resolvedTheme === "dark" ? "#12083c" : "#f7f3ff");
 }
 
 export function ThemeSelect({

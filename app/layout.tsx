@@ -136,34 +136,32 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               html[data-theme="dark"] {
                 color-scheme: dark;
-                --workbit-background: #0d0335;
-                --workbit-surface: #180650;
-                --workbit-surface-secondary: #200764;
-                --workbit-surface-elevated: #2a0a7a;
-                --workbit-field-bg: #17064a;
-                --workbit-popup: #160548;
-                --workbit-navigation: linear-gradient(145deg, rgba(27,7,83,0.96) 0%, rgba(15,3,55,0.97) 100%);
-                --workbit-calendar: #140443;
+                --workbit-background: #12083c;
+                --workbit-surface: #1b0d4b;
+                --workbit-surface-secondary: #221158;
+                --workbit-surface-elevated: #2e07a2;
+                --workbit-field-bg: #1b0d4b;
+                --workbit-popup: #1b0d4b;
+                --workbit-navigation: linear-gradient(145deg, rgba(34,17,88,0.98) 0%, rgba(18,8,60,0.99) 100%);
+                --workbit-calendar: #12083d;
                 --workbit-navy: #ffffff;
                 --workbit-deep-navy: #f4f0ff;
                 --workbit-ink: #ffffff;
                 --workbit-text: #ffffff;
-                --workbit-text-secondary: #c7bce9;
-                --workbit-muted: #a99dcc;
-                --workbit-purple: #8b5cf6;
-                --workbit-electric-purple: #a855f7;
-                --workbit-purple-dark: #c4b5fd;
-                --workbit-purple-soft: rgba(111, 56, 255, 0.24);
-                --workbit-lavender: #321184;
-                --workbit-border: rgba(116, 58, 255, 0.62);
-                --workbit-card: linear-gradient(145deg, rgba(35,8,103,0.96) 0%, rgba(19,4,63,0.98) 100%);
-                --workbit-app-bg: radial-gradient(circle at 92% 2%, rgba(96,37,255,0.22), transparent 30%),
-                  radial-gradient(circle at 8% 36%, rgba(82,21,204,0.16), transparent 34%),
-                  linear-gradient(180deg, #10043f 0%, #0d0335 52%, #0a022c 100%);
-                --workbit-gradient: linear-gradient(135deg, #3510a4 0%, #6d28d9 52%, #9333ea 100%);
-                --workbit-gradient-soft: linear-gradient(135deg, rgba(95,40,220,0.34) 0%, rgba(139,92,246,0.20) 100%);
-                --workbit-shadow: 0 14px 34px rgba(4, 0, 24, 0.28), 0 0 22px rgba(91, 33, 182, 0.10), 0 1px 0 rgba(255,255,255,0.06) inset;
-                --workbit-shadow-strong: 0 24px 64px rgba(3, 0, 20, 0.48), 0 0 34px rgba(91, 33, 182, 0.18);
+                --workbit-text-secondary: #b8afcf;
+                --workbit-muted: #9c92b5;
+                --workbit-purple: #6547f5;
+                --workbit-electric-purple: #7c3aed;
+                --workbit-purple-dark: #b8a9ff;
+                --workbit-purple-soft: rgba(101, 71, 245, 0.20);
+                --workbit-lavender: #2f176c;
+                --workbit-border: rgba(88, 43, 230, 0.72);
+                --workbit-card: linear-gradient(145deg, rgba(34,17,88,0.97) 0%, rgba(27,13,75,0.98) 100%);
+                --workbit-app-bg: linear-gradient(180deg, #12083c 0%, #11063d 52%, #12083c 100%);
+                --workbit-gradient: linear-gradient(135deg, #2e07a2 0%, #4c1dca 52%, #6547f5 100%);
+                --workbit-gradient-soft: linear-gradient(135deg, rgba(76,29,202,0.30) 0%, rgba(101,71,245,0.18) 100%);
+                --workbit-shadow: 0 14px 34px rgba(4, 0, 24, 0.30), 0 0 20px rgba(76, 29, 202, 0.10), 0 1px 0 rgba(255,255,255,0.05) inset;
+                --workbit-shadow-strong: 0 24px 64px rgba(3, 0, 20, 0.48), 0 0 28px rgba(76, 29, 202, 0.16);
                 --workbit-focus: 0 0 0 4px rgba(139, 92, 246, 0.30);
                 --workbit-success: #4ade80;
                 --workbit-warning: #fbbf24;

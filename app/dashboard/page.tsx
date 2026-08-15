@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
+import { buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardContext } from "./context";
 import { reviewRequestAction } from "./actions";
 import { KpiDashboard } from "./kpi-dashboard";
@@ -14,6 +15,7 @@ import {
   PrimaryButton,
   Stack,
 } from "./ui";
+import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { WorkSessionTimer } from "./work-session-timer";
 
@@ -81,6 +83,7 @@ export default async function DashboardPage() {
   const [
     settings,
     shifts,
+    ownHours,
     latestTimeLog,
     kpiData,
     pendingApprovalRequests,
@@ -135,6 +138,9 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve([]),
+    isOperationalProfile && features.timeTracking
+      ? buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear())
+      : Promise.resolve(null),
     isOperationalProfile && features.timeTracking
       ? prisma.timeLog.findFirst({
           where: {
@@ -243,11 +249,12 @@ export default async function DashboardPage() {
             <h1>Oggi</h1>
           </div>
 
-          {features.timeTracking ? (
+          {features.timeTracking && ownHours ? (
             <WorkSessionTimer
               activeClockInAt={activeClockInAt}
               scheduledStartAt={timerShift?.startTime.toISOString() ?? null}
               scheduledEndAt={timerShift?.endTime.toISOString() ?? null}
+              monthlyHours={formatDurationClock(ownHours.roundedHours)}
             />
           ) : null}
 
