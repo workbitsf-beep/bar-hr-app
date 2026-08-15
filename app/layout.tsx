@@ -1346,6 +1346,117 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 box-shadow: 0 0 0 0 rgba(124, 58, 237, .30);
               }
 
+              /* Keep dark mode authoritative after the light visual skin above. */
+              html[data-theme="dark"] body,
+              html[data-theme="dark"] .dashboard-shell,
+              html[data-theme="dark"] .workbit-login-page {
+                background: var(--workbit-app-bg) !important;
+                color: var(--workbit-text) !important;
+              }
+
+              html[data-theme="dark"] .dashboard-shell-card,
+              html[data-theme="dark"] .dashboard-page-hero,
+              html[data-theme="dark"] .dashboard-panel,
+              html[data-theme="dark"] .dashboard-card,
+              html[data-theme="dark"] .dashboard-item-card,
+              html[data-theme="dark"] .dashboard-list-card,
+              html[data-theme="dark"] .dashboard-compact-list-item,
+              html[data-theme="dark"] .dashboard-summary-card,
+              html[data-theme="dark"] .dashboard-calendar-day,
+              html[data-theme="dark"] .dashboard-calendar-weekday,
+              html[data-theme="dark"] .dashboard-empty-state,
+              html[data-theme="dark"] .dashboard-modal-panel,
+              html[data-theme="dark"] .sa-overview-card,
+              html[data-theme="dark"] .sa-overview-metric,
+              html[data-theme="dark"] .workbit-login-card {
+                background: var(--workbit-card) !important;
+                border-color: var(--workbit-border) !important;
+                color: var(--workbit-text) !important;
+                box-shadow: var(--workbit-shadow) !important;
+              }
+
+              html[data-theme="dark"] .dashboard-panel-title,
+              html[data-theme="dark"] .dashboard-section-header h3,
+              html[data-theme="dark"] .dashboard-shell h1,
+              html[data-theme="dark"] .dashboard-shell h2,
+              html[data-theme="dark"] .dashboard-shell h3,
+              html[data-theme="dark"] .workbit-login-card h1,
+              html[data-theme="dark"] .workbit-login-card h2,
+              html[data-theme="dark"] .workbit-login-card strong {
+                color: var(--workbit-text) !important;
+              }
+
+              html[data-theme="dark"] .dashboard-page-hero p,
+              html[data-theme="dark"] .dashboard-shell p,
+              html[data-theme="dark"] .dashboard-section-header div,
+              html[data-theme="dark"] .dashboard-panel label,
+              html[data-theme="dark"] .dashboard-panel small,
+              html[data-theme="dark"] .workbit-login-card p,
+              html[data-theme="dark"] .workbit-login-card label,
+              html[data-theme="dark"] .workbit-login-card small {
+                color: var(--workbit-text-secondary) !important;
+              }
+
+              html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+              html[data-theme="dark"] select,
+              html[data-theme="dark"] textarea,
+              html[data-theme="dark"] .dashboard-menu-button,
+              html[data-theme="dark"] .dashboard-icon-button,
+              html[data-theme="dark"] .dashboard-select-pill,
+              html[data-theme="dark"] .dashboard-popup-trigger {
+                background: var(--workbit-surface-secondary) !important;
+                border-color: var(--workbit-border) !important;
+                color: var(--workbit-text) !important;
+                box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset !important;
+              }
+
+              html[data-theme="dark"] input::placeholder,
+              html[data-theme="dark"] textarea::placeholder {
+                color: var(--workbit-muted) !important;
+              }
+
+              html[data-theme="dark"] .dashboard-modal-wrap,
+              html[data-theme="dark"] .dashboard-menu-overlay {
+                background: rgba(10, 7, 19, 0.58) !important;
+              }
+
+              html[data-theme="dark"] .dashboard-bottom-nav,
+              html[data-theme="dark"] nav {
+                background: var(--workbit-navigation) !important;
+                border-color: var(--workbit-border) !important;
+                box-shadow: var(--workbit-shadow-strong) !important;
+              }
+
+              html[data-theme="dark"] .dashboard-bottom-nav a,
+              html[data-theme="dark"] .dashboard-bottom-nav button {
+                background: transparent !important;
+                border-color: transparent !important;
+                color: var(--workbit-purple-dark) !important;
+                box-shadow: none !important;
+              }
+
+              html[data-theme="dark"] .dashboard-bottom-nav a[aria-current="page"] {
+                background: rgba(167, 139, 250, 0.10) !important;
+                border-color: rgba(196, 181, 253, 0.20) !important;
+                box-shadow: 0 0 22px rgba(167, 139, 250, 0.20) !important;
+              }
+
+              html[data-theme="dark"] .workbit-global-ambient__veil {
+                opacity: 0.22;
+                background: linear-gradient(145deg, rgba(90, 59, 136, 0.08), rgba(21, 15, 35, 0.18));
+              }
+
+              html[data-theme="dark"] .dashboard-shell [style*="background: linear-gradient"][style*="#ffffff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: linear-gradient"][style*="#fff"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: linear-gradient"][style*="rgb(255, 255, 255)"],
+              html[data-theme="dark"] .dashboard-shell [style*="background: rgba(255, 255, 255"],
+              html[data-theme="dark"] .dashboard-modal-panel [style*="background: linear-gradient"][style*="#ffffff"],
+              html[data-theme="dark"] .dashboard-modal-panel [style*="background: linear-gradient"][style*="rgb(255, 255, 255)"],
+              html[data-theme="dark"] .dashboard-modal-panel [style*="background: rgba(255, 255, 255"] {
+                background: var(--workbit-surface-secondary) !important;
+                border-color: var(--workbit-border) !important;
+              }
+
               @keyframes workbit-orb-drift {
                 from {
                   transform: translate3d(-8%, -4%, 0) scale(1);

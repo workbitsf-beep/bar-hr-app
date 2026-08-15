@@ -380,6 +380,30 @@ export function SuperAdminFrame({
               box-shadow: 0 12px 24px rgba(15,23,42,.06);
             }
 
+            html[data-theme="dark"] .super-admin-command,
+            html[data-theme="dark"] .super-admin-route {
+              background: var(--workbit-card);
+              border-color: var(--workbit-border);
+              color: var(--workbit-text);
+              box-shadow: var(--workbit-shadow);
+            }
+
+            html[data-theme="dark"] .super-admin-command-pill {
+              background: var(--workbit-purple-soft);
+              border-color: var(--workbit-border);
+              color: var(--workbit-purple-dark);
+            }
+
+            html[data-theme="dark"] .super-admin-command h1,
+            html[data-theme="dark"] .super-admin-route-copy strong {
+              color: var(--workbit-text);
+            }
+
+            html[data-theme="dark"] .super-admin-command p,
+            html[data-theme="dark"] .super-admin-route-copy span {
+              color: var(--workbit-text-secondary);
+            }
+
             @media (max-width: 980px) {
               .super-admin-command {
                 grid-template-columns: 1fr;
@@ -533,6 +557,21 @@ export function SuperAdminMenuGrid() {
               color: var(--workbit-muted);
               font-size: 13px;
               line-height: 1.38;
+            }
+
+            html[data-theme="dark"] .super-admin-menu-card {
+              background: var(--workbit-card);
+              border-color: var(--workbit-border);
+              color: var(--workbit-text);
+              box-shadow: var(--workbit-shadow);
+            }
+
+            html[data-theme="dark"] .super-admin-menu-card strong {
+              color: var(--workbit-text);
+            }
+
+            html[data-theme="dark"] .super-admin-menu-description {
+              color: var(--workbit-text-secondary);
             }
 
             @media (max-width: 1120px) {

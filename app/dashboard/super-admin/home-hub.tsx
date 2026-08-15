@@ -247,6 +247,25 @@ export async function SuperAdminHomeHub() {
               font-size: 16px;
               letter-spacing: -.02em;
             }
+            html[data-theme="dark"] .sa-overview-head,
+            html[data-theme="dark"] .sa-overview-metric,
+            html[data-theme="dark"] .sa-overview-card {
+              background: var(--workbit-card);
+              border-color: var(--workbit-border);
+              color: var(--workbit-text);
+              box-shadow: var(--workbit-shadow);
+            }
+            html[data-theme="dark"] .sa-overview-head h2,
+            html[data-theme="dark"] .sa-overview-metric strong,
+            html[data-theme="dark"] .sa-overview-card strong {
+              color: var(--workbit-text);
+            }
+            html[data-theme="dark"] .sa-overview-head p,
+            html[data-theme="dark"] .sa-overview-metric span,
+            html[data-theme="dark"] .sa-overview-metric small,
+            html[data-theme="dark"] .sa-overview-card small {
+              color: var(--workbit-text-secondary);
+            }
             @media (max-width: 1020px) {
               .sa-overview-metrics,
               .sa-overview-grid {
