@@ -5,6 +5,7 @@ import { ActivityType } from "@prisma/client";
 import {
   EmptyState,
   FormField,
+  IconButton,
   ItemCard,
   ItemList,
   Panel,
@@ -262,7 +263,26 @@ export function ExportClient({
       </Panel>
 
       {result ? (
-        <Panel title="Anteprima mensile" className="workbit-export-preview">
+        <Panel
+          title="Anteprima mensile"
+          className="workbit-export-preview"
+          action={
+            <IconButton
+              type="button"
+              aria-label="Chiudi anteprima"
+              onClick={() => setResult(null)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M6 6l12 12M18 6 6 18"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </IconButton>
+          }
+        >
           <div style={{ display: "grid", gap: 16 }}>
             {result.mode === "company" ? (
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

@@ -642,7 +642,7 @@ function DashboardResponsiveStyles() {
         align-items: center;
         gap: 11px;
         min-height: 62px;
-        padding: 10px 12px;
+        padding: 10px 20px 10px 12px;
         border-radius: 18px;
         background: #ffffff;
         border: 1px solid rgba(60, 60, 67, 0.09);
@@ -3372,6 +3372,35 @@ function DashboardResponsiveStyles() {
         justify-self: center !important;
       }
 
+      /* Menu selectors stay on one centered row on every mobile breakpoint. */
+      .workbit-menu-details .workbit-menu-select-row,
+      .workbit-menu-details .workbit-menu-theme-row > label {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(112px, 48%) !important;
+        align-items: center !important;
+        gap: 12px !important;
+        min-height: 52px !important;
+        padding: 0 15px !important;
+      }
+
+      .workbit-menu-details .workbit-menu-select-row > span,
+      .workbit-menu-details .workbit-menu-theme-row > label > span {
+        width: auto !important;
+        align-self: center !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+      }
+
+      .workbit-menu-details .workbit-menu-select-row > select,
+      .workbit-menu-details .workbit-menu-theme-row select {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 44px !important;
+        align-self: center !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+      }
+
       /* Dark mode keeps the Workbit hierarchy without light cards leaking through. */
       html[data-theme="dark"] .dashboard-shell-card,
       html[data-theme="dark"] .dashboard-panel,
@@ -3439,6 +3468,46 @@ function DashboardResponsiveStyles() {
       html[data-theme="dark"] .workbit-week-day-card[data-calendar-closed="true"] {
         background: linear-gradient(180deg, rgba(81, 25, 38, 0.95), rgba(43, 19, 31, 0.98)) !important;
         border-color: rgba(251, 113, 133, 0.28) !important;
+      }
+
+      html[data-theme="dark"] .dashboard-menu-overlay.workbit-menu-page-overlay,
+      html[data-theme="dark"] .workbit-menu-panel {
+        background: var(--workbit-app-bg) !important;
+      }
+
+      html[data-theme="dark"] .workbit-menu-header-card,
+      html[data-theme="dark"] .workbit-menu-account-card,
+      html[data-theme="dark"] .workbit-menu-navigation-list {
+        background: linear-gradient(145deg, rgba(54,41,80,0.96), rgba(34,26,54,0.96)) !important;
+        border-color: var(--workbit-border) !important;
+        box-shadow: var(--workbit-shadow) !important;
+      }
+
+      html[data-theme="dark"] .workbit-menu-link,
+      html[data-theme="dark"] .workbit-menu-select-row,
+      html[data-theme="dark"] .workbit-menu-theme-row,
+      html[data-theme="dark"] .workbit-menu-theme-row > label {
+        background: linear-gradient(135deg, rgba(48,36,72,0.92), rgba(37,28,58,0.92)) !important;
+        border-color: var(--workbit-border) !important;
+        color: var(--workbit-text) !important;
+      }
+
+      html[data-theme="dark"] .workbit-menu-link + .workbit-menu-link,
+      html[data-theme="dark"] .workbit-menu-select-row + .workbit-menu-select-row,
+      html[data-theme="dark"] .workbit-menu-theme-row {
+        border-top-color: rgba(196, 181, 253, 0.14) !important;
+      }
+
+      html[data-theme="dark"] .workbit-menu-header-card .brand-logo-label,
+      html[data-theme="dark"] .workbit-menu-link,
+      html[data-theme="dark"] .workbit-menu-select-row > span,
+      html[data-theme="dark"] .workbit-menu-theme-row > label > span {
+        color: var(--workbit-text) !important;
+      }
+
+      html[data-theme="dark"] .workbit-menu-select-row > select,
+      html[data-theme="dark"] .workbit-menu-theme-row select {
+        color: var(--workbit-text-secondary) !important;
       }
     `,
       }}
