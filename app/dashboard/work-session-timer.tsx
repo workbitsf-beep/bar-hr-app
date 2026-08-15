@@ -5,7 +5,7 @@ import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 const TIMER_TICK_MS = 60 * 1000;
 
-function parseClockInTime(value: string | null | undefined) {
+function parseTimestamp(value: string | null | undefined) {
   if (!value) {
     return null;
   }
@@ -14,8 +14,8 @@ function parseClockInTime(value: string | null | undefined) {
   return Number.isFinite(timestamp) ? timestamp : null;
 }
 
-function formatClockStart(value: string | null | undefined) {
-  const timestamp = parseClockInTime(value);
+function formatClockTime(value: string | null | undefined) {
+  const timestamp = parseTimestamp(value);
 
   if (timestamp === null) {
     return "";
@@ -28,18 +28,29 @@ function formatClockStart(value: string | null | undefined) {
   }).format(new Date(timestamp));
 }
 
-function formatDurationMinutes(duration: number) {
-  const totalMinutes = Math.max(0, Math.floor(duration / TIMER_TICK_MS));
+function formatDuration(durationMs: number) {
+  const totalMinutes = Math.max(0, Math.floor(durationMs / TIMER_TICK_MS));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
-export function WorkSessionTimer({ activeClockInAt }: { activeClockInAt?: string | null }) {
+type WorkSessionTimerProps = {
+  activeClockInAt?: string | null;
+  scheduledStartAt?: string | null;
+  scheduledEndAt?: string | null;
+};
+
+export function WorkSessionTimer({
+  activeClockInAt,
+  scheduledStartAt,
+  scheduledEndAt,
+}: WorkSessionTimerProps) {
   const [now, setNow] = useState(() => Date.now());
-  const clockInTime = useMemo(() => parseClockInTime(activeClockInAt), [activeClockInAt]);
-  const clockStart = useMemo(() => formatClockStart(activeClockInAt), [activeClockInAt]);
+  const clockInTime = useMemo(() => parseTimestamp(activeClockInAt), [activeClockInAt]);
+  const scheduledStart = useMemo(() => parseTimestamp(scheduledStartAt), [scheduledStartAt]);
+  const scheduledEnd = useMemo(() => parseTimestamp(scheduledEndAt), [scheduledEndAt]);
 
   useEffect(() => {
     if (clockInTime === null) {
@@ -54,73 +65,41 @@ export function WorkSessionTimer({ activeClockInAt }: { activeClockInAt?: string
     return () => window.clearInterval(intervalId);
   }, [clockInTime]);
 
-  if (clockInTime === null) {
-    return null;
-  }
-
-  const workedMs = Math.max(0, now - clockInTime);
+  const workedMs = clockInTime === null ? 0 : Math.max(0, now - clockInTime);
+  const scheduledDurationMs =
+    scheduledStart !== null && scheduledEnd !== null
+      ? Math.max(0, scheduledEnd - scheduledStart)
+      : 0;
+  const progress =
+    clockInTime !== null && scheduledDurationMs > 0
+      ? Math.min(100, (workedMs / scheduledDurationMs) * 100)
+      : 0;
+  const clockStart = formatClockTime(activeClockInAt);
 
   return (
-    <div
-      className="dashboard-work-session-timer"
-      aria-live="polite"
-      title={clockStart ? `Entrata alle ${clockStart}` : "Timer in corso"}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        minHeight: 44,
-        width: "fit-content",
-        maxWidth: "100%",
-        margin: "0 auto",
-        padding: "9px 16px",
-        borderRadius: 999,
-        background: "rgba(255,255,255,0.78)",
-        border: "1px solid rgba(124,58,237,0.12)",
-        boxShadow: "0 12px 28px rgba(88,28,135,0.08)",
-        color: "#4c1d95",
-      }}
-    >
-      <span
-        className="dashboard-work-session-timer-dot"
-        aria-hidden="true"
+    <section className="workbit-home-hours" aria-label="Avanzamento turno">
+      <div
+        className="workbit-home-ring workbit-home-live-ring"
         style={{
-          width: 8,
-          height: 8,
-          borderRadius: 999,
-          background: "#22c55e",
-          boxShadow: "0 0 0 5px rgba(34,197,94,0.12)",
-          flex: "0 0 auto",
-        }}
-      />
-      <span
-        className="dashboard-work-session-timer-label"
-        style={{
-          color: "#64748b",
-          fontSize: 10,
-          fontWeight: 900,
-          lineHeight: 1,
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
+          background: `conic-gradient(#5E5CE6 0 ${progress}%, #E3E1EA ${progress}% 100%)`,
         }}
       >
-        In turno
-      </span>
-      <strong
-        className="dashboard-work-session-timer-value"
-        style={{
-          color: "#4c1d95",
-          fontSize: 19,
-          fontWeight: 950,
-          lineHeight: 1,
-          fontVariantNumeric: "tabular-nums",
-          letterSpacing: 0,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {formatDurationMinutes(workedMs)}
-      </strong>
-    </div>
+        <span>{formatDuration(workedMs)}</span>
+      </div>
+      <div>
+        <strong>{clockInTime !== null ? "Turno in corso" : "Timer pronto"}</strong>
+        <small>
+          {clockInTime !== null
+            ? scheduledDurationMs > 0
+              ? `${formatDuration(scheduledDurationMs)} previste`
+              : clockStart
+                ? `Entrata alle ${clockStart}`
+                : "Timbratura attiva"
+            : scheduledDurationMs > 0
+              ? `Turno di ${formatDuration(scheduledDurationMs)}`
+              : "Si avvia con l'entrata"}
+        </small>
+      </div>
+    </section>
   );
 }

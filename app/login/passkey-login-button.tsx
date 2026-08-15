@@ -137,6 +137,7 @@ export function PasskeyLoginButton({
 
   return (
     <button
+      className="workbit-passkey-login"
       type="button"
       onClick={handlePasskeyLogin}
       disabled={loading || checking || !available}

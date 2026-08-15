@@ -4,7 +4,6 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
-import { RevealOnScroll } from "@/app/components/workbit-animations";
 import {
   clearRememberedLoginEmail,
   clearPersistentSession,
@@ -17,6 +16,7 @@ import {
   rememberLoginEmail,
 } from "@/lib/client-session";
 import { PasskeyLoginButton } from "./passkey-login-button";
+import styles from "./login.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -74,7 +74,6 @@ export default function LoginPage() {
     if (rememberedEmail) {
       setEmail(rememberedEmail);
     }
-
   }, []);
 
   useEffect(() => {
@@ -147,185 +146,94 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      className="workbit-animated-page workbit-login-page"
-      style={{
-        position: "relative",
-        isolation: "isolate",
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        padding: 20,
-        background: "linear-gradient(180deg, #ffffff 0%, #f7f4ff 42%, #efebfa 100%)",
-      }}
-    >
-      <RevealOnScroll
-        as="section"
-        className="workbit-animated-page__content"
-        style={{
-          position: "relative",
-          zIndex: 1,
-          width: "100%",
-          maxWidth: 460,
-          padding: "24px 0",
-        }}
-      >
-        <div
-          className="workbit-login-card"
-          style={{
-            display: "grid",
-            gap: 24,
-            padding: 26,
-            borderRadius: 34,
-            background: "#ffffff",
-            border: "1px solid rgba(60, 60, 67, 0.12)",
-            boxShadow: "0 18px 54px rgba(61, 42, 153, 0.14)",
-            backdropFilter: "none",
-          }}
-        >
-          <div style={{ display: "grid", justifyItems: "center", gap: 14, textAlign: "center" }}>
-            <BrandLogo size={44} priority showIcon label="Workbit" style={{ gap: 12 }} />
-            <div style={{ display: "grid", gap: 8 }}>
-              <h1 style={{ margin: 0, fontSize: 34, color: "var(--workbit-navy)", letterSpacing: "-0.03em" }}>
-                Accedi
-              </h1>
-              <p style={{ margin: 0, color: "var(--workbit-purple-dark)", lineHeight: 1.7, fontWeight: 700 }}>
-                ✨ Turni, timbrature e richieste in uno spazio semplice e pulito.
-              </p>
-            </div>
+    <main className={`workbit-login-page ${styles.page}`}>
+      <section className={styles.shell}>
+        <header className={styles.brandCard}>
+          <BrandLogo size={40} priority showIcon label="Workbit" style={{ gap: 11 }} />
+        </header>
+
+        <div className={styles.content}>
+          <div className={styles.heading}>
+            <span className={styles.eyebrow}>Il tuo spazio di lavoro</span>
+            <h1>Bentornato</h1>
+            <p>Accedi per continuare su Workbit.</p>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: "grid", gap: 18 }}>
-            <label style={{ display: "grid", gap: 8 }}>
-              <span style={{ fontWeight: 600, color: "var(--workbit-navy)" }}>Email</span>
+          <form className={styles.authCard} onSubmit={handleSubmit}>
+            <label className={styles.field}>
+              <span>Email</span>
               <input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="nome@locale.it"
-                style={{
-                  borderRadius: 18,
-                  border: "1px solid var(--workbit-border)",
-                  padding: "14px 16px",
-                  fontSize: 16,
-                  background: "#ffffff",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                  color: "var(--workbit-text)",
-                }}
+                autoComplete="email"
+                inputMode="email"
+                required
               />
             </label>
 
-            <label style={{ display: "grid", gap: 8 }}>
-              <span style={{ fontWeight: 600, color: "var(--workbit-navy)" }}>Password</span>
-              <div style={{ display: "grid", gap: 10 }}>
+            <label className={styles.field}>
+              <span>Password</span>
+              <div className={styles.passwordField}>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Inserisci la password"
-                  style={{
-                    borderRadius: 18,
-                    border: "1px solid var(--workbit-border)",
-                    padding: "14px 16px",
-                    fontSize: 16,
-                    background: "#ffffff",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                    color: "var(--workbit-text)",
-                  }}
+                  autoComplete="current-password"
+                  required
                 />
                 <button
-                  className="workbit-press-feedback"
+                  className={`workbit-press-feedback ${styles.passwordToggle}`}
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
-                  style={{
-                    width: "fit-content",
-                    border: "1px solid var(--workbit-border)",
-                    background: "#f5f3fc",
-                    color: "var(--workbit-purple-dark)",
-                    borderRadius: 999,
-                    padding: "9px 13px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
+                  aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                  title={showPassword ? "Nascondi password" : "Mostra password"}
                 >
-                  {showPassword ? "Nascondi password" : "Mostra password"}
+                  {showPassword ? (
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M3 3l18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      <path d="M10.6 10.7a2 2 0 002.7 2.7M9.9 5.2A9.7 9.7 0 0112 5c5.4 0 8.5 5.2 8.5 5.2a11.8 11.8 0 01-2.4 3M6.2 6.3a12.8 12.8 0 00-2.7 3.9S6.6 15.4 12 15.4c.7 0 1.4-.1 2-.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M3.5 12S6.6 6.8 12 6.8s8.5 5.2 8.5 5.2-3.1 5.2-8.5 5.2S3.5 12 3.5 12z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                      <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.8" />
+                    </svg>
+                  )}
                 </button>
               </div>
             </label>
 
-            {error ? (
-              <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p>
-            ) : null}
+            <div className={styles.optionsRow}>
+              <label className={styles.rememberMe}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
+                />
+                <span>Ricordami</span>
+              </label>
 
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "12px 14px",
-                borderRadius: 18,
-                background: "#ffffff",
-                border: "1px solid var(--workbit-border)",
-                color: "#334155",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(event) => setRememberMe(event.target.checked)}
-                style={{ width: 16, height: 16 }}
-              />
-              <span style={{ display: "grid", gap: 2 }}>
-                <span style={{ fontWeight: 700, color: "var(--workbit-navy)" }}>Ricordami</span>
-                <span style={{ fontSize: 13, color: "var(--workbit-muted)", lineHeight: 1.5 }}>
-                  Mantieni l&apos;accesso più a lungo su questo dispositivo.
-                </span>
-              </span>
-            </label>
-
-            <button
-              className="workbit-press-feedback"
-              type="button"
-              onClick={() => router.push("/forgot-password")}
-              style={{
-                justifySelf: "start",
-                border: 0,
-                background: "transparent",
-                padding: 0,
-                color: "var(--workbit-muted)",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Hai dimenticato la password?
-            </button>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                gap: 12,
-                alignItems: "center",
-              }}
-            >
               <button
-                className="workbit-press-feedback"
+                className={`workbit-press-feedback ${styles.forgotPassword}`}
+                type="button"
+                onClick={() => router.push("/forgot-password")}
+              >
+                Password dimenticata?
+              </button>
+            </div>
+
+            {error ? <p className={styles.errorMessage}>{error}</p> : null}
+
+            <div className={styles.actions}>
+              <button
+                className={`workbit-press-feedback ${styles.submitButton}`}
                 type="submit"
                 disabled={loading}
-                style={{
-                  background: "linear-gradient(135deg, #3D2A99 0%, #5E5CE6 56%, #8B5CF6 100%)",
-                  color: "#fff",
-                  border: 0,
-                  borderRadius: 999,
-                  padding: "14px 18px",
-                  fontWeight: 700,
-                  fontSize: 16,
-                  cursor: loading ? "default" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                  boxShadow: "0 16px 30px rgba(124, 58, 237, 0.18)",
-                }}
               >
-                {loading ? "Accesso in corso..." : "Entra"}
+                {loading ? "Accesso in corso..." : "Accedi"}
               </button>
 
               <PasskeyLoginButton
@@ -338,8 +246,10 @@ export default function LoginPage() {
               />
             </div>
           </form>
+
+          <p className={styles.securityNote}>Accesso protetto e sicuro</p>
         </div>
-      </RevealOnScroll>
+      </section>
     </main>
   );
 }

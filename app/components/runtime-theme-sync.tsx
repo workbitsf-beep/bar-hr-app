@@ -5,14 +5,8 @@ import { AppTheme } from "@prisma/client";
 import { normalizeTheme, type ThemePreference } from "@/lib/theme";
 
 function resolveTheme(preference: ThemePreference) {
-  if (preference === AppTheme.LIGHT) {
-    return "light";
-  }
-
-  if (preference === AppTheme.DARK) {
-    return "dark";
-  }
-
+  if (preference === AppTheme.LIGHT) return "light";
+  if (preference === AppTheme.DARK) return "dark";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
@@ -23,6 +17,9 @@ function applyTheme(preference: ThemePreference) {
   root.dataset.themePreference = preference.toLowerCase();
   root.dataset.theme = resolvedTheme;
   root.style.colorScheme = resolvedTheme;
+
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  themeColor?.setAttribute("content", resolvedTheme === "dark" ? "#0d0335" : "#f7f3ff");
 }
 
 export function RuntimeThemeSync({ theme }: { theme: string }) {
@@ -30,18 +27,13 @@ export function RuntimeThemeSync({ theme }: { theme: string }) {
     const preference = normalizeTheme(theme);
     applyTheme(preference);
 
-    if (preference !== AppTheme.SYSTEM) {
-      return;
-    }
+    if (preference !== AppTheme.SYSTEM) return;
 
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => applyTheme(preference);
-
     media.addEventListener("change", handleChange);
 
-    return () => {
-      media.removeEventListener("change", handleChange);
-    };
+    return () => media.removeEventListener("change", handleChange);
   }, [theme]);
 
   return null;

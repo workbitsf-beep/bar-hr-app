@@ -92,6 +92,7 @@ function BrandLogoContent({
         }}
       >
         <span
+          className="brand-logo-label"
           style={{
             color: textColor,
             fontWeight: 800,
@@ -105,6 +106,7 @@ function BrandLogoContent({
         </span>
         {showSecondaryLabel && secondaryLabel.trim() ? (
           <span
+            className="brand-logo-secondary-label"
             style={{
               color: secondaryColor,
               fontSize: 12,

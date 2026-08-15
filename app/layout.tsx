@@ -50,28 +50,23 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   const cookieStore = await cookies();
   const htmlLang = normalizeLanguage(cookieStore.get(LANGUAGE_COOKIE_NAME)?.value ?? "it");
   const themePreference = normalizeTheme(cookieStore.get(THEME_COOKIE_NAME)?.value ?? "SYSTEM");
+  const serverTheme = themePreference === "DARK" ? "dark" : "light";
 
   return (
-    <html lang={htmlLang} data-theme-preference={themePreference.toLowerCase()}>
+    <html
+      lang={htmlLang}
+      data-theme={serverTheme}
+      data-theme-preference={themePreference.toLowerCase()}
+      style={{ colorScheme: serverTheme }}
+      suppressHydrationWarning
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var preference = ${JSON.stringify(themePreference)};
-                  var resolved = preference === "DARK" ? "dark" : preference === "LIGHT" ? "light" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-                  document.documentElement.dataset.theme = resolved;
-                  document.documentElement.dataset.themePreference = preference.toLowerCase();
-                  document.documentElement.style.colorScheme = resolved;
-                } catch (error) {
-                  document.documentElement.dataset.theme = "light";
-                  document.documentElement.style.colorScheme = "light";
-                }
-              })();
-            `,
+            __html: `(function(){try{var p=${JSON.stringify(themePreference)};var d=p==='DARK'?'dark':p==='LIGHT'?'light':(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');var r=document.documentElement;r.dataset.theme=d;r.dataset.themePreference=p.toLowerCase();r.style.colorScheme=d;}catch(e){document.documentElement.dataset.theme='light';document.documentElement.style.colorScheme='light';}})();`,
           }}
         />
+        <meta name="color-scheme" content="light dark" />
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -81,6 +76,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 overflow-x: hidden;
                 overscroll-behavior-x: none;
                 background: #f7f3ff;
+                color-scheme: light;
               }
 
               body {
@@ -140,35 +136,35 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               html[data-theme="dark"] {
                 color-scheme: dark;
-                --workbit-background: #171226;
-                --workbit-surface: #211934;
-                --workbit-surface-secondary: #2a2040;
-                --workbit-surface-elevated: #33264b;
-                --workbit-field-bg: #2a203f;
-                --workbit-popup: #261c3b;
-                --workbit-navigation: linear-gradient(135deg, rgba(37,27,59,0.95) 0%, rgba(52,36,82,0.92) 100%);
-                --workbit-calendar: #211934;
-                --workbit-navy: #f8fafc;
-                --workbit-deep-navy: #eef2ff;
-                --workbit-ink: #f8fafc;
-                --workbit-text: #f8fafc;
-                --workbit-text-secondary: #d8d1e3;
-                --workbit-muted: #aaa0bb;
-                --workbit-purple: #b79cff;
-                --workbit-electric-purple: #d08cff;
-                --workbit-purple-dark: #d2c1ff;
-                --workbit-purple-soft: rgba(151, 104, 255, 0.2);
-                --workbit-lavender: #453467;
-                --workbit-border: rgba(196, 181, 253, 0.2);
-                --workbit-card: linear-gradient(145deg, rgba(49,37,73,0.98) 0%, rgba(31,24,50,0.97) 100%);
-                --workbit-app-bg: radial-gradient(circle at 88% 0%, rgba(168,85,247,0.22), transparent 36%),
-                  radial-gradient(circle at 8% 18%, rgba(109,40,217,0.16), transparent 34%),
-                  linear-gradient(155deg, #171226 0%, #24183a 48%, #1a1430 100%);
-                --workbit-gradient: linear-gradient(135deg, #33234f 0%, #7c3aed 52%, #b55cff 100%);
-                --workbit-gradient-soft: linear-gradient(135deg, rgba(124,58,237,0.24) 0%, rgba(192,132,252,0.18) 100%);
-                --workbit-shadow: 0 18px 42px rgba(12, 8, 24, 0.24), 0 1px 0 rgba(255,255,255,0.04) inset;
-                --workbit-shadow-strong: 0 24px 58px rgba(12, 8, 24, 0.34);
-                --workbit-focus: 0 0 0 4px rgba(167, 139, 250, 0.24);
+                --workbit-background: #0d0335;
+                --workbit-surface: #180650;
+                --workbit-surface-secondary: #200764;
+                --workbit-surface-elevated: #2a0a7a;
+                --workbit-field-bg: #17064a;
+                --workbit-popup: #160548;
+                --workbit-navigation: linear-gradient(145deg, rgba(27,7,83,0.96) 0%, rgba(15,3,55,0.97) 100%);
+                --workbit-calendar: #140443;
+                --workbit-navy: #ffffff;
+                --workbit-deep-navy: #f4f0ff;
+                --workbit-ink: #ffffff;
+                --workbit-text: #ffffff;
+                --workbit-text-secondary: #c7bce9;
+                --workbit-muted: #a99dcc;
+                --workbit-purple: #8b5cf6;
+                --workbit-electric-purple: #a855f7;
+                --workbit-purple-dark: #c4b5fd;
+                --workbit-purple-soft: rgba(111, 56, 255, 0.24);
+                --workbit-lavender: #321184;
+                --workbit-border: rgba(116, 58, 255, 0.62);
+                --workbit-card: linear-gradient(145deg, rgba(35,8,103,0.96) 0%, rgba(19,4,63,0.98) 100%);
+                --workbit-app-bg: radial-gradient(circle at 92% 2%, rgba(96,37,255,0.22), transparent 30%),
+                  radial-gradient(circle at 8% 36%, rgba(82,21,204,0.16), transparent 34%),
+                  linear-gradient(180deg, #10043f 0%, #0d0335 52%, #0a022c 100%);
+                --workbit-gradient: linear-gradient(135deg, #3510a4 0%, #6d28d9 52%, #9333ea 100%);
+                --workbit-gradient-soft: linear-gradient(135deg, rgba(95,40,220,0.34) 0%, rgba(139,92,246,0.20) 100%);
+                --workbit-shadow: 0 14px 34px rgba(4, 0, 24, 0.28), 0 0 22px rgba(91, 33, 182, 0.10), 0 1px 0 rgba(255,255,255,0.06) inset;
+                --workbit-shadow-strong: 0 24px 64px rgba(3, 0, 20, 0.48), 0 0 34px rgba(91, 33, 182, 0.18);
+                --workbit-focus: 0 0 0 4px rgba(139, 92, 246, 0.30);
                 --workbit-success: #4ade80;
                 --workbit-warning: #fbbf24;
                 --workbit-danger: #fb7185;
@@ -1455,6 +1451,72 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               html[data-theme="dark"] .dashboard-modal-panel [style*="background: rgba(255, 255, 255"] {
                 background: var(--workbit-surface-secondary) !important;
                 border-color: var(--workbit-border) !important;
+              }
+
+              /* Unified Workbit night skin: one continuous navy canvas and violet glass surfaces. */
+              html[data-theme="dark"],
+              html[data-theme="dark"] body,
+              html[data-theme="dark"] .workbit-app-content,
+              html[data-theme="dark"] .dashboard-shell,
+              html[data-theme="dark"] .workbit-login-page {
+                background: var(--workbit-app-bg) fixed !important;
+                color: var(--workbit-text) !important;
+              }
+
+              html[data-theme="dark"] .workbit-global-ambient {
+                opacity: .42;
+                background: radial-gradient(circle at 50% 18%, rgba(102, 46, 255, .16), transparent 46%);
+              }
+
+              html[data-theme="dark"] .workbit-global-ambient__smoke,
+              html[data-theme="dark"] .workbit-global-ambient__beam,
+              html[data-theme="dark"] .workbit-global-ambient__orbit {
+                opacity: .12 !important;
+              }
+
+              html[data-theme="dark"] .workbit-app-content > main:not(.dashboard-shell):not(.workbit-login-page) {
+                background: transparent !important;
+                color: var(--workbit-text) !important;
+              }
+
+              html[data-theme="dark"] .workbit-app-content > main:not(.dashboard-shell):not(.workbit-login-page) > section {
+                background: var(--workbit-card) !important;
+                border-color: var(--workbit-border) !important;
+                color: var(--workbit-text) !important;
+                box-shadow: var(--workbit-shadow) !important;
+              }
+
+              html[data-theme="dark"] .workbit-app-content h1,
+              html[data-theme="dark"] .workbit-app-content h2,
+              html[data-theme="dark"] .workbit-app-content h3,
+              html[data-theme="dark"] .workbit-app-content h4,
+              html[data-theme="dark"] .workbit-app-content strong,
+              html[data-theme="dark"] .brand-logo-label {
+                color: var(--workbit-text) !important;
+              }
+
+              html[data-theme="dark"] .workbit-app-content input:not([type="checkbox"]):not([type="radio"]),
+              html[data-theme="dark"] .workbit-app-content select,
+              html[data-theme="dark"] .workbit-app-content textarea {
+                background-color: var(--workbit-field-bg) !important;
+                border-color: rgba(139, 92, 246, .48) !important;
+                color: var(--workbit-text) !important;
+                box-shadow: 0 1px 0 rgba(255,255,255,.05) inset !important;
+              }
+
+              html[data-theme="dark"] .workbit-app-content input::placeholder,
+              html[data-theme="dark"] .workbit-app-content textarea::placeholder {
+                color: var(--workbit-muted) !important;
+              }
+
+              html[data-theme="dark"] .workbit-app-content a {
+                color: #c4b5fd;
+              }
+
+              html[data-theme="dark"] .workbit-passkey-login {
+                background: linear-gradient(145deg, #2a0a7a, #180650) !important;
+                border-color: rgba(139, 92, 246, .55) !important;
+                color: #ffffff !important;
               }
 
               @keyframes workbit-orb-drift {

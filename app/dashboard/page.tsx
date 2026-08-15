@@ -2,7 +2,6 @@ import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
 import { getDashboardContext } from "./context";
 import { reviewRequestAction } from "./actions";
@@ -15,8 +14,8 @@ import {
   PrimaryButton,
   Stack,
 } from "./ui";
-import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
+import { WorkSessionTimer } from "./work-session-timer";
 
 function requestTypeLabel(type: RequestType) {
   if (type === RequestType.VACATION) return "Ferie";
@@ -62,8 +61,6 @@ export default async function DashboardPage() {
   }
 
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const canManagePeople = role === Role.OWNER || role === Role.MANAGER;
   const isOwner = role === Role.OWNER;
   const isOperationalProfile = !isOwner;
@@ -84,9 +81,6 @@ export default async function DashboardPage() {
   const [
     settings,
     shifts,
-    monthlyScheduledShifts,
-    ownHours,
-    todayHours,
     latestTimeLog,
     kpiData,
     pendingApprovalRequests,
@@ -141,32 +135,6 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve([]),
-    isOperationalProfile && features.timeTracking && features.shifts
-      ? prisma.shift.findMany({
-          where: {
-            barId: activeBarId,
-            startTime: {
-              gte: monthStart,
-              lt: monthEnd,
-            },
-            assignments: {
-              some: {
-                userId: session.user.id,
-              },
-            },
-          },
-          select: {
-            startTime: true,
-            endTime: true,
-          },
-        })
-      : Promise.resolve([]),
-    isOperationalProfile && features.timeTracking
-      ? buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear())
-      : Promise.resolve(null),
-    isOperationalProfile && features.timeTracking
-      ? buildDailyTotals(activeBarId, session.user.id, now)
-      : Promise.resolve(null),
     isOperationalProfile && features.timeTracking
       ? prisma.timeLog.findFirst({
           where: {
@@ -179,6 +147,12 @@ export default async function DashboardPage() {
           select: {
             type: true,
             timestamp: true,
+            shift: {
+              select: {
+                startTime: true,
+                endTime: true,
+              },
+            },
           },
         })
       : Promise.resolve(null),
@@ -250,26 +224,15 @@ export default async function DashboardPage() {
     todayShift?.assignments
       .filter((entry) => entry.user.id !== session.user.id)
       .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`) ?? [];
-  const roleLabel =
-    role === Role.MANAGER
-      ? "Responsabile"
-      : role === Role.AMMINISTRAZIONE
-        ? "Amministrazione"
-        : "Dipendente";
   const clockStatus: ClockActionStatus =
     latestTimeLog?.type === "IN"
       ? "CAN_CLOCK_OUT"
       : "CAN_CLOCK_IN";
-  const monthlyTargetMs = monthlyScheduledShifts.reduce(
-    (total, shift) => total + Math.max(0, shift.endTime.getTime() - shift.startTime.getTime()),
-    0
-  );
-  const monthlyWorkedMs = (ownHours?.roundedHours ?? 0) * 60 * 60 * 1000;
-  const monthlyProgress = ownHours
-    ? monthlyTargetMs > 0
-      ? Math.max(0, Math.min(100, Math.round((monthlyWorkedMs / monthlyTargetMs) * 100)))
-      : 0
-    : 0;
+  const activeClockInAt =
+    latestTimeLog?.type === "IN" ? latestTimeLog.timestamp.toISOString() : null;
+  const timerShift = latestTimeLog?.type === "IN" && latestTimeLog.shift
+    ? latestTimeLog.shift
+    : todayShift;
 
   return (
     <Stack>
@@ -280,21 +243,12 @@ export default async function DashboardPage() {
             <h1>Oggi</h1>
           </div>
 
-          {features.timeTracking && ownHours ? (
-            <section className="workbit-home-hours" aria-label="Ore del mese">
-              <div
-                className="workbit-home-ring"
-                style={{
-                  background: `conic-gradient(#5E5CE6 0 ${monthlyProgress}%, #E3E1EA ${monthlyProgress}% 100%)`,
-                }}
-              >
-                <span>{monthlyProgress}%</span>
-              </div>
-              <div>
-                <strong>{formatDurationClock(ownHours.roundedHours)} ore</strong>
-                <small>questo mese</small>
-              </div>
-            </section>
+          {features.timeTracking ? (
+            <WorkSessionTimer
+              activeClockInAt={activeClockInAt}
+              scheduledStartAt={timerShift?.startTime.toISOString() ?? null}
+              scheduledEndAt={timerShift?.endTime.toISOString() ?? null}
+            />
           ) : null}
 
           {features.timeTracking ? (
@@ -333,138 +287,6 @@ export default async function DashboardPage() {
           </section>
 
         </div>
-      ) : null}
-
-      {false && isOperationalProfile ? (
-        <Panel title="Profilo">
-          <div className="dashboard-profile-layout" style={{ display: "grid", gap: 18 }}>
-            <div
-              className="dashboard-profile-summary-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 14,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  aria-hidden="true"
-                  style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: 22,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #ede9fe, #f5f3ff)",
-                    color: "#5b21b6",
-                    fontSize: 25,
-                    fontWeight: 800,
-                  }}
-                >
-                  👤
-                </div>
-                <div>
-                  <div style={{ color: "#64748b", fontWeight: 700 }}>Ciao</div>
-                  <h1 style={{ margin: 0, color: "#0f172a", fontSize: 26, lineHeight: 1.1 }}>
-                    {session.user.firstName} {session.user.lastName}
-                  </h1>
-                  <div style={{ color: "#64748b", marginTop: 4 }}>{roleLabel}</div>
-                </div>
-              </div>
-
-              {features.timeTracking && ownHours ? (
-                <div
-                  className="dashboard-profile-hours-card"
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: 24,
-                    background: "linear-gradient(135deg, #f5f3ff, #ffffff)",
-                    border: "1px solid rgba(124,58,237,0.12)",
-                    minWidth: 170,
-                  }}
-                >
-                  <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                    Le tue ore del mese
-                  </div>
-                  <div style={{ color: "#4c1d95", fontSize: 26, fontWeight: 800 }}>
-                    {formatDurationClock(ownHours?.roundedHours ?? 0)}
-                  </div>
-                  {todayHours ? (
-                    <div style={{ color: "#64748b", fontSize: 12, fontWeight: 750, marginTop: 2 }}>
-                      Oggi {formatDurationClock(todayHours?.roundedHours ?? 0)}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-
-            <div
-              className="dashboard-profile-shift-grid"
-              style={{
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <div
-                style={{
-                  padding: 18,
-                  borderRadius: 26,
-                  background: "#ffffff",
-                  border: "1px solid #e9d5ff",
-                  boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
-                }}
-              >
-                <strong style={{ display: "block", color: "#0f172a", fontSize: 18 }}>
-                  {todayShift
-                    ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift?.startTime ?? now)} alle ${toTimeInputValueInTimeZone(todayShift?.endTime ?? now)}`
-                    : "Oggi non hai turni programmati"}
-                </strong>
-                {todayColleagues.length > 0 ? (
-                  <p style={{ margin: "8px 0 0", color: "#64748b" }}>
-                    Con te: {todayColleagues.join(", ")}
-                  </p>
-                ) : null}
-              </div>
-
-              <div
-                style={{
-                  padding: 18,
-                  borderRadius: 26,
-                  background: "#ffffff",
-                  border: "1px solid #e9d5ff",
-                  boxShadow: "0 14px 30px rgba(88,28,135,0.06)",
-                }}
-              >
-                <strong style={{ display: "block", color: "#0f172a", fontSize: 18 }}>
-                  {nextShift
-                    ? `Prossimo turno: ${toDateInputValueInTimeZone(nextShift.startTime)} · ${toTimeInputValueInTimeZone(nextShift.startTime)}-${toTimeInputValueInTimeZone(nextShift.endTime)}`
-                    : "Nessun prossimo turno programmato"}
-                </strong>
-                {nextShift ? (
-                  <p style={{ margin: "8px 0 0", color: "#64748b" }}>
-                    {nextShift.assignments
-                      .filter((entry) => entry.user.id !== session.user.id)
-                      .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`)
-                      .join(", ") || "Nessun collega indicato"}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-
-            {features.timeTracking ? (
-              <ClockActionsPanel
-                role={role}
-                settings={settings}
-                activeBarId={activeBarId}
-                clockStatus={clockStatus}
-              />
-            ) : null}
-          </div>
-        </Panel>
       ) : null}
 
       {isOwner && features.shifts && nextWeekShiftCount === 0 ? (

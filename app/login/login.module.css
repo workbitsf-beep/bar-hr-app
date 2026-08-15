@@ -1,0 +1,321 @@
+.page {
+  min-height: 100dvh;
+  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 88% 4%, rgba(137, 92, 246, 0.12), transparent 28%),
+    linear-gradient(180deg, #f8f6ff 0%, #efebfa 48%, #ebe6f8 100%) !important;
+  color: #111827;
+}
+
+.shell {
+  width: min(100%, 430px);
+  min-height: calc(100dvh - max(36px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.brandCard {
+  min-height: 70px;
+  padding: 13px 17px;
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(94, 92, 230, 0.1);
+  border-radius: 27px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(61, 42, 153, 0.08);
+}
+
+.content {
+  width: 100%;
+  flex: 1;
+  padding: clamp(38px, 9dvh, 78px) 2px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+.heading {
+  display: grid;
+  gap: 4px;
+  padding: 0 7px;
+}
+
+.eyebrow {
+  color: #6757e8;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.heading h1 {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(34px, 9vw, 44px);
+  line-height: 1;
+  font-weight: 820;
+  letter-spacing: -0.055em;
+}
+
+.heading p {
+  margin: 5px 0 0;
+  color: #8a8495;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 550;
+}
+
+.authCard {
+  padding: 22px;
+  display: grid;
+  gap: 17px;
+  border: 1px solid rgba(94, 92, 230, 0.1);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12px 34px rgba(61, 42, 153, 0.09);
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field > span {
+  color: #242036;
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.field input {
+  width: 100%;
+  height: 52px;
+  padding: 0 15px;
+  border: 1px solid rgba(94, 92, 230, 0.14) !important;
+  border-radius: 17px !important;
+  outline: none;
+  background: #fbfaff !important;
+  color: #111827 !important;
+  font-size: 16px;
+  font-weight: 550;
+  box-shadow: none !important;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.field input::placeholder {
+  color: #aaa4b5;
+}
+
+.field input:focus {
+  border-color: rgba(94, 92, 230, 0.52) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(94, 92, 230, 0.1) !important;
+}
+
+.passwordField {
+  position: relative;
+}
+
+.passwordField input {
+  padding-right: 52px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #6757e8;
+  cursor: pointer;
+}
+
+.passwordToggle svg {
+  width: 21px;
+  height: 21px;
+}
+
+.optionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rememberMe {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4e485a;
+  font-size: 13px;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.rememberMe input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #5e5ce6;
+}
+
+.forgotPassword {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #5e5ce6;
+  font-size: 13px;
+  font-weight: 720;
+  text-align: right;
+  cursor: pointer;
+}
+
+.errorMessage {
+  margin: -2px 0 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff1f2;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px;
+  gap: 10px;
+  align-items: center;
+}
+
+.submitButton {
+  min-height: 54px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 18px !important;
+  background: linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  font-size: 16px;
+  font-weight: 780;
+  box-shadow: 0 12px 26px rgba(94, 92, 230, 0.23) !important;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  cursor: default;
+  opacity: 0.68;
+}
+
+.securityNote {
+  margin: 0;
+  color: #9b95a7;
+  font-size: 12px;
+  font-weight: 620;
+  text-align: center;
+}
+
+@media (max-width: 390px) {
+  .page {
+    padding-inline: 14px;
+  }
+
+  .content {
+    padding-top: 32px;
+  }
+
+  .authCard {
+    padding: 19px;
+  }
+
+  .optionsRow {
+    align-items: flex-start;
+  }
+
+  .forgotPassword {
+    max-width: 135px;
+  }
+}
+
+@media (min-width: 760px) {
+  .page {
+    display: grid;
+    place-items: center;
+    padding: 28px;
+  }
+
+  .shell {
+    min-height: min(760px, calc(100dvh - 56px));
+  }
+}
+
+:global(html[data-theme="dark"]) .page {
+  background:
+    radial-gradient(circle at 86% 6%, rgba(102, 46, 255, 0.24), transparent 30%),
+    radial-gradient(circle at 10% 58%, rgba(76, 29, 202, 0.16), transparent 38%),
+    linear-gradient(180deg, #10043f 0%, #0d0335 52%, #0a022c 100%) !important;
+  color: #ffffff;
+}
+
+:global(html[data-theme="dark"]) .brandCard,
+:global(html[data-theme="dark"]) .authCard {
+  border-color: rgba(124, 68, 255, 0.52);
+  background: linear-gradient(145deg, rgba(35, 8, 103, 0.96), rgba(19, 4, 63, 0.98));
+  box-shadow: 0 18px 42px rgba(3, 0, 24, 0.34), 0 0 24px rgba(91, 33, 182, 0.12);
+}
+
+:global(html[data-theme="dark"]) .eyebrow,
+:global(html[data-theme="dark"]) .forgotPassword {
+  color: #a78bfa;
+}
+
+:global(html[data-theme="dark"]) .heading h1,
+:global(html[data-theme="dark"]) .field > span {
+  color: #ffffff;
+}
+
+:global(html[data-theme="dark"]) .heading p,
+:global(html[data-theme="dark"]) .rememberMe,
+:global(html[data-theme="dark"]) .securityNote {
+  color: #b9aedb;
+}
+
+:global(html[data-theme="dark"]) .field input {
+  border-color: rgba(139, 92, 246, 0.44) !important;
+  background: #17064a !important;
+  color: #ffffff !important;
+}
+
+:global(html[data-theme="dark"]) .field input::placeholder {
+  color: #9184b8;
+}
+
+:global(html[data-theme="dark"]) .field input:focus {
+  border-color: rgba(167, 139, 250, 0.78) !important;
+  background: #1c075c !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2) !important;
+}
+
+:global(html[data-theme="dark"]) .passwordToggle {
+  color: #c4b5fd;
+}
+
+:global(html[data-theme="dark"]) .errorMessage {
+  background: rgba(159, 18, 57, 0.22);
+  color: #fecdd3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field input {
+    transition: none;
+  }
+}

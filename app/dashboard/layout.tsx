@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
-import { Role } from "@prisma/client";
 import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { ThemeSelect } from "@/app/components/theme-select";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
-import { prisma } from "@/lib/prisma";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
 import { NotificationBarSync } from "./notification-bar-sync";
@@ -12,7 +10,6 @@ import { PushRegistration } from "./push-registration";
 import { logoutAction, selectBarAction, setLanguageAction } from "./actions";
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
 import { DashboardShell, IconButton } from "./ui";
-import { WorkSessionTimer } from "./work-session-timer";
 
 export default async function DashboardLayout({
   children,
@@ -27,29 +24,10 @@ export default async function DashboardLayout({
     activeBarId,
     activeBarName,
     ownerNeedsSubscriptionActivation,
-    features,
     navItems,
     accessibleBars,
   } = await getDashboardContext();
   const languageOptions = getLanguageOptions();
-  const activeTimeLog =
-    activeBarId && features.timeTracking && role !== Role.OWNER && String(role) !== "SUPER_ADMIN"
-      ? await prisma.timeLog.findFirst({
-          where: {
-            barId: activeBarId,
-            userId: session.user.id,
-          },
-          orderBy: {
-            timestamp: "desc",
-          },
-          select: {
-            type: true,
-            timestamp: true,
-          },
-        })
-      : null;
-  const activeClockInAt =
-    activeTimeLog?.type === "IN" ? activeTimeLog.timestamp.toISOString() : null;
 
   return (
     <>
@@ -67,7 +45,6 @@ export default async function DashboardLayout({
         appName={t.appName}
         menuLabel={t.menu}
         navItems={navItems}
-        belowHeader={<WorkSessionTimer activeClockInAt={activeClockInAt} />}
         headerSwitch={
           role !== "SUPER_ADMIN"
             ? {
