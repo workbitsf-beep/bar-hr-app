@@ -64,14 +64,13 @@ function getNotificationEmoji(type: string) {
   return "🔔";
 }
 
-function appendClockActionParam(actionUrl: string, action: "in" | "out") {
+function removeLegacyClockAction(actionUrl: string) {
   try {
     const url = new URL(actionUrl, window.location.origin);
-    url.searchParams.set("clock", "1");
-    url.searchParams.set("clockAction", action);
+    url.searchParams.delete("clockAction");
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {
-    return `/dashboard?clock=1&clockAction=${action}`;
+    return "/dashboard?clock=1";
   }
 }
 
@@ -80,12 +79,8 @@ function getNotificationActionUrl(notification: NotificationItem) {
     return null;
   }
 
-  if (notification.type.startsWith("timelog.clock-in.")) {
-    return appendClockActionParam(notification.actionUrl, "in");
-  }
-
-  if (notification.type.startsWith("timelog.clock-out.")) {
-    return appendClockActionParam(notification.actionUrl, "out");
+  if (notification.type.startsWith("timelog.clock-")) {
+    return removeLegacyClockAction(notification.actionUrl);
   }
 
   return notification.actionUrl;

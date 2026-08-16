@@ -13,6 +13,14 @@ const AUTO_CLOCK_OUT_DELAY_MS = 2 * 60 * 60 * 1000;
 const AUTO_CLOCK_OUT_LOOKBACK_MS = 36 * 60 * 60 * 1000;
 const ACTION_URL = "/dashboard?clock=1";
 
+function getLegacyClockReminderActionUrl(
+  shiftId: string,
+  barId: string,
+  direction: "in" | "out"
+) {
+  return `${getClockReminderActionUrl(shiftId, barId)}&clockAction=${direction}`;
+}
+
 function isDue(now: Date, triggerAt: Date) {
   return now.getTime() >= triggerAt.getTime();
 }
@@ -55,11 +63,10 @@ async function markClockRemindersRead(input: {
                 actionUrl: getClockReminderActionUrl(input.shiftId, input.barId),
               },
               {
-                actionUrl: getClockReminderActionUrl(
-                  input.shiftId,
-                  input.barId,
-                  input.direction === "in" || input.direction === "out" ? input.direction : undefined
-                ),
+                actionUrl: getLegacyClockReminderActionUrl(input.shiftId, input.barId, "in"),
+              },
+              {
+                actionUrl: getLegacyClockReminderActionUrl(input.shiftId, input.barId, "out"),
               },
             ],
           }

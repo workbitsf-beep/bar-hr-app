@@ -56,57 +56,6 @@ function buildPushLink(actionUrl: string | undefined) {
   return `${appUrl}${rawActionUrl.startsWith("/") ? rawActionUrl : `/${rawActionUrl}`}`;
 }
 
-function appendActionParam(actionUrl: string | undefined, action: "in" | "out") {
-  const rawActionUrl = actionUrl?.trim();
-
-  if (!rawActionUrl) {
-    return `/dashboard?clock=1&clockAction=${action}`;
-  }
-
-  const baseUrl = /^https?:\/\//i.test(rawActionUrl) ? rawActionUrl : `https://workbit.local${rawActionUrl.startsWith("/") ? rawActionUrl : `/${rawActionUrl}`}`;
-  const url = new URL(baseUrl);
-  url.searchParams.set("clock", "1");
-  url.searchParams.set("clockAction", action);
-
-  if (/^https?:\/\//i.test(rawActionUrl)) {
-    return url.toString();
-  }
-
-  return `${url.pathname}${url.search}${url.hash}`;
-}
-
-function getClockPushActions(data: Record<string, string>) {
-  if (data.type.startsWith("timelog.clock-in.")) {
-    const clockInUrl = appendActionParam(data.actionUrl, "in");
-
-    return {
-      actions: [{ action: "clock-in", title: "Entra" }],
-      primaryActionUrl: clockInUrl,
-      actionUrls: {
-        clockInUrl,
-      },
-    };
-  }
-
-  if (data.type.startsWith("timelog.clock-out.")) {
-    const clockOutUrl = appendActionParam(data.actionUrl, "out");
-
-    return {
-      actions: [{ action: "clock-out", title: "Esci" }],
-      primaryActionUrl: clockOutUrl,
-      actionUrls: {
-        clockOutUrl,
-      },
-    };
-  }
-
-  return {
-    actions: undefined,
-    primaryActionUrl: undefined,
-    actionUrls: {},
-  };
-}
-
 export async function sendPushNotification(
   input: PushNotificationInput
 ): Promise<PushNotificationResult> {
@@ -158,11 +107,6 @@ export async function sendPushNotification(
   data.title = input.title;
   data.body = input.body;
   const isTimeSensitiveReminder = data.type.startsWith("timelog.");
-  const clockPushActions = getClockPushActions(data);
-  Object.assign(data, clockPushActions.actionUrls);
-  if (clockPushActions.primaryActionUrl) {
-    data.actionUrl = clockPushActions.primaryActionUrl;
-  }
   const pushLink = buildPushLink(data.actionUrl);
   const notificationTag = `${data.type || "workbit-notification"}:${data.barId || "global"}:${data.actionUrl || ""}`.slice(
     0,
@@ -205,7 +149,6 @@ export async function sendPushNotification(
             badge: "/logo.png",
             tag: notificationTag,
             renotify: false,
-            actions: clockPushActions.actions,
             data,
           },
           headers: {

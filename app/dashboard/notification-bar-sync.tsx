@@ -11,21 +11,26 @@ export function NotificationBarSync({ activeBarId }: { activeBarId: string | nul
 
   useEffect(() => {
     const targetBarId = searchParams.get("barId");
-    const hasPendingClockAction = searchParams.has("clockAction");
+    const hasLegacyClockAction = searchParams.has("clockAction");
 
     if (!targetBarId) {
+      if (hasLegacyClockAction) {
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete("clockAction");
+        const nextUrl = nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname;
+        router.replace(nextUrl, { scroll: false });
+      }
       return;
     }
 
     if (targetBarId === activeBarId) {
       switchingRef.current = null;
 
-      if (!hasPendingClockAction) {
-        const nextParams = new URLSearchParams(searchParams.toString());
-        nextParams.delete("barId");
-        const nextUrl = nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname;
-        router.replace(nextUrl, { scroll: false });
-      }
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.delete("barId");
+      nextParams.delete("clockAction");
+      const nextUrl = nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname;
+      router.replace(nextUrl, { scroll: false });
 
       return;
     }

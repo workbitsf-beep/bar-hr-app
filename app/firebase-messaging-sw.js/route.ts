@@ -120,8 +120,8 @@ self.addEventListener("notificationclick", function(event) {
     : {};
   const data = Object.assign({}, firebaseData, notificationData);
 
-  function appendClockActionParam(rawActionUrl, action) {
-    const fallbackUrl = "/dashboard?clock=1&clockAction=" + action;
+  function removeLegacyClockAction(rawActionUrl) {
+    const fallbackUrl = "/dashboard?clock=1";
 
     if (!rawActionUrl) {
       return fallbackUrl;
@@ -132,27 +132,16 @@ self.addEventListener("notificationclick", function(event) {
         ? rawActionUrl
         : self.location.origin + (rawActionUrl.charAt(0) === "/" ? rawActionUrl : "/" + rawActionUrl);
       const url = new URL(baseUrl);
-      url.searchParams.set("clock", "1");
-      url.searchParams.set("clockAction", action);
+      url.searchParams.delete("clockAction");
       return url.pathname + url.search + url.hash;
     } catch (error) {
       return fallbackUrl;
     }
   }
 
-  const inferredClockAction = data.type && data.type.indexOf("timelog.clock-in.") === 0
-    ? "in"
-    : data.type && data.type.indexOf("timelog.clock-out.") === 0
-      ? "out"
-      : "";
-  const actionUrl =
-    event.action === "clock-in"
-      ? data.clockInUrl || appendClockActionParam(data.actionUrl, "in")
-      : event.action === "clock-out"
-        ? data.clockOutUrl || appendClockActionParam(data.actionUrl, "out")
-        : inferredClockAction
-          ? appendClockActionParam(data.actionUrl, inferredClockAction)
-          : data.actionUrl || "/dashboard";
+  const actionUrl = data.type && data.type.indexOf("timelog.clock-") === 0
+    ? removeLegacyClockAction(data.actionUrl)
+    : data.actionUrl || "/dashboard";
 
   function selectNotificationBarIfNeeded() {
     if (!data.barId) {

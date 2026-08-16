@@ -271,7 +271,6 @@ export default async function DashboardPage() {
             <ClockActionsPanel
               role={role}
               settings={settings}
-              activeBarId={activeBarId}
               clockStatus={clockStatus}
               hasScheduledShiftToday={Boolean(assignedShiftForClockIn)}
               compact

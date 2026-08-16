@@ -50,7 +50,7 @@ function shouldReceiveClockReminder(assignment: ShiftAssignmentForReminder, barI
   return assignment.user.role !== Role.OWNER;
 }
 
-export function getClockReminderActionUrl(shiftId: string, barId?: string | null, action?: "in" | "out") {
+export function getClockReminderActionUrl(shiftId: string, barId?: string | null) {
   const params = new URLSearchParams({
     clock: "1",
     shift: shiftId,
@@ -60,19 +60,7 @@ export function getClockReminderActionUrl(shiftId: string, barId?: string | null
     params.set("barId", barId);
   }
 
-  if (action) {
-    params.set("clockAction", action);
-  }
-
   return `/dashboard?${params.toString()}`;
-}
-
-function getClockReminderAction(type: string): "in" | "out" {
-  return CLOCK_IN_TYPES.includes(type) ? "in" : "out";
-}
-
-function getClockReminderActionUrlForType(shiftId: string, barId: string | null | undefined, type: string) {
-  return getClockReminderActionUrl(shiftId, barId, getClockReminderAction(type));
 }
 
 function getClockReminderSchedule(shift: Pick<ShiftForReminder, "startTime" | "endTime">) {
@@ -188,7 +176,7 @@ export async function scheduleShiftClockReminders(
         }
 
         for (const item of schedule) {
-          const actionUrl = getClockReminderActionUrlForType(shift.id, shift.barId, item.type);
+          const actionUrl = getClockReminderActionUrl(shift.id, shift.barId);
           const existing = await tx.scheduledNotification.findFirst({
             where: {
               userId: assignment.userId,
@@ -470,7 +458,7 @@ export async function runDueScheduledClockNotifications(now = new Date()) {
       message: item.message,
       type: item.type,
       actionUrl: item.shiftId
-        ? getClockReminderActionUrlForType(item.shiftId, item.barId, item.type)
+        ? getClockReminderActionUrl(item.shiftId, item.barId)
         : item.actionUrl,
     });
     await prisma.scheduledNotification.update({

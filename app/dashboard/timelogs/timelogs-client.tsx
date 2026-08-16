@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { ClockType, Role } from "@prisma/client";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
@@ -517,21 +517,17 @@ function ClockDayCard({
 export function ClockActionsPanel({
   role,
   settings,
-  activeBarId,
   compact = false,
   clockStatus = "CAN_CLOCK_IN",
   hasScheduledShiftToday = false,
 }: {
   role: Role | string;
   settings: BarSettingsSummary;
-  activeBarId?: string | null;
   compact?: boolean;
   clockStatus?: ClockActionStatus;
   hasScheduledShiftToday?: boolean;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const autoClockActionRef = useRef<string | null>(null);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [distance, setDistance] = useState<number | null>(null);
@@ -867,34 +863,6 @@ export function ClockActionsPanel({
       setSubmitting(null);
     }
   }
-
-  useEffect(() => {
-    const requestedAction = searchParams.get("clockAction");
-    const targetBarId = searchParams.get("barId");
-
-    if (
-      !canClock ||
-      submitting !== null ||
-      autoClockActionRef.current === requestedAction ||
-      (requestedAction !== "in" && requestedAction !== "out") ||
-      (targetBarId && activeBarId && targetBarId !== activeBarId)
-    ) {
-      return;
-    }
-
-    autoClockActionRef.current = requestedAction;
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("clockAction");
-    const nextUrl = nextParams.size > 0
-      ? `${window.location.pathname}?${nextParams.toString()}`
-      : window.location.pathname;
-    window.history.replaceState(null, "", `${nextUrl}${window.location.hash}`);
-
-    void runClockAction(requestedAction === "in" ? "clock-in" : "clock-out");
-    // runClockAction intentionally stays local to the component so the push
-    // intent uses the same validation and GPS flow as the visible buttons.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBarId, canClock, searchParams, submitting]);
 
   function captureGeolocation() {
     if (locating) {
