@@ -2805,17 +2805,17 @@ function DashboardResponsiveStyles() {
       }
 
       .workbit-home .workbit-home-clock-in:disabled {
-        background: #bce9c8 !important;
-        border-color: rgba(66, 153, 91, 0.28) !important;
-        color: #39764a !important;
-        -webkit-text-fill-color: #39764a !important;
+        background: #34D35F !important;
+        border-color: rgba(52, 211, 95, 0.7) !important;
+        color: #176f32 !important;
+        -webkit-text-fill-color: #176f32 !important;
       }
 
       .workbit-home .workbit-home-clock-out:disabled {
-        background: #f1c2c2 !important;
-        border-color: rgba(185, 80, 80, 0.26) !important;
-        color: #8a4141 !important;
-        -webkit-text-fill-color: #8a4141 !important;
+        background: #EF4444 !important;
+        border-color: rgba(239, 68, 68, 0.7) !important;
+        color: #7f1d1d !important;
+        -webkit-text-fill-color: #7f1d1d !important;
       }
 
       @media (max-width: 900px) {
