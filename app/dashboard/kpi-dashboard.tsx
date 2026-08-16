@@ -171,8 +171,14 @@ export function KpiDashboard({
 
   useEffect(() => {
     let cancelled = false;
+    let requestInFlight = false;
+    const abortController = new AbortController();
 
     async function load(force = false) {
+      if (requestInFlight) {
+        return;
+      }
+
       const cached = kpiCache.get(activeBarId);
 
       if (!force && cached && Date.now() - cached.updatedAt < CACHE_TTL_MS) {
@@ -188,12 +194,14 @@ export function KpiDashboard({
       if (!cancelled) {
         setLoading(true);
       }
+      requestInFlight = true;
 
       try {
         const response = await fetch("/api/dashboard/kpi", {
           method: "GET",
           credentials: "same-origin",
           cache: "no-store",
+          signal: abortController.signal,
         });
         const payload = (await response.json()) as DashboardKpiResponse;
 
@@ -214,6 +222,10 @@ export function KpiDashboard({
           setError(null);
         }
       } catch (fetchError) {
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+
         if (!cancelled) {
           setError(
             fetchError instanceof Error
@@ -222,6 +234,7 @@ export function KpiDashboard({
           );
         }
       } finally {
+        requestInFlight = false;
         if (!cancelled) {
           setLoading(false);
         }
@@ -256,6 +269,7 @@ export function KpiDashboard({
 
     return () => {
       cancelled = true;
+      abortController.abort();
       window.removeEventListener("focus", refreshOnFocus);
       window.removeEventListener(
         "workbit:kpi-refresh",

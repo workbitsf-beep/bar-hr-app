@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ensureWorkbitPushRegistration,
@@ -16,6 +16,7 @@ export function PushRegistration() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
   useOverlayLock(mounted && showPrompt);
 
   useEffect(() => {
@@ -42,6 +43,14 @@ export function PushRegistration() {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
   async function enablePush() {
     setLoading(true);
     setMessage(null);
@@ -52,7 +61,13 @@ export function PushRegistration() {
 
       if (result.ok && (result.registered || getWorkbitPushPermissionState() !== "default")) {
         window.localStorage.setItem(PUSH_PROMPT_DISMISSED_KEY, "1");
-        setTimeout(() => setShowPrompt(false), 900);
+        if (closeTimerRef.current !== null) {
+          window.clearTimeout(closeTimerRef.current);
+        }
+        closeTimerRef.current = window.setTimeout(() => {
+          setShowPrompt(false);
+          closeTimerRef.current = null;
+        }, 900);
       }
     } finally {
       setLoading(false);
@@ -60,6 +75,10 @@ export function PushRegistration() {
   }
 
   function dismissPrompt() {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
     window.localStorage.setItem(PUSH_PROMPT_DISMISSED_KEY, "1");
     setShowPrompt(false);
   }

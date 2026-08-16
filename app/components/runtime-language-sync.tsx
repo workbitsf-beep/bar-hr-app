@@ -72,8 +72,37 @@ export function RuntimeLanguageSync({ language }: { language: string }) {
 
     run();
 
-    const observer = new MutationObserver(() => {
-      run();
+    const pendingNodes = new Set<Node>();
+    let frameId: number | null = null;
+
+    const flushPendingNodes = () => {
+      frameId = null;
+
+      for (const node of pendingNodes) {
+        translateNode(language, node);
+      }
+      pendingNodes.clear();
+    };
+
+    const scheduleNode = (node: Node) => {
+      pendingNodes.add(node);
+
+      if (frameId === null) {
+        frameId = window.requestAnimationFrame(flushPendingNodes);
+      }
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "childList") {
+          for (const node of mutation.addedNodes) {
+            scheduleNode(node);
+          }
+          continue;
+        }
+
+        scheduleNode(mutation.target);
+      }
     });
 
     observer.observe(root, {
@@ -86,6 +115,10 @@ export function RuntimeLanguageSync({ language }: { language: string }) {
 
     return () => {
       observer.disconnect();
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+      pendingNodes.clear();
     };
   }, [language]);
 

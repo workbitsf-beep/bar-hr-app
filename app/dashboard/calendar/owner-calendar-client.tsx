@@ -40,6 +40,24 @@ import { CalendarWeekStrip } from "./calendar-week-strip";
 import { groupShiftsByTime } from "./group-shifts-by-time";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 import { scrollToTodayCard } from "./scroll-to-today-button";
+import {
+  addDaysToDateKey,
+  chunkByWeek,
+  dateKeyToLocalDate,
+  formatCompactDayLabel,
+  formatDayHeading,
+  formatDayLabel,
+  formatRange,
+  formatRequestTypeLabel,
+  formatRoleLabel,
+  formatTime as formatDayTime,
+  formatWeekHeading,
+  getErrorMessage,
+  hasTimeOverlap,
+  isShiftPastDay,
+  startOfWeekDateKey,
+  truncateCalendarText,
+} from "./calendar-client-utils";
 
 type MemberOption = {
   id: string;
@@ -188,31 +206,6 @@ const shiftRepeatWeekdays = [
   { value: "0", label: "Dom" },
 ];
 
-function dateKeyToLocalDate(dateKey: string) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1);
-}
-
-function formatLocalDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function addDaysToDateKey(dateKey: string, days: number) {
-  const date = dateKeyToLocalDate(dateKey);
-  date.setDate(date.getDate() + days);
-  return formatLocalDateKey(date);
-}
-
-function startOfWeekDateKey(dateKey: string) {
-  const date = dateKeyToLocalDate(dateKey);
-  const diff = (date.getDay() + 6) % 7;
-  date.setDate(date.getDate() - diff);
-  return formatLocalDateKey(date);
-}
-
 function createRepeatedShiftDrafts(
   draft: ShiftDraft,
   mode: ShiftInsertMode,
@@ -275,96 +268,6 @@ function shiftDraftToShiftItem(
   };
 }
 
-function formatDayTime(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: APP_TIME_ZONE,
-  }).format(new Date(value));
-}
-
-function formatDayLabel(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: APP_TIME_ZONE,
-  }).format(new Date(value));
-}
-
-function formatCompactDayLabel(value: string, locale: string) {
-  const label = new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    day: "numeric",
-    timeZone: APP_TIME_ZONE,
-  }).format(new Date(value));
-
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function formatDayHeading(value: string, locale: string) {
-  const date = new Date(value);
-  const weekday = new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    timeZone: APP_TIME_ZONE,
-  }).format(date);
-  const dayAndMonth = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "long",
-    timeZone: APP_TIME_ZONE,
-  }).format(date);
-
-  return {
-    weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1),
-    dayAndMonth,
-  };
-}
-
-function formatWeekHeading(week: DayItem[], locale: string) {
-  const first = week[0];
-  const last = week[week.length - 1];
-
-  if (!first || !last) {
-    return "";
-  }
-
-  const firstDay = new Intl.DateTimeFormat(locale, { day: "numeric", timeZone: APP_TIME_ZONE }).format(new Date(first.date));
-  const lastLabel = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: APP_TIME_ZONE }).format(new Date(last.date));
-  return `${firstDay}\u00a0—\u00a0${lastLabel}`;
-}
-
-function formatRange(start: string, end: string, locale: string) {
-  return `${formatDayTime(start, locale)} - ${formatDayTime(end, locale)}`;
-}
-
-function formatRoleLabel(role: string) {
-  if (role === "MANAGER") {
-    return "Responsabile";
-  }
-
-  if (role === "OWNER") {
-    return "Titolare";
-  }
-
-  return "Dipendente";
-}
-
-function formatRequestTypeLabel(type: string) {
-  if (type === RequestType.OVERTIME) {
-    return "Straordinario";
-  }
-
-  if (type === RequestType.PERMISSION) {
-    return "Permesso";
-  }
-
-  if (type === RequestType.SICKNESS) {
-    return "Malattia";
-  }
-
-  return "Ferie";
-}
-
 function formatAssignmentNames(assignments: ShiftAssignment[]) {
   return assignments.map((assignment, index) => {
     const name = `${assignment.firstName} ${assignment.lastName}`;
@@ -375,16 +278,6 @@ function formatAssignmentNames(assignments: ShiftAssignment[]) {
       </span>
     );
   });
-}
-
-function truncateCalendarText(value: string, maxLength = 25) {
-  const clean = value.replace(/\s+/g, " ").trim();
-
-  if (clean.length <= maxLength) {
-    return clean;
-  }
-
-  return `${clean.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
 type WeekBadgeTone = "note" | "vacation" | "permission" | "course" | "availability" | "onCall" | "overtime" | "closure";
@@ -531,14 +424,6 @@ function renderCompactTextCard(key: string, title: string, meta: string, tone: W
       <span style={{ color: style.color, fontSize: 11 }}>{meta}</span>
     </div>
   );
-}
-
-function hasTimeOverlap(rangeStart: string, rangeEnd: string, shiftStart: string, shiftEnd: string) {
-  return new Date(rangeStart) < new Date(shiftEnd) && new Date(rangeEnd) > new Date(shiftStart);
-}
-
-function isShiftPastDay(shift: ShiftItem, todayKey: string) {
-  return toDateInputValueInTimeZone(shift.startTime) < todayKey;
 }
 
 function renderShiftStateIcon(confirmed: boolean, size = 16) {
@@ -837,16 +722,6 @@ function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = fals
   );
 }
 
-function chunkByWeek<T>(items: T[]) {
-  return Array.from({ length: Math.ceil(items.length / 7) }, (_, index) =>
-    items.slice(index * 7, index * 7 + 7)
-  );
-}
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Operazione non riuscita.";
-}
-
 function CountBadge({ count }: { count: number }) {
   return (
     <span
@@ -1102,17 +977,6 @@ export function OwnerCalendarClient({
 
     return () => cancelAnimationFrame(frame);
   }, [calendarView, focusedDayDate]);
-
-  useEffect(() => {
-    return () => {
-      if (dayScrollTimerRef.current !== null) {
-        window.cancelAnimationFrame(dayScrollTimerRef.current);
-      }
-      if (daySnapTimerRef.current !== null) {
-        window.clearTimeout(daySnapTimerRef.current);
-      }
-    };
-  }, []);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.date === selectedDate) ?? null,

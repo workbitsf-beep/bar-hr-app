@@ -1,13 +1,72 @@
 import { getFirebasePublicConfig } from "@/lib/firebase-public-config";
 
-function buildNoopServiceWorker() {
-  return `self.addEventListener("install", function(event) {
+function buildPwaServiceWorkerCore() {
+  return `
+const WORKBIT_STATIC_CACHE = "workbit-static-v8";
+const WORKBIT_STATIC_EXTENSIONS = [
+  ".js", ".css", ".woff", ".woff2", ".ttf", ".png", ".jpg", ".jpeg",
+  ".svg", ".webp", ".ico", ".json", ".webmanifest"
+];
+
+self.addEventListener("install", function(event) {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", function(event) {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys
+          .filter(function(key) { return key !== WORKBIT_STATIC_CACHE; })
+          .map(function(key) { return caches.delete(key); })
+      );
+    }).then(function() { return self.clients.claim(); })
+  );
+});
+
+self.addEventListener("fetch", function(event) {
+  const request = event.request;
+
+  if (request.method !== "GET") {
+    return;
+  }
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || request.mode === "navigate" || url.pathname.indexOf("/api/") === 0) {
+    return;
+  }
+
+  const isStaticAsset = WORKBIT_STATIC_EXTENSIONS.some(function(extension) {
+    return url.pathname.endsWith(extension);
+  });
+
+  if (!isStaticAsset && url.pathname.indexOf("/_next/") !== 0) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then(function(cachedResponse) {
+      const networkFetch = fetch(request)
+        .then(function(response) {
+          if (response && response.ok) {
+            const responseClone = response.clone();
+            caches.open(WORKBIT_STATIC_CACHE).then(function(cache) {
+              cache.put(request, responseClone).catch(function() {});
+            });
+          }
+
+          return response;
+        })
+        .catch(function() { return cachedResponse; });
+
+      return cachedResponse || networkFetch;
+    })
+  );
 });`;
+}
+
+function buildNoopServiceWorker() {
+  return buildPwaServiceWorkerCore();
 }
 
 function buildFirebaseServiceWorkerScript() {
@@ -139,13 +198,7 @@ self.addEventListener("notificationclick", function(event) {
   );
 });
 
-self.addEventListener("install", function(event) {
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", function(event) {
-  event.waitUntil(self.clients.claim());
-});
+${buildPwaServiceWorkerCore()}
 `;
 }
 

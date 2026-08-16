@@ -24,10 +24,18 @@ export function BarHeaderSwitcher({
   const [isPending, startTransition] = useTransition();
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
   const welcomeTimerRef = useRef<number | null>(null);
-  const uniqueBars = useMemo(
-    () => bars.filter((bar, index) => bars.findIndex((item) => item.id === bar.id) === index),
-    [bars]
-  );
+  const uniqueBars = useMemo(() => {
+    const seenIds = new Set<string>();
+
+    return bars.filter((bar) => {
+      if (seenIds.has(bar.id)) {
+        return false;
+      }
+
+      seenIds.add(bar.id);
+      return true;
+    });
+  }, [bars]);
   const canSwitch = Boolean(activeBarId) && uniqueBars.some((bar) => bar.id !== activeBarId);
 
   const switchTargets = useMemo(() => {

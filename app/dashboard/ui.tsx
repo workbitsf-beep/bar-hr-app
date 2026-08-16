@@ -2804,20 +2804,6 @@ function DashboardResponsiveStyles() {
         -webkit-text-fill-color: #ffffff !important;
       }
 
-      .workbit-home .workbit-home-clock-in:disabled {
-        background: #dce8df !important;
-        border-color: #dce8df !important;
-        color: #617267 !important;
-        -webkit-text-fill-color: #617267 !important;
-      }
-
-      .workbit-home .workbit-home-clock-out:disabled {
-        background: #eadfe1 !important;
-        border-color: #eadfe1 !important;
-        color: #86666b !important;
-        -webkit-text-fill-color: #86666b !important;
-      }
-
       @media (max-width: 900px) {
         .dashboard-calendar-page > .dashboard-panel {
           padding: 0 !important;

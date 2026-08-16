@@ -7,6 +7,13 @@ export function ViewportResizeSync() {
     let frame = 0;
     const timers = new Set<number>();
 
+    function clearSettledTimers() {
+      for (const timer of timers) {
+        window.clearTimeout(timer);
+      }
+      timers.clear();
+    }
+
     function syncViewport() {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
@@ -28,6 +35,7 @@ export function ViewportResizeSync() {
 
     function syncViewportSettled() {
       syncViewport();
+      clearSettledTimers();
 
       for (const delay of [80, 240, 600, 1000]) {
         const timer = window.setTimeout(() => {
@@ -47,10 +55,7 @@ export function ViewportResizeSync() {
 
     return () => {
       window.cancelAnimationFrame(frame);
-      for (const timer of timers) {
-        window.clearTimeout(timer);
-      }
-      timers.clear();
+      clearSettledTimers();
       window.removeEventListener("resize", syncViewportSettled);
       window.removeEventListener("orientationchange", syncViewportSettled);
       window.visualViewport?.removeEventListener("resize", syncViewportSettled);

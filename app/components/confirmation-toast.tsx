@@ -6,9 +6,11 @@ import { createPortal } from "react-dom";
 export function ConfirmationToast({
   children,
   duration = 1700,
+  tone = "success",
 }: {
   children: ReactNode;
   duration?: number;
+  tone?: "success" | "danger";
 }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -43,7 +45,10 @@ export function ConfirmationToast({
         style={{
           width: "min(86vw, 320px)",
           borderRadius: 28,
-          border: "1px solid rgba(168, 85, 247, 0.18)",
+          border:
+            tone === "success"
+              ? "1px solid rgba(168, 85, 247, 0.18)"
+              : "1px solid rgba(239, 68, 68, 0.22)",
           background: "rgba(255, 255, 255, 0.95)",
           boxShadow: "0 28px 70px rgba(36, 20, 77, 0.24)",
           backdropFilter: "blur(18px)",
@@ -60,12 +65,19 @@ export function ConfirmationToast({
           viewBox="0 0 60 60"
           style={{ display: "block", margin: "0 auto 14px" }}
         >
-          <circle cx="30" cy="30" r="28" fill="#dcfce7" stroke="#86efac" strokeWidth="2" />
+          <circle
+            cx="30"
+            cy="30"
+            r="28"
+            fill={tone === "success" ? "#dcfce7" : "#fee2e2"}
+            stroke={tone === "success" ? "#86efac" : "#fecaca"}
+            strokeWidth="2"
+          />
           <path
             className="workbit-confirm-check"
-            d="M18 30.5l7.2 7.2L42 22"
+            d={tone === "success" ? "M18 30.5l7.2 7.2L42 22" : "M22 22l16 16M38 22L22 38"}
             fill="none"
-            stroke="#16a34a"
+            stroke={tone === "success" ? "#16a34a" : "#dc2626"}
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="4.5"

@@ -248,8 +248,8 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
         });
 
         if (!response.ok) {
-        throw new Error("Impossibile aggiornare le notifiche.");
-      }
+          throw new Error("Impossibile aggiornare le notifiche.");
+        }
 
         setNotifications([]);
         setUnreadCount(0);

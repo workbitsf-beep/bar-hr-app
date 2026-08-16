@@ -10,7 +10,7 @@ export function PwaRegister() {
 
     const registerServiceWorker = async () => {
       try {
-        await navigator.serviceWorker.register("/sw.js", {
+        await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
           scope: "/",
         });
       } catch (error) {

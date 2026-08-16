@@ -110,6 +110,10 @@ export async function getOrSetRuntimeCache<T>(
 
   const nextPromise = loader()
     .then((value) => {
+      if (pendingStore.get(key) !== nextPromise) {
+        return value;
+      }
+
       cacheStore.set(key, {
         value,
         expiresAt: getNow() + ttlMs,
@@ -119,7 +123,9 @@ export async function getOrSetRuntimeCache<T>(
       return value;
     })
     .finally(() => {
-      pendingStore.delete(key);
+      if (pendingStore.get(key) === nextPromise) {
+        pendingStore.delete(key);
+      }
     });
 
   pendingStore.set(key, nextPromise);

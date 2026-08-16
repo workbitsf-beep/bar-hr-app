@@ -45,10 +45,7 @@ export async function GET(req: Request) {
       },
     }),
     prisma.notification.count({
-      where: {
-        ...where,
-        read: false,
-      },
+      where,
     }),
   ]);
 
