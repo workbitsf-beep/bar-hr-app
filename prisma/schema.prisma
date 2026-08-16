@@ -36,6 +36,20 @@ enum BillingInterval {
   YEARLY
 }
 
+enum InvoiceProvider {
+  STRIPE
+  EXTERNAL
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+  FAILED
+}
+
 enum AppLanguage {
   it
   en
@@ -222,6 +236,8 @@ model Bar {
   memberships       EmployeeBar[]
   settings          BarSettings?
   subscription      Subscription?
+  billingProfile    BillingProfile?
+  invoices          Invoice[]
   shifts            Shift[]
   timeLogs          TimeLog[]
   tasks             Task[]
@@ -256,6 +272,7 @@ model Subscription {
   stripeDiscountCouponId String?
   currentPeriodEnd     DateTime?
   trialEndsAt          DateTime?
+  invoices             Invoice[]
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -264,6 +281,67 @@ model Subscription {
   @@index([stripeSubscriptionId])
   @@index([currentPeriodEnd])
   @@index([trialEndsAt])
+}
+
+model BillingProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  barId              String   @unique @db.Uuid
+  businessName       String?
+  vatNumber          String?
+  taxCode            String?
+  recipientCode      String?
+  certifiedEmail     String?
+  billingEmail       String?
+  phone              String?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  province           String?
+  postalCode         String?
+  countryCode        String   @default("IT")
+  stripeTaxId        String?
+  fiscalProviderRef  String?
+  invoicingEnabled   Boolean  @default(false)
+  validatedAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  bar                Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+
+  @@index([vatNumber])
+  @@index([taxCode])
+}
+
+model Invoice {
+  id               String          @id @default(uuid()) @db.Uuid
+  barId            String          @db.Uuid
+  subscriptionId   String?         @db.Uuid
+  provider         InvoiceProvider @default(STRIPE)
+  externalId       String
+  externalNumber   String?
+  status           InvoiceStatus   @default(DRAFT)
+  currency         String          @default("eur")
+  subtotalAmount   Int             @default(0)
+  taxAmount        Int             @default(0)
+  totalAmount      Int             @default(0)
+  paidAmount       Int             @default(0)
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  issuedAt         DateTime?
+  dueAt            DateTime?
+  paidAt           DateTime?
+  hostedUrl        String?
+  pdfUrl           String?
+  fiscalDocumentId String?
+  fiscalError      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  bar              Bar             @relation(fields: [barId], references: [id], onDelete: Cascade)
+  subscription     Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, externalId])
+  @@index([barId, issuedAt])
+  @@index([subscriptionId])
+  @@index([status, dueAt])
 }
 
 model BarSettings {

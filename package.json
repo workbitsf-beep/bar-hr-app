@@ -12,6 +12,7 @@
     "start": "node --max-old-space-size=512 scripts/start-production.js",
     "migrate:deploy": "node scripts/prisma-migrate-deploy.js",
     "lint": "eslint",
+    "check:store": "node scripts/check-store-readiness.js",
     "seed:super-admin": "node scripts/seed-super-admin.js"
   },
   "dependencies": {

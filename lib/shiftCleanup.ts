@@ -1,9 +1,11 @@
-import { ActivityType, RequestType } from "@prisma/client";
+import { ActivityType, Prisma, RequestType, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const RESTAURANT_CALENDAR_RETENTION_DAYS = 60;
 export const COMPANY_CALENDAR_RETENTION_DAYS = 400;
 export const AVAILABILITY_RETENTION_HOURS = 24;
+export const TASK_REMINDER_RETENTION_HOURS = 24;
+export const COMPLETED_TASK_RETENTION_HOURS = 2;
 const SHIFT_RETENTION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
 
 let lastRetentionCleanupAt = 0;
@@ -32,6 +34,35 @@ function getAvailabilityRetentionCutoff(now = new Date()) {
   const cutoff = new Date(now);
   cutoff.setHours(cutoff.getHours() - AVAILABILITY_RETENTION_HOURS);
   return cutoff;
+}
+
+function getHoursRetentionCutoff(hours: number, now = new Date()) {
+  return new Date(now.getTime() - hours * 60 * 60 * 1000);
+}
+
+function getExpiredTaskFilters(
+  expiredByBarActivity: Array<{
+    bar: { activityType: ActivityType };
+    cutoff: Date;
+  }>,
+  reminderCutoff: Date,
+  completedCutoff: Date
+): Prisma.TaskWhereInput[] {
+  return [
+    ...expiredByBarActivity.map((entry) => ({
+      bar: entry.bar,
+      dueDate: { lt: entry.cutoff },
+    })),
+    {
+      status: TaskStatus.TODO,
+      requiresConfirmation: false,
+      dueDate: { lte: reminderCutoff },
+    },
+    {
+      status: TaskStatus.DONE,
+      completedAt: { lte: completedCutoff },
+    },
+  ];
 }
 
 export function getCalendarRetentionCutoffs(now = new Date()) {
@@ -109,6 +140,8 @@ export async function deleteShiftWithCleanup(
 export async function runShiftRetentionCleanup(now = new Date()) {
   const { restaurantCutoff, companyCutoff } = getCalendarRetentionCutoffs(now);
   const availabilityCutoff = getAvailabilityRetentionCutoff(now);
+  const reminderCutoff = getHoursRetentionCutoff(TASK_REMINDER_RETENTION_HOURS, now);
+  const completedTaskCutoff = getHoursRetentionCutoff(COMPLETED_TASK_RETENTION_HOURS, now);
   const expiredByBarActivity = [
     {
       bar: { activityType: ActivityType.RESTAURANT },
@@ -133,7 +166,12 @@ export async function runShiftRetentionCleanup(now = new Date()) {
   });
 
   if (expiredShifts.length === 0) {
-    const standaloneResult = await deleteExpiredCalendarItems(expiredByBarActivity, availabilityCutoff);
+    const standaloneResult = await deleteExpiredCalendarItems(
+      expiredByBarActivity,
+      availabilityCutoff,
+      reminderCutoff,
+      completedTaskCutoff
+    );
 
     return {
       restaurantCutoff,
@@ -219,10 +257,11 @@ export async function runShiftRetentionCleanup(now = new Date()) {
 
     const deletedTasks = await tx.task.deleteMany({
       where: {
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          dueDate: { lt: entry.cutoff },
-        })),
+        OR: getExpiredTaskFilters(
+          expiredByBarActivity,
+          reminderCutoff,
+          completedTaskCutoff
+        ),
       },
     });
 
@@ -267,7 +306,9 @@ async function deleteExpiredCalendarItems(
     bar: { activityType: ActivityType };
     cutoff: Date;
   }>,
-  availabilityCutoff = getAvailabilityRetentionCutoff()
+  availabilityCutoff = getAvailabilityRetentionCutoff(),
+  reminderCutoff = getHoursRetentionCutoff(TASK_REMINDER_RETENTION_HOURS),
+  completedTaskCutoff = getHoursRetentionCutoff(COMPLETED_TASK_RETENTION_HOURS)
 ) {
   return prisma.$transaction(async (tx) => {
     const deletedRequests = await tx.request.deleteMany({
@@ -318,10 +359,11 @@ async function deleteExpiredCalendarItems(
 
     const deletedTasks = await tx.task.deleteMany({
       where: {
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          dueDate: { lt: entry.cutoff },
-        })),
+        OR: getExpiredTaskFilters(
+          expiredByBarActivity,
+          reminderCutoff,
+          completedTaskCutoff
+        ),
       },
     });
 

@@ -34,6 +34,9 @@ yarn-error.log*
 
 # codex local attachments
 .codex-remote-attachments/
+.tmp-docx-qa/
+CLAUDE.md
+/docs/Checklist-apertura-Partita-IVA-e-pubblicazione-Workbit.docx
 
 # env files (can opt-in for committing if needed)
 .env*

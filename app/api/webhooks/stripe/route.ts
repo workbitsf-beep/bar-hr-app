@@ -1,10 +1,15 @@
 import {
   BillingInterval,
+  InvoiceStatus,
   PlanType,
   SubscriptionStatus,
 } from "@prisma/client";
 import type Stripe from "stripe";
 import { invalidateBillingStatusCache } from "@/lib/billing";
+import {
+  syncStripeBillingProfile,
+  syncStripeInvoice,
+} from "@/lib/invoicing/stripe-sync";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { requireStripe } from "@/lib/stripe";
@@ -212,6 +217,37 @@ async function findBarIdForSubscription(input: {
   return subscription?.barId ?? null;
 }
 
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice) {
+  return typeof invoice.parent?.subscription_details?.subscription === "string"
+    ? invoice.parent.subscription_details.subscription
+    : invoice.parent?.subscription_details?.subscription?.id ?? null;
+}
+
+async function syncStripeInvoiceEvent(
+  invoice: Stripe.Invoice,
+  fallbackStatus?: InvoiceStatus
+) {
+  const stripeSubscriptionId = getInvoiceSubscriptionId(invoice);
+  const stripeCustomerId =
+    typeof invoice.customer === "string" ? invoice.customer : null;
+  const barId = await findBarIdForSubscription({
+    stripeSubscriptionId,
+    stripeCustomerId,
+    metadataBarId: invoice.metadata?.barId ?? null,
+  });
+
+  if (!barId) {
+    return null;
+  }
+
+  await Promise.all([
+    syncStripeInvoice({ barId, invoice, fallbackStatus }),
+    syncStripeBillingProfile({ barId, invoice }),
+  ]);
+
+  return { barId, stripeCustomerId, stripeSubscriptionId };
+}
+
 export async function POST(req: Request) {
   const stripe = requireStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -408,23 +444,22 @@ export async function POST(req: Request) {
         break;
       }
 
+      case "invoice.finalized":
+      case "invoice.voided":
+      case "invoice.marked_uncollectible": {
+        const invoice = event.data.object as Stripe.Invoice;
+        await syncStripeInvoiceEvent(invoice);
+        break;
+      }
+
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
-        const stripeSubscriptionId =
-          typeof invoice.parent?.subscription_details?.subscription === "string"
-            ? invoice.parent.subscription_details.subscription
-            : invoice.parent?.subscription_details?.subscription?.id ?? null;
-        const stripeCustomerId =
-          typeof invoice.customer === "string" ? invoice.customer : null;
-        const barId = await findBarIdForSubscription({
-          stripeSubscriptionId,
-          stripeCustomerId,
-          metadataBarId: null,
-        });
+        const syncedInvoice = await syncStripeInvoiceEvent(invoice);
 
-        if (!barId) {
+        if (!syncedInvoice) {
           break;
         }
+        const { barId, stripeCustomerId, stripeSubscriptionId } = syncedInvoice;
 
         const stripeSubscription = stripeSubscriptionId
           ? ((await stripe.subscriptions.retrieve(
@@ -468,21 +503,12 @@ export async function POST(req: Request) {
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        const stripeSubscriptionId =
-          typeof invoice.parent?.subscription_details?.subscription === "string"
-            ? invoice.parent.subscription_details.subscription
-            : invoice.parent?.subscription_details?.subscription?.id ?? null;
-        const stripeCustomerId =
-          typeof invoice.customer === "string" ? invoice.customer : null;
-        const barId = await findBarIdForSubscription({
-          stripeSubscriptionId,
-          stripeCustomerId,
-          metadataBarId: null,
-        });
+        const syncedInvoice = await syncStripeInvoiceEvent(invoice, InvoiceStatus.FAILED);
 
-        if (!barId) {
+        if (!syncedInvoice) {
           break;
         }
+        const { barId } = syncedInvoice;
 
         const previous = await getLocalSubscriptionStatus(barId);
         await prisma.subscription.updateMany({
