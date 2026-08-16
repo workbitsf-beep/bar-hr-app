@@ -18,6 +18,7 @@ import {
 import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { WorkSessionTimer } from "./work-session-timer";
+import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 
 function requestTypeLabel(type: RequestType) {
   if (type === RequestType.VACATION) return "Ferie";
@@ -88,6 +89,7 @@ export default async function DashboardPage() {
     kpiData,
     pendingApprovalRequests,
     nextWeekShiftCount,
+    assignedShiftForClockIn,
   ] = await Promise.all([
     isOperationalProfile && features.timeTracking
       ? prisma.barSettings.findUnique({
@@ -213,6 +215,13 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve(0),
+    isOperationalProfile && features.timeTracking && features.shifts
+      ? findAssignedShiftForClockIn({
+          barId: activeBarId,
+          userId: session.user.id,
+          now,
+        })
+      : Promise.resolve(null),
   ]);
 
   const todayKey = toDateInputValueInTimeZone(now);
@@ -264,6 +273,7 @@ export default async function DashboardPage() {
               settings={settings}
               activeBarId={activeBarId}
               clockStatus={clockStatus}
+              hasScheduledShiftToday={Boolean(assignedShiftForClockIn)}
               compact
             />
           ) : null}

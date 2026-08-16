@@ -1,4 +1,5 @@
 ﻿import { ClockType, Role } from "@prisma/client";
+import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 import { isWithinRadius } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
@@ -110,41 +111,32 @@ export const POST = withBar(
       }
     }
 
-    const shiftWindowEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-
-    const activeShift = await prisma.shift.findFirst({
-      where: {
-        barId: session.activeBarId,
-        startTime: {
-          lte: shiftWindowEnd,
-        },
-        endTime: {
-          gte: now,
-        },
-        assignments: {
-          some: {
-            userId: session.user.id,
-          },
-        },
-      },
-      orderBy: {
-        startTime: "asc",
-      },
-      select: {
-        id: true,
-        endTime: true,
-      },
+    const activeShift = await findAssignedShiftForClockIn({
+      barId: session.activeBarId,
+      userId: session.user.id,
+      now,
     });
+
+    if (!activeShift) {
+      return Response.json(
+        {
+          ok: false,
+          code: "SHIFT_REQUIRED",
+          message: "Non hai un turno programmato per oggi.",
+        },
+        { status: 403 }
+      );
+    }
 
     const log = await prisma.timeLog.create({
       data: {
         type: ClockType.IN,
         userId: session.user.id,
         barId: session.activeBarId,
-        shiftId: activeShift?.id ?? null,
+        shiftId: activeShift.id,
         latitude,
         longitude,
-        note: activeShift ? `Turno previsto fino alle ${activeShift.endTime.toISOString()}` : null,
+        note: `Turno previsto fino alle ${activeShift.endTime.toISOString()}`,
       },
     });
 
@@ -152,7 +144,7 @@ export const POST = withBar(
     await closeClockInReminders({
       userId: session.user.id,
       barId: session.activeBarId,
-      shiftId: activeShift?.id ?? null,
+      shiftId: activeShift.id,
     });
 
     return Response.json({ ok: true, log });

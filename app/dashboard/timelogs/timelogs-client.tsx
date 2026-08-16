@@ -520,12 +520,14 @@ export function ClockActionsPanel({
   activeBarId,
   compact = false,
   clockStatus = "CAN_CLOCK_IN",
+  hasScheduledShiftToday = false,
 }: {
   role: Role | string;
   settings: BarSettingsSummary;
   activeBarId?: string | null;
   compact?: boolean;
   clockStatus?: ClockActionStatus;
+  hasScheduledShiftToday?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -556,7 +558,11 @@ export function ClockActionsPanel({
     longitude !== "" &&
     distance !== null &&
     distance <= (settings?.gpsRadius ?? 0);
-  const canClockIn = insideRadius && geoReady && clockStatus !== "CAN_CLOCK_OUT";
+  const canClockIn =
+    insideRadius &&
+    geoReady &&
+    hasScheduledShiftToday &&
+    clockStatus !== "CAN_CLOCK_OUT";
   const canClockOut = insideRadius && geoReady && clockStatus === "CAN_CLOCK_OUT";
 
   const locationSummary = useMemo(() => {
@@ -779,6 +785,11 @@ export function ClockActionsPanel({
   }
 
   async function runClockAction(endpoint: "clock-in" | "clock-out") {
+    if (endpoint === "clock-in" && !hasScheduledShiftToday) {
+      setActionMessage("Non hai un turno programmato per oggi.");
+      return;
+    }
+
     setSubmitting(endpoint === "clock-in" ? "in" : "out");
     setActionMessage("");
 
@@ -908,7 +919,11 @@ export function ClockActionsPanel({
         <div className="workbit-home-clock-top">
           <div>
             <strong>Entrata / uscita</strong>
-            <span>📍 posizione aggiornata</span>
+            <span>
+              {clockStatus !== "CAN_CLOCK_OUT" && !hasScheduledShiftToday
+                ? "Nessun turno programmato oggi"
+                : "📍 posizione aggiornata"}
+            </span>
           </div>
           <div className="workbit-home-clock-tools">
             <button
@@ -920,9 +935,21 @@ export function ClockActionsPanel({
             >
               {locating ? "…" : "↻"}
             </button>
-            <span className={gpsConfigured && insideRadius ? "workbit-home-ready" : "workbit-home-ready is-waiting"}>
+            <span
+              className={
+                gpsConfigured &&
+                insideRadius &&
+                (hasScheduledShiftToday || clockStatus === "CAN_CLOCK_OUT")
+                  ? "workbit-home-ready"
+                  : "workbit-home-ready is-waiting"
+              }
+            >
               <i aria-hidden="true" />
-              {gpsConfigured && insideRadius ? "Pronta" : "Attendi"}
+              {gpsConfigured &&
+              insideRadius &&
+              (hasScheduledShiftToday || clockStatus === "CAN_CLOCK_OUT")
+                ? "Pronta"
+                : "Attendi"}
             </span>
           </div>
         </div>

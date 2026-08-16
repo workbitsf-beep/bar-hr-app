@@ -2790,6 +2790,8 @@ function DashboardResponsiveStyles() {
       .workbit-home .workbit-home-clock-in:active {
         background: #34D35F !important;
         border-color: rgba(52, 211, 95, 0.7) !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
       }
 
       .workbit-home .workbit-home-clock-out,
@@ -2798,6 +2800,22 @@ function DashboardResponsiveStyles() {
       .workbit-home .workbit-home-clock-out:active {
         background: #EF4444 !important;
         border-color: rgba(239, 68, 68, 0.7) !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+      }
+
+      .workbit-home .workbit-home-clock-in:disabled {
+        background: #dce8df !important;
+        border-color: #dce8df !important;
+        color: #617267 !important;
+        -webkit-text-fill-color: #617267 !important;
+      }
+
+      .workbit-home .workbit-home-clock-out:disabled {
+        background: #eadfe1 !important;
+        border-color: #eadfe1 !important;
+        color: #86666b !important;
+        -webkit-text-fill-color: #86666b !important;
       }
 
       @media (max-width: 900px) {
