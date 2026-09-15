@@ -8,6 +8,7 @@ type AdminSection =
   | "owners"
   | "bars"
   | "billing"
+  | "revenue"
   | "gps"
   | "legal"
   | "system"
@@ -57,6 +58,15 @@ const superAdminItems: Array<{
     section: "billing",
     color: "#0891b2",
     tint: "#ecfeff",
+  },
+  {
+    href: "/dashboard/super-admin/revenue",
+    title: "Ricavi",
+    description: "MRR, ARR e andamento incassi.",
+    eyebrow: "Finanza",
+    section: "revenue",
+    color: "#b45309",
+    tint: "#fffbeb",
   },
   {
     href: "/dashboard/super-admin/gps",
@@ -128,6 +138,15 @@ function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: numbe
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="3" {...common} />
         <path d="M3 10h18M7 15h4" {...common} />
+      </svg>
+    );
+  }
+
+  if (section === "revenue") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" {...common} />
+        <path d="M12 7.5v9M14.8 9.7c0-1.1-1.25-2-2.8-2s-2.8.9-2.8 2 1.25 1.8 2.8 1.8 2.8.7 2.8 1.9-1.25 2-2.8 2-2.8-.9-2.8-2" {...common} />
       </svg>
     );
   }

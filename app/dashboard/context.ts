@@ -174,6 +174,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: "Titolari", href: "/dashboard/super-admin/owners" },
           { label: "Attività", href: "/dashboard/super-admin/bars" },
           { label: "Abbonamenti", href: "/dashboard/super-admin/billing" },
+          { label: "Ricavi", href: "/dashboard/super-admin/revenue" },
           { label: "GPS globale", href: "/dashboard/super-admin/gps" },
           { label: "Documenti legali", href: "/dashboard/super-admin/legal" },
           { label: "Utilizzo", href: "/dashboard/super-admin/system" },

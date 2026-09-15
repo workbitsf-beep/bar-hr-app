@@ -41,6 +41,12 @@ const quickSections = [
     icon: "💳",
   },
   {
+    href: "/dashboard/super-admin/revenue",
+    title: "Andamento ricavi",
+    description: "MRR, ARR e classifica per incasso.",
+    icon: "💰",
+  },
+  {
     href: "/dashboard/super-admin/gps",
     title: "GPS globale",
     description: "Range timbrature globale.",
