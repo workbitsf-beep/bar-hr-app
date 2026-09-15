@@ -111,17 +111,6 @@ function TaskProgressRing({
           style={{ transition: "stroke-dashoffset 220ms ease" }}
         />
       </svg>
-      <span
-        style={{
-          position: "absolute",
-          color: "#4c1d95",
-          fontSize: 13,
-          fontWeight: 900,
-          lineHeight: 1,
-        }}
-      >
-        {completed}/{total}
-      </span>
     </div>
   );
 }

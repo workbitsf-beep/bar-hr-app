@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   ActivityType,
+  CalendarClosureType,
   ClockType,
   RequestStatus,
   RequestType,
@@ -224,7 +225,7 @@ async function buildRestaurantMonthlyDataset(
   monthEnd: Date,
   options: MonthlyDatasetOptions = {}
 ): Promise<MonthlyDataset> {
-  const [timeLogs, settings, approvedRequests] = await Promise.all([
+  const [timeLogs, settings, approvedRequests, vacationClosures] = await Promise.all([
     prisma.timeLog.findMany({
       where: {
         userId,
@@ -280,6 +281,24 @@ async function buildRestaurantMonthlyDataset(
         reason: true,
       },
     }),
+    prisma.calendarClosure.findMany({
+      where: {
+        barId,
+        type: CalendarClosureType.VACATION,
+        startsAt: {
+          lt: monthEnd,
+        },
+        endsAt: {
+          gte: monthStart,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    }),
   ]);
 
   const labelsByDay = new Map<string, Set<string>>();
@@ -313,6 +332,37 @@ async function buildRestaurantMonthlyDataset(
           note: options.includePrivateAbsenceDetails ? request.reason?.trim() || null : null,
         });
         requestItemsByDay.set(key, items);
+      }
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+
+  for (const closure of vacationClosures) {
+    const cursor = new Date(closure.startsAt);
+    cursor.setHours(0, 0, 0, 0);
+
+    const closureEnd = new Date(closure.endsAt);
+    closureEnd.setHours(0, 0, 0, 0);
+
+    while (cursor <= closureEnd) {
+      if (cursor >= monthStart && cursor < monthEnd) {
+        const key = formatDayKey(cursor);
+        const labels = labelsByDay.get(key) ?? new Set<string>();
+        labels.add("Ferie");
+        labelsByDay.set(key, labels);
+        const items = requestItemsByDay.get(key) ?? [];
+
+        if (!items.some((item) => item.type === "Ferie")) {
+          items.push({
+            id: closure.id,
+            type: "Ferie",
+            title: closure.title?.trim() || "Ferie collettive",
+            startsAt: closure.startsAt.toISOString(),
+            endsAt: closure.endsAt.toISOString(),
+          });
+          requestItemsByDay.set(key, items);
+        }
       }
 
       cursor.setDate(cursor.getDate() + 1);
@@ -594,16 +644,28 @@ async function buildCompanyMonthlyDataset(
 
   for (const closure of closures) {
     const dayKey = getClampedDayKey(closure.startsAt, monthStart, monthEnd);
+    const isVacationClosure = closure.type === CalendarClosureType.VACATION;
+
+    if (isVacationClosure && (groupedMap.get(dayKey)?.items ?? []).some((item) => item.type === "Ferie")) {
+      continue;
+    }
 
     upsertCompanyDayItem(groupedMap, dayKey, {
       id: closure.id,
-      type: "Chiusura",
-      title: closure.title || (closure.type === "HOLIDAY" ? "Festivita" : "Chiusura"),
+      type: isVacationClosure ? "Ferie" : "Chiusura",
+      title:
+        closure.title ||
+        (isVacationClosure ? "Ferie collettive" : closure.type === "HOLIDAY" ? "Festivita" : "Chiusura"),
       startsAt: closure.startsAt.toISOString(),
       endsAt: closure.endsAt.toISOString(),
     });
 
-    summary.closures += 1;
+    if (isVacationClosure) {
+      summary.vacation += 1;
+    } else {
+      summary.closures += 1;
+    }
+
     summary.total += 1;
   }
 

@@ -268,6 +268,10 @@ function shiftDraftToShiftItem(
   };
 }
 
+function isOwnShift(shift: Pick<ShiftItem, "assignments">) {
+  return shift.assignments.some((assignment) => assignment.isCurrentUser);
+}
+
 function formatAssignmentNames(assignments: ShiftAssignment[]) {
   return assignments.map((assignment, index) => {
     const name = `${assignment.firstName} ${assignment.lastName}`;
@@ -489,9 +493,15 @@ function renderCompactShiftCard(
           lineHeight: 1.5,
         }}
         >
-        <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
-          {formatDayTime(shift.startTime, locale)}–{formatDayTime(shift.endTime, locale)}
-        </strong>
+        {isOwnShift(shift) ? (
+          <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
+            {formatDayTime(shift.startTime, locale)}–{formatDayTime(shift.endTime, locale)}
+          </strong>
+        ) : (
+          <span style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
+            {formatDayTime(shift.startTime, locale)}–{formatDayTime(shift.endTime, locale)}
+          </span>
+        )}
         {shift.isOnCall ? (
           <span style={{ color: "#b45309", fontSize: mobile ? 11 : 11, fontWeight: 600 }}>
             {shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
@@ -3665,9 +3675,15 @@ export function OwnerCalendarClient({
                           }}
                         >
                           <div style={{ display: "grid", gap: 6 }}>
-                            <strong style={{ color: "#0f172a" }}>
-                              {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
-                            </strong>
+                            {isOwnShift(shift) ? (
+                              <strong style={{ color: "#0f172a" }}>
+                                {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
+                              </strong>
+                            ) : (
+                              <span style={{ color: "#0f172a" }}>
+                                {formatDayTime(shift.startTime, locale)} - {formatDayTime(shift.endTime, locale)}
+                              </span>
+                            )}
                             {shift.isOnCall ? (
                               <StatusPill
                                 label={shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}

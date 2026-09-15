@@ -307,6 +307,10 @@ function toDateTimeLocal(dateIso: string, hour: number, minute: number) {
   return `${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
+function isOwnShift(shift: Pick<ShiftItem, "assignments">) {
+  return shift.assignments.some((assignment) => assignment.isCurrentUser);
+}
+
 function formatAssignmentNames(assignments: ShiftAssignment[]) {
   return assignments.map((assignment, index) => {
     const name = `${assignment.firstName} ${assignment.lastName}`;
@@ -525,9 +529,15 @@ function renderShiftCard(
           lineHeight: 1.5,
         }}
       >
-        <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
-          {formatTime(shift.startTime, locale)}–{formatTime(shift.endTime, locale)}
-        </strong>
+        {isOwnShift(shift) ? (
+          <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
+            {formatTime(shift.startTime, locale)}–{formatTime(shift.endTime, locale)}
+          </strong>
+        ) : (
+          <span style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
+            {formatTime(shift.startTime, locale)}–{formatTime(shift.endTime, locale)}
+          </span>
+        )}
         {shift.isOnCall ? (
           <span style={{ color: "#b45309", fontSize: mobile ? 11 : 11, fontWeight: 600 }}>
             {shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
