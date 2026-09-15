@@ -2,7 +2,7 @@ import { BillingInterval, PlanType, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
 import { EmptyState, Panel, Stack, StatusPill } from "../../ui";
-import { SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
+import { StatTile, SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
 
 const MONTHLY_PRICE = 29.99;
 const YEARLY_PRICE = 299;
@@ -74,24 +74,6 @@ function getPlanLabel(subscription: RevenueSubscription) {
   return subscription.billingInterval === BillingInterval.YEARLY ? "Annuale" : "Mensile";
 }
 
-function RevenueMetric({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="revenue-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </div>
-  );
-}
-
 export default async function SuperAdminRevenuePage() {
   const { role } = await getDashboardContext();
 
@@ -145,22 +127,22 @@ export default async function SuperAdminRevenuePage() {
     >
       <Stack>
         <section className="revenue-grid" aria-label="Riepilogo incassi">
-          <RevenueMetric
+          <StatTile
             label="Incasso mese"
             value={formatCurrency(monthlyRevenue)}
             detail="Ricorrente stimato"
           />
-          <RevenueMetric
+          <StatTile
             label="Incasso anno"
             value={formatCurrency(annualRevenue)}
             detail="Stima annualizzata"
           />
-          <RevenueMetric
+          <StatTile
             label="Attivita paganti"
             value={String(payingActivities.length)}
             detail={`${trialActivities.length} in prova`}
           />
-          <RevenueMetric
+          <StatTile
             label="Manuali/free"
             value={String(freeActivities.length)}
             detail="Sbloccate senza Stripe"
@@ -199,27 +181,11 @@ export default async function SuperAdminRevenuePage() {
                 grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: 12px;
               }
-              .revenue-metric {
-                display: grid;
-                gap: 7px;
-                padding: 18px;
-                border-radius: 26px;
-                border: 1px solid rgba(124, 58, 237, .13);
-                background: linear-gradient(145deg, #ffffff 0%, #f7f3ff 100%);
-                box-shadow: 0 16px 38px rgba(88, 28, 135, .08);
-              }
-              .revenue-metric span,
               .revenue-row span,
               .revenue-row small {
                 color: #64748b;
                 font-size: 12px;
                 font-weight: 800;
-              }
-              .revenue-metric strong {
-                color: #0f172a;
-                font-size: 30px;
-                line-height: 1;
-                letter-spacing: -.05em;
               }
               .revenue-list {
                 display: grid;

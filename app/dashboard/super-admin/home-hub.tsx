@@ -2,24 +2,7 @@ import Link from "next/link";
 import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
 import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { prisma } from "@/lib/prisma";
-
-function AdminMetric({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="sa-overview-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </div>
-  );
-}
+import { StatTile } from "./super-admin-ui";
 
 const quickSections = [
   {
@@ -119,18 +102,18 @@ export async function SuperAdminHomeHub() {
       </RevealOnScroll>
 
       <section className="sa-overview-metrics" aria-label="Metriche Super Admin">
-        <AdminMetric
+        <StatTile
           label="Attività"
           value={String(totalActivities)}
           detail={`${restaurantCount} ristorazione - ${companyCount} aziende`}
         />
-        <AdminMetric label="Titolari" value={String(ownerCount)} detail={`${userCount} utenti totali`} />
-        <AdminMetric
+        <StatTile label="Titolari" value={String(ownerCount)} detail={`${userCount} utenti totali`} />
+        <StatTile
           label="Abbonamenti"
           value={String(activeSubscriptions)}
           detail={`${trialSubscriptions} in prova - ${riskySubscriptions} da verificare`}
         />
-        <AdminMetric label="Runtime" value={`${rssMb} MB`} detail={`Heap ${heapMb} MB`} />
+        <StatTile label="Runtime" value={`${rssMb} MB`} detail={`Heap ${heapMb} MB`} />
       </section>
 
       <section className="sa-overview-grid" aria-label="Sezioni operative">
@@ -154,7 +137,6 @@ export async function SuperAdminHomeHub() {
               min-width: 0;
             }
             .sa-overview-head,
-            .sa-overview-metric,
             .sa-overview-card {
               border: 1px solid rgba(124, 58, 237, .13);
               background: rgba(255,255,255,.94);
@@ -195,28 +177,10 @@ export async function SuperAdminHomeHub() {
               grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 10px;
             }
-            .sa-overview-metric {
-              display: grid;
-              gap: 6px;
-              padding: 16px;
-              border-radius: 24px;
-            }
-            .sa-overview-metric span,
             .sa-overview-card small {
               color: #64748b;
               font-size: 12px;
               font-weight: 800;
-            }
-            .sa-overview-metric strong {
-              color: #0f172a;
-              font-size: 30px;
-              line-height: 1;
-              letter-spacing: -.05em;
-            }
-            .sa-overview-metric small {
-              color: #64748b;
-              font-size: 12px;
-              line-height: 1.35;
             }
             .sa-overview-grid {
               display: grid;

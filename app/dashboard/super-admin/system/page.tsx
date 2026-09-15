@@ -2,7 +2,7 @@ import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
 import { EmptyState, Panel, Stack, StatusPill } from "../../ui";
-import { SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
+import { StatTile, SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
 
 function startOfMonth() {
   const now = new Date();
@@ -37,42 +37,6 @@ function getRuntimeMetrics() {
     cpuAverage: `${averageCpuPercent.toFixed(1)}%`,
     uptime: `${Math.floor(uptimeSeconds / 60)} min`,
   };
-}
-
-function MetricCard({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number | string;
-  tone?: "neutral" | "green" | "purple" | "orange";
-}) {
-  const palette = {
-    neutral: ["#f8fafc", "#0f172a"],
-    green: ["#ecfdf5", "#047857"],
-    purple: ["#f5f3ff", "#6d28d9"],
-    orange: ["#fff7ed", "#c2410c"],
-  } as const;
-  const [background, color] = palette[tone];
-
-  return (
-    <div
-      className="dashboard-list-card"
-      style={{
-        display: "grid",
-        gap: 8,
-        padding: 16,
-        borderRadius: 22,
-        background,
-        border: "1px solid rgba(226,232,240,.9)",
-        minWidth: 0,
-      }}
-    >
-      <span style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>{label}</span>
-      <strong style={{ color, fontSize: 28, letterSpacing: "-0.04em" }}>{value}</strong>
-    </div>
-  );
 }
 
 export default async function SuperAdminSystemPage() {
@@ -132,12 +96,12 @@ export default async function SuperAdminSystemPage() {
                 gap: 12,
               }}
             >
-              <MetricCard label="Attività totali" value={totalBars} tone="purple" />
-              <MetricCard label="Attività attive/prova" value={activeBars} tone="green" />
-              <MetricCard label="Utenti" value={totalUsers} />
-              <MetricCard label="Timbrature mese" value={monthTimelogs} tone="orange" />
-              <MetricCard label="Notifiche mese" value={monthNotifications} tone="purple" />
-              <MetricCard label="Notifiche non lette" value={unreadNotifications} />
+              <StatTile label="Attività totali" value={totalBars} tone="purple" />
+              <StatTile label="Attività attive/prova" value={activeBars} tone="green" />
+              <StatTile label="Utenti" value={totalUsers} />
+              <StatTile label="Timbrature mese" value={monthTimelogs} tone="orange" />
+              <StatTile label="Notifiche mese" value={monthNotifications} tone="purple" />
+              <StatTile label="Notifiche non lette" value={unreadNotifications} />
             </div>
           )}
         </Panel>
@@ -159,12 +123,12 @@ export default async function SuperAdminSystemPage() {
               gap: 12,
             }}
           >
-            <MetricCard label="RAM processo" value={runtimeMetrics.rss} tone="purple" />
-            <MetricCard label="Heap usato" value={runtimeMetrics.heapUsed} tone="green" />
-            <MetricCard label="Heap totale" value={runtimeMetrics.heapTotal} />
-            <MetricCard label="Memoria esterna" value={runtimeMetrics.external} />
-            <MetricCard label="CPU media" value={runtimeMetrics.cpuAverage} tone="orange" />
-            <MetricCard label="Uptime processo" value={runtimeMetrics.uptime} />
+            <StatTile label="RAM processo" value={runtimeMetrics.rss} tone="purple" />
+            <StatTile label="Heap usato" value={runtimeMetrics.heapUsed} tone="green" />
+            <StatTile label="Heap totale" value={runtimeMetrics.heapTotal} />
+            <StatTile label="Memoria esterna" value={runtimeMetrics.external} />
+            <StatTile label="CPU media" value={runtimeMetrics.cpuAverage} tone="orange" />
+            <StatTile label="Uptime processo" value={runtimeMetrics.uptime} />
           </div>
         </Panel>
       </Stack>

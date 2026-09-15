@@ -197,6 +197,55 @@ function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: numbe
   );
 }
 
+export function StatTile({
+  label,
+  value,
+  detail,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string | number;
+  detail?: string;
+  tone?: "neutral" | "green" | "purple" | "orange";
+}) {
+  const toneColor = {
+    neutral: "#0f172a",
+    green: "#047857",
+    purple: "#6d28d9",
+    orange: "#c2410c",
+  } as const;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 6,
+        padding: 16,
+        borderRadius: 24,
+        border: "1px solid rgba(124, 58, 237, .13)",
+        background: "rgba(255,255,255,.94)",
+        boxShadow: "0 16px 38px rgba(88, 28, 135, .08)",
+        minWidth: 0,
+      }}
+    >
+      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>{label}</span>
+      <strong
+        style={{
+          color: toneColor[tone],
+          fontSize: 28,
+          lineHeight: 1,
+          letterSpacing: "-0.05em",
+        }}
+      >
+        {value}
+      </strong>
+      {detail ? (
+        <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.35 }}>{detail}</span>
+      ) : null}
+    </div>
+  );
+}
+
 export function SuperAdminForbidden() {
   return (
     <Panel title="Super Admin">
