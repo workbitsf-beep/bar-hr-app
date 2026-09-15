@@ -199,117 +199,50 @@ export function SuperAdminFrame({
 }) {
   return (
     <div className="super-admin-shell" aria-label={title}>
-      <aside className="super-admin-sidebar" aria-label="Sezioni Super Admin">
-        <div className="super-admin-sidebar-brand">
-          <span className="super-admin-sidebar-mark" aria-hidden="true" />
-          Super Admin
-        </div>
-        <nav className="super-admin-sidebar-nav">
-          {superAdminItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="super-admin-sidebar-item"
-              aria-current={item.section === section ? "page" : undefined}
-            >
-              <span className="super-admin-sidebar-icon" aria-hidden="true">
-                <AdminIcon section={item.section} />
-              </span>
-              {item.title}
-            </Link>
-          ))}
-        </nav>
-      </aside>
+      {section !== "home" ? (
+        <Link href="/dashboard/super-admin" className="super-admin-back-link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="m15 18-6-6 6-6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Panoramica
+        </Link>
+      ) : null}
 
-      <div className="super-admin-main">
-        {description ? <p className="super-admin-description">{description}</p> : null}
+      {description ? <p className="super-admin-description">{description}</p> : null}
 
-        <RevealOnScroll className="super-admin-content" delay={60}>
-          {children}
-        </RevealOnScroll>
-      </div>
+      <RevealOnScroll className="super-admin-content" delay={60}>
+        {children}
+      </RevealOnScroll>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
             .super-admin-shell {
               display: grid;
-              grid-template-columns: 216px minmax(0, 1fr);
-              gap: 22px;
+              gap: 14px;
               min-width: 0;
               width: 100%;
-              align-items: start;
             }
 
-            .super-admin-sidebar {
-              position: sticky;
-              top: 12px;
-              display: flex;
-              flex-direction: column;
-              gap: 16px;
-              padding: 14px 10px;
-              border-radius: 16px;
-              background: var(--workbit-navy);
-            }
-
-            .super-admin-sidebar-brand {
-              display: flex;
-              align-items: center;
-              gap: 9px;
-              padding: 2px 8px;
-              color: #ffffff;
-              font-size: 12.5px;
-              font-weight: 700;
-              letter-spacing: 0.01em;
-            }
-
-            .super-admin-sidebar-mark {
-              width: 20px;
-              height: 20px;
-              border-radius: 6px;
-              background: var(--workbit-purple);
-              flex: 0 0 auto;
-            }
-
-            .super-admin-sidebar-nav {
-              display: flex;
-              flex-direction: column;
-              gap: 2px;
-            }
-
-            .super-admin-sidebar-item {
-              display: flex;
-              align-items: center;
-              gap: 10px;
-              padding: 9px 10px;
-              border-radius: 9px;
-              color: #a3a8c3;
-              font-size: 13px;
-              font-weight: 500;
-              text-decoration: none;
-              transition: background 140ms ease, color 140ms ease;
-            }
-
-            .super-admin-sidebar-icon {
+            .super-admin-back-link {
               display: inline-flex;
-              flex: 0 0 auto;
-            }
-
-            .super-admin-sidebar-item:hover {
-              background: rgba(255,255,255,0.06);
-              color: #ffffff;
-            }
-
-            .super-admin-sidebar-item[aria-current="page"] {
-              background: var(--workbit-purple);
-              color: #ffffff;
+              align-items: center;
+              gap: 7px;
+              width: fit-content;
+              color: var(--workbit-muted);
+              font-size: 13px;
               font-weight: 600;
+              text-decoration: none;
             }
 
-            .super-admin-main {
-              display: grid;
-              gap: 16px;
-              min-width: 0;
+            .super-admin-back-link:hover {
+              color: var(--workbit-ink);
             }
 
             .super-admin-description {
@@ -338,17 +271,6 @@ export function SuperAdminFrame({
             .super-admin-content .dashboard-list-card:hover {
               border-color: rgba(123, 47, 247, 0.28);
               transform: translateY(-1px);
-            }
-
-            @media (max-width: 900px) {
-              .super-admin-shell {
-                grid-template-columns: minmax(0, 1fr);
-                gap: 14px;
-              }
-
-              .super-admin-sidebar {
-                display: none;
-              }
             }
           `,
         }}
