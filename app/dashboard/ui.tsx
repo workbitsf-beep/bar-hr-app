@@ -4074,6 +4074,28 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
+export function ResetLink({ href, children = "Reset" }: { href: string; children?: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 999,
+        padding: "12px 16px",
+        textDecoration: "none",
+        background: "#f8fafc",
+        color: "#0f172a",
+        border: "1px solid #e2e8f0",
+        fontWeight: 700,
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function PrimaryButton({
   children,
   tone = "dark",

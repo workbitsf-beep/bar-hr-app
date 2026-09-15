@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { createOwnerBySuperAdminAction } from "../../actions";
 import { ModalShell } from "../../modal-shell";
@@ -10,6 +9,7 @@ import {
   ItemList,
   Panel,
   PrimaryButton,
+  ResetLink,
   Select,
   StatusBanner,
   TextInput,
@@ -77,23 +77,7 @@ export function OwnersManager({
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <PrimaryButton type="submit">Cerca</PrimaryButton>
-                <Link
-                  href="/dashboard/super-admin/owners"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 999,
-                    padding: "12px 16px",
-                    textDecoration: "none",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    border: "1px solid #e2e8f0",
-                    fontWeight: 700,
-                  }}
-                >
-                  Reset
-                </Link>
+                <ResetLink href="/dashboard/super-admin/owners" />
               </div>
             </div>
           </form>
