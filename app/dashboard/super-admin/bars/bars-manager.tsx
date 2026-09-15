@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import {
@@ -10,6 +9,7 @@ import {
   deleteBarBySuperAdminAction,
   updateBarSubscriptionAction,
 } from "../../actions";
+import { ModalShell } from "../../modal-shell";
 import {
   EmptyState,
   FormField,
@@ -256,7 +256,6 @@ export function BarsManager({
   const router = useRouter();
   const todayKey = toDateInputValueInTimeZone(new Date());
   const [isPending, startTransition] = useTransition();
-  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedBarId, setSelectedBarId] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState("");
@@ -275,10 +274,6 @@ export function BarsManager({
   const [newAdditionalOwnerDraftId, setNewAdditionalOwnerDraftId] = useState("");
   const nowMs = useMemo(() => Date.now(), []);
   useOverlayLock(open || Boolean(selectedBarId));
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -599,72 +594,8 @@ export function BarsManager({
         </div>
       </Panel>
 
-      {mounted && open
-        ? createPortal(
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 2147483646,
-                display: "grid",
-                placeItems: "center",
-                padding: 16,
-              }}
-            >
-              <button
-                type="button"
-                aria-label="Chiudi popup nuova struttura"
-                onClick={() => setOpen(false)}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  border: 0,
-                  background: "rgba(15, 23, 42, 0.28)",
-                  backdropFilter: "blur(6px)",
-                }}
-              />
-
-              <section
-                style={{
-                  position: "relative",
-                  width: "min(92vw, 560px)",
-                  maxHeight: "calc(100dvh - 32px)",
-                  overflowY: "auto",
-                  background: "rgba(255,255,255,0.98)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 28,
-                  boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
-                  padding: 22,
-                  display: "grid",
-                  gap: 18,
-                  zIndex: 1,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-                  <strong style={{ fontSize: 22, color: "#0f172a" }}>Nuova struttura</strong>
-
-                  <button
-                    type="button"
-                    aria-label="Chiudi"
-                    onClick={() => setOpen(false)}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 999,
-                      border: "1px solid #e2e8f0",
-                      background: "#f8fafc",
-                      color: "#0f172a",
-                      fontSize: 18,
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      cursor: "pointer",
-                    }}
-                  >
-                    X
-                  </button>
-                </div>
-
-                <form action={createBarBySuperAdminAction} style={{ display: "grid", gap: 14 }}>
+      <ModalShell open={open} onClose={() => setOpen(false)} title="Nuova struttura" width="min(92vw, 560px)">
+        <form action={createBarBySuperAdminAction} style={{ display: "grid", gap: 14 }}>
                   {hasOwners ? null : (
                     <StatusBanner
                       kind="warning"
@@ -856,120 +787,84 @@ export function BarsManager({
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                    <PrimaryButton type="button" tone="sand" onClick={() => setOpen(false)}>
-                      Annulla
-                    </PrimaryButton>
-                    <PrimaryButton type="submit" disabled={!hasOwners}>
-                      Crea struttura
-                    </PrimaryButton>
-                  </div>
-                </form>
-              </section>
-            </div>,
-            document.body
-          )
-        : null}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <PrimaryButton type="button" tone="sand" onClick={() => setOpen(false)}>
+              Annulla
+            </PrimaryButton>
+            <PrimaryButton type="submit" disabled={!hasOwners}>
+              Crea struttura
+            </PrimaryButton>
+          </div>
+        </form>
+      </ModalShell>
 
-      {mounted && selectedBar
-        ? createPortal(
+      {selectedBar ? (
+        <ModalShell
+          open
+          onClose={closeDetailsModal}
+          title={selectedBar.name}
+          width="min(820px, calc(100vw - 32px))"
+          zIndex={2147483647}
+          wrapClassName="dashboard-modal-wrap"
+          panelClassName="dashboard-modal-panel"
+          header={
             <div
-              className="dashboard-modal-wrap"
+              className="dashboard-modal-header"
               style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 2147483647,
-                display: "grid",
-                placeItems: "center",
-                padding: 16,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
-              <button
-                type="button"
-                aria-label="Chiudi popup struttura"
-                onClick={closeDetailsModal}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  border: 0,
-                  background: "rgba(15, 23, 42, 0.28)",
-                  backdropFilter: "blur(6px)",
-                }}
-              />
+              <div style={{ display: "grid", gap: 6 }}>
+                {(() => {
+                  const additionalOwners = getAdditionalOwnersForBar(selectedBar);
+                  const ownerSummary = getOwnerSummaryLabel(selectedBar.owner, additionalOwners);
 
-              <section
-                className="dashboard-modal-panel"
-                style={{
-                  position: "relative",
-                  width: "min(820px, calc(100vw - 32px))",
-                  maxHeight: "calc(100dvh - 32px)",
-                  overflowY: "auto",
-                  background: "rgba(255,255,255,0.98)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 28,
-                  boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
-                  padding: 24,
-                  display: "grid",
-                  gap: 18,
-                  zIndex: 1,
-                }}
-              >
-                <div
-                  className="dashboard-modal-header"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 6 }}>
-                    {(() => {
-                      const additionalOwners = getAdditionalOwnersForBar(selectedBar);
-                      const ownerSummary = getOwnerSummaryLabel(selectedBar.owner, additionalOwners);
-
-                      return <span style={{ color: "#475569" }}>{ownerSummary}</span>;
-                    })()}
-                    <strong style={{ fontSize: 24, color: "#0f172a", lineHeight: 1.1 }}>
-                      {selectedBar.name}
-                    </strong>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <span
-                        style={{
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          background: "#f1f5f9",
-                          color: "#334155",
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {getActivityLabel(selectedBar.activityType)}
-                      </span>
-                      <span
-                        style={{
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          background: selectedAccessUnlocked ? "#dcfce7" : "#fee2e2",
-                          color: selectedAccessUnlocked ? "#166534" : "#991b1b",
-                          fontSize: 13,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {selectedAccessUnlocked ? "Accesso attivo" : "Accesso bloccato"}
-                      </span>
-                      <span style={{ color: "#64748b", fontSize: 13 }}>
-                        Titolare principale: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
-                      </span>
-                    </div>
-                  </div>
-
-                  <PrimaryButton type="button" tone="sand" onClick={closeDetailsModal} disabled={isPending}>
-                    X
-                  </PrimaryButton>
+                  return <span style={{ color: "#475569" }}>{ownerSummary}</span>;
+                })()}
+                <strong style={{ fontSize: 24, color: "#0f172a", lineHeight: 1.1 }}>
+                  {selectedBar.name}
+                </strong>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span
+                    style={{
+                      borderRadius: 999,
+                      padding: "6px 10px",
+                      background: "#f1f5f9",
+                      color: "#334155",
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {getActivityLabel(selectedBar.activityType)}
+                  </span>
+                  <span
+                    style={{
+                      borderRadius: 999,
+                      padding: "6px 10px",
+                      background: selectedAccessUnlocked ? "#dcfce7" : "#fee2e2",
+                      color: selectedAccessUnlocked ? "#166534" : "#991b1b",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {selectedAccessUnlocked ? "Accesso attivo" : "Accesso bloccato"}
+                  </span>
+                  <span style={{ color: "#64748b", fontSize: 13 }}>
+                    Titolare principale: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
+                  </span>
                 </div>
+              </div>
 
+              <PrimaryButton type="button" tone="sand" onClick={closeDetailsModal} disabled={isPending}>
+                X
+              </PrimaryButton>
+            </div>
+          }
+        >
                 <div
                   style={{
                     display: "grid",
@@ -1409,11 +1304,8 @@ export function BarsManager({
                     {isPending ? "Salvataggio..." : "Salva abbonamento"}
                   </PrimaryButton>
                 </div>
-              </section>
-            </div>,
-            document.body
-          )
-        : null}
+        </ModalShell>
+      ) : null}
     </>
   );
 }
