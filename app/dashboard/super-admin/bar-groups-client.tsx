@@ -6,6 +6,8 @@ import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zon
 import { deleteBarBySuperAdminAction, updateBarSubscriptionAction } from "../actions";
 import { AdditionalOwnersPicker } from "./additional-owners-picker";
 import { ModalShell } from "../modal-shell";
+import { getDefaultStatus } from "./subscription-helpers";
+import { SubscriptionFieldsForm } from "./subscription-fields-form";
 import { PrimaryButton } from "../ui";
 import { useOverlayLock } from "../use-overlay-lock";
 
@@ -202,18 +204,6 @@ function getBadgeMeta(bar: BarAdminItem) {
     color: "#166534",
     border: "#bbf7d0",
   };
-}
-
-function getDefaultStatus(planType: PlanTypeValue): BillingStatusValue {
-  if (planType === "TRIAL") {
-    return "TRIALING";
-  }
-
-  if (planType === "FREE" || planType === "LIFETIME") {
-    return "ACTIVE";
-  }
-
-  return "INACTIVE";
 }
 
 export function BarGroupsClient({
@@ -750,136 +740,21 @@ export function BarGroupsClient({
                     emitHiddenInputs={false}
                   />
 
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Plan type</span>
-                    <select
-                      value={planType}
-                      onChange={(event) => applyPlan(event.target.value as PlanTypeValue)}
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                    >
-                      <option value="FREE">FREE</option>
-                      <option value="TRIAL">In prova</option>
-                      <option value="PAID">PAID</option>
-                      <option value="LIFETIME">LIFETIME</option>
-                    </select>
-                  </label>
-
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Status</span>
-                    <select
-                      value={status}
-                      onChange={(event) => setStatus(event.target.value as BillingStatusValue)}
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                      disabled={planType !== "PAID"}
-                    >
-                      <option value="ACTIVE">Attivo</option>
-                      <option value="TRIALING">In prova</option>
-                      <option value="PAST_DUE">PAST_DUE</option>
-                      <option value="CANCELED">CANCELED</option>
-                      <option value="UNPAID">UNPAID</option>
-                      <option value="INACTIVE">INACTIVE</option>
-                    </select>
-                  </label>
-
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Billing interval</span>
-                    <select
-                      value={billingInterval}
-                      onChange={(event) =>
-                        setBillingInterval(event.target.value as BillingIntervalValue | "")
-                      }
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                      disabled={planType !== "PAID"}
-                    >
-                      <option value="">Non impostato</option>
-                      <option value="MONTHLY">MONTHLY</option>
-                      <option value="YEARLY">YEARLY</option>
-                    </select>
-                  </label>
-
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Sconto mensile %</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={monthlyDiscountPercent}
-                      onChange={(event) => setMonthlyDiscountPercent(event.target.value)}
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                    />
-                  </label>
-
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Scadenza periodo</span>
-                    <input
-                      type="date"
-                      min={todayKey}
-                      value={currentPeriodEnd}
-                      onChange={(event) =>
-                        setCurrentPeriodEnd(
-                          event.target.value && event.target.value < todayKey
-                            ? todayKey
-                            : event.target.value
-                        )
-                      }
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                      disabled={planType !== "PAID"}
-                    />
-                  </label>
-
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Fine trial</span>
-                    <input
-                      type="date"
-                      min={todayKey}
-                      value={trialEndsAt}
-                      onChange={(event) =>
-                        setTrialEndsAt(
-                          event.target.value && event.target.value < todayKey
-                            ? todayKey
-                            : event.target.value
-                        )
-                      }
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                      disabled={planType !== "TRIAL"}
-                    />
-                  </label>
+                  <SubscriptionFieldsForm
+                    planType={planType}
+                    status={status}
+                    billingInterval={billingInterval}
+                    monthlyDiscountPercent={monthlyDiscountPercent}
+                    currentPeriodEnd={currentPeriodEnd}
+                    trialEndsAt={trialEndsAt}
+                    todayKey={todayKey}
+                    onApplyPlan={applyPlan}
+                    onStatusChange={setStatus}
+                    onBillingIntervalChange={setBillingInterval}
+                    onDiscountChange={setMonthlyDiscountPercent}
+                    onCurrentPeriodEndChange={setCurrentPeriodEnd}
+                    onTrialEndsAtChange={setTrialEndsAt}
+                  />
                 </div>
 
                 <div
