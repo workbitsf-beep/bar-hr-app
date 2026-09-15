@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { EmptyState, Panel } from "../ui";
+import { SuperAdminMobileNav } from "./super-admin-mobile-nav";
 
-type AdminSection =
+export type AdminSection =
   | "home"
   | "owners"
   | "bars"
@@ -14,7 +15,7 @@ type AdminSection =
   | "system"
   | "settings";
 
-const superAdminItems: Array<{
+export const superAdminItems: Array<{
   href: string;
   title: string;
   section: AdminSection;
@@ -30,7 +31,7 @@ const superAdminItems: Array<{
   { href: "/dashboard/super-admin/settings", title: "Impostazioni", section: "settings" },
 ];
 
-function AdminIcon({ section, size = 18 }: { section: AdminSection; size?: number }) {
+export function AdminIcon({ section, size = 18 }: { section: AdminSection; size?: number }) {
   const common = {
     stroke: "currentColor",
     strokeWidth: 1.8,
@@ -133,9 +134,9 @@ export function StatTile({
   tone?: "neutral" | "green" | "purple" | "orange";
 }) {
   const toneColor = {
-    neutral: "#0f172a",
+    neutral: "#111827",
     green: "#047857",
-    purple: "#6d28d9",
+    purple: "#7b2ff7",
     orange: "#c2410c",
   } as const;
 
@@ -143,39 +144,36 @@ export function StatTile({
     <div
       style={{
         display: "grid",
-        gap: 5,
+        gap: 6,
         padding: "16px 18px",
         borderRadius: 14,
-        border: "1px solid #e7e5e4",
-        borderLeft: `3px solid ${toneColor[tone]}`,
+        border: "1px solid var(--workbit-border)",
         background: "#ffffff",
         minWidth: 0,
       }}
     >
       <span
         style={{
-          color: "#8a8580",
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
+          color: "#8b90ab",
+          fontSize: 12,
+          fontWeight: 600,
         }}
       >
         {label}
       </span>
       <strong
         style={{
-          color: "#1c1917",
-          fontSize: 26,
+          color: toneColor[tone],
+          fontSize: 27,
           lineHeight: 1.1,
-          letterSpacing: "-0.03em",
+          letterSpacing: "-0.02em",
           fontWeight: 700,
         }}
       >
         {value}
       </strong>
       {detail ? (
-        <span style={{ color: "#a8a29e", fontSize: 12.5, lineHeight: 1.35 }}>{detail}</span>
+        <span style={{ color: "#8b90ab", fontSize: 12.5, lineHeight: 1.35 }}>{detail}</span>
       ) : null}
     </div>
   );
@@ -201,99 +199,128 @@ export function SuperAdminFrame({
   children: ReactNode;
 }) {
   return (
-    <div className="super-admin-workspace" aria-label={title}>
-      <nav className="super-admin-route-rail" aria-label="Sezioni Super Admin">
-        {superAdminItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="super-admin-route"
-            aria-current={item.section === section ? "page" : undefined}
-          >
-            <span className="super-admin-route-icon" aria-hidden="true">
-              <AdminIcon section={item.section} />
-            </span>
-            {item.title}
-          </Link>
-        ))}
-      </nav>
+    <div className="super-admin-shell" aria-label={title}>
+      <aside className="super-admin-sidebar" aria-label="Sezioni Super Admin">
+        <div className="super-admin-sidebar-brand">
+          <span className="super-admin-sidebar-mark" aria-hidden="true" />
+          Super Admin
+        </div>
+        <nav className="super-admin-sidebar-nav">
+          {superAdminItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="super-admin-sidebar-item"
+              aria-current={item.section === section ? "page" : undefined}
+            >
+              <span className="super-admin-sidebar-icon" aria-hidden="true">
+                <AdminIcon section={item.section} />
+              </span>
+              {item.title}
+            </Link>
+          ))}
+        </nav>
+      </aside>
 
-      {description ? <p className="super-admin-description">{description}</p> : null}
+      <SuperAdminMobileNav section={section} title={title} />
 
-      <RevealOnScroll className="super-admin-content" delay={60}>
-        {children}
-      </RevealOnScroll>
+      <div className="super-admin-main">
+        {description ? <p className="super-admin-description">{description}</p> : null}
+
+        <RevealOnScroll className="super-admin-content" delay={60}>
+          {children}
+        </RevealOnScroll>
+      </div>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .super-admin-workspace {
+            .super-admin-shell {
               display: grid;
-              gap: 20px;
+              grid-template-columns: 216px minmax(0, 1fr);
+              gap: 22px;
               min-width: 0;
               width: 100%;
+              align-items: start;
+            }
+
+            .super-admin-sidebar {
+              position: sticky;
+              top: 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 16px;
+              padding: 14px 10px;
+              border-radius: 16px;
+              background: var(--workbit-navy);
+            }
+
+            .super-admin-sidebar-brand {
+              display: flex;
+              align-items: center;
+              gap: 9px;
+              padding: 2px 8px;
+              color: #ffffff;
+              font-size: 12.5px;
+              font-weight: 700;
+              letter-spacing: 0.01em;
+            }
+
+            .super-admin-sidebar-mark {
+              width: 20px;
+              height: 20px;
+              border-radius: 6px;
+              background: var(--workbit-purple);
+              flex: 0 0 auto;
+            }
+
+            .super-admin-sidebar-nav {
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+            }
+
+            .super-admin-sidebar-item {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              padding: 9px 10px;
+              border-radius: 9px;
+              color: #a3a8c3;
+              font-size: 13px;
+              font-weight: 500;
+              text-decoration: none;
+              transition: background 140ms ease, color 140ms ease;
+            }
+
+            .super-admin-sidebar-icon {
+              display: inline-flex;
+              flex: 0 0 auto;
+            }
+
+            .super-admin-sidebar-item:hover {
+              background: rgba(255,255,255,0.06);
+              color: #ffffff;
+            }
+
+            .super-admin-sidebar-item[aria-current="page"] {
+              background: var(--workbit-purple);
+              color: #ffffff;
+              font-weight: 600;
+            }
+
+            .super-admin-main {
+              display: grid;
+              gap: 16px;
+              min-width: 0;
             }
 
             .super-admin-description {
               margin: 0;
               max-width: 640px;
-              color: #78716c;
+              color: var(--workbit-muted);
               font-size: 13.5px;
               line-height: 1.5;
-            }
-
-            .super-admin-route-rail {
-              display: flex;
-              gap: 4px;
-              min-width: 0;
-              overflow-x: auto;
-              scrollbar-width: none;
-              padding-bottom: 2px;
-              border-bottom: 1px solid #e7e5e4;
-            }
-
-            .super-admin-route-rail::-webkit-scrollbar {
-              display: none;
-            }
-
-            .super-admin-route {
-              display: inline-flex;
-              align-items: center;
-              gap: 7px;
-              flex: 0 0 auto;
-              padding: 9px 14px;
-              border-radius: 10px 10px 0 0;
-              color: #78716c;
-              font-size: 13.5px;
-              font-weight: 600;
-              text-decoration: none;
-              white-space: nowrap;
-              transition: color 140ms ease, background 140ms ease;
-            }
-
-            .super-admin-route-icon {
-              display: inline-flex;
-              color: #a8a29e;
-              transition: color 140ms ease;
-            }
-
-            .super-admin-route:hover {
-              color: #1c1917;
-              background: #f5f5f4;
-            }
-
-            .super-admin-route:hover .super-admin-route-icon {
-              color: #7c3aed;
-            }
-
-            .super-admin-route[aria-current="page"] {
-              color: #1c1917;
-              background: #f5f5f4;
-              box-shadow: inset 0 -2px 0 #7c3aed;
-            }
-
-            .super-admin-route[aria-current="page"] .super-admin-route-icon {
-              color: #7c3aed;
             }
 
             .super-admin-content {
@@ -302,19 +329,28 @@ export function SuperAdminFrame({
               min-width: 0;
             }
 
+            .super-admin-content .dashboard-panel {
+              border-color: var(--workbit-border) !important;
+              box-shadow: var(--workbit-shadow) !important;
+            }
+
             .super-admin-content .dashboard-list-card {
               transition: border-color 140ms ease, transform 140ms ease;
             }
 
             .super-admin-content .dashboard-list-card:hover {
-              border-color: #d6d3d1;
+              border-color: rgba(123, 47, 247, 0.28);
               transform: translateY(-1px);
             }
 
-            @media (max-width: 640px) {
-              .super-admin-route {
-                padding: 8px 12px;
-                font-size: 13px;
+            @media (max-width: 900px) {
+              .super-admin-shell {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
+              }
+
+              .super-admin-sidebar {
+                display: none;
               }
             }
           `,
