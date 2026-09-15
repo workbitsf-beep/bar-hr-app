@@ -1425,50 +1425,6 @@ export function BarsManager({
                 </div>
 
                 <div
-                  style={{
-                    display: "none",
-                    gap: 10,
-                    padding: 18,
-                    borderRadius: 20,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                  }}
-                >
-                  <div style={{ color: "#64748b", fontSize: 14 }}>Dettagli</div>
-                  <div style={{ color: "#334155", lineHeight: 1.7 }}>
-                    Customer id: {selectedBar.subscription?.stripeCustomerId ?? "—"}
-                    <br />
-                    Subscription id: {selectedBar.subscription?.stripeSubscriptionId ?? "—"}
-                    <br />
-                    Price id: {selectedBar.subscription?.stripePriceId ?? "—"}
-                    <br />
-                    Sconto mensile: {selectedSubscription.monthlyDiscountPercent}%
-                    <br />
-                    Ricavo mensile stimato:{" "}
-                    {selectedSubscription && isRevenueEligible(selectedSubscription)
-                      ? formatCurrency(getEstimatedMonthlyRevenue(selectedSubscription))
-                      : "€0,00"}
-                    <br />
-                    Ricavo annuale stimato:{" "}
-                    {selectedSubscription && isRevenueEligible(selectedSubscription)
-                      ? formatCurrency(getEstimatedAnnualRevenue(selectedSubscription))
-                      : "€0,00"}
-                    <br />
-                    Accesso attuale:{" "}
-                    {selectedSubscription.planType === "FREE" ||
-                    selectedSubscription.planType === "LIFETIME" ||
-                    (selectedSubscription.planType === "TRIAL" &&
-                      selectedSubscription.trialEndsAt &&
-                      new Date(selectedSubscription.trialEndsAt).getTime() > nowMs) ||
-                    (selectedSubscription.planType === "PAID" &&
-                      (selectedSubscription.status === "ACTIVE" ||
-                        selectedSubscription.status === "TRIALING"))
-                      ? "Sbloccato"
-                      : "Bloccato"}
-                  </div>
-                </div>
-
-                <div
                   className="dashboard-modal-actions"
                   style={{
                     display: "flex",
