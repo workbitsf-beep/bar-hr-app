@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { createOwnerBySuperAdminAction } from "../../actions";
+import { ModalShell } from "../../modal-shell";
 import {
   EmptyState,
   ItemCard,
@@ -43,13 +43,8 @@ export function OwnersManager({
   error?: string;
   success?: string;
 }) {
-  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   useOverlayLock(open);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <>
@@ -162,117 +157,49 @@ export function OwnersManager({
         </div>
       </Panel>
 
-      {mounted && open
-        ? createPortal(
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 2147483646,
-                display: "grid",
-                placeItems: "center",
-                padding: 16,
-              }}
-            >
-              <button
-                type="button"
-                aria-label="Chiudi popup nuovo titolare"
-                onClick={() => setOpen(false)}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  border: 0,
-                  background: "rgba(15, 23, 42, 0.28)",
-                  backdropFilter: "blur(6px)",
-                }}
-              />
+      <ModalShell open={open} onClose={() => setOpen(false)} title="Nuovo titolare">
+        <form action={createOwnerBySuperAdminAction} style={{ display: "grid", gap: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 12,
+            }}
+          >
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Nome</span>
+              <TextInput name="firstName" required />
+            </label>
 
-              <section
-                style={{
-                  position: "relative",
-                  width: "min(92vw, 520px)",
-                  maxHeight: "calc(100dvh - 32px)",
-                  overflowY: "auto",
-                  background: "rgba(255,255,255,0.98)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 28,
-                  boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
-                  padding: 22,
-                  display: "grid",
-                  gap: 18,
-                  zIndex: 1,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-                  <strong style={{ fontSize: 22, color: "#0f172a" }}>Nuovo titolare</strong>
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Cognome</span>
+              <TextInput name="lastName" required />
+            </label>
 
-                  <button
-                    type="button"
-                    aria-label="Chiudi"
-                    onClick={() => setOpen(false)}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 999,
-                      border: "1px solid #e2e8f0",
-                      background: "#f8fafc",
-                      color: "#0f172a",
-                      fontSize: 18,
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      cursor: "pointer",
-                    }}
-                  >
-                    X
-                  </button>
-                </div>
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Email</span>
+              <TextInput name="email" type="email" required />
+            </label>
 
-                <form action={createOwnerBySuperAdminAction} style={{ display: "grid", gap: 14 }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Nome</span>
-                      <TextInput name="firstName" required />
-                    </label>
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Lingua</span>
+              <Select name="language" defaultValue="it">
+                <option value="it">Italiano</option>
+                <option value="en">English</option>
+                <option value="es">Espanol</option>
+                <option value="fr">Francais</option>
+              </Select>
+            </label>
+          </div>
 
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Cognome</span>
-                      <TextInput name="lastName" required />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Email</span>
-                      <TextInput name="email" type="email" required />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Lingua</span>
-                      <Select name="language" defaultValue="it">
-                        <option value="it">Italiano</option>
-                        <option value="en">English</option>
-                        <option value="es">Espanol</option>
-                        <option value="fr">Francais</option>
-                      </Select>
-                    </label>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                    <PrimaryButton type="button" tone="sand" onClick={() => setOpen(false)}>
-                      Annulla
-                    </PrimaryButton>
-                    <PrimaryButton type="submit">Crea titolare</PrimaryButton>
-                  </div>
-                </form>
-              </section>
-            </div>,
-            document.body
-          )
-        : null}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <PrimaryButton type="button" tone="sand" onClick={() => setOpen(false)}>
+              Annulla
+            </PrimaryButton>
+            <PrimaryButton type="submit">Crea titolare</PrimaryButton>
+          </div>
+        </form>
+      </ModalShell>
     </>
   );
 }
