@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { EmptyState, Panel } from "../ui";
-import { SuperAdminMobileNav } from "./super-admin-mobile-nav";
 
 export type AdminSection =
   | "home"
@@ -221,8 +220,6 @@ export function SuperAdminFrame({
           ))}
         </nav>
       </aside>
-
-      <SuperAdminMobileNav section={section} title={title} />
 
       <div className="super-admin-main">
         {description ? <p className="super-admin-description">{description}</p> : null}
