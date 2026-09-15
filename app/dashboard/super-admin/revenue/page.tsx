@@ -124,6 +124,7 @@ export default async function SuperAdminRevenuePage() {
     <SuperAdminFrame
       title="Incassi"
       description="MRR, ARR e ricavi stimati dalle attivita con abbonamento attivo."
+      section="revenue"
     >
       <Stack>
         <section className="revenue-grid" aria-label="Riepilogo incassi">

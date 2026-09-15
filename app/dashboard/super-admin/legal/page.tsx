@@ -134,6 +134,7 @@ export default async function SuperAdminLegalDocumentsPage({
     <SuperAdminFrame
       title="Documenti legali"
       description="Policy, contratti e accettazioni obbligatorie per i titolari."
+      section="legal"
     >
       <Stack columns="minmax(0, 420px) minmax(0, 1fr)">
         <Panel title="Nuovo documento">

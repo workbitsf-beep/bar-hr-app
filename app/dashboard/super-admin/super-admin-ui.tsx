@@ -192,23 +192,24 @@ export function SuperAdminForbidden() {
 export function SuperAdminFrame({
   title,
   description,
+  section,
   children,
 }: {
   title: string;
   description: string;
+  section: AdminSection;
   children: ReactNode;
 }) {
   return (
-    <div className="super-admin-workspace">
-      <RevealOnScroll as="header" className="super-admin-command">
-        <span className="super-admin-eyebrow">Super Admin</span>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </RevealOnScroll>
-
+    <div className="super-admin-workspace" aria-label={title}>
       <nav className="super-admin-route-rail" aria-label="Sezioni Super Admin">
         {superAdminItems.map((item) => (
-          <Link key={item.href} href={item.href} className="super-admin-route">
+          <Link
+            key={item.href}
+            href={item.href}
+            className="super-admin-route"
+            aria-current={item.section === section ? "page" : undefined}
+          >
             <span className="super-admin-route-icon" aria-hidden="true">
               <AdminIcon section={item.section} />
             </span>
@@ -216,6 +217,8 @@ export function SuperAdminFrame({
           </Link>
         ))}
       </nav>
+
+      {description ? <p className="super-admin-description">{description}</p> : null}
 
       <RevealOnScroll className="super-admin-content" delay={60}>
         {children}
@@ -231,34 +234,11 @@ export function SuperAdminFrame({
               width: 100%;
             }
 
-            .super-admin-command {
-              display: grid;
-              gap: 6px;
-              padding: 2px 2px 4px;
-            }
-
-            .super-admin-eyebrow {
-              color: #78716c;
-              font-size: 11px;
-              font-weight: 700;
-              letter-spacing: 0.08em;
-              text-transform: uppercase;
-            }
-
-            .super-admin-command h1 {
-              margin: 0;
-              font-size: clamp(24px, 3vw, 32px);
-              line-height: 1.15;
-              color: #1c1917;
-              font-weight: 700;
-              letter-spacing: -0.02em;
-            }
-
-            .super-admin-command p {
+            .super-admin-description {
               margin: 0;
               max-width: 640px;
               color: #78716c;
-              font-size: 14.5px;
+              font-size: 13.5px;
               line-height: 1.5;
             }
 
@@ -303,6 +283,16 @@ export function SuperAdminFrame({
             }
 
             .super-admin-route:hover .super-admin-route-icon {
+              color: #7c3aed;
+            }
+
+            .super-admin-route[aria-current="page"] {
+              color: #1c1917;
+              background: #f5f5f4;
+              box-shadow: inset 0 -2px 0 #7c3aed;
+            }
+
+            .super-admin-route[aria-current="page"] .super-admin-route-icon {
               color: #7c3aed;
             }
 

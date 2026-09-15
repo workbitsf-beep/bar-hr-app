@@ -390,11 +390,11 @@ export function BarGroupsClient({
             onClick={() => setFilter(value as BillingFilter)}
             style={{
               borderRadius: 999,
-              border: filter === value ? "1px solid #0f172a" : "1px solid #dbe3ee",
-              background: filter === value ? "#0f172a" : "#ffffff",
-              color: filter === value ? "#ffffff" : "#334155",
+              border: filter === value ? "1px solid #1c1917" : "1px solid #e7e5e4",
+              background: filter === value ? "#1c1917" : "#ffffff",
+              color: filter === value ? "#ffffff" : "#57534e",
               padding: "10px 14px",
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: "pointer",
             }}
           >
@@ -407,8 +407,8 @@ export function BarGroupsClient({
         className="dashboard-table-desktop"
         style={{
           overflowX: "auto",
-          borderRadius: 22,
-          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          border: "1px solid #e7e5e4",
           background: "#ffffff",
         }}
       >
@@ -425,8 +425,8 @@ export function BarGroupsClient({
                 key={label}
                 style={{
                   padding: "14px 16px",
-                  background: "#f8fafc",
-                  borderBottom: "1px solid #e2e8f0",
+                  background: "#fafaf9",
+                  borderBottom: "1px solid #e7e5e4",
                   fontWeight: 700,
                   color: "#475569",
                   fontSize: 13,

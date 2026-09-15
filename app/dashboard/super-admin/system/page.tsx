@@ -83,6 +83,7 @@ export default async function SuperAdminSystemPage() {
     <SuperAdminFrame
       title="Panoramica utilizzo"
       description="Monitoraggio leggero di RAM, CPU e attività dell'app."
+      section="system"
     >
       <Stack>
         <Panel title="Monitoraggio">

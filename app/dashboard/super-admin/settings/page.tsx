@@ -15,6 +15,7 @@ export default async function SuperAdminSettingsPage() {
     <SuperAdminFrame
       title="Impostazioni"
       description="Gestione account Super Admin e sicurezza."
+      section="settings"
     >
       <Stack columns="minmax(0, 1fr)">
         <PasswordChangePanel />

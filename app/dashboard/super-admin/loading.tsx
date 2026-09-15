@@ -22,6 +22,7 @@ export default function Loading() {
     <SuperAdminFrame
       title="Panoramica"
       description="Caricamento rapido della sezione super admin."
+      section="home"
     >
       <div style={{ display: "grid", gap: 18 }}>
         <Stack columns="repeat(auto-fit, minmax(200px, 1fr))">
