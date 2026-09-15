@@ -6,6 +6,7 @@ export const COMPANY_CALENDAR_RETENTION_DAYS = 400;
 export const AVAILABILITY_RETENTION_HOURS = 24;
 export const TASK_REMINDER_RETENTION_HOURS = 24;
 export const COMPLETED_TASK_RETENTION_HOURS = 24;
+export const NOTE_RETENTION_HOURS = 24;
 const SHIFT_RETENTION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
 
 let lastRetentionCleanupAt = 0;
@@ -142,6 +143,7 @@ export async function runShiftRetentionCleanup(now = new Date()) {
   const availabilityCutoff = getAvailabilityRetentionCutoff(now);
   const reminderCutoff = getHoursRetentionCutoff(TASK_REMINDER_RETENTION_HOURS, now);
   const completedTaskCutoff = getHoursRetentionCutoff(COMPLETED_TASK_RETENTION_HOURS, now);
+  const noteCutoff = getHoursRetentionCutoff(NOTE_RETENTION_HOURS, now);
   const expiredByBarActivity = [
     {
       bar: { activityType: ActivityType.RESTAURANT },
@@ -170,7 +172,8 @@ export async function runShiftRetentionCleanup(now = new Date()) {
       expiredByBarActivity,
       availabilityCutoff,
       reminderCutoff,
-      completedTaskCutoff
+      completedTaskCutoff,
+      noteCutoff
     );
 
     return {
@@ -267,10 +270,7 @@ export async function runShiftRetentionCleanup(now = new Date()) {
 
     const deletedNotes = await tx.note.deleteMany({
       where: {
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          createdAt: { lt: entry.cutoff },
-        })),
+        createdAt: { lt: noteCutoff },
       },
     });
 
@@ -308,7 +308,8 @@ async function deleteExpiredCalendarItems(
   }>,
   availabilityCutoff = getAvailabilityRetentionCutoff(),
   reminderCutoff = getHoursRetentionCutoff(TASK_REMINDER_RETENTION_HOURS),
-  completedTaskCutoff = getHoursRetentionCutoff(COMPLETED_TASK_RETENTION_HOURS)
+  completedTaskCutoff = getHoursRetentionCutoff(COMPLETED_TASK_RETENTION_HOURS),
+  noteCutoff = getHoursRetentionCutoff(NOTE_RETENTION_HOURS)
 ) {
   return prisma.$transaction(async (tx) => {
     const deletedRequests = await tx.request.deleteMany({
@@ -369,10 +370,7 @@ async function deleteExpiredCalendarItems(
 
     const deletedNotes = await tx.note.deleteMany({
       where: {
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          createdAt: { lt: entry.cutoff },
-        })),
+        createdAt: { lt: noteCutoff },
       },
     });
 
