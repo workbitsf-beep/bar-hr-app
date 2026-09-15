@@ -59,14 +59,23 @@ export const POST = withBar(
       },
       select: {
         id: true,
+        autoClockOut: true,
       },
     });
 
-    if (existingClockOut) {
+    if (existingClockOut && !existingClockOut.autoClockOut) {
       return Response.json(
         { ok: false, message: "No active clock-in" },
         { status: 400 }
       );
+    }
+
+    if (existingClockOut) {
+      await prisma.timeLog.delete({
+        where: {
+          id: existingClockOut.id,
+        },
+      });
     }
 
     const settings = await prisma.barSettings.findUnique({

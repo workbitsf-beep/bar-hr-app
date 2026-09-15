@@ -144,6 +144,7 @@ model User {
   documentsCreated    Document[]        @relation("DocumentCreated")
   documentsAssigned   Document[]        @relation("DocumentAssigned")
   documentsDeactivated Document[]       @relation("DocumentDeactivated")
+  shoppingListItemsCreated ShoppingListItem[]
   legalAcceptances    LegalAcceptance[]
   notificationsReceived Notification[]  @relation("NotificationRecipient")
   scheduledNotifications ScheduledNotification[]
@@ -247,6 +248,7 @@ model Bar {
   courses           Course[]
   calendarClosures  CalendarClosure[]
   documents         Document[]
+  shoppingListItems ShoppingListItem[]
   legalAcceptances  LegalAcceptance[]
   notifications     Notification[]
   scheduledNotifications ScheduledNotification[]
@@ -362,6 +364,7 @@ model BarSettings {
   coursesEnabled      Boolean @default(true)
   documentsEnabled    Boolean @default(true)
   reportsEnabled      Boolean @default(true)
+  shoppingListEnabled Boolean @default(true)
   roundingEnabled Boolean       @default(false)
   roundingMinutes Int?
   roundingMode    RoundingMode?
@@ -767,4 +770,17 @@ model Document {
   @@index([barId, isActive, createdAt])
   @@index([assignedToId, isActive])
   @@index([deactivatedById])
+}
+
+model ShoppingListItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  barId       String   @db.Uuid
+  name        String
+  quantity    String?
+  createdById String   @db.Uuid
+  bar         Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([barId, createdAt])
 }

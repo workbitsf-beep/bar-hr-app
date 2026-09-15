@@ -762,6 +762,15 @@ async function getDocumentFeatureSettings(activeBarId: string) {
   });
 }
 
+async function getShoppingListFeatureSettings(activeBarId: string) {
+  return prisma.barSettings.findUnique({
+    where: { barId: activeBarId },
+    select: {
+      shoppingListEnabled: true,
+    },
+  });
+}
+
 async function getActionContext() {
   const session = await getSession();
 
@@ -3398,6 +3407,69 @@ export async function deleteDocumentAction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function createShoppingListItemAction(formData: FormData) {
+  const { session, activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const featureSettings = await getShoppingListFeatureSettings(activeBarId);
+
+  if (featureSettings?.shoppingListEnabled === false) {
+    throw new Error("Shopping list not enabled");
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+  const quantity = String(formData.get("quantity") ?? "").trim();
+
+  if (!name) {
+    throw new Error("Missing item name");
+  }
+
+  await prisma.shoppingListItem.create({
+    data: {
+      barId: activeBarId,
+      name,
+      quantity: quantity || null,
+      createdById: session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard/shopping-list");
+}
+
+export async function markShoppingListItemsOrderedAction(formData: FormData) {
+  const { activeBarId } = await getActionContext();
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const featureSettings = await getShoppingListFeatureSettings(activeBarId);
+
+  if (featureSettings?.shoppingListEnabled === false) {
+    throw new Error("Shopping list not enabled");
+  }
+
+  const itemIds = Array.from(
+    new Set(formData.getAll("itemIds").map((id) => String(id).trim()).filter(Boolean))
+  );
+
+  if (itemIds.length === 0) {
+    throw new Error("Missing item ids");
+  }
+
+  await prisma.shoppingListItem.deleteMany({
+    where: {
+      id: { in: itemIds },
+      barId: activeBarId,
+    },
+  });
+
+  revalidatePath("/dashboard/shopping-list");
+}
+
 export async function deleteRequestAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
@@ -3885,6 +3957,19 @@ export async function createManualTimeLogAction(formData: FormData) {
       "L'uscita deve essere successiva all'entrata."
     );
 
+    await prisma.timeLog.deleteMany({
+      where: {
+        userId,
+        barId: activeBarId,
+        type: ClockType.OUT,
+        autoClockOut: true,
+        timestamp: {
+          gte: clockInAt,
+          lte: clockOutAt,
+        },
+      },
+    });
+
     await prisma.timeLog.createMany({
       data: [
         {
@@ -3916,6 +4001,38 @@ export async function createManualTimeLogAction(formData: FormData) {
 
     if (typeValue !== "IN" && typeValue !== "OUT") {
       throw new Error("Missing time log data");
+    }
+
+    if (typeValue === "OUT") {
+      const lastClockIn = await prisma.timeLog.findFirst({
+        where: {
+          userId,
+          barId: activeBarId,
+          type: ClockType.IN,
+          timestamp: {
+            lte: timestamp,
+          },
+        },
+        orderBy: {
+          timestamp: "desc",
+        },
+        select: {
+          timestamp: true,
+        },
+      });
+
+      await prisma.timeLog.deleteMany({
+        where: {
+          userId,
+          barId: activeBarId,
+          type: ClockType.OUT,
+          autoClockOut: true,
+          timestamp: {
+            gte: lastClockIn?.timestamp ?? timestamp,
+            lte: timestamp,
+          },
+        },
+      });
     }
 
     await prisma.timeLog.create({

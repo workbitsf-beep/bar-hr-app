@@ -57,6 +57,7 @@ async function getDashboardFeatureSettings(barId: string) {
         coursesEnabled: true,
         documentsEnabled: true,
         reportsEnabled: true,
+        shoppingListEnabled: true,
         companyShiftsEnabled: true,
       },
     });
@@ -77,6 +78,7 @@ async function getDashboardFeatureSettings(barId: string) {
     "coursesEnabled",
     "documentsEnabled",
     "reportsEnabled",
+    "shoppingListEnabled",
     "companyShiftsEnabled",
   ];
   const availableColumns = await prisma.$queryRaw<Array<{ column_name: string }>>`
@@ -95,6 +97,7 @@ async function getDashboardFeatureSettings(barId: string) {
         'coursesEnabled',
         'documentsEnabled',
         'reportsEnabled',
+        'shoppingListEnabled',
         'companyShiftsEnabled'
       )
   `;
@@ -183,6 +186,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
             ? [{ label: "Note", href: "/dashboard/tasks" }]
             : []),
           ...(features.documents ? [{ label: "Documenti", href: "/dashboard/documents" }] : []),
+          ...(features.shoppingList ? [{ label: "Lista ordini", href: "/dashboard/shopping-list" }] : []),
           ...(features.courses ? [{ label: "Corsi", href: "/dashboard/courses" }] : []),
           ...(features.timeTracking && !isCompany
             ? [{ label: t.timelogs, href: "/dashboard/timelogs" }]

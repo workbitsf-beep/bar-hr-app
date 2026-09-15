@@ -8,7 +8,8 @@ export type FeatureKey =
   | "noticeBoard"
   | "courses"
   | "documents"
-  | "reports";
+  | "reports"
+  | "shoppingList";
 
 export type FeatureFlags = Record<FeatureKey, boolean>;
 
@@ -23,6 +24,7 @@ export type FeatureSettingsInput = Partial<{
   coursesEnabled: boolean | null;
   documentsEnabled: boolean | null;
   reportsEnabled: boolean | null;
+  shoppingListEnabled: boolean | null;
 }>;
 
 export const featureDefinitions: Array<{
@@ -113,6 +115,14 @@ export const featureDefinitions: Array<{
     description: "Export mensili personali o del team.",
     emoji: "📄",
   },
+  {
+    key: "shoppingList",
+    field: "shoppingListEnabled",
+    label: "Lista ordini",
+    shortLabel: "Ordini",
+    description: "Lista della spesa condivisa dal team.",
+    emoji: "🛒",
+  },
 ];
 
 export const defaultFeatureFlags: FeatureFlags = {
@@ -126,6 +136,7 @@ export const defaultFeatureFlags: FeatureFlags = {
   courses: true,
   documents: true,
   reports: true,
+  shoppingList: true,
 };
 
 export const featureToggleDefinitions = featureDefinitions.filter(
