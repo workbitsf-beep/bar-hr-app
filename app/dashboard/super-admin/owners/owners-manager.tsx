@@ -11,7 +11,7 @@ import {
   Panel,
   PrimaryButton,
   Select,
-  SuccessCallout,
+  StatusBanner,
   TextInput,
 } from "../../ui";
 import { useOverlayLock } from "../../use-overlay-lock";
@@ -30,38 +30,6 @@ type OwnerItem = {
 
 function getActivityLabel(activityType: OwnerItem["ownedBars"][number]["activityType"]) {
   return activityType === "COMPANY" ? "Azienda" : "Ristorazione";
-}
-
-function StatusBanner({
-  kind,
-  text,
-}: {
-  kind: "success" | "warning" | "error";
-  text: string;
-}) {
-  if (kind === "success") {
-    return <SuccessCallout style={{ fontSize: 14 }}>{text}</SuccessCallout>;
-  }
-
-  const palette =
-    kind === "warning"
-      ? { background: "#fff7ed", border: "#fed7aa", color: "#c2410c" }
-      : { background: "#fef2f2", border: "#fecaca", color: "#b91c1c" };
-
-  return (
-    <div
-      style={{
-        padding: "12px 14px",
-        borderRadius: 16,
-        border: `1px solid ${palette.border}`,
-        background: palette.background,
-        color: palette.color,
-        lineHeight: 1.5,
-      }}
-    >
-      {text}
-    </div>
-  );
 }
 
 export function OwnersManager({
