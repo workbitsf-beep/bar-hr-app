@@ -9,11 +9,11 @@ import {
   deleteBarBySuperAdminAction,
   updateBarSubscriptionAction,
 } from "../../actions";
+import { AdditionalOwnersPicker } from "../additional-owners-picker";
 import { ModalShell } from "../../modal-shell";
 import {
   EmptyState,
   FormField,
-  IconButton,
   ItemCard,
   ItemList,
   Panel,
@@ -349,30 +349,6 @@ export function BarsManager({
     }
   }
 
-  function addNewAdditionalOwner() {
-    if (!newAdditionalOwnerDraftId || newAdditionalOwnerDraftId === newOwnerId) {
-      return;
-    }
-
-    setNewAdditionalOwnerIds((current) =>
-      current.includes(newAdditionalOwnerDraftId)
-        ? current
-        : [...current, newAdditionalOwnerDraftId]
-    );
-    setNewAdditionalOwnerDraftId("");
-  }
-
-  function addAdditionalOwner() {
-    if (!additionalOwnerDraftId || additionalOwnerDraftId === ownerId) {
-      return;
-    }
-
-    setAdditionalOwnerIds((current) =>
-      current.includes(additionalOwnerDraftId) ? current : [...current, additionalOwnerDraftId]
-    );
-    setAdditionalOwnerDraftId("");
-  }
-
   async function saveSubscription() {
     if (!selectedBar) {
       return;
@@ -674,117 +650,15 @@ export function BarsManager({
                       </Select>
                     </label>
 
-                    <div
-                      style={{
-                        gridColumn: "1 / -1",
-                        display: "grid",
-                        gap: 10,
-                        padding: 16,
-                        borderRadius: 20,
-                        background: "#f8fafc",
-                        border: "1px solid #e2e8f0",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                        <strong style={{ color: "#0f172a" }}>Titolari aggiuntivi</strong>
-                        <span style={{ color: "#64748b", fontSize: 13 }}>
-                          {newAdditionalOwnerIds.length} selezionati
-                        </span>
-                      </div>
-
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
-                        <div style={{ flex: "1 1 220px", minWidth: 0, display: "grid", gap: 8 }}>
-                          <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
-                            Seleziona titolare
-                          </span>
-                          <Select
-                            value={newAdditionalOwnerDraftId}
-                            onChange={(event) => setNewAdditionalOwnerDraftId(event.target.value)}
-                          >
-                            <option value="">
-                              Aggiungi titolare
-                            </option>
-                            {owners
-                              .filter(
-                                (owner) =>
-                                  owner.id !== newOwnerId && !newAdditionalOwnerIds.includes(owner.id)
-                              )
-                              .map((owner) => (
-                                <option key={owner.id} value={owner.id}>
-                                  {owner.firstName} {owner.lastName}
-                                </option>
-                              ))}
-                          </Select>
-                        </div>
-
-                        <IconButton
-                          type="button"
-                          onClick={addNewAdditionalOwner}
-                          disabled={!newAdditionalOwnerDraftId}
-                          aria-label="Aggiungi titolare"
-                        >
-                          +
-                        </IconButton>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          maxHeight: 140,
-                          overflowY: "auto",
-                          paddingRight: 4,
-                        }}
-                      >
-                        {newAdditionalOwnerIds.map((ownerId) => {
-                          const owner = owners.find((item) => item.id === ownerId);
-
-                          if (!owner) {
-                            return null;
-                          }
-
-                          return (
-                            <span
-                              key={owner.id}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 8,
-                                borderRadius: 999,
-                                padding: "8px 12px",
-                                background: "#eef2ff",
-                                color: "#3730a3",
-                                fontWeight: 700,
-                                fontSize: 13,
-                              }}
-                            >
-                              <input type="hidden" name="additionalOwnerIds" value={owner.id} />
-                              {owner.firstName} {owner.lastName}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setNewAdditionalOwnerIds((current) =>
-                                    current.filter((currentOwnerId) => currentOwnerId !== owner.id)
-                                  )
-                                }
-                                style={{
-                                  border: 0,
-                                  background: "transparent",
-                                  color: "inherit",
-                                  cursor: "pointer",
-                                  fontSize: 16,
-                                  lineHeight: 1,
-                                }}
-                                aria-label={`Rimuovi ${owner.firstName} ${owner.lastName}`}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <AdditionalOwnersPicker
+                      owners={owners}
+                      excludeOwnerId={newOwnerId}
+                      selectedIds={newAdditionalOwnerIds}
+                      onChange={setNewAdditionalOwnerIds}
+                      draftId={newAdditionalOwnerDraftId}
+                      onDraftChange={setNewAdditionalOwnerDraftId}
+                      emitHiddenInputs
+                    />
                   </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -933,120 +807,15 @@ export function BarsManager({
                     </select>
                   </label>
 
-                  <div
-                    style={{
-                      gridColumn: "1 / -1",
-                      display: "grid",
-                      gap: 10,
-                      padding: 16,
-                      borderRadius: 20,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                      <strong style={{ color: "#0f172a" }}>Titolari aggiuntivi</strong>
-                      <span style={{ color: "#64748b", fontSize: 13 }}>
-                        {additionalOwnerIds.filter((additionalOwnerId) => additionalOwnerId !== ownerId).length} selezionati
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
-                      <div style={{ flex: "1 1 220px", minWidth: 0, display: "grid", gap: 8 }}>
-                        <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>
-                          Seleziona titolare
-                        </span>
-                        <select
-                          value={additionalOwnerDraftId}
-                          onChange={(event) => setAdditionalOwnerDraftId(event.target.value)}
-                          style={{
-                            borderRadius: 16,
-                            border: "1px solid #dbe3ee",
-                            padding: "12px 14px",
-                            fontSize: 15,
-                            background: "#ffffff",
-                          }}
-                        >
-                          <option value="">Aggiungi titolare</option>
-                          {owners
-                            .filter((owner) => owner.id !== ownerId && !additionalOwnerIds.includes(owner.id))
-                            .map((owner) => (
-                              <option key={owner.id} value={owner.id}>
-                                {owner.firstName} {owner.lastName}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-
-                      <IconButton
-                        type="button"
-                        onClick={addAdditionalOwner}
-                        disabled={!additionalOwnerDraftId}
-                        aria-label="Aggiungi titolare"
-                      >
-                        +
-                      </IconButton>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                        maxHeight: 140,
-                        overflowY: "auto",
-                        paddingRight: 4,
-                      }}
-                    >
-                      {additionalOwnerIds
-                        .filter((additionalOwnerId) => additionalOwnerId !== ownerId)
-                        .map((ownerId) => {
-                          const owner = owners.find((item) => item.id === ownerId);
-
-                          if (!owner) {
-                            return null;
-                          }
-
-                          return (
-                            <span
-                              key={owner.id}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 8,
-                                borderRadius: 999,
-                                padding: "8px 12px",
-                                background: "#eef2ff",
-                                color: "#3730a3",
-                                fontWeight: 700,
-                                fontSize: 13,
-                              }}
-                            >
-                              {owner.firstName} {owner.lastName}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setAdditionalOwnerIds((current) =>
-                                    current.filter((currentOwnerId) => currentOwnerId !== owner.id)
-                                  )
-                                }
-                                style={{
-                                  border: 0,
-                                  background: "transparent",
-                                  color: "inherit",
-                                  cursor: "pointer",
-                                  fontSize: 16,
-                                  lineHeight: 1,
-                                }}
-                                aria-label={`Rimuovi ${owner.firstName} ${owner.lastName}`}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          );
-                        })}
-                    </div>
-                  </div>
+                  <AdditionalOwnersPicker
+                    owners={owners}
+                    excludeOwnerId={ownerId}
+                    selectedIds={additionalOwnerIds}
+                    onChange={setAdditionalOwnerIds}
+                    draftId={additionalOwnerDraftId}
+                    onDraftChange={setAdditionalOwnerDraftId}
+                    emitHiddenInputs={false}
+                  />
 
                   <label style={{ display: "grid", gap: 8 }}>
                     <span style={{ fontWeight: 600, color: "#1e293b" }}>Piano</span>
