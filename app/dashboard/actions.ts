@@ -3436,6 +3436,25 @@ export async function createShoppingListItemAction(formData: FormData) {
     },
   });
 
+  const notificationContext = await getBarNotificationContext(activeBarId);
+
+  if (notificationContext) {
+    const ownerRecipients = excludeActorFromUsers(
+      notificationContext.users.filter((user) => user.role === Role.OWNER),
+      session.user.id
+    );
+
+    if (ownerRecipients.length > 0) {
+      await notifyUsers(ownerRecipients, {
+        barId: activeBarId,
+        title: "Nuovo articolo in lista ordini",
+        message: `${getFullName(session.user)} ha aggiunto "${name}" alla lista ordini di ${notificationContext.barName}.`,
+        type: INTERNAL_NOTIFICATION_TYPES.SHOPPING_LIST_ITEM_ADDED,
+        actionUrl: "/dashboard/shopping-list",
+      });
+    }
+  }
+
   revalidatePath("/dashboard/shopping-list");
 }
 

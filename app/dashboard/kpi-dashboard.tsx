@@ -111,6 +111,9 @@ function TaskProgressRing({
           style={{ transition: "stroke-dashoffset 220ms ease" }}
         />
       </svg>
+      <span aria-hidden="true" style={{ position: "absolute", fontSize: 20, lineHeight: 1 }}>
+        📝
+      </span>
     </div>
   );
 }
