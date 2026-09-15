@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { deleteBarBySuperAdminAction, updateBarSubscriptionAction } from "../actions";
+import { ModalShell } from "../modal-shell";
 import { IconButton, PrimaryButton } from "../ui";
 import { useOverlayLock } from "../use-overlay-lock";
 
@@ -224,7 +224,6 @@ export function BarGroupsClient({
 }) {
   const router = useRouter();
   const todayKey = toDateInputValueInTimeZone(new Date());
-  const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedBarId, setSelectedBarId] = useState<string | null>(null);
   const [filter, setFilter] = useState<BillingFilter>("ALL");
@@ -238,10 +237,6 @@ export function BarGroupsClient({
   const [additionalOwnerIds, setAdditionalOwnerIds] = useState<string[]>([]);
   const [additionalOwnerDraftId, setAdditionalOwnerDraftId] = useState("");
   useOverlayLock(Boolean(selectedBarId));
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const filteredBars = useMemo(
     () => bars.filter((bar) => filter === "ALL" || getFilterValue(bar) === filter),
@@ -675,71 +670,38 @@ export function BarGroupsClient({
         })}
       </div>
 
-      {mounted && selectedBar
-        ? createPortal(
+      {selectedBar ? (
+        <ModalShell
+          open
+          onClose={closeModal}
+          title={selectedBar.name}
+          width="min(820px, calc(100vw - 32px))"
+          wrapClassName="dashboard-modal-wrap"
+          panelClassName="dashboard-modal-panel"
+          header={
             <div
-              className="dashboard-modal-wrap"
+              className="dashboard-modal-header"
               style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 2147483646,
-                display: "grid",
-                placeItems: "center",
-                padding: 16,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
-              <button
-                type="button"
-                aria-label="Chiudi popup billing"
-                onClick={closeModal}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  border: 0,
-                  background: "rgba(15, 23, 42, 0.28)",
-                  backdropFilter: "blur(6px)",
-                }}
-              />
+              <div style={{ display: "grid", gap: 6 }}>
+                <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedBar.name}</strong>
+                <span style={{ color: "#475569" }}>
+                  {getOwnerSummaryLabel(selectedBar.owner, getAdditionalOwnersForBar(selectedBar))}
+                </span>
+              </div>
 
-              <section
-                className="dashboard-modal-panel"
-                style={{
-                  position: "relative",
-                  width: "min(820px, calc(100vw - 32px))",
-                  maxHeight: "calc(100vh - 32px)",
-                  overflowY: "auto",
-                  background: "rgba(255,255,255,0.98)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 28,
-                  boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
-                  padding: 24,
-                  display: "grid",
-                  gap: 18,
-                  zIndex: 1,
-                }}
-              >
-                <div
-                  className="dashboard-modal-header"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedBar.name}</strong>
-                    <span style={{ color: "#475569" }}>
-                      {getOwnerSummaryLabel(selectedBar.owner, getAdditionalOwnersForBar(selectedBar))}
-                    </span>
-                  </div>
-
-                  <PrimaryButton type="button" tone="sand" onClick={closeModal} disabled={isPending}>
-                    Chiudi
-                  </PrimaryButton>
-                </div>
-
+              <PrimaryButton type="button" tone="sand" onClick={closeModal} disabled={isPending}>
+                Chiudi
+              </PrimaryButton>
+            </div>
+          }
+        >
                 <div className="dashboard-inline-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("FREE")} disabled={isPending}>
                     Imposta FREE
@@ -1081,11 +1043,8 @@ export function BarGroupsClient({
                     {isPending ? "Salvataggio..." : "Salva modifiche"}
                   </PrimaryButton>
                 </div>
-              </section>
-            </div>,
-            document.body
-          )
-        : null}
+        </ModalShell>
+      ) : null}
     </>
   );
 }
