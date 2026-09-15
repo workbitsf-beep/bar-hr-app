@@ -815,6 +815,7 @@ export function OwnerCalendarClient({
   const daySnapTimerRef = useRef<number | null>(null);
   const dayWheelLockedRef = useRef(false);
   const skipDayScrollIntoViewRef = useRef(false);
+  const smoothDayScrollIntoViewRef = useRef(false);
   const boundaryTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const boundaryNavigationLockedRef = useRef(false);
   const previousInitialFocusedDayRef = useRef(initialFocusedDay);
@@ -950,6 +951,7 @@ export function OwnerCalendarClient({
         return;
       }
 
+      smoothDayScrollIntoViewRef.current = true;
       setFocusedDayDate(today.date);
       setSelectedDate(null);
       setActiveCalendarModal(null);
@@ -979,9 +981,11 @@ export function OwnerCalendarClient({
       );
 
       const strip = dayStripRef.current;
+      const behavior = smoothDayScrollIntoViewRef.current ? "smooth" : "auto";
+      smoothDayScrollIntoViewRef.current = false;
 
       if (strip && target) {
-        strip.scrollTo({ left: target.offsetLeft, behavior: "auto" });
+        strip.scrollTo({ left: target.offsetLeft, behavior });
       }
     });
 
