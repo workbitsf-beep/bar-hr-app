@@ -163,80 +163,133 @@ export async function scheduleShiftClockReminders(
   options: { preserveSent?: boolean } = {}
 ) {
   const shifts = await getReminderShifts(shiftIds);
-  let scheduledCount = 0;
   const now = new Date();
+  let scheduledCount = 0;
 
   await prisma.$transaction(async (tx) => {
-    for (const shift of shifts) {
-      const schedule = getClockReminderSchedule(shift);
+    const allShiftIds = shifts.map((shift) => shift.id);
+    const allUserIds = Array.from(
+      new Set(shifts.flatMap((shift) => shift.assignments.map((assignment) => assignment.userId)))
+    );
 
-      for (const assignment of shift.assignments) {
-        if (!shouldReceiveClockReminder(assignment, shift.barId)) {
-          continue;
-        }
-
-        for (const item of schedule) {
-          const actionUrl = getClockReminderActionUrl(shift.id, shift.barId);
-          const existing = await tx.scheduledNotification.findFirst({
+    const existingRows =
+      allShiftIds.length > 0 && allUserIds.length > 0
+        ? await tx.scheduledNotification.findMany({
             where: {
-              userId: assignment.userId,
-              type: item.type,
-              shiftId: shift.id,
+              shiftId: { in: allShiftIds },
+              userId: { in: allUserIds },
+              type: { in: CLOCK_REMINDER_TYPES },
             },
             select: {
               id: true,
+              userId: true,
+              shiftId: true,
+              type: true,
               sentAt: true,
             },
-          });
+          })
+        : [];
 
-          if (existing) {
-            await tx.scheduledNotification.update({
-              where: {
-                id: existing.id,
-              },
-              data: {
-                barId: shift.barId,
-                shiftId: shift.id,
-                title: item.title,
-                message: item.message,
-                actionUrl,
-                sendAt: item.sendAt,
-                sentAt: options.preserveSent && existing.sentAt && item.sendAt <= now ? existing.sentAt : null,
-                canceledAt: null,
-              },
+    const existingByKey = new Map<string, { id: string; sentAt: Date | null }>();
+    for (const row of existingRows) {
+      const key = `${row.userId}:${row.type}:${row.shiftId}`;
+      if (!existingByKey.has(key)) {
+        existingByKey.set(key, { id: row.id, sentAt: row.sentAt });
+      }
+    }
+
+    const creates: Array<{
+      userId: string;
+      barId: string;
+      shiftId: string;
+      type: string;
+      title: string;
+      message: string;
+      actionUrl: string;
+      sendAt: Date;
+    }> = [];
+
+    for (const shift of shifts) {
+      const schedule = getClockReminderSchedule(shift);
+      const actionUrl = getClockReminderActionUrl(shift.id, shift.barId);
+      const eligibleUserIds = shift.assignments
+        .filter((assignment) => shouldReceiveClockReminder(assignment, shift.barId))
+        .map((assignment) => assignment.userId);
+
+      for (const item of schedule) {
+        const resetIds: string[] = [];
+        const keepIds: string[] = [];
+
+        for (const userId of eligibleUserIds) {
+          const existingRow = existingByKey.get(`${userId}:${item.type}:${shift.id}`);
+
+          if (!existingRow) {
+            creates.push({
+              userId,
+              barId: shift.barId,
+              shiftId: shift.id,
+              type: item.type,
+              title: item.title,
+              message: item.message,
+              actionUrl,
+              sendAt: item.sendAt,
             });
+          } else if (options.preserveSent && existingRow.sentAt && item.sendAt <= now) {
+            keepIds.push(existingRow.id);
           } else {
-            await tx.scheduledNotification.create({
-              data: {
-                userId: assignment.userId,
-                barId: shift.barId,
-                shiftId: shift.id,
-                type: item.type,
-                title: item.title,
-                message: item.message,
-                actionUrl,
-                sendAt: item.sendAt,
-              },
-            });
+            resetIds.push(existingRow.id);
           }
 
-          await tx.scheduledNotification.updateMany({
-            where: {
-              userId: assignment.userId,
-              type: item.type,
-              shiftId: shift.id,
-              actionUrl: {
-                not: actionUrl,
-              },
-              sentAt: null,
-            },
-            data: {
-              canceledAt: new Date(),
-            },
-          });
           scheduledCount += 1;
         }
+
+        const sharedData = {
+          barId: shift.barId,
+          shiftId: shift.id,
+          title: item.title,
+          message: item.message,
+          actionUrl,
+          sendAt: item.sendAt,
+          canceledAt: null,
+        };
+
+        if (resetIds.length > 0) {
+          await tx.scheduledNotification.updateMany({
+            where: { id: { in: resetIds } },
+            data: { ...sharedData, sentAt: null },
+          });
+        }
+
+        if (keepIds.length > 0) {
+          await tx.scheduledNotification.updateMany({
+            where: { id: { in: keepIds } },
+            data: sharedData,
+          });
+        }
       }
+
+      if (eligibleUserIds.length > 0) {
+        await tx.scheduledNotification.updateMany({
+          where: {
+            shiftId: shift.id,
+            userId: { in: eligibleUserIds },
+            type: { in: CLOCK_REMINDER_TYPES },
+            actionUrl: {
+              not: actionUrl,
+            },
+            sentAt: null,
+          },
+          data: {
+            canceledAt: new Date(),
+          },
+        });
+      }
+    }
+
+    if (creates.length > 0) {
+      await tx.scheduledNotification.createMany({
+        data: creates,
+      });
     }
   });
 

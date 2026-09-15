@@ -17,6 +17,15 @@ export type PushNotificationResult = {
   error?: string;
 };
 
+export type PushTokenRecord = {
+  id: string;
+  token: string;
+  userId: string;
+  platform: string;
+  lastUsedAt: Date | null;
+  updatedAt: Date;
+};
+
 function dedupeIds(userIds: string[]) {
   return Array.from(new Set(userIds.map((userId) => userId.trim()).filter(Boolean)));
 }
@@ -56,8 +65,33 @@ function buildPushLink(actionUrl: string | undefined) {
   return `${appUrl}${rawActionUrl.startsWith("/") ? rawActionUrl : `/${rawActionUrl}`}`;
 }
 
+export async function getPushTokensForUsers(userIds: string[]): Promise<PushTokenRecord[]> {
+  const ids = dedupeIds(userIds);
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  return prisma.pushToken.findMany({
+    where: {
+      userId: {
+        in: ids,
+      },
+    },
+    select: {
+      id: true,
+      token: true,
+      userId: true,
+      platform: true,
+      lastUsedAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
 export async function sendPushNotification(
-  input: PushNotificationInput
+  input: PushNotificationInput,
+  preloadedTokens?: PushTokenRecord[]
 ): Promise<PushNotificationResult> {
   const messaging = getMessagingService();
 
@@ -79,21 +113,10 @@ export async function sendPushNotification(
     };
   }
 
-  const tokens = await prisma.pushToken.findMany({
-    where: {
-      userId: {
-        in: userIds,
-      },
-    },
-    select: {
-      id: true,
-      token: true,
-      userId: true,
-      platform: true,
-      lastUsedAt: true,
-      updatedAt: true,
-    },
-  });
+  const userIdSet = new Set(userIds);
+  const tokens = preloadedTokens
+    ? preloadedTokens.filter((token) => userIdSet.has(token.userId))
+    : await getPushTokensForUsers(userIds);
 
   if (tokens.length === 0) {
     return {

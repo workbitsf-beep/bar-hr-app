@@ -243,7 +243,7 @@ async function runAutoClockOut(now: Date) {
     logsByUserAndShift.set(key, current);
   }
 
-  let autoClockOutCount = 0;
+  const dueAutoClockOuts: Array<{ userId: string; barId: string; shiftId: string; endTime: Date }> = [];
 
   for (const shift of shifts) {
     for (const assignment of shift.assignments) {
@@ -263,33 +263,47 @@ async function runAutoClockOut(now: Date) {
         continue;
       }
 
-      await prisma.timeLog.create({
-        data: {
-          type: ClockType.OUT,
-          userId: assignment.userId,
-          barId: shift.barId,
-          shiftId: shift.id,
-          timestamp: shift.endTime,
-          isManual: false,
-          autoClockOut: true,
-          note: "Uscita automatica registrata all'orario previsto di fine turno.",
-        },
-      });
-
-      await closeClockOutReminders({
+      dueAutoClockOuts.push({
         userId: assignment.userId,
         barId: shift.barId,
         shiftId: shift.id,
+        endTime: shift.endTime,
       });
+    }
+  }
 
-      invalidateReportingCache(shift.barId, assignment.userId);
-      autoClockOutCount += 1;
+  if (dueAutoClockOuts.length > 0) {
+    await prisma.timeLog.createMany({
+      data: dueAutoClockOuts.map((entry) => ({
+        type: ClockType.OUT,
+        userId: entry.userId,
+        barId: entry.barId,
+        shiftId: entry.shiftId,
+        timestamp: entry.endTime,
+        isManual: false,
+        autoClockOut: true,
+        note: "Uscita automatica registrata all'orario previsto di fine turno.",
+      })),
+    });
+
+    await Promise.all(
+      dueAutoClockOuts.map((entry) =>
+        closeClockOutReminders({
+          userId: entry.userId,
+          barId: entry.barId,
+          shiftId: entry.shiftId,
+        })
+      )
+    );
+
+    for (const entry of dueAutoClockOuts) {
+      invalidateReportingCache(entry.barId, entry.userId);
     }
   }
 
   return {
     checkedShiftCount: shifts.length,
-    autoClockOutCount,
+    autoClockOutCount: dueAutoClockOuts.length,
   };
 }
 

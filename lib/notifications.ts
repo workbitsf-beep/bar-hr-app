@@ -1,6 +1,6 @@
 import "server-only";
 
-import { sendPushNotification } from "@/lib/push";
+import { sendPushNotification, type PushTokenRecord } from "@/lib/push";
 
 export const INTERNAL_NOTIFICATION_TYPES = {
   SHIFT_PUBLISHED: "shift.published",
@@ -70,7 +70,8 @@ function normalizeRecipients(users: Array<NotificationRecipient | string | null 
 
 export async function notifyUsers(
   users: Array<NotificationRecipient | string | null | undefined>,
-  payload: NotificationPayload
+  payload: NotificationPayload,
+  options?: { preloadedTokens?: PushTokenRecord[] }
 ) {
   const recipients = normalizeRecipients(users);
 
@@ -81,16 +82,19 @@ export async function notifyUsers(
     };
   }
 
-  const pushResult = await sendPushNotification({
-    userIds: recipients.map((recipient) => recipient.id),
-    title: payload.title,
-    body: payload.message,
-    data: {
-      type: payload.type,
-      actionUrl: payload.actionUrl ?? "",
-      barId: payload.barId ?? "",
+  const pushResult = await sendPushNotification(
+    {
+      userIds: recipients.map((recipient) => recipient.id),
+      title: payload.title,
+      body: payload.message,
+      data: {
+        type: payload.type,
+        actionUrl: payload.actionUrl ?? "",
+        barId: payload.barId ?? "",
+      },
     },
-  });
+    options?.preloadedTokens
+  );
 
   return {
     createdCount: recipients.length,

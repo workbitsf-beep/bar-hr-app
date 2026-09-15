@@ -1,6 +1,7 @@
 import "server-only";
 
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
+import { getPushTokensForUsers } from "@/lib/push";
 import { prisma } from "@/lib/prisma";
 
 type ShiftPublishRecipient = {
@@ -99,15 +100,20 @@ export async function notifyPublishedShiftRecipients(input: {
   }
 
   const rangeLabel = getRangeLabel(input.rangeStart, input.rangeEnd);
+  const preloadedTokens = await getPushTokensForUsers(recipients.map((recipient) => recipient.id));
   const results = await Promise.all(
     recipients.map((recipient) =>
-      notifyUsers([recipient.id], {
-        barId: input.barId,
-        title: "Turni pubblicati",
-        message: `Ciao ${recipient.firstName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${rangeLabel} per ${bar.name}.`,
-        type: INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
-        actionUrl: "/dashboard/calendar",
-      })
+      notifyUsers(
+        [recipient.id],
+        {
+          barId: input.barId,
+          title: "Turni pubblicati",
+          message: `Ciao ${recipient.firstName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${rangeLabel} per ${bar.name}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
+          actionUrl: "/dashboard/calendar",
+        },
+        { preloadedTokens }
+      )
     )
   );
 
