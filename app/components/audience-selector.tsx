@@ -89,8 +89,6 @@ export function AudienceSelector({
             display: "flex",
             flexWrap: "wrap",
             gap: 8,
-            maxHeight: 148,
-            overflowY: "auto",
             padding: 4,
           }}
         >
