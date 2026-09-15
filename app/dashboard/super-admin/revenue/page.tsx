@@ -199,10 +199,10 @@ export default async function SuperAdminRevenuePage() {
                 grid-template-columns: minmax(0, 1fr) auto auto;
                 align-items: center;
                 gap: 12px;
-                padding: 12px;
-                border-radius: 18px;
-                border: 1px solid rgba(124, 58, 237, .10);
-                background: rgba(255,255,255,.92);
+                padding: 12px 14px;
+                border-radius: 12px;
+                border: 1px solid #e7e5e4;
+                background: #ffffff;
               }
               .revenue-row div {
                 display: grid;
@@ -210,11 +210,11 @@ export default async function SuperAdminRevenuePage() {
                 min-width: 0;
               }
               .revenue-row strong {
-                color: #0f172a;
+                color: #1c1917;
                 font-size: 14px;
               }
               .revenue-row b {
-                color: #5b21b6;
+                color: #6d28d9;
                 font-size: 15px;
                 white-space: nowrap;
               }

@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { EmptyState, Panel } from "../ui";
@@ -17,96 +17,20 @@ type AdminSection =
 const superAdminItems: Array<{
   href: string;
   title: string;
-  description: string;
-  eyebrow: string;
   section: AdminSection;
-  color: string;
-  tint: string;
 }> = [
-  {
-    href: "/dashboard/super-admin",
-    title: "Panoramica",
-    description: "KPI, clienti e stato generale.",
-    eyebrow: "Centro",
-    section: "home",
-    color: "#111827",
-    tint: "#f8fafc",
-  },
-  {
-    href: "/dashboard/super-admin/owners",
-    title: "Titolari",
-    description: "Account proprietari e associazioni.",
-    eyebrow: "Persone",
-    section: "owners",
-    color: "#6d28d9",
-    tint: "#f5f3ff",
-  },
-  {
-    href: "/dashboard/super-admin/bars",
-    title: "Attivita",
-    description: "Locali, aziende e accessi.",
-    eyebrow: "Clienti",
-    section: "bars",
-    color: "#2563eb",
-    tint: "#eff6ff",
-  },
-  {
-    href: "/dashboard/super-admin/billing",
-    title: "Abbonamenti",
-    description: "Piani, rinnovi e stato pagamenti.",
-    eyebrow: "Billing",
-    section: "billing",
-    color: "#0891b2",
-    tint: "#ecfeff",
-  },
-  {
-    href: "/dashboard/super-admin/revenue",
-    title: "Ricavi",
-    description: "MRR, ARR e andamento incassi.",
-    eyebrow: "Finanza",
-    section: "revenue",
-    color: "#b45309",
-    tint: "#fffbeb",
-  },
-  {
-    href: "/dashboard/super-admin/gps",
-    title: "GPS globale",
-    description: "Range e regole timbratura.",
-    eyebrow: "Posizione",
-    section: "gps",
-    color: "#059669",
-    tint: "#ecfdf5",
-  },
-  {
-    href: "/dashboard/super-admin/legal",
-    title: "Documenti legali",
-    description: "Privacy, termini e documenti.",
-    eyebrow: "Legal",
-    section: "legal",
-    color: "#7c2d12",
-    tint: "#fff7ed",
-  },
-  {
-    href: "/dashboard/super-admin/system",
-    title: "Utilizzo",
-    description: "Carico, runtime e salute app.",
-    eyebrow: "Sistema",
-    section: "system",
-    color: "#0f172a",
-    tint: "#f1f5f9",
-  },
-  {
-    href: "/dashboard/super-admin/settings",
-    title: "Impostazioni",
-    description: "Account admin e sicurezza.",
-    eyebrow: "Account",
-    section: "settings",
-    color: "#9333ea",
-    tint: "#faf5ff",
-  },
+  { href: "/dashboard/super-admin", title: "Panoramica", section: "home" },
+  { href: "/dashboard/super-admin/owners", title: "Titolari", section: "owners" },
+  { href: "/dashboard/super-admin/bars", title: "Attivita", section: "bars" },
+  { href: "/dashboard/super-admin/billing", title: "Abbonamenti", section: "billing" },
+  { href: "/dashboard/super-admin/revenue", title: "Ricavi", section: "revenue" },
+  { href: "/dashboard/super-admin/gps", title: "GPS globale", section: "gps" },
+  { href: "/dashboard/super-admin/legal", title: "Documenti legali", section: "legal" },
+  { href: "/dashboard/super-admin/system", title: "Utilizzo", section: "system" },
+  { href: "/dashboard/super-admin/settings", title: "Impostazioni", section: "settings" },
 ];
 
-function AdminIcon({ section, size = 22 }: { section: AdminSection; size?: number }) {
+function AdminIcon({ section, size = 18 }: { section: AdminSection; size?: number }) {
   const common = {
     stroke: "currentColor",
     strokeWidth: 1.8,
@@ -219,28 +143,39 @@ export function StatTile({
     <div
       style={{
         display: "grid",
-        gap: 6,
-        padding: 16,
-        borderRadius: 24,
-        border: "1px solid rgba(124, 58, 237, .13)",
-        background: "rgba(255,255,255,.94)",
-        boxShadow: "0 16px 38px rgba(88, 28, 135, .08)",
+        gap: 5,
+        padding: "16px 18px",
+        borderRadius: 14,
+        border: "1px solid #e7e5e4",
+        borderLeft: `3px solid ${toneColor[tone]}`,
+        background: "#ffffff",
         minWidth: 0,
       }}
     >
-      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>{label}</span>
+      <span
+        style={{
+          color: "#8a8580",
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
       <strong
         style={{
-          color: toneColor[tone],
-          fontSize: 28,
-          lineHeight: 1,
-          letterSpacing: "-0.05em",
+          color: "#1c1917",
+          fontSize: 26,
+          lineHeight: 1.1,
+          letterSpacing: "-0.03em",
+          fontWeight: 700,
         }}
       >
         {value}
       </strong>
       {detail ? (
-        <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.35 }}>{detail}</span>
+        <span style={{ color: "#a8a29e", fontSize: 12.5, lineHeight: 1.35 }}>{detail}</span>
       ) : null}
     </div>
   );
@@ -265,37 +200,22 @@ export function SuperAdminFrame({
 }) {
   return (
     <div className="super-admin-workspace">
-      <RevealOnScroll as="section" className="super-admin-command">
-        <div className="super-admin-command-copy">
-          <span className="super-admin-command-pill">Super Admin</span>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </div>
-
-        <nav className="super-admin-route-grid" aria-label="Sezioni Super Admin">
-          {superAdminItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="super-admin-route"
-              style={
-                {
-                  "--admin-accent": item.color,
-                  "--admin-tint": item.tint,
-                } as CSSProperties
-              }
-            >
-              <span className="super-admin-route-icon" aria-hidden="true">
-                <AdminIcon section={item.section} size={20} />
-              </span>
-              <span className="super-admin-route-copy">
-                <strong>{item.title}</strong>
-                <span>{item.description}</span>
-              </span>
-            </Link>
-          ))}
-        </nav>
+      <RevealOnScroll as="header" className="super-admin-command">
+        <span className="super-admin-eyebrow">Super Admin</span>
+        <h1>{title}</h1>
+        <p>{description}</p>
       </RevealOnScroll>
+
+      <nav className="super-admin-route-rail" aria-label="Sezioni Super Admin">
+        {superAdminItems.map((item) => (
+          <Link key={item.href} href={item.href} className="super-admin-route">
+            <span className="super-admin-route-icon" aria-hidden="true">
+              <AdminIcon section={item.section} />
+            </span>
+            {item.title}
+          </Link>
+        ))}
+      </nav>
 
       <RevealOnScroll className="super-admin-content" delay={60}>
         {children}
@@ -305,127 +225,85 @@ export function SuperAdminFrame({
         dangerouslySetInnerHTML={{
           __html: `
             .super-admin-workspace {
-              --admin-ink: var(--workbit-navy);
-              --admin-muted: var(--workbit-muted);
               display: grid;
-              gap: 16px;
+              gap: 20px;
               min-width: 0;
               width: 100%;
             }
 
             .super-admin-command {
               display: grid;
-              grid-template-columns: minmax(260px, .62fr) minmax(0, 1fr);
-              gap: 18px;
-              align-items: stretch;
-              padding: 18px;
-              border-radius: 24px;
-              color: var(--admin-ink);
-              background: linear-gradient(135deg, rgba(255,255,255,.98) 0%, rgba(248,250,252,.95) 100%);
-              border: 1px solid rgba(124,58,237,.14);
-              box-shadow: 0 18px 42px rgba(88,28,135,.10);
-              overflow: hidden;
+              gap: 6px;
+              padding: 2px 2px 4px;
             }
 
-            .super-admin-command-copy {
-              min-width: 0;
-              display: grid;
-              align-content: center;
-              gap: 10px;
-              padding: 10px;
-            }
-
-            .super-admin-command-pill {
-              width: fit-content;
-              display: inline-flex;
-              align-items: center;
-              min-height: 30px;
-              padding: 0 12px;
-              border-radius: 999px;
-              background: #f5f3ff;
-              color: #5b21b6;
-              border: 1px solid rgba(124,58,237,.16);
-              font-size: 12px;
-              line-height: 1;
-              font-weight: 900;
+            .super-admin-eyebrow {
+              color: #78716c;
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.08em;
               text-transform: uppercase;
-              white-space: nowrap;
             }
 
             .super-admin-command h1 {
               margin: 0;
-              font-size: clamp(28px, 3.4vw, 44px);
-              line-height: 1.04;
-              color: var(--admin-ink);
-              font-weight: 900;
+              font-size: clamp(24px, 3vw, 32px);
+              line-height: 1.15;
+              color: #1c1917;
+              font-weight: 700;
+              letter-spacing: -0.02em;
             }
 
             .super-admin-command p {
               margin: 0;
               max-width: 640px;
-              color: var(--admin-muted);
-              font-size: 15px;
-              line-height: 1.55;
+              color: #78716c;
+              font-size: 14.5px;
+              line-height: 1.5;
             }
 
-            .super-admin-route-grid {
-              display: grid;
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 10px;
+            .super-admin-route-rail {
+              display: flex;
+              gap: 4px;
               min-width: 0;
+              overflow-x: auto;
+              scrollbar-width: none;
+              padding-bottom: 2px;
+              border-bottom: 1px solid #e7e5e4;
+            }
+
+            .super-admin-route-rail::-webkit-scrollbar {
+              display: none;
             }
 
             .super-admin-route {
-              display: grid;
-              grid-template-columns: 42px minmax(0, 1fr);
-              gap: 10px;
+              display: inline-flex;
               align-items: center;
-              min-height: 74px;
-              padding: 12px;
-              border-radius: 18px;
-              color: var(--admin-ink);
-              background: linear-gradient(135deg, #ffffff 0%, var(--admin-tint) 100%);
-              border: 1px solid rgba(124,58,237,.12);
+              gap: 7px;
+              flex: 0 0 auto;
+              padding: 9px 14px;
+              border-radius: 10px 10px 0 0;
+              color: #78716c;
+              font-size: 13.5px;
+              font-weight: 600;
               text-decoration: none;
-              box-shadow: 0 10px 24px rgba(15,23,42,.05);
-              transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
-            }
-
-            .super-admin-route:hover {
-              transform: translateY(-1px);
-              border-color: color-mix(in srgb, var(--admin-accent) 34%, transparent);
-              box-shadow: 0 14px 28px rgba(15,23,42,.08);
+              white-space: nowrap;
+              transition: color 140ms ease, background 140ms ease;
             }
 
             .super-admin-route-icon {
-              width: 42px;
-              height: 42px;
               display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              border-radius: 14px;
-              color: #ffffff;
-              background: var(--admin-accent);
-              box-shadow: 0 10px 20px rgba(15,23,42,.12);
+              color: #a8a29e;
+              transition: color 140ms ease;
             }
 
-            .super-admin-route-copy {
-              display: grid;
-              gap: 3px;
-              min-width: 0;
+            .super-admin-route:hover {
+              color: #1c1917;
+              background: #f5f5f4;
             }
 
-            .super-admin-route-copy strong {
-              color: var(--admin-ink);
-              font-size: 14px;
-              line-height: 1.15;
-              font-weight: 900;
-            }
-
-            .super-admin-route-copy span {
-              color: var(--admin-muted);
-              font-size: 12px;
-              line-height: 1.3;
+            .super-admin-route:hover .super-admin-route-icon {
+              color: #7c3aed;
             }
 
             .super-admin-content {
@@ -434,59 +312,19 @@ export function SuperAdminFrame({
               min-width: 0;
             }
 
-            .super-admin-content .dashboard-panel {
-              border-color: var(--workbit-border) !important;
-              box-shadow: var(--workbit-shadow) !important;
-            }
-
             .super-admin-content .dashboard-list-card {
-              transition: transform 140ms ease, box-shadow 140ms ease;
+              transition: border-color 140ms ease, transform 140ms ease;
             }
 
             .super-admin-content .dashboard-list-card:hover {
+              border-color: #d6d3d1;
               transform: translateY(-1px);
-              box-shadow: 0 12px 24px rgba(15,23,42,.06);
             }
 
-            @media (max-width: 980px) {
-              .super-admin-command {
-                grid-template-columns: 1fr;
-              }
-            }
-
-            @media (max-width: 720px) {
-              .super-admin-workspace {
-                gap: 12px;
-              }
-
-              .super-admin-command {
-                padding: 14px;
-                border-radius: 22px;
-              }
-
-              .super-admin-command-copy {
-                padding: 4px;
-              }
-
-              .super-admin-command h1 {
-                font-size: 30px;
-              }
-
-              .super-admin-route-grid {
-                display: flex;
-                overflow-x: auto;
-                scroll-snap-type: x mandatory;
-                scrollbar-width: none;
-                padding-bottom: 2px;
-              }
-
-              .super-admin-route-grid::-webkit-scrollbar {
-                display: none;
-              }
-
+            @media (max-width: 640px) {
               .super-admin-route {
-                min-width: 236px;
-                scroll-snap-align: start;
+                padding: 8px 12px;
+                font-size: 13px;
               }
             }
           `,
@@ -495,4 +333,3 @@ export function SuperAdminFrame({
     </div>
   );
 }
-

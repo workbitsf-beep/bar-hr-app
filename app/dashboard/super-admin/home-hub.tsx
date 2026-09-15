@@ -95,12 +95,6 @@ export async function SuperAdminHomeHub() {
 
   return (
     <div className="sa-overview">
-      <RevealOnScroll as="section" className="sa-overview-head">
-        <span>Control room</span>
-        <h2>Super Admin leggero</h2>
-        <p>Solo accessi rapidi e numeri essenziali. Le liste pesanti restano nelle pagine dedicate.</p>
-      </RevealOnScroll>
-
       <section className="sa-overview-metrics" aria-label="Metriche Super Admin">
         <StatTile
           label="Attività"
@@ -136,86 +130,52 @@ export async function SuperAdminHomeHub() {
               gap: 14px;
               min-width: 0;
             }
-            .sa-overview-head,
-            .sa-overview-card {
-              border: 1px solid rgba(124, 58, 237, .13);
-              background: rgba(255,255,255,.94);
-              box-shadow: 0 16px 38px rgba(88, 28, 135, .08);
-            }
-            .sa-overview-head {
-              display: grid;
-              gap: 8px;
-              padding: 24px;
-              border-radius: 30px;
-              background:
-                radial-gradient(circle at 90% 8%, rgba(168, 85, 247, .18), transparent 24%),
-                linear-gradient(135deg, #ffffff 0%, #f7f3ff 58%, #eef2ff 100%);
-            }
-            .sa-overview-head span {
-              color: #6d28d9;
-              font-size: 11px;
-              font-weight: 950;
-              letter-spacing: .13em;
-              text-transform: uppercase;
-            }
-            .sa-overview-head h2 {
-              margin: 0;
-              color: #0f172a;
-              font-size: clamp(30px, 5vw, 54px);
-              line-height: .98;
-              letter-spacing: -.06em;
-            }
-            .sa-overview-head p {
-              margin: 0;
-              max-width: 680px;
-              color: #64748b;
-              font-size: 14px;
-              line-height: 1.55;
-            }
             .sa-overview-metrics {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 10px;
             }
-            .sa-overview-card small {
-              color: #64748b;
-              font-size: 12px;
-              font-weight: 800;
-            }
             .sa-overview-grid {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 12px;
+              gap: 10px;
             }
             .sa-overview-card {
               display: grid;
               gap: 8px;
-              min-height: 138px;
-              padding: 18px;
-              border-radius: 26px;
-              color: #0f172a;
+              min-height: 128px;
+              padding: 16px 18px;
+              border-radius: 14px;
+              color: #1c1917;
               text-decoration: none;
-              background: linear-gradient(145deg, #ffffff 0%, #faf5ff 100%);
-              transition: transform .18s ease, box-shadow .18s ease;
+              background: #ffffff;
+              border: 1px solid #e7e5e4;
+              transition: border-color 140ms ease, transform 140ms ease;
             }
             .sa-overview-card:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 22px 46px rgba(124, 58, 237, .14);
+              border-color: #d6d3d1;
+              transform: translateY(-1px);
             }
             .sa-overview-card > span {
-              width: 42px;
-              height: 42px;
+              width: 34px;
+              height: 34px;
               display: inline-flex;
               align-items: center;
               justify-content: center;
-              border-radius: 16px;
-              background: linear-gradient(135deg, #111936, #7c3aed);
-              font-size: 20px;
-              box-shadow: 0 12px 26px rgba(124, 58, 237, .18);
+              border-radius: 10px;
+              background: #f5f5f4;
+              font-size: 16px;
             }
             .sa-overview-card strong {
-              font-size: 16px;
-              letter-spacing: -.02em;
+              font-size: 14.5px;
+              font-weight: 700;
+              letter-spacing: -.01em;
+            }
+            .sa-overview-card small {
+              color: #78716c;
+              font-size: 12.5px;
+              line-height: 1.4;
+              font-weight: 400;
             }
             @media (max-width: 1020px) {
               .sa-overview-metrics,
@@ -224,7 +184,6 @@ export async function SuperAdminHomeHub() {
               }
             }
             @media (max-width: 560px) {
-              .sa-overview-head { padding: 20px; border-radius: 26px; }
               .sa-overview-metrics,
               .sa-overview-grid {
                 grid-template-columns: 1fr;

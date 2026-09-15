@@ -43,10 +43,10 @@ export function GlobalGpsRadiusForm({
             gap: 12,
             minWidth: 0,
             maxWidth: "100%",
-            borderRadius: 22,
-            border: "1px solid rgba(217, 119, 6, .18)",
+            borderRadius: 14,
+            border: "1px solid #e7e5e4",
             padding: "8px 12px",
-            background: "linear-gradient(135deg, #ffffff, #fffbeb)",
+            background: "#ffffff",
             width: "100%",
             boxSizing: "border-box",
           }}
@@ -80,11 +80,11 @@ export function GlobalGpsRadiusForm({
               fontWeight: 900,
               letterSpacing: "-0.04em",
               background: "transparent",
-              color: "#172033",
+              color: "#1c1917",
               opacity: isPending ? 0.7 : 1,
             }}
           />
-          <span style={{ color: "#b45309", fontSize: 13, fontWeight: 900, flex: "0 0 auto" }}>metri</span>
+          <span style={{ color: "#78716c", fontSize: 13, fontWeight: 700, flex: "0 0 auto" }}>metri</span>
         </div>
       </label>
 
@@ -93,9 +93,9 @@ export function GlobalGpsRadiusForm({
           style={{
             padding: "12px 14px",
             borderRadius: 18,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            color: "#475569",
+            background: "#fafaf9",
+            border: "1px solid #e7e5e4",
+            color: "#78716c",
             lineHeight: 1.6,
           }}
         >
@@ -108,9 +108,9 @@ export function GlobalGpsRadiusForm({
           style={{
             padding: "12px 14px",
             borderRadius: 18,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            color: "#475569",
+            background: "#fafaf9",
+            border: "1px solid #e7e5e4",
+            color: "#78716c",
             lineHeight: 1.6,
           }}
         >

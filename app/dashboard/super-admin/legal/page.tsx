@@ -156,9 +156,9 @@ export default async function SuperAdminLegalDocumentsPage({
                   key={document.id}
                   style={{
                     padding: 16,
-                    borderRadius: 24,
+                    borderRadius: 14,
                     background: "#ffffff",
-                    border: "1px solid rgba(124, 58, 237, 0.12)",
+                    border: "1px solid #e7e5e4",
                   }}
                 >
                   <summary style={{ cursor: "pointer", listStyle: "none" }}>
@@ -184,8 +184,8 @@ export default async function SuperAdminLegalDocumentsPage({
                         rel="noreferrer"
                         style={{
                           justifySelf: "start",
-                          color: "#6d28d9",
-                          fontWeight: 900,
+                          color: "#7c3aed",
+                          fontWeight: 700,
                           textDecoration: "none",
                         }}
                       >
