@@ -12,7 +12,9 @@ export type AdminSection =
   | "gps"
   | "legal"
   | "system"
-  | "settings";
+  | "settings"
+  | "new"
+  | "people";
 
 export const superAdminItems: Array<{
   href: string;

@@ -119,9 +119,17 @@ export async function SuperAdminHomeHub() {
   return (
     <div className="sa-console">
       <div className="sa-console-header">
-        <span className="sa-eyebrow">Workbit · Centro operativo</span>
-        <h2>Panoramica di rete</h2>
-        <span className="sa-console-date">{greeting}</span>
+        <div>
+          <span className="sa-eyebrow">Workbit · Centro operativo</span>
+          <h2>Panoramica di rete</h2>
+          <span className="sa-console-date">{greeting}</span>
+        </div>
+        <Link href="/dashboard/super-admin/new" className="sa-cta">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+          Nuovo titolare
+        </Link>
       </div>
 
       <div className="sa-kpi-row">
@@ -213,8 +221,26 @@ export async function SuperAdminHomeHub() {
             }
 
             .sa-console-header {
-              display: grid;
-              gap: 4px;
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              gap: 14px;
+              flex-wrap: wrap;
+            }
+
+            .sa-cta {
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              border-radius: 999px;
+              padding: 11px 18px;
+              background: linear-gradient(135deg, #7b2ff7, #a855f7);
+              color: #ffffff;
+              font-size: 13.5px;
+              font-weight: 800;
+              text-decoration: none;
+              box-shadow: 0 12px 26px rgba(123, 47, 247, 0.32);
+              white-space: nowrap;
             }
 
             .sa-console-header h2 {

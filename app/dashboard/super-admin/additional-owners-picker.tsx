@@ -48,27 +48,29 @@ export function AdditionalOwnersPicker({
         gap: 10,
         padding: 16,
         borderRadius: 20,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <strong style={{ color: "#0f172a" }}>Titolari aggiuntivi</strong>
-        <span style={{ color: "#64748b", fontSize: 13 }}>{visibleIds.length} selezionati</span>
+        <strong style={{ color: "#f5f3ff" }}>Titolari aggiuntivi</strong>
+        <span style={{ color: "#9296b8", fontSize: 13 }}>{visibleIds.length} selezionati</span>
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
         <div style={{ flex: "1 1 220px", minWidth: 0, display: "grid", gap: 8 }}>
-          <span style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>Seleziona titolare</span>
+          <span style={{ color: "#9296b8", fontSize: 13, fontWeight: 600 }}>Seleziona titolare</span>
           <select
             value={draftId}
             onChange={(event) => onDraftChange(event.target.value)}
             style={{
               borderRadius: 16,
-              border: "1px solid #dbe3ee",
+              border: "1px solid rgba(255, 255, 255, 0.16)",
               padding: "12px 14px",
               fontSize: 15,
-              background: "#ffffff",
+              background: "rgba(255, 255, 255, 0.05)",
+              color: "#f5f3ff",
+              colorScheme: "dark",
             }}
           >
             <option value="">Aggiungi titolare</option>
@@ -113,8 +115,8 @@ export function AdditionalOwnersPicker({
                 gap: 8,
                 borderRadius: 999,
                 padding: "8px 12px",
-                background: "#eef2ff",
-                color: "#3730a3",
+                background: "rgba(123, 47, 247, 0.18)",
+                color: "#d8c9fe",
                 fontWeight: 700,
                 fontSize: 13,
               }}

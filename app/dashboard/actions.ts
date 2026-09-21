@@ -1513,6 +1513,167 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   redirect(appendStatusToPath(returnPath, { success: "bar-created" }));
 }
 
+export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
+  await getSuperAdminContext();
+  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin");
+
+  const ownerMode = String(formData.get("ownerMode") ?? "new").trim();
+  const barName = String(formData.get("name") ?? "").trim();
+  const barEmail = String(formData.get("email") ?? "").trim();
+  const barPhone = String(formData.get("phone") ?? "").trim();
+  const addressLine1 = String(formData.get("addressLine1") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
+  const postalCode = String(formData.get("postalCode") ?? "").trim();
+  const activityType = parseActivityType(formData.get("activityType"));
+  const additionalOwnerIds = normalizeIds(formData.getAll("additionalOwnerIds"));
+
+  if (!barName) {
+    throw new Error("Missing bar data");
+  }
+
+  let primaryOwnerId: string;
+  let temporaryPassword: string | null = null;
+  let newOwnerEmail: string | null = null;
+  let newOwnerName: string | null = null;
+
+  if (ownerMode === "existing") {
+    primaryOwnerId = String(formData.get("existingOwnerId") ?? "").trim();
+
+    if (!primaryOwnerId) {
+      throw new Error("Missing owner data");
+    }
+
+    await ensureOwnerUsersExist([primaryOwnerId]);
+  } else {
+    const firstName = String(formData.get("firstName") ?? "").trim();
+    const lastName = String(formData.get("lastName") ?? "").trim();
+    const email = String(formData.get("email_owner") ?? "").trim().toLowerCase();
+    const language = parseLanguage(formData.get("language"));
+
+    if (!firstName || !lastName || !email) {
+      throw new Error("Missing owner data");
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      redirect(appendStatusToPath(returnPath, { error: "owner-exists" }));
+    }
+
+    temporaryPassword = createTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+    const createdOwner = await prisma.user.create({
+      data: {
+        email,
+        firstName,
+        lastName,
+        passwordHash,
+        role: Role.OWNER,
+        language,
+        mustChangePwd: true,
+      },
+    });
+
+    primaryOwnerId = createdOwner.id;
+    newOwnerEmail = email;
+    newOwnerName = `${firstName} ${lastName}`.trim();
+  }
+
+  const ownerIds = Array.from(new Set([primaryOwnerId, ...additionalOwnerIds]));
+
+  await ensureOwnerUsersExist(ownerIds);
+
+  const globalGpsRadius = await getGlobalGpsRadius();
+
+  const bar = await prisma.$transaction(async (tx) => {
+    const createdBar = await tx.bar.create({
+      data: {
+        name: barName,
+        email: barEmail || null,
+        phone: barPhone || null,
+        addressLine1: addressLine1 || null,
+        city: city || null,
+        postalCode: postalCode || null,
+        latitude: 0,
+        longitude: 0,
+        radiusMeters: globalGpsRadius,
+        activityType,
+        ownerId: primaryOwnerId,
+      },
+    });
+
+    await tx.barSettings.create({
+      data: {
+        barId: createdBar.id,
+        gpsLatitude: null,
+        gpsLongitude: null,
+        gpsRadius: globalGpsRadius,
+        roundingEnabled: false,
+      },
+    });
+
+    await tx.subscription.create({
+      data: {
+        barId: createdBar.id,
+        planType: PlanType.TRIAL,
+        status: SubscriptionStatus.TRIALING,
+        trialEndsAt: createDefaultTrialEndsAt(),
+      },
+    });
+
+    await syncBarOwnerMemberships(tx, createdBar.id, ownerIds);
+
+    return createdBar;
+  });
+
+  invalidateBillingStatusCache(bar.id);
+
+  let welcomeEmailSent = false;
+
+  if (newOwnerEmail && temporaryPassword) {
+    try {
+      const emailResult = await sendOwnerWelcomeEmail(
+        newOwnerEmail,
+        newOwnerName ?? newOwnerEmail,
+        bar.name,
+        newOwnerEmail,
+        temporaryPassword
+      );
+
+      welcomeEmailSent = emailResult.ok;
+    } catch (error) {
+      console.error("[welcome-email] owner failed", {
+        recipient: newOwnerEmail,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unexpected owner welcome email error.",
+      });
+    }
+  }
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/super-admin/owners");
+  revalidatePath("/dashboard/super-admin/bars");
+  revalidatePath("/dashboard/super-admin/billing");
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
+  redirect(
+    appendStatusToPath(returnPath, {
+      success:
+        ownerMode === "existing"
+          ? "bar-created"
+          : welcomeEmailSent
+            ? "owner-created"
+            : "owner-created-email-failed",
+    })
+  );
+}
+
 export async function updateBarSubscriptionAction(formData: FormData) {
   await getSuperAdminContext();
 
