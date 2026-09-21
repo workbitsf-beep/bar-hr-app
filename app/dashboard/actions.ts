@@ -3942,6 +3942,38 @@ export async function updateGlobalGpsRadiusAction(nextRadius: number) {
   };
 }
 
+async function deleteStaleAutoClockOut(userId: string, barId: string, sessionStart: Date) {
+  const nextClockIn = await prisma.timeLog.findFirst({
+    where: {
+      userId,
+      barId,
+      type: ClockType.IN,
+      timestamp: {
+        gt: sessionStart,
+      },
+    },
+    orderBy: {
+      timestamp: "asc",
+    },
+    select: {
+      timestamp: true,
+    },
+  });
+
+  await prisma.timeLog.deleteMany({
+    where: {
+      userId,
+      barId,
+      type: ClockType.OUT,
+      autoClockOut: true,
+      timestamp: {
+        gte: sessionStart,
+        ...(nextClockIn ? { lt: nextClockIn.timestamp } : {}),
+      },
+    },
+  });
+}
+
 export async function createManualTimeLogAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);
@@ -3976,18 +4008,7 @@ export async function createManualTimeLogAction(formData: FormData) {
       "L'uscita deve essere successiva all'entrata."
     );
 
-    await prisma.timeLog.deleteMany({
-      where: {
-        userId,
-        barId: activeBarId,
-        type: ClockType.OUT,
-        autoClockOut: true,
-        timestamp: {
-          gte: clockInAt,
-          lte: clockOutAt,
-        },
-      },
-    });
+    await deleteStaleAutoClockOut(userId, activeBarId, clockInAt);
 
     await prisma.timeLog.createMany({
       data: [
@@ -4040,18 +4061,7 @@ export async function createManualTimeLogAction(formData: FormData) {
         },
       });
 
-      await prisma.timeLog.deleteMany({
-        where: {
-          userId,
-          barId: activeBarId,
-          type: ClockType.OUT,
-          autoClockOut: true,
-          timestamp: {
-            gte: lastClockIn?.timestamp ?? timestamp,
-            lte: timestamp,
-          },
-        },
-      });
+      await deleteStaleAutoClockOut(userId, activeBarId, lastClockIn?.timestamp ?? timestamp);
     }
 
     await prisma.timeLog.create({

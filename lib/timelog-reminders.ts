@@ -9,7 +9,7 @@ import {
   runDueScheduledClockNotifications,
 } from "@/lib/shift-clock-reminders";
 
-const AUTO_CLOCK_OUT_DELAY_MS = 2 * 60 * 60 * 1000;
+const AUTO_CLOCK_OUT_DELAY_MS = 5 * 60 * 60 * 1000;
 const AUTO_CLOCK_OUT_LOOKBACK_MS = 36 * 60 * 60 * 1000;
 const ACTION_URL = "/dashboard?clock=1";
 
