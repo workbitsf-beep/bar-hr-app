@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { EmptyState, Panel } from "../ui";
 
@@ -213,20 +212,7 @@ export function SuperAdminFrame({
 }) {
   return (
     <div className="super-admin-shell" aria-label={title}>
-      {section !== "home" ? (
-        <Link href="/dashboard/super-admin" className="super-admin-back-link">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="m15 18-6-6 6-6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Panoramica
-        </Link>
-      ) : null}
+      {section !== "home" ? <h1 className="super-admin-title">{title}</h1> : null}
 
       {description ? <p className="super-admin-description">{description}</p> : null}
 
@@ -244,24 +230,12 @@ export function SuperAdminFrame({
               width: 100%;
             }
 
-            .super-admin-back-link {
-              display: inline-flex;
-              align-items: center;
-              gap: 7px;
-              width: fit-content;
-              color: var(--workbit-muted);
-              font-size: 13px;
-              font-weight: 700;
-              text-decoration: none;
-              padding: 7px 12px 7px 8px;
-              border-radius: 999px;
-              background: #ffffff;
-              border: 1px solid var(--workbit-border);
-            }
-
-            .super-admin-back-link:hover {
+            .super-admin-title {
+              margin: 0;
+              font-size: 22px;
+              font-weight: 800;
+              letter-spacing: -0.01em;
               color: var(--workbit-ink);
-              border-color: rgba(123, 47, 247, 0.35);
             }
 
             .super-admin-description {
@@ -299,6 +273,139 @@ export function SuperAdminFrame({
 
             .super-admin-content button {
               min-height: 40px;
+            }
+
+            .sa-actions {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+            }
+
+            .sa-action {
+              border-radius: 20px;
+              padding: 16px;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              gap: 20px;
+              min-height: 96px;
+              text-decoration: none;
+            }
+
+            .sa-action-primary {
+              background: linear-gradient(135deg, #7b2ff7, #a855f7);
+              color: #ffffff;
+              box-shadow: 0 14px 26px rgba(123, 47, 247, 0.22);
+            }
+
+            .sa-action-secondary {
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              color: var(--workbit-ink);
+              box-shadow: var(--workbit-shadow);
+            }
+
+            .sa-action-icon {
+              width: 32px;
+              height: 32px;
+              border-radius: 10px;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 15px;
+            }
+
+            .sa-action-primary .sa-action-icon {
+              background: rgba(255, 255, 255, 0.2);
+            }
+
+            .sa-action-secondary .sa-action-icon {
+              background: #f4f2fe;
+              color: #7b2ff7;
+            }
+
+            .sa-action-text {
+              font-size: 13.5px;
+              font-weight: 800;
+              line-height: 1.25;
+            }
+
+            .sa-scrollstats {
+              display: flex;
+              gap: 10px;
+              overflow-x: auto;
+              padding-bottom: 2px;
+            }
+
+            .sa-stat {
+              flex: 0 0 auto;
+              width: 118px;
+              display: grid;
+              gap: 5px;
+              padding: 14px 16px;
+              border-radius: 16px;
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              box-shadow: var(--workbit-shadow);
+            }
+
+            .sa-stat-lab {
+              font-size: 10.5px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              color: #98a2b3;
+            }
+
+            .sa-stat-val {
+              font-size: 22px;
+              font-weight: 800;
+              font-variant-numeric: tabular-nums;
+              color: var(--workbit-ink);
+            }
+
+            .sa-stat-warn { color: #b45309; }
+
+            .sa-section-title {
+              font-size: 12.5px;
+              font-weight: 800;
+              color: var(--workbit-muted);
+              margin-top: 4px;
+            }
+
+            .sa-bar-track {
+              display: flex;
+              width: 100%;
+              height: 10px;
+              border-radius: 999px;
+              overflow: hidden;
+              background: #eef0f8;
+            }
+
+            .sa-bar-legend {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 12px;
+              margin-top: 10px;
+            }
+
+            .sa-bar-legend-item {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 12px;
+              color: var(--workbit-muted);
+            }
+
+            .sa-bar-legend-item strong {
+              color: var(--workbit-ink);
+              font-variant-numeric: tabular-nums;
+            }
+
+            .sa-bar-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 999px;
             }
 
             /* Modals portal to document.body, so these targets must not be

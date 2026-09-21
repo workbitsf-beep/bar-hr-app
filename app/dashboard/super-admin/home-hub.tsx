@@ -1,77 +1,18 @@
 import Link from "next/link";
 import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { AdminIcon, superAdminItems, type AdminSection } from "./super-admin-ui";
-
-function ConsoleBar({
-  segments,
-}: {
-  segments: Array<{ label: string; value: number; color: string }>;
-}) {
-  const total = Math.max(
-    1,
-    segments.reduce((sum, segment) => sum + segment.value, 0)
-  );
-
-  return (
-    <div className="sa-bar">
-      <div className="sa-bar-track">
-        {segments.map((segment) => (
-          <span
-            key={segment.label}
-            className="sa-bar-segment"
-            style={{
-              width: `${(segment.value / total) * 100}%`,
-              background: segment.color,
-            }}
-            title={`${segment.label}: ${segment.value}`}
-          />
-        ))}
-      </div>
-      <div className="sa-bar-legend">
-        {segments.map((segment) => (
-          <span key={segment.label} className="sa-bar-legend-item">
-            <span className="sa-bar-dot" style={{ background: segment.color }} aria-hidden="true" />
-            {segment.label}
-            <strong>{segment.value}</strong>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const sectionMetricLabel: Partial<Record<AdminSection, (counts: {
-  totalActivities: number;
-  ownerCount: number;
-  activeSubscriptions: number;
-  riskySubscriptions: number;
-}) => string>> = {
-  owners: (c) => `${c.ownerCount} titolari`,
-  bars: (c) => `${c.totalActivities} attive`,
-  people: () => "Gestione team",
-  billing: (c) => `${c.activeSubscriptions} attivi`,
-  revenue: () => "Analisi ricavi",
-  gps: () => "Raggio globale",
-  legal: () => "Documenti globali",
-  system: () => "Consumi live",
-  settings: () => "Accesso e sicurezza",
-};
 
 export async function SuperAdminHomeHub() {
-  const memoryUsage = process.memoryUsage();
   const [
     activityCounts,
     ownerCount,
-    userCount,
     activeSubscriptions,
     trialSubscriptions,
     riskySubscriptions,
-    planCounts,
+    recentBars,
   ] = await Promise.all([
     prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
     prisma.user.count({ where: { role: Role.OWNER } }),
-    prisma.user.count({ where: { role: { not: Role.SUPER_ADMIN } } }),
     prisma.subscription.count({
       where: { status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] } },
     }),
@@ -88,335 +29,219 @@ export async function SuperAdminHomeHub() {
         },
       },
     }),
-    prisma.subscription.groupBy({ by: ["planType"], _count: { _all: true } }),
+    prisma.bar.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        owner: { select: { firstName: true, lastName: true } },
+      },
+    }),
   ]);
 
   const companyCount = activityCounts.find((entry) => entry.activityType === ActivityType.COMPANY)?._count._all ?? 0;
   const restaurantCount =
     activityCounts.find((entry) => entry.activityType === ActivityType.RESTAURANT)?._count._all ?? 0;
   const totalActivities = companyCount + restaurantCount;
-  const rssMb = Math.round(memoryUsage.rss / 1024 / 1024);
-  const paidActive = Math.max(0, activeSubscriptions - trialSubscriptions);
 
-  const planBreakdown = planCounts
-    .map((entry) => ({ label: entry.planType, value: entry._count._all }))
-    .sort((a, b) => b.value - a.value);
-  const planColors: Record<string, string> = {
-    PAID: "#7b2ff7",
-    LIFETIME: "#34d399",
-    TRIAL: "#fbbf24",
-    FREE: "#6b7094",
+  const relativeTime = (date: Date) => {
+    const diffMs = Date.now() - date.getTime();
+    const diffH = Math.round(diffMs / (1000 * 60 * 60));
+    if (diffH < 1) return "ora";
+    if (diffH < 24) return `${diffH}h`;
+    const diffD = Math.round(diffH / 24);
+    return diffD === 1 ? "ieri" : `${diffD}g`;
   };
 
-  const now = new Date();
-  const greeting = new Intl.DateTimeFormat("it-IT", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(now);
-
-  const counts = { totalActivities, ownerCount, activeSubscriptions, riskySubscriptions };
-
   return (
-    <div className="sa-console">
-      <div className="sa-console-header">
-        <div>
-          <span className="sa-eyebrow">Workbit · Centro operativo</span>
-          <h2>Panoramica di rete</h2>
-          <span className="sa-console-date">{greeting}</span>
-        </div>
-        <Link href="/dashboard/super-admin/new" className="sa-cta">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    <div className="sa-home">
+      <form action="/dashboard/super-admin/bars" method="get" className="sa-search">
+        <span className="sa-search-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+            <path d="m21 21-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          Nuovo titolare
+        </span>
+        <input name="q" type="search" placeholder="Cerca titolare, locale, email..." />
+      </form>
+
+      <div className="sa-scrollstats">
+        <div className="sa-stat">
+          <span className="sa-stat-lab">Attività</span>
+          <strong className="sa-stat-val">{totalActivities}</strong>
+        </div>
+        <div className="sa-stat">
+          <span className="sa-stat-lab">Titolari</span>
+          <strong className="sa-stat-val">{ownerCount}</strong>
+        </div>
+        <div className="sa-stat">
+          <span className="sa-stat-lab">Abbonati</span>
+          <strong className="sa-stat-val">{activeSubscriptions}</strong>
+        </div>
+        <div className="sa-stat">
+          <span className="sa-stat-lab">In prova</span>
+          <strong className="sa-stat-val">{trialSubscriptions}</strong>
+        </div>
+        <div className="sa-stat">
+          <span className="sa-stat-lab">Da rivedere</span>
+          <strong className="sa-stat-val sa-stat-warn">{riskySubscriptions}</strong>
+        </div>
+      </div>
+
+      <div className="sa-actions">
+        <Link href="/dashboard/super-admin/new" className="sa-action sa-action-primary">
+          <span className="sa-action-icon">＋</span>
+          <span className="sa-action-text">Nuovo titolare
+            <br />e locale</span>
+        </Link>
+        <Link href="/dashboard/super-admin/people" className="sa-action sa-action-secondary">
+          <span className="sa-action-icon">👥</span>
+          <span className="sa-action-text">Gestisci
+            <br />dipendenti</span>
         </Link>
       </div>
 
-      <div className="sa-kpi-row">
-        <div className="sa-kpi">
-          <span className="sa-eyebrow">Attività totali</span>
-          <strong className="sa-kpi-value">{totalActivities}</strong>
-          <span className="sa-kpi-detail">{restaurantCount} ristorazione · {companyCount} aziende</span>
-        </div>
-        <div className="sa-kpi">
-          <span className="sa-eyebrow">Titolari</span>
-          <strong className="sa-kpi-value">{ownerCount}</strong>
-          <span className="sa-kpi-detail">{userCount} utenti totali in rete</span>
-        </div>
-        <div className="sa-kpi">
-          <span className="sa-eyebrow">Abbonamenti attivi</span>
-          <strong className="sa-kpi-value sa-kpi-positive">{activeSubscriptions}</strong>
-          <span className="sa-kpi-detail">{trialSubscriptions} in prova</span>
-        </div>
-        <div className="sa-kpi">
-          <span className="sa-eyebrow">Da verificare</span>
-          <strong className={`sa-kpi-value ${riskySubscriptions > 0 ? "sa-kpi-warning" : ""}`}>
-            {riskySubscriptions}
-          </strong>
-          <span className="sa-kpi-detail">Runtime {rssMb} MB</span>
-        </div>
-      </div>
-
-      <div className="sa-charts-row">
-        <div className="sa-chart-card">
-          <span className="sa-eyebrow">Stato abbonamenti</span>
-          <ConsoleBar
-            segments={[
-              { label: "Paganti", value: paidActive, color: "#7b2ff7" },
-              { label: "In prova", value: trialSubscriptions, color: "#fbbf24" },
-              { label: "Da verificare", value: riskySubscriptions, color: "#f87171" },
-            ]}
-          />
-        </div>
-        <div className="sa-chart-card">
-          <span className="sa-eyebrow">Piani in rete</span>
-          <ConsoleBar
-            segments={planBreakdown.map((entry) => ({
-              label: entry.label,
-              value: entry.value,
-              color: planColors[entry.label] ?? "#6b7094",
-            }))}
-          />
-        </div>
-      </div>
-
-      <div className="sa-console-nav">
-        <span className="sa-eyebrow">Sezioni</span>
-        <div className="sa-nav-list">
-          {superAdminItems
-            .filter((item) => item.section !== "home")
-            .map((item) => (
-              <Link key={item.href} href={item.href} className="sa-nav-row">
-                <span className="sa-nav-icon">
-                  <AdminIcon section={item.section} size={18} />
-                </span>
-                <span className="sa-nav-row-text">
-                  <strong>{item.title}</strong>
-                  <span>{sectionMetricLabel[item.section]?.(counts) ?? ""}</span>
-                </span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="sa-nav-chevron">
-                  <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-            ))}
-        </div>
+      <div className="sa-section-title">Locali creati di recente</div>
+      <div className="sa-feed">
+        {recentBars.length === 0 ? (
+          <div className="sa-feed-empty">Nessun locale creato finora.</div>
+        ) : (
+          recentBars.map((bar) => (
+            <Link key={bar.id} href="/dashboard/super-admin/bars" className="sa-feed-row">
+              <span className="sa-feed-dot" aria-hidden="true" />
+              <span className="sa-feed-text">
+                {bar.name}
+                <span>{bar.owner.firstName} {bar.owner.lastName}</span>
+              </span>
+              <span className="sa-feed-time">{relativeTime(bar.createdAt)}</span>
+            </Link>
+          ))
+        )}
       </div>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .sa-console {
+            .sa-home {
               display: grid;
-              gap: 22px;
+              gap: 16px;
               min-width: 0;
-              color: var(--workbit-ink);
             }
 
-            .sa-eyebrow {
-              font-size: 11px;
-              font-weight: 700;
-              letter-spacing: 0.09em;
-              text-transform: uppercase;
-              color: var(--workbit-muted);
-            }
-
-            .sa-console-header {
+            .sa-search {
               display: flex;
-              align-items: flex-start;
-              justify-content: space-between;
-              gap: 14px;
-              flex-wrap: wrap;
-            }
-
-            .sa-cta {
-              display: inline-flex;
               align-items: center;
-              gap: 8px;
+              gap: 10px;
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
               border-radius: 999px;
-              padding: 11px 18px;
-              background: linear-gradient(135deg, #7b2ff7, #a855f7);
-              color: #ffffff;
-              font-size: 13.5px;
-              font-weight: 800;
-              text-decoration: none;
-              box-shadow: 0 12px 26px rgba(123, 47, 247, 0.22);
-              white-space: nowrap;
-            }
-
-            .sa-console-header h2 {
-              margin: 0;
-              font-size: 24px;
-              font-weight: 800;
-              letter-spacing: -0.01em;
-              color: var(--workbit-ink);
-            }
-
-            .sa-console-date {
-              color: var(--workbit-muted);
-              font-size: 13px;
-              text-transform: capitalize;
-            }
-
-            .sa-kpi-row {
-              display: grid;
-              grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 12px;
-            }
-
-            .sa-kpi {
-              display: grid;
-              gap: 6px;
-              padding: 16px 18px;
-              border-radius: 16px;
-              background: #ffffff;
-              border: 1px solid var(--workbit-border);
+              padding: 13px 16px;
               box-shadow: var(--workbit-shadow);
             }
 
-            .sa-kpi-value {
-              font-size: 30px;
-              font-weight: 800;
-              letter-spacing: -0.02em;
-              font-variant-numeric: tabular-nums;
+            .sa-search-icon {
+              color: #98a2b3;
+              display: inline-flex;
+              flex-shrink: 0;
+            }
+
+            .sa-search input {
+              border: none;
+              outline: none;
+              background: transparent;
+              font-size: 14.5px;
               color: var(--workbit-ink);
-            }
-
-            .sa-kpi-positive { color: #047857; }
-            .sa-kpi-warning { color: #b45309; }
-
-            .sa-kpi-detail {
-              color: var(--workbit-muted);
-              font-size: 12.5px;
-            }
-
-            .sa-charts-row {
-              display: grid;
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 12px;
-            }
-
-            .sa-chart-card {
-              display: grid;
-              gap: 12px;
-              padding: 18px;
-              border-radius: 16px;
-              background: #ffffff;
-              border: 1px solid var(--workbit-border);
-              box-shadow: var(--workbit-shadow);
-            }
-
-            .sa-bar { display: grid; gap: 10px; }
-
-            .sa-bar-track {
-              display: flex;
               width: 100%;
-              height: 10px;
-              border-radius: 999px;
-              overflow: hidden;
-              background: #eef1f8;
             }
 
-            .sa-bar-segment {
-              height: 100%;
-              min-width: 2px;
-            }
-
-            .sa-bar-legend {
+            .sa-scrollstats {
               display: flex;
-              flex-wrap: wrap;
-              gap: 12px;
+              gap: 10px;
+              overflow-x: auto;
+              padding-bottom: 2px;
             }
 
-            .sa-bar-legend-item {
-              display: inline-flex;
-              align-items: center;
-              gap: 6px;
-              font-size: 12.5px;
-              color: var(--workbit-muted);
+            .sa-stat {
+              flex: 0 0 auto;
+              width: 118px;
+              display: grid;
+              gap: 5px;
+              padding: 14px 16px;
+              border-radius: 16px;
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              box-shadow: var(--workbit-shadow);
             }
 
-            .sa-bar-legend-item strong {
-              color: var(--workbit-ink);
+            .sa-stat-lab {
+              font-size: 10.5px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              color: #98a2b3;
+            }
+
+            .sa-stat-val {
+              font-size: 22px;
+              font-weight: 800;
               font-variant-numeric: tabular-nums;
+              color: var(--workbit-ink);
             }
 
-            .sa-bar-dot {
+            .sa-stat-warn { color: #b45309; }
+
+            .sa-feed {
+              display: grid;
+              gap: 8px;
+            }
+
+            .sa-feed-empty {
+              color: var(--workbit-muted);
+              font-size: 13.5px;
+            }
+
+            .sa-feed-row {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              padding: 12px 14px;
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              border-radius: 14px;
+              text-decoration: none;
+              color: inherit;
+            }
+
+            .sa-feed-dot {
               width: 8px;
               height: 8px;
               border-radius: 999px;
-            }
-
-            .sa-console-nav {
-              display: grid;
-              gap: 10px;
-            }
-
-            .sa-nav-list {
-              display: grid;
-              gap: 8px;
-            }
-
-            .sa-nav-row {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 13px 14px;
-              border-radius: 14px;
-              background: #ffffff;
-              border: 1px solid var(--workbit-border);
-              box-shadow: var(--workbit-shadow);
-              text-decoration: none;
-              transition: border-color 140ms ease, transform 140ms ease;
-            }
-
-            .sa-nav-row:hover {
-              border-color: rgba(123, 47, 247, 0.35);
-              transform: translateX(2px);
-            }
-
-            .sa-nav-icon {
-              width: 34px;
-              height: 34px;
-              border-radius: 10px;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              background: #f4f2fe;
-              color: #7b2ff7;
+              background: #7b2ff7;
               flex-shrink: 0;
             }
 
-            .sa-nav-row-text {
-              display: grid;
-              gap: 2px;
+            .sa-feed-text {
               flex: 1;
               min-width: 0;
-            }
-
-            .sa-nav-row-text strong {
-              color: var(--workbit-ink);
-              font-size: 14.5px;
+              font-size: 13px;
               font-weight: 700;
+              color: var(--workbit-ink);
+              display: grid;
+              gap: 1px;
             }
 
-            .sa-nav-row-text span {
+            .sa-feed-text span {
+              font-size: 11.5px;
+              font-weight: 600;
               color: var(--workbit-muted);
-              font-size: 12px;
             }
 
-            .sa-nav-chevron {
-              color: #b6bad2;
+            .sa-feed-time {
+              font-size: 11px;
+              color: #98a2b3;
               flex-shrink: 0;
-            }
-
-            @media (max-width: 1020px) {
-              .sa-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-              .sa-charts-row { grid-template-columns: 1fr; }
-            }
-
-            @media (max-width: 560px) {
-              .sa-kpi-row { grid-template-columns: 1fr; }
             }
           `,
         }}

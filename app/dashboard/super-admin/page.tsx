@@ -10,11 +10,7 @@ export default async function SuperAdminPage() {
   }
 
   return (
-    <SuperAdminFrame
-      title="Super Admin"
-      description="Clienti, ricavi e abbonamenti in una control room veloce, pulita e leggibile."
-      section="home"
-    >
+    <SuperAdminFrame title="Super Admin" description="" section="home">
       <SuperAdminHomeHub />
     </SuperAdminFrame>
   );

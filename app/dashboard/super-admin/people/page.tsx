@@ -59,7 +59,18 @@ export default async function SuperAdminPeoplePage({
           <div style={{ color: "#64748b", fontSize: 14 }}>Seleziona un locale per vedere il suo personale.</div>
         ) : (
           <>
-            <div className="dashboard-panel" style={{ display: "grid", gap: 14, padding: 18, borderRadius: 18 }}>
+            <div
+              className="dashboard-panel"
+              style={{
+                display: "grid",
+                gap: 14,
+                padding: 18,
+                borderRadius: 18,
+                background: "#ffffff",
+                border: "1px solid var(--workbit-border)",
+                boxShadow: "var(--workbit-shadow)",
+              }}
+            >
               <strong style={{ fontSize: 15 }}>Aggiungi persona a {activeBar.name}</strong>
               <AddEmployeeForm barId={activeBar.id} isCompany={activeBar.activityType === ActivityType.COMPANY} />
             </div>
@@ -72,7 +83,18 @@ export default async function SuperAdminPeoplePage({
                   <div
                     key={member.id}
                     className="dashboard-item-card"
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      background: "#ffffff",
+                      border: "1px solid var(--workbit-border)",
+                      boxShadow: "var(--workbit-shadow)",
+                      borderRadius: 16,
+                      padding: 14,
+                    }}
                   >
                     <div style={{ display: "grid", gap: 4 }}>
                       <strong>{member.user.firstName} {member.user.lastName}</strong>
