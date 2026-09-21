@@ -49,6 +49,7 @@ const sectionMetricLabel: Partial<Record<AdminSection, (counts: {
 }) => string>> = {
   owners: (c) => `${c.ownerCount} titolari`,
   bars: (c) => `${c.totalActivities} attive`,
+  people: () => "Gestione team",
   billing: (c) => `${c.activeSubscriptions} attivi`,
   revenue: () => "Analisi ricavi",
   gps: () => "Raggio globale",

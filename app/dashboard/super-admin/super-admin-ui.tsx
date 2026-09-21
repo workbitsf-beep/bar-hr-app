@@ -24,6 +24,7 @@ export const superAdminItems: Array<{
   { href: "/dashboard/super-admin", title: "Panoramica", section: "home" },
   { href: "/dashboard/super-admin/owners", title: "Titolari", section: "owners" },
   { href: "/dashboard/super-admin/bars", title: "Attivita", section: "bars" },
+  { href: "/dashboard/super-admin/people", title: "Dipendenti", section: "people" },
   { href: "/dashboard/super-admin/billing", title: "Abbonamenti", section: "billing" },
   { href: "/dashboard/super-admin/revenue", title: "Ricavi", section: "revenue" },
   { href: "/dashboard/super-admin/gps", title: "GPS globale", section: "gps" },
@@ -46,6 +47,17 @@ export function AdminIcon({ section, size = 18 }: { section: AdminSection; size?
         <path d="M15.5 19v-1.1a4.2 4.2 0 0 0-4.2-4.2H8a4.2 4.2 0 0 0-4.2 4.2V19" {...common} />
         <circle cx="9.6" cy="7.5" r="3.3" {...common} />
         <path d="M17 8h4M19 6v4" {...common} />
+      </svg>
+    );
+  }
+
+  if (section === "people") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="8.5" cy="8" r="3" {...common} />
+        <circle cx="16" cy="9.5" r="2.4" {...common} />
+        <path d="M3.5 19v-.8a4.6 4.6 0 0 1 4.6-4.6h.8a4.6 4.6 0 0 1 4.6 4.6V19" {...common} />
+        <path d="M14.5 14.3h.6a3.7 3.7 0 0 1 3.7 3.7v1" {...common} />
       </svg>
     );
   }

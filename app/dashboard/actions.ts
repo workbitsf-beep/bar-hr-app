@@ -3945,6 +3945,178 @@ export async function removeEmployeeAction(formData: FormData) {
   redirect(appendStatusToPath(returnPath, { success: "employee-removed" }));
 }
 
+export async function createEmployeeBySuperAdminAction(formData: FormData) {
+  await getSuperAdminContext();
+
+  const barId = String(formData.get("barId") ?? "").trim();
+
+  if (!barId) {
+    throw new Error("Missing bar");
+  }
+
+  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/people");
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
+  const userRole = parseRole(formData.get("role"));
+  const hourlyRate = parseOptionalNumber(formData.get("hourlyRate"));
+
+  if (!email || !firstName || !lastName) {
+    throw new Error("Missing employee fields");
+  }
+
+  const [bar, existingUser] = await Promise.all([
+    prisma.bar.findUnique({
+      where: { id: barId },
+      select: { name: true, activityType: true },
+    }),
+    prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!bar) {
+    throw new Error("Bar not found");
+  }
+
+  if (bar.activityType !== ActivityType.COMPANY && userRole === Role.AMMINISTRAZIONE) {
+    throw new Error("Role not allowed for this activity");
+  }
+
+  const temporaryPassword = createTemporaryPassword();
+  const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+  const shouldCreateUser = !existingUser;
+
+  await prisma.$transaction(async (tx) => {
+    const user = existingUser
+      ? await tx.user.update({
+          where: { id: existingUser.id },
+          data: { firstName, lastName },
+          select: { id: true, email: true, firstName: true, lastName: true },
+        })
+      : await tx.user.create({
+          data: {
+            email,
+            firstName,
+            lastName,
+            role: userRole,
+            mustChangePwd: true,
+            passwordHash,
+          },
+          select: { id: true, email: true, firstName: true, lastName: true },
+        });
+
+    await tx.employeeBar.upsert({
+      where: {
+        userId_barId: {
+          userId: user.id,
+          barId,
+        },
+      },
+      update: {
+        role: userRole,
+        isActive: true,
+        endedAt: null,
+        hourlyRate: hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
+      },
+      create: {
+        userId: user.id,
+        barId,
+        role: userRole,
+        isActive: true,
+        hourlyRate: hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
+      },
+    });
+
+    await syncUserRole(tx, user.id);
+  });
+
+  if (shouldCreateUser) {
+    if (userRole === Role.OWNER) {
+      await sendOwnerWelcomeEmail(email, `${firstName} ${lastName}`.trim(), bar.name, email, temporaryPassword);
+    } else {
+      await sendEmployeeWelcomeEmail(email, `${firstName} ${lastName}`.trim(), bar.name, email, temporaryPassword);
+    }
+  }
+
+  revalidatePath("/dashboard/super-admin/people");
+  redirect(
+    appendStatusToPath(returnPath, {
+      success: shouldCreateUser ? "employee-created" : "employee-linked",
+    })
+  );
+}
+
+export async function removeEmployeeBySuperAdminAction(formData: FormData) {
+  await getSuperAdminContext();
+
+  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/people");
+  const membershipId = String(formData.get("membershipId") ?? "").trim();
+
+  if (!membershipId) {
+    throw new Error("Missing membership");
+  }
+
+  const membership = await prisma.employeeBar.findFirst({
+    where: { id: membershipId, isActive: true },
+    select: { id: true, userId: true, role: true },
+  });
+
+  if (!membership) {
+    throw new Error("Membership not found");
+  }
+
+  if (membership.role === Role.OWNER) {
+    throw new Error("Owner cannot be removed");
+  }
+
+  await prisma.employeeBar.update({
+    where: { id: membership.id },
+    data: { isActive: false, endedAt: new Date() },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await syncUserRole(tx, membership.userId);
+  });
+
+  revalidatePath("/dashboard/super-admin/people");
+  redirect(appendStatusToPath(returnPath, { success: "employee-removed" }));
+}
+
+export async function promoteToSuperAdminAction(formData: FormData) {
+  await getSuperAdminContext();
+
+  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/settings");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+  if (!email) {
+    throw new Error("Missing email");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, role: true },
+  });
+
+  if (!user) {
+    redirect(appendStatusToPath(returnPath, { error: "super-admin-user-not-found" }));
+  }
+
+  if (user.role === Role.SUPER_ADMIN) {
+    redirect(appendStatusToPath(returnPath, { success: "super-admin-added" }));
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { role: Role.SUPER_ADMIN },
+  });
+
+  revalidatePath("/dashboard/super-admin/settings");
+  redirect(appendStatusToPath(returnPath, { success: "super-admin-added" }));
+}
+
 export async function updateSettingsAction(formData: FormData) {
   const { role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);
