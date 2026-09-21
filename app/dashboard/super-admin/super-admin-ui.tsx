@@ -291,26 +291,43 @@ export function SuperAdminFrame({
               color: #9296b8;
             }
 
-            .super-admin-content .dashboard-list-card {
+            .super-admin-content .dashboard-list-card,
+            .super-admin-content .dashboard-item-card,
+            .super-admin-content .dashboard-compact-list-item {
               background: rgba(255, 255, 255, 0.03) !important;
               border-color: rgba(255, 255, 255, 0.08) !important;
               color: #f5f3ff !important;
+              padding: 16px !important;
               transition: border-color 140ms ease, transform 140ms ease;
             }
 
-            .super-admin-content .dashboard-list-card:hover {
+            .super-admin-content .dashboard-list-card:hover,
+            .super-admin-content .dashboard-item-card:hover,
+            .super-admin-content .dashboard-compact-list-item:hover {
               border-color: rgba(123, 47, 247, 0.4) !important;
               transform: translateY(-1px);
             }
 
-            .super-admin-content .dashboard-list-card strong {
+            .super-admin-content .dashboard-list-card strong,
+            .super-admin-content .dashboard-item-card strong,
+            .super-admin-content .dashboard-compact-list-item strong {
               color: #f5f3ff !important;
             }
 
             .super-admin-content .dashboard-list-card span,
             .super-admin-content .dashboard-list-card small,
-            .super-admin-content .dashboard-list-card p {
+            .super-admin-content .dashboard-list-card p,
+            .super-admin-content .dashboard-item-card span,
+            .super-admin-content .dashboard-item-card small,
+            .super-admin-content .dashboard-item-card p,
+            .super-admin-content .dashboard-item-card div,
+            .super-admin-content .dashboard-compact-list-item span,
+            .super-admin-content .dashboard-compact-list-item small {
               color: #9296b8 !important;
+            }
+
+            .super-admin-content button {
+              min-height: 40px;
             }
 
             .super-admin-content input,
@@ -374,6 +391,21 @@ export function SuperAdminFrame({
               .super-admin-content {
                 padding: 16px;
                 border-radius: 18px;
+              }
+
+              /* Bottom sheet on phone instead of a centered desktop dialog */
+              .sa-modal-wrap {
+                align-items: flex-end !important;
+                padding: 0 !important;
+              }
+
+              .sa-modal-panel {
+                width: 100% !important;
+                max-width: 100% !important;
+                max-height: 88dvh !important;
+                border-radius: 22px 22px 0 0 !important;
+                padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+                margin: 0 !important;
               }
             }
           `,
