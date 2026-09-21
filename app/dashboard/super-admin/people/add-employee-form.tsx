@@ -5,12 +5,11 @@ import { createEmployeeBySuperAdminAction } from "../../actions";
 
 const inputStyle = {
   borderRadius: 14,
-  border: "1px solid rgba(255, 255, 255, 0.16)",
+  border: "1px solid #dbe3ee",
   padding: "13px 14px",
   fontSize: 15,
-  background: "rgba(255, 255, 255, 0.05)",
-  color: "#f5f3ff",
-  colorScheme: "dark" as const,
+  background: "#ffffff",
+  color: "#0f172a",
 };
 
 function SubmitButton() {

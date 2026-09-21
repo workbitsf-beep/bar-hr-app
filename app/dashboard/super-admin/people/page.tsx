@@ -56,7 +56,7 @@ export default async function SuperAdminPeoplePage({
         <BarPicker bars={bars} activeBarId={activeBar?.id ?? ""} />
 
         {!activeBar ? (
-          <div style={{ color: "#9296b8", fontSize: 14 }}>Seleziona un locale per vedere il suo personale.</div>
+          <div style={{ color: "#64748b", fontSize: 14 }}>Seleziona un locale per vedere il suo personale.</div>
         ) : (
           <>
             <div className="dashboard-panel" style={{ display: "grid", gap: 14, padding: 18, borderRadius: 18 }}>
@@ -66,7 +66,7 @@ export default async function SuperAdminPeoplePage({
 
             <div style={{ display: "grid", gap: 10 }}>
               {members.length === 0 ? (
-                <div style={{ color: "#9296b8", fontSize: 14 }}>Nessuna persona collegata a questo locale.</div>
+                <div style={{ color: "#64748b", fontSize: 14 }}>Nessuna persona collegata a questo locale.</div>
               ) : (
                 members.map((member) => (
                   <div
@@ -88,9 +88,9 @@ export default async function SuperAdminPeoplePage({
                           type="submit"
                           style={{
                             borderRadius: 999,
-                            border: "1px solid rgba(248, 113, 113, 0.4)",
-                            background: "rgba(248, 113, 113, 0.12)",
-                            color: "#fca5a5",
+                            border: "1px solid rgba(220, 38, 38, 0.28)",
+                            background: "rgba(254, 226, 226, 0.6)",
+                            color: "#b91c1c",
                             padding: "9px 16px",
                             fontSize: 13,
                             fontWeight: 700,

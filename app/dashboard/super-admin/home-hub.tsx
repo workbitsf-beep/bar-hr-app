@@ -210,7 +210,7 @@ export async function SuperAdminHomeHub() {
               display: grid;
               gap: 22px;
               min-width: 0;
-              color: #f5f3ff;
+              color: var(--workbit-ink);
             }
 
             .sa-eyebrow {
@@ -218,7 +218,7 @@ export async function SuperAdminHomeHub() {
               font-weight: 700;
               letter-spacing: 0.09em;
               text-transform: uppercase;
-              color: #9296b8;
+              color: var(--workbit-muted);
             }
 
             .sa-console-header {
@@ -240,7 +240,7 @@ export async function SuperAdminHomeHub() {
               font-size: 13.5px;
               font-weight: 800;
               text-decoration: none;
-              box-shadow: 0 12px 26px rgba(123, 47, 247, 0.32);
+              box-shadow: 0 12px 26px rgba(123, 47, 247, 0.22);
               white-space: nowrap;
             }
 
@@ -249,11 +249,11 @@ export async function SuperAdminHomeHub() {
               font-size: 24px;
               font-weight: 800;
               letter-spacing: -0.01em;
-              color: #f5f3ff;
+              color: var(--workbit-ink);
             }
 
             .sa-console-date {
-              color: #9296b8;
+              color: var(--workbit-muted);
               font-size: 13px;
               text-transform: capitalize;
             }
@@ -269,8 +269,9 @@ export async function SuperAdminHomeHub() {
               gap: 6px;
               padding: 16px 18px;
               border-radius: 16px;
-              background: rgba(255, 255, 255, 0.04);
-              border: 1px solid rgba(255, 255, 255, 0.09);
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              box-shadow: var(--workbit-shadow);
             }
 
             .sa-kpi-value {
@@ -278,14 +279,14 @@ export async function SuperAdminHomeHub() {
               font-weight: 800;
               letter-spacing: -0.02em;
               font-variant-numeric: tabular-nums;
-              color: #f5f3ff;
+              color: var(--workbit-ink);
             }
 
-            .sa-kpi-positive { color: #34d399; }
-            .sa-kpi-warning { color: #fbbf24; }
+            .sa-kpi-positive { color: #047857; }
+            .sa-kpi-warning { color: #b45309; }
 
             .sa-kpi-detail {
-              color: #9296b8;
+              color: var(--workbit-muted);
               font-size: 12.5px;
             }
 
@@ -300,8 +301,9 @@ export async function SuperAdminHomeHub() {
               gap: 12px;
               padding: 18px;
               border-radius: 16px;
-              background: rgba(255, 255, 255, 0.04);
-              border: 1px solid rgba(255, 255, 255, 0.09);
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              box-shadow: var(--workbit-shadow);
             }
 
             .sa-bar { display: grid; gap: 10px; }
@@ -312,7 +314,7 @@ export async function SuperAdminHomeHub() {
               height: 10px;
               border-radius: 999px;
               overflow: hidden;
-              background: rgba(255, 255, 255, 0.06);
+              background: #eef1f8;
             }
 
             .sa-bar-segment {
@@ -331,11 +333,11 @@ export async function SuperAdminHomeHub() {
               align-items: center;
               gap: 6px;
               font-size: 12.5px;
-              color: #c7c9de;
+              color: var(--workbit-muted);
             }
 
             .sa-bar-legend-item strong {
-              color: #f5f3ff;
+              color: var(--workbit-ink);
               font-variant-numeric: tabular-nums;
             }
 
@@ -361,14 +363,14 @@ export async function SuperAdminHomeHub() {
               gap: 12px;
               padding: 13px 14px;
               border-radius: 14px;
-              background: rgba(255, 255, 255, 0.03);
-              border: 1px solid rgba(255, 255, 255, 0.07);
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              box-shadow: var(--workbit-shadow);
               text-decoration: none;
-              transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+              transition: border-color 140ms ease, transform 140ms ease;
             }
 
             .sa-nav-row:hover {
-              background: rgba(123, 47, 247, 0.14);
               border-color: rgba(123, 47, 247, 0.35);
               transform: translateX(2px);
             }
@@ -380,8 +382,8 @@ export async function SuperAdminHomeHub() {
               display: inline-flex;
               align-items: center;
               justify-content: center;
-              background: rgba(123, 47, 247, 0.16);
-              color: #c4b5fd;
+              background: #f4f2fe;
+              color: #7b2ff7;
               flex-shrink: 0;
             }
 
@@ -393,18 +395,18 @@ export async function SuperAdminHomeHub() {
             }
 
             .sa-nav-row-text strong {
-              color: #f5f3ff;
+              color: var(--workbit-ink);
               font-size: 14.5px;
               font-weight: 700;
             }
 
             .sa-nav-row-text span {
-              color: #9296b8;
+              color: var(--workbit-muted);
               font-size: 12px;
             }
 
             .sa-nav-chevron {
-              color: #6b7094;
+              color: #b6bad2;
               flex-shrink: 0;
             }
 

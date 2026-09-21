@@ -249,25 +249,25 @@ export function SuperAdminFrame({
               align-items: center;
               gap: 7px;
               width: fit-content;
-              color: #9296b8;
+              color: var(--workbit-muted);
               font-size: 13px;
               font-weight: 700;
               text-decoration: none;
               padding: 7px 12px 7px 8px;
               border-radius: 999px;
-              background: rgba(255, 255, 255, 0.04);
-              border: 1px solid rgba(255, 255, 255, 0.09);
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
             }
 
             .super-admin-back-link:hover {
-              color: #f5f3ff;
+              color: var(--workbit-ink);
               border-color: rgba(123, 47, 247, 0.35);
             }
 
             .super-admin-description {
               margin: 0;
               max-width: 640px;
-              color: #9296b8;
+              color: var(--workbit-muted);
               font-size: 13.5px;
               line-height: 1.5;
             }
@@ -276,41 +276,16 @@ export function SuperAdminFrame({
               display: grid;
               gap: 18px;
               min-width: 0;
-              background: #0b1024;
-              background-image: radial-gradient(circle at 100% 0%, rgba(123, 47, 247, 0.16), transparent 45%);
-              border-radius: 24px;
-              padding: 22px;
-              color: #f5f3ff;
             }
 
             .super-admin-content .dashboard-panel {
-              background: rgba(255, 255, 255, 0.04) !important;
-              border-color: rgba(255, 255, 255, 0.09) !important;
-              box-shadow: none !important;
-              color: #f5f3ff !important;
-            }
-
-            .super-admin-content .dashboard-panel-title,
-            .super-admin-content .dashboard-panel h1,
-            .super-admin-content .dashboard-panel h2,
-            .super-admin-content .dashboard-panel h3,
-            .super-admin-content .dashboard-panel strong {
-              color: #f5f3ff !important;
-            }
-
-            .super-admin-content .dashboard-panel span,
-            .super-admin-content .dashboard-panel p,
-            .super-admin-content .dashboard-panel small,
-            .super-admin-content .dashboard-panel label {
-              color: #9296b8;
+              border-color: var(--workbit-border) !important;
+              box-shadow: var(--workbit-shadow) !important;
             }
 
             .super-admin-content .dashboard-list-card,
             .super-admin-content .dashboard-item-card,
             .super-admin-content .dashboard-compact-list-item {
-              background: rgba(255, 255, 255, 0.03) !important;
-              border-color: rgba(255, 255, 255, 0.08) !important;
-              color: #f5f3ff !important;
               padding: 16px !important;
               transition: border-color 140ms ease, transform 140ms ease;
             }
@@ -318,95 +293,22 @@ export function SuperAdminFrame({
             .super-admin-content .dashboard-list-card:hover,
             .super-admin-content .dashboard-item-card:hover,
             .super-admin-content .dashboard-compact-list-item:hover {
-              border-color: rgba(123, 47, 247, 0.4) !important;
+              border-color: rgba(123, 47, 247, 0.32) !important;
               transform: translateY(-1px);
-            }
-
-            .super-admin-content .dashboard-list-card strong,
-            .super-admin-content .dashboard-item-card strong,
-            .super-admin-content .dashboard-compact-list-item strong {
-              color: #f5f3ff !important;
-            }
-
-            .super-admin-content .dashboard-list-card span,
-            .super-admin-content .dashboard-list-card small,
-            .super-admin-content .dashboard-list-card p,
-            .super-admin-content .dashboard-item-card span,
-            .super-admin-content .dashboard-item-card small,
-            .super-admin-content .dashboard-item-card p,
-            .super-admin-content .dashboard-item-card div,
-            .super-admin-content .dashboard-compact-list-item span,
-            .super-admin-content .dashboard-compact-list-item small {
-              color: #9296b8 !important;
             }
 
             .super-admin-content button {
               min-height: 40px;
             }
 
-            .super-admin-content input,
-            .super-admin-content select,
-            .super-admin-content textarea {
-              background: rgba(255, 255, 255, 0.05) !important;
-              border-color: rgba(255, 255, 255, 0.14) !important;
-              color: #f5f3ff !important;
-              color-scheme: dark;
-            }
-
-            .super-admin-content input::placeholder,
-            .super-admin-content textarea::placeholder {
-              color: #6b7094;
-            }
-
             /* Modals portal to document.body, so these targets must not be
                scoped under .super-admin-content - the selectors below rely
                on the sa-modal-* class names being unique to this section. */
             .sa-modal-panel {
-              background: #12172c !important;
-              border-color: rgba(255, 255, 255, 0.12) !important;
-              color: #f5f3ff;
-            }
-
-            .sa-modal-panel h1,
-            .sa-modal-panel h2,
-            .sa-modal-panel h3,
-            .sa-modal-panel strong {
-              color: #f5f3ff !important;
-            }
-
-            .sa-modal-panel span,
-            .sa-modal-panel p,
-            .sa-modal-panel small,
-            .sa-modal-panel label {
-              color: #9296b8;
-            }
-
-            .sa-modal-panel input,
-            .sa-modal-panel select,
-            .sa-modal-panel textarea {
-              background: rgba(255, 255, 255, 0.05) !important;
-              border-color: rgba(255, 255, 255, 0.16) !important;
-              color: #f5f3ff !important;
-              color-scheme: dark;
-            }
-
-            .sa-modal-panel input::placeholder,
-            .sa-modal-panel textarea::placeholder {
-              color: #6b7094;
-            }
-
-            .sa-modal-panel button:not([class*="Primary"]) {
-              background: rgba(255, 255, 255, 0.06);
-              border-color: rgba(255, 255, 255, 0.16);
-              color: #f5f3ff;
+              border-radius: 26px !important;
             }
 
             @media (max-width: 560px) {
-              .super-admin-content {
-                padding: 16px;
-                border-radius: 18px;
-              }
-
               /* Bottom sheet on phone instead of a centered desktop dialog */
               .sa-modal-wrap {
                 align-items: flex-end !important;

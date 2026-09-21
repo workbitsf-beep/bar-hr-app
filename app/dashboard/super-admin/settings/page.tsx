@@ -46,16 +46,16 @@ export default async function SuperAdminSettingsPage({
 
         <Panel title="Altri super admin">
           <div style={{ display: "grid", gap: 12 }}>
-            <p style={{ margin: 0, color: "#9296b8", fontSize: 13.5, lineHeight: 1.5 }}>
+            <p style={{ margin: 0, color: "#64748b", fontSize: 13.5, lineHeight: 1.5 }}>
               Rendi super admin un account già esistente in Workbit (cerca per email).
             </p>
             {success === "super-admin-added" ? (
-              <p style={{ margin: 0, color: "#34d399", fontSize: 13.5, fontWeight: 600 }}>
+              <p style={{ margin: 0, color: "#047857", fontSize: 13.5, fontWeight: 600 }}>
                 Account promosso a super admin.
               </p>
             ) : null}
             {error === "super-admin-user-not-found" ? (
-              <p style={{ margin: 0, color: "#f87171", fontSize: 13.5, fontWeight: 600 }}>
+              <p style={{ margin: 0, color: "#b91c1c", fontSize: 13.5, fontWeight: 600 }}>
                 Nessun account trovato con questa email.
               </p>
             ) : null}

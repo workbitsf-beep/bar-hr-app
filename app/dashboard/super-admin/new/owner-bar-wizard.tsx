@@ -15,7 +15,7 @@ type OwnerOption = {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label style={{ display: "grid", gap: 6 }}>
-      <span style={{ fontSize: 13, fontWeight: 600, color: "#9296b8" }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>{label}</span>
       {children}
     </label>
   );
@@ -23,12 +23,11 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 const inputStyle = {
   borderRadius: 14,
-  border: "1px solid rgba(255, 255, 255, 0.16)",
+  border: "1px solid #dbe3ee",
   padding: "13px 14px",
   fontSize: 15,
-  background: "rgba(255, 255, 255, 0.05)",
-  color: "#f5f3ff",
-  colorScheme: "dark" as const,
+  background: "#ffffff",
+  color: "#0f172a",
 };
 
 function SubmitButton({ children }: { children: ReactNode }) {
@@ -201,12 +200,12 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
             onClick={() => setStep(1)}
             style={{
               borderRadius: 999,
-              border: "1px solid rgba(255,255,255,0.16)",
+              border: "1px solid #dbe3ee",
               padding: "12px 20px",
               fontSize: 14.5,
               fontWeight: 700,
-              color: "#f5f3ff",
-              background: "rgba(255,255,255,0.06)",
+              color: "#334155",
+              background: "#f8fafc",
               cursor: "pointer",
             }}
           >
@@ -233,12 +232,12 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
               gap: 8px;
               font-size: 13px;
               font-weight: 700;
-              color: #6b7094;
+              color: #94a3b8;
             }
 
             .sa-wizard-step-active,
             .sa-wizard-step-done {
-              color: #f5f3ff;
+              color: #0f172a;
             }
 
             .sa-wizard-step-dot {
@@ -249,8 +248,8 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
               align-items: center;
               justify-content: center;
               font-size: 12px;
-              background: rgba(255, 255, 255, 0.08);
-              color: #9296b8;
+              background: #eef1f8;
+              color: #64748b;
             }
 
             .sa-wizard-step-active .sa-wizard-step-dot,
@@ -262,22 +261,22 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
             .sa-wizard-step-line {
               flex: 1;
               height: 1px;
-              background: rgba(255, 255, 255, 0.14);
+              background: #e2e8f0;
             }
 
             .sa-wizard-toggle {
               display: inline-flex;
               padding: 4px;
               border-radius: 999px;
-              background: rgba(255, 255, 255, 0.05);
-              border: 1px solid rgba(255, 255, 255, 0.1);
+              background: #f1f5f9;
+              border: 1px solid #e2e8f0;
               width: fit-content;
             }
 
             .sa-wizard-toggle button {
               border: none;
               background: transparent;
-              color: #9296b8;
+              color: #64748b;
               font-size: 13.5px;
               font-weight: 700;
               padding: 9px 16px;
