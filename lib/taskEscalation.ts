@@ -21,6 +21,7 @@ export async function runTaskEscalation() {
       status: {
         not: TaskStatus.DONE,
       },
+      requiresConfirmation: true,
       dueDate: {
         lt: startOfToday,
       },
