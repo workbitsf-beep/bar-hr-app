@@ -544,7 +544,14 @@ export function BarsManager({
         </div>
       </Panel>
 
-      <ModalShell open={open} onClose={() => setOpen(false)} title="Nuova struttura" width="min(92vw, 560px)">
+      <ModalShell
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Nuova struttura"
+        width="min(92vw, 560px)"
+        wrapClassName="sa-modal-wrap"
+        panelClassName="sa-modal-panel"
+      >
         <form action={createBarBySuperAdminAction} style={{ display: "grid", gap: 14 }}>
                   {hasOwners ? null : (
                     <StatusBanner
@@ -653,8 +660,8 @@ export function BarsManager({
           title={selectedBar.name}
           width="min(820px, calc(100vw - 32px))"
           zIndex={2147483647}
-          wrapClassName="dashboard-modal-wrap"
-          panelClassName="dashboard-modal-panel"
+          wrapClassName="dashboard-modal-wrap sa-modal-wrap"
+          panelClassName="dashboard-modal-panel sa-modal-panel"
           header={
             <div
               className="dashboard-modal-header"

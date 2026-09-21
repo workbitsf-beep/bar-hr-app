@@ -141,7 +141,13 @@ export function OwnersManager({
         </div>
       </Panel>
 
-      <ModalShell open={open} onClose={() => setOpen(false)} title="Nuovo titolare">
+      <ModalShell
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Nuovo titolare"
+        wrapClassName="sa-modal-wrap"
+        panelClassName="sa-modal-panel"
+      >
         <form action={createOwnerBySuperAdminAction} style={{ display: "grid", gap: 14 }}>
           <div
             style={{

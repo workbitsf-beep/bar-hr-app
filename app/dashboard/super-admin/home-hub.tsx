@@ -1,17 +1,60 @@
 import Link from "next/link";
 import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { AdminIcon, StatTile, superAdminItems, type AdminSection } from "./super-admin-ui";
+import { AdminIcon, superAdminItems, type AdminSection } from "./super-admin-ui";
 
-const tileTones: Partial<Record<AdminSection, { bg: string; fg: string }>> = {
-  owners: { bg: "#f4f2fe", fg: "#5b21b6" },
-  bars: { bg: "#eef4ff", fg: "#1d4ed8" },
-  billing: { bg: "#eafbf3", fg: "#047857" },
-  revenue: { bg: "#fff8e8", fg: "#92400e" },
-  gps: { bg: "#fef2f2", fg: "#b91c1c" },
-  legal: { bg: "#f4f4f5", fg: "#3f3f46" },
-  system: { bg: "#eef2ff", fg: "#3730a3" },
-  settings: { bg: "#faf5ff", fg: "#7e22ce" },
+function ConsoleBar({
+  segments,
+}: {
+  segments: Array<{ label: string; value: number; color: string }>;
+}) {
+  const total = Math.max(
+    1,
+    segments.reduce((sum, segment) => sum + segment.value, 0)
+  );
+
+  return (
+    <div className="sa-bar">
+      <div className="sa-bar-track">
+        {segments.map((segment) => (
+          <span
+            key={segment.label}
+            className="sa-bar-segment"
+            style={{
+              width: `${(segment.value / total) * 100}%`,
+              background: segment.color,
+            }}
+            title={`${segment.label}: ${segment.value}`}
+          />
+        ))}
+      </div>
+      <div className="sa-bar-legend">
+        {segments.map((segment) => (
+          <span key={segment.label} className="sa-bar-legend-item">
+            <span className="sa-bar-dot" style={{ background: segment.color }} aria-hidden="true" />
+            {segment.label}
+            <strong>{segment.value}</strong>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const sectionMetricLabel: Partial<Record<AdminSection, (counts: {
+  totalActivities: number;
+  ownerCount: number;
+  activeSubscriptions: number;
+  riskySubscriptions: number;
+}) => string>> = {
+  owners: (c) => `${c.ownerCount} titolari`,
+  bars: (c) => `${c.totalActivities} attive`,
+  billing: (c) => `${c.activeSubscriptions} attivi`,
+  revenue: () => "Analisi ricavi",
+  gps: () => "Raggio globale",
+  legal: () => "Documenti globali",
+  system: () => "Consumi live",
+  settings: () => "Accesso e sicurezza",
 };
 
 export async function SuperAdminHomeHub() {
@@ -23,6 +66,7 @@ export async function SuperAdminHomeHub() {
     activeSubscriptions,
     trialSubscriptions,
     riskySubscriptions,
+    planCounts,
   ] = await Promise.all([
     prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
     prisma.user.count({ where: { role: Role.OWNER } }),
@@ -43,6 +87,7 @@ export async function SuperAdminHomeHub() {
         },
       },
     }),
+    prisma.subscription.groupBy({ by: ["planType"], _count: { _all: true } }),
   ]);
 
   const companyCount = activityCounts.find((entry) => entry.activityType === ActivityType.COMPANY)?._count._all ?? 0;
@@ -50,104 +95,299 @@ export async function SuperAdminHomeHub() {
     activityCounts.find((entry) => entry.activityType === ActivityType.RESTAURANT)?._count._all ?? 0;
   const totalActivities = companyCount + restaurantCount;
   const rssMb = Math.round(memoryUsage.rss / 1024 / 1024);
-  const heapMb = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+  const paidActive = Math.max(0, activeSubscriptions - trialSubscriptions);
+
+  const planBreakdown = planCounts
+    .map((entry) => ({ label: entry.planType, value: entry._count._all }))
+    .sort((a, b) => b.value - a.value);
+  const planColors: Record<string, string> = {
+    PAID: "#7b2ff7",
+    LIFETIME: "#34d399",
+    TRIAL: "#fbbf24",
+    FREE: "#6b7094",
+  };
+
+  const now = new Date();
+  const greeting = new Intl.DateTimeFormat("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(now);
+
+  const counts = { totalActivities, ownerCount, activeSubscriptions, riskySubscriptions };
 
   return (
-    <div className="sa-overview">
-      <section className="sa-overview-metrics" aria-label="Metriche Super Admin">
-        <StatTile
-          label="Attività"
-          value={String(totalActivities)}
-          detail={`${restaurantCount} ristorazione - ${companyCount} aziende`}
-        />
-        <StatTile label="Titolari" value={String(ownerCount)} detail={`${userCount} utenti totali`} />
-        <StatTile
-          label="Abbonamenti"
-          value={String(activeSubscriptions)}
-          detail={`${trialSubscriptions} in prova - ${riskySubscriptions} da verificare`}
-        />
-        <StatTile label="Runtime" value={`${rssMb} MB`} detail={`Heap ${heapMb} MB`} />
-      </section>
+    <div className="sa-console">
+      <div className="sa-console-header">
+        <span className="sa-eyebrow">Workbit · Centro operativo</span>
+        <h2>Panoramica di rete</h2>
+        <span className="sa-console-date">{greeting}</span>
+      </div>
 
-      <section className="sa-overview-grid" aria-label="Sezioni">
-        {superAdminItems
-          .filter((item) => item.section !== "home")
-          .map((item) => {
-            const tone = tileTones[item.section] ?? { bg: "#f4f4f5", fg: "#3f3f46" };
+      <div className="sa-kpi-row">
+        <div className="sa-kpi">
+          <span className="sa-eyebrow">Attività totali</span>
+          <strong className="sa-kpi-value">{totalActivities}</strong>
+          <span className="sa-kpi-detail">{restaurantCount} ristorazione · {companyCount} aziende</span>
+        </div>
+        <div className="sa-kpi">
+          <span className="sa-eyebrow">Titolari</span>
+          <strong className="sa-kpi-value">{ownerCount}</strong>
+          <span className="sa-kpi-detail">{userCount} utenti totali in rete</span>
+        </div>
+        <div className="sa-kpi">
+          <span className="sa-eyebrow">Abbonamenti attivi</span>
+          <strong className="sa-kpi-value sa-kpi-positive">{activeSubscriptions}</strong>
+          <span className="sa-kpi-detail">{trialSubscriptions} in prova</span>
+        </div>
+        <div className="sa-kpi">
+          <span className="sa-eyebrow">Da verificare</span>
+          <strong className={`sa-kpi-value ${riskySubscriptions > 0 ? "sa-kpi-warning" : ""}`}>
+            {riskySubscriptions}
+          </strong>
+          <span className="sa-kpi-detail">Runtime {rssMb} MB</span>
+        </div>
+      </div>
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="sa-overview-tile"
-                style={{ background: tone.bg }}
-              >
-                <span className="sa-overview-tile-icon" style={{ color: tone.fg }}>
-                  <AdminIcon section={item.section} size={20} />
+      <div className="sa-charts-row">
+        <div className="sa-chart-card">
+          <span className="sa-eyebrow">Stato abbonamenti</span>
+          <ConsoleBar
+            segments={[
+              { label: "Paganti", value: paidActive, color: "#7b2ff7" },
+              { label: "In prova", value: trialSubscriptions, color: "#fbbf24" },
+              { label: "Da verificare", value: riskySubscriptions, color: "#f87171" },
+            ]}
+          />
+        </div>
+        <div className="sa-chart-card">
+          <span className="sa-eyebrow">Piani in rete</span>
+          <ConsoleBar
+            segments={planBreakdown.map((entry) => ({
+              label: entry.label,
+              value: entry.value,
+              color: planColors[entry.label] ?? "#6b7094",
+            }))}
+          />
+        </div>
+      </div>
+
+      <div className="sa-console-nav">
+        <span className="sa-eyebrow">Sezioni</span>
+        <div className="sa-nav-list">
+          {superAdminItems
+            .filter((item) => item.section !== "home")
+            .map((item) => (
+              <Link key={item.href} href={item.href} className="sa-nav-row">
+                <span className="sa-nav-icon">
+                  <AdminIcon section={item.section} size={18} />
                 </span>
-                <strong style={{ color: tone.fg }}>{item.title}</strong>
+                <span className="sa-nav-row-text">
+                  <strong>{item.title}</strong>
+                  <span>{sectionMetricLabel[item.section]?.(counts) ?? ""}</span>
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="sa-nav-chevron">
+                  <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </Link>
-            );
-          })}
-      </section>
+            ))}
+        </div>
+      </div>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .sa-overview {
+            .sa-console {
               display: grid;
-              gap: 14px;
+              gap: 22px;
               min-width: 0;
+              color: #f5f3ff;
             }
-            .sa-overview-metrics {
+
+            .sa-eyebrow {
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.09em;
+              text-transform: uppercase;
+              color: #9296b8;
+            }
+
+            .sa-console-header {
               display: grid;
-              grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 10px;
+              gap: 4px;
             }
-            .sa-overview-grid {
+
+            .sa-console-header h2 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 800;
+              letter-spacing: -0.01em;
+              color: #f5f3ff;
+            }
+
+            .sa-console-date {
+              color: #9296b8;
+              font-size: 13px;
+              text-transform: capitalize;
+            }
+
+            .sa-kpi-row {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
               gap: 12px;
             }
-            .sa-overview-tile {
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-              gap: 26px;
-              min-height: 112px;
+
+            .sa-kpi {
+              display: grid;
+              gap: 6px;
+              padding: 16px 18px;
+              border-radius: 16px;
+              background: rgba(255, 255, 255, 0.04);
+              border: 1px solid rgba(255, 255, 255, 0.09);
+            }
+
+            .sa-kpi-value {
+              font-size: 30px;
+              font-weight: 800;
+              letter-spacing: -0.02em;
+              font-variant-numeric: tabular-nums;
+              color: #f5f3ff;
+            }
+
+            .sa-kpi-positive { color: #34d399; }
+            .sa-kpi-warning { color: #fbbf24; }
+
+            .sa-kpi-detail {
+              color: #9296b8;
+              font-size: 12.5px;
+            }
+
+            .sa-charts-row {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 12px;
+            }
+
+            .sa-chart-card {
+              display: grid;
+              gap: 12px;
               padding: 18px;
               border-radius: 16px;
+              background: rgba(255, 255, 255, 0.04);
+              border: 1px solid rgba(255, 255, 255, 0.09);
+            }
+
+            .sa-bar { display: grid; gap: 10px; }
+
+            .sa-bar-track {
+              display: flex;
+              width: 100%;
+              height: 10px;
+              border-radius: 999px;
+              overflow: hidden;
+              background: rgba(255, 255, 255, 0.06);
+            }
+
+            .sa-bar-segment {
+              height: 100%;
+              min-width: 2px;
+            }
+
+            .sa-bar-legend {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 12px;
+            }
+
+            .sa-bar-legend-item {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 12.5px;
+              color: #c7c9de;
+            }
+
+            .sa-bar-legend-item strong {
+              color: #f5f3ff;
+              font-variant-numeric: tabular-nums;
+            }
+
+            .sa-bar-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 999px;
+            }
+
+            .sa-console-nav {
+              display: grid;
+              gap: 10px;
+            }
+
+            .sa-nav-list {
+              display: grid;
+              gap: 8px;
+            }
+
+            .sa-nav-row {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 13px 14px;
+              border-radius: 14px;
+              background: rgba(255, 255, 255, 0.03);
+              border: 1px solid rgba(255, 255, 255, 0.07);
               text-decoration: none;
-              transition: transform 140ms ease, box-shadow 140ms ease;
+              transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
             }
-            .sa-overview-tile:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+
+            .sa-nav-row:hover {
+              background: rgba(123, 47, 247, 0.14);
+              border-color: rgba(123, 47, 247, 0.35);
+              transform: translateX(2px);
             }
-            .sa-overview-tile-icon {
+
+            .sa-nav-icon {
               width: 34px;
               height: 34px;
               border-radius: 10px;
-              background: rgba(255,255,255,0.6);
               display: inline-flex;
               align-items: center;
               justify-content: center;
+              background: rgba(123, 47, 247, 0.16);
+              color: #c4b5fd;
+              flex-shrink: 0;
             }
-            .sa-overview-tile strong {
+
+            .sa-nav-row-text {
+              display: grid;
+              gap: 2px;
+              flex: 1;
+              min-width: 0;
+            }
+
+            .sa-nav-row-text strong {
+              color: #f5f3ff;
               font-size: 14.5px;
               font-weight: 700;
             }
-            @media (max-width: 1020px) {
-              .sa-overview-metrics,
-              .sa-overview-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-              }
+
+            .sa-nav-row-text span {
+              color: #9296b8;
+              font-size: 12px;
             }
+
+            .sa-nav-chevron {
+              color: #6b7094;
+              flex-shrink: 0;
+            }
+
+            @media (max-width: 1020px) {
+              .sa-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+              .sa-charts-row { grid-template-columns: 1fr; }
+            }
+
             @media (max-width: 560px) {
-              .sa-overview-metrics,
-              .sa-overview-grid {
-                grid-template-columns: 1fr;
-              }
+              .sa-kpi-row { grid-template-columns: 1fr; }
             }
           `,
         }}

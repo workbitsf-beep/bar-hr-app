@@ -656,8 +656,8 @@ export function BarGroupsClient({
           onClose={closeModal}
           title={selectedBar.name}
           width="min(820px, calc(100vw - 32px))"
-          wrapClassName="dashboard-modal-wrap"
-          panelClassName="dashboard-modal-panel"
+          wrapClassName="dashboard-modal-wrap sa-modal-wrap"
+          panelClassName="dashboard-modal-panel sa-modal-panel"
           header={
             <div
               className="dashboard-modal-header"
