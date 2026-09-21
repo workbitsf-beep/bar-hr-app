@@ -3241,7 +3241,6 @@ function DashboardResponsiveStyles() {
 
         .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > span:not(:last-child) {
           color: #17171f !important;
-          font-weight: 850;
         }
 
         .workbit-week-shifts .workbit-day-shift-row > div > span:last-child {
