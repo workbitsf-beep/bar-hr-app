@@ -1292,6 +1292,26 @@ export async function selectBarAction(formData: FormData) {
   redirect(returnPath);
 }
 
+export async function returnToSuperAdminConsoleAction() {
+  const session = await getSession();
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  if (String(session.user.role) !== "SUPER_ADMIN") {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { activeBarId: null },
+  });
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard/super-admin");
+}
+
 export async function logoutAction() {
   const session = await getSession();
 

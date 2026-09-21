@@ -51,7 +51,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const accessibleBars = await getAccessibleBarsForUser(user.id);
-  const activeBarId = accessibleBars[0]?.id ?? null;
+  const activeBarId = String(user.role) === "SUPER_ADMIN" ? null : accessibleBars[0]?.id ?? null;
   const passkeyCount = await prisma.webAuthnCredential.count({
     where: { userId: user.id },
   });

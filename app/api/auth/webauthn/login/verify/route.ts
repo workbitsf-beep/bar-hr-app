@@ -102,7 +102,8 @@ export async function POST(req: Request): Promise<Response> {
       credentialRecord.user.id,
       credentialRecord.user.role
     );
-    const activeBarId = accessibleBars[0]?.id ?? null;
+    const activeBarId =
+      String(credentialRecord.user.role) === "SUPER_ADMIN" ? null : accessibleBars[0]?.id ?? null;
     const sessionToken = crypto.randomUUID();
     const sessionMaxAge = getSessionMaxAge(rememberMe);
 

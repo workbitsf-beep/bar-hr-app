@@ -57,12 +57,8 @@ function barNeedsSetup(input: {
 
 export const getAccessibleBarsForUser = cache(async function getAccessibleBarsForUser(
   userId: string,
-  userRole?: Role
+  _userRole?: Role
 ): Promise<AccessibleBar[]> {
-  if (String(userRole) === "SUPER_ADMIN") {
-    return [];
-  }
-
   const [ownedBars, memberships] = await Promise.all([
     prisma.bar.findMany({
       where: { ownerId: userId },
@@ -128,15 +124,21 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
 export async function getActiveBarAccess(
   session: SessionWithUser
 ): Promise<ActiveBarAccess> {
+  const accessibleBars = await getAccessibleBarsForUser(session.user.id, session.user.role);
+
   if (String(session.user.role) === "SUPER_ADMIN") {
+    // A super admin stays in console mode (no bar selected) until they
+    // explicitly pick one of their own bars via the header switcher -
+    // unlike other roles, they never fall back to "first bar" automatically.
+    const activeBar = accessibleBars.find((bar) => bar.id === session.activeBarId) ?? null;
+
     return {
-      activeBar: null,
-      accessibleBars: [],
-      role: session.user.role,
+      activeBar,
+      accessibleBars,
+      role: activeBar?.role ?? session.user.role,
     };
   }
 
-  const accessibleBars = await getAccessibleBarsForUser(session.user.id, session.user.role);
   const fallbackBar = accessibleBars[0] ?? null;
   const activeBar =
     accessibleBars.find((bar) => bar.id === session.activeBarId) ?? fallbackBar;

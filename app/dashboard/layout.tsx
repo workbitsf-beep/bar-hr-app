@@ -6,7 +6,12 @@ import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
 import { NotificationBarSync } from "./notification-bar-sync";
 import { PushRegistration } from "./push-registration";
-import { logoutAction, selectBarAction, setLanguageAction } from "./actions";
+import {
+  logoutAction,
+  returnToSuperAdminConsoleAction,
+  selectBarAction,
+  setLanguageAction,
+} from "./actions";
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
 import { DashboardShell, IconButton } from "./ui";
 
@@ -45,7 +50,7 @@ export default async function DashboardLayout({
         menuLabel={t.menu}
         navItems={navItems}
         headerSwitch={
-          role !== "SUPER_ADMIN"
+          accessibleBars.length > 0
             ? {
                 activeBarId,
                 bars: accessibleBars.map((bar) => ({ id: bar.id, name: bar.name })),
@@ -75,7 +80,7 @@ export default async function DashboardLayout({
 
             <span className="workbit-menu-section-label">Locale</span>
 
-            {role !== "SUPER_ADMIN" && accessibleBars.length > 0 ? (
+            {accessibleBars.length > 0 ? (
               <AutoSubmitSelectForm
                 action={selectBarAction}
                 name="barId"
@@ -89,6 +94,26 @@ export default async function DashboardLayout({
                   label: bar.name,
                 }))}
               />
+            ) : null}
+
+            {String(session.user.role) === "SUPER_ADMIN" && role !== "SUPER_ADMIN" ? (
+              <form action={returnToSuperAdminConsoleAction}>
+                <button
+                  type="submit"
+                  className="workbit-menu-select-row"
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    background: "#f4f2fe",
+                    border: "1px solid rgba(94, 92, 230, 0.22)",
+                    color: "#5b21b6",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  ← Torna alla console Super Admin
+                </button>
+              </form>
             ) : null}
 
             <AutoSubmitSelectForm
