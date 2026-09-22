@@ -50,6 +50,7 @@ export default async function SuperAdminBarsPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const pageStartedAt = Date.now();
   const params = searchParams ? await searchParams : {};
   const query = normalizeParam(params.q).trim();
   const activity = parseActivityFilter(normalizeParam(params.activity));
@@ -131,10 +132,12 @@ export default async function SuperAdminBarsPage({
     }),
   ]);
 
+  const serverMs = Date.now() - pageStartedAt;
+
   return (
     <SuperAdminFrame
       title="Attività"
-      description="Aziende e ristorazione con creazione e ricerca rapide."
+      description={`Aziende e ristorazione con creazione e ricerca rapide. (Generata lato server in ${serverMs} ms)`}
       section="bars"
     >
       <BarsManager
