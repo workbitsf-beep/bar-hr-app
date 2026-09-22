@@ -41,16 +41,6 @@ function BottomNavIcon({ href }: { href: string }) {
     );
   }
 
-  if (href.includes("/super-admin/owners")) {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M15.5 19v-1.1a4.2 4.2 0 0 0-4.2-4.2H8a4.2 4.2 0 0 0-4.2 4.2V19" {...common} />
-        <circle cx="9.6" cy="7.5" r="3.3" {...common} />
-        <path d="M17 8h4M19 6v4" {...common} />
-      </svg>
-    );
-  }
-
   if (href.includes("/super-admin/bars")) {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -60,11 +50,32 @@ function BottomNavIcon({ href }: { href: string }) {
     );
   }
 
-  if (href.includes("/super-admin/billing")) {
+  if (href.includes("/super-admin/team")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="8.5" cy="8" r="3" {...common} />
+        <circle cx="16" cy="9.5" r="2.4" {...common} />
+        <path d="M3.5 19v-.8a4.6 4.6 0 0 1 4.6-4.6h.8a4.6 4.6 0 0 1 4.6 4.6V19" {...common} />
+        <path d="M14.5 14.3h.6a3.7 3.7 0 0 1 3.7 3.7v1" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/money") || href.includes("/super-admin/billing")) {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="3" {...common} />
         <path d="M3 10h18M7 15h4" {...common} />
+      </svg>
+    );
+  }
+
+  if (href.includes("/super-admin/more")) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="5" cy="12" r="1.7" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.7" fill="currentColor" />
+        <circle cx="19" cy="12" r="1.7" fill="currentColor" />
       </svg>
     );
   }

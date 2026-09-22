@@ -171,14 +171,10 @@ export const getDashboardContext = cache(async function getDashboardContext(
     String(role) === "SUPER_ADMIN"
       ? [
           { label: "Panoramica", href: "/dashboard/super-admin" },
-          { label: "Titolari", href: "/dashboard/super-admin/owners" },
-          { label: "Attività", href: "/dashboard/super-admin/bars" },
-          { label: "Abbonamenti", href: "/dashboard/super-admin/billing" },
-          { label: "Ricavi", href: "/dashboard/super-admin/revenue" },
-          { label: "GPS globale", href: "/dashboard/super-admin/gps" },
-          { label: "Documenti legali", href: "/dashboard/super-admin/legal" },
-          { label: "Utilizzo", href: "/dashboard/super-admin/system" },
-          { label: "Impostazioni", href: "/dashboard/super-admin/settings" },
+          { label: "Locali", href: "/dashboard/super-admin/bars" },
+          { label: "Team", href: "/dashboard/super-admin/team" },
+          { label: "Soldi", href: "/dashboard/super-admin/money" },
+          { label: "Altro", href: "/dashboard/super-admin/more" },
         ]
       : [
           { label: "Profilo", href: "/dashboard" },

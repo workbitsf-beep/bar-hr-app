@@ -594,7 +594,7 @@ export function BarGroupsClient({
               key={bar.id}
               type="button"
               onClick={() => setSelectedBarId(bar.id)}
-              className="dashboard-list-button"
+              className="sa-bar-list-button"
               style={{
                 width: "100%",
                 padding: 16,

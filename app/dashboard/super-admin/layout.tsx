@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { getDashboardContext } from "../context";
-import { SuperAdminTabBar } from "./super-admin-tabbar";
+import { SuperAdminFab } from "./super-admin-tabbar";
 
 export default async function SuperAdminLayout({ children }: { children: ReactNode }) {
   const { role } = await getDashboardContext();
@@ -12,8 +12,7 @@ export default async function SuperAdminLayout({ children }: { children: ReactNo
   return (
     <>
       {children}
-      <div className="sa-tabbar-spacer" aria-hidden="true" />
-      <SuperAdminTabBar />
+      <SuperAdminFab />
     </>
   );
 }

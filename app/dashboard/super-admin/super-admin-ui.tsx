@@ -479,28 +479,11 @@ export function SuperAdminFrame({
               border-radius: 999px;
             }
 
-            /* Modals portal to document.body, so these targets must not be
-               scoped under .super-admin-content - the selectors below rely
-               on the sa-modal-* class names being unique to this section. */
+            /* Modals portal to document.body, so this target must not be
+               scoped under .super-admin-content - it relies on the
+               sa-modal-panel class name being unique to this section. */
             .sa-modal-panel {
               border-radius: 26px !important;
-            }
-
-            @media (max-width: 560px) {
-              /* Bottom sheet on phone instead of a centered desktop dialog */
-              .sa-modal-wrap {
-                align-items: flex-end !important;
-                padding: 0 !important;
-              }
-
-              .sa-modal-panel {
-                width: 100% !important;
-                max-width: 100% !important;
-                max-height: 88dvh !important;
-                border-radius: 22px 22px 0 0 !important;
-                padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)) !important;
-                margin: 0 !important;
-              }
             }
           `,
         }}
