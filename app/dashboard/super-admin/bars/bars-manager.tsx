@@ -12,19 +12,7 @@ import { AdditionalOwnersPicker } from "../additional-owners-picker";
 import { ModalShell } from "../../modal-shell";
 import { getDefaultStatus } from "../subscription-helpers";
 import { SubscriptionFieldsForm } from "../subscription-fields-form";
-import {
-  EmptyState,
-  FormField,
-  ItemCard,
-  ItemList,
-  Panel,
-  PrimaryButton,
-  ResetLink,
-  Select,
-  StatusBanner,
-  StatusPill,
-  TextInput,
-} from "../../ui";
+import { PrimaryButton, Select, StatusBanner, StatusPill, TextInput } from "../../ui";
 import { useOverlayLock } from "../../use-overlay-lock";
 
 type OwnerOption = {
@@ -410,55 +398,47 @@ export function BarsManager({
 
   return (
     <>
-      <Panel
-        title={`Attivita (${bars.length})`}
-        action={
-          <PrimaryButton
-            type="button"
-            onClick={() => setOpen(true)}
-            disabled={!hasOwners}
-            style={{ borderRadius: 999, paddingInline: 16, whiteSpace: "nowrap" }}
-          >
-            + Nuova
-          </PrimaryButton>
-        }
-      >
-        <div style={{ display: "grid", gap: 14 }}>
-          {error ? <StatusBanner kind="error" text={error} /> : null}
-          {success === "bar-created" ? (
-            <StatusBanner kind="success" text="Struttura creata correttamente." />
-          ) : null}
+      <div style={{ display: "grid", gap: 16 }}>
+        {error ? <StatusBanner kind="error" text={error} /> : null}
+        {success === "bar-created" ? <StatusBanner kind="success" text="Struttura creata correttamente." /> : null}
 
-          <form method="GET" style={{ display: "grid", gap: 14 }}>
-            <div
+        <form method="GET" className="sa-search">
+          <span className="sa-search-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+              <path d="m21 21-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <input name="q" type="search" defaultValue={query} placeholder="Nome, titolare o città" />
+          <input type="hidden" name="activity" value={activity} />
+        </form>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {(["ALL", "RESTAURANT", "COMPANY"] as const).map((value) => (
+            <a
+              key={value}
+              href={`/dashboard/super-admin/bars?activity=${value}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+              className="sa-badge"
               style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) minmax(180px, 240px)",
-                gap: 12,
+                textDecoration: "none",
+                background: activity === value ? "#7b2ff7" : "#f4f2fe",
+                color: activity === value ? "#ffffff" : "#5b21b6",
               }}
             >
-              <FormField label="Trova un'attivita">
-                <TextInput name="q" defaultValue={query} placeholder="Nome, titolare o citta" />
-              </FormField>
+              {value === "ALL" ? "Tutte" : value === "COMPANY" ? "Aziende" : "Ristorazione"}
+            </a>
+          ))}
+        </div>
 
-              <FormField label="Categoria">
-                <Select name="activity" defaultValue={activity}>
-                  <option value="ALL">Tutte</option>
-                  <option value="COMPANY">Aziende</option>
-                  <option value="RESTAURANT">Ristorazione</option>
-                </Select>
-              </FormField>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <PrimaryButton type="submit">Cerca</PrimaryButton>
-              <ResetLink href="/dashboard/super-admin/bars" />
-              <span style={{ color: "#64748b", fontSize: 14 }}>{bars.length} risultati</span>
-            </div>
-          </form>
+        <div className="sa-row-head">
+          <span className="sa-section-title">Attività · {bars.length}</span>
+          <button type="button" className="sa-pill-btn" disabled={!hasOwners} onClick={() => setOpen(true)}>
+            + Nuova
+          </button>
+        </div>
 
           {bars.length > 0 ? (
-            <ItemList scrollable maxHeight={540}>
+            <div style={{ display: "grid", gap: 10 }}>
               {bars.map((bar) => {
       const subscription = bar.subscription;
       const revenue = getRevenueSummary(subscription);
@@ -466,83 +446,57 @@ export function BarsManager({
       const ownerSummary = getOwnerSummaryLabel(bar.owner, additionalOwners);
 
       return (
-        <button
-          key={bar.id}
-                    type="button"
-                    onClick={() => setSelectedBarId(bar.id)}
+                <button
+                  key={bar.id}
+                  type="button"
+                  onClick={() => setSelectedBarId(bar.id)}
+                  className="sa-card"
+                  style={{ border: "1px solid var(--workbit-border)", textAlign: "left", cursor: "pointer", width: "100%" }}
+                >
+                  <strong style={{ fontSize: 14.5 }}>{bar.name}</strong>
+                  <span style={{ fontSize: 12.5, color: "#64748b" }}>
+                    {ownerSummary} · {bar.city ?? "Senza città"}
+                  </span>
+                  <span style={{ fontSize: 11.5, color: "#98a2b3" }}>
+                    {getActivityLabel(bar.activityType)}{bar.legalName ? ` · ${bar.legalName}` : ""}
+                  </span>
+
+                  {subscription ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
+                      <StatusPill label={getSubscriptionLabel(subscription)} tone={getSubscriptionTone(subscription)} />
+                      <span style={{ color: "#64748b", fontSize: 12.5 }}>{getSubscriptionDetail(subscription)}</span>
+                    </div>
+                  ) : (
+                    <span style={{ color: "#98a2b3", fontSize: 12.5, marginTop: 4 }}>Nessun abbonamento collegato</span>
+                  )}
+
+                  <div
                     style={{
-                      border: 0,
-                      padding: 0,
-                      background: "transparent",
-                      textAlign: "left",
-                      cursor: "pointer",
+                      display: "grid",
+                      gap: 2,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      marginTop: 6,
                     }}
                   >
-                    <ItemCard
-                      title={bar.name}
-                      subtitle={`${ownerSummary} - ${bar.city ?? "Senza citta"}`}
-                      meta={`${getActivityLabel(bar.activityType)}${bar.legalName ? ` - ${bar.legalName}` : ""}`}
-                      footer={
-                        <div style={{ display: "grid", gap: 8 }}>
-                          {subscription ? (
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                              <StatusPill
-                                label={getSubscriptionLabel(subscription)}
-                                tone={getSubscriptionTone(subscription)}
-                              />
-                              <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                                {getSubscriptionDetail(subscription)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span style={{ color: "#64748b", fontSize: 13 }}>
-                              Nessun abbonamento collegato
-                            </span>
-                          )}
+                    <span style={{ color: "#64748b", fontSize: 11.5, fontWeight: 700 }}>{revenue.title}</span>
+                    <strong style={{ color: "#0f172a", fontSize: 13.5 }}>{revenue.value}</strong>
+                    <span style={{ color: "#64748b", fontSize: 11.5 }}>{revenue.detail}</span>
+                  </div>
 
-                          <div
-                            style={{
-                              display: "grid",
-                              gap: 2,
-                              padding: "10px 12px",
-                              borderRadius: 16,
-                              background: "#f8fafc",
-                              border: "1px solid #e2e8f0",
-                            }}
-                          >
-                            <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-                              {revenue.title}
-                            </span>
-                            <strong style={{ color: "#0f172a", fontSize: 14, lineHeight: 1.4 }}>
-                              {revenue.value}
-                            </strong>
-                            <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                              {revenue.detail}
-                            </span>
-                          </div>
-
-                          <span
-                            style={{
-                              color: "#7c3aed",
-                              fontSize: 13,
-                              fontWeight: 800,
-                              textAlign: "right",
-                            }}
-                          >
-                            Apri dettagli &#8594;
-                          </span>
-                        </div>
-                      }
-                    />
-                  </button>
+                  <span style={{ color: "#7b2ff7", fontSize: 12.5, fontWeight: 800, textAlign: "right", marginTop: 4 }}>
+                    Apri dettagli →
+                  </span>
+                </button>
                 );
               })}
-            </ItemList>
+            </div>
           ) : (
-            <EmptyState message="Nessuna struttura trovata con questi filtri." />
+            <div style={{ color: "#64748b", fontSize: 14 }}>Nessuna struttura trovata con questi filtri.</div>
           )}
-        </div>
-      </Panel>
+      </div>
 
       <ModalShell
         open={open}

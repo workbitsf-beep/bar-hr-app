@@ -275,6 +275,77 @@ export function SuperAdminFrame({
               min-height: 40px;
             }
 
+            .sa-search {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              border-radius: 999px;
+              padding: 13px 16px;
+              box-shadow: var(--workbit-shadow);
+            }
+
+            .sa-search-icon {
+              color: #98a2b3;
+              display: inline-flex;
+              flex-shrink: 0;
+            }
+
+            .sa-search input {
+              border: none;
+              outline: none;
+              background: transparent;
+              font-size: 14.5px;
+              color: var(--workbit-ink);
+              width: 100%;
+            }
+
+            .sa-row-head {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              flex-wrap: wrap;
+            }
+
+            .sa-pill-btn {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              border-radius: 999px;
+              border: none;
+              padding: 10px 18px;
+              font-size: 13.5px;
+              font-weight: 800;
+              color: #ffffff;
+              background: linear-gradient(135deg, #7b2ff7, #a855f7);
+              box-shadow: 0 12px 22px rgba(123, 47, 247, 0.22);
+              cursor: pointer;
+              white-space: nowrap;
+            }
+
+            .sa-badge {
+              display: inline-flex;
+              align-items: center;
+              border-radius: 999px;
+              padding: 5px 11px;
+              font-size: 11.5px;
+              font-weight: 700;
+              background: #f4f2fe;
+              color: #5b21b6;
+            }
+
+            .sa-card {
+              display: grid;
+              gap: 6px;
+              background: #ffffff;
+              border: 1px solid var(--workbit-border);
+              box-shadow: var(--workbit-shadow);
+              border-radius: 18px;
+              padding: 16px;
+            }
+
             .sa-actions {
               display: grid;
               grid-template-columns: 1fr 1fr;

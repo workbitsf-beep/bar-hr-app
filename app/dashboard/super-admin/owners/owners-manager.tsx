@@ -3,17 +3,7 @@
 import { useState } from "react";
 import { createOwnerBySuperAdminAction } from "../../actions";
 import { ModalShell } from "../../modal-shell";
-import {
-  EmptyState,
-  ItemCard,
-  ItemList,
-  Panel,
-  PrimaryButton,
-  ResetLink,
-  Select,
-  StatusBanner,
-  TextInput,
-} from "../../ui";
+import { PrimaryButton, Select, StatusBanner, TextInput } from "../../ui";
 import { useOverlayLock } from "../../use-overlay-lock";
 
 type OwnerItem = {
@@ -48,98 +38,61 @@ export function OwnersManager({
 
   return (
     <>
-      <Panel
-        title={`Titolari (${owners.length})`}
-        action={
-          <PrimaryButton
-            type="button"
-            onClick={() => setOpen(true)}
-            style={{ borderRadius: 999, paddingInline: 16, whiteSpace: "nowrap" }}
-          >
+      <div style={{ display: "grid", gap: 16 }}>
+        <form method="GET" className="sa-search">
+          <span className="sa-search-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+              <path d="m21 21-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <input name="q" type="search" defaultValue={query} placeholder="Nome, email o attività" />
+        </form>
+
+        <div className="sa-row-head">
+          <span className="sa-section-title">Titolari · {owners.length}</span>
+          <button type="button" className="sa-pill-btn" onClick={() => setOpen(true)}>
             + Nuovo
-          </PrimaryButton>
-        }
-      >
-        <div style={{ display: "grid", gap: 14 }}>
-          <form method="GET" style={{ display: "grid", gap: 12 }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) auto",
-                gap: 10,
-                alignItems: "end",
-              }}
-            >
-              <label style={{ display: "grid", gap: 8 }}>
-                <span style={{ fontWeight: 700, color: "#344054" }}>Trova un titolare</span>
-                <TextInput name="q" defaultValue={query} placeholder="Nome, email o attivita" />
-              </label>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                <PrimaryButton type="submit">Cerca</PrimaryButton>
-                <ResetLink href="/dashboard/super-admin/owners" />
-              </div>
-            </div>
-          </form>
-
-          {error === "owner-exists" ? (
-            <StatusBanner
-              kind="error"
-              text="Esiste gia un titolare con questa email. Usa un indirizzo diverso."
-            />
-          ) : null}
-          {success === "owner-created" ? (
-            <StatusBanner kind="success" text="Titolare creato correttamente. La welcome email e stata inviata." />
-          ) : null}
-          {success === "owner-created-email-failed" ? (
-            <StatusBanner
-              kind="warning"
-              text="Titolare creato, ma la welcome email non e partita. Controlla Resend e il dominio mittente."
-            />
-          ) : null}
-
-          {owners.length === 0 ? (
-            <EmptyState message="Nessun titolare presente al momento." />
-          ) : (
-            <ItemList scrollable maxHeight={540}>
-              {owners.map((owner) => (
-                <ItemCard
-                  key={owner.id}
-                  title={`${owner.firstName} ${owner.lastName}`}
-                  subtitle={owner.email}
-                  meta={`Attivita collegate: ${owner.ownedBars.length}`}
-                  footer={
-                    owner.ownedBars.length > 0 ? (
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {owner.ownedBars.map((bar) => (
-                          <span
-                            key={bar.id}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              borderRadius: 999,
-                              padding: "6px 10px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              background: "#e2e8f0",
-                              color: "#475569",
-                              border: "1px solid #cbd5e1",
-                            }}
-                          >
-                            {getActivityLabel(bar.activityType)} - {bar.name}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span style={{ color: "#64748b", fontSize: 13 }}>Nessuna attivita collegata</span>
-                    )
-                  }
-                />
-              ))}
-            </ItemList>
-          )}
+          </button>
         </div>
-      </Panel>
+
+        {error === "owner-exists" ? (
+          <StatusBanner kind="error" text="Esiste già un titolare con questa email. Usa un indirizzo diverso." />
+        ) : null}
+        {success === "owner-created" ? (
+          <StatusBanner kind="success" text="Titolare creato correttamente. La welcome email è stata inviata." />
+        ) : null}
+        {success === "owner-created-email-failed" ? (
+          <StatusBanner
+            kind="warning"
+            text="Titolare creato, ma la welcome email non è partita. Controlla Resend e il dominio mittente."
+          />
+        ) : null}
+
+        {owners.length === 0 ? (
+          <div style={{ color: "#64748b", fontSize: 14 }}>Nessun titolare trovato.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {owners.map((owner) => (
+              <div key={owner.id} className="sa-card">
+                <strong style={{ fontSize: 14.5 }}>{owner.firstName} {owner.lastName}</strong>
+                <span style={{ fontSize: 12.5, color: "#64748b" }}>{owner.email}</span>
+                {owner.ownedBars.length > 0 ? (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                    {owner.ownedBars.map((bar) => (
+                      <span key={bar.id} className="sa-badge">
+                        {getActivityLabel(bar.activityType)} · {bar.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ color: "#98a2b3", fontSize: 12.5, marginTop: 2 }}>Nessuna attività collegata</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <ModalShell
         open={open}
