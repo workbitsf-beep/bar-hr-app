@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import {
@@ -8,12 +9,21 @@ import {
   deleteBarBySuperAdminAction,
   updateBarSubscriptionAction,
 } from "../../actions";
-import { AdditionalOwnersPicker } from "../additional-owners-picker";
 import { ModalShell } from "../../modal-shell";
 import { getDefaultStatus } from "../subscription-helpers";
-import { SubscriptionFieldsForm } from "../subscription-fields-form";
 import { PrimaryButton, Select, StatusBanner, StatusPill, TextInput } from "../../ui";
 import { useOverlayLock } from "../../use-overlay-lock";
+
+// Only needed once a modal is actually opened - keeping them out of the
+// initial bundle noticeably shrinks what the list view has to download.
+const AdditionalOwnersPicker = dynamic(
+  () => import("../additional-owners-picker").then((mod) => mod.AdditionalOwnersPicker),
+  { ssr: false }
+);
+const SubscriptionFieldsForm = dynamic(
+  () => import("../subscription-fields-form").then((mod) => mod.SubscriptionFieldsForm),
+  { ssr: false }
+);
 
 type OwnerOption = {
   id: string;
