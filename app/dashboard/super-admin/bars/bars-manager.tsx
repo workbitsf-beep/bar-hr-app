@@ -264,6 +264,13 @@ export function BarsManager({
   useOverlayLock(open || Boolean(selectedBarId));
 
   useEffect(() => {
+    // Warm the lazy-loaded modal chunks in the background once the list is
+    // up, so tapping a card doesn't wait on a fresh network fetch for them.
+    void import("../additional-owners-picker");
+    void import("../subscription-fields-form");
+  }, []);
+
+  useEffect(() => {
     if (!open) {
       return;
     }
