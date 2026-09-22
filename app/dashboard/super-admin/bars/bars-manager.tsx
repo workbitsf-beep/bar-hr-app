@@ -3,220 +3,29 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { formatDateInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
-import {
-  createBarBySuperAdminAction,
-  deleteBarBySuperAdminAction,
-  updateBarSubscriptionAction,
-} from "../../actions";
-import { ModalShell } from "../../modal-shell";
+import { toDateInputValueInTimeZone } from "@/lib/time-zone";
+import { deleteBarBySuperAdminAction, updateBarSubscriptionAction } from "../../actions";
 import { getDefaultStatus } from "../subscription-helpers";
-import { PrimaryButton, Select, StatusBanner, StatusPill, TextInput } from "../light-ui";
+import { StatusBanner, StatusPill } from "../light-ui";
 import { useOverlayLock } from "../../use-overlay-lock";
+import {
+  getActivityLabel,
+  getAdditionalOwnersForBar,
+  getOwnerSummaryLabel,
+  getRevenueSummary,
+  getSubscriptionDetail,
+  getSubscriptionLabel,
+  getSubscriptionTone,
+  type ActivityFilter,
+  type BarItem,
+  type OwnerOption,
+} from "./bars-helpers";
 
-// Only needed once a modal is actually opened - keeping them out of the
-// initial bundle shrinks what the list view has to download and hydrate.
-const AdditionalOwnersPicker = dynamic(
-  () => import("../additional-owners-picker").then((mod) => mod.AdditionalOwnersPicker),
-  { ssr: false }
-);
-const SubscriptionFieldsForm = dynamic(
-  () => import("../subscription-fields-form").then((mod) => mod.SubscriptionFieldsForm),
-  { ssr: false }
-);
-
-type OwnerOption = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-};
-
-type BarItem = {
-  id: string;
-  name: string;
-  legalName: string | null;
-  email: string | null;
-  phone: string | null;
-  addressLine1: string | null;
-  city: string | null;
-  postalCode: string | null;
-  activityType: "RESTAURANT" | "COMPANY";
-  owner: OwnerOption;
-  memberships: {
-    user: OwnerOption;
-  }[];
-  subscription: {
-    planType: "FREE" | "TRIAL" | "PAID" | "LIFETIME";
-    status: "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INACTIVE";
-    billingInterval: "MONTHLY" | "YEARLY" | null;
-    monthlyDiscountPercent: number;
-    currentPeriodEnd: Date | null;
-    trialEndsAt: Date | null;
-    stripeCustomerId?: string | null;
-    stripeSubscriptionId?: string | null;
-    stripePriceId?: string | null;
-  } | null;
-};
-
-type ActivityFilter = "ALL" | "COMPANY" | "RESTAURANT";
-
-const MONTHLY_PRICE = 29.99;
-const YEARLY_PRICE = 299;
-
-function formatDateLabel(value: Date | string | null) {
-  if (!value) {
-    return "Nessuna data";
-  }
-
-  return formatDateInTimeZone(value);
-}
-
-function getActivityLabel(activityType: BarItem["activityType"]) {
-  return activityType === "COMPANY" ? "Azienda" : "Ristorazione";
-}
-
-function getSubscriptionLabel(subscription: NonNullable<BarItem["subscription"]>) {
-  if (subscription.planType === "FREE") {
-    return "Free";
-  }
-
-  if (subscription.planType === "LIFETIME") {
-    return "Lifetime";
-  }
-
-  if (subscription.planType === "TRIAL") {
-    return "In prova";
-  }
-
-  if (subscription.status === "PAST_DUE" || subscription.status === "UNPAID") {
-    return "Da recuperare";
-  }
-
-  if (subscription.status === "CANCELED" || subscription.status === "INACTIVE") {
-    return "Inattivo";
-  }
-
-  return "Attivo";
-}
-
-function getSubscriptionTone(subscription: NonNullable<BarItem["subscription"]>) {
-  if (subscription.planType === "FREE" || subscription.planType === "LIFETIME") {
-    return "success" as const;
-  }
-
-  if (subscription.planType === "TRIAL") {
-    return "warning" as const;
-  }
-
-  if (subscription.status === "ACTIVE" || subscription.status === "TRIALING") {
-    return "success" as const;
-  }
-
-  if (subscription.status === "PAST_DUE" || subscription.status === "UNPAID") {
-    return "danger" as const;
-  }
-
-  return "neutral" as const;
-}
-
-function getSubscriptionDetail(subscription: NonNullable<BarItem["subscription"]>) {
-  if (subscription.planType === "TRIAL") {
-    return `Fine prova: ${formatDateLabel(subscription.trialEndsAt)}`;
-  }
-
-  if (subscription.planType === "FREE" || subscription.planType === "LIFETIME") {
-    return "Piano gestito manualmente";
-  }
-
-  return `Scadenza: ${formatDateLabel(subscription.currentPeriodEnd)}`;
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-function getDiscountMultiplier(discountPercent: number) {
-  const normalizedDiscount = Math.max(0, Math.min(100, discountPercent));
-  return 1 - normalizedDiscount / 100;
-}
-
-function isRevenueEligible(subscription: NonNullable<BarItem["subscription"]>) {
-  return subscription.planType === "PAID" && (subscription.status === "ACTIVE" || subscription.status === "TRIALING");
-}
-
-function getEstimatedMonthlyRevenue(subscription: NonNullable<BarItem["subscription"]>) {
-  if (!isRevenueEligible(subscription)) {
-    return 0;
-  }
-
-  const multiplier = getDiscountMultiplier(subscription.monthlyDiscountPercent ?? 0);
-
-  if (subscription.billingInterval === "YEARLY") {
-    return (YEARLY_PRICE * multiplier) / 12;
-  }
-
-  return MONTHLY_PRICE * multiplier;
-}
-
-function getEstimatedAnnualRevenue(subscription: NonNullable<BarItem["subscription"]>) {
-  if (!isRevenueEligible(subscription)) {
-    return 0;
-  }
-
-  const multiplier = getDiscountMultiplier(subscription.monthlyDiscountPercent ?? 0);
-
-  if (subscription.billingInterval === "YEARLY") {
-    return YEARLY_PRICE * multiplier;
-  }
-
-  return MONTHLY_PRICE * 12 * multiplier;
-}
-
-function getRevenueSummary(subscription: BarItem["subscription"]) {
-  if (!subscription) {
-    return {
-      title: "Ricavo",
-      value: "Nessun piano collegato",
-      detail: "Aggiungi un abbonamento per vedere il valore economico.",
-    };
-  }
-
-  if (subscription.planType === "FREE" || subscription.planType === "LIFETIME") {
-    return {
-      title: "Ricavo",
-      value: "Gestione manuale",
-      detail: "Il piano non genera un canone automatico.",
-    };
-  }
-
-  const monthlyRevenue = getEstimatedMonthlyRevenue(subscription);
-  const annualRevenue = getEstimatedAnnualRevenue(subscription);
-
-  return {
-    title: subscription.planType === "TRIAL" ? "Ricavo potenziale" : "Ricavo stimato",
-    value: `${formatCurrency(monthlyRevenue)}/mese`,
-    detail: `${formatCurrency(annualRevenue)}/anno`,
-  };
-}
-
-function getAdditionalOwnersForBar(bar: Pick<BarItem, "owner" | "memberships">) {
-  return bar.memberships
-    .map((membership) => membership.user)
-    .filter((owner) => owner.id !== bar.owner.id);
-}
-
-function getOwnerSummaryLabel(primary: OwnerOption, additionalOwners: OwnerOption[]) {
-  if (additionalOwners.length === 0) {
-    return `${primary.firstName} ${primary.lastName}`;
-  }
-
-  return `${primary.firstName} ${primary.lastName} + ${additionalOwners.length} titolari`;
-}
+// The two modals are the bulk of this page's code but are hidden until
+// opened - keeping them out of the initial bundle shrinks what the list
+// view has to download and hydrate.
+const CreateBarModal = dynamic(() => import("./create-bar-modal"), { ssr: false });
+const BarDetailModal = dynamic(() => import("./bar-detail-modal"), { ssr: false });
 
 function formatDateInput(value: Date | string | null) {
   if (!value) {
@@ -266,8 +75,8 @@ export function BarsManager({
   useEffect(() => {
     // Warm the lazy-loaded modal chunks in the background once the list is
     // up, so tapping a card doesn't wait on a fresh network fetch for them.
-    void import("../additional-owners-picker");
-    void import("../subscription-fields-form");
+    void import("./create-bar-modal");
+    void import("./bar-detail-modal");
   }, []);
 
   useEffect(() => {
@@ -278,7 +87,6 @@ export function BarsManager({
     setNewOwnerId("");
     setNewAdditionalOwnerIds([]);
     setNewAdditionalOwnerDraftId("");
-
   }, [open]);
 
   const selectedBar = useMemo(() => bars.find((bar) => bar.id === selectedBarId) ?? null, [bars, selectedBarId]);
@@ -454,15 +262,15 @@ export function BarsManager({
           </button>
         </div>
 
-          {bars.length > 0 ? (
-            <div style={{ display: "grid", gap: 10 }}>
-              {bars.map((bar) => {
-      const subscription = bar.subscription;
-      const revenue = getRevenueSummary(subscription);
-      const additionalOwners = getAdditionalOwnersForBar(bar);
-      const ownerSummary = getOwnerSummaryLabel(bar.owner, additionalOwners);
+        {bars.length > 0 ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            {bars.map((bar) => {
+              const subscription = bar.subscription;
+              const revenue = getRevenueSummary(subscription);
+              const additionalOwners = getAdditionalOwnersForBar(bar);
+              const ownerSummary = getOwnerSummaryLabel(bar.owner, additionalOwners);
 
-      return (
+              return (
                 <button
                   key={bar.id}
                   type="button"
@@ -507,441 +315,57 @@ export function BarsManager({
                     Apri dettagli →
                   </span>
                 </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{ color: "#64748b", fontSize: 14 }}>Nessuna struttura trovata con questi filtri.</div>
-          )}
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ color: "#64748b", fontSize: 14 }}>Nessuna struttura trovata con questi filtri.</div>
+        )}
       </div>
 
-      <ModalShell
+      <CreateBarModal
         open={open}
         onClose={() => setOpen(false)}
-        title="Nuova struttura"
-        width="min(92vw, 560px)"
-        wrapClassName="sa-modal-wrap"
-        panelClassName="sa-modal-panel"
-      >
-        <form action={createBarBySuperAdminAction} style={{ display: "grid", gap: 14 }}>
-                  {hasOwners ? null : (
-                    <StatusBanner
-                      kind="warning"
-                      text="Crea prima almeno un titolare per poter aggiungere una struttura."
-                    />
-                  )}
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Nome struttura</span>
-                      <TextInput name="name" required />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Email struttura</span>
-                      <TextInput name="email" type="email" />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Telefono</span>
-                      <TextInput name="phone" />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Indirizzo</span>
-                      <TextInput name="addressLine1" />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Citta</span>
-                      <TextInput name="city" />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>CAP</span>
-                      <TextInput name="postalCode" />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Categoria attivita</span>
-                      <Select name="activityType" defaultValue="RESTAURANT">
-                        <option value="RESTAURANT">Ristorazione</option>
-                        <option value="COMPANY">Azienda</option>
-                      </Select>
-                    </label>
-
-                    <label style={{ display: "grid", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "#1e293b" }}>Responsabile</span>
-                      <Select
-                        name="ownerId"
-                        required
-                        value={newOwnerId}
-                        onChange={(event) => {
-                          const nextOwnerId = event.target.value;
-                          setNewOwnerId(nextOwnerId);
-                          setNewAdditionalOwnerDraftId((current) => (current === nextOwnerId ? "" : current));
-                          setNewAdditionalOwnerIds((current) =>
-                            current.filter((ownerId) => ownerId !== nextOwnerId)
-                          );
-                        }}
-                      >
-                        <option value="" disabled>
-                          Seleziona responsabile
-                        </option>
-                        {owners.map((owner) => (
-                          <option key={owner.id} value={owner.id}>
-                            {owner.firstName} {owner.lastName}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-
-                    <AdditionalOwnersPicker
-                      owners={owners}
-                      excludeOwnerId={newOwnerId}
-                      selectedIds={newAdditionalOwnerIds}
-                      onChange={setNewAdditionalOwnerIds}
-                      draftId={newAdditionalOwnerDraftId}
-                      onDraftChange={setNewAdditionalOwnerDraftId}
-                      emitHiddenInputs
-                    />
-                  </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <PrimaryButton type="button" tone="sand" onClick={() => setOpen(false)}>
-              Annulla
-            </PrimaryButton>
-            <PrimaryButton type="submit" disabled={!hasOwners}>
-              Crea struttura
-            </PrimaryButton>
-          </div>
-        </form>
-      </ModalShell>
+        owners={owners}
+        hasOwners={hasOwners}
+        newOwnerId={newOwnerId}
+        setNewOwnerId={setNewOwnerId}
+        newAdditionalOwnerIds={newAdditionalOwnerIds}
+        setNewAdditionalOwnerIds={setNewAdditionalOwnerIds}
+        newAdditionalOwnerDraftId={newAdditionalOwnerDraftId}
+        setNewAdditionalOwnerDraftId={setNewAdditionalOwnerDraftId}
+      />
 
       {selectedBar ? (
-        <ModalShell
-          open
+        <BarDetailModal
+          bar={selectedBar}
+          owners={owners}
+          isPending={isPending}
           onClose={closeDetailsModal}
-          title={selectedBar.name}
-          width="min(820px, calc(100vw - 32px))"
-          zIndex={2147483647}
-          wrapClassName="dashboard-modal-wrap sa-modal-wrap"
-          panelClassName="dashboard-modal-panel sa-modal-panel"
-          header={
-            <div
-              className="dashboard-modal-header"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "grid", gap: 6 }}>
-                {(() => {
-                  const additionalOwners = getAdditionalOwnersForBar(selectedBar);
-                  const ownerSummary = getOwnerSummaryLabel(selectedBar.owner, additionalOwners);
-
-                  return <span style={{ color: "#475569" }}>{ownerSummary}</span>;
-                })()}
-                <strong style={{ fontSize: 24, color: "#0f172a", lineHeight: 1.1 }}>
-                  {selectedBar.name}
-                </strong>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span
-                    style={{
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      background: "#f1f5f9",
-                      color: "#334155",
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {getActivityLabel(selectedBar.activityType)}
-                  </span>
-                  <span
-                    style={{
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      background: selectedAccessUnlocked ? "#dcfce7" : "#fee2e2",
-                      color: selectedAccessUnlocked ? "#166534" : "#991b1b",
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {selectedAccessUnlocked ? "Accesso attivo" : "Accesso bloccato"}
-                  </span>
-                  <span style={{ color: "#64748b", fontSize: 13 }}>
-                    Titolare principale: {selectedBar.owner.firstName} {selectedBar.owner.lastName}
-                  </span>
-                </div>
-              </div>
-
-              <PrimaryButton type="button" tone="sand" onClick={closeDetailsModal} disabled={isPending}>
-                X
-              </PrimaryButton>
-            </div>
-          }
-        >
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 8,
-                    padding: 12,
-                    borderRadius: 18,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                  }}
-                >
-                  <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
-                    Applica piano rapidamente
-                  </div>
-                  <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-                    {[
-                      ["FREE", "Free"],
-                      ["LIFETIME", "Lifetime"],
-                      ["PAID", "Pagante"],
-                      ["TRIAL", "Prova"],
-                    ].map(([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => applyPlan(value as "FREE" | "LIFETIME" | "PAID" | "TRIAL")}
-                        disabled={isPending}
-                        style={{
-                          flex: "0 0 auto",
-                          borderRadius: 999,
-                          border: planType === value ? "1px solid #7b2ff7" : "1px solid #dbe3ee",
-                          background: planType === value ? "#f4f2fe" : "#ffffff",
-                          color: planType === value ? "#5b21b6" : "#334155",
-                          padding: "9px 14px",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          whiteSpace: "nowrap",
-                          cursor: isPending ? "progress" : "pointer",
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div
-                  className="dashboard-modal-body-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  <label style={{ display: "grid", gap: 8 }}>
-                    <span style={{ fontWeight: 600, color: "#1e293b" }}>Responsabile</span>
-                    <select
-                      value={ownerId}
-                      onChange={(event) => {
-                        const nextOwnerId = event.target.value;
-                        setOwnerId(nextOwnerId);
-                        setAdditionalOwnerDraftId((current) => (current === nextOwnerId ? "" : current));
-                        setAdditionalOwnerIds((current) =>
-                          current.filter((ownerId) => ownerId !== nextOwnerId)
-                        );
-                      }}
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #dbe3ee",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        background: "#ffffff",
-                      }}
-                    >
-                      {owners.map((owner) => (
-                        <option key={owner.id} value={owner.id}>
-                          {owner.firstName} {owner.lastName}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <AdditionalOwnersPicker
-                    owners={owners}
-                    excludeOwnerId={ownerId}
-                    selectedIds={additionalOwnerIds}
-                    onChange={setAdditionalOwnerIds}
-                    draftId={additionalOwnerDraftId}
-                    onDraftChange={setAdditionalOwnerDraftId}
-                    emitHiddenInputs={false}
-                  />
-
-                  <SubscriptionFieldsForm
-                    planType={planType}
-                    status={status}
-                    billingInterval={billingInterval}
-                    monthlyDiscountPercent={monthlyDiscountPercent}
-                    currentPeriodEnd={currentPeriodEnd}
-                    trialEndsAt={trialEndsAt}
-                    todayKey={todayKey}
-                    onApplyPlan={applyPlan}
-                    onStatusChange={setStatus}
-                    onBillingIntervalChange={setBillingInterval}
-                    onDiscountChange={setMonthlyDiscountPercent}
-                    onCurrentPeriodEndChange={setCurrentPeriodEnd}
-                    onTrialEndsAtChange={setTrialEndsAt}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 8,
-                      padding: 16,
-                      borderRadius: 20,
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                    }}
-                  >
-                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
-                      Ricavi stimati
-                    </div>
-                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
-                      {isRevenueEligible(selectedSubscription)
-                        ? formatCurrency(getEstimatedMonthlyRevenue(selectedSubscription))
-                        : "0,00 €"}
-                    </strong>
-                    <span style={{ color: "#64748b", fontSize: 13 }}>
-                      Annuale:{" "}
-                      {isRevenueEligible(selectedSubscription)
-                        ? formatCurrency(getEstimatedAnnualRevenue(selectedSubscription))
-                        : "0,00 €"}
-                    </span>
-                    <span style={{ color: "#64748b", fontSize: 13 }}>
-                      Sconto mensile: {selectedSubscription.monthlyDiscountPercent}%
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 8,
-                      padding: 16,
-                      borderRadius: 20,
-                      background: selectedAccessUnlocked ? "#f0fdf4" : "#fef2f2",
-                      border: selectedAccessUnlocked ? "1px solid #bbf7d0" : "1px solid #fecaca",
-                    }}
-                  >
-                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
-                      Stato servizio
-                    </div>
-                    <strong
-                      style={{
-                        color: selectedAccessUnlocked ? "#166534" : "#991b1b",
-                        fontSize: 22,
-                      }}
-                    >
-                      {selectedAccessUnlocked ? "Sbloccato" : "Bloccato"}
-                    </strong>
-                    <span style={{ color: selectedAccessUnlocked ? "#166534" : "#991b1b", fontSize: 13 }}>
-                      Piano: {selectedSubscription.planType}
-                    </span>
-                    <span style={{ color: selectedAccessUnlocked ? "#166534" : "#991b1b", fontSize: 13 }}>
-                      Stato: {selectedSubscription.status}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 8,
-                      padding: 16,
-                      borderRadius: 20,
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      minWidth: 0,
-                    }}
-                  >
-                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
-                      Stripe
-                    </div>
-                    {[
-                      ["Customer", selectedBar.subscription?.stripeCustomerId],
-                      ["Subscription", selectedBar.subscription?.stripeSubscriptionId],
-                      ["Price", selectedBar.subscription?.stripePriceId],
-                    ].map(([label, value]) => (
-                      <div key={label} style={{ display: "grid", gap: 2, minWidth: 0 }}>
-                        <span style={{ color: "#94a3b8", fontSize: 11, fontWeight: 800 }}>
-                          {label}
-                        </span>
-                        <code
-                          style={{
-                            color: "#334155",
-                            fontSize: 12,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          title={value || "Non disponibile"}
-                        >
-                          {value || "Non disponibile"}
-                        </code>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div
-                  className="dashboard-modal-actions"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <PrimaryButton type="button" onClick={closeDetailsModal} tone="sand" disabled={isPending}>
-                    Annulla
-                  </PrimaryButton>
-
-                  <PrimaryButton type="button" onClick={() => void saveSubscription()} disabled={isPending}>
-                    {isPending ? "Salvataggio..." : "Salva abbonamento"}
-                  </PrimaryButton>
-                </div>
-
-                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12 }}>
-                  <button
-                    type="button"
-                    onClick={() => void deleteBar()}
-                    disabled={isPending}
-                    style={{
-                      width: "100%",
-                      borderRadius: 14,
-                      border: "1px solid rgba(220, 38, 38, 0.25)",
-                      background: "#fef2f2",
-                      color: "#b91c1c",
-                      padding: "11px 14px",
-                      fontSize: 13.5,
-                      fontWeight: 700,
-                      cursor: isPending ? "progress" : "pointer",
-                    }}
-                  >
-                    Elimina definitivamente questa struttura
-                  </button>
-                </div>
-        </ModalShell>
+          ownerId={ownerId}
+          setOwnerId={setOwnerId}
+          additionalOwnerIds={additionalOwnerIds}
+          setAdditionalOwnerIds={setAdditionalOwnerIds}
+          additionalOwnerDraftId={additionalOwnerDraftId}
+          setAdditionalOwnerDraftId={setAdditionalOwnerDraftId}
+          planType={planType}
+          status={status}
+          billingInterval={billingInterval}
+          monthlyDiscountPercent={monthlyDiscountPercent}
+          currentPeriodEnd={currentPeriodEnd}
+          trialEndsAt={trialEndsAt}
+          todayKey={todayKey}
+          applyPlan={applyPlan}
+          setStatus={setStatus}
+          setBillingInterval={setBillingInterval}
+          setMonthlyDiscountPercent={setMonthlyDiscountPercent}
+          setCurrentPeriodEnd={setCurrentPeriodEnd}
+          setTrialEndsAt={setTrialEndsAt}
+          selectedSubscription={selectedSubscription}
+          selectedAccessUnlocked={Boolean(selectedAccessUnlocked)}
+          onSave={() => void saveSubscription()}
+          onDelete={() => void deleteBar()}
+        />
       ) : null}
     </>
   );
