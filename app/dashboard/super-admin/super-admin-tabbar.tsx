@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function SuperAdminFab() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/dashboard/super-admin/new")) {
+    return null;
+  }
+
   return (
     <>
       <Link href="/dashboard/super-admin/new" className="sa-fab" aria-label="Nuovo titolare e locale">
