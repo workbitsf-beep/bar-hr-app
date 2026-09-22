@@ -375,7 +375,10 @@ export function BarGroupsClient({
 
   return (
     <>
-      <div className="dashboard-compact-filters" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+      <div
+        className="sa-filter-row"
+        style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 16, paddingBottom: 2 }}
+      >
         {[
           ["ALL", "Tutti"],
           ["ACTIVE", "Attivo"],
@@ -389,12 +392,15 @@ export function BarGroupsClient({
             type="button"
             onClick={() => setFilter(value as BillingFilter)}
             style={{
+              flex: "0 0 auto",
               borderRadius: 999,
               border: filter === value ? "1px solid #1c1917" : "1px solid #e7e5e4",
               background: filter === value ? "#1c1917" : "#ffffff",
               color: filter === value ? "#ffffff" : "#57534e",
               padding: "10px 14px",
               fontWeight: 600,
+              fontSize: 13.5,
+              whiteSpace: "nowrap",
               cursor: "pointer",
             }}
           >

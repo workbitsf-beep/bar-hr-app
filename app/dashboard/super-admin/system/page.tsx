@@ -1,5 +1,5 @@
 import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { getDatabaseConnectionInfo, prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
 import { EmptyState, Panel, Stack, StatusPill } from "../../ui";
 import { StatTile, SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
@@ -47,6 +47,10 @@ export default async function SuperAdminSystemPage() {
   }
 
   const monthStart = startOfMonth();
+  const connectionInfo = getDatabaseConnectionInfo();
+  const pingStartedAt = Date.now();
+  await prisma.$queryRaw`SELECT 1`;
+  const pingMs = Date.now() - pingStartedAt;
 
   const [
     totalBars,
@@ -105,6 +109,26 @@ export default async function SuperAdminSystemPage() {
               <StatTile label="Notifiche non lette" value={unreadNotifications} />
             </div>
           )}
+        </Panel>
+
+        <Panel title="Connessione database">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <StatusPill
+              label={`Rete: ${connectionInfo.connection}`}
+              tone={connectionInfo.connection === "railway-private" ? "success" : "warning"}
+            />
+            <StatusPill label={`Host: ${connectionInfo.host}`} tone="neutral" />
+            <StatusPill
+              label={`Ping: ${pingMs} ms`}
+              tone={pingMs < 100 ? "success" : pingMs < 500 ? "warning" : "danger"}
+            />
+            <StatusPill label={connectionInfo.railwayRuntime ? "In esecuzione su Railway" : "Fuori da Railway"} tone="neutral" />
+          </div>
+          {connectionInfo.connection !== "railway-private" ? (
+            <p style={{ margin: "10px 0 0", color: "#b45309", fontSize: 13, lineHeight: 1.5 }}>
+              L&apos;app non sta usando la rete privata di Railway per il database: ogni richiesta passa dal proxy pubblico, molto più lento. Controlla che la variabile DATABASE_PRIVATE_URL sia impostata sul servizio.
+            </p>
+          ) : null}
         </Panel>
 
         <Panel title="Stato operativo">

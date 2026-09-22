@@ -214,6 +214,11 @@ function getPrismaClient() {
   return globalForPrisma.prismaGlobal;
 }
 
+export function getDatabaseConnectionInfo() {
+  const databaseUrl = resolveDatabaseUrl();
+  return { ...describeDatabaseUrl(databaseUrl), railwayRuntime: hasRailwayRuntime() };
+}
+
 export const prisma = new Proxy({} as PrismaClient, {
   get(_target, property) {
     const client = getPrismaClient();

@@ -14,7 +14,7 @@ type OwnerOption = {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label style={{ display: "grid", gap: 6 }}>
+    <label style={{ display: "grid", gap: 6, minWidth: 0 }}>
       <span style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>{label}</span>
       {children}
     </label>
@@ -22,6 +22,9 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const inputStyle = {
+  width: "100%",
+  minWidth: 0,
+  boxSizing: "border-box" as const,
   borderRadius: 14,
   border: "1px solid #dbe3ee",
   padding: "13px 14px",
@@ -68,7 +71,7 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
   const canGoToStep2 = ownerMode === "existing" ? Boolean(existingOwnerId) : true;
 
   return (
-    <form action={createOwnerAndBarBySuperAdminAction} style={{ display: "grid", gap: 22 }}>
+    <form action={createOwnerAndBarBySuperAdminAction} style={{ display: "grid", gap: 22, minWidth: 0 }}>
       <input type="hidden" name="ownerMode" value={ownerMode} />
 
       <div className="sa-wizard-steps">
@@ -81,7 +84,7 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
         </span>
       </div>
 
-      <div style={{ display: step === 1 ? "grid" : "none", gap: 16 }}>
+      <div style={{ display: step === 1 ? "grid" : "none", gap: 16, minWidth: 0 }}>
         <div className="sa-wizard-toggle">
           <button
             type="button"
@@ -100,7 +103,7 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
         </div>
 
         {ownerMode === "new" ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, minWidth: 0 }}>
             <Field label="Nome">
               <input name="firstName" required style={inputStyle} placeholder="Mario" />
             </Field>
@@ -156,8 +159,8 @@ export function OwnerBarWizard({ owners }: { owners: OwnerOption[] }) {
         </button>
       </div>
 
-      <div style={{ display: step === 2 ? "grid" : "none", gap: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+      <div style={{ display: step === 2 ? "grid" : "none", gap: 16, minWidth: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, minWidth: 0 }}>
           <Field label="Nome locale/azienda">
             <input name="name" required style={inputStyle} placeholder="Bar Centrale" />
           </Field>

@@ -97,16 +97,20 @@ export default async function DashboardLayout({
             ) : null}
 
             {String(session.user.role) === "SUPER_ADMIN" && role !== "SUPER_ADMIN" ? (
-              <form action={returnToSuperAdminConsoleAction}>
+              <form action={returnToSuperAdminConsoleAction} style={{ marginTop: 4 }}>
                 <button
                   type="submit"
-                  className="workbit-menu-select-row"
                   style={{
                     width: "100%",
+                    display: "block",
                     textAlign: "left",
+                    borderRadius: 17,
+                    minHeight: 48,
+                    padding: "0 15px",
                     background: "#f4f2fe",
                     border: "1px solid rgba(94, 92, 230, 0.22)",
                     color: "#5b21b6",
+                    fontSize: 15,
                     fontWeight: 700,
                     cursor: "pointer",
                   }}
