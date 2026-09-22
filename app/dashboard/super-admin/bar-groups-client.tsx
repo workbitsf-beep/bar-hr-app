@@ -8,7 +8,7 @@ import { AdditionalOwnersPicker } from "./additional-owners-picker";
 import { ModalShell } from "../modal-shell";
 import { getDefaultStatus } from "./subscription-helpers";
 import { SubscriptionFieldsForm } from "./subscription-fields-form";
-import { PrimaryButton } from "../ui";
+import { PrimaryButton } from "./light-ui";
 import { useOverlayLock } from "../use-overlay-lock";
 
 type OwnerOption = {

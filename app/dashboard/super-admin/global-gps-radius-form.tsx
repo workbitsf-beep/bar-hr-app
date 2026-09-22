@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { updateGlobalGpsRadiusAction } from "../actions";
-import { SuccessCallout } from "../ui";
+import { SuccessCallout } from "./light-ui";
 
 export function GlobalGpsRadiusForm({
   initialRadius,

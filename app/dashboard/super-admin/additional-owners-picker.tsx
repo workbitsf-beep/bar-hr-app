@@ -1,6 +1,6 @@
 "use client";
 
-import { IconButton } from "../ui";
+import { IconButton } from "./light-ui";
 
 type OwnerOption = {
   id: string;

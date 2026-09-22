@@ -11,7 +11,7 @@ import {
 } from "../../actions";
 import { ModalShell } from "../../modal-shell";
 import { getDefaultStatus } from "../subscription-helpers";
-import { PrimaryButton, Select, StatusBanner, StatusPill, TextInput } from "../../ui";
+import { PrimaryButton, Select, StatusBanner, StatusPill, TextInput } from "../light-ui";
 import { useOverlayLock } from "../../use-overlay-lock";
 
 // Only needed once a modal is actually opened - keeping them out of the

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createOwnerBySuperAdminAction } from "../../actions";
 import { ModalShell } from "../../modal-shell";
-import { PrimaryButton, Select, StatusBanner, TextInput } from "../../ui";
+import { PrimaryButton, Select, StatusBanner, TextInput } from "../light-ui";
 import { useOverlayLock } from "../../use-overlay-lock";
 
 type OwnerItem = {
