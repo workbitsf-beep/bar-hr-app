@@ -1,8 +1,16 @@
 import { getFirebasePublicConfig } from "@/lib/firebase-public-config";
 
+// Captured once when this server process starts (i.e. on every deploy,
+// since Railway restarts the process). Baking it into the cache name means
+// each deploy's service worker gets its own cache, and the existing
+// activate handler below (which already deletes any cache whose name
+// doesn't match the current one) actually purges the previous deploy's
+// static assets instead of accumulating them across every release.
+const DEPLOY_STAMP = Date.now().toString(36);
+
 function buildPwaServiceWorkerCore() {
   return `
-const WORKBIT_STATIC_CACHE = "workbit-static-v8";
+const WORKBIT_STATIC_CACHE = "workbit-static-${DEPLOY_STAMP}";
 const WORKBIT_STATIC_EXTENSIONS = [
   ".js", ".css", ".woff", ".woff2", ".ttf", ".png", ".jpg", ".jpeg",
   ".svg", ".webp", ".ico", ".json", ".webmanifest"
