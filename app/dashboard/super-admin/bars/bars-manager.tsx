@@ -687,32 +687,44 @@ export function BarsManager({
                 <div
                   style={{
                     display: "grid",
-                    gap: 10,
-                    padding: 14,
-                    borderRadius: 22,
+                    gap: 8,
+                    padding: 12,
+                    borderRadius: 18,
                     background: "#f8fafc",
                     border: "1px solid #e2e8f0",
                   }}
                 >
-                  <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
-                    Azioni rapide piano
+                  <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
+                    Applica piano rapidamente
                   </div>
-                  <div className="dashboard-inline-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("FREE")} disabled={isPending}>
-                      Free
-                    </PrimaryButton>
-                    <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("LIFETIME")} disabled={isPending}>
-                      Lifetime
-                    </PrimaryButton>
-                    <PrimaryButton type="button" onClick={() => applyPlan("PAID")} disabled={isPending}>
-                      Pagante
-                    </PrimaryButton>
-                    <PrimaryButton type="button" tone="sand" onClick={() => applyPlan("TRIAL")} disabled={isPending}>
-                      Prova
-                    </PrimaryButton>
-                    <PrimaryButton type="button" tone="red" onClick={() => void deleteBar()} disabled={isPending}>
-                      Elimina
-                    </PrimaryButton>
+                  <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+                    {[
+                      ["FREE", "Free"],
+                      ["LIFETIME", "Lifetime"],
+                      ["PAID", "Pagante"],
+                      ["TRIAL", "Prova"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => applyPlan(value as "FREE" | "LIFETIME" | "PAID" | "TRIAL")}
+                        disabled={isPending}
+                        style={{
+                          flex: "0 0 auto",
+                          borderRadius: 999,
+                          border: planType === value ? "1px solid #7b2ff7" : "1px solid #dbe3ee",
+                          background: planType === value ? "#f4f2fe" : "#ffffff",
+                          color: planType === value ? "#5b21b6" : "#334155",
+                          padding: "9px 14px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                          cursor: isPending ? "progress" : "pointer",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -900,6 +912,27 @@ export function BarsManager({
                   <PrimaryButton type="button" onClick={() => void saveSubscription()} disabled={isPending}>
                     {isPending ? "Salvataggio..." : "Salva abbonamento"}
                   </PrimaryButton>
+                </div>
+
+                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => void deleteBar()}
+                    disabled={isPending}
+                    style={{
+                      width: "100%",
+                      borderRadius: 14,
+                      border: "1px solid rgba(220, 38, 38, 0.25)",
+                      background: "#fef2f2",
+                      color: "#b91c1c",
+                      padding: "11px 14px",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: isPending ? "progress" : "pointer",
+                    }}
+                  >
+                    Elimina definitivamente questa struttura
+                  </button>
                 </div>
         </ModalShell>
       ) : null}
