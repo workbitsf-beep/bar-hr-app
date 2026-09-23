@@ -1,10 +1,11 @@
 import { Role } from "@prisma/client";
+import Link from "next/link";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
 import { PasswordChangePanel } from "../../settings/password-change-panel";
-import { Panel, Stack } from "../../ui";
-import { SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
+import { Empty, Forbidden, Note, Row, Section } from "../console-ui";
+import { fullName, readParam } from "../console-data";
 import { PromoteSuperAdminForm } from "./promote-super-admin-form";
 
 async function getPasskeyCount(userId: string) {
@@ -15,54 +16,72 @@ async function getPasskeyCount(userId: string) {
   }
 }
 
-export default async function SuperAdminSettingsPage({
+export default async function ConsoleSecurityPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { role, session } = await getDashboardContext();
 
-  if (role !== Role.SUPER_ADMIN) {
-    return <SuperAdminForbidden />;
+  if (String(role) !== "SUPER_ADMIN") {
+    return <Forbidden />;
   }
 
   const params = searchParams ? await searchParams : {};
-  const success = Array.isArray(params.success) ? params.success[0] : params.success;
-  const error = Array.isArray(params.error) ? params.error[0] : params.error;
-  const passkeyCount = await getPasskeyCount(session.user.id);
+  const success = readParam(params.success);
+  const error = readParam(params.error);
+
+  const [passkeyCount, superAdmins] = await Promise.all([
+    getPasskeyCount(session.user.id),
+    prisma.user.findMany({
+      where: { role: Role.SUPER_ADMIN },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: { id: true, firstName: true, lastName: true, email: true },
+    }),
+  ]);
 
   return (
-    <SuperAdminFrame
-      title="Impostazioni"
-      description="Sicurezza dell'account Super Admin e gestione degli accessi futuri."
-      section="settings"
-    >
-      <Stack columns="minmax(0, 1fr)">
+    <div className="wbc-page">
+      <Link href="/dashboard/super-admin/system" className="wbc-back">
+        ← Sistema
+      </Link>
+
+      <div className="wbc-page-head">
+        <h1 className="wbc-title">Sicurezza</h1>
+        <p className="wbc-desc">Password, accesso biometrico e gestione degli altri account super admin.</p>
+      </div>
+
+      <Section title="Password">
         <PasswordChangePanel />
+      </Section>
 
-        <Panel title="Accesso biometrico">
-          <WebAuthnRegistrationPanel initialPasskeyCount={passkeyCount} />
-        </Panel>
+      <Section title="Impronta e Face ID">
+        <WebAuthnRegistrationPanel initialPasskeyCount={passkeyCount} />
+      </Section>
 
-        <Panel title="Altri super admin">
-          <div style={{ display: "grid", gap: 12 }}>
-            <p style={{ margin: 0, color: "#64748b", fontSize: 13.5, lineHeight: 1.5 }}>
-              Rendi super admin un account già esistente in Workbit (cerca per email).
-            </p>
-            {success === "super-admin-added" ? (
-              <p style={{ margin: 0, color: "#047857", fontSize: 13.5, fontWeight: 600 }}>
-                Account promosso a super admin.
-              </p>
-            ) : null}
-            {error === "super-admin-user-not-found" ? (
-              <p style={{ margin: 0, color: "#b91c1c", fontSize: 13.5, fontWeight: 600 }}>
-                Nessun account trovato con questa email.
-              </p>
-            ) : null}
-            <PromoteSuperAdminForm />
-          </div>
-        </Panel>
-      </Stack>
-    </SuperAdminFrame>
+      <Section title={`Super admin · ${superAdmins.length}`}>
+        {success === "super-admin-added" ? <Note tone="positive">Account promosso a super admin.</Note> : null}
+        {error === "super-admin-user-not-found" ? (
+          <Note tone="negative">Nessun account trovato con questa email.</Note>
+        ) : null}
+
+        <div>
+          {superAdmins.length === 0 ? (
+            <Empty>Nessun super admin registrato.</Empty>
+          ) : (
+            superAdmins.map((admin) => (
+              <Row
+                key={admin.id}
+                title={fullName(admin)}
+                meta={admin.email}
+                valueMeta={admin.id === session.user.id ? "tu" : undefined}
+              />
+            ))
+          )}
+        </div>
+
+        <PromoteSuperAdminForm />
+      </Section>
+    </div>
   );
 }

@@ -1428,9 +1428,8 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/super-admin");
-  revalidatePath("/dashboard/super-admin/owners");
-  revalidatePath("/dashboard/super-admin/bars");
-  revalidatePath("/dashboard/super-admin/billing");
+  revalidatePath("/dashboard/super-admin/people");
+  revalidatePath("/dashboard/super-admin/money");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
   redirect(
     appendStatusToPath(returnPath, {
@@ -1441,7 +1440,7 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
 
 export async function createBarBySuperAdminAction(formData: FormData) {
   await getSuperAdminContext();
-  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/bars");
+  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin");
 
   const ownerId = String(formData.get("ownerId") ?? "").trim();
   const additionalOwnerIds = normalizeIds(formData.getAll("additionalOwnerIds"));
@@ -1507,8 +1506,7 @@ export async function createBarBySuperAdminAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
-  revalidatePath("/dashboard/super-admin/bars");
-  revalidatePath("/dashboard/super-admin/billing");
+  revalidatePath("/dashboard/super-admin/money");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
   redirect(appendStatusToPath(returnPath, { success: "bar-created" }));
 }
@@ -1658,9 +1656,8 @@ export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
-  revalidatePath("/dashboard/super-admin/owners");
-  revalidatePath("/dashboard/super-admin/bars");
-  revalidatePath("/dashboard/super-admin/billing");
+  revalidatePath("/dashboard/super-admin/people");
+  revalidatePath("/dashboard/super-admin/money");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
   redirect(
     appendStatusToPath(returnPath, {
@@ -1770,7 +1767,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
-  revalidatePath("/dashboard/super-admin/billing");
+  revalidatePath("/dashboard/super-admin/money");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
 }
 
@@ -1863,9 +1860,8 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/super-admin");
-  revalidatePath("/dashboard/super-admin/owners");
-  revalidatePath("/dashboard/super-admin/billing");
-  revalidatePath("/dashboard/super-admin/bars");
+  revalidatePath("/dashboard/super-admin/people");
+  revalidatePath("/dashboard/super-admin/money");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
 }
 
@@ -4282,7 +4278,7 @@ export async function updateGlobalGpsRadiusAction(nextRadius: number) {
   const gpsRadius = await applyGlobalGpsRadius(nextRadius);
 
   revalidatePath("/dashboard/super-admin");
-  revalidatePath("/dashboard/super-admin/gps");
+  revalidatePath("/dashboard/super-admin/system");
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/timelogs");
   revalidatePath("/dashboard/calendar");

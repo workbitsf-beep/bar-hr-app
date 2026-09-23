@@ -1,76 +1,63 @@
-import { Panel, Stack } from "../ui";
-import { SuperAdminFrame } from "./super-admin-ui";
-
-function SkeletonBlock({ width = "100%", height = 16 }: { width?: string; height?: number }) {
-  return (
-    <div
-      style={{
-        width,
-        height,
-        borderRadius: 999,
-        background:
-          "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)",
-        backgroundSize: "200% 100%",
-        animation: "superAdminSkeletonPulse 1.3s ease-in-out infinite",
-      }}
-    />
-  );
+function Bar({ width, height = 13 }: { width: string; height?: number }) {
+  return <span className="wbc-skel" style={{ width, height }} />;
 }
 
 export default function Loading() {
   return (
-    <SuperAdminFrame
-      title="Panoramica"
-      description="Caricamento rapido della sezione super admin."
-      section="home"
-    >
-      <div style={{ display: "grid", gap: 18 }}>
-        <Stack columns="repeat(auto-fit, minmax(200px, 1fr))">
-          {Array.from({ length: 4 }, (_, index) => (
-            <Panel key={index} title="Caricamento">
-              <div style={{ display: "grid", gap: 10 }}>
-                <SkeletonBlock width="22%" />
-                <SkeletonBlock width="58%" height={24} />
-                <SkeletonBlock width="82%" />
-              </div>
-            </Panel>
-          ))}
-        </Stack>
+    <div className="wbc-page" aria-busy="true" aria-label="Caricamento">
+      <div className="wbc-page-head">
+        <Bar width="42%" height={26} />
+        <Bar width="78%" />
+      </div>
 
-        <div
-          style={{
-            minHeight: 132,
-            padding: 22,
-            borderRadius: 28,
-            background: "linear-gradient(135deg, #d1fae5, #ecfdf5)",
-            display: "grid",
-            alignContent: "center",
-            gap: 12,
-          }}
-        >
-          <SkeletonBlock width="22%" />
-          <SkeletonBlock width="42%" height={30} />
-          <SkeletonBlock width="32%" />
-        </div>
-
-        <Panel title="Accessi rapidi">
-          <div style={{ display: "grid", gap: 12 }}>
-            <SkeletonBlock width="40%" height={18} />
-            <SkeletonBlock width="100%" height={90} />
+      <div className="wbc-figure-band">
+        {[0, 1, 2].map((index) => (
+          <div key={index} className="wbc-figure">
+            <Bar width="64%" height={9} />
+            <Bar width="52%" height={26} />
+            <Bar width="80%" height={9} />
           </div>
-        </Panel>
+        ))}
+      </div>
+
+      <div className="wbc-section">
+        <div className="wbc-section-head">
+          <Bar width="26%" height={9} />
+        </div>
+        <div className="wbc-section-body wbc-flush">
+          {[0, 1, 2, 3, 4].map((index) => (
+            <div key={index} className="wbc-row">
+              <span className="wbc-row-main">
+                <Bar width="46%" height={14} />
+                <Bar width="66%" height={10} />
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            @keyframes superAdminSkeletonPulse {
-              0% { background-position: 200% 0; }
-              100% { background-position: -200% 0; }
-            }
+.wbc-skel {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eeeef4 0%, #f7f7fb 50%, #eeeef4 100%);
+  background-size: 200% 100%;
+  animation: wbcSkel 1.25s ease-in-out infinite;
+}
+
+@keyframes wbcSkel {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wbc-skel { animation: none; }
+}
           `,
         }}
       />
-    </SuperAdminFrame>
+    </div>
   );
 }

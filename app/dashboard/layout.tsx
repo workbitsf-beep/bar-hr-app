@@ -13,6 +13,7 @@ import {
   setLanguageAction,
 } from "./actions";
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
+import { ConsoleShell } from "./super-admin/console-shell";
 import { DashboardShell, IconButton } from "./ui";
 
 export default async function DashboardLayout({
@@ -32,6 +33,71 @@ export default async function DashboardLayout({
     accessibleBars,
   } = await getDashboardContext();
   const languageOptions = getLanguageOptions();
+  const userName = `${session.user.firstName} ${session.user.lastName}`;
+
+  // The super admin console is a different product from the venue app: it gets
+  // its own chrome instead of the employee/owner shell.
+  if (String(role) === "SUPER_ADMIN") {
+    return (
+      <>
+        <SessionKeepAlive />
+        <NotificationBarSync activeBarId={activeBarId} />
+        <PushRegistration />
+        <ConsoleShell
+          userName={userName}
+          accountPanel={
+            <>
+              <div className="wbc-account-id">
+                <strong>{userName}</strong>
+                <span>{session.user.email}</span>
+              </div>
+
+              {accessibleBars.length > 0 ? (
+                <form action={selectBarAction} style={{ display: "grid", gap: 9 }}>
+                  <span className="wbc-field-label">Entra in un locale</span>
+                  <select name="barId" defaultValue={activeBarId ?? ""} aria-label={t.selectBar}>
+                    <option value="" disabled>
+                      Seleziona locale
+                    </option>
+                    {accessibleBars.map((bar) => (
+                      <option key={bar.id} value={bar.id}>
+                        {bar.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" className="wbc-btn wbc-btn-ghost wbc-btn-sm">
+                    Entra
+                  </button>
+                </form>
+              ) : null}
+
+              <form action={setLanguageAction} style={{ display: "grid", gap: 9 }}>
+                <span className="wbc-field-label">{t.language}</span>
+                <select name="language" defaultValue={language} aria-label={t.language}>
+                  {languageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" className="wbc-btn wbc-btn-ghost wbc-btn-sm">
+                  Salva lingua
+                </button>
+              </form>
+
+              <LogoutForm action={logoutAction}>
+                <button type="submit" className="wbc-btn wbc-btn-danger wbc-btn-block">
+                  {t.logout}
+                </button>
+              </LogoutForm>
+            </>
+          }
+        >
+          {children}
+        </ConsoleShell>
+      </>
+    );
+  }
 
   return (
     <>

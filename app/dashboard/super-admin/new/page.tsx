@@ -1,14 +1,16 @@
 import { Role } from "@prisma/client";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getLanguageOptions } from "@/lib/i18n";
 import { getDashboardContext } from "../../context";
-import { SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
-import { OwnerBarWizard } from "./owner-bar-wizard";
+import { Forbidden } from "../console-ui";
+import { NewVenueForm } from "./new-venue-form";
 
-export default async function SuperAdminNewOwnerBarPage() {
+export default async function ConsoleNewVenuePage() {
   const { role } = await getDashboardContext();
 
   if (String(role) !== "SUPER_ADMIN") {
-    return <SuperAdminForbidden />;
+    return <Forbidden />;
   }
 
   const owners = await prisma.user.findMany({
@@ -17,13 +19,25 @@ export default async function SuperAdminNewOwnerBarPage() {
     select: { id: true, firstName: true, lastName: true, email: true },
   });
 
+  const languageOptions = getLanguageOptions().map((option) => ({
+    value: String(option.value),
+    label: option.label,
+  }));
+
   return (
-    <SuperAdminFrame
-      title="Nuovo titolare e locale"
-      description="Crea un titolare (o scegline uno esistente) e il suo primo locale in un'unica sequenza, con la possibilità di aggiungere subito altri titolari."
-      section="new"
-    >
-      <OwnerBarWizard owners={owners} />
-    </SuperAdminFrame>
+    <div className="wbc-page">
+      <Link href="/dashboard/super-admin" className="wbc-back">
+        ← Rete
+      </Link>
+
+      <div className="wbc-page-head">
+        <h1 className="wbc-title">Nuovo locale</h1>
+        <p className="wbc-desc">
+          Collega il locale a un titolare esistente oppure crea insieme titolare e locale in un solo passaggio.
+        </p>
+      </div>
+
+      <NewVenueForm owners={owners} languageOptions={languageOptions} />
+    </div>
   );
 }

@@ -1,114 +1,81 @@
 import { LegalDocumentType } from "@prisma/client";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { legalDocumentTypeLabels } from "@/lib/legal-documents";
 import { getDashboardContext } from "../../context";
-import { EmptyState, FormField, Panel, PrimaryButton, Select, Stack, StatusPill, TextArea, TextInput } from "../../ui";
-import { SuperAdminForbidden, SuperAdminFrame } from "../super-admin-ui";
-import {
-  createLegalDocumentAction,
-  deleteLegalDocumentAction,
-  updateLegalDocumentAction,
-} from "./actions";
+import { Empty, Field, FieldGrid, Forbidden, Note, Section } from "../console-ui";
+import { readParam } from "../console-data";
+import { createLegalDocumentAction, deleteLegalDocumentAction, updateLegalDocumentAction } from "./actions";
 
-function normalizeParam(value: string | string[] | undefined) {
-  if (Array.isArray(value)) {
-    return value[0] ?? "";
-  }
+type DocumentDefaults = {
+  title: string;
+  type: LegalDocumentType;
+  version: string;
+  content: string | null;
+  fileName?: string | null;
+  isActive: boolean;
+  isRequired: boolean;
+};
 
-  return value ?? "";
-}
-
-function LegalDocumentFields({
-  document,
-}: {
-  document?: {
-    id?: string;
-    title: string;
-    type: LegalDocumentType;
-    version: string;
-    revision?: number;
-    content: string | null;
-    fileUrl: string | null;
-    fileName?: string | null;
-    fileSize?: number | null;
-    isActive: boolean;
-    isRequired: boolean;
-  };
-}) {
+function DocumentFields({ document }: { document?: DocumentDefaults }) {
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <div className="dashboard-inline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-        <FormField label="Titolo">
-          <TextInput name="title" required defaultValue={document?.title ?? ""} />
-        </FormField>
-        <FormField label="Tipo">
-          <Select name="type" defaultValue={document?.type ?? LegalDocumentType.PRIVACY_POLICY}>
+    <>
+      <FieldGrid>
+        <Field label="Titolo" span>
+          <input name="title" required defaultValue={document?.title ?? ""} />
+        </Field>
+        <Field label="Tipo">
+          <select name="type" defaultValue={document?.type ?? LegalDocumentType.PRIVACY_POLICY}>
             {Object.values(LegalDocumentType).map((type) => (
               <option key={type} value={type}>
                 {legalDocumentTypeLabels[type]}
               </option>
             ))}
-          </Select>
-        </FormField>
-        <FormField label="Versione">
-          <TextInput name="version" required placeholder="1.0" defaultValue={document?.version ?? ""} />
-        </FormField>
-      </div>
+          </select>
+        </Field>
+        <Field label="Versione">
+          <input name="version" required placeholder="1.0" defaultValue={document?.version ?? ""} />
+        </Field>
+      </FieldGrid>
 
-      <FormField label="Contenuto testuale">
-        <TextArea name="content" defaultValue={document?.content ?? ""} style={{ minHeight: 180 }} />
-      </FormField>
+      <Field label="Contenuto testuale">
+        <textarea name="content" defaultValue={document?.content ?? ""} />
+      </Field>
 
-      <FormField label={document ? "Sostituisci PDF" : "PDF documento"}>
-        <input
-          name="pdfFile"
-          type="file"
-          accept="application/pdf"
-          required={!document}
-          style={{
-            width: "100%",
-            minHeight: 46,
-            borderRadius: 18,
-            border: "1px solid #e2e8f0",
-            background: "#ffffff",
-            padding: "10px 12px",
-            color: "#0f172a",
-            fontWeight: 700,
-          }}
-        />
-        {document?.fileName ? (
-          <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-            PDF attuale: {document.fileName}
-          </span>
-        ) : null}
-      </FormField>
+      <Field
+        label={document ? "Sostituisci PDF" : "PDF del documento"}
+        hint={document?.fileName ? `PDF attuale: ${document.fileName}` : undefined}
+      >
+        <input name="pdfFile" type="file" accept="application/pdf" required={!document} />
+      </Field>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontWeight: 800, color: "#0f172a" }}>
+      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+        <label className="wbc-check">
           <input name="isActive" type="checkbox" defaultChecked={document?.isActive ?? true} />
           Attivo
         </label>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontWeight: 800, color: "#0f172a" }}>
+        <label className="wbc-check">
           <input name="isRequired" type="checkbox" defaultChecked={document?.isRequired ?? true} />
           Obbligatorio
         </label>
       </div>
-    </div>
+    </>
   );
 }
 
-export default async function SuperAdminLegalDocumentsPage({
+export default async function ConsoleLegalPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = searchParams ? await searchParams : {};
-  const success = normalizeParam(params.success);
   const { role } = await getDashboardContext();
 
   if (String(role) !== "SUPER_ADMIN") {
-    return <SuperAdminForbidden />;
+    return <Forbidden />;
   }
+
+  const params = searchParams ? await searchParams : {};
+  const success = readParam(params.success);
 
   const documents = await prisma.legalDocument.findMany({
     orderBy: [{ isActive: "desc" }, { type: "asc" }, { updatedAt: "desc" }],
@@ -119,100 +86,111 @@ export default async function SuperAdminLegalDocumentsPage({
       version: true,
       revision: true,
       content: true,
-      fileUrl: true,
       fileName: true,
-      fileSize: true,
       isActive: true,
       isRequired: true,
-      _count: {
-        select: { acceptances: true },
-      },
+      _count: { select: { acceptances: true } },
     },
   });
 
   return (
-    <SuperAdminFrame
-      title="Documenti legali"
-      description="Policy, contratti e accettazioni obbligatorie per i titolari."
-      section="legal"
-    >
-      <Stack columns="minmax(0, 420px) minmax(0, 1fr)">
-        <Panel title="Nuovo documento">
-          <form action={createLegalDocumentAction} encType="multipart/form-data" style={{ display: "grid", gap: 14 }}>
-            <LegalDocumentFields />
-            <PrimaryButton type="submit">Crea documento</PrimaryButton>
-          </form>
-        </Panel>
+    <div className="wbc-page">
+      <Link href="/dashboard/super-admin/system" className="wbc-back">
+        ← Sistema
+      </Link>
 
-        <Panel
-          title="Archivio legale"
-          action={success ? <StatusPill tone="success" label="Salvato" /> : null}
-        >
-          {documents.length === 0 ? (
-            <EmptyState message="Nessun documento legale caricato." />
-          ) : (
-            <div style={{ display: "grid", gap: 12 }}>
-              {documents.map((document) => (
-                <details
-                  key={document.id}
-                  style={{
-                    padding: 16,
-                    borderRadius: 14,
-                    background: "#ffffff",
-                    border: "1px solid #e7e5e4",
-                  }}
-                >
-                  <summary style={{ cursor: "pointer", listStyle: "none" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                      <div style={{ display: "grid", gap: 4 }}>
-                        <strong style={{ color: "#0f172a", fontSize: 17 }}>{document.title}</strong>
-                        <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                          {legalDocumentTypeLabels[document.type]} · v{document.version}.{document.revision} · {document._count.acceptances} accettazioni
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <StatusPill label={document.isActive ? "Attivo" : "Disattivo"} tone={document.isActive ? "success" : "neutral"} />
-                        <StatusPill label={document.isRequired ? "Obbligatorio" : "Facoltativo"} tone={document.isRequired ? "warning" : "neutral"} />
-                      </div>
-                    </div>
-                  </summary>
+      <div className="wbc-page-head">
+        <h1 className="wbc-title">Documenti legali</h1>
+        <p className="wbc-desc">Privacy, termini e contratti che i titolari devono accettare per usare Workbit.</p>
+      </div>
 
-                  <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
-                    {document.fileName ? (
-                      <a
-                        href={`/api/legal-documents/${document.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          justifySelf: "start",
-                          color: "#7c3aed",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                        }}
-                      >
-                        Apri PDF caricato
-                      </a>
-                    ) : null}
-                    <form action={updateLegalDocumentAction} encType="multipart/form-data" style={{ display: "grid", gap: 14 }}>
-                      <input type="hidden" name="documentId" value={document.id} />
-                      <LegalDocumentFields document={document} />
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        <PrimaryButton type="submit">Salva modifiche</PrimaryButton>
-                      </div>
-                    </form>
-                    <form action={deleteLegalDocumentAction} style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <input type="hidden" name="documentId" value={document.id} />
-                      <PrimaryButton type="submit" tone="red">
-                        Elimina documento
-                      </PrimaryButton>
-                    </form>
-                  </div>
-                </details>
-              ))}
-            </div>
-          )}
-        </Panel>
-      </Stack>
-    </SuperAdminFrame>
+      {success ? (
+        <div style={{ marginBottom: 4 }}>
+          <Note tone="positive">Archivio aggiornato.</Note>
+        </div>
+      ) : null}
+
+      <Section title={`Archivio · ${documents.length}`} flush>
+        {documents.length === 0 ? (
+          <Empty>Nessun documento caricato.</Empty>
+        ) : (
+          documents.map((document) => (
+            <details key={document.id} className="wbc-doc">
+              <summary>
+                <span className="wbc-row-main">
+                  <span className="wbc-row-title">{document.title}</span>
+                  <span className="wbc-row-meta">
+                    {legalDocumentTypeLabels[document.type]} · v{document.version}.{document.revision} ·{" "}
+                    {document._count.acceptances} accettazioni
+                    {document.isActive ? "" : " · disattivo"}
+                    {document.isRequired ? " · obbligatorio" : ""}
+                  </span>
+                </span>
+                <span className="wbc-row-chevron" aria-hidden="true">
+                  ▾
+                </span>
+              </summary>
+
+              <div style={{ display: "grid", gap: 16, paddingBottom: 18 }}>
+                {document.fileName ? (
+                  <a
+                    href={`/api/legal-documents/${document.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="wbc-btn wbc-btn-ghost wbc-btn-sm"
+                    style={{ justifySelf: "start" }}
+                  >
+                    Apri il PDF
+                  </a>
+                ) : null}
+
+                <form action={updateLegalDocumentAction} encType="multipart/form-data" style={{ display: "grid", gap: 15 }}>
+                  <input type="hidden" name="documentId" value={document.id} />
+                  <DocumentFields document={document} />
+                  <button type="submit" className="wbc-btn wbc-btn-primary">
+                    Salva modifiche
+                  </button>
+                </form>
+
+                <form action={deleteLegalDocumentAction}>
+                  <input type="hidden" name="documentId" value={document.id} />
+                  <button type="submit" className="wbc-btn wbc-btn-danger wbc-btn-sm">
+                    Elimina documento
+                  </button>
+                </form>
+              </div>
+            </details>
+          ))
+        )}
+      </Section>
+
+      <Section title="Nuovo documento">
+        <form action={createLegalDocumentAction} encType="multipart/form-data" style={{ display: "grid", gap: 15 }}>
+          <DocumentFields />
+          <button type="submit" className="wbc-btn wbc-btn-primary">
+            Crea documento
+          </button>
+        </form>
+      </Section>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+.wbc-doc { border-bottom: 1px solid var(--k-line); }
+.wbc-doc > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.wbc-doc > summary::-webkit-details-marker { display: none; }
+.wbc-doc[open] > summary .wbc-row-chevron { transform: rotate(180deg); }
+.wbc-doc > summary .wbc-row-chevron { transition: transform 160ms ease; font-size: 13px; }
+          `,
+        }}
+      />
+    </div>
   );
 }
