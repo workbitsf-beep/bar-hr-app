@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { EmptyState, Panel } from "../ui";
 import { SuperAdminFab } from "./super-admin-tabbar";
 
@@ -217,9 +216,7 @@ export function SuperAdminFrame({
 
       {description ? <p className="super-admin-description">{description}</p> : null}
 
-      <RevealOnScroll className="super-admin-content" delay={60}>
-        {children}
-      </RevealOnScroll>
+      <div className="super-admin-content">{children}</div>
 
       <SuperAdminFab />
 
