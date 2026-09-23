@@ -164,14 +164,30 @@ export default async function DashboardLayout({
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             {String(session.user.role) === "SUPER_ADMIN" ? (
               <form action={returnToSuperAdminConsoleAction} style={{ display: "inline-flex" }}>
-                <IconButton type="submit" aria-label="Torna alla console" title="Torna alla console">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <rect x="3.5" y="3.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                    <rect x="13.5" y="3.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                    <rect x="3.5" y="13.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                    <rect x="13.5" y="13.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                  </svg>
-                </IconButton>
+                <button
+                  type="submit"
+                  title="Torna alla console Super Admin"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    height: 36,
+                    padding: "0 13px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(94, 92, 230, 0.22)",
+                    background: "#f4f2fe",
+                    color: "#5b21b6",
+                    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    whiteSpace: "nowrap",
+                    cursor: "pointer",
+                    touchAction: "manipulation",
+                  }}
+                >
+                  Console
+                </button>
               </form>
             ) : null}
 
