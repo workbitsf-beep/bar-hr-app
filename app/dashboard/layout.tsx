@@ -45,31 +45,13 @@ export default async function DashboardLayout({
         <PushRegistration />
         <ConsoleShell
           userName={userName}
+          venues={accessibleBars.map((bar) => ({ id: bar.id, name: bar.name }))}
           accountPanel={
             <>
               <div className="wbc-account-id">
                 <strong>{userName}</strong>
                 <span>{session.user.email}</span>
               </div>
-
-              {accessibleBars.length > 0 ? (
-                <form action={selectBarAction} style={{ display: "grid", gap: 9 }}>
-                  <span className="wbc-field-label">Entra in un locale</span>
-                  <select name="barId" defaultValue={activeBarId ?? ""} aria-label={t.selectBar}>
-                    <option value="" disabled>
-                      Seleziona locale
-                    </option>
-                    {accessibleBars.map((bar) => (
-                      <option key={bar.id} value={bar.id}>
-                        {bar.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" className="wbc-btn wbc-btn-ghost wbc-btn-sm">
-                    Entra
-                  </button>
-                </form>
-              ) : null}
 
               <form action={setLanguageAction} style={{ display: "grid", gap: 9 }}>
                 <span className="wbc-field-label">{t.language}</span>
@@ -203,8 +185,22 @@ export default async function DashboardLayout({
           </div>
         }
         headerAction={
-          <LogoutForm action={logoutAction} style={{ display: "inline-flex" }}>
-            <IconButton type="submit" aria-label={t.logout} title={t.logout}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {String(session.user.role) === "SUPER_ADMIN" ? (
+              <form action={returnToSuperAdminConsoleAction} style={{ display: "inline-flex" }}>
+                <IconButton type="submit" aria-label="Torna alla console" title="Torna alla console">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3.5" y="3.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                    <rect x="13.5" y="3.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                    <rect x="3.5" y="13.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                    <rect x="13.5" y="13.5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                  </svg>
+                </IconButton>
+              </form>
+            ) : null}
+
+            <LogoutForm action={logoutAction} style={{ display: "inline-flex" }}>
+              <IconButton type="submit" aria-label={t.logout} title={t.logout}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M10 7V5.75C10 4.78 10.78 4 11.75 4h6.5C19.22 4 20 4.78 20 5.75v12.5c0 .97-.78 1.75-1.75 1.75h-6.5A1.75 1.75 0 0 1 10 18.25V17"
@@ -220,9 +216,10 @@ export default async function DashboardLayout({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-              </svg>
-            </IconButton>
-          </LogoutForm>
+                </svg>
+              </IconButton>
+            </LogoutForm>
+          </div>
         }
       >
         {children}

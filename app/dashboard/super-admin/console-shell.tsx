@@ -1,16 +1,19 @@
 import type { ReactNode } from "react";
 import { ConsoleAccount } from "./console-account";
 import { ConsoleRail } from "./console-rail";
+import { VenueJump } from "./console-venue-jump";
 
 const SELECT_CHEVRON =
   "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='m1 1.5 5 5 5-5' stroke='%239a9cac' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
 
 export function ConsoleShell({
   userName,
+  venues,
   accountPanel,
   children,
 }: {
   userName: string;
+  venues: Array<{ id: string; name: string }>;
   accountPanel: ReactNode;
   children: ReactNode;
 }) {
@@ -31,9 +34,13 @@ export function ConsoleShell({
             Workbit <span>Console</span>
           </span>
 
-          <ConsoleAccount initials={initials} name={userName}>
-            {accountPanel}
-          </ConsoleAccount>
+          <div className="wbc-head-tools">
+            <VenueJump venues={venues} />
+
+            <ConsoleAccount initials={initials} name={userName}>
+              {accountPanel}
+            </ConsoleAccount>
+          </div>
         </div>
       </header>
 
@@ -105,6 +112,59 @@ export function ConsoleShell({
 
 .wbc-mark i { width: 6px; height: 6px; border-radius: 50%; background: var(--k-accent); flex: 0 0 auto; }
 .wbc-mark span { color: rgba(255, 255, 255, 0.5); }
+
+.wbc-head-tools { display: flex; align-items: center; gap: 9px; flex: 0 1 auto; min-width: 0; }
+
+.wbc-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 152px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.wbc-jump svg { flex: 0 0 auto; opacity: 0.75; }
+.wbc-jump span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wbc-jump:disabled { opacity: 0.55; cursor: default; }
+
+.wbc-jump-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--k-line);
+  border-radius: 12px;
+  background: var(--k-fill);
+  color: var(--k-ink);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wbc-jump-row span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.wbc-jump-row i { font-style: normal; color: var(--k-ink-3); font-size: 17px; }
+.wbc-jump-row svg { flex: 0 0 auto; color: var(--k-accent); }
+.wbc-jump-row:disabled { opacity: 0.55; cursor: default; }
+
+@media (max-width: 400px) {
+  .wbc-mark span { display: none; }
+  .wbc-jump { max-width: 118px; }
+}
 
 .wbc-avatar {
   width: 34px;
@@ -251,6 +311,65 @@ export function ConsoleShell({
 .wbc-datalist-row dt { margin: 0; font-size: 13px; color: var(--k-ink-2); flex: 0 0 auto; }
 .wbc-datalist-row dd { margin: 0; font-size: 13.5px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 
+/* ---------- donut ---------- */
+.wbc-donut { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }
+.wbc-donut-figure { position: relative; flex: 0 0 auto; }
+.wbc-donut-figure svg { display: block; }
+
+.wbc-donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 3px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.wbc-donut-center strong {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.wbc-donut-center span {
+  font-family: var(--k-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--k-ink-3);
+}
+
+.wbc-donut-legend { flex: 1 1 190px; min-width: 0; margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+
+.wbc-donut-legend li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--k-ink-2);
+}
+
+.wbc-donut-legend-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+.wbc-donut-legend-value {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-family: var(--k-mono);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--k-ink);
+}
+
+.wbc-donut-legend-value i { font-style: normal; font-size: 10px; color: var(--k-ink-3); min-width: 30px; text-align: right; }
+
 /* ---------- charts ---------- */
 .wbc-chart { display: grid; gap: 9px; }
 .wbc-chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
@@ -301,15 +420,6 @@ export function ConsoleShell({
 
 .wbc-chart-peak { color: var(--k-ink-2); text-align: center; }
 
-.wbc-rank { display: grid; gap: 14px; }
-.wbc-rank-item { display: grid; gap: 6px; text-decoration: none; color: inherit; }
-.wbc-rank-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.wbc-rank-label { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
-.wbc-rank-value { flex: 0 0 auto; font-family: var(--k-mono); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.wbc-rank-meta { font-family: var(--k-mono); font-size: 10px; color: var(--k-ink-3); }
-.wbc-rank-track { display: block; height: 6px; border-radius: 999px; background: var(--k-line); overflow: hidden; }
-.wbc-rank-fill { display: block; height: 100%; border-radius: 999px; background: var(--k-accent); }
-
 .wbc-stamp {
   margin: 0;
   display: flex;
@@ -324,13 +434,6 @@ export function ConsoleShell({
 }
 
 .wbc-stamp i { font-style: normal; margin-right: 8px; color: var(--k-line-strong); }
-
-/* ---------- distribution ---------- */
-.wbc-dist-track { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--k-line); }
-.wbc-dist-track span { display: block; }
-.wbc-dist-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; }
-.wbc-dist-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--k-ink-2); }
-.wbc-dist-item strong { font-family: var(--k-mono); font-variant-numeric: tabular-nums; color: var(--k-ink); }
 
 /* ---------- prose helpers ---------- */
 .wbc-empty { margin: 0; padding: 18px 0; color: var(--k-ink-3); font-size: 13.5px; }

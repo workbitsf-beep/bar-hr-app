@@ -2,7 +2,7 @@ import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
 import Link from "next/link";
 import { getDatabaseConnectionInfo, prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
-import { ColumnChart, DataList, Figure, FigureBand, Forbidden, Note, Section, Status } from "../console-ui";
+import { ColumnChart, DataList, Donut, Figure, FigureBand, Forbidden, Note, Section, Status } from "../console-ui";
 import { countByDay, windowStart } from "../console-metrics";
 
 function startOfMonth() {
@@ -138,15 +138,23 @@ export default async function ConsoleUsagePage() {
         />
       </Section>
 
-      <Section title="Stato della rete">
+      <Section title="Tipo di attività">
+        <Donut
+          centerLabel="locali"
+          slices={[
+            { label: "Ristorazione", value: restaurantBars, color: "#6d28d9" },
+            { label: "Aziende", value: companyBars, color: "#0e7a5f" },
+          ]}
+        />
+      </Section>
+
+      <Section title="Stato degli abbonamenti">
         <DataList
           items={[
-            { label: "Locali totali", value: totalBars },
-            { label: "Ristorazione", value: restaurantBars },
-            { label: "Aziende", value: companyBars },
-            { label: "Abbonamenti attivi o in prova", value: activeSubscriptions },
+            { label: "Attivi o in prova", value: activeSubscriptions },
             { label: "In prova", value: trialSubscriptions },
             { label: "Non attivi", value: inactiveSubscriptions },
+            { label: "Locali totali", value: totalBars },
           ]}
         />
       </Section>

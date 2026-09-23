@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
-import { Distribution, Empty, Figure, FigureBand, Forbidden, RankBars, Row, Section, Status } from "../console-ui";
+import { Donut, Empty, Figure, FigureBand, Forbidden, Row, SERIES_COLORS, Section, Status } from "../console-ui";
 import {
   annualRevenue,
   formatCurrency,
@@ -75,6 +75,27 @@ export default async function ConsoleMoneyPage({
   const visible =
     active === "ALL" ? subscriptions : subscriptions.filter((subscription) => bucketOf(subscription) === active);
 
+  // Top earners keep their own slice; the tail is grouped so the ring stays
+  // readable however many venues the network grows to.
+  const earners = subscriptions
+    .map((subscription) => ({ label: subscription.bar.name, value: monthlyRevenue(subscription) }))
+    .filter((entry) => entry.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const leaders = earners.slice(0, 5);
+  const tail = earners.slice(5);
+  const revenueSlices = [
+    ...leaders.map((entry, index) => ({ ...entry, color: SERIES_COLORS[index % SERIES_COLORS.length] })),
+    ...(tail.length > 0
+      ? [
+          {
+            label: `Altri ${tail.length}`,
+            value: tail.reduce((sum, entry) => sum + entry.value, 0),
+            color: SERIES_COLORS[5],
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="wbc-page">
       <div className="wbc-page-head">
@@ -88,9 +109,10 @@ export default async function ConsoleMoneyPage({
         <Figure label="Paganti" value={counts.PAYING ?? 0} meta={`su ${subscriptions.length} abbonamenti`} />
       </FigureBand>
 
-      <Section title="Composizione">
-        <Distribution
-          segments={[
+      <Section title="Composizione abbonamenti">
+        <Donut
+          centerLabel="abbonamenti"
+          slices={[
             { label: "Paganti", value: counts.PAYING ?? 0, tone: "positive" },
             { label: "In prova", value: counts.TRIAL ?? 0, tone: "warning" },
             { label: "Da recuperare", value: counts.TROUBLE ?? 0, tone: "negative" },
@@ -100,19 +122,11 @@ export default async function ConsoleMoneyPage({
         />
       </Section>
 
-      <Section title="Ricavo per locale">
-        <RankBars
-          format={(value) => `${formatCurrency(value)}/mese`}
-          items={subscriptions
-            .map((subscription) => ({
-              id: subscription.id,
-              label: subscription.bar.name,
-              value: monthlyRevenue(subscription),
-              meta: planLabel(subscription),
-              href: `/dashboard/super-admin/bar/${subscription.bar.id}`,
-            }))
-            .filter((item) => item.value > 0)
-            .sort((a, b) => b.value - a.value)}
+      <Section title="Quota di ricavo">
+        <Donut
+          centerLabel="al mese"
+          format={(value) => formatCurrency(value, 0)}
+          slices={revenueSlices}
         />
       </Section>
 

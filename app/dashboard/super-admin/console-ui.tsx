@@ -204,6 +204,107 @@ export function Forbidden() {
   );
 }
 
+const TONE_COLOR: Record<Tone, string> = {
+  neutral: "var(--k-ink-3)",
+  positive: "var(--k-pos)",
+  warning: "var(--k-warn)",
+  negative: "var(--k-neg)",
+};
+
+/** Palette for donuts whose slices are things (venues), not states. */
+export const SERIES_COLORS = ["#6d28d9", "#0e7a5f", "#a5620d", "#3b6fd4", "#b3261e", "#8b8fa3"];
+
+export type Slice = { label: string; value: number; tone?: Tone; color?: string };
+
+/**
+ * A donut. Drawn as one circle per slice with a dashed stroke, which keeps
+ * the edges crisp at any size and needs no charting library. Every slice is
+ * named in the legend with its value and share, and the total sits in the
+ * middle, so the ring never has to be read by eye alone.
+ */
+export function Donut({
+  slices,
+  centerLabel,
+  size = 150,
+  thickness = 19,
+  format = (value: number) => String(value),
+}: {
+  slices: Slice[];
+  centerLabel: string;
+  size?: number;
+  thickness?: number;
+  format?: (value: number) => string;
+}) {
+  const radius = (size - thickness) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const present = slices.filter((slice) => slice.value > 0);
+  const total = present.reduce((sum, slice) => sum + slice.value, 0);
+
+  let consumed = 0;
+
+  return (
+    <div className="wbc-donut">
+      <div className="wbc-donut-figure" style={{ width: size, height: size }}>
+        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="presentation">
+          <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke="var(--k-line)"
+              strokeWidth={thickness}
+            />
+            {total > 0
+              ? present.map((slice) => {
+                  const length = (slice.value / total) * circumference;
+                  const offset = -consumed;
+                  consumed += length;
+
+                  return (
+                    <circle
+                      key={slice.label}
+                      cx={size / 2}
+                      cy={size / 2}
+                      r={radius}
+                      fill="none"
+                      stroke={slice.color ?? TONE_COLOR[slice.tone ?? "neutral"]}
+                      strokeWidth={thickness}
+                      strokeDasharray={`${length} ${circumference - length}`}
+                      strokeDashoffset={offset}
+                    />
+                  );
+                })
+              : null}
+          </g>
+        </svg>
+
+        <div className="wbc-donut-center">
+          <strong>{total > 0 ? format(total) : "—"}</strong>
+          <span>{centerLabel}</span>
+        </div>
+      </div>
+
+      <ul className="wbc-donut-legend">
+        {slices.map((slice) => (
+          <li key={slice.label}>
+            <span
+              className="wbc-dot"
+              style={{ background: slice.color ?? TONE_COLOR[slice.tone ?? "neutral"] }}
+              aria-hidden="true"
+            />
+            <span className="wbc-donut-legend-label">{slice.label}</span>
+            <span className="wbc-donut-legend-value">
+              {format(slice.value)}
+              {total > 0 ? <i>{Math.round((slice.value / total) * 100)}%</i> : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * A column plot. Laid out with flex rather than SVG so it stays sharp and
  * responsive at any width; the gridlines come from a repeating gradient.
@@ -263,50 +364,6 @@ export function ColumnChart({
   );
 }
 
-/** Ranked horizontal bars, for comparing named things on one scale. */
-export function RankBars({
-  items,
-  format = (value: number) => String(value),
-}: {
-  items: Array<{ id: string; label: string; value: number; meta?: string; href?: string }>;
-  format?: (value: number) => string;
-}) {
-  if (items.length === 0) {
-    return <Empty>Nessun dato da confrontare.</Empty>;
-  }
-
-  const max = Math.max(1, ...items.map((item) => item.value));
-
-  return (
-    <div className="wbc-rank">
-      {items.map((item) => {
-        const body = (
-          <>
-            <span className="wbc-rank-line">
-              <span className="wbc-rank-label">{item.label}</span>
-              <span className="wbc-rank-value">{format(item.value)}</span>
-            </span>
-            <span className="wbc-rank-track">
-              <span className="wbc-rank-fill" style={{ width: `${Math.max(2, (item.value / max) * 100)}%` }} />
-            </span>
-            {item.meta ? <span className="wbc-rank-meta">{item.meta}</span> : null}
-          </>
-        );
-
-        return item.href ? (
-          <Link key={item.id} href={item.href} className="wbc-rank-item">
-            {body}
-          </Link>
-        ) : (
-          <div key={item.id} className="wbc-rank-item">
-            {body}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 /** A terse machine-readable status line, the way a console states its state. */
 export function Stamp({ parts }: { parts: string[] }) {
   return (
@@ -321,38 +378,3 @@ export function Stamp({ parts }: { parts: string[] }) {
   );
 }
 
-/** A horizontal proportion bar. Segments with a zero share are dropped. */
-export function Distribution({
-  segments,
-}: {
-  segments: Array<{ label: string; value: number; tone: Tone }>;
-}) {
-  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
-
-  return (
-    <div className="wbc-dist">
-      <div className="wbc-dist-track">
-        {total > 0
-          ? segments
-              .filter((segment) => segment.value > 0)
-              .map((segment) => (
-                <span
-                  key={segment.label}
-                  className={`wbc-bg-${segment.tone}`}
-                  style={{ width: `${(segment.value / total) * 100}%` }}
-                />
-              ))
-          : null}
-      </div>
-      <div className="wbc-dist-legend">
-        {segments.map((segment) => (
-          <span key={segment.label} className="wbc-dist-item">
-            <Dot tone={segment.tone} />
-            {segment.label}
-            <strong>{segment.value}</strong>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}

@@ -3,19 +3,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { toTimeInputValueInTimeZone } from "@/lib/time-zone";
 import { getDashboardContext } from "../context";
-import { countByDay, windowStart } from "./console-metrics";
-import {
-  ColumnChart,
-  Empty,
-  Figure,
-  FigureBand,
-  Forbidden,
-  Note,
-  Row,
-  Section,
-  Stamp,
-  Status,
-} from "./console-ui";
+import { windowStart } from "./console-metrics";
+import { Donut, Empty, Figure, FigureBand, Forbidden, Note, Row, Section, Stamp, Status } from "./console-ui";
 import {
   accessUnlocked,
   activityLabel,
@@ -78,13 +67,10 @@ export default async function ConsoleNetworkPage({
   const activity: "ALL" | ActivityType =
     rawActivity === "COMPANY" ? ActivityType.COMPANY : rawActivity === "RESTAURANT" ? ActivityType.RESTAURANT : "ALL";
 
-  const [byActivity, subscriptions, clockIns, bars] = await Promise.all([
+  const [byActivity, subscriptions, clockInsToday, bars] = await Promise.all([
     prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
     prisma.subscription.findMany({ select: SUBSCRIPTION_FIELDS }),
-    prisma.timeLog.findMany({
-      where: { timestamp: { gte: windowStart(14) } },
-      select: { timestamp: true },
-    }),
+    prisma.timeLog.count({ where: { timestamp: { gte: windowStart(1) } } }),
     prisma.bar.findMany({
       where: buildWhere(query, activity),
       orderBy: { createdAt: "desc" },
@@ -110,11 +96,20 @@ export default async function ConsoleNetworkPage({
     (subscription) => subscription.status === "PAST_DUE" || subscription.status === "UNPAID"
   ).length;
 
-  const activity14 = countByDay(
-    clockIns.map((log) => log.timestamp),
-    14
-  );
-  const clockInsToday = activity14[activity14.length - 1]?.value ?? 0;
+  // Exclusive buckets, so the ring adds up to the number of venues.
+  const onTrial = subscriptions.filter((subscription) => subscription.planType === "TRIAL").length;
+  const troubledCount = subscriptions.filter(
+    (subscription) =>
+      subscription.planType !== "TRIAL" && (subscription.status === "PAST_DUE" || subscription.status === "UNPAID")
+  ).length;
+  const runningCount = subscriptions.filter(
+    (subscription) =>
+      subscription.planType !== "TRIAL" &&
+      subscription.status !== "PAST_DUE" &&
+      subscription.status !== "UNPAID" &&
+      accessUnlocked(subscription)
+  ).length;
+  const dormant = Math.max(0, totalBars - onTrial - troubledCount - runningCount);
 
   const filterHref = (value: "ALL" | "RESTAURANT" | "COMPANY") =>
     `/dashboard/super-admin?activity=${value}${query ? `&q=${encodeURIComponent(query)}` : ""}`;
@@ -159,11 +154,15 @@ export default async function ConsoleNetworkPage({
         </div>
       ) : null}
 
-      <Section title="Attività della rete">
-        <ColumnChart
-          data={activity14}
-          caption="timbrature · 14 giorni"
-          format={(value) => `${value}`}
+      <Section title="Stato della rete">
+        <Donut
+          centerLabel="locali"
+          slices={[
+            { label: "Operativi", value: runningCount, tone: "positive" },
+            { label: "In prova", value: onTrial, tone: "warning" },
+            { label: "Da recuperare", value: troubledCount, tone: "negative" },
+            { label: "Non attivi", value: dormant, tone: "neutral" },
+          ]}
         />
       </Section>
 
