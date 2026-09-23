@@ -251,6 +251,80 @@ export function ConsoleShell({
 .wbc-datalist-row dt { margin: 0; font-size: 13px; color: var(--k-ink-2); flex: 0 0 auto; }
 .wbc-datalist-row dd { margin: 0; font-size: 13.5px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 
+/* ---------- charts ---------- */
+.wbc-chart { display: grid; gap: 9px; }
+.wbc-chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+
+.wbc-chart-scale {
+  font-family: var(--k-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--k-ink-3);
+}
+
+.wbc-chart-plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  padding-top: 2px;
+  border-bottom: 1px solid var(--k-line-strong);
+  background-image: repeating-linear-gradient(
+    to top,
+    transparent 0,
+    transparent calc(25% - 1px),
+    var(--k-line) calc(25% - 1px),
+    var(--k-line) 25%
+  );
+}
+
+.wbc-col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
+
+.wbc-col-fill {
+  display: block;
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  background: var(--k-accent);
+}
+
+.wbc-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--k-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--k-ink-3);
+}
+
+.wbc-chart-peak { color: var(--k-ink-2); text-align: center; }
+
+.wbc-rank { display: grid; gap: 14px; }
+.wbc-rank-item { display: grid; gap: 6px; text-decoration: none; color: inherit; }
+.wbc-rank-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.wbc-rank-label { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.wbc-rank-value { flex: 0 0 auto; font-family: var(--k-mono); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wbc-rank-meta { font-family: var(--k-mono); font-size: 10px; color: var(--k-ink-3); }
+.wbc-rank-track { display: block; height: 6px; border-radius: 999px; background: var(--k-line); overflow: hidden; }
+.wbc-rank-fill { display: block; height: 100%; border-radius: 999px; background: var(--k-accent); }
+
+.wbc-stamp {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-family: var(--k-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--k-ink-3);
+}
+
+.wbc-stamp i { font-style: normal; margin-right: 8px; color: var(--k-line-strong); }
+
 /* ---------- distribution ---------- */
 .wbc-dist-track { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--k-line); }
 .wbc-dist-track span { display: block; }

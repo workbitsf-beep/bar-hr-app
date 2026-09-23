@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
-import { Distribution, Empty, Figure, FigureBand, Forbidden, Row, Section, Status } from "../console-ui";
+import { Distribution, Empty, Figure, FigureBand, Forbidden, RankBars, Row, Section, Status } from "../console-ui";
 import {
   annualRevenue,
   formatCurrency,
@@ -97,6 +97,22 @@ export default async function ConsoleMoneyPage({
             { label: "Gratuiti", value: counts.FREE ?? 0, tone: "neutral" },
             { label: "Inattivi", value: counts.OFF ?? 0, tone: "neutral" },
           ]}
+        />
+      </Section>
+
+      <Section title="Ricavo per locale">
+        <RankBars
+          format={(value) => `${formatCurrency(value)}/mese`}
+          items={subscriptions
+            .map((subscription) => ({
+              id: subscription.id,
+              label: subscription.bar.name,
+              value: monthlyRevenue(subscription),
+              meta: planLabel(subscription),
+              href: `/dashboard/super-admin/bar/${subscription.bar.id}`,
+            }))
+            .filter((item) => item.value > 0)
+            .sort((a, b) => b.value - a.value)}
         />
       </Section>
 

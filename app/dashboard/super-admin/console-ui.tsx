@@ -204,6 +204,123 @@ export function Forbidden() {
   );
 }
 
+/**
+ * A column plot. Laid out with flex rather than SVG so it stays sharp and
+ * responsive at any width; the gridlines come from a repeating gradient.
+ * The scale is stated (peak at top) and the peak column is named, so every
+ * label on the chart refers to a value the chart actually reaches.
+ */
+export function ColumnChart({
+  data,
+  caption,
+  height = 108,
+  format = (value: number) => String(value),
+}: {
+  data: Array<{ label: string; value: number }>;
+  caption?: string;
+  height?: number;
+  format?: (value: number) => string;
+}) {
+  if (data.length === 0) {
+    return <Empty>Nessun dato nel periodo.</Empty>;
+  }
+
+  const max = Math.max(1, ...data.map((point) => point.value));
+  const peak = data.reduce((best, point) => (point.value > best.value ? point : best), data[0]);
+  const total = data.reduce((sum, point) => sum + point.value, 0);
+
+  return (
+    <div className="wbc-chart">
+      <div className="wbc-chart-head">
+        <span className="wbc-chart-scale">picco {format(max)}</span>
+        {caption ? <span className="wbc-chart-scale">{caption}</span> : null}
+      </div>
+
+      <div className="wbc-chart-plot" style={{ height, gap: data.length > 20 ? 2 : 3 }}>
+        {data.map((point, index) => (
+          <span key={`${point.label}-${index}`} className="wbc-col" title={`${point.label}: ${format(point.value)}`}>
+            {/* A day with nothing in it draws nothing, so an empty column is
+                never mistaken for a small value. */}
+            {point.value > 0 ? (
+              <span className="wbc-col-fill" style={{ height: `${Math.max(3, (point.value / max) * 100)}%` }} />
+            ) : null}
+          </span>
+        ))}
+      </div>
+
+      <div className="wbc-chart-axis">
+        <span>{data[0]?.label}</span>
+        {total > 0 ? (
+          <span className="wbc-chart-peak">
+            max {format(peak.value)} il {peak.label}
+          </span>
+        ) : (
+          <span className="wbc-chart-peak">nessuna attività</span>
+        )}
+        <span>{data[data.length - 1]?.label}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Ranked horizontal bars, for comparing named things on one scale. */
+export function RankBars({
+  items,
+  format = (value: number) => String(value),
+}: {
+  items: Array<{ id: string; label: string; value: number; meta?: string; href?: string }>;
+  format?: (value: number) => string;
+}) {
+  if (items.length === 0) {
+    return <Empty>Nessun dato da confrontare.</Empty>;
+  }
+
+  const max = Math.max(1, ...items.map((item) => item.value));
+
+  return (
+    <div className="wbc-rank">
+      {items.map((item) => {
+        const body = (
+          <>
+            <span className="wbc-rank-line">
+              <span className="wbc-rank-label">{item.label}</span>
+              <span className="wbc-rank-value">{format(item.value)}</span>
+            </span>
+            <span className="wbc-rank-track">
+              <span className="wbc-rank-fill" style={{ width: `${Math.max(2, (item.value / max) * 100)}%` }} />
+            </span>
+            {item.meta ? <span className="wbc-rank-meta">{item.meta}</span> : null}
+          </>
+        );
+
+        return item.href ? (
+          <Link key={item.id} href={item.href} className="wbc-rank-item">
+            {body}
+          </Link>
+        ) : (
+          <div key={item.id} className="wbc-rank-item">
+            {body}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A terse machine-readable status line, the way a console states its state. */
+export function Stamp({ parts }: { parts: string[] }) {
+  return (
+    <p className="wbc-stamp">
+      {parts.map((part, index) => (
+        <span key={part}>
+          {index > 0 ? <i aria-hidden="true">·</i> : null}
+          {part}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 /** A horizontal proportion bar. Segments with a zero share are dropped. */
 export function Distribution({
   segments,

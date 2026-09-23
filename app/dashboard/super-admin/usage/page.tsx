@@ -2,7 +2,8 @@ import { ActivityType, Role, SubscriptionStatus } from "@prisma/client";
 import Link from "next/link";
 import { getDatabaseConnectionInfo, prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
-import { DataList, Figure, FigureBand, Forbidden, Note, Section, Status } from "../console-ui";
+import { ColumnChart, DataList, Figure, FigureBand, Forbidden, Note, Section, Status } from "../console-ui";
+import { countByDay, windowStart } from "../console-metrics";
 
 function startOfMonth() {
   const now = new Date();
@@ -90,6 +91,12 @@ export default async function ConsoleUsagePage() {
     prisma.notification.count({ where: { read: false } }),
   ]);
 
+  const chartStart = windowStart(30);
+  const [recentTimelogs, recentNotifications] = await Promise.all([
+    prisma.timeLog.findMany({ where: { timestamp: { gte: chartStart } }, select: { timestamp: true } }),
+    prisma.notification.findMany({ where: { createdAt: { gte: chartStart } }, select: { createdAt: true } }),
+  ]);
+
   const runtime = getRuntimeMetrics();
   const privateNetwork = connectionInfo.connection === "railway-private";
 
@@ -109,6 +116,27 @@ export default async function ConsoleUsagePage() {
         <Figure label="Notifiche" value={monthNotifications} meta={`${unreadNotifications} non lette`} />
         <Figure label="Account" value={totalUsers} meta="esclusi i super admin" />
       </FigureBand>
+
+      <Section title="Timbrature al giorno">
+        <ColumnChart
+          data={countByDay(
+            recentTimelogs.map((log) => log.timestamp),
+            30
+          )}
+          caption="ultimi 30 giorni"
+        />
+      </Section>
+
+      <Section title="Notifiche inviate">
+        <ColumnChart
+          data={countByDay(
+            recentNotifications.map((notification) => notification.createdAt),
+            30
+          )}
+          caption="ultimi 30 giorni"
+          height={84}
+        />
+      </Section>
 
       <Section title="Stato della rete">
         <DataList

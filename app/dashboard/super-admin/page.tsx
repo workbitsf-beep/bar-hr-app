@@ -1,8 +1,21 @@
 import { ActivityType, Prisma } from "@prisma/client";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { toTimeInputValueInTimeZone } from "@/lib/time-zone";
 import { getDashboardContext } from "../context";
-import { Empty, Figure, FigureBand, Forbidden, Note, Row, Section, Status } from "./console-ui";
+import { countByDay, windowStart } from "./console-metrics";
+import {
+  ColumnChart,
+  Empty,
+  Figure,
+  FigureBand,
+  Forbidden,
+  Note,
+  Row,
+  Section,
+  Stamp,
+  Status,
+} from "./console-ui";
 import {
   accessUnlocked,
   activityLabel,
@@ -65,9 +78,13 @@ export default async function ConsoleNetworkPage({
   const activity: "ALL" | ActivityType =
     rawActivity === "COMPANY" ? ActivityType.COMPANY : rawActivity === "RESTAURANT" ? ActivityType.RESTAURANT : "ALL";
 
-  const [byActivity, subscriptions, bars] = await Promise.all([
+  const [byActivity, subscriptions, clockIns, bars] = await Promise.all([
     prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
     prisma.subscription.findMany({ select: SUBSCRIPTION_FIELDS }),
+    prisma.timeLog.findMany({
+      where: { timestamp: { gte: windowStart(14) } },
+      select: { timestamp: true },
+    }),
     prisma.bar.findMany({
       where: buildWhere(query, activity),
       orderBy: { createdAt: "desc" },
@@ -93,6 +110,12 @@ export default async function ConsoleNetworkPage({
     (subscription) => subscription.status === "PAST_DUE" || subscription.status === "UNPAID"
   ).length;
 
+  const activity14 = countByDay(
+    clockIns.map((log) => log.timestamp),
+    14
+  );
+  const clockInsToday = activity14[activity14.length - 1]?.value ?? 0;
+
   const filterHref = (value: "ALL" | "RESTAURANT" | "COMPANY") =>
     `/dashboard/super-admin?activity=${value}${query ? `&q=${encodeURIComponent(query)}` : ""}`;
 
@@ -100,7 +123,14 @@ export default async function ConsoleNetworkPage({
     <div className="wbc-page">
       <div className="wbc-page-head">
         <h1 className="wbc-title">Rete</h1>
-        <p className="wbc-desc">Tutti i locali e le aziende collegate a Workbit, con il loro stato di attivazione.</p>
+        <Stamp
+          parts={[
+            `${totalBars} locali`,
+            `${liveCount} operativi`,
+            `${clockInsToday} timbrature oggi`,
+            `agg. ${toTimeInputValueInTimeZone(new Date())}`,
+          ]}
+        />
       </div>
 
       <FigureBand>
@@ -128,6 +158,14 @@ export default async function ConsoleNetworkPage({
           </Note>
         </div>
       ) : null}
+
+      <Section title="Attività della rete">
+        <ColumnChart
+          data={activity14}
+          caption="timbrature · 14 giorni"
+          format={(value) => `${value}`}
+        />
+      </Section>
 
       <Section
         title="Locali"
