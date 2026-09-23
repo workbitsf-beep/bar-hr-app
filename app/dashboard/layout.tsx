@@ -164,28 +164,33 @@ export default async function DashboardLayout({
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             {String(session.user.role) === "SUPER_ADMIN" ? (
               <form action={returnToSuperAdminConsoleAction} style={{ display: "inline-flex" }}>
+                {/* Dressed like the console's own header, so the control looks
+                    like the place it leads to. */}
                 <button
                   type="submit"
                   title="Torna alla console Super Admin"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
+                    gap: 7,
                     height: 36,
-                    padding: "0 13px",
+                    padding: "0 14px",
                     borderRadius: 999,
-                    border: "1px solid rgba(94, 92, 230, 0.22)",
-                    background: "#f4f2fe",
-                    color: "#5b21b6",
-                    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
+                    border: 0,
+                    background: "#15161c",
+                    color: "#ffffff",
+                    fontSize: 12.5,
+                    fontWeight: 650,
+                    letterSpacing: "-0.01em",
                     whiteSpace: "nowrap",
                     cursor: "pointer",
                     touchAction: "manipulation",
                   }}
                 >
+                  <span
+                    aria-hidden="true"
+                    style={{ width: 6, height: 6, borderRadius: 999, background: "#a855f7", flex: "0 0 auto" }}
+                  />
                   Console
                 </button>
               </form>
