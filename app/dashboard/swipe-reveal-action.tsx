@@ -169,6 +169,17 @@ export function SwipeRevealAction({
       return;
     }
 
+    if (!horizontalDragRef.current) {
+      // With a mouse, the browser has already started selecting text by the
+      // time the drag is recognised, which fights the slide and leaves the
+      // row highlighted. Drop the selection the moment it becomes a drag.
+      try {
+        window.getSelection()?.removeAllRanges();
+      } catch {
+        // Selection is unavailable in some embedded contexts.
+      }
+    }
+
     horizontalDragRef.current = true;
     setDragging(true);
     const rawOffset = startOffsetRef.current + deltaX;
@@ -411,12 +422,16 @@ export function SwipeRevealAction({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
+        onDragStart={(event) => event.preventDefault()}
         style={{
           position: "relative",
           zIndex: 1,
           transform: `translateX(${visualOffset}px)`,
           transition: dragging ? "none" : "transform 240ms cubic-bezier(0.2, 0.82, 0.24, 1)",
           touchAction: "pan-y pinch-zoom",
+          userSelect: dragging ? "none" : undefined,
+          WebkitUserSelect: dragging ? "none" : undefined,
+          cursor: dragging ? "grabbing" : undefined,
           willChange: dragging || completingOffset !== null ? "transform" : "auto",
         }}
       >
