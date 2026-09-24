@@ -13,6 +13,9 @@ const config: CapacitorConfig = {
   appName: "Workbit",
   webDir: "capacitor-web",
   backgroundColor: "#f7f3ff",
+  // Shown instead of the system's grey network error when the site cannot be
+  // reached. Capacitor loads it by itself on a failed main-frame load.
+  errorPath: "index.html",
   server: {
     url: "https://app.workbit.it",
     cleartext: false,

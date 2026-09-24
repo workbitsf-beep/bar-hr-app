@@ -13,35 +13,55 @@
         display: grid;
         place-content: center;
         justify-items: center;
-        gap: 14px;
-        padding: 32px 24px;
-        background: #f7f3ff;
+        gap: 16px;
+        padding: 40px 26px calc(40px + env(safe-area-inset-bottom, 0px));
+        background: #efebfa;
         color: #15161c;
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
         text-align: center;
       }
 
       .mark {
-        width: 56px;
-        height: 56px;
-        border-radius: 16px;
-        background: #1b1830;
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        background: #151a3f;
         color: #ffffff;
         display: grid;
         place-content: center;
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 800;
         letter-spacing: -0.04em;
       }
 
       .mark i { color: #a855f7; font-style: normal; }
-      h1 { margin: 6px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
-      p { margin: 0; max-width: 34ch; font-size: 14px; line-height: 1.55; color: #5b5e70; }
+
+      h1 { margin: 8px 0 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
+      p { margin: 0; max-width: 32ch; font-size: 14.5px; line-height: 1.6; color: #5b5e70; }
+
+      button {
+        margin-top: 10px;
+        min-height: 46px;
+        padding: 0 26px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #0b1024 0%, #5b21b6 48%, #a855f7 100%);
+        color: #ffffff;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+
+      small { font-size: 12px; color: #9a9cac; }
     </style>
   </head>
   <body>
     <span class="mark">W<i>B</i></span>
-    <h1>Connessione assente</h1>
-    <p>Workbit ha bisogno della rete per mostrarti turni e timbrature. Controlla la connessione e riapri l&rsquo;app.</p>
+    <h1>Nessuna connessione</h1>
+    <p>Workbit ha bisogno della rete per mostrarti turni, timbrature e documenti.</p>
+    <button type="button" onclick="window.location.href = 'https://app.workbit.it'">Riprova</button>
+    <small>Controlla Wi-Fi o dati mobili</small>
   </body>
 </html>
