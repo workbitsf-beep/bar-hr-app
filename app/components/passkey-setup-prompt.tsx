@@ -42,9 +42,8 @@ export function PasskeySetupPrompt() {
 
     async function checkSupport() {
       try {
-        await ensureNativePasskeySupport();
-
-        const supportsWebAuthn = browserSupportsWebAuthn();
+        const bridgeReady = await ensureNativePasskeySupport();
+        const supportsWebAuthn = bridgeReady && browserSupportsWebAuthn();
         const platformAuthenticator =
           supportsWebAuthn && (await platformAuthenticatorIsAvailable());
 

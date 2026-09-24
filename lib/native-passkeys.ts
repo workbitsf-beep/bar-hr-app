@@ -16,11 +16,19 @@ import { isNativeApp } from "./native-app";
  * the checks in the passkey components run on mount and would otherwise read a
  * web view that has not been patched yet.
  */
-let installation: Promise<void> | null = null;
+let installation: Promise<boolean> | null = null;
 
-export function ensureNativePasskeySupport(): Promise<void> {
+/**
+ * Resolves true when passkeys can actually be used here.
+ *
+ * In a browser that is always the case. In the app it depends on the installed
+ * build carrying the plugin, which an older build does not — and an Android web
+ * view answers yes to the usual support checks while failing every real call,
+ * so without this the buttons would look available and then refuse.
+ */
+export function ensureNativePasskeySupport(): Promise<boolean> {
   if (!isNativeApp()) {
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
 
   installation ??= install();
@@ -33,9 +41,29 @@ async function install() {
     const { CapacitorPasskey } = await import("@capgo/capacitor-passkey");
 
     await CapacitorPasskey.autoShimWebAuthn();
+
+    return true;
   } catch (error) {
-    // Nothing to recover: the passkey buttons find no support and stay
-    // disabled, leaving email and password as the way in.
     console.error("[passkey] native bridge unavailable", error);
+
+    return false;
   }
+}
+
+/**
+ * Turns a failed passkey call into something worth reading.
+ *
+ * The browser reports these as DOMExceptions whose name is the only part that
+ * says what went wrong, so it is kept alongside the plain sentence.
+ */
+export function describePasskeyFailure(error: unknown) {
+  if (error instanceof Error && error.name === "NotAllowedError") {
+    return "Operazione annullata o non autorizzata dal dispositivo.";
+  }
+
+  const detail = error instanceof Error ? error.name || error.message : "";
+
+  return detail
+    ? `Il dispositivo non ha completato la registrazione biometrica (${detail}).`
+    : "Il dispositivo non ha completato la registrazione biometrica.";
 }

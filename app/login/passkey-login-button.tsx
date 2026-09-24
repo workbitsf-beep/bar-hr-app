@@ -49,9 +49,8 @@ export function PasskeyLoginButton({
       try {
         // Inside the installed app this is what puts the passkey API in place;
         // in a browser it returns immediately.
-        await ensureNativePasskeySupport();
-
-        const supportsWebAuthn = browserSupportsWebAuthn();
+        const bridgeReady = await ensureNativePasskeySupport();
+        const supportsWebAuthn = bridgeReady && browserSupportsWebAuthn();
         const supportsPlatformAuthenticator =
           supportsWebAuthn && (await platformAuthenticatorIsAvailable());
 
@@ -120,11 +119,17 @@ export function PasskeyLoginButton({
       clearPasskeySetupPending();
       onSuccess(verifyPayload.redirectTo || "/dashboard", verifyPayload.email);
     } catch (err) {
+      console.error("[passkey] login failed", err);
+
       const cancelled = err instanceof Error && err.name === "NotAllowedError";
+      const detail = err instanceof Error ? err.name || err.message : "";
+
       onError(
         cancelled
           ? "Operazione annullata o non autorizzata dal dispositivo."
-          : "Il dispositivo non ha completato l'accesso biometrico."
+          : detail
+            ? `Il dispositivo non ha completato l'accesso biometrico (${detail}).`
+            : "Il dispositivo non ha completato l'accesso biometrico."
       );
     } finally {
       setLoading(false);

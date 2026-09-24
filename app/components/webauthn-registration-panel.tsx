@@ -11,7 +11,7 @@ import {
   clearPasskeySetupPending,
   markPasskeyPreferred,
 } from "@/lib/client-session";
-import { ensureNativePasskeySupport } from "@/lib/native-passkeys";
+import { describePasskeyFailure, ensureNativePasskeySupport } from "@/lib/native-passkeys";
 
 type WebAuthnRegistrationPanelProps = {
   initialPasskeyCount: number;
@@ -44,9 +44,8 @@ export function WebAuthnRegistrationPanel({
 
     async function checkSupport() {
       try {
-        await ensureNativePasskeySupport();
-
-        const supportsWebAuthn = browserSupportsWebAuthn();
+        const bridgeReady = await ensureNativePasskeySupport();
+        const supportsWebAuthn = bridgeReady && browserSupportsWebAuthn();
         const supportsPlatformAuthenticator =
           supportsWebAuthn && (await platformAuthenticatorIsAvailable());
 
@@ -112,12 +111,8 @@ export function WebAuthnRegistrationPanel({
       onSuccess?.();
       setMessage(verifyPayload.message || "Biometria attivata su questo dispositivo.");
     } catch (err) {
-      const cancelled = err instanceof Error && err.name === "NotAllowedError";
-      setError(
-        cancelled
-          ? "Operazione annullata o non autorizzata dal dispositivo."
-          : "Il dispositivo non ha completato la registrazione biometrica."
-      );
+      console.error("[passkey] registration failed", err);
+      setError(describePasskeyFailure(err));
     } finally {
       setLoading(false);
     }
