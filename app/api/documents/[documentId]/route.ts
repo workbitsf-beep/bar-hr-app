@@ -7,17 +7,27 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ documentId: string }> }
 ) {
+  // Every refusal used to read "Not found", which hid whether the request
+  // arrived without a session, without a venue, or for a document the reader
+  // may not see. The three need different actions from whoever hits them.
   const session = await getSession();
 
   if (!session) {
-    return new Response("Unauthorized", { status: 401 });
+    return refuse(
+      401,
+      "Sessione assente. Questa pagina si apre solo da dentro Workbit, con l'account già collegato."
+    );
   }
 
   const { activeBar, role } = await getActiveBarAccess(session);
   const { documentId } = await params;
 
-  if (!activeBar?.id || !documentId) {
-    return new Response("Not found", { status: 404 });
+  if (!documentId) {
+    return refuse(400, "Documento non indicato.");
+  }
+
+  if (!activeBar?.id) {
+    return refuse(409, "Nessun locale attivo su questo account: selezionane uno e riprova.");
   }
 
   const document = await prisma.document.findFirst({
@@ -36,8 +46,12 @@ export async function GET(
     },
   });
 
-  if (!document || !canViewDocument(document, session.user.id, role)) {
-    return new Response("Not found", { status: 404 });
+  if (!document) {
+    return refuse(404, "Documento non presente in questo locale.");
+  }
+
+  if (!canViewDocument(document, session.user.id, role)) {
+    return refuse(403, "Questo documento non è assegnato al tuo account.");
   }
 
   const bytes = document.content instanceof Uint8Array ? document.content : new Uint8Array(document.content);
@@ -49,6 +63,17 @@ export async function GET(
       "Content-Type": getDocumentMimeType(document.fileName, document.mimeType),
       "Content-Disposition": `${disposition}; filename="${safeFileName}"`,
       "Cache-Control": "private, no-store",
+    },
+  });
+}
+
+/** Plain text, so the reason is readable wherever the file was opened. */
+function refuse(status: number, message: string) {
+  return new Response(message, {
+    status,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
     },
   });
 }
