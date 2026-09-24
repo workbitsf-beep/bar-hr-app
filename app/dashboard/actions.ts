@@ -3633,6 +3633,9 @@ export async function createShoppingListItemAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/shopping-list");
+  // The home screen carries the count on its own button, so it has to hear
+  // about this too.
+  revalidatePath("/dashboard");
 }
 
 export async function markShoppingListItemsOrderedAction(formData: FormData) {

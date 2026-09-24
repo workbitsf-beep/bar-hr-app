@@ -165,6 +165,241 @@ function DashboardResponsiveStyles() {
         font-weight: 950;
       }
 
+      /* Who is working today, and who is actually in. Shown to whoever runs
+         the floor; the question they open the app with is whether someone is
+         missing, not how many hours the team did last month. */
+      .workbit-crew {
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(94, 92, 230, 0.08);
+        box-shadow: 0 10px 22px rgba(61, 42, 153, 0.045);
+        padding: 16px 18px;
+      }
+
+      .workbit-crew-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .workbit-crew-head strong {
+        color: #20202A;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-crew-head span {
+        color: #667085;
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .workbit-crew-person {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding-block: 8px;
+        border-top: 1px solid rgba(94, 92, 230, 0.09);
+      }
+
+      .workbit-crew-person:first-of-type {
+        border-top: 0;
+      }
+
+      .workbit-crew-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-size: 11.5px;
+        font-weight: 800;
+        color: #4c1d95;
+        background: #ece4ff;
+      }
+
+      .workbit-crew-who {
+        min-width: 0;
+      }
+
+      .workbit-crew-who b {
+        display: block;
+        font-size: 14px;
+        font-weight: 700;
+        color: #20202A;
+        letter-spacing: -0.01em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .workbit-crew-who span {
+        font-size: 12px;
+        color: #667085;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .workbit-crew-state {
+        font-size: 11px;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .workbit-crew-state--in {
+        background: #dcfce7;
+        color: #14532d;
+      }
+
+      .workbit-crew-state--out {
+        background: #eef2f7;
+        color: #475569;
+      }
+
+      .workbit-crew-state--waiting {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      /* One quiet line for next week's cover. It stays green when there is
+         nothing to do, so that turning amber means something. */
+      .workbit-week-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(94, 92, 230, 0.14);
+        font-size: 13.5px;
+        color: #667085;
+      }
+
+      .workbit-week-line b {
+        color: #20202A;
+        font-weight: 750;
+      }
+
+      .workbit-week-line i {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+        background: #16a34a;
+      }
+
+      .workbit-week-line--warn i {
+        background: #f59e0b;
+      }
+
+      .workbit-week-line a {
+        margin-left: auto;
+        color: #7b2ff7;
+        font-weight: 800;
+        font-size: 13px;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      /* Quick add to the order list. */
+      .workbit-cart-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        justify-self: start;
+        padding: 11px 17px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #ffffff 0%, #f5f1ff 100%);
+        border: 1px solid rgba(94, 92, 230, 0.14);
+        box-shadow: 0 4px 12px rgba(61, 42, 153, 0.07);
+        font-size: 14px;
+        font-weight: 750;
+        color: #4c1d95;
+        cursor: pointer;
+      }
+
+      .workbit-cart-trigger em {
+        font-style: normal;
+        font-size: 11.5px;
+        font-weight: 800;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: #ece4ff;
+        color: #4c1d95;
+      }
+
+      .workbit-cart-card {
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(94, 92, 230, 0.08);
+        box-shadow: 0 10px 22px rgba(61, 42, 153, 0.045);
+        padding: 16px 18px;
+      }
+
+      .workbit-cart-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .workbit-cart-head strong {
+        color: #20202A;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-cart-head button {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 1px solid rgba(94, 92, 230, 0.14);
+        background: #ffffff;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .workbit-cart-form {
+        display: grid;
+        gap: 9px;
+        margin-top: 12px;
+      }
+
+      .workbit-cart-fields {
+        display: grid;
+        gap: 9px;
+        grid-template-columns: minmax(0, 1fr) 104px;
+      }
+
+      .workbit-cart-form input {
+        border: 1px solid rgba(94, 92, 230, 0.14);
+        border-radius: 14px;
+        padding: 10px 13px;
+        background: #ffffff;
+        font-size: 14px;
+        color: #20202A;
+        min-width: 0;
+      }
+
+      .workbit-cart-form button[type="submit"] {
+        border: 0;
+        border-radius: 999px;
+        padding: 11px;
+        background: linear-gradient(135deg, #3d2a99 0%, #5e5ce6 58%, #8b5cf6 100%);
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
       .workbit-home-hours,
       .workbit-home-shift {
         border-radius: 18px;
