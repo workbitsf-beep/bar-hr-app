@@ -25,7 +25,10 @@ function getCanonicalHost() {
 
 export function proxy(request: NextRequest) {
   const canonicalHost = getCanonicalHost();
-  const host = request.headers.get("host");
+  // Behind Railway the Host header can carry the internal address, while the
+  // name the browser actually used arrives forwarded. Comparing the wrong one
+  // made the app bounce requests that were already on the right domain.
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
 
   if (!canonicalHost || !host || host === canonicalHost) {
     // Temporary: a request keeps reaching the dashboard with no cookies at
@@ -36,6 +39,16 @@ export function proxy(request: NextRequest) {
     headers.set("x-workbit-method", request.method);
 
     return NextResponse.next({ request: { headers } });
+  }
+
+  // Only a page someone is opening should ever be sent elsewhere. Answering a
+  // data request with a redirect to another host restarts it without the
+  // cookies it was carrying, so the server sees a stranger and returns the
+  // login page — which is what flashed after every save.
+  const destination = request.headers.get("sec-fetch-dest");
+
+  if (destination && destination !== "document") {
+    return NextResponse.next();
   }
 
   const target = request.nextUrl.clone();
