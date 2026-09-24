@@ -22,6 +22,7 @@ import { BillingSettingsPanel } from "./billing-settings-panel";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
+import { ExternalLink } from "@/app/components/external-link";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -206,14 +207,12 @@ async function LegalDocumentsPanel({ userId }: { userId: string }) {
                         <span style={{ color: "#64748b" }}>Contenuto testuale non presente.</span>
                       )}
                       {document.fileName ? (
-                        <a
+                        <ExternalLink
                           href={`/api/legal-documents/${document.id}`}
-                          target="_blank"
-                          rel="noreferrer"
                           style={{ color: "#6d28d9", fontWeight: 800 }}
                         >
                           Apri PDF
-                        </a>
+                        </ExternalLink>
                       ) : null}
                       <div className="dashboard-form-actions">
                         <PrimaryButton type="button" tone="sand" data-popup-close>

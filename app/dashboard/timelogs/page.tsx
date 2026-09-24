@@ -134,7 +134,11 @@ export default async function DashboardTimeLogsPage({
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
               <EmptyState message="Aggiungi una singola timbratura mancante scegliendo entrata oppure uscita." />
-              <PopupAction title="Aggiungi singola timbratura" ariaLabel="Aggiungi singola timbratura">
+              <PopupAction
+                title="Aggiungi singola timbratura"
+                ariaLabel="Aggiungi singola timbratura"
+                triggerContent="Aggiungi timbratura"
+              >
                 <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
                   <div
                     className="dashboard-inline-grid"

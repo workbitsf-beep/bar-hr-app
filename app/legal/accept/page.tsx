@@ -8,6 +8,7 @@ import {
   legalDocumentTypeLabels,
 } from "@/lib/legal-documents";
 import { LegalAcceptanceForm } from "./legal-acceptance-form";
+import { ExternalLink } from "@/app/components/external-link";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -113,14 +114,12 @@ export default async function LegalAcceptancePage({
                 )}
                 {document.fileName ? (
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link
+                    <ExternalLink
                       href={`/api/legal-documents/${document.id}`}
-                      target="_blank"
-                      rel="noreferrer"
                       style={{ color: "#6d28d9", fontWeight: 800 }}
                     >
                       Apri PDF
-                    </Link>
+                    </ExternalLink>
                     <Link
                       href={`/api/legal-documents/${document.id}?download=1`}
                       style={{ color: "#0f172a", fontWeight: 800 }}

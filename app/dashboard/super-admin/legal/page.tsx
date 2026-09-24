@@ -6,6 +6,7 @@ import { getDashboardContext } from "../../context";
 import { Empty, Field, FieldGrid, Forbidden, Note, Section } from "../console-ui";
 import { readParam } from "../console-data";
 import { createLegalDocumentAction, deleteLegalDocumentAction, updateLegalDocumentAction } from "./actions";
+import { ExternalLink } from "@/app/components/external-link";
 
 type DocumentDefaults = {
   title: string;
@@ -133,15 +134,13 @@ export default async function ConsoleLegalPage({
 
               <div style={{ display: "grid", gap: 16, paddingBottom: 18 }}>
                 {document.fileName ? (
-                  <a
+                  <ExternalLink
                     href={`/api/legal-documents/${document.id}`}
-                    target="_blank"
-                    rel="noreferrer"
                     className="wbc-btn wbc-btn-ghost wbc-btn-sm"
                     style={{ justifySelf: "start" }}
                   >
                     Apri il PDF
-                  </a>
+                  </ExternalLink>
                 ) : null}
 
                 <form action={updateLegalDocumentAction} encType="multipart/form-data" style={{ display: "grid", gap: 15 }}>

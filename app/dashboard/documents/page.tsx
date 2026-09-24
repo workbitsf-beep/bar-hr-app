@@ -5,6 +5,7 @@ import { canViewDocument, formatDocumentSize, getDocumentPreviewKind } from "@/l
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { deleteDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
+import { ExternalLink } from "@/app/components/external-link";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { DocumentComposeForm } from "./document-compose-form";
 import {
@@ -397,10 +398,8 @@ export default async function DashboardDocumentsPage({
                                       <PrimaryButton type="button" tone="sand" data-popup-close>
                                         Chiudi
                                       </PrimaryButton>
-                                      <Link
+                                      <ExternalLink
                                         href={`/api/documents/${document.id}`}
-                                        target="_blank"
-                                        rel="noreferrer"
                                         style={{
                                           display: "inline-flex",
                                           alignItems: "center",
@@ -415,7 +414,7 @@ export default async function DashboardDocumentsPage({
                                         }}
                                       >
                                         Apri
-                                      </Link>
+                                      </ExternalLink>
                                       <Link
                                         href={`/api/documents/${document.id}?download=1`}
                                         style={{
