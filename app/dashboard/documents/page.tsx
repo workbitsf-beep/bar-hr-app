@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { canViewDocument, formatDocumentSize, getDocumentPreviewKind } from "@/lib/documents";
+import { canViewDocument, formatDocumentSize } from "@/lib/documents";
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { deleteDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
@@ -261,7 +261,6 @@ export default async function DashboardDocumentsPage({
                             ? `${document.assignedTo.firstName} ${document.assignedTo.lastName}`
                             : "Dipendente";
                         const canOpen = canViewDocument(document, session.user.id, role);
-                        const previewKind = getDocumentPreviewKind(document.fileName, document.mimeType);
                         const canDeleteDocument = canManage || document.createdBy.id === session.user.id;
 
                         return (
@@ -341,101 +340,52 @@ export default async function DashboardDocumentsPage({
                             </div>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                               {canOpen ? (
-                                <PopupAction
-                                  title={document.title}
-                                  ariaLabel={`Visualizza ${document.title}`}
-                                  triggerContent="Visualizza"
-                                >
-                                  <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
-                                    <div
-                                      style={{
-                                        borderRadius: 18,
-                                        overflow: "auto",
-                                        border: "1px solid #e2e8f0",
-                                        background: "#f8fafc",
-                                        height: "min(52dvh, 520px)",
-                                        minHeight: 260,
-                                        maxWidth: "100%",
-                                      }}
-                                    >
-                                      {previewKind === "pdf" ? (
-                                        <iframe
-                                          title={document.title}
-                                          src={`/api/documents/${document.id}`}
-                                          style={{ width: "100%", height: "100%", border: 0, display: "block" }}
-                                        />
-                                      ) : previewKind === "word" || previewKind === "spreadsheet" ? (
-                                        <iframe
-                                          title={document.title}
-                                          src={`/api/documents/${document.id}/preview`}
-                                          sandbox=""
-                                          style={{ width: "100%", height: "100%", border: 0, display: "block" }}
-                                        />
-                                      ) : (
-                                        <div
-                                          style={{
-                                            minHeight: "100%",
-                                            display: "grid",
-                                            placeItems: "center",
-                                            padding: 20,
-                                            textAlign: "center",
-                                            color: "#475569",
-                                            lineHeight: 1.5,
-                                          }}
-                                        >
-                                          <div style={{ display: "grid", gap: 8 }}>
-                                            <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                                              Anteprima non disponibile
-                                            </strong>
-                                            <span>
-                                              Questo formato richiede un&apos;app esterna. Usa Apri per consultarlo.
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                                      <PrimaryButton type="button" tone="sand" data-popup-close>
-                                        Chiudi
-                                      </PrimaryButton>
-                                      <ExternalLink
-                                        href={`/api/documents/${document.id}`}
-                                        style={{
-                                          display: "inline-flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          minHeight: 38,
-                                          padding: "0 14px",
-                                          borderRadius: 999,
-                                          background: "var(--workbit-gradient)",
-                                          color: "#fff",
-                                          textDecoration: "none",
-                                          fontWeight: 800,
-                                        }}
-                                      >
-                                        Apri
-                                      </ExternalLink>
-                                      <Link
-                                        href={`/api/documents/${document.id}?download=1`}
-                                        style={{
-                                          display: "inline-flex",
-                                          alignItems: "center",
-                                          justifyContent: "center",
-                                          minHeight: 38,
-                                          padding: "0 14px",
-                                          borderRadius: 999,
-                                          background: "#f8fafc",
-                                          color: "#4c1d95",
-                                          border: "1px solid rgba(124, 58, 237, 0.18)",
-                                          textDecoration: "none",
-                                          fontWeight: 800,
-                                        }}
-                                      >
-                                        Download
-                                      </Link>
-                                    </div>
-                                  </div>
-                                </PopupAction>
+                                <>
+                                  <ExternalLink
+                                    href={`/api/documents/${document.id}`}
+                                    style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    minHeight: 38,
+                                    padding: "0 16px",
+                                    borderRadius: 999,
+                                    textDecoration: "none",
+                                    fontWeight: 800,
+                                      background: "var(--workbit-gradient)",
+                                      color: "#ffffff",
+                                    }}
+                                  >
+                                    Apri
+                                  </ExternalLink>
+                                  <Link
+                                    href={`/api/documents/${document.id}?download=1`}
+                                    style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    minHeight: 38,
+                                    padding: "0 16px",
+                                    borderRadius: 999,
+                                    textDecoration: "none",
+                                    fontWeight: 800,
+                                      background: "#f8fafc",
+                                      color: "#4c1d95",
+                                      border: "1px solid rgba(124, 58, 237, 0.18)",
+                                    }}
+                                  >
+                                    Scarica
+                                  </Link>
+                                </>
+                              ) : null}
+
+                              {canDeleteDocument ? (
+                                <form action={deleteDocumentAction}>
+                                  <input type="hidden" name="documentId" value={document.id} />
+                                  <PrimaryButton type="submit" tone="red">
+                                    Elimina
+                                  </PrimaryButton>
+                                </form>
                               ) : null}
 
                               {canManage ? (
