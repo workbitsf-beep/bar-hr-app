@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "it.workbit.app",
+      "sha256_cert_fingerprints": [
+        "83:DA:67:6B:31:F8:36:B8:AD:65:A8:FE:91:17:78:D3:1B:12:59:2D:1B:7D:3E:91:E8:59:D1:5B:B3:51:4D:58"
+      ]
+    }
+  }
+]

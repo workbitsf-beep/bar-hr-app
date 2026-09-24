@@ -47,5 +47,10 @@ export function proxy(request: NextRequest) {
 export const config = {
   // Never touch API routes: the Railway healthcheck and the Stripe webhook are
   // both POSTed to fixed URLs that must answer directly, not redirect.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  //
+  // .well-known is excluded for a different reason: Google reads
+  // assetlinks.json from there to decide whether this app may use the site's
+  // passkeys, and that check treats a redirect as a failure rather than
+  // following it.
+  matcher: ["/((?!api|\\.well-known|_next/static|_next/image|favicon.ico).*)"],
 };

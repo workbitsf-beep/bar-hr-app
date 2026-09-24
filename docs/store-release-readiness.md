@@ -18,6 +18,18 @@
 - `APP_URL` HTTPS definitivo e `SUPPORT_EMAIL` pubblico su Railway.
 - URL Firebase associati ai bundle nativi e file APNs/Google Services.
 
+## Firma Android e passkey native
+
+L'app Android è firmata con la chiave di upload custodita nei segreti GitHub
+(`WORKBIT_KEYSTORE_BASE64`, `WORKBIT_KEYSTORE_PASSWORD`). L'impronta SHA-256 di quel
+certificato è dichiarata in `public/.well-known/assetlinks.json`: è ciò che autorizza
+l'app a usare le passkey registrate sul dominio, e va servita dallo stesso host indicato
+da `WEBAUTHN_RP_ID` senza redirect (vedi l'esclusione in `proxy.ts`).
+
+Quando il pacchetto verrà caricato su Google Play con Play App Signing attivo, Play
+rifirmerà l'app con una propria chiave: la relativa impronta va **aggiunta** all'elenco
+`sha256_cert_fingerprints`, senza rimuovere quella di upload.
+
 ## Decisione obbligatoria sui pagamenti
 
 Workbit vende un servizio SaaS B2B per attività. Prima della submission va verificato con gli
