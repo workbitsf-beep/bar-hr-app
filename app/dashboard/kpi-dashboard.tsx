@@ -27,6 +27,8 @@ type KpiDashboardProps = {
 };
 
 const CACHE_TTL_MS = 45_000;
+/** Tallest bar in the week chart, in pixels. */
+const BAR_MAX_HEIGHT = 58;
 const kpiCache = new Map<string, { data: DashboardKpiData; updatedAt: number }>();
 
 function KpiSkeletonCard() {
@@ -351,15 +353,9 @@ export function KpiDashboard({
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <Panel
-        title="Andamento team"
-        action={
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <StatusPill tone="neutral" label={roleLabel} />
-            <StatusPill tone="neutral" label={freshnessLabel} />
-          </div>
-        }
-      >
+      {/* No pills in the header: side by side they wrapped onto two lines, and
+          the time was already printed below. */}
+      <Panel title="Andamento team">
         <div style={{ display: "grid", gap: 12 }}>
           {features.shifts ? (
             <section className="dashboard-team-card">
@@ -373,10 +369,13 @@ export function KpiDashboard({
               <div className="dashboard-team-chart">
                 {weekDays.map((day) => {
                   const isToday = day.date === todayKey;
+                  // Real pixels: a percentage height has nothing to resolve
+                  // against in a track sized by its own content, so every bar
+                  // came out the same hairline whatever the count.
                   const height =
-                    busiestDay > 0 && day.count > 0
-                      ? Math.max(12, Math.round((day.count / busiestDay) * 100))
-                      : 0;
+                    day.count === 0
+                      ? 3
+                      : Math.max(10, Math.round((day.count / busiestDay) * BAR_MAX_HEIGHT));
 
                   return (
                     <div
@@ -384,7 +383,7 @@ export function KpiDashboard({
                       className={`dashboard-team-bar${day.count === 0 ? " dashboard-team-bar--zero" : ""}${isToday ? " dashboard-team-bar--today" : ""}`}
                     >
                       <u>{day.count}</u>
-                      <span style={{ height: day.count === 0 ? 3 : `${height}%` }} />
+                      <span style={{ height }} />
                     </div>
                   );
                 })}
@@ -492,15 +491,14 @@ export function KpiDashboard({
               grid-template-columns: repeat(7, minmax(0, 1fr));
               gap: 5px;
               align-items: end;
-              height: 108px;
             }
 
             .dashboard-team-bar {
-              display: grid;
-              align-content: end;
-              justify-items: center;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: flex-end;
               gap: 4px;
-              height: 100%;
             }
 
             .dashboard-team-bar u {
@@ -537,13 +535,18 @@ export function KpiDashboard({
               margin-top: 8px;
             }
 
+            /* Seven columns on a phone: the labels carry a day and a number,
+               so they have to stay on one line or some wrap and some do not. */
             .dashboard-team-axis span {
               text-align: center;
-              font-size: 9.5px;
+              font-size: 9px;
               font-weight: 800;
-              letter-spacing: 0.06em;
+              letter-spacing: 0.01em;
               text-transform: uppercase;
               color: #667085;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
 
             .dashboard-team-axis .dashboard-team-axis--today {
