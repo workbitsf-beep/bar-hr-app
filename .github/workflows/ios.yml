@@ -1,0 +1,58 @@
+name: App iOS
+
+# Builds the iOS app on GitHub's macOS machines, so no Mac is needed to find
+# out whether it compiles. It is deliberately unsigned and built for the
+# simulator: installing on a real iPhone or reaching TestFlight requires an
+# Apple Developer account, which is a separate step. What this catches is
+# everything else — a plugin that does not build, a missing permission, a
+# project that drifted out of sync with the web app.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "capacitor.config.ts"
+      - "capacitor-web/**"
+      - ".github/workflows/ios.yml"
+      - "package.json"
+      - "package-lock.json"
+
+jobs:
+  app:
+    name: Compilazione di verifica
+    runs-on: macos-latest
+
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v4
+
+      - name: Prepara Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Installa le dipendenze
+        run: npm ci
+
+      # Regenerates the generated config and refreshes the plugin wiring. The
+      # native folder alone is not enough.
+      - name: Sincronizza il progetto nativo
+        run: npx cap sync ios
+
+      - name: Compila per il simulatore
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Riepilogo
+        run: echo "L'app iOS compila. Firma e distribuzione richiedono un account Apple Developer."

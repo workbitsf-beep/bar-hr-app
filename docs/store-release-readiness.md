@@ -41,6 +41,25 @@ senza telefono:
 curl "https://digitalassetlinks.googleapis.com/v1/assetlinks:check?source.web.site=https://app.workbit.it&relation=delegate_permission/common.get_login_creds&target.android_app.package_name=it.workbit.app&target.android_app.certificate.sha256_fingerprint=<IMPRONTA>"
 ```
 
+## iOS: cosa c'è e cosa manca
+
+Il progetto iOS esiste (`ios/`) e viene compilato a ogni modifica da
+`.github/workflows/ios.yml`, sulle macchine macOS di GitHub: serve a sapere che compila,
+senza possedere un Mac. La compilazione è **non firmata e per simulatore**.
+
+Serve un account Apple Developer (quindi D-U-N-S, quindi P.IVA) per:
+
+- firmare e installare su un iPhone reale o su TestFlight;
+- l'entitlement `aps-environment`, senza cui le notifiche push non arrivano;
+- il Team ID, che va nel file `apple-app-site-association` da pubblicare su
+  `https://app.workbit.it/.well-known/apple-app-site-association` — è l'equivalente di
+  `assetlinks.json` e senza di esso le passkey su iOS non funzionano. Il file va servito
+  con `Content-Type: application/json`, senza estensione e senza redirect.
+
+Quello che iOS **non** richiede, a differenza di Android: le barre di sistema sono già
+gestite, perché WKWebView riporta correttamente `env(safe-area-inset-*)` e il CSS
+esistente lo usa già.
+
 ## Decisione obbligatoria sui pagamenti
 
 Workbit vende un servizio SaaS B2B per attività. Prima della submission va verificato con gli
