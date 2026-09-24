@@ -30,6 +30,17 @@ Quando il pacchetto verrà caricato su Google Play con Play App Signing attivo, 
 rifirmerà l'app con una propria chiave: la relativa impronta va **aggiunta** all'elenco
 `sha256_cert_fingerprints`, senza rimuovere quella di upload.
 
+Attenzione al ritardo: la verifica del collegamento non la fa l'app ma Google Play
+Services, che tiene il risultato in cache per circa 40 minuti. Dopo ogni modifica al
+file o al dominio delle passkey, l'app continua a rispondere `RP ID cannot be
+validated` finché quella copia non scade. Si forza svuotando la cache di Google Play
+Services sul dispositivo, altrimenti basta aspettare. Lo stato reale si controlla così,
+senza telefono:
+
+```bash
+curl "https://digitalassetlinks.googleapis.com/v1/assetlinks:check?source.web.site=https://app.workbit.it&relation=delegate_permission/common.get_login_creds&target.android_app.package_name=it.workbit.app&target.android_app.certificate.sha256_fingerprint=<IMPRONTA>"
+```
+
 ## Decisione obbligatoria sui pagamenti
 
 Workbit vende un servizio SaaS B2B per attività. Prima della submission va verificato con gli
