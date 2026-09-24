@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "310988541921",
+    "project_id": "workbit-94a98",
+    "storage_bucket": "workbit-94a98.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:310988541921:android:b77c35f54b0906311e4ca0",
+        "android_client_info": {
+          "package_name": "it.workbit.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAR7bx_5ngMbfCSs3puRC7-xsAr-veOv2o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
