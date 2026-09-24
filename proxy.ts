@@ -28,7 +28,14 @@ export function proxy(request: NextRequest) {
   const host = request.headers.get("host");
 
   if (!canonicalHost || !host || host === canonicalHost) {
-    return NextResponse.next();
+    // Temporary: a request keeps reaching the dashboard with no cookies at
+    // all, and a page cannot read its own address. The proxy can, so it writes
+    // it down for the session log. Comes out with that log.
+    const headers = new Headers(request.headers);
+    headers.set("x-workbit-path", request.nextUrl.pathname + request.nextUrl.search);
+    headers.set("x-workbit-method", request.method);
+
+    return NextResponse.next({ request: { headers } });
   }
 
   const target = request.nextUrl.clone();

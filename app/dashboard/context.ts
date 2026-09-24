@@ -22,6 +22,10 @@ async function logMissingSession() {
       // Any cookie at all: none means the request was made without the jar,
       // which is a different fault from a session that expired.
       cookieCount: cookieStore.getAll().length,
+      // What was actually asked for, written down by the proxy.
+      path: headerList.get("x-workbit-path") ?? null,
+      method: headerList.get("x-workbit-method") ?? null,
+      site: headerList.get("sec-fetch-site") ?? null,
       // These four say what kind of request this was.
       prefetch: headerList.get("next-router-prefetch") ?? null,
       rsc: headerList.get("rsc") ?? null,
