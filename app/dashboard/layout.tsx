@@ -168,6 +168,7 @@ export default async function DashboardLayout({
                     like the place it leads to. */}
                 <button
                   type="submit"
+                  className="workbit-console-pill"
                   title="Torna alla console Super Admin"
                   style={{
                     display: "inline-flex",

@@ -903,6 +903,15 @@ function DashboardResponsiveStyles() {
           color: #3d2a99 !important;
         }
 
+        /* The header actions are rendered a second time inside the menu, where
+           every button is forced into a 42px circle. The console pill is text,
+           not an icon, so it came out squashed and overlapping its neighbour.
+           It stays in the real header, which is visible behind the menu. */
+        .workbit-menu-header-logout .workbit-console-pill,
+        .workbit-menu-header-actions .workbit-console-pill {
+          display: none !important;
+        }
+
         .workbit-menu-heading {
           min-height: 58px;
           margin-top: 50px;
@@ -1960,7 +1969,7 @@ function DashboardResponsiveStyles() {
 
       .dashboard-modal-wrap {
         padding:
-          max(16px, env(safe-area-inset-top))
+          max(16px, env(safe-area-inset-top), var(--wb-inset-top, 0px))
           max(16px, env(safe-area-inset-right))
           max(16px, env(safe-area-inset-bottom))
           max(16px, env(safe-area-inset-left)) !important;
@@ -2145,7 +2154,7 @@ function DashboardResponsiveStyles() {
 
         .dashboard-modal-wrap {
           padding:
-            max(16px, env(safe-area-inset-top))
+            max(16px, env(safe-area-inset-top), var(--wb-inset-top, 0px))
             max(16px, env(safe-area-inset-right))
             max(16px, env(safe-area-inset-bottom))
             max(16px, env(safe-area-inset-left)) !important;

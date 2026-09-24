@@ -329,7 +329,7 @@ export function DashboardNavMenu({
                     maxHeight: isCompact ? "100dvh" : "calc(100dvh - 32px)",
                     overflowY: "auto",
                     padding: isCompact
-                      ? "calc(env(safe-area-inset-top) + 14px) 20px calc(118px + env(safe-area-inset-bottom))"
+                      ? "calc(max(env(safe-area-inset-top), var(--wb-inset-top, 0px)) + 14px) 20px calc(118px + max(env(safe-area-inset-bottom), var(--wb-inset-bottom, 0px)))"
                       : 16,
                     borderRadius: isCompact ? 0 : 24,
                     border: isCompact ? 0 : "1px solid rgba(124, 58, 237, 0.12)",
