@@ -621,7 +621,7 @@ export default async function DashboardPage() {
             {unseenRequestOutcomes.map((outcome) => (
             <div className="workbit-home-row workbit-home-row--good" key={outcome.id}>
               <span className="workbit-home-row-icon" aria-hidden="true">
-                ✓
+                ✅
               </span>
               <div>
                 <b>{outcome.title}</b>
@@ -634,7 +634,7 @@ export default async function DashboardPage() {
           {openTaskCount > 0 ? (
             <div className="workbit-home-row">
               <span className="workbit-home-row-icon" aria-hidden="true">
-                ✎
+                📝
               </span>
               <div>
                 <b>
@@ -665,7 +665,7 @@ export default async function DashboardPage() {
           {upcomingCourse ? (
             <div className="workbit-home-row workbit-home-row--warn">
               <span className="workbit-home-row-icon" aria-hidden="true">
-                ⚑
+                🎓
               </span>
               <div>
                 <b>{upcomingCourse.title}</b>

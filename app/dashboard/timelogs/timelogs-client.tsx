@@ -14,6 +14,7 @@ import {
 } from "@/lib/browser-gps";
 import type { GeolocationSample } from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
+import { isNativeApp } from "@/lib/native-app";
 import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 import {
   EmptyState,
@@ -732,7 +733,13 @@ export function ClockActionsPanel({
         return;
       }
 
-      if (permissionState === "granted") {
+      // Inside the installed app the browser permission registry does not
+      // reflect what Android granted, so it answers "prompt" or nothing at all
+      // even when the position is available. Waiting for "granted" there meant
+      // the reading never started by itself and every stamp had to begin with
+      // a manual refresh. Asking the device directly costs nothing: the
+      // permission is already held, so no prompt appears.
+      if (permissionState === "granted" || isNativeApp()) {
         startGeolocationWatch(false);
       }
     }
@@ -952,7 +959,11 @@ export function ClockActionsPanel({
           </p>
         ) : null}
 
-        {actionMessage ? <p className="workbit-home-clock-message">{actionMessage}</p> : null}
+        {/* The outcome passes through and goes: pinned under the bar it stayed
+            there long after it stopped being news. */}
+        {actionMessage && !confirmationMessage ? (
+          <ConfirmationToast key={`esito-${actionMessage}`}>{actionMessage}</ConfirmationToast>
+        ) : null}
         {confirmationMessage ? (
           <ConfirmationToast key={confirmationKey}>{confirmationMessage}</ConfirmationToast>
         ) : null}
