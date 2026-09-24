@@ -1,9 +1,13 @@
 package it.workbit.app;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -50,5 +54,34 @@ public class MainActivity extends BridgeActivity {
 
             return WindowInsetsCompat.CONSUMED;
         });
+
+        // Android delivers the bar measurements once, before this listener is
+        // attached, and does not repeat them on its own — so ask for them
+        // again, otherwise the listener never runs and the padding stays zero.
+        ViewCompat.requestApplyInsets(webView);
+
+        askForLocationUpfront();
+    }
+
+    /**
+     * Clock-in needs a position, and discovering the permission is missing at
+     * that moment interrupts someone who is starting a shift. Ask once when the
+     * app opens instead. Android shows nothing if it was already granted, or if
+     * the user has refused permanently.
+     */
+    private void askForLocationUpfront() {
+        boolean alreadyGranted =
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED;
+
+        if (alreadyGranted) {
+            return;
+        }
+
+        ActivityCompat.requestPermissions(
+            this,
+            new String[] { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION },
+            9101
+        );
     }
 }
