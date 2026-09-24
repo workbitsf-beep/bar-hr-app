@@ -277,12 +277,25 @@ function chooseBestSample(samples: GeolocationSample[], previousSample?: Geoloca
 }
 
 function shouldEmitBatch(samples: GeolocationSample[]) {
-  if (samples.length < MIN_SAMPLE_COUNT) {
+  if (samples.length === 0) {
     return false;
   }
 
   const bestAccuracy = Math.min(...samples.map((sample) => sample.accuracy));
-  return bestAccuracy <= IDEAL_ACCURACY_METERS || samples.length >= TARGET_SAMPLE_COUNT;
+
+  // A first reading that is already precise enough answers the question on its
+  // own. Holding it back for a second one only made the wait longer without
+  // making the answer better — and that wait is what someone stares at before
+  // they can stamp.
+  if (bestAccuracy <= IDEAL_ACCURACY_METERS) {
+    return true;
+  }
+
+  if (samples.length < MIN_SAMPLE_COUNT) {
+    return false;
+  }
+
+  return samples.length >= TARGET_SAMPLE_COUNT;
 }
 
 function createBatchCollector({

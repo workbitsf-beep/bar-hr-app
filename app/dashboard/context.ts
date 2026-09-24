@@ -19,9 +19,17 @@ async function logMissingSession() {
       cookiePresent: Boolean(token),
       // Only the tail, so the log never carries a usable token.
       cookieTail: token ? token.slice(-6) : null,
-      method: headerList.get("x-forwarded-method") ?? null,
+      // Any cookie at all: none means the request was made without the jar,
+      // which is a different fault from a session that expired.
+      cookieCount: cookieStore.getAll().length,
+      // These four say what kind of request this was.
+      prefetch: headerList.get("next-router-prefetch") ?? null,
+      rsc: headerList.get("rsc") ?? null,
+      fetchMode: headerList.get("sec-fetch-mode") ?? null,
+      fetchDest: headerList.get("sec-fetch-dest") ?? null,
+      nextUrl: headerList.get("next-url") ?? null,
       nextAction: Boolean(headerList.get("next-action")),
-      path: headerList.get("x-invoke-path") ?? headerList.get("referer") ?? null,
+      referer: headerList.get("referer") ?? null,
     });
   } catch {
     console.error("[session] dashboard reached without a session, context unavailable");
