@@ -173,6 +173,100 @@ function DashboardResponsiveStyles() {
         font-weight: 950;
       }
 
+      /* One bar for clocking, because only one of the two actions is ever
+         available: the colour says which one, green to go in and red to come
+         out. When neither is possible the bar goes quiet and the line under it
+         says what is in the way. */
+      .wb-act {
+        display: grid;
+        gap: 8px;
+        position: relative;
+      }
+
+      .wb-act-bar {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        border: 0;
+        border-radius: 15px;
+        padding: 15px 16px;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .wb-act-bar i {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.85);
+        flex: 0 0 auto;
+      }
+
+      .wb-act-bar em {
+        font-style: normal;
+        margin-left: auto;
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.82);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .wb-act-bar--in {
+        background: linear-gradient(135deg, #16a34a 0%, #34c759 100%);
+        box-shadow: 0 10px 22px rgba(22, 163, 74, 0.22);
+      }
+
+      .wb-act-bar--out {
+        background: linear-gradient(135deg, #dc2626 0%, #f4655b 100%);
+        box-shadow: 0 10px 22px rgba(220, 38, 38, 0.22);
+      }
+
+      .wb-act-bar--off {
+        background: #ffffff;
+        border: 1px solid rgba(94, 92, 230, 0.16);
+        color: #8a8598;
+        cursor: default;
+      }
+
+      .wb-act-bar--off i {
+        background: #f59e0b;
+      }
+
+      .wb-act-bar--off em {
+        color: #a8a3b8;
+      }
+
+      .wb-act-note {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        padding: 0 4px;
+        font-size: 12px;
+        color: #667085;
+        line-height: 1.4;
+      }
+
+      .wb-act-note button {
+        margin-left: auto;
+        border: 1px solid rgba(94, 92, 230, 0.16);
+        background: #ffffff;
+        border-radius: 999px;
+        padding: 5px 11px;
+        font-size: 11.5px;
+        font-weight: 800;
+        color: #4c1d95;
+        cursor: pointer;
+        flex: 0 0 auto;
+      }
+
       /* Who is working today, and who is actually in. Shown to whoever runs
          the floor; the question they open the app with is whether someone is
          missing, not how many hours the team did last month. */
@@ -353,10 +447,10 @@ function DashboardResponsiveStyles() {
       }
 
       .workbit-week-day {
-        border-radius: 12px;
-        padding: 7px 2px 8px;
+        border-radius: 11px;
+        padding: 7px 1px 8px;
         text-align: center;
-        background: #f7f5fd;
+        background: #f8f6fd;
         border: 1px solid transparent;
       }
 
@@ -383,7 +477,7 @@ function DashboardResponsiveStyles() {
       .workbit-week-day em {
         display: block;
         font-style: normal;
-        font-size: 10px;
+        font-size: 8.5px;
         font-weight: 700;
         color: #4c1d95;
         font-variant-numeric: tabular-nums;
@@ -408,22 +502,18 @@ function DashboardResponsiveStyles() {
       }
 
       .workbit-week-day--today .workbit-week-slot + .workbit-week-slot {
-        border-top-color: rgba(255, 255, 255, 0.34);
+        border-top-color: rgba(124, 58, 237, 0.28);
       }
 
       .workbit-week-day--today {
-        background: linear-gradient(160deg, #4c1d95, #7c3aed);
-        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.24);
+        background: #efe9fd;
+        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.24);
       }
 
       .workbit-week-day--today u,
       .workbit-week-day--today s,
       .workbit-week-day--today em {
-        color: #ffffff;
-      }
-
-      .workbit-week-day--today u {
-        opacity: 0.78;
+        color: #4c1d95;
       }
 
       .workbit-week-mates {

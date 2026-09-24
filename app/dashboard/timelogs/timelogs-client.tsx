@@ -520,12 +520,17 @@ export function ClockActionsPanel({
   compact = false,
   clockStatus = "CAN_CLOCK_IN",
   hasScheduledShiftToday = false,
+  activeClockInAt = null,
+  shiftLabel = null,
 }: {
   role: Role | string;
   settings: BarSettingsSummary;
   compact?: boolean;
   clockStatus?: ClockActionStatus;
   hasScheduledShiftToday?: boolean;
+  /** When set, the bar counts up from here instead of naming the shift. */
+  activeClockInAt?: string | null;
+  shiftLabel?: string | null;
 }) {
   const router = useRouter();
   const [latitude, setLatitude] = useState("");
@@ -545,6 +550,31 @@ export function ClockActionsPanel({
   const [locating, setLocating] = useState(false);
   const [weakAccuracy, setWeakAccuracy] = useState<number | null>(null);
   const stopWatchRef = useRef<(() => void) | null>(null);
+
+  // Ticks only while someone is actually clocked in, so the bar can say how
+  // long they have been in rather than repeating the shift they are on.
+  const [elapsedLabel, setElapsedLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeClockInAt) {
+      setElapsedLabel(null);
+      return;
+    }
+
+    const startedAt = new Date(activeClockInAt).getTime();
+
+    function tick() {
+      const minutes = Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
+      setElapsedLabel(
+        `dentro da ${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`
+      );
+    }
+
+    tick();
+    const id = window.setInterval(tick, 30_000);
+
+    return () => window.clearInterval(id);
+  }, [activeClockInAt]);
 
   const gpsConfigured = hasConfiguredGps(settings);
   const canClock = role !== "OWNER";
@@ -882,68 +912,43 @@ export function ClockActionsPanel({
   }
 
   if (compact) {
-    return (
-      <section className="workbit-home-clock-card" aria-label="Entrata e uscita">
-        <div className="workbit-home-clock-top">
-          <div>
-            <strong>Entrata / uscita</strong>
-            <span>
-              {clockStatus !== "CAN_CLOCK_OUT" && !hasScheduledShiftToday
-                ? "Nessun turno programmato oggi"
-                : "📍 posizione aggiornata"}
-            </span>
-          </div>
-          <div className="workbit-home-clock-tools">
-            <button
-              type="button"
-              onClick={captureGeolocation}
-              disabled={locating}
-              aria-label="Aggiorna posizione"
-              title="Aggiorna posizione"
-            >
-              {locating ? "…" : "↻"}
-            </button>
-            <span
-              className={
-                gpsConfigured &&
-                insideRadius &&
-                (hasScheduledShiftToday || clockStatus === "CAN_CLOCK_OUT")
-                  ? "workbit-home-ready"
-                  : "workbit-home-ready is-waiting"
-              }
-            >
-              <i aria-hidden="true" />
-              {gpsConfigured &&
-              insideRadius &&
-              (hasScheduledShiftToday || clockStatus === "CAN_CLOCK_OUT")
-                ? "Pronta"
-                : "Attendi"}
-            </span>
-          </div>
-        </div>
+    const leaving = clockStatus === "CAN_CLOCK_OUT";
+    const enabled = leaving ? canClockOut : canClockIn;
+    const tone = !enabled ? "off" : leaving ? "out" : "in";
+    const label = submitting
+      ? "..."
+      : leaving
+        ? "Timbra uscita"
+        : "Timbra entrata";
+    const meta = leaving ? elapsedLabel : shiftLabel;
 
-        <div className="workbit-home-clock-actions">
-          <PrimaryButton
-            className="workbit-home-clock-button workbit-home-clock-in"
-            type="button"
-            tone="green"
-            onClick={() => runClockAction("clock-in")}
-            disabled={submitting !== null || !canClockIn}
-          >
-            <SuccessPulse key={`in-${successPulseKey}`} active={successPulse === "in"} tone="green" />
-            {submitting === "in" ? "..." : "Entra"}
-          </PrimaryButton>
-          <PrimaryButton
-            className="workbit-home-clock-button workbit-home-clock-out"
-            type="button"
-            tone="red"
-            onClick={() => runClockAction("clock-out")}
-            disabled={submitting !== null || !canClockOut}
-          >
-            <SuccessPulse key={`out-${successPulseKey}`} active={successPulse === "out"} tone="red" />
-            {submitting === "out" ? "..." : "Esci"}
-          </PrimaryButton>
-        </div>
+    return (
+      <section className="wb-act" aria-label="Entrata e uscita">
+        <button
+          type="button"
+          className={`wb-act-bar wb-act-bar--${tone}`}
+          onClick={() => runClockAction(leaving ? "clock-out" : "clock-in")}
+          disabled={submitting !== null || !enabled}
+        >
+          <SuccessPulse
+            key={`${leaving ? "out" : "in"}-${successPulseKey}`}
+            active={successPulse === (leaving ? "out" : "in")}
+            tone={leaving ? "red" : "green"}
+          />
+          <i aria-hidden="true" />
+          <span>{label}</span>
+          {meta ? <em>{meta}</em> : null}
+        </button>
+
+        {/* The position only speaks up when it is in the way. */}
+        {!enabled ? (
+          <p className="wb-act-note">
+            <span>{locationSummary}</span>
+            <button type="button" onClick={captureGeolocation} disabled={locating}>
+              {locating ? "..." : "Aggiorna"}
+            </button>
+          </p>
+        ) : null}
 
         {actionMessage ? <p className="workbit-home-clock-message">{actionMessage}</p> : null}
         {confirmationMessage ? (

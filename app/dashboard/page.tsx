@@ -18,7 +18,6 @@ import {
 } from "./ui";
 import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
-import { WorkSessionTimer } from "./work-session-timer";
 import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
 import { formatDateInTimeZone } from "@/lib/time-zone";
@@ -532,21 +531,18 @@ export default async function DashboardPage() {
             {cartBlock}
           </div>
 
-          {features.timeTracking && ownHours ? (
-            <WorkSessionTimer
-              activeClockInAt={activeClockInAt}
-              scheduledStartAt={timerShift?.startTime.toISOString() ?? null}
-              scheduledEndAt={timerShift?.endTime.toISOString() ?? null}
-              monthlyHours={formatDurationClock(ownHours.roundedHours)}
-            />
-          ) : null}
-
           {features.timeTracking ? (
             <ClockActionsPanel
               role={role}
               settings={settings}
               clockStatus={clockStatus}
               hasScheduledShiftToday={Boolean(assignedShiftForClockIn)}
+              activeClockInAt={activeClockInAt}
+              shiftLabel={
+                timerShift
+                  ? `turno ${toTimeInputValueInTimeZone(timerShift.startTime)} – ${toTimeInputValueInTimeZone(timerShift.endTime)}`
+                  : null
+              }
               compact
             />
           ) : null}
@@ -555,9 +551,15 @@ export default async function DashboardPage() {
             <section className="workbit-week">
               <div className="workbit-week-head">
                 <strong>La tua settimana</strong>
+                {/* The month total used to have a card of its own, showing a
+                    ring that read 00:00 most of the time. It belongs here,
+                    beside the other hours. */}
                 <span>
                   {myWeekShifts.length} {myWeekShifts.length === 1 ? "turno" : "turni"}
                   {myWeekMinutes > 0 ? ` · ${Math.round(myWeekMinutes / 60)}h` : ""}
+                  {features.timeTracking && ownHours
+                    ? ` · ${formatDurationClock(ownHours.roundedHours)} mese`
+                    : ""}
                 </span>
               </div>
 
