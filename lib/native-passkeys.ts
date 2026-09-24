@@ -53,17 +53,33 @@ async function install() {
 /**
  * Turns a failed passkey call into something worth reading.
  *
- * The browser reports these as DOMExceptions whose name is the only part that
- * says what went wrong, so it is kept alongside the plain sentence.
+ * Where the detail sits depends on who refused. A browser throws a
+ * DOMException whose name is the whole story and whose message is often empty;
+ * a native plugin throws a plain Error named "Error" and puts the story in the
+ * message. Keeping only one of the two loses the answer half the time, so both
+ * are shown when they differ.
  */
-export function describePasskeyFailure(error: unknown) {
+export function describePasskeyFailure(error: unknown, action: "registrazione" | "accesso") {
   if (error instanceof Error && error.name === "NotAllowedError") {
     return "Operazione annullata o non autorizzata dal dispositivo.";
   }
 
-  const detail = error instanceof Error ? error.name || error.message : "";
+  const sentence =
+    action === "registrazione"
+      ? "Il dispositivo non ha completato la registrazione biometrica"
+      : "Il dispositivo non ha completato l'accesso biometrico";
 
-  return detail
-    ? `Il dispositivo non ha completato la registrazione biometrica (${detail}).`
-    : "Il dispositivo non ha completato la registrazione biometrica.";
+  const detail = describeError(error);
+
+  return detail ? `${sentence} (${detail}).` : `${sentence}.`;
+}
+
+function describeError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return typeof error === "string" ? error : "";
+  }
+
+  const parts = [error.name, error.message].filter(Boolean);
+
+  return [...new Set(parts)].join(": ");
 }

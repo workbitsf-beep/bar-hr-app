@@ -10,7 +10,7 @@ import {
   clearPasskeySetupPending,
   markPasskeyPreferred,
 } from "@/lib/client-session";
-import { ensureNativePasskeySupport } from "@/lib/native-passkeys";
+import { describePasskeyFailure, ensureNativePasskeySupport } from "@/lib/native-passkeys";
 
 type PasskeyLoginButtonProps = {
   email: string;
@@ -120,17 +120,7 @@ export function PasskeyLoginButton({
       onSuccess(verifyPayload.redirectTo || "/dashboard", verifyPayload.email);
     } catch (err) {
       console.error("[passkey] login failed", err);
-
-      const cancelled = err instanceof Error && err.name === "NotAllowedError";
-      const detail = err instanceof Error ? err.name || err.message : "";
-
-      onError(
-        cancelled
-          ? "Operazione annullata o non autorizzata dal dispositivo."
-          : detail
-            ? `Il dispositivo non ha completato l'accesso biometrico (${detail}).`
-            : "Il dispositivo non ha completato l'accesso biometrico."
-      );
+      onError(describePasskeyFailure(err, "accesso"));
     } finally {
       setLoading(false);
     }

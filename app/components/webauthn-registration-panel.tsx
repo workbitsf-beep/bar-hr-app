@@ -112,7 +112,7 @@ export function WebAuthnRegistrationPanel({
       setMessage(verifyPayload.message || "Biometria attivata su questo dispositivo.");
     } catch (err) {
       console.error("[passkey] registration failed", err);
-      setError(describePasskeyFailure(err));
+      setError(describePasskeyFailure(err, "registrazione"));
     } finally {
       setLoading(false);
     }
