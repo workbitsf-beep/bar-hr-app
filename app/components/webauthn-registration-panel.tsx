@@ -11,6 +11,7 @@ import {
   clearPasskeySetupPending,
   markPasskeyPreferred,
 } from "@/lib/client-session";
+import { isNativeApp } from "@/lib/native-app";
 
 type WebAuthnRegistrationPanelProps = {
   initialPasskeyCount: number;
@@ -30,6 +31,7 @@ export function WebAuthnRegistrationPanel({
   onSuccess,
 }: WebAuthnRegistrationPanelProps) {
   const [passkeyCount, setPasskeyCount] = useState(initialPasskeyCount);
+  const inNativeApp = isNativeApp();
   const [available, setAvailable] = useState(false);
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -192,13 +194,23 @@ export function WebAuthnRegistrationPanel({
       {checking ? <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Controllo...</p> : null}
 
       {!checking && !available ? (
-        <p style={{ margin: 0, color: "#b45309", lineHeight: 1.6 }}>Biometria non disponibile.</p>
+        inNativeApp ? (
+          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+            L&apos;impronta e il Face ID si attivano dal browser, non da qui: Android non li mette a
+            disposizione dentro le app come questa. Nell&apos;app, però, l&apos;accesso resta attivo e
+            non ti verr&agrave; richiesta la password a ogni apertura.
+          </p>
+        ) : (
+          <p style={{ margin: 0, color: "#b45309", lineHeight: 1.6 }}>
+            Questo dispositivo non offre un&apos;impronta o un riconoscimento del volto utilizzabile.
+          </p>
+        )
       ) : null}
 
       {error ? <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p> : null}
       {message ? <p style={{ margin: 0, color: "#166534", fontSize: 14 }}>{message}</p> : null}
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} hidden={!checking && !available}>
         <PrimaryButton
           type="button"
           onClick={handleUpdatePasskey}
