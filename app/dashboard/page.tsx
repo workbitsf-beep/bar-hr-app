@@ -117,7 +117,8 @@ export default async function DashboardPage() {
     shoppingPendingCount,
     myWeekShifts,
     unseenRequestOutcomes,
-    todayTaskCount,
+    openTaskCount,
+    unreadNoteCount,
     upcomingCourse,
   ] = await Promise.all([
     isOperationalProfile && features.timeTracking
@@ -328,13 +329,25 @@ export default async function DashboardPage() {
           select: { id: true, title: true, message: true, actionUrl: true },
         })
       : Promise.resolve([]),
+    // Due today or already late: a task whose day has passed is the one most
+    // worth showing, and the old window hid exactly those.
     isOperationalProfile && features.tasks
       ? prisma.task.count({
           where: {
             barId: activeBarId,
             status: { not: "DONE" },
-            dueDate: { gte: startOfDay(now), lt: addDays(startOfDay(now), 1) },
+            dueDate: { lt: addDays(startOfDay(now), 1) },
             OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
+          },
+        })
+      : Promise.resolve(0),
+    isOperationalProfile && features.noticeBoard
+      ? prisma.note.count({
+          where: {
+            barId: activeBarId,
+            createdAt: { gte: addDays(now, -30) },
+            OR: [{ employeeId: null }, { employeeId: session.user.id }],
+            readReceipts: { none: { userId: session.user.id } },
           },
         })
       : Promise.resolve(0),
@@ -425,11 +438,13 @@ export default async function DashboardPage() {
       label: WEEKDAY_LABELS[index],
       dayNumber: day.getDate(),
       isToday: dayKey === todayKey,
-      from: shiftsOfDay.length > 0 ? toTimeInputValueInTimeZone(shiftsOfDay[0].startTime) : null,
-      to:
-        shiftsOfDay.length > 0
-          ? toTimeInputValueInTimeZone(shiftsOfDay[shiftsOfDay.length - 1].endTime)
-          : null,
+      // Each shift kept separate: a split day is two shifts, and collapsing
+      // them into the first start and the last end reads as one long one.
+      slots: shiftsOfDay.map((shift) => ({
+        id: shift.id,
+        from: toTimeInputValueInTimeZone(shift.startTime),
+        to: toTimeInputValueInTimeZone(shift.endTime),
+      })),
     };
   });
 
@@ -550,20 +565,20 @@ export default async function DashboardPage() {
                 {myWeek.map((day) => (
                   <div
                     key={day.key}
-                    className={`workbit-week-day${day.isToday ? " workbit-week-day--today" : ""}${day.from ? "" : " workbit-week-day--off"}`}
+                    className={`workbit-week-day${day.isToday ? " workbit-week-day--today" : ""}${day.slots.length > 0 ? "" : " workbit-week-day--off"}`}
                   >
                     <u>{day.label}</u>
                     <s>{day.dayNumber}</s>
                     <em>
-                      {day.from ? (
-                        <>
-                          {day.from}
-                          <br />
-                          {day.to}
-                        </>
-                      ) : (
-                        "—"
-                      )}
+                      {day.slots.length === 0
+                        ? "—"
+                        : day.slots.map((slot) => (
+                            <span className="workbit-week-slot" key={slot.id}>
+                              {slot.from}
+                              <br />
+                              {slot.to}
+                            </span>
+                          ))}
                     </em>
                   </div>
                 ))}
@@ -592,18 +607,34 @@ export default async function DashboardPage() {
             </div>
           ))}
 
-          {todayTaskCount > 0 ? (
+          {openTaskCount > 0 ? (
             <div className="workbit-home-row">
               <span className="workbit-home-row-icon" aria-hidden="true">
                 ✎
               </span>
               <div>
                 <b>
-                  {todayTaskCount} {todayTaskCount === 1 ? "compito per oggi" : "compiti per oggi"}
+                  {openTaskCount} {openTaskCount === 1 ? "mansione da fare" : "mansioni da fare"}
                 </b>
-                da completare entro fine giornata
+                in scadenza oggi o già scadute
               </div>
               <Link href="/dashboard/tasks">Vedi</Link>
+            </div>
+          ) : null}
+
+          {unreadNoteCount > 0 ? (
+            <div className="workbit-home-row">
+              <span className="workbit-home-row-icon" aria-hidden="true">
+                📌
+              </span>
+              <div>
+                <b>
+                  {unreadNoteCount}{" "}
+                  {unreadNoteCount === 1 ? "promemoria da leggere" : "promemoria da leggere"}
+                </b>
+                in bacheca
+              </div>
+              <Link href="/dashboard/board">Vedi</Link>
             </div>
           ) : null}
 

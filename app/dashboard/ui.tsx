@@ -395,6 +395,22 @@ function DashboardResponsiveStyles() {
         color: #a8a3b8;
       }
 
+      /* A split day is two shifts, kept apart by a hairline so it never reads
+         as one long one. */
+      .workbit-week-slot {
+        display: block;
+      }
+
+      .workbit-week-slot + .workbit-week-slot {
+        margin-top: 3px;
+        padding-top: 3px;
+        border-top: 1px solid rgba(94, 92, 230, 0.18);
+      }
+
+      .workbit-week-day--today .workbit-week-slot + .workbit-week-slot {
+        border-top-color: rgba(255, 255, 255, 0.34);
+      }
+
       .workbit-week-day--today {
         background: linear-gradient(160deg, #4c1d95, #7c3aed);
         box-shadow: 0 8px 18px rgba(124, 58, 237, 0.24);
@@ -539,40 +555,39 @@ function DashboardResponsiveStyles() {
       }
 
       .workbit-home-hours {
-        min-height: 108px;
-        padding: 18px 20px;
+        padding: 12px 14px;
         display: flex;
         align-items: center;
-        gap: 18px;
+        gap: 13px;
       }
 
       .workbit-home-ring {
-        width: 72px;
-        height: 72px;
+        width: 50px;
+        height: 50px;
         flex: 0 0 auto;
         border-radius: 999px;
-        padding: 7px;
+        padding: 5px;
         display: grid;
         place-items: center;
       }
 
       .workbit-home-ring span {
-        width: 54px;
-        height: 54px;
+        width: 40px;
+        height: 40px;
         display: grid;
         place-items: center;
         border-radius: 999px;
         background: #ffffff;
         color: #151526;
-        font-size: 16px;
+        font-size: 12px;
         font-weight: 950;
       }
 
       .workbit-home-hours strong {
         display: block;
         color: #151526;
-        font-size: 18px;
-        font-weight: 950;
+        font-size: 16px;
+        font-weight: 900;
         letter-spacing: -0.025em;
       }
 
@@ -580,16 +595,16 @@ function DashboardResponsiveStyles() {
       .workbit-home-shift small {
         display: block;
         color: #8E8E93;
-        font-size: 14px;
-        font-weight: 760;
+        font-size: 12.5px;
+        font-weight: 700;
         line-height: 1.2;
       }
 
       .workbit-home-clock-card {
         display: grid;
-        gap: 20px;
+        gap: 13px;
         border-radius: 20px;
-        padding: 22px 20px 20px;
+        padding: 15px 15px 14px;
         background: linear-gradient(135deg, #6958F5 0%, #442ACD 100%);
         color: #ffffff;
         box-shadow: 0 18px 28px rgba(68, 42, 205, 0.18);
@@ -3024,9 +3039,9 @@ function DashboardResponsiveStyles() {
       }
 
       .dashboard-clock-button {
-        min-height: 58px !important;
-        border-radius: 16px !important;
-        font-size: 16px !important;
+        min-height: 46px !important;
+        border-radius: 14px !important;
+        font-size: 15px !important;
         font-weight: 850 !important;
         letter-spacing: 0.04em !important;
         color: #ffffff !important;
@@ -3064,8 +3079,8 @@ function DashboardResponsiveStyles() {
 
       @media (max-width: 900px) {
         .dashboard-clock-button {
-          min-height: 62px !important;
-          border-radius: 16px !important;
+          min-height: 48px !important;
+          border-radius: 14px !important;
         }
       }
 
