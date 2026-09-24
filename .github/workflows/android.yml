@@ -11,6 +11,10 @@ on:
       - "capacitor.config.ts"
       - "capacitor-web/**"
       - ".github/workflows/android.yml"
+      # Adding or updating a Capacitor plugin changes the native build even
+      # when nothing under android/ is touched.
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   apk:
