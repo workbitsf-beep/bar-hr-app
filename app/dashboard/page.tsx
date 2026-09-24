@@ -452,6 +452,12 @@ export default async function DashboardPage() {
     0
   );
 
+  const inboxCount =
+    unseenRequestOutcomes.length +
+    (openTaskCount > 0 ? 1 : 0) +
+    (unreadNoteCount > 0 ? 1 : 0) +
+    (upcomingCourse ? 1 : 0);
+
   const coveredNextWeekDays = new Set(
     nextWeekShifts.map((shift) => toDateInputValueInTimeZone(shift.startTime))
   ).size;
@@ -596,7 +602,23 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          {unseenRequestOutcomes.map((outcome) => (
+          <section className="workbit-inbox">
+            <div className="workbit-inbox-head">
+              <strong>Da leggere e da fare</strong>
+              {inboxCount > 0 ? (
+                <span>
+                  {inboxCount} {inboxCount === 1 ? "cosa" : "cose"}
+                </span>
+              ) : null}
+            </div>
+
+            {inboxCount === 0 ? (
+              <p className="workbit-inbox-empty">
+                <i aria-hidden="true" /> Nessuna comunicazione in sospeso.
+              </p>
+            ) : null}
+
+            {unseenRequestOutcomes.map((outcome) => (
             <div className="workbit-home-row workbit-home-row--good" key={outcome.id}>
               <span className="workbit-home-row-icon" aria-hidden="true">
                 ✓
@@ -652,6 +674,7 @@ export default async function DashboardPage() {
               <Link href="/dashboard/courses">Vedi</Link>
             </div>
           ) : null}
+          </section>
 
           {crewBlock}
         </div>

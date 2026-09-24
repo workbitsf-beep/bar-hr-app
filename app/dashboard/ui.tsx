@@ -208,13 +208,29 @@ function DashboardResponsiveStyles() {
         flex: 0 0 auto;
       }
 
+      /* Two lines inside the bar: the action, and under it what it refers
+         to. Side by side the second one ran off the edge. */
+      .wb-act-text {
+        display: grid;
+        gap: 1px;
+        min-width: 0;
+      }
+
+      .wb-act-text b {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        line-height: 1.2;
+      }
+
       .wb-act-bar em {
         font-style: normal;
-        margin-left: auto;
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.82);
+        color: rgba(255, 255, 255, 0.78);
         font-variant-numeric: tabular-nums;
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
       }
 
@@ -241,6 +257,22 @@ function DashboardResponsiveStyles() {
 
       .wb-act-bar--off em {
         color: #a8a3b8;
+      }
+
+      /* The outcome of the last stamp, given room to be read. */
+      .workbit-home-clock-message {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(94, 92, 230, 0.12);
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #5c5870;
+        line-height: 1.45;
       }
 
       .wb-act-note {
@@ -502,18 +534,22 @@ function DashboardResponsiveStyles() {
       }
 
       .workbit-week-day--today .workbit-week-slot + .workbit-week-slot {
-        border-top-color: rgba(124, 58, 237, 0.28);
+        border-top-color: rgba(255, 255, 255, 0.34);
       }
 
       .workbit-week-day--today {
-        background: #efe9fd;
-        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.24);
+        background: linear-gradient(160deg, #4c1d95, #7c3aed);
+        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.24);
       }
 
       .workbit-week-day--today u,
       .workbit-week-day--today s,
       .workbit-week-day--today em {
-        color: #4c1d95;
+        color: #ffffff;
+      }
+
+      .workbit-week-day--today u {
+        opacity: 0.78;
       }
 
       .workbit-week-mates {
@@ -523,8 +559,69 @@ function DashboardResponsiveStyles() {
         color: #667085;
       }
 
-      /* One row per thing that has something to say, and nothing when it has
-         not. A home full of "no news" boxes teaches people not to look. */
+      /* The notices live in a box that is always there, so their absence reads
+         as "nothing to do" rather than as a screen that forgot to mention
+         them. */
+      .workbit-inbox {
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(94, 92, 230, 0.08);
+        box-shadow: 0 10px 22px rgba(61, 42, 153, 0.045);
+        padding: 15px 16px;
+      }
+
+      .workbit-inbox-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 11px;
+      }
+
+      .workbit-inbox-head strong {
+        font-size: 15px;
+        font-weight: 800;
+        color: #20202a;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-inbox-head span {
+        font-size: 12.5px;
+        color: #667085;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .workbit-inbox-empty {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        font-size: 13px;
+        color: #8a8598;
+      }
+
+      .workbit-inbox-empty i {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #16a34a;
+        flex: 0 0 auto;
+      }
+
+      /* Inside the box the rows lose their own frame: the box is the frame. */
+      .workbit-inbox .workbit-home-row {
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 10px 0;
+        border-top: 1px solid rgba(94, 92, 230, 0.09);
+      }
+
+      .workbit-inbox .workbit-home-row:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+
       .workbit-home-row {
         display: flex;
         align-items: center;

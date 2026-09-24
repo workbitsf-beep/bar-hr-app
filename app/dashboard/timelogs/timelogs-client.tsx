@@ -936,8 +936,10 @@ export function ClockActionsPanel({
             tone={leaving ? "red" : "green"}
           />
           <i aria-hidden="true" />
-          <span>{label}</span>
-          {meta ? <em>{meta}</em> : null}
+          <span className="wb-act-text">
+            <b>{label}</b>
+            {meta ? <em>{meta}</em> : null}
+          </span>
         </button>
 
         {/* The position only speaks up when it is in the way. */}
