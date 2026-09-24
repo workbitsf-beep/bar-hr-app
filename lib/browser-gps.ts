@@ -1,4 +1,86 @@
 import { calculateDistance } from "./gps";
+import { isNativeApp } from "./native-app";
+
+type PositionWatch = { stop: () => void };
+
+/**
+ * Inside the installed app the position comes from the device's own location
+ * service, asked explicitly for satellite-grade accuracy. A web view answers
+ * instead with a battery-saving estimate built from cell towers and Wi-Fi,
+ * which is what left clock-in readings tens of metres out.
+ *
+ * Only the source changes. Accuracy thresholds, repeated samples and the rest
+ * of the logic downstream are untouched, and a browser keeps the old path.
+ */
+function startPositionWatch(
+  onPosition: (position: GeolocationPosition) => void,
+  onWatchError: (error: GeolocationPositionError) => void,
+  options: PositionOptions
+): PositionWatch {
+  if (!isNativeApp()) {
+    const id = navigator.geolocation.watchPosition(onPosition, onWatchError, options);
+    return { stop: () => navigator.geolocation.clearWatch(id) };
+  }
+
+  let stopped = false;
+  let release: (() => void) | null = null;
+
+  const useBrowserSource = () => {
+    const id = navigator.geolocation.watchPosition(onPosition, onWatchError, options);
+    release = () => navigator.geolocation.clearWatch(id);
+  };
+
+  void (async () => {
+    try {
+      const { Geolocation } = await import("@capacitor/geolocation");
+
+      const id = await Geolocation.watchPosition(
+        {
+          enableHighAccuracy: true,
+          timeout: options.timeout,
+          maximumAge: options.maximumAge,
+        },
+        (position, error) => {
+          if (stopped) {
+            return;
+          }
+
+          if (error || !position) {
+            onWatchError({
+              code: 2,
+              message: error ? String(error) : "Posizione non disponibile",
+              PERMISSION_DENIED: 1,
+              POSITION_UNAVAILABLE: 2,
+              TIMEOUT: 3,
+            } as GeolocationPositionError);
+            return;
+          }
+
+          onPosition(position as unknown as GeolocationPosition);
+        }
+      );
+
+      release = () => void Geolocation.clearWatch({ id });
+
+      if (stopped) {
+        release();
+      }
+    } catch {
+      // The plugin is unreachable for some reason; a coarse position beats none.
+      if (!stopped) {
+        useBrowserSource();
+      }
+    }
+  })();
+
+  return {
+    stop: () => {
+      stopped = true;
+      release?.();
+      release = null;
+    },
+  };
+}
 
 export type GeolocationSample = {
   latitude: number;
@@ -271,7 +353,7 @@ export function startPreciseGeolocationWatch({
   }
 
   let active = true;
-  let watchId: number | null = null;
+  let watch: PositionWatch | null = null;
   let batchTimer: number | null = null;
   let sampleCount = 0;
   const wakeLock = createScreenWakeLockController();
@@ -290,9 +372,9 @@ export function startPreciseGeolocationWatch({
     active = false;
     clearBatchTimer();
 
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      watchId = null;
+    if (watch) {
+      watch.stop();
+      watch = null;
     }
 
     void wakeLock.stop();
@@ -305,9 +387,9 @@ export function startPreciseGeolocationWatch({
 
     clearBatchTimer();
 
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      watchId = null;
+    if (watch) {
+      watch.stop();
+      watch = null;
     }
 
     const collector = createBatchCollector({
@@ -335,7 +417,7 @@ export function startPreciseGeolocationWatch({
       }, GEOLOCATION_BATCH_WAIT_MS);
     };
 
-    watchId = navigator.geolocation.watchPosition(
+    watch = startPositionWatch(
       (position) => {
         if (!active) {
           return;

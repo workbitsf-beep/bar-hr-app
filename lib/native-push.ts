@@ -9,23 +9,16 @@
  * block, which Firebase delivers to native devices as well as browsers.
  */
 
+import { isNativeApp } from "./native-app";
+
+export { isNativeApp };
+
 export type NativePushOutcome =
   | { status: "not-native" }
   | { status: "no-bridge" }
   | { status: "denied" }
   | { status: "registered"; token: string }
   | { status: "failed"; reason: string };
-
-/** True only inside the installed app, never in a normal browser tab. */
-export function isNativeApp() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const capacitor = (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-
-  return Boolean(capacitor?.isNativePlatform?.());
-}
 
 export async function registerNativePush(): Promise<NativePushOutcome> {
   if (!isNativeApp()) {
