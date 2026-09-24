@@ -8,7 +8,9 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * appId becomes the Android package name and the iOS bundle id. It cannot be
  * changed once the app is published, so it stays as it is from here on.
  */
-const config: CapacitorConfig = {
+// errorPath is read by the native runtime but missing from Capacitor's
+// published types, so it is declared here rather than silenced with a cast.
+const config: CapacitorConfig & { errorPath?: string } = {
   appId: "it.workbit.app",
   appName: "Workbit",
   webDir: "capacitor-web",
