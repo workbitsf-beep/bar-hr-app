@@ -16,10 +16,31 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // The signing material arrives from the environment, never from the
+    // repository. Without it the release build simply stays unsigned, so a
+    // local build still works.
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("WORKBIT_KEYSTORE_PATH")
+
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storeType "PKCS12"
+                storePassword System.getenv("WORKBIT_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("WORKBIT_KEY_ALIAS") ?: "workbit"
+                keyPassword System.getenv("WORKBIT_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            if (System.getenv("WORKBIT_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

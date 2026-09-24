@@ -1,7 +1,7 @@
 name: App Android
 
 # Builds an installable APK on GitHub's machines, so no Android SDK or Java
-# has to be installed locally. Download it from the run's Artifacts section.
+# has to be installed locally. Download it from the release below.
 on:
   workflow_dispatch:
   push:
@@ -24,6 +24,11 @@ jobs:
     # Needed to publish the build as a release.
     permissions:
       contents: write
+
+    env:
+      # Secrets cannot be read inside `if:` directly, so the presence check is
+      # hoisted here. Without the key the build still runs, unsigned.
+      HAS_KEYSTORE: ${{ secrets.WORKBIT_KEYSTORE_BASE64 != '' }}
 
     steps:
       - name: Scarica il codice
@@ -53,19 +58,43 @@ jobs:
       - name: Sincronizza il progetto nativo
         run: npx cap sync android
 
+      # The keystore never lives in the repository: it is rebuilt here from an
+      # encrypted secret and discarded with the machine.
+      - name: Prepara la chiave di firma
+        if: env.HAS_KEYSTORE == 'true'
+        run: |
+          printf '%s' '${{ secrets.WORKBIT_KEYSTORE_BASE64 }}' | base64 -d > "$RUNNER_TEMP/workbit-upload.p12"
+          echo "WORKBIT_KEYSTORE_PATH=$RUNNER_TEMP/workbit-upload.p12" >> "$GITHUB_ENV"
+          echo "WORKBIT_KEYSTORE_PASSWORD=${{ secrets.WORKBIT_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "WORKBIT_KEY_ALIAS=workbit" >> "$GITHUB_ENV"
+
       # Git on Windows does not keep the executable bit, so set it here.
       - name: Rendi eseguibile gradlew
         run: chmod +x android/gradlew
 
       - name: Compila l'APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          if [ -n "${WORKBIT_KEYSTORE_PATH:-}" ]; then
+            echo "Compilo la versione firmata."
+            ./gradlew assembleRelease --no-daemon --stacktrace
+          else
+            echo "Nessuna chiave configurata: compilo la versione di prova."
+            ./gradlew assembleDebug --no-daemon --stacktrace
+          fi
+
+      - name: Individua il file prodotto
+        run: |
+          APK="$(find android/app/build/outputs/apk -name '*.apk' | head -1)"
+          test -n "$APK"
+          cp "$APK" workbit.apk
+          echo "APK pronto: $APK"
 
       - name: Pubblica l'APK da scaricare
         uses: actions/upload-artifact@v4
         with:
           name: workbit-android
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: workbit.apk
           if-no-files-found: error
 
       # Artifacts can only be downloaded from a desktop browser, and arrive
@@ -76,10 +105,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete anteprima-android --yes --cleanup-tag || true
-          gh release create anteprima-android \
-            android/app/build/outputs/apk/debug/app-debug.apk \
+          gh release create anteprima-android workbit.apk \
             --title "Workbit Android · anteprima" \
             --notes "Versione di prova, aggiornata automaticamente a ogni modifica dell'app.
 
-          Scarica \`app-debug.apk\` qui sotto e aprilo sul telefono per installarlo.
+          Scarica \`workbit.apk\` qui sotto e aprilo sul telefono per installarlo.
           Android chiederà il permesso di installare da fonte sconosciuta: è normale."
