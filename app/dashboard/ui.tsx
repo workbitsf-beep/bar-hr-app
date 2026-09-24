@@ -3539,22 +3539,25 @@ export function DashboardShell({
     <main
       className="dashboard-shell workbit-animated-page"
       style={{
-        position: "relative",
+        position: "fixed",
+        inset: 0,
         isolation: "isolate",
-        minHeight: "var(--workbit-vh, 100dvh)",
+        display: "flex",
+        flexDirection: "column",
         background: "transparent",
-        padding: 18,
+        padding: 0,
       }}
     >
       <div
-        className="dashboard-shell-inner workbit-animated-page__content"
+        className="dashboard-shell-top dashboard-shell-inner workbit-animated-page__content"
         style={{
           position: "relative",
-          zIndex: 1,
+          zIndex: 2,
           maxWidth: 1320,
           margin: "0 auto",
-            display: "grid",
-            gap: 0,
+          display: "grid",
+          gap: 0,
+          width: "100%",
         }}
       >
         {headerSwitch ? (
@@ -3581,17 +3584,85 @@ export function DashboardShell({
             {belowHeader}
           </div>
         ) : null}
+      </div>
 
+      {/* The page scrolls inside this band, between the two fixed bars, so
+          content is clipped at their edges instead of sliding behind them. */}
+      <div className="dashboard-shell-scroll">
         <div
-          className="dashboard-shell-content"
-          style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}
+          className="dashboard-shell-inner"
+          style={{ maxWidth: 1320, margin: "0 auto", width: "100%" }}
         >
-          {children}
+          <div
+            className="dashboard-shell-content"
+            style={{ display: "grid", gap: 18, alignItems: "start", minWidth: 0 }}
+          >
+            {children}
+          </div>
         </div>
       </div>
+
       <ActiveBottomNav navItems={navItems} />
       <DashboardResponsiveStyles />
+      <DashboardAppShellStyles />
     </main>
+  );
+}
+
+/**
+ * Turns the venue app into a fixed shell: a header that stays put, a scrolling
+ * band, and a docked navigation bar. Declared after the responsive sheet so
+ * these win over the rules written for the older scrolling page.
+ */
+function DashboardAppShellStyles() {
+  return (
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `
+          .dashboard-shell {
+            position: fixed !important;
+            inset: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+          }
+
+          .dashboard-shell-top {
+            flex: 0 0 auto;
+            padding: max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px)) 16px 0 !important;
+          }
+
+          .dashboard-shell-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            padding: 14px 16px 4px;
+          }
+
+          /* Docked rather than floating: nothing passes behind it any more, so
+             the frosted glass has nothing left to blur. */
+          .dashboard-bottom-nav {
+            position: relative !important;
+            left: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            contain: none !important;
+            width: min(360px, calc(100% - 24px)) !important;
+            max-width: calc(100% - 24px) !important;
+            margin: 6px auto max(10px, env(safe-area-inset-bottom), var(--wb-inset-bottom, 0px)) !important;
+            background: #ffffff !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            box-shadow: 0 -2px 20px rgba(61, 42, 153, 0.10) !important;
+          }
+        `,
+      }}
+    />
   );
 }
 
