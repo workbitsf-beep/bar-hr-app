@@ -17,6 +17,10 @@ jobs:
     name: APK di prova
     runs-on: ubuntu-latest
 
+    # Needed to publish the build as a release.
+    permissions:
+      contents: write
+
     steps:
       - name: Scarica il codice
         uses: actions/checkout@v4
@@ -42,3 +46,19 @@ jobs:
           name: workbit-android
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Artifacts can only be downloaded from a desktop browser, and arrive
+      # zipped. A release keeps one stable link that installs straight from a
+      # phone, so the APK is always one tap away.
+      - name: Aggiorna la release scaricabile dal telefono
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete anteprima-android --yes --cleanup-tag || true
+          gh release create anteprima-android \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            --title "Workbit Android · anteprima" \
+            --notes "Versione di prova, aggiornata automaticamente a ogni modifica dell'app.
+
+          Scarica \`app-debug.apk\` qui sotto e aprilo sul telefono per installarlo.
+          Android chiederà il permesso di installare da fonte sconosciuta: è normale."
