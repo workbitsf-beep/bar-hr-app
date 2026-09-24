@@ -80,6 +80,26 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 background: var(--workbit-background);
               }
 
+              /* Softens the band left for the status bar into the page. It sits
+                 above the ambient backdrop but below the app content, so it
+                 blends the background without ever covering a card. */
+              body::after {
+                content: "";
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: calc(max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px)) + 40px);
+                z-index: 0;
+                pointer-events: none;
+                background: linear-gradient(
+                  180deg,
+                  #ffffff 0%,
+                  rgba(255, 255, 255, 0.55) 55%,
+                  rgba(255, 255, 255, 0) 100%
+                );
+              }
+
               *,
               *::before,
               *::after {

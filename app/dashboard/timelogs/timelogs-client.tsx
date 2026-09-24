@@ -1281,19 +1281,18 @@ function OwnerTimeLogsPanel({
             Nessuna timbratura registrata.
           </p>
         ) : (
-          <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-            {groupedLogs.map((group) => (
+          <div className="dashboard-scroll-list" style={{ display: "grid" }}>
+            {groupedLogs.map((group, index) => (
               <button
                 key={group.id}
                 type="button"
                 onClick={() => setSelectedUser(group.id)}
-                className="dashboard-list-button"
                 style={{
                   width: "100%",
-                  padding: 16,
-                  borderRadius: 20,
-                  border: "1px solid #e2e8f0",
-                  background: "#f8fafc",
+                  padding: "14px 2px",
+                  border: 0,
+                  borderTop: index === 0 ? 0 : "1px solid #eef0f6",
+                  background: "transparent",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
