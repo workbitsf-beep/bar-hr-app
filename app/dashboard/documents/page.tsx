@@ -338,63 +338,62 @@ export default async function DashboardDocumentsPage({
                               {document.fileName} - {formatDocumentSize(document.fileSize)} -{" "}
                               {formatDateTime(document.createdAt)}
                             </div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            <div className="workbit-doc-actions">
                               {canOpen ? (
                                 <>
-                                  <ExternalLink
-                                    href={`/api/documents/${document.id}`}
-                                    style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    minHeight: 38,
-                                    padding: "0 16px",
-                                    borderRadius: 999,
-                                    textDecoration: "none",
-                                    fontWeight: 800,
-                                      background: "var(--workbit-gradient)",
-                                      color: "#ffffff",
-                                    }}
-                                  >
+                                  <ExternalLink href={`/api/documents/${document.id}`} className="workbit-doc-open">
                                     Apri
                                   </ExternalLink>
                                   <Link
                                     href={`/api/documents/${document.id}?download=1`}
-                                    style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    minHeight: 38,
-                                    padding: "0 16px",
-                                    borderRadius: 999,
-                                    textDecoration: "none",
-                                    fontWeight: 800,
-                                      background: "#f8fafc",
-                                      color: "#4c1d95",
-                                      border: "1px solid rgba(124, 58, 237, 0.18)",
-                                    }}
+                                    className="workbit-doc-icon"
+                                    aria-label="Scarica il documento"
+                                    title="Scarica"
                                   >
-                                    Scarica
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                      <path
+                                        d="M12 4v11m0 0 4.2-4.2M12 15l-4.2-4.2M5 19h14"
+                                        stroke="currentColor"
+                                        strokeWidth="1.9"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
                                   </Link>
                                 </>
-                              ) : null}
-
-                              {canDeleteDocument ? (
-                                <form action={deleteDocumentAction}>
-                                  <input type="hidden" name="documentId" value={document.id} />
-                                  <PrimaryButton type="submit" tone="red">
-                                    Elimina
-                                  </PrimaryButton>
-                                </form>
                               ) : null}
 
                               {canManage ? (
                                 <form action={toggleDocumentActiveAction}>
                                   <input type="hidden" name="documentId" value={document.id} />
                                   <input type="hidden" name="nextActive" value={document.isActive ? "0" : "1"} />
-                                  <PrimaryButton type="submit" tone={document.isActive ? "red" : "green"}>
-                                    {document.isActive ? "Disattiva" : "Riattiva"}
-                                  </PrimaryButton>
+                                  <button
+                                    type="submit"
+                                    className="workbit-doc-icon"
+                                    aria-label={document.isActive ? "Nascondi il documento" : "Rendi di nuovo visibile"}
+                                    title={document.isActive ? "Nascondi" : "Rendi visibile"}
+                                  >
+                                    {document.isActive ? (
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path
+                                          d="M3 3l18 18M10.6 10.7a2 2 0 0 0 2.8 2.8M9.4 5.4A9.8 9.8 0 0 1 12 5c5 0 9 4.5 9 7 0 1-.7 2.3-1.8 3.5M6.5 6.9C4.4 8.3 3 10.4 3 12c0 2.5 4 7 9 7 1.3 0 2.5-.3 3.6-.8"
+                                          stroke="currentColor"
+                                          strokeWidth="1.8"
+                                          strokeLinecap="round"
+                                        />
+                                      </svg>
+                                    ) : (
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path
+                                          d="M3 12s3.6-7 9-7 9 7 9 7-3.6 7-9 7-9-7-9-7Z"
+                                          stroke="currentColor"
+                                          strokeWidth="1.8"
+                                          strokeLinejoin="round"
+                                        />
+                                        <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.8" />
+                                      </svg>
+                                    )}
+                                  </button>
                                 </form>
                               ) : null}
                             </div>
@@ -411,6 +410,49 @@ export default async function DashboardDocumentsPage({
           </div>
         </Panel>
       )}
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .workbit-doc-actions {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-top: 4px;
+            }
+
+            .workbit-doc-open {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              height: 38px;
+              padding: 0 18px;
+              border-radius: 999px;
+              background: var(--workbit-gradient);
+              color: #ffffff;
+              font-weight: 800;
+              font-size: 14px;
+              text-decoration: none;
+              white-space: nowrap;
+            }
+
+            .workbit-doc-icon {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 38px;
+              height: 38px;
+              flex: 0 0 auto;
+              padding: 0;
+              border-radius: 999px;
+              border: 1px solid rgba(124, 58, 237, 0.18);
+              background: #f8fafc;
+              color: #4c1d95;
+              cursor: pointer;
+            }
+          `,
+        }}
+      />
     </Stack>
   );
 }
