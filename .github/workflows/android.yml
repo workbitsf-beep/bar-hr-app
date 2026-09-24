@@ -1,0 +1,44 @@
+name: App Android
+
+# Builds an installable APK on GitHub's machines, so no Android SDK or Java
+# has to be installed locally. Download it from the run's Artifacts section.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "capacitor.config.ts"
+      - "capacitor-web/**"
+      - ".github/workflows/android.yml"
+
+jobs:
+  apk:
+    name: APK di prova
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v4
+
+      - name: Prepara Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      # Git on Windows does not keep the executable bit, so set it here.
+      - name: Rendi eseguibile gradlew
+        run: chmod +x android/gradlew
+
+      - name: Compila l'APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Pubblica l'APK da scaricare
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbit-android
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

@@ -16,6 +16,8 @@
     "seed:super-admin": "node scripts/seed-super-admin.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "@prisma/client": "^6.19.1",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.0",
@@ -34,6 +36,7 @@
     "stripe": "^22.1.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",
