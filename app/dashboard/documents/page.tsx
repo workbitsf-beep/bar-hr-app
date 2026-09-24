@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canViewDocument, formatDocumentSize } from "@/lib/documents";
 import { canManageTrainingAndDocuments } from "@/lib/permissions";
 import { deleteDocumentAction, toggleDocumentActiveAction } from "../actions";
 import { getDashboardContext } from "../context";
-import { ExternalLink } from "@/app/components/external-link";
+import { DocumentFileLink } from "./document-file-link";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { DocumentComposeForm } from "./document-compose-form";
 import {
@@ -341,13 +340,18 @@ export default async function DashboardDocumentsPage({
                             <div className="workbit-doc-actions">
                               {canOpen ? (
                                 <>
-                                  <ExternalLink href={`/api/documents/${document.id}`} className="workbit-doc-open">
+                                  <DocumentFileLink
+                                    documentId={document.id}
+                                    mode="open"
+                                    className="workbit-doc-open"
+                                  >
                                     Apri
-                                  </ExternalLink>
-                                  <Link
-                                    href={`/api/documents/${document.id}?download=1`}
+                                  </DocumentFileLink>
+                                  <DocumentFileLink
+                                    documentId={document.id}
+                                    mode="download"
                                     className="workbit-doc-icon"
-                                    aria-label="Scarica il documento"
+                                    ariaLabel="Scarica il documento"
                                     title="Scarica"
                                   >
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -359,7 +363,7 @@ export default async function DashboardDocumentsPage({
                                         strokeLinejoin="round"
                                       />
                                     </svg>
-                                  </Link>
+                                  </DocumentFileLink>
                                 </>
                               ) : null}
 
