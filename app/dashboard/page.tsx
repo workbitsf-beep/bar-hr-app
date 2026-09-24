@@ -20,6 +20,8 @@ import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { WorkSessionTimer } from "./work-session-timer";
 import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
+import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
+import { formatDateInTimeZone } from "@/lib/time-zone";
 
 function requestTypeLabel(type: RequestType) {
   if (type === RequestType.VACATION) return "Ferie";
@@ -49,6 +51,15 @@ function startOfDay(date: Date) {
   start.setHours(0, 0, 0, 0);
   return start;
 }
+
+/** Monday, because that is where a work week starts here. */
+function startOfWeek(date: Date) {
+  const start = startOfDay(date);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  return start;
+}
+
+const WEEKDAY_LABELS = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
 
 function initialsOf(firstName: string, lastName: string) {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -104,6 +115,10 @@ export default async function DashboardPage() {
     crewShiftsToday,
     crewTimeLogsToday,
     shoppingPendingCount,
+    myWeekShifts,
+    unseenRequestOutcomes,
+    todayTaskCount,
+    upcomingCourse,
   ] = await Promise.all([
     isOperationalProfile && features.timeTracking
       ? prisma.barSettings.findUnique({
@@ -278,6 +293,62 @@ export default async function DashboardPage() {
     features.shoppingList
       ? prisma.shoppingListItem.count({ where: { barId: activeBarId } })
       : Promise.resolve(0),
+    isOperationalProfile && features.shifts
+      ? prisma.shift.findMany({
+          where: {
+            barId: activeBarId,
+            assignments: { some: { userId: session.user.id } },
+            startTime: {
+              gte: startOfWeek(now),
+              lt: addDays(startOfWeek(now), 7),
+            },
+          },
+          orderBy: { startTime: "asc" },
+          select: { id: true, startTime: true, endTime: true },
+        })
+      : Promise.resolve([]),
+    // An unread notice of a reviewed request is exactly "an answer you have
+    // not seen yet" — no new bookkeeping needed, and it goes away by itself
+    // once read.
+    isOperationalProfile && features.requests
+      ? prisma.notification.findMany({
+          where: {
+            userId: session.user.id,
+            barId: activeBarId,
+            read: false,
+            type: {
+              in: [
+                INTERNAL_NOTIFICATION_TYPES.REQUEST_REVIEWED,
+                INTERNAL_NOTIFICATION_TYPES.GENERIC_REQUEST_REVIEWED,
+              ],
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+          select: { id: true, title: true, message: true, actionUrl: true },
+        })
+      : Promise.resolve([]),
+    isOperationalProfile && features.tasks
+      ? prisma.task.count({
+          where: {
+            barId: activeBarId,
+            status: { not: "DONE" },
+            dueDate: { gte: startOfDay(now), lt: addDays(startOfDay(now), 1) },
+            OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
+          },
+        })
+      : Promise.resolve(0),
+    isOperationalProfile && features.courses
+      ? prisma.course.findFirst({
+          where: {
+            barId: activeBarId,
+            startsAt: { gte: now, lt: addDays(now, 14) },
+            OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
+          },
+          orderBy: { startsAt: "asc" },
+          select: { id: true, title: true, startsAt: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const todayKey = toDateInputValueInTimeZone(now);
@@ -337,6 +408,35 @@ export default async function DashboardPage() {
 
   const crew = Array.from(crewToday.values());
   const crewInside = crew.filter((person) => lastStampByUser.get(person.id) === "IN").length;
+
+  // One cell per day of this week. A day with more than one shift shows the
+  // span from the first start to the last end, which is what someone planning
+  // their day actually needs to know.
+  const weekStart = startOfWeek(now);
+  const myWeek = Array.from({ length: 7 }, (_, index) => {
+    const day = addDays(weekStart, index);
+    const dayKey = toDateInputValueInTimeZone(day);
+    const shiftsOfDay = myWeekShifts.filter(
+      (shift) => toDateInputValueInTimeZone(shift.startTime) === dayKey
+    );
+
+    return {
+      key: dayKey,
+      label: WEEKDAY_LABELS[index],
+      dayNumber: day.getDate(),
+      isToday: dayKey === todayKey,
+      from: shiftsOfDay.length > 0 ? toTimeInputValueInTimeZone(shiftsOfDay[0].startTime) : null,
+      to:
+        shiftsOfDay.length > 0
+          ? toTimeInputValueInTimeZone(shiftsOfDay[shiftsOfDay.length - 1].endTime)
+          : null,
+    };
+  });
+
+  const myWeekMinutes = myWeekShifts.reduce(
+    (total, shift) => total + (shift.endTime.getTime() - shift.startTime.getTime()) / 60000,
+    0
+  );
 
   const coveredNextWeekDays = new Set(
     nextWeekShifts.map((shift) => toDateInputValueInTimeZone(shift.startTime))
@@ -410,8 +510,11 @@ export default async function DashboardPage() {
       {isOperationalProfile ? (
         <div className="workbit-home">
           <div className="workbit-home-title">
-            <span>Ciao {session.user.firstName}</span>
-            <h1>Oggi</h1>
+            <div className="workbit-home-greet">
+              <span>Ciao {session.user.firstName}</span>
+              <h1>Oggi</h1>
+            </div>
+            {cartBlock}
           </div>
 
           {features.timeTracking && ownHours ? (
@@ -433,44 +536,104 @@ export default async function DashboardPage() {
             />
           ) : null}
 
-          <section className="workbit-home-shift">
-            <span aria-hidden="true">⏱️</span>
-            <div>
-              <strong>
-                {todayShift
-                  ? `Oggi lavori dalle ${toTimeInputValueInTimeZone(todayShift.startTime)} alle ${toTimeInputValueInTimeZone(todayShift.endTime)}`
-                  : "Oggi non hai turni programmati"}
-              </strong>
-              {todayColleagues.length > 0 ? (
-                <small>Con te: {todayColleagues.join(", ")}</small>
-              ) : null}
-            </div>
-          </section>
+          {features.shifts ? (
+            <section className="workbit-week">
+              <div className="workbit-week-head">
+                <strong>La tua settimana</strong>
+                <span>
+                  {myWeekShifts.length} {myWeekShifts.length === 1 ? "turno" : "turni"}
+                  {myWeekMinutes > 0 ? ` · ${Math.round(myWeekMinutes / 60)}h` : ""}
+                </span>
+              </div>
 
-          <section className="workbit-home-shift workbit-home-next-shift">
-            <span aria-hidden="true">📅</span>
-            <div>
-              <strong>
-                {nextShift.id !== "__empty"
-                  ? `Prossimo turno ${toDateInputValueInTimeZone(nextShift.startTime)} dalle ${toTimeInputValueInTimeZone(nextShift.startTime)} alle ${toTimeInputValueInTimeZone(nextShift.endTime)}`
-                  : "Nessun prossimo turno programmato"}
-              </strong>
+              <div className="workbit-week-grid">
+                {myWeek.map((day) => (
+                  <div
+                    key={day.key}
+                    className={`workbit-week-day${day.isToday ? " workbit-week-day--today" : ""}${day.from ? "" : " workbit-week-day--off"}`}
+                  >
+                    <u>{day.label}</u>
+                    <s>{day.dayNumber}</s>
+                    <em>
+                      {day.from ? (
+                        <>
+                          {day.from}
+                          <br />
+                          {day.to}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </em>
+                  </div>
+                ))}
+              </div>
+
+              {todayColleagues.length > 0 ? (
+                <small className="workbit-week-mates">Oggi con te: {todayColleagues.join(", ")}</small>
+              ) : null}
+
+              {nextShift.id === "__empty" && myWeekShifts.length === 0 ? (
+                <small className="workbit-week-mates">Nessun turno programmato questa settimana.</small>
+              ) : null}
+            </section>
+          ) : null}
+
+          {unseenRequestOutcomes.map((outcome) => (
+            <div className="workbit-home-row workbit-home-row--good" key={outcome.id}>
+              <span className="workbit-home-row-icon" aria-hidden="true">
+                ✓
+              </span>
+              <div>
+                <b>{outcome.title}</b>
+                {outcome.message}
+              </div>
+              <Link href={outcome.actionUrl || "/dashboard/requests"}>Vedi</Link>
             </div>
-          </section>
+          ))}
+
+          {todayTaskCount > 0 ? (
+            <div className="workbit-home-row">
+              <span className="workbit-home-row-icon" aria-hidden="true">
+                ✎
+              </span>
+              <div>
+                <b>
+                  {todayTaskCount} {todayTaskCount === 1 ? "compito per oggi" : "compiti per oggi"}
+                </b>
+                da completare entro fine giornata
+              </div>
+              <Link href="/dashboard/tasks">Vedi</Link>
+            </div>
+          ) : null}
+
+          {upcomingCourse ? (
+            <div className="workbit-home-row workbit-home-row--warn">
+              <span className="workbit-home-row-icon" aria-hidden="true">
+                ⚑
+              </span>
+              <div>
+                <b>{upcomingCourse.title}</b>
+                {formatDateInTimeZone(upcomingCourse.startsAt)}
+              </div>
+              <Link href="/dashboard/courses">Vedi</Link>
+            </div>
+          ) : null}
 
           {crewBlock}
-          {cartBlock}
         </div>
       ) : (
         <div className="workbit-home">
           <div className="workbit-home-title">
-            <span>Ciao {session.user.firstName}</span>
-            <h1>Oggi</h1>
+            <div className="workbit-home-greet">
+              <span>Ciao {session.user.firstName}</span>
+              <h1>Oggi</h1>
+            </div>
+            {cartBlock}
           </div>
 
           {crewBlock}
           {weekLine}
-          {cartBlock}
         </div>
       )}
 

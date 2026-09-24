@@ -145,18 +145,26 @@ function DashboardResponsiveStyles() {
       }
 
       .workbit-home-title {
-        display: grid;
-        gap: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
         padding-inline: 4px;
       }
 
-      .workbit-home-title span {
+      .workbit-home-greet {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .workbit-home-greet span {
         color: #5E5CE6;
         font-size: 14px;
         font-weight: 800;
       }
 
-      .workbit-home-title h1 {
+      .workbit-home-greet h1 {
         margin: 0;
         color: #20202A;
         font-size: 30px;
@@ -306,96 +314,218 @@ function DashboardResponsiveStyles() {
         white-space: nowrap;
       }
 
-      /* Quick add to the order list. */
-      .workbit-cart-trigger {
-        display: inline-flex;
-        align-items: center;
-        gap: 9px;
-        justify-self: start;
-        padding: 11px 17px;
-        border-radius: 999px;
-        background: linear-gradient(180deg, #ffffff 0%, #f5f1ff 100%);
-        border: 1px solid rgba(94, 92, 230, 0.14);
-        box-shadow: 0 4px 12px rgba(61, 42, 153, 0.07);
-        font-size: 14px;
-        font-weight: 750;
-        color: #4c1d95;
-        cursor: pointer;
-      }
-
-      .workbit-cart-trigger em {
-        font-style: normal;
-        font-size: 11.5px;
-        font-weight: 800;
-        padding: 1px 7px;
-        border-radius: 999px;
-        background: #ece4ff;
-        color: #4c1d95;
-      }
-
-      .workbit-cart-card {
+      /* The week, seven cells. It answers the question a shift worker opens
+         the app with, which is not "what is my next shift" but "how is my
+         week". */
+      .workbit-week {
         border-radius: 18px;
         background: #ffffff;
         border: 1px solid rgba(94, 92, 230, 0.08);
         box-shadow: 0 10px 22px rgba(61, 42, 153, 0.045);
-        padding: 16px 18px;
+        padding: 15px 16px;
       }
 
-      .workbit-cart-head {
+      .workbit-week-head {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         justify-content: space-between;
         gap: 10px;
+        margin-bottom: 12px;
       }
 
-      .workbit-cart-head strong {
-        color: #20202A;
+      .workbit-week-head strong {
         font-size: 15px;
         font-weight: 800;
+        color: #20202A;
         letter-spacing: -0.02em;
       }
 
-      .workbit-cart-head button {
+      .workbit-week-head span {
+        font-size: 12.5px;
+        color: #667085;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .workbit-week-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .workbit-week-day {
+        border-radius: 12px;
+        padding: 7px 2px 8px;
+        text-align: center;
+        background: #f7f5fd;
+        border: 1px solid transparent;
+      }
+
+      .workbit-week-day u {
+        display: block;
+        text-decoration: none;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #667085;
+      }
+
+      .workbit-week-day s {
+        display: block;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 800;
+        color: #20202A;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.3;
+      }
+
+      .workbit-week-day em {
+        display: block;
+        font-style: normal;
+        font-size: 10px;
+        font-weight: 700;
+        color: #4c1d95;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.35;
+        margin-top: 3px;
+      }
+
+      .workbit-week-day--off em {
+        color: #a8a3b8;
+      }
+
+      .workbit-week-day--today {
+        background: linear-gradient(160deg, #4c1d95, #7c3aed);
+        box-shadow: 0 8px 18px rgba(124, 58, 237, 0.24);
+      }
+
+      .workbit-week-day--today u,
+      .workbit-week-day--today s,
+      .workbit-week-day--today em {
+        color: #ffffff;
+      }
+
+      .workbit-week-day--today u {
+        opacity: 0.78;
+      }
+
+      .workbit-week-mates {
+        display: block;
+        margin-top: 11px;
+        font-size: 12.5px;
+        color: #667085;
+      }
+
+      /* One row per thing that has something to say, and nothing when it has
+         not. A home full of "no news" boxes teaches people not to look. */
+      .workbit-home-row {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid rgba(94, 92, 230, 0.13);
+        box-shadow: 0 6px 16px rgba(61, 42, 153, 0.04);
+        font-size: 13.5px;
+        color: #667085;
+      }
+
+      .workbit-home-row-icon {
         width: 30px;
         height: 30px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+        flex: 0 0 auto;
+        background: #f1ecfe;
+      }
+
+      .workbit-home-row b {
+        display: block;
+        color: #20202A;
+        font-weight: 800;
+        font-size: 13.5px;
+        letter-spacing: -0.01em;
+      }
+
+      .workbit-home-row--good .workbit-home-row-icon {
+        background: #dcfce7;
+      }
+
+      .workbit-home-row--warn .workbit-home-row-icon {
+        background: #fef3c7;
+      }
+
+      .workbit-home-row a {
+        margin-left: auto;
+        color: #7b2ff7;
+        font-weight: 800;
+        font-size: 12.5px;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      /* Quick add to the order list: a disc beside the heading. The trigger
+         carries inline styles from the popup component, so these have to win. */
+      .workbit-cart-trigger.dashboard-popup-trigger {
+        position: relative;
+        width: 40px !important;
+        padding: 0 !important;
+        font-size: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f5f1ff 100%) !important;
+        border: 1px solid rgba(94, 92, 230, 0.16) !important;
+        box-shadow: 0 6px 16px rgba(61, 42, 153, 0.1) !important;
+        flex: 0 0 auto;
+      }
+
+      .workbit-cart-trigger em {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        font-style: normal;
+        min-width: 18px;
+        padding: 0 4px;
         border-radius: 999px;
-        border: 1px solid rgba(94, 92, 230, 0.14);
-        background: #ffffff;
-        color: #667085;
-        font-size: 13px;
-        line-height: 1;
-        cursor: pointer;
+        background: #7b2ff7;
+        color: #ffffff;
+        font-size: 10.5px;
+        font-weight: 800;
+        line-height: 18px;
       }
 
       .workbit-cart-form {
         display: grid;
-        gap: 9px;
-        margin-top: 12px;
+        gap: 6px;
       }
 
-      .workbit-cart-fields {
-        display: grid;
-        gap: 9px;
-        grid-template-columns: minmax(0, 1fr) 104px;
+      .workbit-cart-form label {
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #667085;
+        margin-top: 6px;
       }
 
       .workbit-cart-form input {
         border: 1px solid rgba(94, 92, 230, 0.14);
         border-radius: 14px;
-        padding: 10px 13px;
+        padding: 11px 13px;
         background: #ffffff;
-        font-size: 14px;
+        font-size: 15px;
         color: #20202A;
         min-width: 0;
       }
 
       .workbit-cart-form button[type="submit"] {
+        margin-top: 12px;
         border: 0;
         border-radius: 999px;
-        padding: 11px;
+        padding: 13px;
         background: linear-gradient(135deg, #3d2a99 0%, #5e5ce6 58%, #8b5cf6 100%);
         color: #ffffff;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 800;
         cursor: pointer;
       }
