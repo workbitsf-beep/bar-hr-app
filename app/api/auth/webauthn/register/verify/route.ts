@@ -34,12 +34,12 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    const { origin, rpID } = getWebAuthnConfig(req);
+    const { expectedOrigins, rpID } = getWebAuthnConfig(req);
     let challengeId: string | null = null;
 
     const verification = await verifyRegistrationResponse({
       response: body.response,
-      expectedOrigin: origin,
+      expectedOrigin: expectedOrigins,
       expectedRPID: rpID,
       requireUserVerification: true,
       expectedChallenge: async (challenge) => {

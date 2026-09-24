@@ -25,6 +25,17 @@ const config: CapacitorConfig & { errorPath?: string } = {
   android: {
     allowMixedContent: false,
   },
+  plugins: {
+    // A web view has no passkey support of its own, so the plugin stands in for
+    // it and forwards to the phone's own credential manager. The domain named
+    // here has to be the one the passkeys were registered against, and the same
+    // one that serves .well-known/assetlinks.json.
+    CapacitorPasskey: {
+      origin: "https://app.workbit.it",
+      domains: ["app.workbit.it"],
+      autoShim: true,
+    },
+  },
 };
 
 export default config;

@@ -11,8 +11,7 @@ import {
   clearPasskeySetupPending,
   markPasskeyPreferred,
 } from "@/lib/client-session";
-import { isNativeApp } from "@/lib/native-app";
-import { BiometricLockPanel } from "./biometric-lock-panel";
+import { ensureNativePasskeySupport } from "@/lib/native-passkeys";
 
 type WebAuthnRegistrationPanelProps = {
   initialPasskeyCount: number;
@@ -32,7 +31,6 @@ export function WebAuthnRegistrationPanel({
   onSuccess,
 }: WebAuthnRegistrationPanelProps) {
   const [passkeyCount, setPasskeyCount] = useState(initialPasskeyCount);
-  const inNativeApp = isNativeApp();
   const [available, setAvailable] = useState(false);
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -46,6 +44,8 @@ export function WebAuthnRegistrationPanel({
 
     async function checkSupport() {
       try {
+        await ensureNativePasskeySupport();
+
         const supportsWebAuthn = browserSupportsWebAuthn();
         const supportsPlatformAuthenticator =
           supportsWebAuthn && (await platformAuthenticatorIsAvailable());
@@ -177,33 +177,26 @@ export function WebAuthnRegistrationPanel({
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      {/* Passkeys are a browser credential; inside the app the device lock
-          below is what applies, so neither the count nor the browser check
-          belongs here. */}
-      {inNativeApp ? null : (
-        <div
-          style={{
-            padding: "12px 14px",
-            borderRadius: 18,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            color: "#475569",
-            lineHeight: 1.6,
-          }}
-        >
-          <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
-            Passkey registrate: {passkeyCount}
-          </strong>
-        </div>
-      )}
+      <div
+        style={{
+          padding: "12px 14px",
+          borderRadius: 18,
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          color: "#475569",
+          lineHeight: 1.6,
+        }}
+      >
+        <strong style={{ display: "block", color: "#0f172a", marginBottom: 4 }}>
+          Passkey registrate: {passkeyCount}
+        </strong>
+      </div>
 
-      {checking && !inNativeApp ? (
+      {checking ? (
         <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>Controllo...</p>
       ) : null}
 
-      {inNativeApp ? <BiometricLockPanel /> : null}
-
-      {!checking && !available && !inNativeApp ? (
+      {!checking && !available ? (
         (
           <p style={{ margin: 0, color: "#b45309", lineHeight: 1.6 }}>
             Questo dispositivo non offre un&apos;impronta o un riconoscimento del volto utilizzabile.
@@ -214,7 +207,7 @@ export function WebAuthnRegistrationPanel({
       {error ? <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p> : null}
       {message ? <p style={{ margin: 0, color: "#166534", fontSize: 14 }}>{message}</p> : null}
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} hidden={inNativeApp || (!checking && !available)}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} hidden={!checking && !available}>
         <PrimaryButton
           type="button"
           onClick={handleUpdatePasskey}

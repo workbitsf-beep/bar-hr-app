@@ -12,6 +12,30 @@ export const WEBAUTHN_REGISTRATION_CHALLENGE = "registration";
 export const WEBAUTHN_AUTHENTICATION_CHALLENGE = "authentication";
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * The Android app does not identify itself by the site's address.
+ *
+ * A browser signs the challenge as "https://app.workbit.it". Android hands the
+ * job to the phone's credential manager, which identifies the caller by the
+ * key the app was signed with instead — the same key whose fingerprint is
+ * published in .well-known/assetlinks.json. The passkey is the same one; only
+ * the name the request arrives under differs, so it has to be accepted
+ * alongside the web address or every login from the app is rejected.
+ *
+ * Google Play re-signs the app with its own key when it is published, so this
+ * list can be extended through the environment without a code change.
+ */
+const ANDROID_UPLOAD_KEY_ORIGIN = "android:apk-key-hash:g9pnazH4NritZaj-kRd40xsSWS0bfT6R6FnRW7NRTVg";
+
+function getAndroidAppOrigins() {
+  const extra = (process.env.ANDROID_APP_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return [ANDROID_UPLOAD_KEY_ORIGIN, ...extra];
+}
+
 export function getWebAuthnConfig(req: Request) {
   const configuredOrigin = process.env.WEBAUTHN_ORIGIN || process.env.APP_URL;
   const origin = normalizeOrigin(configuredOrigin) ?? getForwardedOrigin(req) ?? new URL(req.url).origin;
@@ -21,6 +45,7 @@ export function getWebAuthnConfig(req: Request) {
     rpName: process.env.WEBAUTHN_RP_NAME || "Workbit",
     rpID,
     origin,
+    expectedOrigins: [origin, ...getAndroidAppOrigins()],
   };
 }
 

@@ -10,6 +10,7 @@ import {
   clearPasskeySetupPending,
   markPasskeyPreferred,
 } from "@/lib/client-session";
+import { ensureNativePasskeySupport } from "@/lib/native-passkeys";
 
 type PasskeyLoginButtonProps = {
   email: string;
@@ -46,6 +47,10 @@ export function PasskeyLoginButton({
 
     async function checkSupport() {
       try {
+        // Inside the installed app this is what puts the passkey API in place;
+        // in a browser it returns immediately.
+        await ensureNativePasskeySupport();
+
         const supportsWebAuthn = browserSupportsWebAuthn();
         const supportsPlatformAuthenticator =
           supportsWebAuthn && (await platformAuthenticatorIsAvailable());

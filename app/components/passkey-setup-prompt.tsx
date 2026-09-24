@@ -9,6 +9,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { clearPasskeySetupPending, hasPasskeySetupPending } from "@/lib/client-session";
+import { ensureNativePasskeySupport } from "@/lib/native-passkeys";
 
 const AUTH_EXCLUDED_PATHS = ["/login", "/change-password", "/forgot-password"];
 
@@ -41,6 +42,8 @@ export function PasskeySetupPrompt() {
 
     async function checkSupport() {
       try {
+        await ensureNativePasskeySupport();
+
         const supportsWebAuthn = browserSupportsWebAuthn();
         const platformAuthenticator =
           supportsWebAuthn && (await platformAuthenticatorIsAvailable());

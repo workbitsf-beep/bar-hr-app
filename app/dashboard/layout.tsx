@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { BiometricGate } from "@/app/components/biometric-gate";
 import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
@@ -44,7 +43,6 @@ export default async function DashboardLayout({
         <SessionKeepAlive />
         <NotificationBarSync activeBarId={activeBarId} />
         <PushRegistration />
-        <BiometricGate />
         <ConsoleShell
           userName={userName}
           venues={accessibleBars.map((bar) => ({ id: bar.id, name: bar.name }))}
@@ -88,7 +86,6 @@ export default async function DashboardLayout({
       <SessionKeepAlive />
       <NotificationBarSync activeBarId={activeBarId} />
       <PushRegistration />
-      <BiometricGate />
       <DashboardRouteGuard
         redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings?billing=1" : null}
         allowPrefixes={["/dashboard/settings"]}
