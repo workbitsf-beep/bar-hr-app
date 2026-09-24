@@ -329,7 +329,7 @@ export function DashboardNavMenu({
                     maxHeight: isCompact ? "100dvh" : "calc(100dvh - 32px)",
                     overflowY: "auto",
                     padding: isCompact
-                      ? "calc(max(env(safe-area-inset-top), var(--wb-inset-top, 0px)) + 14px) 20px calc(118px + max(env(safe-area-inset-bottom), var(--wb-inset-bottom, 0px)))"
+                      ? "0 20px calc(118px + max(env(safe-area-inset-bottom), var(--wb-inset-bottom, 0px)))"
                       : 16,
                     borderRadius: isCompact ? 0 : 24,
                     border: isCompact ? 0 : "1px solid rgba(124, 58, 237, 0.12)",
@@ -345,19 +345,35 @@ export function DashboardNavMenu({
                     overscrollBehavior: "contain",
                   }}
                 >
-                  <div className="workbit-menu-header-card">
-                    <BrandLogo
-                      href={brandHref ?? "/dashboard"}
-                      size={34}
-                      showIcon
-                      label="Workbit"
-                      style={{ gap: 10 }}
-                    />
+                  {/* Stays put while the menu scrolls, like the header of the
+                      app behind it. Its own background covers the status bar
+                      strip, so nothing shows through above it. */}
+                  <div
+                    style={{
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 2,
+                      margin: isCompact ? "0 -20px" : undefined,
+                      padding: isCompact
+                        ? "calc(max(env(safe-area-inset-top), var(--wb-inset-top, 0px)) + 14px) 20px 10px"
+                        : undefined,
+                      background: isCompact ? "#efebfa" : undefined,
+                    }}
+                  >
+                    <div className="workbit-menu-header-card">
+                      <BrandLogo
+                        href={brandHref ?? "/dashboard"}
+                        size={34}
+                        showIcon
+                        label="Workbit"
+                        style={{ gap: 10 }}
+                      />
 
-                    <div className="workbit-menu-header-actions">
-                      {headerAction ? (
-                        <div className="workbit-menu-header-logout">{headerAction}</div>
-                      ) : null}
+                      <div className="workbit-menu-header-actions">
+                        {headerAction ? (
+                          <div className="workbit-menu-header-logout">{headerAction}</div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
