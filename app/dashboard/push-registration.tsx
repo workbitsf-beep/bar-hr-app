@@ -7,7 +7,7 @@ import {
   getWorkbitPushPermissionState,
   isWorkbitPushDisabled,
 } from "@/lib/push-client";
-import { isNativeApp, registerNativePush } from "@/lib/native-push";
+import { isNativeApp } from "@/lib/native-push";
 import { useOverlayLock } from "./use-overlay-lock";
 
 const PUSH_PROMPT_DISMISSED_KEY = "workbit.push.first-access-dismissed";
@@ -23,11 +23,11 @@ export function PushRegistration() {
   useEffect(() => {
     setMounted(true);
 
-    // Inside the installed app the browser push API is unavailable, so the
-    // registration goes through the operating system instead and none of the
-    // web prompt below applies.
+    // Inside the installed app the browser push API is unavailable and none of
+    // the web prompt below applies. The native registration is not started
+    // here either: it has to take its turn with the location request, which
+    // NativePermissions sequences.
     if (isNativeApp()) {
-      void registerNativePush();
       return;
     }
 

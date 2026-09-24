@@ -6,6 +6,7 @@ import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
 import { NotificationBarSync } from "./notification-bar-sync";
 import { PushRegistration } from "./push-registration";
+import { NativePermissions } from "./native-permissions";
 import {
   logoutAction,
   returnToSuperAdminConsoleAction,
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
         <SessionKeepAlive />
         <NotificationBarSync activeBarId={activeBarId} />
         <PushRegistration />
+        <NativePermissions />
         <ConsoleShell
           userName={userName}
           venues={accessibleBars.map((bar) => ({ id: bar.id, name: bar.name }))}
@@ -86,6 +88,7 @@ export default async function DashboardLayout({
       <SessionKeepAlive />
       <NotificationBarSync activeBarId={activeBarId} />
       <PushRegistration />
+      <NativePermissions />
       <DashboardRouteGuard
         redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings?billing=1" : null}
         allowPrefixes={["/dashboard/settings"]}
