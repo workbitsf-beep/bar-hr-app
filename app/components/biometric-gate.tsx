@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { isNativeApp } from "@/lib/native-app";
-import { isBiometricLockEnabled, verifyBiometry } from "@/lib/biometric-lock";
+import {
+  isBiometricLockEnabled,
+  markUnlockedForThisRun,
+  verifyBiometry,
+  wasUnlockedThisRun,
+} from "@/lib/biometric-lock";
 
 /**
  * Hides the app behind a fingerprint check when the lock is switched on.
@@ -24,6 +29,7 @@ export function BiometricGate() {
     setBusy(false);
 
     if (ok) {
+      markUnlockedForThisRun();
       setLocked(false);
     } else {
       setRefused(true);
@@ -31,7 +37,11 @@ export function BiometricGate() {
   }, []);
 
   useEffect(() => {
-    if (!isNativeApp() || !isBiometricLockEnabled()) {
+    // Workbit is server rendered, so every navigation reloads the page and
+    // remounts this. Without remembering the unlock it would ask again on each
+    // screen; the flag lives only as long as the app is open, so the next cold
+    // start asks once more.
+    if (!isNativeApp() || !isBiometricLockEnabled() || wasUnlockedThisRun()) {
       return;
     }
 
@@ -58,9 +68,8 @@ export function BiometricGate() {
 
   return (
     <div className="wb-lock" role="dialog" aria-modal="true" aria-label="Workbit bloccato">
-      <span className="wb-lock-mark">
-        W<i>B</i>
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="wb-lock-mark" src="/logo.png" alt="" width={72} height={72} />
       <strong>Workbit è bloccato</strong>
       <p>{refused ? "Non ti ho riconosciuto. Riprova quando vuoi." : "Sblocca con l'impronta per continuare."}</p>
 
@@ -85,20 +94,7 @@ export function BiometricGate() {
               font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
             }
 
-            .wb-lock-mark {
-              width: 62px;
-              height: 62px;
-              border-radius: 18px;
-              background: #151a3f;
-              color: #ffffff;
-              display: grid;
-              place-content: center;
-              font-size: 24px;
-              font-weight: 800;
-              letter-spacing: -0.04em;
-            }
-
-            .wb-lock-mark i { color: #a855f7; font-style: normal; }
+            .wb-lock-mark { width: 72px; height: 72px; border-radius: 20px; }
             .wb-lock strong { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; color: #15161c; }
             .wb-lock p { margin: 0; max-width: 30ch; font-size: 14px; line-height: 1.55; color: #5b5e70; }
 

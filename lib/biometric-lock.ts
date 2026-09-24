@@ -13,6 +13,28 @@ import { isNativeApp } from "./native-app";
  */
 
 const ENABLED_KEY = "workbit.biometric-lock";
+const UNLOCKED_KEY = "workbit.biometric-unlocked";
+
+/**
+ * Whether this run of the app has already been unlocked. Kept in session
+ * storage so it survives the page reloads that every navigation causes, and
+ * disappears when the app is closed — asked once on opening, not per screen.
+ */
+export function wasUnlockedThisRun() {
+  try {
+    return window.sessionStorage.getItem(UNLOCKED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markUnlockedForThisRun() {
+  try {
+    window.sessionStorage.setItem(UNLOCKED_KEY, "1");
+  } catch {
+    // Without storage the lock simply asks again on the next screen.
+  }
+}
 
 export function isBiometricLockEnabled() {
   try {
