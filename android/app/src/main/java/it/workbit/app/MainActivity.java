@@ -52,6 +52,13 @@ public class MainActivity extends BridgeActivity {
 
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
 
+            // Padding only moves content that sits in the normal page flow.
+            // Anything anchored to the screen — the console shell is one
+            // continuous fixed panel — positions itself against the whole
+            // display and slides straight back under the clock. Hand the
+            // measurements to the page so those elements can honour them too.
+            publishInsetsToWebView(bars);
+
             return WindowInsetsCompat.CONSUMED;
         });
 
@@ -61,6 +68,33 @@ public class MainActivity extends BridgeActivity {
         ViewCompat.requestApplyInsets(webView);
 
         askForLocationUpfront();
+    }
+
+    /**
+     * Exposes the system bar sizes to the page as CSS variables, converted from
+     * device pixels to the CSS pixels the layout is written in.
+     */
+    private void publishInsetsToWebView(Insets bars) {
+        final View webView = getBridge().getWebView();
+
+        if (webView == null) {
+            return;
+        }
+
+        float density = getResources().getDisplayMetrics().density;
+
+        if (density <= 0) {
+            density = 1f;
+        }
+
+        final int top = Math.round(bars.top / density);
+        final int bottom = Math.round(bars.bottom / density);
+
+        final String script =
+            "document.documentElement.style.setProperty('--wb-inset-top','" + top + "px');" +
+            "document.documentElement.style.setProperty('--wb-inset-bottom','" + bottom + "px');";
+
+        webView.post(() -> getBridge().eval(script, null));
     }
 
     /**

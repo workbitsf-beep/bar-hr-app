@@ -80,10 +80,13 @@ export function ConsoleShell({
 .wbc-root *, .wbc-root *::before, .wbc-root *::after { box-sizing: border-box; }
 
 /* ---------- chrome ---------- */
+/* Inside the installed app the system bar sizes arrive as --wb-inset-*, since
+   a web view is not told about them through env(). In a browser those
+   variables are absent and env() answers instead. */
 .wbc-head {
   flex: 0 0 auto;
   background: var(--k-ink);
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px));
 }
 
 .wbc-head-in {
@@ -195,7 +198,7 @@ export function ConsoleShell({
   flex: 0 0 auto;
   display: flex;
   background: var(--k-ink);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px));
 }
 
 .wbc-rail a {
