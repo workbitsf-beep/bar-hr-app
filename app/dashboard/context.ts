@@ -1,12 +1,32 @@
 import { cache } from "react";
 import { ActivityType, AppLanguage, Role } from "@prisma/client";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getBillingStatus, type BillingStatusResult } from "@/lib/billing";
 import { getFeatureFlags, type FeatureFlags } from "@/lib/features";
 import { getActiveBarAccess, getPostLoginDestination } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getTranslation } from "@/lib/i18n";
+
+async function logMissingSession() {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value ?? "";
+    const headerList = await headers();
+
+    console.error("[session] dashboard reached without a session", {
+      cookiePresent: Boolean(token),
+      // Only the tail, so the log never carries a usable token.
+      cookieTail: token ? token.slice(-6) : null,
+      method: headerList.get("x-forwarded-method") ?? null,
+      nextAction: Boolean(headerList.get("next-action")),
+      path: headerList.get("x-invoke-path") ?? headerList.get("referer") ?? null,
+    });
+  } catch {
+    console.error("[session] dashboard reached without a session, context unavailable");
+  }
+}
 
 export type DashboardNavItem = {
   label: string;
@@ -123,6 +143,11 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const session = await getSession();
 
   if (!session) {
+    // Temporary: the login screen flashes for a moment after saving, which
+    // means a request reaches here without a session. These two lines say
+    // whether the cookie failed to arrive or arrived and matched nothing —
+    // the fix is different in each case. Remove once identified.
+    await logMissingSession();
     redirect("/login");
   }
 
