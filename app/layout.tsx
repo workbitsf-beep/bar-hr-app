@@ -219,7 +219,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                   radial-gradient(circle at 50% -8%, rgba(124, 58, 237, 0.13), transparent 30%),
                   linear-gradient(180deg, #ffffff 0%, #f8f5ff 38%, #efebfa 100%);
                 animation: none;
-                will-change: transform, background-position;
                 overflow: clip;
               }
 

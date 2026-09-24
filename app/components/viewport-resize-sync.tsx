@@ -5,6 +5,8 @@ import { useEffect } from "react";
 export function ViewportResizeSync() {
   useEffect(() => {
     let frame = 0;
+    let lastWidth = -1;
+    let lastHeight = -1;
     const timers = new Set<number>();
 
     function clearSettledTimers() {
@@ -20,6 +22,18 @@ export function ViewportResizeSync() {
         const viewport = window.visualViewport;
         const width = Math.round(viewport?.width ?? window.innerWidth);
         const height = Math.round(viewport?.height ?? window.innerHeight);
+
+        // visualViewport fires "scroll" on every scrolled frame, but the size
+        // only actually changes when the keyboard or a browser bar moves.
+        // These custom properties drive layout (page min-height, bottom nav
+        // width, modal sizes), so rewriting them unchanged forced a style
+        // recalculation on every frame of every scroll.
+        if (width === lastWidth && height === lastHeight) {
+          return;
+        }
+
+        lastWidth = width;
+        lastHeight = height;
         const root = document.documentElement;
 
         root.style.setProperty("--workbit-vw", `${width}px`);
