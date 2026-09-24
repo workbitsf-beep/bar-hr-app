@@ -76,27 +76,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                    system bars through env(). In a browser the variable is
                    absent and env() answers instead. */
                 padding-top: max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px));
-              }
-
-              /* Softens the join between the strip left for the status bar and
-                 the page: solid behind the clock so it stays legible, then
-                 fading out over the content instead of ending on a hard line. */
-              body::before {
-                content: "";
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: calc(max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px)) + 22px);
-                z-index: 3;
-                pointer-events: none;
-                background: linear-gradient(
-                  180deg,
-                  #efebfa 0%,
-                  #efebfa 58%,
-                  rgba(239, 235, 250, 0.72) 76%,
-                  rgba(239, 235, 250, 0) 100%
-                );
                 font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
                 background: var(--workbit-background);
               }
