@@ -50,13 +50,9 @@ public class MainActivity extends BridgeActivity {
                 WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
             );
 
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-
-            // Padding only moves content that sits in the normal page flow.
-            // Anything anchored to the screen — the console shell is one
-            // continuous fixed panel — positions itself against the whole
-            // display and slides straight back under the clock. Hand the
-            // measurements to the page so those elements can honour them too.
+            // Padding the web view turned out to do nothing to the rendered
+            // page, so the measurements are handed to the stylesheet instead,
+            // which works for anchored and scrolling content alike.
             publishInsetsToWebView(bars);
 
             return WindowInsetsCompat.CONSUMED;

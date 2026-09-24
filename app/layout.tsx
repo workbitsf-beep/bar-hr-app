@@ -71,6 +71,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 overflow-x: hidden;
                 overscroll-behavior-x: none;
                 position: relative;
+                /* Inside the installed app the status bar height arrives as
+                   --wb-inset-top, because a web view is never told about the
+                   system bars through env(). In a browser the variable is
+                   absent and env() answers instead. */
+                padding-top: max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px));
                 font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
                 background: var(--workbit-background);
               }
