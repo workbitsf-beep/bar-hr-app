@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import type { ActivityType, Role } from "@prisma/client";
 import type { DashboardKpiData } from "@/lib/dashboard-kpi";
 import type { FeatureFlags } from "@/lib/features";
@@ -58,62 +59,6 @@ function KpiSkeletonCard() {
           }}
         />
       ))}
-    </div>
-  );
-}
-
-function TaskProgressRing({
-  completed,
-  total,
-}: {
-  completed: number;
-  total: number;
-}) {
-  const progress = total > 0 ? Math.max(0, Math.min(1, completed / total)) : 0;
-  const size = 58;
-  const stroke = 6;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - progress);
-
-  return (
-    <div
-      aria-label={`Note completate ${completed} su ${total}`}
-      style={{
-        width: size,
-        height: size,
-        position: "relative",
-        display: "inline-grid",
-        placeItems: "center",
-        flex: "0 0 auto",
-      }}
-    >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="rgba(124, 58, 237, 0.12)"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#7c3aed"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: "stroke-dashoffset 220ms ease" }}
-        />
-      </svg>
-      <span aria-hidden="true" style={{ position: "absolute", fontSize: 20, lineHeight: 1 }}>
-        📝
-      </span>
     </div>
   );
 }
@@ -315,37 +260,94 @@ export function KpiDashboard({
     return null;
   }
 
-  const teamStats = [
-    features.timeTracking
+  // Only what has a number, so nothing here says zero. The order is the order
+  // an owner would deal with them in.
+  const attention = [
+    features.requests && data.requests.totalPending > 0
       ? {
-          label: "Persone presenti ora",
-          value: String(data.today.presentUsers),
-          detail:
-            data.today.presentUsers > 0
-              ? "entrata timbrata"
-              : "nessuna entrata attiva",
+          key: "requests",
+          count: data.requests.totalPending,
+          label: "Richieste da approvare",
+          detail: [
+            data.requests.pendingLeaves > 0 ? `${data.requests.pendingLeaves} ferie` : null,
+            data.requests.pendingPermissions > 0
+              ? `${data.requests.pendingPermissions} permessi`
+              : null,
+            data.requests.pendingShiftSwaps > 0
+              ? `${data.requests.pendingShiftSwaps} cambi turno`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(", "),
+          href: "/dashboard/requests",
+          urgent: true,
         }
       : null,
-    features.requests
+    features.shifts && data.today.pendingShifts > 0
       ? {
+          key: "shifts",
+          count: data.today.pendingShifts,
+          label: "Turni da confermare",
+          detail: "in programma oggi",
+          href: "/dashboard/calendar",
+          urgent: false,
+        }
+      : null,
+    features.tasks && data.tasks.openToday > 0
+      ? {
+          key: "tasks",
+          count: data.tasks.openToday,
+          label: "Compiti aperti oggi",
+          detail: `su ${data.tasks.totalToday} assegnati`,
+          href: "/dashboard/tasks",
+          urgent: false,
+        }
+      : null,
+    // Kept from the old tile, with the breakdown it never showed.
+    features.requests && data.today.absences > 0
+      ? {
+          key: "absences",
+          count: data.today.absences,
           label: "Assenze oggi",
-          value: String(data.today.absences),
           detail:
-            data.today.absences > 0
-              ? "ferie, permessi o indisponibilita"
-              : "nessuna assenza",
+            [
+              data.today.approvedLeaves > 0 ? `${data.today.approvedLeaves} ferie` : null,
+              data.today.approvedPermissions > 0
+                ? `${data.today.approvedPermissions} permessi`
+                : null,
+              data.today.sickness > 0 ? `${data.today.sickness} malattia` : null,
+              data.today.unavailability > 0
+                ? `${data.today.unavailability} indisponibilita`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(", ") || "ferie, permessi o indisponibilita",
+          href: "/dashboard/requests",
+          urgent: false,
+        }
+      : null,
+    // Who is in right now is told better by the roster block on the home
+    // screen, with names. It is only worth repeating here when shifts are off
+    // and that block cannot appear at all.
+    !features.shifts && features.timeTracking && data.today.presentUsers > 0
+      ? {
+          key: "present",
+          count: data.today.presentUsers,
+          label: "Persone presenti ora",
+          detail: "entrata timbrata",
+          href: "/dashboard/timelogs",
+          urgent: false,
         }
       : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-  const teamSignal =
-    data.requests.totalPending > 0
-      ? "Richieste da controllare"
-      : data.tasks.openToday > 0
-        ? "Note ancora aperte"
-        : data.today.pendingShifts > 0
-          ? "Turni da confermare"
-          : "Team allineato";
+  const weekDays = data.shifts.byDay;
+  const busiestDay = weekDays.reduce((max, day) => Math.max(max, day.count), 0);
+  const emptyDays = weekDays.filter((day) => day.count === 0);
+  // en-CA gives YYYY-MM-DD, which is the shape the day entries already carry.
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+  }).format(new Date());
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -358,128 +360,95 @@ export function KpiDashboard({
           </div>
         }
       >
-        {teamStats.length === 0 ? (
-          <EmptyState message="Attiva le funzioni che vuoi monitorare dalle impostazioni." />
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gap: 14,
-              padding: 18,
-              borderRadius: 28,
-              background:
-                "linear-gradient(135deg, rgba(245,243,255,0.98) 0%, rgba(255,255,255,0.98) 100%)",
-              border: "1px solid rgba(124, 58, 237, 0.14)",
-              boxShadow: "0 18px 38px rgba(88, 28, 135, 0.07)",
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 14,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 13, minWidth: 0 }}>
-                <div
-                  aria-hidden="true"
-                  style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: 22,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #ede9fe, #ffffff)",
-                    color: "#5b21b6",
-                    fontSize: 25,
-                    flex: "0 0 auto",
-                  }}
-                >
-                  {"\uD83D\uDC65"}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ color: "#64748b", fontWeight: 760, fontSize: 13 }}>
-                    Stato team
-                  </div>
-                  <div style={{ color: "#0f172a", fontSize: 26, fontWeight: 850, lineHeight: 1.1 }}>
-                    {teamSignal}
-                  </div>
-                </div>
+        <div style={{ display: "grid", gap: 12 }}>
+          {features.shifts ? (
+            <section className="dashboard-team-card">
+              <div className="dashboard-team-head">
+                <strong>Turni della settimana</strong>
+                <span>
+                  {data.shifts.weekTotal} {data.shifts.weekTotal === 1 ? "turno" : "in totale"}
+                </span>
               </div>
 
-              {features.tasks ? (
-                <div
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 22,
-                    background: "#ffffff",
-                    border: "1px solid rgba(148, 163, 184, 0.18)",
-                    minWidth: 166,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
-                    <div style={{ color: "#64748b", fontSize: 12, fontWeight: 760 }}>
-                      Note oggi
+              <div className="dashboard-team-chart">
+                {weekDays.map((day) => {
+                  const isToday = day.date === todayKey;
+                  const height =
+                    busiestDay > 0 && day.count > 0
+                      ? Math.max(12, Math.round((day.count / busiestDay) * 100))
+                      : 0;
+
+                  return (
+                    <div
+                      key={day.date}
+                      className={`dashboard-team-bar${day.count === 0 ? " dashboard-team-bar--zero" : ""}${isToday ? " dashboard-team-bar--today" : ""}`}
+                    >
+                      <u>{day.count}</u>
+                      <span style={{ height: day.count === 0 ? 3 : `${height}%` }} />
                     </div>
-                    <div style={{ color: "#0f172a", fontSize: 18, fontWeight: 850 }}>
-                      {data.tasks.completedToday}/{data.tasks.totalToday}
-                    </div>
-                    <div style={{ color: "#64748b", fontSize: 11, lineHeight: 1.25 }}>
-                      completate
-                    </div>
-                  </div>
-                  <TaskProgressRing
-                    completed={data.tasks.completedToday}
-                    total={data.tasks.totalToday}
-                  />
-                </div>
-              ) : null}
+                  );
+                })}
+              </div>
+
+              <div className="dashboard-team-axis">
+                {weekDays.map((day) => (
+                  <span
+                    key={day.date}
+                    className={day.date === todayKey ? "dashboard-team-axis--today" : undefined}
+                  >
+                    {day.label}
+                  </span>
+                ))}
+              </div>
+
+              {emptyDays.length > 0 ? (
+                <p className="dashboard-team-foot">
+                  {emptyDays.length === 1 ? (
+                    <>
+                      <b>{emptyDays[0].label}</b> è l&apos;unico giorno senza nessuno in turno.
+                    </>
+                  ) : (
+                    <>
+                      <b>{emptyDays.length} giorni</b> senza nessuno in turno:{" "}
+                      {emptyDays.map((day) => day.label).join(", ")}.
+                    </>
+                  )}
+                </p>
+              ) : (
+                <p className="dashboard-team-foot">Tutti i giorni della settimana sono coperti.</p>
+              )}
+            </section>
+          ) : null}
+
+          <section className="dashboard-team-card">
+            <div className="dashboard-team-head">
+              <strong>Da sistemare</strong>
+              <span>{freshnessLabel}</span>
             </div>
 
-            <div
-              className="dashboard-kpi-team-stats"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: 10,
-              }}
-            >
-              {teamStats.map((item) => (
+            {attention.length === 0 ? (
+              <p className="dashboard-team-clear">
+                <i aria-hidden="true" /> Niente in attesa di te.
+              </p>
+            ) : (
+              attention.map((item) => (
                 <div
-                  key={item.label}
-                  style={{
-                    padding: "12px 10px",
-                    borderRadius: 20,
-                    background: "#ffffff",
-                    border: "1px solid rgba(148, 163, 184, 0.16)",
-                    display: "grid",
-                    gap: 4,
-                    minWidth: 0,
-                  }}
+                  key={item.key}
+                  className={`dashboard-team-todo${item.urgent ? " dashboard-team-todo--urgent" : ""}`}
                 >
-                  <span style={{ color: "#64748b", fontSize: 11, fontWeight: 780 }}>
-                    {item.label}
-                  </span>
-                  <strong style={{ color: "#0f172a", fontSize: 20, lineHeight: 1 }}>
-                    {item.value}
-                  </strong>
-                  <span style={{ color: "#64748b", fontSize: 11, lineHeight: 1.3 }}>
+                  <span className="dashboard-team-count">{item.count}</span>
+                  <div>
+                    <b>{item.label}</b>
                     {item.detail}
-                  </span>
+                  </div>
+                  <Link href={item.href}>Apri</Link>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              ))
+            )}
+          </section>
+        </div>
       </Panel>
+
 
       <style
         dangerouslySetInnerHTML={{
@@ -487,6 +456,179 @@ export function KpiDashboard({
             @keyframes dashboardSkeletonPulse {
               0% { background-position: 200% 0; }
               100% { background-position: -200% 0; }
+            }
+
+            .dashboard-team-card {
+              border-radius: 22px;
+              background: #ffffff;
+              border: 1px solid rgba(94, 92, 230, 0.13);
+              box-shadow: 0 8px 22px rgba(61, 42, 153, 0.05);
+              padding: 16px;
+            }
+
+            .dashboard-team-head {
+              display: flex;
+              align-items: baseline;
+              justify-content: space-between;
+              gap: 10px;
+              margin-bottom: 14px;
+            }
+
+            .dashboard-team-head strong {
+              font-size: 15.5px;
+              font-weight: 800;
+              color: #20202a;
+              letter-spacing: -0.025em;
+            }
+
+            .dashboard-team-head span {
+              font-size: 12px;
+              color: #667085;
+              font-variant-numeric: tabular-nums;
+            }
+
+            .dashboard-team-chart {
+              display: grid;
+              grid-template-columns: repeat(7, minmax(0, 1fr));
+              gap: 5px;
+              align-items: end;
+              height: 108px;
+            }
+
+            .dashboard-team-bar {
+              display: grid;
+              align-content: end;
+              justify-items: center;
+              gap: 4px;
+              height: 100%;
+            }
+
+            .dashboard-team-bar u {
+              text-decoration: none;
+              font-size: 11px;
+              font-weight: 800;
+              color: #20202a;
+              font-variant-numeric: tabular-nums;
+            }
+
+            .dashboard-team-bar span {
+              width: 100%;
+              border-radius: 7px 7px 3px 3px;
+              background: linear-gradient(180deg, #a78bfa, #7c3aed);
+            }
+
+            .dashboard-team-bar--zero span {
+              background: #ded9ec;
+            }
+
+            .dashboard-team-bar--zero u {
+              color: #a8a3b8;
+            }
+
+            .dashboard-team-bar--today span {
+              background: linear-gradient(180deg, #4c1d95, #7c3aed);
+              box-shadow: 0 6px 14px rgba(124, 58, 237, 0.3);
+            }
+
+            .dashboard-team-axis {
+              display: grid;
+              grid-template-columns: repeat(7, minmax(0, 1fr));
+              gap: 5px;
+              margin-top: 8px;
+            }
+
+            .dashboard-team-axis span {
+              text-align: center;
+              font-size: 9.5px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: #667085;
+            }
+
+            .dashboard-team-axis .dashboard-team-axis--today {
+              color: #4c1d95;
+            }
+
+            .dashboard-team-foot {
+              margin: 12px 0 0;
+              padding-top: 11px;
+              border-top: 1px solid rgba(94, 92, 230, 0.09);
+              font-size: 12.5px;
+              color: #667085;
+            }
+
+            .dashboard-team-foot b {
+              color: #20202a;
+              font-weight: 700;
+            }
+
+            .dashboard-team-todo {
+              display: flex;
+              align-items: center;
+              gap: 11px;
+              padding: 11px 0;
+              border-top: 1px solid rgba(94, 92, 230, 0.09);
+              font-size: 13.5px;
+              color: #667085;
+            }
+
+            .dashboard-team-todo:first-of-type {
+              border-top: 0;
+              padding-top: 0;
+            }
+
+            .dashboard-team-todo b {
+              display: block;
+              color: #20202a;
+              font-weight: 800;
+              font-size: 13.5px;
+            }
+
+            .dashboard-team-count {
+              min-width: 28px;
+              height: 28px;
+              padding: 0 7px;
+              border-radius: 10px;
+              display: grid;
+              place-items: center;
+              font-size: 14px;
+              font-weight: 800;
+              color: #4c1d95;
+              background: #f1ecfe;
+              font-variant-numeric: tabular-nums;
+              flex: 0 0 auto;
+            }
+
+            .dashboard-team-todo--urgent .dashboard-team-count {
+              background: #fef3c7;
+              color: #92400e;
+            }
+
+            .dashboard-team-todo a {
+              margin-left: auto;
+              color: #7b2ff7;
+              font-weight: 800;
+              font-size: 12.5px;
+              text-decoration: none;
+              white-space: nowrap;
+            }
+
+            .dashboard-team-clear {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              margin: 0;
+              font-size: 13.5px;
+              color: #667085;
+            }
+
+            .dashboard-team-clear i {
+              width: 7px;
+              height: 7px;
+              border-radius: 999px;
+              background: #16a34a;
+              flex: 0 0 auto;
             }
 
             @media (max-width: 760px) {
