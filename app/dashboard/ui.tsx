@@ -176,23 +176,53 @@ function DashboardResponsiveStyles() {
       /* The running timer, on the background rather than in a card. The ring
          measures how much of today's shift has passed; with no shift to
          measure against it stays empty rather than inventing a proportion. */
+      /* Days worked, the running day, the month: three figures on one line,
+         the middle one carrying the ring. */
       .workbit-ring {
         display: grid;
-        justify-items: center;
-        gap: 2px;
-        padding: 20px 8px 14px;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        padding: 18px 2px 14px;
+      }
+
+      .workbit-ring-side {
+        text-align: center;
+        min-width: 0;
+      }
+
+      .workbit-ring-side strong {
+        display: block;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        color: #2a1361;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+
+      .workbit-ring-side span {
+        display: block;
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #9a90bb;
+        margin-top: 2px;
       }
 
       .workbit-ring-dial {
         position: relative;
-        width: 156px;
-        height: 156px;
+        width: 124px;
+        height: 124px;
+        flex: 0 0 auto;
       }
 
       .workbit-ring-dial svg {
         width: 100%;
         height: 100%;
         transform: rotate(-90deg);
+        display: block;
       }
 
       .workbit-ring-dial circle {
@@ -205,12 +235,11 @@ function DashboardResponsiveStyles() {
         display: grid;
         place-content: center;
         justify-items: center;
-        gap: 1px;
         text-align: center;
       }
 
       .workbit-ring-mid strong {
-        font-size: 34px;
+        font-size: 28px;
         font-weight: 800;
         letter-spacing: -0.045em;
         color: #2a1361;
@@ -221,40 +250,21 @@ function DashboardResponsiveStyles() {
       .workbit-ring-mid span {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        font-size: 10px;
+        gap: 4px;
+        font-size: 8.5px;
         font-weight: 800;
-        letter-spacing: 0.09em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #8a7fb0;
+        margin-top: 1px;
       }
 
       .workbit-ring-live {
         display: inline-block;
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         border-radius: 999px;
         background: #7c3aed;
-      }
-
-      .workbit-ring-month {
-        margin: 14px 0 0;
-        text-align: center;
-        font-size: 12.5px;
-        color: #8a7fb0;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .workbit-ring-month b {
-        color: #2a1361;
-        font-weight: 800;
-        font-size: 15px;
-        letter-spacing: -0.02em;
-      }
-
-      .workbit-ring-month span {
-        color: #c3bad9;
-        padding-inline: 5px;
       }
 
       @media (prefers-reduced-motion: no-preference) {
@@ -272,6 +282,7 @@ function DashboardResponsiveStyles() {
           opacity: 0.3;
         }
       }
+
 
       /* One bar for clocking, because only one of the two actions is ever
          available: the colour says which one, green to go in and red to come

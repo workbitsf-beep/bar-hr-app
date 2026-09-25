@@ -63,6 +63,11 @@ export function WorkHoursRing({
 
   return (
     <section className="workbit-ring" aria-label="Ore di oggi e del mese">
+      <div className="workbit-ring-side">
+        <strong>{monthDays}</strong>
+        <span>{monthDays === 1 ? "giornata" : "giornate"}</span>
+      </div>
+
       <div className="workbit-ring-dial">
         <svg viewBox="0 0 160 160" aria-hidden="true">
           <defs>
@@ -71,14 +76,14 @@ export function WorkHoursRing({
               <stop offset="100%" stopColor="#4c1d95" />
             </linearGradient>
           </defs>
-          <circle cx="80" cy="80" r="66" fill="none" stroke="#e3dbf7" strokeWidth="11" />
+          <circle cx="80" cy="80" r="66" fill="none" stroke="#e3dbf7" strokeWidth="12" />
           <circle
             cx="80"
             cy="80"
             r="66"
             fill="none"
             stroke="url(#workbit-ring-stroke)"
-            strokeWidth="11"
+            strokeWidth="12"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - progress)}
@@ -94,14 +99,10 @@ export function WorkHoursRing({
         </div>
       </div>
 
-      <p className="workbit-ring-month">
-        Questo mese <b>{formatClock(monthMinutes)}</b>
-        {monthDays > 0 ? (
-          <>
-            <span aria-hidden="true">·</span> {monthDays} {monthDays === 1 ? "giornata" : "giornate"}
-          </>
-        ) : null}
-      </p>
+      <div className="workbit-ring-side">
+        <strong>{formatClock(monthMinutes)}</strong>
+        <span>ore del mese</span>
+      </div>
     </section>
   );
 }
