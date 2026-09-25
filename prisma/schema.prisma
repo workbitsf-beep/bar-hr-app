@@ -795,6 +795,18 @@ model DocumentAccessToken {
   @@index([userId])
 }
 
+/// The company details the legal documents are written from.
+///
+/// One row for the whole installation. The fields live in a JSON blob on
+/// purpose: they are a form, not something queried, and they will grow as the
+/// documents do — a column each would mean a migration for every new clause.
+model CompanyProfile {
+  id        String   @id @default("singleton")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model ShoppingListItem {
   id          String   @id @default(uuid()) @db.Uuid
   barId       String   @db.Uuid

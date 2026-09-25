@@ -1,4 +1,6 @@
 import { LegalDocumentType } from "@prisma/client";
+import { getCompanyProfile } from "@/lib/company-profile";
+import { CompanyProfileSection } from "./company-profile-section";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { legalDocumentTypeLabels } from "@/lib/legal-documents";
@@ -85,6 +87,7 @@ export default async function ConsoleLegalPage({
   const params = searchParams ? await searchParams : {};
   const success = readParam(params.success);
 
+  const companyProfile = await getCompanyProfile();
   const documents = await prisma.legalDocument.findMany({
     orderBy: [{ isActive: "desc" }, { type: "asc" }, { updatedAt: "desc" }],
     select: {
@@ -117,6 +120,13 @@ export default async function ConsoleLegalPage({
           <Note tone="positive">Archivio aggiornato.</Note>
         </div>
       ) : null}
+
+      <Section title="Dati societari e modelli">
+        <CompanyProfileSection
+          profile={companyProfile}
+          existingTypes={documents.map((document) => document.type)}
+        />
+      </Section>
 
       <Section title={`Archivio · ${documents.length}`} flush>
         {documents.length === 0 ? (

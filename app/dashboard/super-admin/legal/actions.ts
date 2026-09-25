@@ -3,6 +3,12 @@
 import { LegalDocumentType, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  getCompanyProfile,
+  readCompanyProfileFromForm,
+  saveCompanyProfile,
+} from "@/lib/company-profile";
+import { LEGAL_TEMPLATES } from "@/lib/legal-templates";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
@@ -172,6 +178,68 @@ export async function updateLegalDocumentAction(formData: FormData) {
 
   refreshLegalPages();
   redirect("/dashboard/super-admin/legal?success=updated");
+}
+
+export async function saveCompanyProfileAction(formData: FormData) {
+  await ensureSuperAdmin();
+  await saveCompanyProfile(readCompanyProfileFromForm(formData));
+
+  refreshLegalPages();
+  redirect("/dashboard/super-admin/legal?success=profile");
+}
+
+/**
+ * Writes a document from its template, keeping whatever is already published.
+ *
+ * An existing document of the same type is updated rather than duplicated, and
+ * stays as it was regarding activation and acceptance: regenerating the text
+ * must not quietly publish something, nor quietly ask everyone to accept again.
+ */
+export async function generateLegalDocumentAction(formData: FormData) {
+  await ensureSuperAdmin();
+
+  const requested = String(formData.get("templateType") ?? "");
+  const template = LEGAL_TEMPLATES.find((entry) => entry.type === requested);
+
+  if (!template) {
+    throw new Error("Unknown legal template");
+  }
+
+  const profile = await getCompanyProfile();
+  const content = template.build(profile);
+  const existing = await prisma.legalDocument.findFirst({
+    where: { type: template.type },
+    orderBy: [{ updatedAt: "desc" }],
+    select: { id: true },
+  });
+
+  if (existing) {
+    await prisma.legalDocument.update({
+      where: { id: existing.id },
+      data: {
+        title: template.title,
+        version: profile.documentVersion || "1.0",
+        content,
+        revision: { increment: 1 },
+      },
+    });
+  } else {
+    await prisma.legalDocument.create({
+      data: {
+        title: template.title,
+        version: profile.documentVersion || "1.0",
+        type: template.type,
+        content,
+        // Created switched off on purpose: it goes public when you decide it
+        // is finished, not when it is generated.
+        isActive: false,
+        isRequired: false,
+      },
+    });
+  }
+
+  refreshLegalPages();
+  redirect("/dashboard/super-admin/legal?success=generated");
 }
 
 export async function deleteLegalDocumentAction(formData: FormData) {
