@@ -112,6 +112,7 @@ export default async function DashboardPage() {
     nextWeekShifts,
     assignedShiftForClockIn,
     crewShiftsToday,
+    barOwners,
     crewTimeLogsToday,
     shoppingItems,
     myWeekShifts,
@@ -277,6 +278,19 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve([]),
+    // Owners do not clock: the roster must not hold them as expected to.
+    canManagePeople
+      ? prisma.bar.findUnique({
+          where: { id: activeBarId },
+          select: {
+            ownerId: true,
+            memberships: {
+              where: { role: Role.OWNER, isActive: true },
+              select: { userId: true },
+            },
+          },
+        })
+      : Promise.resolve(null),
     canManagePeople && features.timeTracking
       ? prisma.timeLog.findMany({
           where: {
@@ -428,7 +442,25 @@ export default async function DashboardPage() {
   }
 
   const crew = Array.from(crewToday.values());
-  const crewInside = crew.filter((person) => lastStampByUser.get(person.id) === "IN").length;
+  // An owner has no clock to punch, so the roster counts them as present
+  // rather than waiting for something that is never going to arrive.
+  const ownerIds = new Set(
+    [barOwners?.ownerId, ...(barOwners?.memberships.map((entry) => entry.userId) ?? [])].filter(
+      (id): id is string => Boolean(id)
+    )
+  );
+
+  function crewStateOf(userId: string): "in" | "out" | "waiting" {
+    if (ownerIds.has(userId)) {
+      return "in";
+    }
+
+    const stamp = lastStampByUser.get(userId);
+
+    return stamp === "IN" ? "in" : stamp === "OUT" ? "out" : "waiting";
+  }
+
+  const crewInside = crew.filter((person) => crewStateOf(person.id) === "in").length;
 
   // One cell per day of this week. A day with more than one shift shows the
   // span from the first start to the last end, which is what someone planning
@@ -488,11 +520,8 @@ export default async function DashboardPage() {
           <span style={{ color: "#667085", fontSize: 13.5 }}>Nessun turno programmato per oggi.</span>
         ) : (
           crew.map((person) => {
-            const stamp = lastStampByUser.get(person.id);
-            const state =
-              stamp === "IN" ? "in" : stamp === "OUT" ? "out" : "waiting";
-            const label =
-              stamp === "IN" ? "Dentro" : stamp === "OUT" ? "Uscito" : "Attesa";
+            const state = crewStateOf(person.id);
+            const label = state === "in" ? "Dentro" : state === "out" ? "Uscito" : "Attesa";
 
             return (
               <div className="workbit-crew-person" key={person.id}>
