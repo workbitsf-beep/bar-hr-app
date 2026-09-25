@@ -42,7 +42,7 @@ export async function createDownloadTicket(input: {
   return `/api/downloads/${token}`;
 }
 
-export async function consumeDownloadTicket(token: string) {
+export async function readDownloadTicket(token: string) {
   if (!token) {
     return null;
   }
@@ -52,15 +52,13 @@ export async function consumeDownloadTicket(token: string) {
     select: { id: true, fileName: true, mimeType: true, content: true, expiresAt: true },
   });
 
-  if (!ticket) {
+  if (!ticket || ticket.expiresAt.getTime() <= Date.now()) {
     return null;
   }
 
-  await prisma.downloadTicket.delete({ where: { id: ticket.id } }).catch(() => {});
-
-  if (ticket.expiresAt.getTime() <= Date.now()) {
-    return null;
-  }
-
+  // Deliberately not destroyed on the first fetch. A browser that decides to
+  // save rather than show the file asks for it again through its download
+  // manager, and destroying it here turned that second request into an expiry
+  // message. The short life is what limits it, not a single use.
   return ticket;
 }
