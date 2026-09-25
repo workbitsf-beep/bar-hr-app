@@ -50,7 +50,7 @@ async function readPdfFile(formData: FormData) {
   };
 }
 
-async function getDocumentPayload(formData: FormData, options?: { requirePdf?: boolean }) {
+async function getDocumentPayload(formData: FormData, options?: { requireBody?: boolean }) {
   const title = String(formData.get("title") ?? "").trim();
   const version = String(formData.get("version") ?? "").trim();
   const content = String(formData.get("content") ?? "").trim();
@@ -60,8 +60,11 @@ async function getDocumentPayload(formData: FormData, options?: { requirePdf?: b
     throw new Error("Missing legal document data");
   }
 
-  if (options?.requirePdf && !pdfFile) {
-    throw new Error("Missing legal document PDF");
+  // The public page shows the text and offers the PDF alongside it when there
+  // is one, so demanding a PDF to publish meant a privacy policy written as
+  // text could not go up at all. One of the two is enough; neither is not.
+  if (options?.requireBody && !content && !pdfFile) {
+    throw new Error("Missing legal document body");
   }
 
   return {
@@ -110,7 +113,7 @@ async function notifyOwnersForLegalDocument(input: {
 
 export async function createLegalDocumentAction(formData: FormData) {
   await ensureSuperAdmin();
-  const payload = await getDocumentPayload(formData, { requirePdf: true });
+  const payload = await getDocumentPayload(formData, { requireBody: true });
 
   await prisma.legalDocument.create({
     data: {

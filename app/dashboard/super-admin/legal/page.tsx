@@ -39,15 +39,22 @@ function DocumentFields({ document }: { document?: DocumentDefaults }) {
         </Field>
       </FieldGrid>
 
-      <Field label="Contenuto testuale">
+      <Field
+        label="Contenuto testuale"
+        hint="È questo che compare sulla pagina pubblica: privacy e termini si pubblicano da qui."
+      >
         <textarea name="content" defaultValue={document?.content ?? ""} />
       </Field>
 
       <Field
         label={document ? "Sostituisci PDF" : "PDF del documento"}
-        hint={document?.fileName ? `PDF attuale: ${document.fileName}` : undefined}
+        hint={
+          document?.fileName
+            ? `PDF attuale: ${document.fileName}`
+            : "Facoltativo: si aggiunge in fondo alla pagina come allegato scaricabile."
+        }
       >
-        <input name="pdfFile" type="file" accept="application/pdf" required={!document} />
+        <input name="pdfFile" type="file" accept="application/pdf" />
       </Field>
 
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
