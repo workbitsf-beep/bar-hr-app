@@ -40,10 +40,13 @@ export async function POST(req: Request): Promise<Response> {
       role: true,
       language: true,
       mustChangePwd: true,
+      retiredAt: true,
     },
   });
 
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  // A closed account keeps a placeholder no password can match, but the check
+  // is explicit so the refusal never depends on that alone.
+  if (!user || user.retiredAt || !(await bcrypt.compare(password, user.passwordHash))) {
     return NextResponse.json(
       { ok: false, message: "Credenziali non valide" },
       { status: 401 }

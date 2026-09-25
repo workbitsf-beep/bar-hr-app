@@ -126,6 +126,11 @@ model User {
   language                 AppLanguage             @default(it)
   theme                    AppTheme                @default(SYSTEM)
   mustChangePwd            Boolean                 @default(true)
+  /// Set when the account has been closed but the person cannot be erased
+  /// outright: attendance records identify the worker and the employer is
+  /// obliged to keep them. Everything not needed for that record is cleared,
+  /// the account can no longer be used, and the name stays on the register.
+  retiredAt                DateTime?
   ownedBars                Bar[]                   @relation("BarOwner")
   barMemberships           EmployeeBar[]
   assignedShifts           Shift[]                 @relation("ShiftAssigned")
@@ -165,6 +170,7 @@ model User {
   updatedAt                DateTime                @updatedAt
 
   @@index([role])
+  @@index([retiredAt])
 }
 
 model Session {

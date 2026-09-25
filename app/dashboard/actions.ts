@@ -31,6 +31,7 @@ import {
 } from "@/lib/billing";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
+import { closeUserAccount } from "@/lib/account-retirement";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { normalizeRoundingStep } from "@/lib/rounding";
@@ -1847,14 +1848,10 @@ export async function deleteBarBySuperAdminAction(formData: FormData) {
       )
       .map((user) => user.id);
 
-    if (usersToDelete.length > 0) {
-      await tx.user.deleteMany({
-        where: {
-          id: {
-            in: usersToDelete,
-          },
-        },
-      });
+    // Closed one by one rather than deleted in bulk: an account with
+    // attendance behind it keeps its name on the register.
+    for (const orphanId of usersToDelete) {
+      await closeUserAccount(tx, orphanId);
     }
   });
 
@@ -1971,14 +1968,10 @@ export async function deleteOwnerAccountAndBarAction(formData: FormData) {
 
     deleteCurrentUser = usersToDelete.includes(session.user.id);
 
-    if (usersToDelete.length > 0) {
-      await tx.user.deleteMany({
-        where: {
-          id: {
-            in: usersToDelete,
-          },
-        },
-      });
+    // Closed one by one rather than deleted in bulk: an account with
+    // attendance behind it keeps its name on the register.
+    for (const orphanId of usersToDelete) {
+      await closeUserAccount(tx, orphanId);
     }
 
     if (!deleteCurrentUser) {

@@ -77,6 +77,12 @@ export const getSession = cache(async (): Promise<SessionWithUser | null> => {
     session = null;
   }
 
+  // A closed account still exists, because the attendance register needs the
+  // name against the hours. It must not be a way in.
+  if (session?.user.retiredAt) {
+    session = null;
+  }
+
   if (!session) {
     session = await prisma.session.findFirst({
       where: {

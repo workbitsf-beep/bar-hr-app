@@ -8,20 +8,29 @@ export async function GET(request: Request): Promise<Response> {
     return unauthorizedCronResponse();
   }
 
-  const [{ runTaskEscalation }, { runShiftRetentionCleanup }, { runTimeLogReminders }] = await Promise.all([
+  const [
+    { runTaskEscalation },
+    { runShiftRetentionCleanup },
+    { runTimeLogReminders },
+    { runDataRetention },
+  ] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/shiftCleanup"),
     import("@/lib/timelog-reminders"),
+    import("@/lib/data-retention"),
   ]);
 
-  const [taskResult, shiftResult, timelogReminderResult] = await Promise.all([
+  const [taskResult, shiftResult, timelogReminderResult, retentionResult] = await Promise.all([
     runTaskEscalation(),
     runShiftRetentionCleanup(),
     runTimeLogReminders(),
+    // Declared in the legal documents, and until now enforced nowhere.
+    runDataRetention(),
   ]);
 
   return Response.json({
     ok: true,
+    retention: retentionResult,
     updatedCount: taskResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,
     deletedRequestCount: shiftResult.deletedRequestCount,
