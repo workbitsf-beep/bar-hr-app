@@ -124,7 +124,7 @@ export default async function ConsoleLegalPage({
       <Section title="Dati societari e modelli">
         <CompanyProfileSection
           profile={companyProfile}
-          existingTypes={documents.map((document) => document.type)}
+          existingTitles={documents.map((document) => document.title)}
         />
       </Section>
 

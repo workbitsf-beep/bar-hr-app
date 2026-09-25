@@ -72,10 +72,10 @@ const GROUPS: Array<{ legend: string; fields: Field[] }> = [
  */
 export function CompanyProfileSection({
   profile,
-  existingTypes,
+  existingTitles,
 }: {
   profile: CompanyProfile;
-  existingTypes: string[];
+  existingTitles: string[];
 }) {
   const missing = getMissingProfileFields(profile);
 
@@ -147,11 +147,11 @@ export function CompanyProfileSection({
 
       <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
         {LEGAL_TEMPLATES.map((template) => {
-          const exists = existingTypes.includes(template.type);
+          const exists = existingTitles.includes(template.title);
 
           return (
             <form
-              key={template.type}
+              key={template.title}
               action={generateLegalDocumentAction}
               style={{
                 display: "flex",
@@ -163,11 +163,13 @@ export function CompanyProfileSection({
                 border: "1px solid rgba(255,255,255,0.09)",
               }}
             >
-              <input type="hidden" name="templateType" value={template.type} />
+              <input type="hidden" name="templateTitle" value={template.title} />
               <div style={{ display: "grid", gap: 2, minWidth: 0, flex: "1 1 240px" }}>
                 <strong style={{ fontSize: 14 }}>
                   {template.title}
-                  {template.essential ? null : (
+                  {template.internal ? (
+                    <em style={{ opacity: 0.55, fontStyle: "normal" }}> · interno</em>
+                  ) : template.essential ? null : (
                     <em style={{ opacity: 0.55, fontStyle: "normal" }}> · facoltativo</em>
                   )}
                 </strong>

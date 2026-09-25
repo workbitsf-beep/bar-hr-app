@@ -22,6 +22,8 @@ export type LegalTemplate = {
   title: string;
   /** Marked required when the stores or the law block publication without it. */
   essential: boolean;
+  /** Kept for inspection rather than published: no public page shows it. */
+  internal?: boolean;
   summary: string;
   build: (profile: CompanyProfile) => string;
 };
@@ -523,6 +525,204 @@ function buildCookies(profile: CompanyProfile) {
     .join("\n");
 }
 
+function buildProcessingRegister(profile: CompanyProfile) {
+  const service = value(profile, "serviceName");
+  const cert = profile.collectsCertificateCode;
+  const transfers =
+    "Stati Uniti, per i fornitori con sede o accesso da lì: decisione di adeguatezza EU-US Data Privacy Framework per i fornitori certificati, altrimenti clausole contrattuali standard (art. 46 GDPR).";
+
+  return [
+    heading(profile, "REGISTRO DELLE ATTIVITÀ DI TRATTAMENTO", "Art. 30 del Regolamento (UE) 2016/679"),
+
+    "DATI DELL'ORGANIZZAZIONE",
+    `Denominazione: ${value(profile, "legalName")}`,
+    `Sede legale: ${value(profile, "registeredOffice")}`,
+    `Partita IVA: ${value(profile, "vatNumber")}${profile.taxCode.trim() ? ` · codice fiscale: ${profile.taxCode.trim()}` : ""}`,
+    `Legale rappresentante: ${value(profile, "legalRepresentative")}`,
+    `Contatti: PEC ${value(profile, "certifiedEmail")} · email ${value(profile, "privacyEmail")}`,
+    `Responsabile della protezione dei dati: ${profile.dpoContact.trim() || "non nominato"}`,
+    "",
+    `Il registro è tenuto in forma elettronica, aggiornato a ogni modifica dei trattamenti e messo a disposizione del Garante su richiesta. Si compone di due parti: i trattamenti svolti come titolare (art. 30.1) e quelli svolti come responsabile per conto dei clienti (art. 30.2).`,
+    "",
+
+    "PARTE A — TRATTAMENTI COME TITOLARE (art. 30.1)",
+    "",
+    "A1. GESTIONE DEI CLIENTI E DEI CONTRATTI",
+    `Finalità: registrazione, attivazione e gestione dell'account del cliente; erogazione del servizio ${service}; comunicazioni di servizio.`,
+    "Base giuridica: esecuzione del contratto (art. 6.1.b).",
+    "Interessati: titolari e legali rappresentanti dei locali clienti, referenti amministrativi.",
+    "Dati: nome, cognome, email, ruolo, credenziali e passkey, lingua, identificativi dei dispositivi per le notifiche.",
+    "Destinatari: Railway (hosting e database), Resend (email), Google Firebase (notifiche push).",
+    `Trasferimenti extra UE: ${transfers}`,
+    `Conservazione: per la durata del contratto; dopo la cessazione, cancellazione entro ${value(profile, "exportDays")} giorni salvo obblighi di legge.`,
+    "",
+
+    "A2. PAGAMENTI E FATTURAZIONE",
+    "Finalità: incasso degli abbonamenti, emissione e conservazione delle fatture elettroniche, adempimenti contabili e fiscali.",
+    "Base giuridica: esecuzione del contratto (art. 6.1.b) e obbligo di legge (art. 6.1.c).",
+    "Interessati: clienti e loro legali rappresentanti.",
+    "Dati: ragione sociale, partita IVA, codice fiscale, codice destinatario, PEC, indirizzo, identificativo cliente presso Stripe, storico dei pagamenti. I dati della carta sono trattati solo da Stripe.",
+    `Destinatari: Stripe${profile.invoicingActive ? ", Fatture in Cloud" : ""}, Agenzia delle Entrate tramite Sistema di Interscambio, consulente fiscale.`,
+    `Trasferimenti extra UE: ${transfers}`,
+    `Conservazione: ${value(profile, "retentionTaxData")}.`,
+    "",
+
+    "A3. ASSISTENZA AI CLIENTI E AGLI UTENTI",
+    `Finalità: risposta alle richieste di assistenza ricevute a ${value(profile, "supportEmail")}.`,
+    "Base giuridica: esecuzione del contratto (art. 6.1.b).",
+    "Interessati: clienti, utenti del servizio compresi i dipendenti dei locali, altri richiedenti.",
+    "Dati: dati di contatto e contenuto della richiesta.",
+    "Destinatari: fornitore del servizio di posta elettronica, Railway.",
+    `Trasferimenti extra UE: ${transfers}`,
+    "Conservazione: per la durata del contratto con il cliente.",
+    "",
+
+    "A4. SICUREZZA DEL SERVIZIO",
+    "Finalità: prevenzione e accertamento di accessi non autorizzati e abusi, integrità del servizio.",
+    "Base giuridica: legittimo interesse alla sicurezza del servizio (art. 6.1.f).",
+    "Interessati: tutti gli utenti del servizio e i visitatori del sito.",
+    "Dati: log di accesso, sessioni, indirizzo IP, tipo di dispositivo.",
+    "Destinatari: Railway.",
+    `Trasferimenti extra UE: ${transfers}`,
+    `Conservazione: ${value(profile, "retentionAccessLogs")}.`,
+    "",
+
+    "A5. RICHIESTE DEGLI INTERESSATI E CANCELLAZIONE DEGLI ACCOUNT",
+    "Finalità: gestione delle richieste di esercizio dei diritti (artt. 15–22) e delle richieste di eliminazione dell'account; prova del loro riscontro.",
+    "Base giuridica: obbligo di legge (art. 6.1.c, artt. 12 e 17 GDPR).",
+    "Interessati: chiunque presenti una richiesta.",
+    "Dati: dati identificativi e di contatto, contenuto della richiesta, esito e data del riscontro.",
+    "Destinatari: il locale titolare quando la richiesta riguarda dati del personale; Resend.",
+    `Trasferimenti extra UE: ${transfers}`,
+    "Conservazione: per il tempo necessario a dimostrare il riscontro, non oltre i termini di prescrizione.",
+    "",
+
+    "PARTE B — TRATTAMENTI COME RESPONSABILE (art. 30.2)",
+    `Responsabile: ${value(profile, "legalName")}, ${value(profile, "registeredOffice")}, PEC ${value(profile, "certifiedEmail")}.`,
+    `Titolari per conto dei quali si tratta: ciascun locale cliente del servizio ${service}. L'elenco aggiornato dei titolari, con i rispettivi dati identificativi e di contatto, è tenuto nel sistema ed è estraibile su richiesta. Il rapporto è regolato dall'Accordo sul trattamento accettato da ciascun cliente.`,
+    "Interessati: dipendenti e collaboratori dei locali; responsabili e amministratori abilitati dai locali.",
+    "Sub-responsabili: Railway (server e database), Google Firebase (notifiche push), Resend (email).",
+    `Trasferimenti extra UE: ${transfers}`,
+    "",
+    "Categorie di trattamenti svolti per conto dei titolari:",
+    "• Gestione degli account del personale — nome, cognome, email, ruolo, credenziali, passkey, lingua, identificativi dei dispositivi. Conservazione: fino all'eliminazione dell'account.",
+    "• Pianificazione dei turni — turni, assegnazioni, conferme, disponibilità. Conservazione: per la durata del contratto con il locale.",
+    `• Rilevazione delle presenze — data e ora delle timbrature, inserimenti manuali, chiusure automatiche. Conservazione: ${value(profile, "retentionTimelogs")}.`,
+    `• Verifica della posizione alla timbratura — coordinate geografiche del dispositivo nel momento della timbratura; posizione e raggio della sede. Conservazione: ${value(profile, "retentionPosition")}.`,
+    `• Gestione delle richieste — ferie, permessi, cambio turno, straordinari, malattia; motivazioni, esito, revisore. Conservazione: ${value(profile, "retentionRequests")}.`,
+    cert
+      ? `• Gestione delle assenze per malattia — numero di protocollo del certificato medico, dato relativo alla salute (art. 9). Conservazione: ${value(profile, "retentionCertificate")}.`
+      : "",
+    `• Note sul personale — testo libero dei responsabili su singoli dipendenti, conferme di lettura. Conservazione: ${value(profile, "retentionNotes")}.`,
+    `• Archiviazione dei documenti — file caricati dal locale, anche contratti e buste paga. Conservazione: ${value(profile, "retentionDocuments")}.`,
+    "• Formazione — corsi assegnati, scadenze, stato di completamento. Conservazione: per la durata del contratto con il locale.",
+    "• Notifiche ed email — identificativo del dispositivo, indirizzo email, testo del messaggio. Conservazione: il tempo necessario all'invio.",
+    "",
+
+    "PARTE C — MISURE TECNICHE E ORGANIZZATIVE (art. 32)",
+    "• cifratura delle comunicazioni tra dispositivi e server;",
+    "• password salvate solo in forma di hash; accesso anche con passkey;",
+    "• separazione dei dati per locale e permessi in base al ruolo dell'utente;",
+    "• sessioni attive visibili e revocabili;",
+    "• accesso amministrativo ai sistemi limitato al personale autorizzato, vincolato alla riservatezza;",
+    "• fornitori nominati responsabili o sub-responsabili con accordo scritto;",
+    `• procedura di gestione delle violazioni dei dati, con avviso ai clienti entro ${value(profile, "breachHours")} ore.`,
+    "",
+
+    "STORICO DEGLI AGGIORNAMENTI",
+    `Versione ${value(profile, "documentVersion")} del ${value(profile, "effectiveFrom")} — prima redazione del registro.`,
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
+function buildImpactAssessment(profile: CompanyProfile) {
+  const service = value(profile, "serviceName");
+  const cert = profile.collectsCertificateCode;
+
+  return [
+    heading(
+      profile,
+      "VALUTAZIONE D'IMPATTO SULLA PROTEZIONE DEI DATI",
+      `Art. 35 del Regolamento (UE) 2016/679 · Gestione del personale e timbratura con verifica della posizione tramite ${service}`
+    ),
+
+    "0. CHI LA ADOTTA",
+    `La valutazione d'impatto spetta al titolare del trattamento, cioè al locale che usa ${service} per gestire il proprio personale. ${value(profile, "legalName")}, fornitore di ${service} e responsabile del trattamento, la predispone e la mette a disposizione dei clienti per assisterli, come previsto dall'art. 28.3.f GDPR e dall'Accordo sul trattamento.`,
+    `Titolare: ${venueBlank("Ragione sociale del locale")}, ${venueBlank("Sede del locale")}.`,
+    `Responsabile del trattamento: ${value(profile, "legalName")}, ${value(profile, "registeredOffice")}, PEC ${value(profile, "certifiedEmail")}.`,
+    `Responsabile della protezione dei dati del locale: ${venueBlank("Nome e contatto, se nominato")}.`,
+    `Redatta da: ${value(profile, "legalName")} per la parte tecnica; ${venueBlank("Nome di chi la completa per il locale")}.`,
+    "",
+
+    "1. PERCHÉ SERVE LA VALUTAZIONE",
+    `Secondo le linee guida del Comitato europeo (WP248 rev.01), un trattamento che soddisfa almeno due criteri di rischio richiede di norma una valutazione d'impatto. Qui ne ricorrono ${cert ? "tre" : "due"}:`,
+    "• interessati vulnerabili: i dipendenti, per lo squilibrio di potere nel rapporto con il datore di lavoro;",
+    "• monitoraggio sistematico: la posizione viene rilevata e conservata a ogni timbratura;",
+    cert ? "• dati particolari: il numero di protocollo del certificato medico è un dato relativo alla salute." : "",
+    "Inoltre l'elenco del Garante (provvedimento n. 467 dell'11 ottobre 2018) include i trattamenti svolti nell'ambito del rapporto di lavoro con sistemi tecnologici, anche di geolocalizzazione, che permettono un controllo a distanza dell'attività dei dipendenti.",
+    "",
+
+    "2. DESCRIZIONE DEL TRATTAMENTO",
+    `Contesto: bar o ristorante che gestisce il personale con ${service}: turni, timbrature, richieste, note, documenti, formazione. Circa ${venueBlank("numero")} dipendenti coinvolti.`,
+    "Finalità: organizzazione del lavoro, rilevazione delle presenze, verifica che la timbratura avvenga sul luogo di lavoro, gestione di ferie, permessi e assenze.",
+    "Interessati: dipendenti e collaboratori del locale; responsabili abilitati.",
+    `Dati: account (nome, cognome, email, ruolo, credenziali); turni e disponibilità; timbrature con data, ora e coordinate; richieste con motivazioni${cert ? " e numero di protocollo del certificato medico" : ""}; note dei responsabili; documenti caricati; formazione.`,
+    `Come funziona la posizione: al momento della timbratura l'app legge la posizione del telefono e la confronta con la sede e il raggio impostati dal locale (${venueBlank("raggio")} metri). Salva data, ora e coordinate. Nessuna rilevazione in altri momenti, in background o continuativa.`,
+    `Flusso dei dati: telefono del dipendente → server ${service} su Railway (${value(profile, "hostingRegion")}) → consultazione da parte dei responsabili autorizzati del locale. Notifiche tramite Google Firebase, email tramite Resend.`,
+    `Chi accede: ${venueBlank("Ruoli autorizzati nel locale")}; personale autorizzato di ${value(profile, "legalName")} solo per assistenza e manutenzione.`,
+    `Conservazione: orari ${value(profile, "retentionTimelogs")}; coordinate ${value(profile, "retentionPosition")}; richieste ${value(profile, "retentionRequests")}${cert ? `; certificato ${value(profile, "retentionCertificate")}` : ""}; note ${value(profile, "retentionNotes")}; documenti ${value(profile, "retentionDocuments")}.`,
+    "",
+
+    "3. NECESSITÀ E PROPORZIONALITÀ",
+    `Base giuridica: esecuzione del contratto di lavoro e obblighi di legge (artt. 6.1.b, 6.1.c e 88 GDPR, art. 114 d.lgs. 196/2003), nel rispetto dell'art. 4 L. 300/1970. ${venueBlank("Estremi dell'accordo sindacale o dell'autorizzazione INL, se previsti")}`,
+    "Limitazione della finalità: la posizione serve solo a verificare il luogo della timbratura. Le informazioni sono utilizzabili ai fini del rapporto di lavoro nei limiti dell'art. 4, comma 3, L. 300/1970.",
+    "Minimizzazione: rilevazione puntuale e non continua; nessun percorso; raggio configurabile; coordinate cancellate prima degli orari.",
+    "Esattezza: le timbrature inserite a mano da un responsabile o chiuse in automatico sono contrassegnate come tali; il dipendente può chiedere la correzione.",
+    "Trasparenza: informativa dedicata, letta e confermata dal dipendente nell'app con registrazione di data e versione.",
+    `Diritti degli interessati: esercitabili verso il locale; ${service} assiste il locale e inoltra le richieste ricevute.`,
+    "Responsabile e fornitori: accordo art. 28 accettato nell'app; sub-responsabili elencati; trasferimenti extra UE con DPF o clausole contrattuali standard.",
+    `Alternative valutate: il locale indica perché ha scelto la verifica della posizione rispetto a soluzioni meno invasive, come un codice QR esposto in sede o un terminale fisso: ${venueBlank("motivazione del locale")}. Chi nega il permesso di localizzazione timbra così: ${venueBlank("modalità alternativa")}.`,
+    "",
+
+    "4. RISCHI PER I DIRITTI E LE LIBERTÀ DEGLI INTERESSATI",
+    "Probabilità e gravità sono valutate su tre livelli: bassa, media, alta. Il rischio residuo tiene conto delle misure indicate, comprese quelle ancora da completare nel piano d'azione.",
+    "",
+    "R1. Uso della posizione per controllare l'attività oltre la timbratura — impatto: sensazione di sorveglianza, pressione, provvedimenti ingiustificati. Probabilità media, gravità alta. Misure: rilevazione solo alla timbratura; finalità dichiarata; accordo o autorizzazione ex art. 4; informativa confermata; accesso limitato ai ruoli autorizzati. Residuo: basso.",
+    "R2. Accesso non autorizzato ai dati — impatto: divulgazione di presenze, posizioni, documenti. Probabilità bassa, gravità alta. Misure: password in hash, passkey, sessioni revocabili, separazione dei dati per locale, permessi per ruolo, cifratura delle comunicazioni. Residuo: basso.",
+    cert
+      ? `R3. Dati sulla salute visibili a chi non deve — impatto: discriminazione, danno alla reputazione. Probabilità media, gravità alta. Misure: visibilità ristretta a chi gestisce le richieste; conservazione breve (${value(profile, "retentionCertificate")}); valutare di non raccogliere affatto il numero di protocollo. Residuo: medio.`
+      : "",
+    `R4. Note sul personale con contenuti eccessivi o discriminatori — impatto: giudizi non verificati, pregiudizio nel rapporto di lavoro. Probabilità media, gravità media. Misure: limiti d'uso nelle condizioni di servizio; conservazione limitata; ${venueBlank("regole interne del locale sull'uso delle note")}. Residuo: medio.`,
+    "R5. Conservazione oltre il necessario — impatto: esposizione prolungata di dati personali. Probabilità alta, gravità media. Misure: tempi definiti per ogni categoria; cancellazione automatica da implementare. Residuo: alto finché non è implementata.",
+    "R6. Posizione imprecisa — impatto: timbratura rifiutata o contestata ingiustamente. Probabilità media, gravità media. Misure: raggio configurabile; correzione manuale tracciata; modalità alternativa di timbratura. Residuo: basso.",
+    "R7. Perdita delle presenze alla cancellazione di un account — impatto: impossibilità per il dipendente di dimostrare ore lavorate. Probabilità media, gravità media. Misure: oggi la cancellazione è a cascata; conservare gli orari per i tempi di legge anche dopo l'eliminazione dell'account. Residuo: alto finché non è modificata.",
+    `R8. Accesso ai dati da paesi terzi — impatto: perdita di controllo sui dati. Probabilità bassa, gravità media. Misure: server in ${value(profile, "hostingRegion")}; DPF o clausole contrattuali standard con i fornitori. Residuo: basso.`,
+    `R9. Violazione dei dati presso un fornitore — impatto: divulgazione o indisponibilità dei dati. Probabilità bassa, gravità alta. Misure: fornitori nominati con accordo scritto; avviso al locale entro ${value(profile, "breachHours")} ore. Residuo: basso.`,
+    "",
+
+    "5. PIANO D'AZIONE",
+    `• Implementare la cancellazione automatica secondo i tempi di conservazione — a carico di ${value(profile, "legalName")} — da fare.`,
+    `• Conservare gli orari delle timbrature dopo l'eliminazione dell'account — a carico di ${value(profile, "legalName")} — da fare.`,
+    `• Verificare l'area dei server e i permessi di accesso ai dati di malattia — a carico di ${value(profile, "legalName")} — da fare.`,
+    `• Decidere se continuare a raccogliere il numero di protocollo del certificato — a carico di ${value(profile, "legalName")} e del locale — da decidere.`,
+    `• Accordo sindacale o autorizzazione dell'Ispettorato, se necessari — a carico del locale — ${venueBlank("stato")}.`,
+    `• Far leggere e confermare l'informativa ai dipendenti nell'app — a carico del locale — ${venueBlank("stato")}.`,
+    `• Impostare sede e raggio e definire la modalità alternativa di timbratura — a carico del locale — ${venueBlank("stato")}.`,
+    "",
+
+    "6. CONCLUSIONE",
+    "Con le misure in essere e il completamento del piano d'azione, il rischio residuo è da ritenersi accettabile. Finché le misure indicate come «da fare» non sono completate, alcuni rischi restano alti: se il titolare ritiene che non possano essere ridotti, deve consultare il Garante prima di iniziare il trattamento (art. 36 GDPR).",
+    `Parere del responsabile della protezione dei dati: ${venueBlank("parere, se nominato")}.`,
+    `Opinione dei dipendenti o dei loro rappresentanti (art. 35.9): ${venueBlank("come è stata raccolta e cosa è emerso")}.`,
+    `Decisione del titolare: ${venueBlank("trattamento avviato / avviato con condizioni / consultazione del Garante")}.`,
+    `Adottata il: ${venueBlank("data")}.`,
+    "Prossimo riesame: entro un anno, o prima in caso di modifiche rilevanti al servizio o al trattamento.",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
 export const LEGAL_TEMPLATES: LegalTemplate[] = [
   {
     type: LegalDocumentType.PRIVACY_POLICY,
@@ -565,5 +765,21 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     essential: false,
     summary: "Solo strumenti tecnici: utile averla separata, anche se l'informativa già la copre.",
     build: buildCookies,
+  },
+  {
+    type: LegalDocumentType.OTHER,
+    title: "Registro delle attività di trattamento",
+    essential: true,
+    internal: true,
+    summary: "Non si pubblica: si tiene e si mostra al Garante se lo chiede (art. 30).",
+    build: buildProcessingRegister,
+  },
+  {
+    type: LegalDocumentType.OTHER,
+    title: "Valutazione d'impatto sulla protezione dei dati",
+    essential: true,
+    internal: true,
+    summary: "Non si pubblica. Va completata prima di attivare il trattamento, non dopo (art. 35).",
+    build: buildImpactAssessment,
   },
 ];

@@ -198,8 +198,9 @@ export async function saveCompanyProfileAction(formData: FormData) {
 export async function generateLegalDocumentAction(formData: FormData) {
   await ensureSuperAdmin();
 
-  const requested = String(formData.get("templateType") ?? "");
-  const template = LEGAL_TEMPLATES.find((entry) => entry.type === requested);
+  // Identified by title: it is the only thing unique across templates.
+  const requested = String(formData.get("templateTitle") ?? "");
+  const template = LEGAL_TEMPLATES.find((entry) => entry.title === requested);
 
   if (!template) {
     throw new Error("Unknown legal template");
@@ -207,8 +208,11 @@ export async function generateLegalDocumentAction(formData: FormData) {
 
   const profile = await getCompanyProfile();
   const content = template.build(profile);
+  // Matched by title as well as type: the register and the impact assessment
+  // are both filed under "altro", and matching on type alone would have made
+  // each one overwrite the other.
   const existing = await prisma.legalDocument.findFirst({
-    where: { type: template.type },
+    where: { type: template.type, title: template.title },
     orderBy: [{ updatedAt: "desc" }],
     select: { id: true },
   });
