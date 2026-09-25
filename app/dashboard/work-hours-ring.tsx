@@ -61,6 +61,12 @@ export function WorkHoursRing({
   const circumference = 414.7;
   const progress = shiftMinutes > 0 ? Math.min(1, todayMinutes / shiftMinutes) : 0;
 
+  // Past the end of the shift the ring has nowhere left to go, so it changes
+  // colour instead. Without that, the moment overtime starts is the moment the
+  // ring stops saying anything.
+  const overtimeMinutes = shiftMinutes > 0 ? Math.max(0, todayMinutes - shiftMinutes) : 0;
+  const overtime = overtimeMinutes >= 1;
+
   return (
     <section className="workbit-ring" aria-label="Ore di oggi e del mese">
       <div className="workbit-ring-side">
@@ -68,12 +74,12 @@ export function WorkHoursRing({
         <span>{monthDays === 1 ? "giornata" : "giornate"}</span>
       </div>
 
-      <div className="workbit-ring-dial">
+      <div className={`workbit-ring-dial${overtime ? " workbit-ring-dial--over" : ""}`}>
         <svg viewBox="0 0 160 160" aria-hidden="true">
           <defs>
             <linearGradient id="workbit-ring-stroke" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#a78bfa" />
-              <stop offset="100%" stopColor="#4c1d95" />
+              <stop offset="0%" stopColor={overtime ? "#fbbf24" : "#a78bfa"} />
+              <stop offset="100%" stopColor={overtime ? "#b45309" : "#4c1d95"} />
             </linearGradient>
           </defs>
           <circle cx="80" cy="80" r="66" fill="none" stroke="#e3dbf7" strokeWidth="12" />
@@ -94,7 +100,7 @@ export function WorkHoursRing({
           <strong>{formatClock(todayMinutes)}</strong>
           <span>
             {inService ? <i className="workbit-ring-live" aria-hidden="true" /> : null}
-            {inService ? "in servizio" : "oggi"}
+            {overtime ? `+${formatClock(overtimeMinutes)} oltre` : inService ? "in servizio" : "oggi"}
           </span>
         </div>
       </div>

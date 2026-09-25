@@ -267,6 +267,20 @@ function DashboardResponsiveStyles() {
         background: #7c3aed;
       }
 
+      /* Past the end of the shift the ring is already full, so the colour is
+         what is left to say it. */
+      .workbit-ring-dial--over .workbit-ring-mid strong {
+        color: #92400e;
+      }
+
+      .workbit-ring-dial--over .workbit-ring-mid span {
+        color: #b45309;
+      }
+
+      .workbit-ring-dial--over .workbit-ring-live {
+        background: #b45309;
+      }
+
       @media (prefers-reduced-motion: no-preference) {
         .workbit-ring-live {
           animation: workbit-ring-pulse 2s ease-in-out infinite;
