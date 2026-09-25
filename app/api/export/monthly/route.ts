@@ -105,6 +105,43 @@ function formatDateOnly(value: string | Date): string {
   }).format(new Date(value));
 }
 
+/** A day off is a working day, not twenty-four hours. */
+const STANDARD_WORK_DAY_HOURS = 8;
+
+/**
+ * Hours an absence contributes to one day.
+ *
+ * A leave request carries the first and last instant of the whole period, so
+ * measuring it end to end gave the length of the holiday — 551 hours for three
+ * weeks — and printed that on every single day of it. Only the part that falls
+ * inside the day counts, and a day taken off in full counts as a working day,
+ * because nobody works the night.
+ */
+function absenceHoursForDay(
+  item: { startsAt: string; endsAt: string },
+  dayKey: string
+): number {
+  const dayStart = new Date(`${dayKey}T00:00:00`).getTime();
+  const dayEnd = new Date(`${dayKey}T23:59:59.999`).getTime();
+  const from = new Date(item.startsAt).getTime();
+  const to = new Date(item.endsAt).getTime();
+
+  if (!Number.isFinite(from) || !Number.isFinite(to) || !Number.isFinite(dayStart)) {
+    return 0;
+  }
+
+  const overlapStart = Math.max(from, dayStart);
+  const overlapEnd = Math.min(to, dayEnd);
+
+  if (overlapEnd <= overlapStart) {
+    return 0;
+  }
+
+  const hours = (overlapEnd - overlapStart) / 3_600_000;
+
+  return hours >= 20 ? STANDARD_WORK_DAY_HOURS : hours;
+}
+
 function formatDateRange(start: string | Date, end?: string | Date | null): string {
   const startLabel = formatDateOnly(start);
 
@@ -130,11 +167,6 @@ function formatMonthYear(month: number, year: number): string {
     month: "long",
     year: "numeric",
   }).format(new Date(year, month - 1, 1));
-}
-
-function hoursBetween(startIso: string, endIso: string) {
-  const duration = new Date(endIso).getTime() - new Date(startIso).getTime();
-  return Math.max(0, Math.round((duration / 3600000) * 100) / 100);
 }
 
 function round(value: number, decimals = 2) {
@@ -258,8 +290,26 @@ async function createMonthlyPdfBuffer(input: {
       });
     };
 
+    // Summed day by day for the same reason: the whole span is the length of
+    // the holiday, not the hours it accounts for.
     const sumItemHours = (type: string) =>
-      uniqueItems(type).reduce((total, item) => total + hoursBetween(item.startsAt, item.endsAt), 0);
+      input.dataset.groupedLogs.reduce((total, day) => {
+        const seen = new Set<string>();
+
+        return (
+          total +
+          (day.items ?? [])
+            .filter((item) => {
+              if (item.type !== type || seen.has(item.id)) {
+                return false;
+              }
+
+              seen.add(item.id);
+              return true;
+            })
+            .reduce((dayTotal, item) => dayTotal + absenceHoursForDay(item, day.date), 0)
+        );
+      }, 0);
 
     const permissionItems = uniqueItems("Permesso");
     const vacationItems = uniqueItems("Ferie");
@@ -448,7 +498,9 @@ async function createMonthlyPdfBuffer(input: {
       }
 
       for (const item of day?.items ?? []) {
-        const total = formatDurationClock(hoursBetween(item.startsAt, item.endsAt));
+        const dayHours = absenceHoursForDay(item, dayKey);
+        const total = dayHours > 0 ? formatDurationClock(dayHours) : "-";
+        const wholeDay = dayHours >= STANDARD_WORK_DAY_HOURS;
         const itemType = item.type === "Straordinario" ? "Straordinario" : item.type;
         const status =
           itemType === "Permesso" || itemType === "Ferie" || itemType === "Malattia"
@@ -460,10 +512,14 @@ async function createMonthlyPdfBuffer(input: {
         rows.push({
           status,
           type: item.title || itemType,
-          planned: formatRange(item.startsAt, item.endsAt),
+          planned: wholeDay ? "Intera giornata" : formatRange(item.startsAt, item.endsAt),
           real: "-",
           total,
-          notes: item.note || `${itemType} ${formatTime(item.startsAt)} - ${formatTime(item.endsAt)}`,
+          notes:
+            item.note ||
+            (wholeDay
+              ? itemType
+              : `${itemType} ${formatTime(item.startsAt)} - ${formatTime(item.endsAt)}`),
           color: badgeFor(itemType),
         });
       }
