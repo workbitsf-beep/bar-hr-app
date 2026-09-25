@@ -219,7 +219,10 @@ export const getDashboardContext = cache(async function getDashboardContext(
             ? [{ label: "Note", href: "/dashboard/tasks" }]
             : []),
           ...(features.documents ? [{ label: "Documenti", href: "/dashboard/documents" }] : []),
-          ...(features.shoppingList ? [{ label: "Lista ordini", href: "/dashboard/shopping-list" }] : []),
+          // The order list is not in the menu: it lives behind the cart on the
+          // home screen, which is where someone stands when they notice
+          // something has run out. The page still exists for the link inside
+          // the notification.
           ...(features.courses ? [{ label: "Corsi", href: "/dashboard/courses" }] : []),
           ...(features.timeTracking && !isCompany
             ? [{ label: t.timelogs, href: "/dashboard/timelogs" }]

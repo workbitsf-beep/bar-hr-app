@@ -3660,6 +3660,9 @@ export async function markShoppingListItemsOrderedAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard/shopping-list");
+  // The list lives behind the cart on the home screen now, so it has to hear
+  // about this too.
+  revalidatePath("/dashboard");
 }
 
 export async function deleteRequestAction(formData: FormData) {

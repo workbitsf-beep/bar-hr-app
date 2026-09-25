@@ -699,30 +699,94 @@ function DashboardResponsiveStyles() {
         line-height: 18px;
       }
 
-      .workbit-cart-form {
+      .workbit-cart-panel {
         display: grid;
-        gap: 6px;
+        gap: 14px;
       }
 
-      .workbit-cart-form label {
-        font-size: 12.5px;
-        font-weight: 800;
-        color: #667085;
-        margin-top: 6px;
+      /* Two fields and a plus. Nothing between noticing and writing it down. */
+      .workbit-cart-add {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 96px 44px;
+        gap: 8px;
       }
 
-      .workbit-cart-form input {
+      .workbit-cart-add input {
         border: 1px solid rgba(94, 92, 230, 0.14);
         border-radius: 14px;
         padding: 11px 13px;
         background: #ffffff;
         font-size: 15px;
-        color: #20202A;
+        color: #20202a;
         min-width: 0;
       }
 
-      .workbit-cart-form button[type="submit"] {
-        margin-top: 12px;
+      .workbit-cart-add button {
+        border: 0;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #3d2a99 0%, #5e5ce6 58%, #8b5cf6 100%);
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .workbit-cart-empty {
+        margin: 0;
+        padding: 14px 2px;
+        font-size: 13.5px;
+        color: #8a8598;
+      }
+
+      .workbit-cart-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .workbit-cart-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 13px;
+        border-radius: 14px;
+        background: #f8f6fd;
+        border: 1px solid rgba(94, 92, 230, 0.1);
+        cursor: pointer;
+      }
+
+      .workbit-cart-item input {
+        width: 19px;
+        height: 19px;
+        flex: 0 0 auto;
+        accent-color: #7b2ff7;
+      }
+
+      .workbit-cart-item span {
+        display: grid;
+        gap: 1px;
+        min-width: 0;
+      }
+
+      .workbit-cart-item b {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #20202a;
+      }
+
+      .workbit-cart-item i {
+        font-style: normal;
+        font-weight: 500;
+        color: #667085;
+      }
+
+      .workbit-cart-item small {
+        font-size: 11.5px;
+        color: #a19cb0;
+      }
+
+      .workbit-cart-list button[type="submit"] {
+        margin-top: 4px;
         border: 0;
         border-radius: 999px;
         padding: 13px;
@@ -731,6 +795,12 @@ function DashboardResponsiveStyles() {
         font-size: 15px;
         font-weight: 800;
         cursor: pointer;
+      }
+
+      .workbit-cart-list button[type="submit"]:disabled {
+        background: #efecf7;
+        color: #a19cb0;
+        cursor: default;
       }
 
       .workbit-home-hours,

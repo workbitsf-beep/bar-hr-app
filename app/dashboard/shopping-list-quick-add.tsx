@@ -1,30 +1,37 @@
 "use client";
 
-import { useRef } from "react";
-import { createShoppingListItemAction } from "./actions";
+import { useRef, useState } from "react";
+import { createShoppingListItemAction, markShoppingListItemsOrderedAction } from "./actions";
 import { PopupAction } from "./popup-action";
 
-/**
- * Adds something to the order list from the home screen.
- *
- * The list has a page of its own, but you notice a carton is finished while
- * you are behind the counter, not while you are in a menu — and anything that
- * needs navigating to does not get written down. A single round button beside
- * the heading, and the two fields in a popup.
- */
-export function ShoppingListQuickAdd({ pendingCount }: { pendingCount: number }) {
-  const formRef = useRef<HTMLFormElement>(null);
+export type ShoppingListEntry = {
+  id: string;
+  name: string;
+  quantity: string | null;
+  createdByName: string;
+};
 
+/**
+ * The whole order list, from the home screen.
+ *
+ * It used to be a page in the menu, which is two taps away from the counter
+ * where you notice something has run out — and the list is only ever used at
+ * the counter. Adding, ticking off and clearing all happen here now.
+ */
+export function ShoppingListQuickAdd({
+  pendingCount,
+  items,
+}: {
+  pendingCount: number;
+  items: ShoppingListEntry[];
+}) {
   return (
     <PopupAction
       title="Lista ordini"
       ariaLabel={
-        pendingCount > 0
-          ? `Aggiungi alla lista ordini, ${pendingCount} già in lista`
-          : "Aggiungi alla lista ordini"
+        pendingCount > 0 ? `Lista ordini, ${pendingCount} articoli` : "Lista ordini, vuota"
       }
       className="workbit-cart-trigger"
-      closeOnSubmit
       triggerContent={
         <>
           <span aria-hidden="true">🛒</span>
@@ -32,35 +39,89 @@ export function ShoppingListQuickAdd({ pendingCount }: { pendingCount: number })
         </>
       }
     >
+      <ShoppingListPanel items={items} />
+    </PopupAction>
+  );
+}
+
+function ShoppingListPanel({ items }: { items: ShoppingListEntry[] }) {
+  const addFormRef = useRef<HTMLFormElement>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+
+  return (
+    <div className="workbit-cart-panel">
+      {/* Adding comes first: it is why the list gets opened. */}
       <form
-        ref={formRef}
+        ref={addFormRef}
         action={async (formData) => {
           await createShoppingListItemAction(formData);
-          formRef.current?.reset();
+          addFormRef.current?.reset();
+          addFormRef.current?.querySelector("input")?.focus();
         }}
-        className="workbit-cart-form"
+        className="workbit-cart-add"
       >
-        <label htmlFor="workbit-cart-name">Cosa manca</label>
         <input
           id="workbit-cart-name"
           name="name"
-          placeholder="Tovaglioli"
+          placeholder="Cosa manca"
           autoComplete="off"
           required
           maxLength={120}
         />
-
-        <label htmlFor="workbit-cart-quantity">Quanto</label>
         <input
           id="workbit-cart-quantity"
           name="quantity"
-          placeholder="2 confezioni"
+          placeholder="Quanto"
           autoComplete="off"
           maxLength={40}
         />
-
-        <button type="submit">Aggiungi alla lista</button>
+        <button type="submit" aria-label="Aggiungi alla lista">
+          +
+        </button>
       </form>
-    </PopupAction>
+
+      {items.length === 0 ? (
+        <p className="workbit-cart-empty">La lista è vuota.</p>
+      ) : (
+        <form
+          action={async (formData) => {
+            await markShoppingListItemsOrderedAction(formData);
+            setSelected([]);
+          }}
+          className="workbit-cart-list"
+        >
+          {items.map((item) => (
+            <label key={item.id} className="workbit-cart-item">
+              <input
+                type="checkbox"
+                name="itemIds"
+                value={item.id}
+                checked={selected.includes(item.id)}
+                onChange={(event) =>
+                  setSelected((current) =>
+                    event.target.checked
+                      ? [...current, item.id]
+                      : current.filter((id) => id !== item.id)
+                  )
+                }
+              />
+              <span>
+                <b>
+                  {item.name}
+                  {item.quantity ? <i> · {item.quantity}</i> : null}
+                </b>
+                <small>da {item.createdByName}</small>
+              </span>
+            </label>
+          ))}
+
+          <button type="submit" disabled={selected.length === 0}>
+            {selected.length === 0
+              ? "Seleziona cosa hai ordinato"
+              : `Segna ${selected.length} come ${selected.length === 1 ? "ordinato" : "ordinati"}`}
+          </button>
+        </form>
+      )}
+    </div>
   );
 }

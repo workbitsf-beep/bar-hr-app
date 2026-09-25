@@ -113,7 +113,7 @@ export default async function DashboardPage() {
     assignedShiftForClockIn,
     crewShiftsToday,
     crewTimeLogsToday,
-    shoppingPendingCount,
+    shoppingItems,
     myWeekShifts,
     unseenRequestOutcomes,
     openTaskCount,
@@ -291,8 +291,17 @@ export default async function DashboardPage() {
         })
       : Promise.resolve([]),
     features.shoppingList
-      ? prisma.shoppingListItem.count({ where: { barId: activeBarId } })
-      : Promise.resolve(0),
+      ? prisma.shoppingListItem.findMany({
+          where: { barId: activeBarId },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            name: true,
+            quantity: true,
+            createdBy: { select: { firstName: true } },
+          },
+        })
+      : Promise.resolve([]),
     isOperationalProfile && features.shifts
       ? prisma.shift.findMany({
           where: {
@@ -505,7 +514,15 @@ export default async function DashboardPage() {
     ) : null;
 
   const cartBlock = features.shoppingList ? (
-    <ShoppingListQuickAdd pendingCount={shoppingPendingCount} />
+    <ShoppingListQuickAdd
+      pendingCount={shoppingItems.length}
+      items={shoppingItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        createdByName: item.createdBy.firstName,
+      }))}
+    />
   ) : null;
 
   const weekLine =
