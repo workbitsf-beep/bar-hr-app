@@ -1,6 +1,7 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { GpsLocationField } from "@/app/components/gps-location-field";
 import {
   featureToggleDefinitions,
@@ -26,6 +27,62 @@ type LocaleSettingsPopupContentProps = {
   isRestaurant: boolean;
 };
 
+/**
+ * Says what happened, where the save button used to be.
+ *
+ * With the change saved on its own, the only thing missing is the
+ * reassurance the button used to give by being pressed.
+ */
+function SaveState({ idleLabel }: { idleLabel: string }) {
+  const { pending } = useFormStatus();
+  const [justSaved, setJustSaved] = useState(false);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    if (pending) {
+      wasPending.current = true;
+      setJustSaved(false);
+      return;
+    }
+
+    if (!wasPending.current) {
+      return;
+    }
+
+    wasPending.current = false;
+    setJustSaved(true);
+
+    const id = window.setTimeout(() => setJustSaved(false), 2600);
+
+    return () => window.clearTimeout(id);
+  }, [pending]);
+
+  return (
+    <span
+      aria-live="polite"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        fontSize: 13,
+        fontWeight: 700,
+        color: pending ? "#64748b" : justSaved ? "#166534" : "#94a3b8",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 7,
+          height: 7,
+          borderRadius: 999,
+          background: pending ? "#94a3b8" : justSaved ? "#16a34a" : "#cbd5e1",
+        }}
+      />
+      {pending ? "Salvataggio…" : justSaved ? "Salvato" : idleLabel}
+    </span>
+  );
+}
+
 export function LocaleSettingsPopupContent({
   activityName,
   activityLabel,
@@ -38,6 +95,42 @@ export function LocaleSettingsPopupContent({
   const savedFeatures = useMemo(() => getFeatureFlags(settings), [settings]);
   const [features, setFeatures] = useState(savedFeatures);
   const trackingFormRef = useRef<HTMLFormElement>(null);
+  const featuresFormRef = useRef<HTMLFormElement>(null);
+  const saveTimersRef = useRef(new Map<string, number>());
+
+  /**
+   * Sends the form by itself a moment after the last change. The pause is what
+   * makes flipping three switches one save instead of three.
+   */
+  const scheduleSave = useCallback((key: string, form: HTMLFormElement | null) => {
+    if (!form) {
+      return;
+    }
+
+    const timers = saveTimersRef.current;
+    const previous = timers.get(key);
+
+    if (previous) {
+      window.clearTimeout(previous);
+    }
+
+    timers.set(
+      key,
+      window.setTimeout(() => {
+        timers.delete(key);
+        form.requestSubmit();
+      }, 600)
+    );
+  }, []);
+
+  useEffect(() => {
+    const timers = saveTimersRef.current;
+
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      timers.clear();
+    };
+  }, []);
   const [roundingEnabled, setRoundingEnabled] = useState(Boolean(settings?.roundingEnabled));
   const [roundingAcknowledged, setRoundingAcknowledged] = useState(Boolean(settings?.roundingEnabled));
   const [roundingConsent, setRoundingConsent] = useState(false);
@@ -55,10 +148,6 @@ export function LocaleSettingsPopupContent({
     setRoundingConsent(false);
     setShowRoundingInfo(false);
   }, [savedFeatures, settings?.roundingEnabled]);
-
-  function resetFeatureDraft() {
-    setFeatures(savedFeatures);
-  }
 
   function handleTrackingSubmit(event: FormEvent<HTMLFormElement>) {
     if (roundingEnabled && !roundingAcknowledged) {
@@ -87,7 +176,7 @@ export function LocaleSettingsPopupContent({
         <span>{contactLabel}</span>
       </div>
 
-      <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+      <form ref={featuresFormRef} action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
         <input type="hidden" name="settingsSection" value="features" />
         <div style={{ display: "grid", gap: 12 }}>
           <strong style={{ color: "#0f172a", fontSize: 18 }}>Scegli cosa usare</strong>
@@ -140,15 +229,16 @@ export function LocaleSettingsPopupContent({
                       type="checkbox"
                       name={feature.field}
                       checked={enabled}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         setFeatures((current) => ({
                           ...current,
                           [feature.key]: event.target.checked,
                           ...(feature.key === "tasks"
                             ? { noticeBoard: event.target.checked }
                             : {}),
-                        }))
-                      }
+                        }));
+                        scheduleSave("features", featuresFormRef.current);
+                      }}
                     />
                     <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
                       <span style={{ fontWeight: 800, color: "#0f172a" }}>{feature.shortLabel}</span>
@@ -163,11 +253,16 @@ export function LocaleSettingsPopupContent({
           </div>
         </div>
 
-        <div className="dashboard-form-actions">
-          <PrimaryButton type="button" tone="sand" data-popup-close onClick={resetFeatureDraft}>
-            Annulla
+        {/* No save button: the switch is the save. What is left to show is
+            that it happened. */}
+        <div
+          className="dashboard-form-actions"
+          style={{ alignItems: "center", justifyContent: "space-between" }}
+        >
+          <SaveState idleLabel="Le modifiche si salvano da sole" />
+          <PrimaryButton type="button" tone="sand" data-popup-close>
+            Chiudi
           </PrimaryButton>
-          <PrimaryButton type="submit">Salva funzioni</PrimaryButton>
         </div>
       </form>
 
@@ -184,7 +279,7 @@ export function LocaleSettingsPopupContent({
             longitudeName="gpsLongitude"
             initialLatitude={settings?.gpsLatitude}
             initialLongitude={settings?.gpsLongitude}
-            submitOnLocate={false}
+            submitOnLocate
           />
           <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
           <div
@@ -209,7 +304,13 @@ export function LocaleSettingsPopupContent({
                   if (!event.target.checked) {
                     setRoundingAcknowledged(false);
                     setRoundingConsent(false);
+                    scheduleSave("gps", trackingFormRef.current);
+                    return;
                   }
+
+                  // Switching it on still goes through the warning, which is
+                  // what saves it once accepted.
+                  setShowRoundingInfo(true);
                 }}
               />
               Attiva arrotondamento
@@ -225,11 +326,14 @@ export function LocaleSettingsPopupContent({
               Regola fissa: tolleranza 5 minuti, poi scatto al quarto d&apos;ora.
             </span>
           </div>
-          <div className="dashboard-form-actions">
+          <div
+            className="dashboard-form-actions"
+            style={{ alignItems: "center", justifyContent: "space-between" }}
+          >
+            <SaveState idleLabel="La posizione si salva da sola" />
             <PrimaryButton type="button" tone="sand" data-popup-close>
-              Annulla
+              Chiudi
             </PrimaryButton>
-            <PrimaryButton type="submit">Salva posizione</PrimaryButton>
           </div>
         </form>
       ) : null}
@@ -295,7 +399,13 @@ export function LocaleSettingsPopupContent({
               <PrimaryButton
                 type="button"
                 tone="sand"
-                onClick={() => setShowRoundingInfo(false)}
+                onClick={() => {
+                  setShowRoundingInfo(false);
+                  // The switch was flipped to open this: turning it back is
+                  // what "cancel" means now that nothing waits for a save.
+                  setRoundingEnabled(Boolean(settings?.roundingEnabled));
+                  setRoundingConsent(false);
+                }}
               >
                 Annulla
               </PrimaryButton>

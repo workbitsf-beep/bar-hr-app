@@ -21,6 +21,7 @@ import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
+import { SupportPanel } from "./support-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 import { ExternalLink } from "@/app/components/external-link";
 
@@ -504,6 +505,17 @@ export default async function DashboardSettingsPage({
             initialOpen={openBillingPopup}
           >
             <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
+          </PopupAction>
+        }
+      />
+
+      <SettingsSectionCard
+        icon="💬"
+        title="Supporto"
+        description="Scrivi all'assistenza, con i dati del locale già compilati."
+        action={
+          <PopupAction title="Supporto" ariaLabel="Apri supporto" triggerContent="Apri">
+            <SupportPanel activeBarName={activeBarName} userEmail={session.user.email} />
           </PopupAction>
         }
       />
