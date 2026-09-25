@@ -159,6 +159,14 @@ function writeCachedClockLocation(settings: BarSettingsSummary, sample: Geolocat
   }
 }
 
+/**
+ * How much of a reading's own error we are willing to forgive.
+ *
+ * Capped, so a deliberately vague fix cannot be used to stamp from down the
+ * road: past this, being far away is far away.
+ */
+const MAX_ACCURACY_ALLOWANCE_METERS = 50;
+
 async function getGeolocationPermissionState(): Promise<PermissionState | "unsupported"> {
   if (typeof navigator === "undefined" || !("permissions" in navigator)) {
     return "unsupported";
@@ -579,12 +587,19 @@ export function ClockActionsPanel({
 
   const gpsConfigured = hasConfiguredGps(settings);
   const canClock = role !== "OWNER";
+
+  // A reading carries an error of its own, often tens of metres indoors, so a
+  // distance of exactly the radius means nothing: standing still, the point
+  // drifts in and out and the button flickered with it. The reading's own
+  // margin is allowed for, capped so a deliberately vague fix cannot be used
+  // to stamp from down the road.
+  const accuracyAllowance = Math.min(accuracy ?? 0, MAX_ACCURACY_ALLOWANCE_METERS);
   const insideRadius =
     gpsConfigured &&
     latitude !== "" &&
     longitude !== "" &&
     distance !== null &&
-    distance <= (settings?.gpsRadius ?? 0);
+    distance <= (settings?.gpsRadius ?? 0) + accuracyAllowance;
   const canClockIn =
     insideRadius &&
     geoReady &&
