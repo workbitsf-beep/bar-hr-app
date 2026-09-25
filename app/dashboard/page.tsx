@@ -3,11 +3,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
-import { buildMonthlyTotals } from "@/lib/reporting";
+import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardContext } from "./context";
 import { reviewRequestAction } from "./actions";
 import { KpiDashboard } from "./kpi-dashboard";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
+import { WorkHoursRing } from "./work-hours-ring";
 import { ClockActionsPanel, type ClockActionStatus } from "./timelogs/timelogs-client";
 import {
   BillingRequiredState,
@@ -16,7 +17,6 @@ import {
   PrimaryButton,
   Stack,
 } from "./ui";
-import { formatDurationClock } from "@/lib/time-format";
 import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
@@ -106,6 +106,8 @@ export default async function DashboardPage() {
     settings,
     shifts,
     ownHours,
+    todayHours,
+    monthClockIns,
     latestTimeLog,
     kpiData,
     pendingApprovalRequests,
@@ -173,6 +175,22 @@ export default async function DashboardPage() {
     isOperationalProfile && features.timeTracking
       ? buildMonthlyTotals(activeBarId, session.user.id, now.getMonth() + 1, now.getFullYear())
       : Promise.resolve(null),
+    // Closed sessions only: the one still open is added live by the ring.
+    isOperationalProfile && features.timeTracking
+      ? buildDailyTotals(activeBarId, session.user.id, now)
+      : Promise.resolve(null),
+    // Entries only, to count the days actually worked this month.
+    isOperationalProfile && features.timeTracking
+      ? prisma.timeLog.findMany({
+          where: {
+            barId: activeBarId,
+            userId: session.user.id,
+            type: "IN",
+            timestamp: { gte: new Date(now.getFullYear(), now.getMonth(), 1) },
+          },
+          select: { timestamp: true },
+        })
+      : Promise.resolve([]),
     isOperationalProfile && features.timeTracking
       ? prisma.timeLog.findFirst({
           where: {
@@ -493,6 +511,10 @@ export default async function DashboardPage() {
     0
   );
 
+  const monthWorkedDays = new Set(
+    monthClockIns.map((entry) => toDateInputValueInTimeZone(entry.timestamp))
+  ).size;
+
   const inboxCount =
     unseenRequestOutcomes.length +
     (openTaskCount > 0 ? 1 : 0) +
@@ -599,19 +621,27 @@ export default async function DashboardPage() {
             />
           ) : null}
 
+          {features.timeTracking && ownHours ? (
+            <WorkHoursRing
+              activeClockInAt={activeClockInAt}
+              shiftStartAt={timerShift?.startTime.toISOString() ?? null}
+              shiftEndAt={timerShift?.endTime.toISOString() ?? null}
+              closedTodayMinutes={Math.round((todayHours?.roundedHours ?? 0) * 60)}
+              closedMonthMinutes={Math.round(ownHours.roundedHours * 60)}
+              monthDays={monthWorkedDays}
+            />
+          ) : null}
+
           {features.shifts ? (
             <section className="workbit-week">
               <div className="workbit-week-head">
                 <strong>La tua settimana</strong>
-                {/* The month total used to have a card of its own, showing a
-                    ring that read 00:00 most of the time. It belongs here,
-                    beside the other hours. */}
+                {/* The month total lives in the ring now, where it grows with
+                    the session being worked. Repeating it here said the same
+                    thing twice, and one of the two was always behind. */}
                 <span>
                   {myWeekShifts.length} {myWeekShifts.length === 1 ? "turno" : "turni"}
                   {myWeekMinutes > 0 ? ` · ${Math.round(myWeekMinutes / 60)}h` : ""}
-                  {features.timeTracking && ownHours
-                    ? ` · ${formatDurationClock(ownHours.roundedHours)} mese`
-                    : ""}
                 </span>
               </div>
 

@@ -173,6 +173,106 @@ function DashboardResponsiveStyles() {
         font-weight: 950;
       }
 
+      /* The running timer, on the background rather than in a card. The ring
+         measures how much of today's shift has passed; with no shift to
+         measure against it stays empty rather than inventing a proportion. */
+      .workbit-ring {
+        display: grid;
+        justify-items: center;
+        gap: 2px;
+        padding: 20px 8px 14px;
+      }
+
+      .workbit-ring-dial {
+        position: relative;
+        width: 156px;
+        height: 156px;
+      }
+
+      .workbit-ring-dial svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .workbit-ring-dial circle {
+        transition: stroke-dashoffset 600ms ease;
+      }
+
+      .workbit-ring-mid {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 1px;
+        text-align: center;
+      }
+
+      .workbit-ring-mid strong {
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        color: #2a1361;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.05;
+      }
+
+      .workbit-ring-mid span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #8a7fb0;
+      }
+
+      .workbit-ring-live {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #7c3aed;
+      }
+
+      .workbit-ring-month {
+        margin: 14px 0 0;
+        text-align: center;
+        font-size: 12.5px;
+        color: #8a7fb0;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .workbit-ring-month b {
+        color: #2a1361;
+        font-weight: 800;
+        font-size: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .workbit-ring-month span {
+        color: #c3bad9;
+        padding-inline: 5px;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .workbit-ring-live {
+          animation: workbit-ring-pulse 2s ease-in-out infinite;
+        }
+      }
+
+      @keyframes workbit-ring-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
       /* One bar for clocking, because only one of the two actions is ever
          available: the colour says which one, green to go in and red to come
          out. When neither is possible the bar goes quiet and the line under it
