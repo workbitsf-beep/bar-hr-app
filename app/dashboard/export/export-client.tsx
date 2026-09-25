@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ActivityType } from "@prisma/client";
+import { isNativeApp } from "@/lib/native-app";
 import {
   EmptyState,
   FormField,
@@ -133,6 +134,11 @@ export function ExportClient({
     setMessage("");
 
     try {
+      // A web view cannot save a file handed to it in memory, so inside the
+      // app the report is asked for as an address and collected by the phone's
+      // browser. In a browser the direct download is still the better one.
+      const asLink = isNativeApp();
+
       const response = await fetch("/api/export/monthly", {
         method: "POST",
         headers: {
@@ -143,6 +149,7 @@ export function ExportClient({
           month: Number(month),
           year: Number(year),
           format: "pdf",
+          deliver: asLink ? "link" : "file",
         }),
       });
 
@@ -154,12 +161,30 @@ export function ExportClient({
         return;
       }
 
+      if (asLink) {
+        const payload = (await response.json().catch(() => null)) as
+          | { ok?: boolean; url?: string }
+          | null;
+
+        if (!payload?.ok || !payload.url) {
+          setMessage("Impossibile preparare il PDF in questo momento.");
+          return;
+        }
+
+        const { Browser } = await import("@capacitor/browser");
+
+        await Browser.open({ url: new URL(payload.url, window.location.origin).toString() });
+        return;
+      }
+
       const blob = await response.blob();
       const href = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = href;
       anchor.download = `report-${year}-${month}.pdf`;
+      document.body.append(anchor);
       anchor.click();
+      anchor.remove();
       URL.revokeObjectURL(href);
     } catch {
       setMessage("Impossibile scaricare il PDF in questo momento.");

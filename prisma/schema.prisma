@@ -166,6 +166,7 @@ model User {
   webAuthnCredentials      WebAuthnCredential[]
   webAuthnChallenges       WebAuthnChallenge[]
   documentAccessTokens     DocumentAccessToken[]
+  downloadTickets          DownloadTicket[]
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @updatedAt
 
@@ -811,6 +812,27 @@ model CompanyProfile {
   data      Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// A file already produced and authorised, waiting to be collected once.
+///
+/// The app's web view cannot save a file handed to it in memory, so a report
+/// has to become a real address the phone's browser can fetch. The check
+/// happened when the file was made: the ticket is short-lived, single use, and
+/// carries no permission of its own.
+model DownloadTicket {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  fileName  String
+  mimeType  String
+  content   Bytes
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
 }
 
 model ShoppingListItem {

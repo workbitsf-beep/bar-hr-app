@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import fs from "node:fs";
 import path from "node:path";
 import { ActivityType, Role } from "@prisma/client";
+import { createDownloadTicket } from "@/lib/download-tickets";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
@@ -38,6 +39,8 @@ type ExportBody = {
   month?: number;
   year?: number;
   format?: "json" | "pdf";
+  /** "link" when the caller cannot save a file it is handed. */
+  deliver?: "file" | "link";
 };
 
 type SessionWithBar = {
@@ -661,6 +664,39 @@ function mergeCompanyDatasets(
   };
 }
 
+/**
+ * Returns the file, or an address to fetch it from.
+ *
+ * A browser can save what it is handed; the app's web view cannot, so there
+ * it asks for a link and lets the phone's browser collect the file.
+ */
+async function deliverPdf(input: {
+  // Narrowed to a real buffer: a Response body will not take the generic one.
+  bytes: Uint8Array<ArrayBuffer>;
+  fileName: string;
+  asLink: boolean;
+  userId: string;
+}): Promise<Response> {
+  if (input.asLink) {
+    const url = await createDownloadTicket({
+      userId: input.userId,
+      fileName: input.fileName,
+      mimeType: "application/pdf",
+      content: input.bytes,
+    });
+
+    return Response.json({ ok: true, url });
+  }
+
+  return new Response(input.bytes, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${input.fileName}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     try {
@@ -745,12 +781,11 @@ export const POST = withBar(
             dataset,
           });
 
-          return new Response(new Uint8Array(pdfBuffer), {
-            headers: {
-              "Content-Type": "application/pdf",
-              "Content-Disposition": `attachment; filename="report-generale-${year}-${String(month).padStart(2, "0")}.pdf"`,
-              "Cache-Control": "no-store",
-            },
+          return deliverPdf({
+            bytes: new Uint8Array(pdfBuffer),
+            fileName: `report-generale-${year}-${String(month).padStart(2, "0")}.pdf`,
+            asLink: body.deliver === "link",
+            userId: session.user.id,
           });
         }
 
@@ -808,12 +843,11 @@ export const POST = withBar(
           dataset,
         });
 
-        return new Response(new Uint8Array(pdfBuffer), {
-          headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="report-${year}-${String(month).padStart(2, "0")}.pdf"`,
-            "Cache-Control": "no-store",
-          },
+        return deliverPdf({
+          bytes: new Uint8Array(pdfBuffer),
+          fileName: `report-${year}-${String(month).padStart(2, "0")}.pdf`,
+          asLink: body.deliver === "link",
+          userId: session.user.id,
         });
       }
 
