@@ -3606,24 +3606,9 @@ export async function createShoppingListItemAction(formData: FormData) {
     },
   });
 
-  const notificationContext = await getBarNotificationContext(activeBarId);
-
-  if (notificationContext) {
-    const ownerRecipients = excludeActorFromUsers(
-      notificationContext.users.filter((user) => user.role === Role.OWNER),
-      session.user.id
-    );
-
-    if (ownerRecipients.length > 0) {
-      await notifyUsers(ownerRecipients, {
-        barId: activeBarId,
-        title: "Nuovo articolo in lista ordini",
-        message: `${getFullName(session.user)} ha aggiunto "${name}" alla lista ordini di ${notificationContext.barName}.`,
-        type: INTERNAL_NOTIFICATION_TYPES.SHOPPING_LIST_ITEM_ADDED,
-        actionUrl: "/dashboard/shopping-list",
-      });
-    }
-  }
+  // No notice for this one. The list is a running note kept between everyone
+  // who works here, and a message for every carton of napkins is the fastest
+  // way to teach people to ignore the notices that matter.
 
   revalidatePath("/dashboard/shopping-list");
   // The home screen carries the count on its own button, so it has to hear
