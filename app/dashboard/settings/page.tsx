@@ -421,8 +421,11 @@ export default async function DashboardSettingsPage({
     (feature) => getFeatureFlags(featureSettings)[feature.key]
   ).length;
 
+  // No closeOnSubmit here: this panel saves itself on every switch, so closing
+  // on submit shut the popup in the user's face the moment they turned
+  // something off. Closing is what the Chiudi button is for.
   const localePopup = (
-    <PopupAction title="Locale / Attività" ariaLabel="Apri locale e attività" triggerContent="Gestisci" closeOnSubmit>
+    <PopupAction title="Locale / Attività" ariaLabel="Apri locale e attività" triggerContent="Gestisci">
       <LocaleSettingsPopupContent
         activityName={activeBar?.name ?? activeBarName ?? "Attività"}
         activityLabel={activeBar?.activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione"}
