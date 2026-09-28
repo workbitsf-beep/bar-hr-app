@@ -756,7 +756,45 @@ export default async function DashboardRequestsPage({
           </div>
         ) : null}
 
+        <span
+          style={{
+            marginTop: 3,
+            fontSize: 11.5,
+            fontWeight: 820,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#94a3b8",
+          }}
+        >
+          Il locale
+        </span>
+
         {role === Role.OWNER && canUseOvertime ? (
+          <PopupAction
+            title="Straordinari"
+            ariaLabel="Apri straordinari"
+            triggerContent={
+              <>
+                <span>📋 Straordinari registrati</span>
+                <span style={{ color: "#94a3b8", fontWeight: 800 }}>
+                  {overtimeRequests.length} &rsaquo;
+                </span>
+              </>
+            }
+            triggerStyle={{
+              width: "100%",
+              minHeight: 52,
+              borderRadius: 15,
+              border: "1px solid #e9edf3",
+              background: "#f8fafc",
+              color: "#0f172a",
+              fontSize: 13.5,
+              fontWeight: 790,
+              justifyContent: "space-between",
+              padding: "0 14px",
+              boxShadow: "none",
+            }}
+          >
           <Panel
             title="Straordinari"
             action={
@@ -841,9 +879,35 @@ export default async function DashboardRequestsPage({
               )}
             </div>
           </Panel>
+          </PopupAction>
         ) : null}
 
         {canManageClosures ? (
+          <PopupAction
+            title="Chiusure"
+            ariaLabel="Apri chiusure"
+            triggerContent={
+              <>
+                <span>📝 Chiusure e ferie aziendali</span>
+                <span style={{ color: "#94a3b8", fontWeight: 800 }}>
+                  {closures.length} &rsaquo;
+                </span>
+              </>
+            }
+            triggerStyle={{
+              width: "100%",
+              minHeight: 52,
+              borderRadius: 15,
+              border: "1px solid #e9edf3",
+              background: "#f8fafc",
+              color: "#0f172a",
+              fontSize: 13.5,
+              fontWeight: 790,
+              justifyContent: "space-between",
+              padding: "0 14px",
+              boxShadow: "none",
+            }}
+          >
           <Panel
             title="Chiusure"
             action={
@@ -939,9 +1003,35 @@ export default async function DashboardRequestsPage({
               </ItemList>
             )}
           </Panel>
+          </PopupAction>
         ) : null}
 
         {features.availability && !isCompany ? (
+          <PopupAction
+            title="Indisponibilità"
+            ariaLabel="Apri indisponibilità"
+            triggerContent={
+              <>
+                <span>🚫 Indisponibilità del team</span>
+                <span style={{ color: "#94a3b8", fontWeight: 800 }}>
+                  {availabilities.length} &rsaquo;
+                </span>
+              </>
+            }
+            triggerStyle={{
+              width: "100%",
+              minHeight: 52,
+              borderRadius: 15,
+              border: "1px solid #e9edf3",
+              background: "#f8fafc",
+              color: "#0f172a",
+              fontSize: 13.5,
+              fontWeight: 790,
+              justifyContent: "space-between",
+              padding: "0 14px",
+              boxShadow: "none",
+            }}
+          >
             <Panel
               className="workbit-requests-list-panel workbit-availability-panel"
               title="Indisponibilità"
@@ -991,6 +1081,7 @@ export default async function DashboardRequestsPage({
               )}
               </div>
             </Panel>
+          </PopupAction>
         ) : null}
         {features.requests ? (
           <Panel
