@@ -71,6 +71,19 @@ function closureTypeTone(type: CalendarClosureType) {
   return "neutral" as const;
 }
 
+/** The pill used to print the database's own word: APPROVED, PENDING. */
+function requestStatusLabel(status: RequestStatus | string) {
+  if (status === RequestStatus.APPROVED) {
+    return "Approvata";
+  }
+
+  if (status === RequestStatus.REJECTED) {
+    return "Rifiutata";
+  }
+
+  return "In attesa";
+}
+
 function requestTone(status: RequestStatus) {
   if (status === RequestStatus.APPROVED) {
     return "success" as const;
@@ -176,7 +189,7 @@ export default async function DashboardRequestsPage({
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
   const canManageClosures = canReviewOperationalRequests(role as Role);
-  const pageTitle = canManageClosures ? "Richieste e chiusure" : features.requests ? "Richieste" : "Indisponibilita";
+  const pageTitle = canManageClosures ? "Richieste e chiusure" : features.requests ? "Richieste" : "Indisponibilità";
 
   if (!activeBarId) {
     return (
@@ -212,7 +225,7 @@ export default async function DashboardRequestsPage({
         : success === "request-reviewed"
           ? "Richiesta confermata correttamente."
         : success === "availability-created"
-          ? "Indisponibilita salvata correttamente."
+          ? "Indisponibilità salvata correttamente."
           : success === "closure-created"
             ? "Chiusura salvata correttamente."
             : success === "closure-updated"
@@ -625,7 +638,7 @@ export default async function DashboardRequestsPage({
                             request.endsAt ?? request.createdAt
                           )}`}
                           meta={request.reason || "Straordinario"}
-                          footer={<StatusPill label={request.status} tone={requestTone(request.status)} />}
+                          footer={<StatusPill label={requestStatusLabel(request.status)} tone={requestTone(request.status)} />}
                         />
                       </SwipeRevealAction>
                     );
@@ -737,11 +750,11 @@ export default async function DashboardRequestsPage({
         {features.availability && !isCompany ? (
             <Panel
               className="workbit-requests-list-panel workbit-availability-panel"
-              title="Indisponibilita"
+              title="Indisponibilità"
               action={
                 <PopupAction
-                  title="Indisponibilita"
-                  ariaLabel="Aggiungi indisponibilita"
+                  title="Indisponibilità"
+                  ariaLabel="Aggiungi indisponibilità"
                   className="workbit-request-plus"
                 >
                   <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
@@ -757,7 +770,7 @@ export default async function DashboardRequestsPage({
                     <input type="hidden" name="notifySuccess" value="1" />
 
                     <div className="dashboard-form-actions">
-                      <PrimaryButton type="submit">Salva indisponibilita</PrimaryButton>
+                      <PrimaryButton type="submit">Salva indisponibilità</PrimaryButton>
                     </div>
                   </form>
                 </PopupAction>
@@ -765,7 +778,7 @@ export default async function DashboardRequestsPage({
             >
               <div style={{ display: "grid", gap: 12 }}>
               {availabilities.length === 0 ? (
-                <EmptyState message="Nessuna indisponibilita registrata." />
+                <EmptyState message="Nessuna indisponibilità registrata." />
               ) : (
                 <ItemList scrollable>
                   {availabilities.map((availability) => {
@@ -781,14 +794,14 @@ export default async function DashboardRequestsPage({
                         action={
                           <form action={deleteAvailabilityAction}>
                             <input type="hidden" name="availabilityId" value={availability.id} />
-                            <DeleteSwipeButton label="Elimina indisponibilita" />
+                            <DeleteSwipeButton label="Elimina indisponibilità" />
                           </form>
                         }
                       >
                         <ItemCard
                           title={
                             availability.user.id === session.user.id
-                              ? "La tua indisponibilita"
+                              ? "La tua indisponibilità"
                               : availability.user.firstName + " " + availability.user.lastName
                           }
                           subtitle={formatDateTime(availability.startsAt) + " - " + formatDateTime(availability.endsAt)}
@@ -869,12 +882,12 @@ export default async function DashboardRequestsPage({
                         footer={
                           <div style={{ display: "grid", gap: 10 }}>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <StatusPill label={request.status} tone={requestTone(request.status)} />
+                              <StatusPill label={requestStatusLabel(request.status)} tone={requestTone(request.status)} />
                               {request.peerStatus ? (
-                                <StatusPill label={request.peerStatus} tone={requestTone(request.peerStatus)} />
+                                <StatusPill label={requestStatusLabel(request.peerStatus)} tone={requestTone(request.peerStatus)} />
                               ) : null}
                               {request.ownerStatus ? (
-                                <StatusPill label={request.ownerStatus} tone={requestTone(request.ownerStatus)} />
+                                <StatusPill label={requestStatusLabel(request.ownerStatus)} tone={requestTone(request.ownerStatus)} />
                               ) : null}
                             </div>
 

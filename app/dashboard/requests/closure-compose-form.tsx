@@ -2,7 +2,7 @@
 
 import { CalendarClosureType } from "@prisma/client";
 import { useState, useTransition } from "react";
-import { FormField, IconButton, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { FormField, PrimaryButton, Select, TextArea, TextInput } from "../ui";
 
 type ClosureDraft = {
   id: string;
@@ -79,6 +79,10 @@ export function ClosureComposeForm({
       setDraft(createDraft());
     });
   }
+
+  const canQueue =
+    Boolean(draft.startsAt) && !(draft.endsAt && draft.endsAt < draft.startsAt);
+  const readyCount = queued.length + (draftValid ? 1 : 0);
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -165,44 +169,37 @@ export function ClosureComposeForm({
       <FormField label="Note">
         <TextArea value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
       </FormField>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <IconButton
+      {/* A round + floating over the save button said nothing about what it
+          added. It says it now, and "Salva tutte" only appears when there is
+          genuinely more than one. */}
+      <div
+        className="dashboard-form-actions"
+        style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}
+      >
+        <button
           type="button"
           onClick={addToList}
-          aria-label="Aggiungi chiusura alla lista"
-          disabled={isPending || !draft.startsAt || Boolean(draft.endsAt && draft.endsAt < draft.startsAt)}
+          disabled={isPending || !canQueue}
           style={{
-            width: 38,
-            height: 38,
-            background: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#dcfce7" : "#f1f5f9",
-            color: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#166534" : "#94a3b8",
-            border: "1px solid #bbf7d0",
+            padding: "10px 14px",
+            borderRadius: 14,
+            border: "1px dashed #cbd5e1",
+            background: "transparent",
+            color: canQueue ? "#4c1d95" : "#94a3b8",
+            fontSize: 13,
+            fontWeight: 820,
+            cursor: canQueue ? "pointer" : "default",
           }}
         >
-          ✓
-        </IconButton>
-      </div>
-      <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <IconButton
-          type="button"
-          onClick={addToList}
-          aria-label="Aggiungi chiusura alla lista"
-          disabled={isPending || !draft.startsAt || Boolean(draft.endsAt && draft.endsAt < draft.startsAt)}
-          style={{
-            width: 44,
-            height: 44,
-            background: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#dcfce7" : "#f1f5f9",
-            color: draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt) ? "#166534" : "#94a3b8",
-            border: "1px solid #bbf7d0",
-            display: "none",
-          }}
-        >
-          ✓
-        </IconButton>
-        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || (queued.length === 0 && !draftValid)}>
+          + Aggiungi un&apos;altra
+        </button>
+
+        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || readyCount === 0}>
           {isPending
             ? "Salvataggio..."
-            : `Salva tutte${queued.length + (draftValid ? 1 : 0) > 0 ? ` (${queued.length + (draftValid ? 1 : 0)})` : ""}`}
+            : readyCount > 1
+              ? `Salva tutte (${readyCount})`
+              : "Salva"}
         </PrimaryButton>
       </div>
     </div>

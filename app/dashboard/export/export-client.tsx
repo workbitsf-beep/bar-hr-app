@@ -24,7 +24,7 @@ type ExportEntry = {
 
 type CompanyReportItem = {
   id: string;
-  type: "Indisponibilita" | "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Corso" | "Chiusura";
+  type: "Indisponibilità" | "Ferie" | "Permesso" | "Malattia" | "Straordinario" | "Corso" | "Chiusura";
   title: string;
   startsAt: string;
   endsAt: string;

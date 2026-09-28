@@ -46,6 +46,13 @@ function buildDateTime(date: string, time: string) {
   return `${date}T${time}`;
 }
 
+const TIME_PRESETS = [
+  { label: "Mattina", startTime: "09:00", endTime: "13:00" },
+  { label: "Pomeriggio", startTime: "14:00", endTime: "18:00" },
+  { label: "Sera", startTime: "18:00", endTime: "23:00" },
+  { label: "Tutto il giorno", startTime: "09:00", endTime: "18:00" },
+];
+
 export function SingleDayTimeRangeInput({
   startName,
   endName,
@@ -99,6 +106,42 @@ export function SingleDayTimeRangeInput({
           }}
         />
       </label>
+      {/* The shapes a shift actually takes. Four number boxes with a colon
+          between them meant four taps and four keypads for what is nearly
+          always one of these. */}
+      <div style={{ gridColumn: "1 / -1", display: "grid", gap: 8 }}>
+        <span style={{ fontWeight: 600, color: "#1e293b" }}>Orario</span>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {TIME_PRESETS.map((preset) => {
+            const active = startTime === preset.startTime && endTime === preset.endTime;
+
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => {
+                  setStartTime(preset.startTime);
+                  setEndTime(preset.endTime);
+                }}
+                style={{
+                  minHeight: 38,
+                  padding: "0 13px",
+                  borderRadius: 999,
+                  border: active ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #e2e8f0",
+                  background: active ? "#f3e8ff" : "#ffffff",
+                  color: active ? "#4c1d95" : "#475569",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <label style={{ display: "grid", gap: 8 }}>
         <span style={{ fontWeight: 600, color: "#1e293b" }}>Ora inizio</span>
         <TimeInput value={startTime} onChange={setStartTime} required={required} />
