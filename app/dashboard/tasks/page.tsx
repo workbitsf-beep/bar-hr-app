@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { describeTaskRepeat } from "@/lib/task-recurrence";
+import { isOverdue, relativeDayLabel } from "@/lib/note-list-format";
 import {
   completeTaskAction,
   createTaskAction,
@@ -12,15 +13,11 @@ import {
   BillingRequiredState,
   EmptyState,
   IconButton,
-  ItemCard,
   ItemList,
   Panel,
   PrimaryButton,
   Stack,
-  StatusPill,
   SuccessCallout,
-  formatDate,
-  formatDateTime,
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { SwipeRevealAction } from "../swipe-reveal-action";
@@ -193,6 +190,51 @@ export default async function DashboardTasksPage({
                 task.requiresConfirmation &&
                 (canManage || task.assignedToAll || task.assignedToId === session.user.id);
               const canDeleteTask = canManage || task.createdBy.id === session.user.id;
+              const late = !isDone && isOverdue(task.dueDate);
+              const repeats = describeTaskRepeat(task.repeatEvery, task.repeatUnit);
+              const lastCompletion = task.completions[0];
+
+              // A strip of colour on the edge instead of a pill on its own
+              // line: red when it should already have been done, purple when
+              // the note is one of a series, nothing at all otherwise.
+              const accent = late ? "#ef4444" : repeats ? "#7c3aed" : null;
+
+              // Everything here is left out when it is the ordinary case. The
+              // whole team, written by you, a plain note due today: all of it
+              // was on every single card and none of it was news.
+              const metaParts = [
+                isDone && lastCompletion
+                  ? {
+                      text: `fatta da ${lastCompletion.user.firstName} ${lastCompletion.user.lastName} · ${relativeDayLabel(lastCompletion.completedAt)}`,
+                      alarming: false,
+                    }
+                  : { text: relativeDayLabel(task.dueDate), alarming: false },
+                late ? { text: "in ritardo", alarming: true } : null,
+                !isDone && task.isUrgent ? { text: "urgente", alarming: true } : null,
+                !task.assignedToAll && task.assignedTo
+                  ? {
+                      text: `${task.assignedTo.firstName} ${task.assignedTo.lastName}`,
+                      alarming: false,
+                    }
+                  : null,
+                !task.assignedToAll && !task.assignedTo
+                  ? { text: "non assegnata", alarming: false }
+                  : null,
+                task.createdBy.id === session.user.id
+                  ? null
+                  : { text: `da ${task.createdBy.firstName}`, alarming: false },
+                repeats ? { text: repeats, alarming: false } : null,
+                !task.requiresConfirmation && !isDone
+                  ? { text: "solo da leggere", alarming: false }
+                  : null,
+              ].filter((part): part is { text: string; alarming: boolean } => part !== null);
+
+              // Who else confirmed it. On a note for the whole team that list
+              // is the proof the check was done, so it stays.
+              const extraCompletions = task.completions
+                .slice(1)
+                .map((completion) => completion.user.firstName)
+                .join(", ");
 
               return (
                 <SwipeRevealAction
@@ -228,80 +270,71 @@ export default async function DashboardTasksPage({
                     </form>
                   }
                 >
-                <ItemCard
+                <div
                   className="workbit-note-card"
-                  title={task.title}
-                  subtitle={[
-                    `Data ${formatDate(task.dueDate)}`,
-                    describeTaskRepeat(task.repeatEvery, task.repeatUnit),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
                   style={{
-                    position: "relative",
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) auto",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "13px 14px",
+                    borderRadius: 18,
+                    border: "1px solid #e9edf3",
+                    borderLeft: accent ? `3px solid ${accent}` : "1px solid #e9edf3",
+                    background: "#ffffff",
                   }}
-                  meta={
-                    <>
-                      {task.assignedToAll
-                        ? "Tutto il team"
-                        : task.assignedTo
-                          ? task.assignedTo.firstName + " " + task.assignedTo.lastName
-                          : "Non assegnata"}
-                      {" · creata da "}
-                      {task.createdBy.firstName} {task.createdBy.lastName}
-                    </>
-                  }
-                  footer={
-                    <div style={{ display: "grid", gap: 12 }}>
-                      <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                          {isDone ? (
-                            <StatusPill label="Completata" tone="success" />
-                          ) : (
-                            <StatusPill
-                              label={!task.requiresConfirmation ? "Promemoria" : task.isUrgent ? "Urgente" : "Da fare"}
-                              tone={task.isUrgent ? "danger" : "warning"}
-                            />
-                          )}
-                        </div>
-                        {canComplete ? (
-                          <form action={completeTaskAction}>
-                            <input type="hidden" name="taskId" value={task.id} />
-                            <input type="hidden" name="notifySuccess" value="1" />
-                            <IconButton
-                              type="submit"
-                              aria-label="Completa nota"
-                              title="Completa nota"
-                              style={{
-                                width: 38,
-                                height: 38,
-                                background: "#dcfce7",
-                                color: "#166534",
-                                border: "1px solid #bbf7d0",
-                                fontSize: 14,
-                                fontWeight: 900,
-                              }}
-                            >
-                              ✓
-                            </IconButton>
-                          </form>
-                        ) : null}
-                      </div>
+                >
+                  <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
+                    <strong
+                      style={{
+                        fontSize: 15.5,
+                        letterSpacing: "-0.015em",
+                        color: isDone ? "#94a3b8" : "#0f172a",
+                        textDecoration: isDone ? "line-through" : "none",
+                      }}
+                    >
+                      {task.title}
+                    </strong>
+                    <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 650 }}>
+                      {metaParts.map((part, index) => (
+                        <span key={part.text}>
+                          {index > 0 ? " · " : ""}
+                          <span style={part.alarming ? { color: "#b91c1c", fontWeight: 800 } : undefined}>
+                            {part.text}
+                          </span>
+                        </span>
+                      ))}
+                    </span>
+                    {extraCompletions.length > 0 ? (
+                      <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 650 }}>
+                        anche {extraCompletions}
+                      </span>
+                    ) : null}
+                  </div>
 
-                      {task.completions.length > 0 ? (
-                        <div style={{ display: "grid", gap: 6 }}>
-                          {task.completions.map((completion) => (
-                            <div key={completion.id} style={{ color: "#64748b", fontSize: 13, fontWeight: 650 }}>
-                              Completata da: {completion.user.firstName} {completion.user.lastName} -{" "}
-                              {formatDateTime(completion.completedAt)}
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                    </div>
-                  }
-                />
+                  {canComplete ? (
+                    <form action={completeTaskAction}>
+                      <input type="hidden" name="taskId" value={task.id} />
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <IconButton
+                        type="submit"
+                        aria-label="Completa nota"
+                        title="Completa nota"
+                        style={{
+                          width: 40,
+                          height: 40,
+                          background: "#dcfce7",
+                          color: "#166534",
+                          border: "1px solid #bbf7d0",
+                          fontSize: 15,
+                          fontWeight: 900,
+                        }}
+                      >
+                        ✓
+                      </IconButton>
+                    </form>
+                  ) : null}
+                </div>
                 </SwipeRevealAction>
               );
             })}

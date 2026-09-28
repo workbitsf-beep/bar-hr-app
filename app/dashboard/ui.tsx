@@ -2066,63 +2066,14 @@ function DashboardResponsiveStyles() {
           gap: 11px !important;
         }
 
+        /* The note card used to be three stacked blocks that this stylesheet
+           decorated by position: a calendar emoji before the first, a people
+           emoji before the second, a rule above the last. The card is one row
+           now, so those rules would have been dressing up the wrong pieces.
+           What the card needs it sets itself; only the soft shadow and the
+           round tick are worth keeping from here. */
         .workbit-note-card {
-          gap: 7px !important;
-          padding: 20px !important;
-          border: 0 !important;
-          border-radius: 20px !important;
-          background: #ffffff !important;
           box-shadow: 0 7px 18px rgba(61, 42, 153, 0.045) !important;
-        }
-
-        .workbit-note-card > strong {
-          color: #17171f !important;
-          font-size: 18px !important;
-          font-weight: 950 !important;
-          line-height: 1.2 !important;
-          letter-spacing: -0.025em;
-        }
-
-        .workbit-note-card > div:nth-of-type(1),
-        .workbit-note-card > div:nth-of-type(2) {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          color: #8e8e93 !important;
-          font-size: 13px !important;
-          line-height: 1.3 !important;
-        }
-
-        .workbit-note-card > div:nth-of-type(1)::before {
-          content: "🗓️";
-          flex: 0 0 auto;
-          font-size: 12px;
-        }
-
-        .workbit-note-card > div:nth-of-type(2)::before {
-          content: "👥";
-          flex: 0 0 auto;
-          font-size: 12px;
-        }
-
-        .workbit-note-card > div:last-child {
-          margin-top: 6px !important;
-          padding-top: 13px;
-          border-top: 1px solid rgba(60, 60, 67, 0.11);
-        }
-
-        .workbit-note-card > div:last-child > div {
-          gap: 8px !important;
-        }
-
-        .workbit-note-card .dashboard-status-pill {
-          min-height: 25px !important;
-          padding: 4px 11px !important;
-          border: 0 !important;
-          font-size: 11px !important;
-          font-weight: 900 !important;
-          text-transform: uppercase;
-          box-shadow: none !important;
         }
 
         .workbit-note-card form button[aria-label="Completa nota"] {
