@@ -48,7 +48,9 @@ export const NOTE_KINDS: NoteKind[] = [
   {
     id: "today",
     emoji: "⚡",
-    label: "Da fare oggi",
+    // Not "da fare oggi": the same kind is picked from the calendar, where the
+    // day has already been tapped and may not be today.
+    label: "Da fare subito",
     hint: "Urgente · in cima alla lista",
     defaults: {
       isUrgent: true,

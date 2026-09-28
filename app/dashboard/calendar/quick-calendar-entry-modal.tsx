@@ -2,44 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { AudienceSelector } from "@/app/components/audience-selector";
+import { getNoteKind, type NoteKind } from "../note-kinds";
+import {
+  NoteKindBadge,
+  NoteKindFields,
+  NoteKindPicker,
+  appendNoteDraft,
+  createNoteDraft,
+  describeNoteDraft,
+  type NoteDraft,
+  type NoteMember,
+} from "../note-composer";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
-import { TaskRepeatField, type TaskRepeatDraft } from "../task-repeat-field";
-import { IconButton, TextArea, TextInput } from "../ui";
-
-type MemberOption = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-};
-
-type EntryItem = {
-  id: string;
-  value: string;
-  assignedToAll: boolean;
-  assignedToId: string;
-  isUrgent: boolean;
-  requiresConfirmation: boolean;
-  repeat: TaskRepeatDraft;
-};
-
-function createEmptyEntry(): EntryItem {
-  return {
-    id: crypto.randomUUID(),
-    value: "",
-    assignedToAll: true,
-    assignedToId: "",
-    isUrgent: false,
-    requiresConfirmation: false,
-    repeat: null,
-  };
-}
+import { IconButton, PrimaryButton } from "../ui";
 
 function toDateInputValue(dateIso: string | null) {
   return dateIso ? toDateInputValueInTimeZone(dateIso) : "";
 }
 
+function describeDay(dateIso: string | null) {
+  if (!dateIso) {
+    return "";
+  }
+
+  return new Date(dateIso).toLocaleDateString("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+/**
+ * The day popup writes a note exactly the way the Note page does - same four
+ * kinds, same questions - with one difference it has earned: the day was
+ * already tapped, so it is stated rather than asked for again.
+ */
 export function QuickCalendarEntryModal({
   open,
   mode,
@@ -54,7 +51,7 @@ export function QuickCalendarEntryModal({
   open: boolean;
   mode: "task" | "board" | null;
   dateIso: string | null;
-  members: MemberOption[];
+  members: NoteMember[];
   canPinBoard?: boolean;
   canChooseAudience?: boolean;
   canCreateTask?: boolean;
@@ -64,12 +61,12 @@ export function QuickCalendarEntryModal({
   onSubmitTask: (formData: FormData) => void;
   onSubmitBoard?: (formData: FormData) => void;
 }) {
-  const [draft, setDraft] = useState<EntryItem>(createEmptyEntry());
+  const [draft, setDraft] = useState<NoteDraft | null>(null);
   const [dueDate, setDueDate] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setDraft(createEmptyEntry());
+    setDraft(null);
     setDueDate(toDateInputValue(dateIso));
   }, [dateIso, open, mode]);
 
@@ -77,37 +74,24 @@ export function QuickCalendarEntryModal({
     return null;
   }
 
+  const kind = draft ? getNoteKind(draft.kindId) : null;
+
+  function chooseKind(nextKind: NoteKind) {
+    setDraft(createNoteDraft(nextKind));
+  }
+
   function submitNote() {
-    if (!draft.value.trim() || !dueDate || isPending) {
+    if (!draft?.value.trim() || !dueDate || isPending) {
       return;
     }
 
     const formData = new FormData();
-    formData.append("taskEntryId", draft.id);
-    formData.set(`title_${draft.id}`, draft.value);
-
-    if (draft.assignedToAll) {
-      formData.set(`assignedToAll_${draft.id}`, "on");
-    } else if (draft.assignedToId) {
-      formData.set(`assignedToId_${draft.id}`, draft.assignedToId);
-    }
-
-    if (draft.isUrgent) {
-      formData.set(`isUrgent_${draft.id}`, "on");
-    }
-
-    formData.set(`requiresConfirmation_${draft.id}`, draft.requiresConfirmation ? "on" : "off");
-
-    if (draft.repeat) {
-      formData.set(`repeatEvery_${draft.id}`, String(draft.repeat.every));
-      formData.set(`repeatUnit_${draft.id}`, draft.repeat.unit);
-    }
-
+    appendNoteDraft(formData, draft);
     formData.set("description", "");
     formData.set("dueDate", dueDate);
 
     onSubmitTask(formData);
-    setDraft(createEmptyEntry());
+    setDraft(null);
   }
 
   return createPortal(
@@ -169,129 +153,44 @@ export function QuickCalendarEntryModal({
         </IconButton>
 
         <div style={{ display: "grid", gap: 14 }}>
-          <strong style={{ fontSize: 20, color: "#0f172a", paddingRight: 52 }}>
-            Aggiungi note
-          </strong>
-
-          <div
-            style={{
-              display: "grid",
-              gap: 10,
-              padding: 14,
-              borderRadius: 18,
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-            }}
-          >
-            <TextArea
-              value={draft.value}
-              onChange={(event) => setDraft({ ...draft, value: event.target.value })}
-              placeholder="Scrivi la nota"
-              style={{ minHeight: 96 }}
-            />
-
-            {canChooseAudience ? (
-              <AudienceSelector
-                members={members.map((member) => ({
-                  id: member.id,
-                  label: `${member.firstName} ${member.lastName}`,
-                }))}
-                assignedToAll={draft.assignedToAll}
-                assignedToId={draft.assignedToId}
-                onChange={(value) => setDraft({ ...draft, ...value })}
-              />
-            ) : (
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderRadius: 18,
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  color: "#475569",
-                  fontSize: 13,
-                  fontWeight: 800,
-                }}
-              >
-                Nota personale
-              </div>
-            )}
-
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="checkbox"
-                checked={draft.isUrgent}
-                onChange={(event) => setDraft({ ...draft, isUrgent: event.target.checked })}
-              />
-              Urgente
-            </label>
-
-            {canChooseAudience ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  gap: 8,
-                }}
-              >
-                {[
-                  { value: false, label: "Promemoria" },
-                  { value: true, label: "Da confermare" },
-                ].map((option) => (
-                  <button
-                    key={option.label}
-                    type="button"
-                    onClick={() => setDraft({ ...draft, requiresConfirmation: option.value })}
-                    style={{
-                      minHeight: 40,
-                      borderRadius: 14,
-                      border:
-                        draft.requiresConfirmation === option.value
-                          ? "1px solid rgba(124, 58, 237, 0.46)"
-                          : "1px solid #e2e8f0",
-                      background: draft.requiresConfirmation === option.value ? "#f3e8ff" : "#ffffff",
-                      color: draft.requiresConfirmation === option.value ? "#4c1d95" : "#334155",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            <TaskRepeatField
-              repeat={draft.repeat}
-              onChange={(repeat) => setDraft({ ...draft, repeat })}
-            />
-
-            <label style={{ display: "grid", gap: 8 }}>
-              <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>
-              <TextInput
-                type="date"
-                value={dueDate}
-                onChange={(event) => setDueDate(event.target.value)}
-              />
-            </label>
+          <div style={{ display: "grid", gap: 2, paddingRight: 52 }}>
+            <strong style={{ fontSize: 20, color: "#0f172a" }}>Nuova nota</strong>
+            <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+              {describeDay(dateIso)}
+            </span>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <IconButton
-              type="button"
-              onClick={submitNote}
-              aria-label="Salva nota"
-              disabled={isPending || !draft.value.trim() || !dueDate}
-              style={{
-                width: 44,
-                height: 44,
-                background: draft.value.trim() && dueDate ? "#dcfce7" : "#f1f5f9",
-                color: draft.value.trim() && dueDate ? "#166534" : "#94a3b8",
-                border: "1px solid #bbf7d0",
-              }}
-            >
-              ✓
-            </IconButton>
-          </div>
+          {!draft || !kind ? (
+            <NoteKindPicker heading="Che nota è?" onPick={chooseKind} />
+          ) : (
+            <div style={{ display: "grid", gap: 14 }}>
+              <NoteKindBadge kind={kind} onBack={() => setDraft(null)} />
+
+              <NoteKindFields
+                draft={draft}
+                members={members}
+                canChooseAudience={canChooseAudience}
+                dueDate={dueDate}
+                onDueDateChange={setDueDate}
+                showDate={false}
+                onChange={setDraft}
+              />
+
+              <span style={{ color: "#64748b", fontSize: 12.5, fontWeight: 650 }}>
+                {describeNoteDraft(draft, members, canChooseAudience)}
+              </span>
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <PrimaryButton
+                  type="button"
+                  onClick={submitNote}
+                  disabled={isPending || !draft.value.trim() || !dueDate}
+                >
+                  {kind.saveLabel}
+                </PrimaryButton>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>,
