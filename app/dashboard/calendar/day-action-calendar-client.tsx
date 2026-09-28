@@ -1,6 +1,8 @@
 "use client";
 
 import { ActivityType, RequestType, Role } from "@prisma/client";
+import type { NoteMeta } from "@/lib/note-list-format";
+import { NoteRow } from "../note-row";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -139,8 +141,8 @@ type TaskItem = {
   status: string;
   isUrgent: boolean;
   requiresConfirmation: boolean;
-  assignedLabel: string;
-  completedByLabel: string | null;
+  /** Worked out server-side, so a note reads the same here as on the Note page. */
+  meta: NoteMeta;
 };
 
 type NoteItem = {
@@ -627,9 +629,16 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
       <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
         📌 {truncateCalendarText(task.title)}
       </strong>
-      <div style={{ color: "#64748b", fontSize: mobile ? 11 : 11 }}>
-        {task.assignedLabel}
-      </div>
+      {/* The cell already says which day it is, so the date is dropped and
+          only what is unusual about the note is left. */}
+      {task.meta.parts.length > 1 ? (
+        <div style={{ color: "#64748b", fontSize: mobile ? 11 : 11 }}>
+          {task.meta.parts
+            .slice(1)
+            .map((part) => part.text)
+            .join(" · ")}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -792,74 +801,15 @@ function renderTaskCard(
   isPending = false
 ) {
   const canComplete = task.requiresConfirmation && task.status !== "DONE" && Boolean(onComplete);
-  const isDone = task.status === "DONE";
 
   return (
-    <div
+    <NoteRow
       key={task.id}
-      className="workbit-day-note-card"
-      style={{
-        position: "relative",
-        padding: mobile ? 10 : "10px 12px",
-        paddingRight: isDone ? (mobile ? 58 : 64) : undefined,
-        borderRadius: mobile ? 14 : 16,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
-        display: "grid",
-        gap: mobile ? 6 : 6,
-      }}
-    >
-      {isDone ? (
-        <span
-          aria-label="Nota completata"
-          title="Nota completata"
-          style={{
-            position: "absolute",
-            top: mobile ? 10 : 12,
-            right: mobile ? 10 : 12,
-            width: mobile ? 28 : 30,
-            height: mobile ? 28 : 30,
-            borderRadius: 999,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#dcfce7",
-            color: "#166534",
-            border: "1px solid #bbf7d0",
-            fontSize: mobile ? 15 : 16,
-            fontWeight: 950,
-            boxShadow: "0 10px 22px rgba(22, 101, 52, 0.12)",
-          }}
-        >
-          ✓
-        </span>
-      ) : null}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          gap: 12,
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
-          <strong style={{ color: "#0f172a", fontSize: mobile ? 13 : 14 }}>{task.title}</strong>
-          <span style={{ color: "#475569", fontSize: mobile ? 12 : 13 }}>{task.assignedLabel}</span>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-        {!isDone ? (
-          <StatusPill
-            label={!task.requiresConfirmation ? "Promemoria" : task.isUrgent ? "Urgente" : "Da fare"}
-            tone={!task.requiresConfirmation ? "neutral" : task.isUrgent ? "danger" : "warning"}
-          />
-        ) : null}
-        {task.completedByLabel ? (
-          <span style={{ color: "#64748b", fontSize: mobile ? 12 : 12, fontWeight: 700 }}>
-            Completata da: {task.completedByLabel}
-          </span>
-        ) : null}
-        {canComplete ? (
+      title={task.title}
+      meta={task.meta}
+      compact={mobile}
+      action={
+        canComplete ? (
           <IconButton
             type="button"
             aria-label="Conferma nota"
@@ -867,24 +817,23 @@ function renderTaskCard(
             onClick={() => onComplete?.(task.id)}
             disabled={isPending}
             style={{
-              width: mobile ? 34 : 38,
-              height: mobile ? 34 : 38,
+              width: mobile ? 36 : 40,
+              height: mobile ? 36 : 40,
               background: "#dcfce7",
               color: "#166534",
               border: "1px solid #bbf7d0",
               flexShrink: 0,
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 900,
             }}
           >
             ✓
           </IconButton>
-        ) : null}
-      </div>
-    </div>
+        ) : null
+      }
+    />
   );
 }
-
 function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, mobile = false) {
   const currentUserConfirmed = note.confirmations.some(
     (confirmation) => confirmation.userId === currentUserId

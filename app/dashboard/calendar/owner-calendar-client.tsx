@@ -1,6 +1,8 @@
 "use client";
 
 import { RequestType } from "@prisma/client";
+import type { NoteMeta } from "@/lib/note-list-format";
+import { NoteRow } from "../note-row";
 import {
   useCallback,
   useEffect,
@@ -111,8 +113,8 @@ type TaskItem = {
   status: string;
   isUrgent: boolean;
   requiresConfirmation: boolean;
-  assignedLabel: string;
-  completedByLabel: string | null;
+  /** Worked out server-side, so a note reads the same here as on the Note page. */
+  meta: NoteMeta;
 };
 
 type NoteItem = {
@@ -562,9 +564,16 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
       <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
         📌 {truncateCalendarText(task.title)}
       </strong>
-      <div style={{ color: "#64748b", fontSize: mobile ? 11 : 11 }}>
-        {task.assignedLabel}
-      </div>
+      {/* The cell already says which day it is, so the date is dropped and
+          only what is unusual about the note is left. */}
+      {task.meta.parts.length > 1 ? (
+        <div style={{ color: "#64748b", fontSize: mobile ? 11 : 11 }}>
+          {task.meta.parts
+            .slice(1)
+            .map((part) => part.text)
+            .join(" · ")}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3832,102 +3841,41 @@ export function OwnerCalendarClient({
                     <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
-                      {day.tasks.map((task) => {
-                        const isDone = task.status === "DONE";
-
-                        return renderDeleteSwipeCard(
+                      {day.tasks.map((task) =>
+                        renderDeleteSwipeCard(
                           `task-${task.id}`,
-                          <div
-                          className="dashboard-list-card"
-                          style={{
-                            position: "relative",
-                            padding: 14,
-                            paddingRight: isDone ? 72 : 14,
-                            borderRadius: 18,
-                            background: "#f8fafc",
-                            border: "1px solid #e2e8f0",
-                            display: "grid",
-                            gap: 10,
-                          }}
-                        >
-                          {isDone ? (
-                            <span
-                              aria-label="Nota completata"
-                              title="Nota completata"
-                              style={{
-                                position: "absolute",
-                                top: 12,
-                                right: 12,
-                                width: 30,
-                                height: 30,
-                                borderRadius: 999,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                background: "#dcfce7",
-                                color: "#166534",
-                                border: "1px solid #bbf7d0",
-                                fontSize: 16,
-                                fontWeight: 950,
-                                boxShadow: "0 10px 22px rgba(22, 101, 52, 0.12)",
-                              }}
-                            >
-                              ✓
-                            </span>
-                          ) : null}
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr",
-                              gap: 12,
-                              alignItems: "center",
-                            }}
-                          >
-                            <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
-                            <strong style={{ color: "#0f172a" }}>{task.title}</strong>
-                            <span style={{ color: "#475569" }}>{task.assignedLabel}</span>
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-                            {!isDone ? (
-                              <StatusPill
-                                label={!task.requiresConfirmation ? "Promemoria" : task.isUrgent ? "Urgente" : "Da fare"}
-                                tone={!task.requiresConfirmation ? "neutral" : task.isUrgent ? "danger" : "warning"}
-                              />
-                            ) : null}
-                            {task.completedByLabel ? (
-                              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-                                Completata da: {task.completedByLabel}
-                              </span>
-                            ) : null}
-                            {task.requiresConfirmation && !isDone ? (
-                              <IconButton
-                                type="button"
-                                aria-label="Conferma nota"
-                                title="Conferma nota"
-                                onClick={() => handleCompleteTask(task.id)}
-                                disabled={isPending}
-                                style={{
-                                  width: 38,
-                                  height: 38,
-                                  background: "#dcfce7",
-                                  color: "#166534",
-                                  border: "1px solid #bbf7d0",
-                                  flexShrink: 0,
-                                  fontSize: 14,
-                                  fontWeight: 900,
-                                }}
-                              >
-                                ✓
-                              </IconButton>
-                            ) : null}
-                          </div>
-                          </div>,
+                          <NoteRow
+                            title={task.title}
+                            meta={task.meta}
+                            action={
+                              task.requiresConfirmation && task.status !== "DONE" ? (
+                                <IconButton
+                                  type="button"
+                                  aria-label="Conferma nota"
+                                  title="Conferma nota"
+                                  onClick={() => handleCompleteTask(task.id)}
+                                  disabled={isPending}
+                                  style={{
+                                    width: 40,
+                                    height: 40,
+                                    background: "#dcfce7",
+                                    color: "#166534",
+                                    border: "1px solid #bbf7d0",
+                                    flexShrink: 0,
+                                    fontSize: 15,
+                                    fontWeight: 900,
+                                  }}
+                                >
+                                  ✓
+                                </IconButton>
+                              ) : null
+                            }
+                          />,
                           "Elimina nota",
                           () => handleDeleteTask(task.id),
                           true
-                        );
-                      })}
+                        )
+                      )}
                       {day.notes.map((note) =>
                         renderDeleteSwipeCard(
                           `note-${note.id}`,

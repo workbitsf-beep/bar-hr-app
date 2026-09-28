@@ -1,5 +1,7 @@
-import { ActivityType, RequestStatus, RequestType, Role } from "@prisma/client";
+import { ActivityType, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { buildNoteMeta } from "@/lib/note-list-format";
+import { describeTaskRepeat } from "@/lib/task-recurrence";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
@@ -625,11 +627,20 @@ export default async function DashboardCalendarPage({
                   status: true,
                   isUrgent: true,
                   requiresConfirmation: true,
+                  repeatEvery: true,
+                  repeatUnit: true,
+                  completedAt: true,
                   assignedToAll: true,
                   assignedTo: {
                     select: {
                       firstName: true,
                       lastName: true,
+                    },
+                  },
+                  createdBy: {
+                    select: {
+                      id: true,
+                      firstName: true,
                     },
                   },
                   completedBy: {
@@ -937,14 +948,28 @@ export default async function DashboardCalendarPage({
       status: task.status,
       isUrgent: task.isUrgent,
       requiresConfirmation: task.requiresConfirmation,
-      assignedLabel: task.assignedToAll
-        ? "Assegnata a tutto il team"
-        : task.assignedTo
-          ? `Assegnata a ${task.assignedTo.firstName} ${task.assignedTo.lastName}`
-          : "Senza assegnatario singolo",
-      completedByLabel: task.completedBy
-        ? `${task.completedBy.firstName} ${task.completedBy.lastName}`
-        : null,
+      // What the note's line says is worked out in one place, so it reads the
+      // same here as it does on the Note page.
+      meta: buildNoteMeta({
+        dueDate: task.dueDate,
+        done: task.status === TaskStatus.DONE,
+        urgent: task.isUrgent,
+        requiresConfirmation: task.requiresConfirmation,
+        repeatLabel: describeTaskRepeat(task.repeatEvery, task.repeatUnit),
+        assignedLabel: task.assignedToAll
+          ? null
+          : task.assignedTo
+            ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+            : "non assegnata",
+        authorLabel: task.createdBy.id === session.user.id ? null : task.createdBy.firstName,
+        completedBy:
+          task.completedBy && task.completedAt
+            ? {
+                name: `${task.completedBy.firstName} ${task.completedBy.lastName}`,
+                at: task.completedAt,
+              }
+            : null,
+      }),
     })),
     notes: (notesByDay.get(toLocalDateKey(day.date)) ?? []).map((note) => ({
       id: note.id,
