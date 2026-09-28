@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ReactNode } from "react";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
@@ -27,7 +28,6 @@ import {
   BillingRequiredState,
   EmptyState,
   FormField,
-  ItemCard,
   ItemList,
   Panel,
   PrimaryButton,
@@ -67,6 +67,59 @@ const rejectButtonStyle = {
   background: "#fdecec",
   color: "#b91c1c",
 } as const;
+
+/**
+ * A span said the way people say it.
+ *
+ * "25 set 2026, 00:00 – 26 set 2026, 23:59" is a whole day and a half of
+ * nothing: the year is this year, and midnight to one minute to midnight is
+ * just "the 25th and the 26th". It was also too long for the row, so the end
+ * of it was cut off - the half that says when it finishes.
+ */
+function describeSpan(start: Date | null, end: Date | null) {
+  if (!start) {
+    return "Data non disponibile";
+  }
+
+  const thisYear = new Date().getFullYear();
+
+  const day = (value: Date) =>
+    new Intl.DateTimeFormat("it-IT", {
+      day: "numeric",
+      month: "short",
+      ...(value.getFullYear() === thisYear ? {} : { year: "numeric" }),
+      timeZone: APP_TIME_ZONE,
+    })
+      .format(value)
+      .replace(/\.$/, "");
+
+  const time = (value: Date) =>
+    new Intl.DateTimeFormat("it-IT", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: APP_TIME_ZONE,
+    }).format(value);
+
+  if (!end) {
+    return `${day(start)} · ${time(start)}`;
+  }
+
+  // Whole days carry no useful clock: they start at midnight and end just
+  // before the next one.
+  const wholeDays =
+    start.getHours() === 0 && start.getMinutes() === 0 && end.getHours() === 23;
+  const sameDay = start.toDateString() === end.toDateString();
+
+  if (wholeDays) {
+    return sameDay ? day(start) : `${day(start)} – ${day(end)}`;
+  }
+
+  if (sameDay) {
+    return `${day(start)} · ${time(start)}–${time(end)}`;
+  }
+
+  return `${day(start)} ${time(start)} – ${day(end)} ${time(end)}`;
+}
 
 function requestEmoji(type: RequestType | string) {
   if (type === RequestType.VACATION) {
@@ -252,9 +305,7 @@ function RequestRow({
               fontSize: 12.5,
               fontWeight: pending ? 780 : 690,
               color: pending ? "#92400e" : "#64748b",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              lineHeight: 1.35,
             }}
           >
             {detail}
@@ -663,11 +714,9 @@ export default async function DashboardRequestsPage({
         key: `closure-${closure.id}`,
         emoji: "📝",
         title: closure.title,
-        detail: `${formatDate(closure.startsAt)}${
-          closure.startsAt.toDateString() !== closure.endsAt.toDateString()
-            ? ` – ${formatDate(closure.endsAt)}`
-            : ""
-        } · ${closureTypeLabel(closure.type)}`,
+        detail: `${describeSpan(closure.startsAt, closure.endsAt)} · ${closureTypeLabel(
+          closure.type
+        )}`,
         at: closure.startsAt,
       })),
     ...availabilities
@@ -682,7 +731,7 @@ export default async function DashboardRequestsPage({
           availability.user.id === session.user.id
             ? "Non ci sei"
             : `${availability.user.firstName} non c'è`,
-        detail: `${formatDateTime(availability.startsAt)} – ${formatDateTime(availability.endsAt)}`,
+        detail: describeSpan(availability.startsAt, availability.endsAt),
         at: availability.startsAt,
       })),
   ].sort((left, right) => left.at.getTime() - right.at.getTime());
@@ -782,18 +831,27 @@ export default async function DashboardRequestsPage({
           <PopupAction
             title="Nuova richiesta"
             ariaLabel="Chiedi qualcosa"
-            triggerContent="＋ Chiedi qualcosa"
-            triggerStyle={{
-              width: "100%",
-              minHeight: 52,
-              borderRadius: 18,
-              border: 0,
-              background: "linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%)",
-              color: "#ffffff",
-              fontSize: 15.5,
-              fontWeight: 830,
-              boxShadow: "0 10px 22px rgba(94, 92, 230, 0.26)",
-            }}
+            triggerRow={
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 9,
+                  width: "100%",
+                  minHeight: 52,
+                  borderRadius: 18,
+                  boxSizing: "border-box",
+                  background: "linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%)",
+                  color: "#ffffff",
+                  fontSize: 15.5,
+                  fontWeight: 830,
+                  boxShadow: "0 10px 22px rgba(94, 92, 230, 0.26)",
+                }}
+              >
+                ＋ Chiedi qualcosa
+              </span>
+            }
           >
             <AskSomething
               options={[
@@ -949,9 +1007,7 @@ export default async function DashboardRequestsPage({
                   }`}
                   detail={
                     canSeeRequestDetails
-                      ? `${request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}${
-                          request.endsAt ? ` – ${formatDateTime(request.endsAt)}` : ""
-                        }`
+                      ? describeSpan(request.startsAt, request.endsAt)
                       : "Dettaglio riservato"
                   }
                   pending
@@ -1002,9 +1058,7 @@ export default async function DashboardRequestsPage({
                 key={request.id}
                 emoji={requestEmoji(request.type)}
                 title={requestLabel(request.type)}
-                detail={`${request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}${
-                  request.endsAt ? ` – ${formatDateTime(request.endsAt)}` : ""
-                }`}
+                detail={describeSpan(request.startsAt, request.endsAt)}
                 trailing={
                   <StatusPill
                     label={requestStatusLabel(request.status)}
@@ -1048,9 +1102,9 @@ export default async function DashboardRequestsPage({
                   <RequestRow
                     emoji="🚫"
                     title={formatDate(availability.startsAt)}
-                    detail={`${formatDateTime(availability.startsAt)} – ${formatDateTime(
-                      availability.endsAt
-                    )}${availability.reason ? ` · ${availability.reason}` : ""}`}
+                    detail={`${describeSpan(availability.startsAt, availability.endsAt)}${
+                      availability.reason ? ` · ${availability.reason}` : ""
+                    }`}
                   />
                 </SwipeRevealAction>
               ))
@@ -1088,13 +1142,19 @@ export default async function DashboardRequestsPage({
                           </form>
                         }
                       >
-                        <ItemCard
+                        <RequestRow
+                          emoji="📋"
                           title={`${request.employee.firstName} ${request.employee.lastName}`}
-                          subtitle={`${formatDateTime(request.startsAt ?? request.createdAt)} - ${formatDateTime(
+                          detail={`${describeSpan(
+                            request.startsAt ?? request.createdAt,
                             request.endsAt ?? request.createdAt
-                          )}`}
-                          meta={request.reason || "Straordinario"}
-                          footer={<StatusPill label={requestStatusLabel(request.status)} tone={requestTone(request.status)} />}
+                          )}${request.reason ? ` · ${request.reason}` : ""}`}
+                          trailing={
+                            <StatusPill
+                              label={requestStatusLabel(request.status)}
+                              tone={requestTone(request.status)}
+                            />
+                          }
                         />
                       </SwipeRevealAction>
                     );
@@ -1173,20 +1233,15 @@ export default async function DashboardRequestsPage({
                       </form>
                     }
                   >
-                    <ItemCard
+                    <RequestRow
+                      emoji="📝"
                       title={closure.title}
-                      subtitle={`${formatDate(closure.startsAt)}${
-                        closure.startsAt.toDateString() !== closure.endsAt.toDateString()
-                          ? ` - ${formatDate(closure.endsAt)}`
-                          : ""
-                      }`}
-                      meta={<StatusPill label={closureTypeLabel(closure.type)} tone={closureTypeTone(closure.type)} />}
-                      footer={
-                        <span style={{ color: "#64748b", fontSize: 13 }}>
-                          {closure.createdBy
-                            ? `${closure.createdBy.firstName} ${closure.createdBy.lastName}`.trim()
-                            : "Autore non disponibile"}
-                        </span>
+                      detail={describeSpan(closure.startsAt, closure.endsAt)}
+                      trailing={
+                        <StatusPill
+                          label={closureTypeLabel(closure.type)}
+                          tone={closureTypeTone(closure.type)}
+                        />
                       }
                     />
                   </SwipeRevealAction>
@@ -1223,18 +1278,20 @@ export default async function DashboardRequestsPage({
                           </form>
                         }
                       >
-                        <ItemCard
+                        <RequestRow
+                          emoji="🚫"
                           title={
                             availability.user.id === session.user.id
-                              ? "La tua indisponibilità"
-                              : availability.user.firstName + " " + availability.user.lastName
+                              ? "Non ci sei"
+                              : `${availability.user.firstName} ${availability.user.lastName}`
                           }
-                          subtitle={formatDateTime(availability.startsAt) + " - " + formatDateTime(availability.endsAt)}
-                          meta={
-                            canSeeAvailabilityReason
-                              ? availability.reason || null
-                              : "Dettaglio riservato"
-                          }
+                          detail={`${describeSpan(availability.startsAt, availability.endsAt)}${
+                            canSeeAvailabilityReason && availability.reason
+                              ? ` · ${availability.reason}`
+                              : canSeeAvailabilityReason
+                                ? ""
+                                : " · dettaglio riservato"
+                          }`}
                         />
                       </SwipeRevealAction>
                     );
@@ -1256,16 +1313,8 @@ export default async function DashboardRequestsPage({
             ) : (
               <ItemList scrollable>
                 {closedRequests.map((request) => {
-                  const canPeerReview =
-                    request.type === "SHIFT_CHANGE" &&
-                    request.swapWithUserId === session.user.id &&
-                    request.status === RequestStatus.PENDING &&
-                    request.peerStatus !== RequestStatus.REJECTED;
-                  const canOwnerReview =
-                    canManageClosures &&
-                    request.status === RequestStatus.PENDING &&
-                    request.type !== RequestType.SICKNESS &&
-                    (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
+                  // Nothing to review here: this list is what has already been
+                  // answered. Approving happens at the top of the page.
                   const canDeleteRequest =
                     (canManageClosures || request.employee.id === session.user.id);
                   const canSeeRequestDetails =
@@ -1296,60 +1345,21 @@ export default async function DashboardRequestsPage({
                         </form>
                       }
                     >
-                      <ItemCard
-                        title={requestLabel(request.type)}
-                        subtitle={`${request.employee.firstName} ${request.employee.lastName}`}
-                        meta={
-                          <>
-                            {request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}
-                            {request.endsAt ? ` - ${formatDateTime(request.endsAt)}` : ""}
-                          </>
+                      <RequestRow
+                        emoji={requestEmoji(request.type)}
+                        title={`${requestLabel(request.type)} · ${request.employee.firstName}`}
+                        detail={
+                          canSeeRequestDetails
+                            ? `${describeSpan(request.startsAt, request.endsAt)}${
+                                requestSummary ? ` · ${requestSummary}` : ""
+                              }`
+                            : "Dettaglio riservato"
                         }
-                        footer={
-                          <div style={{ display: "grid", gap: 10 }}>
-                            {/* One verdict. The three pills were the request's
-                                own status plus the two halves of a shift swap,
-                                which on anything else printed "Approvata"
-                                twice. */}
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <StatusPill
-                                label={requestStatusLabel(request.status)}
-                                tone={requestTone(request.status)}
-                              />
-                              {request.type === "SHIFT_CHANGE" && request.peerStatus ? (
-                                <StatusPill
-                                  label={`Collega: ${requestStatusLabel(request.peerStatus)}`}
-                                  tone={requestTone(request.peerStatus)}
-                                />
-                              ) : null}
-                            </div>
-
-                            {requestSummary ? (
-                              <div style={{ color: "#64748b", lineHeight: 1.5 }}>{requestSummary}</div>
-                            ) : null}
-
-                            {canPeerReview || canOwnerReview ? (
-                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                <form action={reviewRequestAction}>
-                                  <input type="hidden" name="requestId" value={request.id} />
-                                  <input type="hidden" name="decision" value="APPROVED" />
-                                  <input type="hidden" name="notifySuccess" value="1" />
-                                  <PrimaryButton type="submit" tone="green">
-                                    Approva
-                                  </PrimaryButton>
-                                </form>
-
-                                <form action={reviewRequestAction}>
-                                  <input type="hidden" name="requestId" value={request.id} />
-                                  <input type="hidden" name="decision" value="REJECTED" />
-                                  <input type="hidden" name="notifySuccess" value="1" />
-                                  <PrimaryButton type="submit" tone="red">
-                                    Rifiuta
-                                  </PrimaryButton>
-                                </form>
-                              </div>
-                            ) : null}
-                          </div>
+                        trailing={
+                          <StatusPill
+                            label={requestStatusLabel(request.status)}
+                            tone={requestTone(request.status)}
+                          />
                         }
                       />
                     </SwipeRevealAction>
