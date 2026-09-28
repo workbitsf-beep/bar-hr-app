@@ -18,10 +18,8 @@ import { isNativeApp } from "@/lib/native-app";
 import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 import {
   EmptyState,
-  ItemList,
   Panel,
   PrimaryButton,
-  Select,
   Stack,
   formatDateTime,
 } from "../ui";
@@ -401,21 +399,6 @@ function formatPairCount(pairs: ClockLogPair[]) {
 
 function formatShiftCount(logs: LogItem[]) {
   return formatPairCount(buildClockLogPairs(logs));
-}
-
-function buildMonthOptions(logs: LogItem[]) {
-  const monthKeys = new Set<string>([getCurrentMonthKey()]);
-
-  for (const pair of buildClockLogPairs(logs)) {
-    monthKeys.add(getMonthKey(pair.startTimestamp));
-  }
-
-  return Array.from(monthKeys)
-    .sort((a, b) => b.localeCompare(a))
-    .map((value) => ({
-      value,
-      label: formatMonthLabel(value),
-    }));
 }
 
 function getTodayKey() {
@@ -800,70 +783,6 @@ function SheetTotal({ label, value, lead = false }: { label: string; value: stri
         {value}
       </span>
     </span>
-  );
-}
-
-function ClockDayCard({
-  dayLabel,
-  pairs,
-  subtitle,
-  children,
-}: {
-  dayLabel: string;
-  pairs: ClockLogPair[];
-  subtitle: string;
-  children: ReactNode;
-}) {
-  const workedMs = getDayWorkedDurationMs(pairs);
-
-  return (
-    <div
-      className="dashboard-item-card workbit-timelog-day-card"
-      style={{
-        padding: 16,
-        borderRadius: 20,
-        display: "grid",
-        gap: 6,
-        background: "rgba(255, 255, 255, 0.92)",
-        border: "1px solid rgba(124, 58, 237, 0.14)",
-        boxShadow: "0 16px 32px rgba(76, 29, 149, 0.08)",
-      }}
-    >
-      <div
-        className="workbit-timelog-day-header"
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <strong className="workbit-timelog-day-title" style={{ color: "var(--workbit-navy)", minWidth: 0 }}>
-          {dayLabel}
-        </strong>
-        {workedMs > 0 ? (
-          <span
-            className="workbit-timelog-duration"
-            title="Ore lavorate"
-            style={{
-              flex: "0 0 auto",
-              borderRadius: 999,
-              padding: "5px 9px",
-              background: "linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(168, 85, 247, 0.16))",
-              border: "1px solid rgba(124, 58, 237, 0.16)",
-              color: "#5b21b6",
-              fontSize: 12,
-              fontWeight: 900,
-              lineHeight: 1,
-            }}
-          >
-            {formatDurationFromMilliseconds(workedMs)}
-          </span>
-        ) : null}
-      </div>
-      <div className="workbit-timelog-day-subtitle" style={{ color: "#334155" }}>{subtitle}</div>
-      <div className="workbit-timelog-day-entries" style={{ marginTop: 8 }}>{children}</div>
-    </div>
   );
 }
 
@@ -2133,25 +2052,21 @@ function PersonalTimeLogsPanel({
   const [hasMoreLogs, setHasMoreLogs] = useState(hasMoreInitialLogs);
   const [loadingMoreLogs, setLoadingMoreLogs] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState("");
-  const monthOptions = useMemo(() => buildMonthOptions(logs), [logs]);
   const [monthFilter, setMonthFilter] = useState(getCurrentMonthKey());
-  const [dayFilter, setDayFilter] = useState("");
-
-  useEffect(() => {
-    if (monthOptions.some((option) => option.value === monthFilter)) {
-      return;
-    }
-    setMonthFilter(monthOptions[0]?.value ?? getCurrentMonthKey());
-  }, [monthFilter, monthOptions]);
 
   const allDayGroups = useMemo(() => groupLogsByDay(logs), [logs]);
   const monthDayGroups = useMemo(
     () => allDayGroups.filter((group) => group.dayKey.startsWith(monthFilter)),
     [allDayGroups, monthFilter]
   );
-  const dayGroups = useMemo(
-    () => monthDayGroups.filter((group) => (dayFilter ? group.dayKey === dayFilter : true)),
-    [dayFilter, monthDayGroups]
+  const dayGroups = monthDayGroups;
+  const misstampCount = useMemo(
+    () =>
+      monthDayGroups.reduce(
+        (total, group) => total + group.pairs.filter(isMisstampedPair).length,
+        0
+      ),
+    [monthDayGroups]
   );
   const todayKey = getTodayKey();
   const oldestLoadedLog = logs[logs.length - 1] ?? null;
@@ -2222,87 +2137,127 @@ function PersonalTimeLogsPanel({
 
         <div className="workbit-time-section-label">Le tue timbrature</div>
 
-        <div className="workbit-timelog-filters">
-          <label className="workbit-timelog-filter-row">
-            <strong>Mese</strong>
-            <Select
-              aria-label="Mese"
-              value={monthFilter}
-              onChange={(event) => {
-                setMonthFilter(event.target.value);
-                setDayFilter("");
-              }}
-            >
-              {monthOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </label>
-
-          <label className="workbit-timelog-filter-row">
-            <strong>Giorno</strong>
-            <Select
-              aria-label="Giorno"
-              value={dayFilter}
-              onChange={(event) => setDayFilter(event.target.value)}
-            >
-              <option value="">tutti</option>
-              {monthDayGroups.map((group) => (
-                <option key={group.dayKey} value={group.dayKey}>
-                  {group.dayLabel}
-                </option>
-              ))}
-            </Select>
-          </label>
+        {/* The same month arrows as the owner's sheet: hours are looked at a
+            month at a time. The day dropdown went with them - the days are
+            already the list. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "34px minmax(0, 1fr) 34px",
+            alignItems: "center",
+            gap: 8,
+            padding: 5,
+            borderRadius: 14,
+            background: "#f8fafc",
+            border: "1px solid #e9edf3",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setMonthFilter((current) => shiftMonthKey(current, -1))}
+            aria-label="Mese precedente"
+            style={monthArrowStyle}
+          >
+            &lsaquo;
+          </button>
+          <span
+            style={{
+              textAlign: "center",
+              fontWeight: 820,
+              fontSize: 14.5,
+              letterSpacing: "-0.02em",
+              color: "#0f172a",
+            }}
+          >
+            {formatMonthLabel(monthFilter)}
+          </span>
+          <button
+            type="button"
+            onClick={() => setMonthFilter((current) => shiftMonthKey(current, 1))}
+            aria-label="Mese successivo"
+            style={monthArrowStyle}
+          >
+            &rsaquo;
+          </button>
         </div>
+
+        {misstampCount > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 12px",
+              borderRadius: 14,
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              color: "#92400e",
+              fontSize: 12.5,
+              fontWeight: 780,
+            }}
+          >
+            {misstampCount === 1
+              ? "1 turno sotto il minuto: avvisa il titolare se è un errore."
+              : `${misstampCount} turni sotto il minuto: avvisa il titolare se sono errori.`}
+          </div>
+        ) : null}
 
         {dayGroups.length === 0 ? (
           <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-            Nessuna timbratura registrata per questo periodo.
+            Nessuna timbratura registrata in questo mese.
           </p>
         ) : (
-          <div className="workbit-timelog-history-list">
-            <ItemList>
-              {dayGroups.map((dayGroup) => (
-              <ClockDayCard
-                key={dayGroup.dayKey}
-                dayLabel={dayGroup.dayLabel}
-                pairs={dayGroup.pairs}
-                subtitle={
-                  dayGroup.dayKey === todayKey && todayTotals
-                    ? `${formatPairCount(dayGroup.pairs)} - oggi ${formatDurationClock(todayTotals.roundedHours)}`
-                    : formatPairCount(dayGroup.pairs)
-                }
-              >
+          <div style={{ display: "grid", gap: 14 }}>
+            {dayGroups.map((dayGroup) => {
+              const dayWorkedMs = getDayWorkedDurationMs(dayGroup.pairs);
+
+              return (
+                <div key={dayGroup.dayKey} style={{ display: "grid", gap: 9 }}>
                   <div
                     style={{
-                      display: "grid",
-                      gap: 8,
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      gap: 10,
                     }}
                   >
-                    {dayGroup.pairs.map((pair) => {
-                      const row = [pair.clockIn, pair.clockOut].filter(Boolean) as LogItem[];
-                      return (
-                      <div
-                        key={pair.id}
+                    <span style={{ minWidth: 0 }}>
+                      <span
                         style={{
-                          display: "grid",
-                          gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
-                          gap: 8,
+                          fontSize: 14.5,
+                          fontWeight: 820,
+                          letterSpacing: "-0.02em",
+                          color: "#0f172a",
                         }}
                       >
-                        {row.map((log) => (
-                          <ClockLogRow key={log.id} log={log} />
-                        ))}
-                      </div>
-                      );
-                    })}
+                        {dayGroup.dayKey === todayKey ? "Oggi" : dayGroup.dayLabel}
+                      </span>{" "}
+                      <span style={{ fontSize: 11.5, fontWeight: 750, color: "#94a3b8" }}>
+                        &middot; {formatPairCount(dayGroup.pairs)}
+                      </span>
+                    </span>
+                    <span
+                      style={{
+                        flex: "0 0 auto",
+                        fontSize: 13,
+                        fontWeight: 830,
+                        fontVariantNumeric: "tabular-nums",
+                        borderRadius: 999,
+                        padding: "3px 10px",
+                        color: dayWorkedMs > 0 ? "#4c1d95" : "#92400e",
+                        background: dayWorkedMs > 0 ? "#f3e8ff" : "#fffbeb",
+                      }}
+                    >
+                      {formatDurationFromMilliseconds(dayWorkedMs)}
+                    </span>
                   </div>
-              </ClockDayCard>
-              ))}
-            </ItemList>
+
+                  {dayGroup.pairs.map((pair, index) => (
+                    <ShiftBox key={pair.id} pair={pair} position={index + 1} />
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
 
