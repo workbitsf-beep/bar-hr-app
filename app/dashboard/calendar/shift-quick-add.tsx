@@ -127,43 +127,20 @@ export function ShiftQuickAdd({
     });
   }
 
-  const shortcuts = useMemo(() => {
-    const seen = new Set<string>();
-    const rows: { key: string; label: string; detail: string; startTime: string; endTime: string; standard: boolean }[] = [];
-
-    for (const preset of presets) {
-      const key = `${preset.startTime}-${preset.endTime}`;
-      seen.add(key);
-      rows.push({
-        key,
+  // Only the slots the venue wrote in its settings. Times guessed from past
+  // shifts filled the row with things nobody chose - a stray 14:05–14:30 sits
+  // there looking exactly like a real slot.
+  const shortcuts = useMemo(
+    () =>
+      presets.map((preset) => ({
+        key: `${preset.startTime}-${preset.endTime}`,
         label: preset.label,
-        detail: `${preset.startTime.slice(0, 2)}–${preset.endTime.slice(0, 2)}`,
+        detail: `${preset.startTime.slice(0, 5)}–${preset.endTime.slice(0, 5)}`,
         startTime: preset.startTime,
         endTime: preset.endTime,
-        standard: true,
-      });
-    }
-
-    for (const entry of recent) {
-      const key = `${entry.startTime}-${entry.endTime}`;
-
-      if (seen.has(key)) {
-        continue;
-      }
-
-      seen.add(key);
-      rows.push({
-        key,
-        label: `${entry.startTime}–${entry.endTime}`,
-        detail: "",
-        startTime: entry.startTime,
-        endTime: entry.endTime,
-        standard: false,
-      });
-    }
-
-    return rows.slice(0, 5);
-  }, [presets, recent]);
+      })),
+    [presets]
+  );
 
   const offer = useMemo(() => {
     if (!complete || !onSavePreset || presetOffered.includes(`${start}-${end}`)) {
@@ -306,19 +283,17 @@ export function ShiftQuickAdd({
               style={{
                 padding: "8px 12px",
                 borderRadius: 999,
-                border: shortcut.standard ? "1.5px solid #6d5ce7" : "1.5px dashed #ebedf3",
-                background: shortcut.standard ? "#efecff" : "#ffffff",
-                color: shortcut.standard ? "#4c1d95" : "#6b7280",
+                border: "1.5px solid #6d5ce7",
+                background: "#efecff",
+                color: "#4c1d95",
                 fontSize: 12.5,
-                fontWeight: shortcut.standard ? 830 : 780,
+                fontWeight: 830,
                 fontVariantNumeric: "tabular-nums",
                 cursor: "pointer",
               }}
             >
               {shortcut.label}
-              {shortcut.detail ? (
-                <span style={{ fontWeight: 780, opacity: 0.75, marginLeft: 5 }}>{shortcut.detail}</span>
-              ) : null}
+              <span style={{ fontWeight: 780, opacity: 0.75, marginLeft: 5 }}>{shortcut.detail}</span>
             </button>
           ))}
         </div>
