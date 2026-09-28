@@ -7,9 +7,18 @@ const documentMimeTypesByExtension: Record<string, string> = {
   xls: "application/vnd.ms-excel",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   xlsm: "application/vnd.ms-excel.sheet.macroenabled.12",
+  // A venue's documents arrive on paper. Photographing the contract is the
+  // natural gesture, and until now the app had no way to take it.
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
 };
 
-export type DocumentPreviewKind = "pdf" | "word" | "spreadsheet" | "unsupported";
+export const DOCUMENT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic"] as const;
+
+export type DocumentPreviewKind = "pdf" | "word" | "spreadsheet" | "image" | "unsupported";
 
 export type DocumentVisibility = {
   assignedToAll: boolean;
@@ -70,6 +79,10 @@ export function getDocumentPreviewKind(
 
   if (extension === "pdf" || mimeType === "application/pdf") {
     return "pdf";
+  }
+
+  if (DOCUMENT_IMAGE_EXTENSIONS.includes(extension as never) || mimeType.startsWith("image/")) {
+    return "image";
   }
 
   if (

@@ -6,8 +6,22 @@ import { prisma } from "@/lib/prisma";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { getDocumentMimeType } from "@/lib/documents";
 
-const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
-const ALLOWED_DOCUMENT_EXTENSIONS = new Set(["pdf", "doc", "docx", "xls", "xlsx", "xlsm"]);
+// Photos are shrunk in the browser before they get here, but a properly
+// scanned document can still be heavy, and 8 MB turned those away.
+const MAX_DOCUMENT_BYTES = 15 * 1024 * 1024;
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
+  "pdf",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "xlsm",
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "heic",
+]);
 const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",
   "application/msword",
@@ -15,6 +29,11 @@ const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel.sheet.macroenabled.12",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
 ]);
 
 type NotificationUser = {

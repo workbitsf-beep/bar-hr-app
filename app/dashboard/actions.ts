@@ -3447,7 +3447,7 @@ export async function createDocumentAction(formData: FormData) {
     throw new Error("Missing document file");
   }
 
-  if (fileEntry.size > 8 * 1024 * 1024) {
+  if (fileEntry.size > 15 * 1024 * 1024) {
     throw new Error("File too large");
   }
 
