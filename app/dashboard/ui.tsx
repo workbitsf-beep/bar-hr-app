@@ -1597,6 +1597,12 @@ function DashboardResponsiveStyles() {
         letter-spacing: -0.045em;
       }
 
+      /* The day is one sheet with its sections divided by a hairline. The
+         first one has nothing above it to separate itself from. */
+      .workbit-day-sheet-section + .workbit-day-sheet-section {
+        border-top: 1px solid #f2f0fa;
+      }
+
       @media (max-width: 1180px) {
         body:has(.workbit-menu-page-overlay) .dashboard-shell {
           isolation: auto !important;
@@ -3726,116 +3732,10 @@ function DashboardResponsiveStyles() {
           display: none !important;
         }
 
-        .workbit-calendar-day-section {
-          min-width: 0;
-          max-width: 100%;
-        }
-
-        .workbit-calendar-day-shifts {
-          gap: 0 !important;
-          overflow: hidden;
-          border: 1px solid rgba(94, 92, 230, 0.08);
-          border-radius: 18px;
-          background: #ffffff;
-          box-shadow: 0 8px 20px rgba(61, 42, 153, 0.045);
-        }
-
-        /* The row used to be "👤 Turni" and nothing else, so it was hidden
-           here. It carries the button that adds a shift now. */
-        .workbit-calendar-day-shifts > .workbit-calendar-day-section-title {
-          min-height: 26px;
-          padding: 0 4px;
-        }
-
-        .workbit-calendar-day-shifts .workbit-day-shift-row {
-          padding: 11px 13px !important;
-          border: 0 !important;
-          border-bottom: 1px solid #ecebf0 !important;
-          border-radius: 0 !important;
-          background: #ffffff !important;
-          box-shadow: none !important;
-        }
-
-        .workbit-calendar-day-shifts > :last-child .workbit-day-shift-row,
-        .workbit-calendar-day-shifts > .workbit-day-shift-row:last-child {
-          border-bottom: 0 !important;
-        }
-
-        .workbit-day-shift-row > div {
-          flex-wrap: nowrap !important;
-          gap: 10px !important;
-          min-height: 22px;
-        }
-
-        .workbit-day-shift-row > div > strong {
-          min-width: 90px;
-          color: #15151d !important;
-          font-size: 13px !important;
-          font-weight: 950 !important;
-          white-space: nowrap;
-        }
-
-        .workbit-day-shift-row > div > span:not(:last-child) {
-          min-width: 0;
-          color: #1f1f29 !important;
-          font-size: 13px !important;
-          line-height: 1.15;
-        }
-
-        .workbit-day-shift-row > div > span:last-child {
-          width: 23px;
-          height: 23px;
-          flex: 0 0 23px;
-          border-radius: 999px;
-          background: #e4f8e9;
-        }
-
-        .workbit-day-shift-row > div > span[aria-label="In attesa"] {
-          background: #fff3dc;
-        }
-
-        .workbit-calendar-day-notes {
-          gap: 9px !important;
-        }
-
-        .workbit-calendar-day-notes > .workbit-calendar-day-section-title {
-          min-height: 24px;
-          padding: 0 4px;
-          color: #8e8e93;
-          font-size: 0 !important;
-          font-weight: 900;
-          letter-spacing: 0.06em;
-        }
-
-        .workbit-calendar-day-notes > .workbit-calendar-day-section-title strong {
-          color: #8e8e93 !important;
-          font-size: 0 !important;
-        }
-
-        .workbit-calendar-day-notes > .workbit-calendar-day-section-title strong::after {
-          content: "NOTE";
-          font-size: 12px;
-          font-weight: 900;
-          letter-spacing: 0.06em;
-        }
-
-        .workbit-calendar-day-notes > .workbit-calendar-day-section-title .dashboard-icon-button {
-          width: 32px !important;
-          height: 32px !important;
-          min-width: 32px !important;
-          min-height: 32px !important;
-          color: #5e5ce6 !important;
-          font-size: 18px !important;
-        }
-
-        .workbit-calendar-day-notes .workbit-day-note-card {
-          padding: 14px !important;
-          border: 1px solid rgba(94, 92, 230, 0.08) !important;
-          border-radius: 18px !important;
-          background: #ffffff !important;
-          box-shadow: 0 8px 20px rgba(61, 42, 153, 0.045) !important;
-        }
-
+        /* The day view is one white sheet now, with its sections divided by a
+           hairline and each one named in small capitals. The rules that used
+           to draw a card per section, hide the shifts heading and paint the
+           word NOTE in with a ::after now have no markup to hold on to. */
         .dashboard-calendar-page .dashboard-week-strip {
           gap: 12px !important;
           padding: 0 0 12px !important;

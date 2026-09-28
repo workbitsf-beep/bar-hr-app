@@ -506,6 +506,305 @@ function renderShiftStateIcon(confirmed: boolean, size = 16) {
 }
 
 /**
+ * The three numbers above the day: from the first one in to the last one out,
+ * how many people, and how many hours of work were put in.
+ *
+ * `doubled` says the hours are counted twice over because two shifts on the
+ * same person overlap, so the tile can admit it rather than showing a figure
+ * nobody could reach.
+ */
+function buildDaySummary(shifts: ShiftItem[], locale: string, doubled: boolean) {
+  if (shifts.length === 0) {
+    return null;
+  }
+
+  let first = Number.POSITIVE_INFINITY;
+  let last = Number.NEGATIVE_INFINITY;
+  let minutes = 0;
+  const people = new Set<string>();
+
+  for (const shift of shifts) {
+    const start = new Date(shift.startTime).getTime();
+    const end = new Date(shift.endTime).getTime();
+
+    first = Math.min(first, start);
+    last = Math.max(last, end);
+    minutes += Math.max(0, Math.round((end - start) / 60_000));
+
+    for (const assignment of shift.assignments) {
+      people.add(assignment.id);
+    }
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  return {
+    covered: `${formatDayTime(new Date(first).toISOString(), locale).slice(0, 2)}–${formatDayTime(
+      new Date(last).toISOString(),
+      locale
+    ).slice(0, 2)}`,
+    people: people.size,
+    hours: rest === 0 ? `${hours}h` : `${hours}h ${String(rest).padStart(2, "0")}`,
+    doubled,
+  };
+}
+
+function renderDaySummaryTiles(summary: ReturnType<typeof buildDaySummary>) {
+  if (!summary) {
+    return null;
+  }
+
+  const tile = (value: string, caption: string, warn = false) => (
+    <span
+      key={caption}
+      style={{
+        flex: 1,
+        minWidth: 0,
+        display: "grid",
+        gap: 1,
+        padding: "9px 10px",
+        borderRadius: 14,
+        background: warn ? "#fffaf1" : "#ffffff",
+        border: `1px solid ${warn ? "#f5dcb3" : "#e9e6f5"}`,
+      }}
+    >
+      <strong
+        style={{
+          fontSize: 16.5,
+          fontWeight: 840,
+          letterSpacing: "-0.028em",
+          fontVariantNumeric: "tabular-nums",
+          whiteSpace: "nowrap",
+          color: warn ? "#92400e" : "#17161f",
+        }}
+      >
+        {value}
+      </strong>
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 820,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: warn ? "#c08a3e" : "#a3a0b8",
+        }}
+      >
+        {caption}
+      </span>
+    </span>
+  );
+
+  return (
+    <div style={{ display: "flex", gap: 7 }}>
+      {tile(summary.covered, "coperto")}
+      {tile(String(summary.people), summary.people === 1 ? "persona" : "persone")}
+      {tile(summary.hours, summary.doubled ? "ore · doppie" : "ore", summary.doubled)}
+    </div>
+  );
+}
+
+/** The amber line that owns up to an overlap already in the database. */
+function renderOverlapWarning(message: string | null, advice: string) {
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 9,
+        padding: "11px 12px",
+        borderRadius: 13,
+        background: "#fff8ed",
+        border: "1px solid #f5dcb3",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          flex: "0 0 auto",
+          width: 18,
+          height: 18,
+          borderRadius: 999,
+          background: "#f0a742",
+          color: "#ffffff",
+          display: "grid",
+          placeItems: "center",
+          fontSize: 11,
+          fontWeight: 800,
+        }}
+      >
+        !
+      </span>
+      <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
+        <strong style={{ fontSize: 12.5, fontWeight: 800, color: "#92400e" }}>{message}</strong>
+        <span style={{ fontSize: 12, fontWeight: 520, color: "#a16207", lineHeight: 1.45 }}>
+          {advice}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/** One section of the day sheet: its label, its own + when it has one, its rows. */
+function renderDaySheetSection(
+  key: string,
+  label: string,
+  tone: WeekBadgeTone,
+  count: number,
+  children: ReactNode,
+  add?: { label: string; onAdd: () => void; disabled: boolean }
+) {
+  return (
+    <div
+      key={key}
+      className="workbit-day-sheet-section"
+      style={{ display: "grid", gap: 6, padding: "11px 12px 12px" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 9.5,
+            fontWeight: 830,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#a3a0b8",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 999,
+              background: WEEK_TONE_DOTS[tone],
+              flex: "0 0 auto",
+            }}
+          />
+          {count > 0 ? `${label} · ${count}` : label}
+        </span>
+        {add ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              add.onAdd();
+            }}
+            aria-label={add.label}
+            title={add.label}
+            disabled={add.disabled}
+            style={{
+              width: 26,
+              height: 26,
+              flex: "0 0 auto",
+              borderRadius: 999,
+              border: 0,
+              background: "#efecff",
+              color: "#4c1d95",
+              display: "grid",
+              placeItems: "center",
+              fontSize: 15,
+              fontWeight: 700,
+              lineHeight: 1,
+              cursor: add.disabled ? "default" : "pointer",
+              opacity: add.disabled ? 0.5 : 1,
+            }}
+          >
+            +
+          </button>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** A plain line inside the day sheet: what it is on the left, when on the right. */
+function renderDaySheetRow(
+  key: string,
+  text: string,
+  meta: string,
+  tone: WeekBadgeTone,
+  onOpen?: () => void
+) {
+  return (
+    <div
+      key={key}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpen?.();
+      }}
+      onKeyDown={(event) => {
+        if (!onOpen || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen();
+      }}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "3px minmax(0, 1fr)",
+        borderRadius: 11,
+        overflow: "hidden",
+        background: "#ffffff",
+        border: "1px solid #f0eef9",
+        cursor: onOpen ? "pointer" : "default",
+        textAlign: "left",
+      }}
+    >
+      <span aria-hidden="true" style={{ background: WEEK_TONE_DOTS[tone] }} />
+      <span style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", minWidth: 0 }}>
+        <span
+          style={{
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 13,
+            fontWeight: 640,
+            color: "#17161f",
+          }}
+        >
+          {text}
+        </span>
+        {meta ? (
+          <span
+            style={{
+              marginLeft: "auto",
+              flex: "0 0 auto",
+              fontSize: 11.5,
+              fontWeight: 520,
+              color: "#a3a0b8",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {meta}
+          </span>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+/** The grey line a section shows when it is empty but still worth offering. */
+function renderDaySheetEmpty(text: string) {
+  return <span style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>{text}</span>;
+}
+
+/**
  * Who is booked twice at the same time, and which shifts are involved.
  *
  * The server refuses to save an overlap now, but the ones already in the
@@ -2318,15 +2617,14 @@ export function OwnerCalendarClient({
           }}
         >
           {visibleDayItems.map((day) => {
-            const hasEvents =
-              (features.shifts ? day.shifts.length : 0) +
-                (features.requests ? day.requests.length : 0) +
-                (features.availability ? day.availabilities.length : 0) +
-                (features.tasks ? day.tasks.length : 0) +
-                (features.noticeBoard ? day.notes.length : 0) +
-                (features.courses ? day.courses.length : 0) +
-                day.closures.length >
-              0;
+            const isClosedDay = day.closures.length > 0;
+            const canAddToDay = day.date.slice(0, 10) >= todayKey;
+            const overlaps = buildShiftOverlaps(features.shifts ? day.shifts : []);
+            const summary = buildDaySummary(
+              features.shifts ? day.shifts : [],
+              locale,
+              overlaps.clashing.size > 0
+            );
 
             return (
               <section
@@ -2387,137 +2685,196 @@ export function OwnerCalendarClient({
                     ›
                   </IconButton>
                 </div>
-                {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
-                {features.shifts && (day.shifts.length > 0 || day.date.slice(0, 10) >= todayKey) ? (
-                  <div className="workbit-calendar-day-section workbit-calendar-day-shifts" style={{ display: "grid", gap: 6 }}>
-                    <div className="workbit-calendar-day-section-title">
-                      {renderDaySectionHeader(
+                {renderDaySummaryTiles(summary)}
+                {renderOverlapWarning(overlaps.message, "Tocca un turno per correggerlo.")}
+
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e9e6f5",
+                    borderRadius: 18,
+                    overflow: "hidden",
+                  }}
+                >
+                  {isClosedDay
+                    ? renderDaySheetSection(
+                        "closures",
+                        "Chiuso",
+                        "closure",
+                        0,
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {day.closures.map((closure) =>
+                            renderDaySheetRow(
+                              `closure-${closure.id}`,
+                              closure.title,
+                              "",
+                              "closure"
+                            )
+                          )}
+                        </div>
+                      )
+                    : null}
+
+                  {features.shifts && (day.shifts.length > 0 || (!isClosedDay && canAddToDay))
+                    ? renderDaySheetSection(
+                        "shifts",
                         "Turni",
+                        "onCall",
                         day.shifts.length,
-                        "Aggiungi turni",
-                        () => {
-                          openDay(day);
-                          setShowShiftComposer(true);
-                        },
-                        isPending,
-                        day.date.slice(0, 10) >= todayKey
-                      )}
-                    </div>
-                    {day.shifts.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessun turno in questa giornata.</div>
-                    ) : null}
-                    {groupShiftsByTime(day.shifts).map((shift) =>
-                      renderShiftSwipeActions(
-                        shift,
-                        renderCompactShiftCard(shift, locale, true, () => {
-                          setSelectedDate(day.date);
-                          setActiveCalendarModal("shifts");
-                          setEditingShiftId(null);
-                        }),
-                        day.date
+                        <div style={{ display: "grid", gap: 5 }}>
+                          {day.shifts.length === 0
+                            ? renderDaySheetEmpty("Nessun turno.")
+                            : groupShiftsByTime(day.shifts).map((shift) =>
+                                renderShiftSwipeActions(
+                                  shift,
+                                  renderWeekShiftLine(shift, locale, currentUserId, () => {
+                                    setSelectedDate(day.date);
+                                    setActiveCalendarModal("shifts");
+                                    setEditingShiftId(null);
+                                  }),
+                                  day.date
+                                )
+                              )}
+                        </div>,
+                        canAddToDay
+                          ? {
+                              label: "Aggiungi turni",
+                              disabled: isPending,
+                              onAdd: () => {
+                                openDay(day);
+                                setShowShiftComposer(true);
+                              },
+                            }
+                          : undefined
                       )
-                    )}
-                  </div>
-                ) : null}
-                {features.requests && day.requests.length > 0 ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong>🏖️ Ferie / Permessi / Assenze</strong>
-                    {day.requests.map((request) =>
-                      renderDeleteSwipeCard(
-                        `request-${request.id}`,
-                        renderApprovedRequestCard(request, true),
-                        "Elimina richiesta",
-                        () => handleDeleteRequest(request.id)
+                    : null}
+
+                  {features.tasks || features.noticeBoard
+                    ? renderDaySheetSection(
+                        "notes",
+                        "Note",
+                        "note",
+                        day.tasks.length + day.notes.length,
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {day.tasks.length === 0 && day.notes.length === 0
+                            ? renderDaySheetEmpty("Nessuna nota.")
+                            : null}
+                          {day.tasks.map((task) =>
+                            renderDeleteSwipeCard(
+                              `task-${task.id}`,
+                              renderDaySheetRow(
+                                `task-row-${task.id}`,
+                                task.title,
+                                task.meta.parts.map((part) => part.text).join(" · "),
+                                "note",
+                                () => {
+                                  setSelectedDate(day.date);
+                                  setActiveCalendarModal("notes");
+                                }
+                              ),
+                              "Elimina nota",
+                              () => handleDeleteTask(task.id)
+                            )
+                          )}
+                          {day.notes.map((note) =>
+                            renderDeleteSwipeCard(
+                              `note-${note.id}`,
+                              renderDaySheetRow(
+                                `note-row-${note.id}`,
+                                truncateCalendarText(note.content, 46),
+                                note.isPinned ? "fissata" : "",
+                                "note",
+                                () => {
+                                  setSelectedDate(day.date);
+                                  setActiveCalendarModal("notes");
+                                }
+                              ),
+                              "Elimina nota",
+                              () => handleDeleteBoardNote(note.id)
+                            )
+                          )}
+                        </div>,
+                        canAddToDay
+                          ? {
+                              label: "Aggiungi note",
+                              disabled: isPending,
+                              onAdd: () => {
+                                setSelectedDate(day.date);
+                                setActiveCalendarModal("notes");
+                                setQuickComposer("task");
+                              },
+                            }
+                          : undefined
                       )
-                    )}
-                  </div>
-                ) : null}
-                {features.availability && day.availabilities.length > 0 ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong>🚫 Indisponibilità</strong>
-                    {day.availabilities.map((availability) =>
-                      renderDeleteSwipeCard(
-                        `availability-${availability.id}`,
-                        renderAvailabilityCard(availability, true),
-                        "Elimina indisponibilita",
-                        () => handleDeleteAvailability(availability.id)
+                    : null}
+
+                  {features.requests && day.requests.length > 0
+                    ? renderDaySheetSection(
+                        "requests",
+                        "Ferie e permessi",
+                        "vacation",
+                        day.requests.length,
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {day.requests.map((request) =>
+                            renderDeleteSwipeCard(
+                              `request-${request.id}`,
+                              renderDaySheetRow(
+                                `request-row-${request.id}`,
+                                `${request.firstName} ${request.lastName}`,
+                                formatRequestTypeLabel(request.type),
+                                "vacation"
+                              ),
+                              "Elimina richiesta",
+                              () => handleDeleteRequest(request.id)
+                            )
+                          )}
+                        </div>
                       )
-                    )}
-                  </div>
-                ) : null}
-                {false && features.shifts && day.pendingOnCallShifts.length > 0 ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong>📍 Reperibilità</strong>
-                    {day.pendingOnCallShifts.map((shift) => renderPendingOnCallCard(shift, locale, true))}
-                  </div>
-                ) : null}
-                {features.tasks || features.noticeBoard ? (
-                  <div className="workbit-calendar-day-section workbit-calendar-day-notes" style={{ display: "grid", gap: 6 }}>
-                    <div className="workbit-calendar-day-section-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <strong>📌 Note</strong>
-                      {(features.tasks || features.noticeBoard) && day.date.slice(0, 10) >= todayKey ? (
-                        <IconButton
-                          type="button"
-                          onClick={() => {
-                            setSelectedDate(day.date);
-                            setActiveCalendarModal("notes");
-                            setQuickComposer("task");
-                          }}
-                          aria-label="Aggiungi note"
-                          disabled={isPending}
-                          style={{ width: 32, height: 32 }}
-                        >
-                          +
-                        </IconButton>
-                      ) : null}
-                    </div>
-                    {day.tasks.length === 0 && day.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna nota in questa giornata.</div>
-                    ) : null}
-                    {day.tasks.map((task) =>
-                      renderDeleteSwipeCard(
-                        `task-${task.id}`,
-                        renderTaskPreviewCard(task, true, () => {
-                          setSelectedDate(day.date);
-                          setActiveCalendarModal("notes");
-                        }),
-                        "Elimina nota",
-                        () => handleDeleteTask(task.id)
+                    : null}
+
+                  {features.availability && day.availabilities.length > 0
+                    ? renderDaySheetSection(
+                        "availability",
+                        "Indisponibilità",
+                        "availability",
+                        day.availabilities.length,
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {day.availabilities.map((availability) =>
+                            renderDeleteSwipeCard(
+                              `availability-${availability.id}`,
+                              renderDaySheetRow(
+                                `availability-row-${availability.id}`,
+                                `${availability.firstName} ${availability.lastName}`,
+                                formatRange(availability.startsAt, availability.endsAt, locale),
+                                "availability"
+                              ),
+                              "Elimina indisponibilita",
+                              () => handleDeleteAvailability(availability.id)
+                            )
+                          )}
+                        </div>
                       )
-                    )}
-                    {day.notes.map((note) =>
-                      renderDeleteSwipeCard(
-                        `note-${note.id}`,
-                        renderNotePreviewCard(note, true, () => {
-                          setSelectedDate(day.date);
-                          setActiveCalendarModal("notes");
-                        }),
-                        "Elimina nota",
-                        () => handleDeleteBoardNote(note.id)
+                    : null}
+
+                  {features.courses && day.courses.length > 0
+                    ? renderDaySheetSection(
+                        "courses",
+                        "Corsi",
+                        "course",
+                        day.courses.length,
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {day.courses.map((course) =>
+                            renderDaySheetRow(
+                              `course-${course.id}`,
+                              course.title,
+                              formatRange(course.startTime, course.endTime, locale),
+                              "course"
+                            )
+                          )}
+                        </div>
                       )
-                    )}
-                  </div>
-                ) : null}
-                {features.courses && day.courses.length > 0 ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong>🎓 Corsi</strong>
-                    {day.courses.map((course) => (
-                      <div key={course.id} style={{ padding: "8px 10px", borderRadius: 12, background: "#eef2ff", border: "1px solid #c7d2fe", color: "#3730a3", fontSize: 12, lineHeight: 1.35 }}>
-                        {course.title} · {formatRange(course.startTime, course.endTime, locale)}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                {day.closures.length > 0 ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong>🔒 Chiusure</strong>
-                    {day.closures.map((closure) => (
-                      <div key={closure.id} style={{ padding: "8px 10px", borderRadius: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", fontSize: 12, lineHeight: 1.35 }}>
-                        {closure.title}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+                    : null}
+                </div>
               </section>
             );
           })}
