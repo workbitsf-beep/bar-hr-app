@@ -80,7 +80,9 @@ export function ShiftQuickAdd({
 }) {
   const [door, setDoor] = useState<Door>("time");
   const [screen, setScreen] = useState(0);
-  const [digits, setDigits] = useState("");
+  const [startDigits, setStartDigits] = useState("");
+  const [endDigits, setEndDigits] = useState("");
+  const [field, setField] = useState<"start" | "end">("start");
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [isOnCall, setIsOnCall] = useState(false);
   const [personId, setPersonId] = useState<string | null>(null);
@@ -88,16 +90,19 @@ export function ShiftQuickAdd({
   const [weekIndex, setWeekIndex] = useState(0);
   const [presetOffered, setPresetOffered] = useState<string[]>([]);
 
-  const start = formatSlice(digits, 0);
-  const end = formatSlice(digits, 4);
-  const complete = digits.length === 8 && isValidTime(digits.slice(0, 4)) && isValidTime(digits.slice(4));
-  const minutes = complete ? spanMinutes(digits.slice(0, 4), digits.slice(4)) : 0;
+  const start = resolveTime(startDigits);
+  const end = resolveTime(endDigits);
+  const span = start && end ? { startTime: start, endTime: end } : null;
+  const complete = span !== null;
+  const minutes = span ? spanMinutes(span.startTime, span.endTime) : 0;
   const person = members.find((member) => member.id === personId) ?? null;
 
   function openDoor(next: Door) {
     setDoor(next);
     setScreen(0);
-    setDigits("");
+    setStartDigits("");
+    setEndDigits("");
+    setField("start");
     setMemberIds([]);
     setIsOnCall(false);
     setPersonId(null);
@@ -105,26 +110,52 @@ export function ShiftQuickAdd({
     setWeekIndex(0);
   }
 
+  function editField(edit: (current: string) => string) {
+    const setter = field === "start" ? setStartDigits : setEndDigits;
+    setter(edit);
+  }
+
   function press(value: string) {
-    setDigits((current) => {
-      if (current.length >= 8) {
+    let filled = false;
+
+    editField((current) => {
+      if (current.length >= 4) {
         return current;
       }
 
-      const next = current + value;
+      // A first digit that cannot begin an hour is the hour: 9 means 09, not
+      // the start of 9x:xx.
+      const next = current.length === 0 && Number(value) > 2 ? `0${value}` : current + value;
 
-      // Refuse a first digit that cannot begin an hour, so 9 becomes 09 rather
-      // than the start of 9x:xx.
-      if (next.length === 1 && Number(next) > 2) {
-        return `0${next}`;
+      // Nor can the tens of a minute go past 5.
+      if (next.length === 3 && Number(value) > 5) {
+        return current;
       }
 
-      if (next.length === 5 && Number(value) > 2) {
-        return `${current}0${value}`;
-      }
-
+      filled = next.length === 4;
       return next;
     });
+
+    // Four digits mean the hour is finished; the minutes are already there.
+    if (filled && field === "start") {
+      setField("end");
+    }
+  }
+
+  function backspace() {
+    if (field === "end" && endDigits.length === 0) {
+      setField("start");
+      setStartDigits((current) => current.slice(0, -1));
+      return;
+    }
+
+    editField((current) => current.slice(0, -1));
+  }
+
+  function applyRange(startTime: string, endTime: string) {
+    setStartDigits(startTime.replace(":", ""));
+    setEndDigits(endTime.replace(":", ""));
+    setField("end");
   }
 
   // Only the slots the venue wrote in its settings. Times guessed from past
@@ -142,19 +173,17 @@ export function ShiftQuickAdd({
     [presets]
   );
 
-  const offer = useMemo(() => {
-    if (!complete || !onSavePreset || presetOffered.includes(`${start}-${end}`)) {
-      return false;
-    }
-
-    if (presets.some((preset) => preset.startTime === start && preset.endTime === end)) {
-      return false;
-    }
-
-    const used = recent.find((entry) => entry.startTime === start && entry.endTime === end);
-
-    return (used?.count ?? 0) >= OFFER_AFTER;
-  }, [complete, end, onSavePreset, presetOffered, presets, recent, start]);
+  // Cheap enough to work out on every render, and it reads in one piece.
+  const offer =
+    span !== null &&
+    Boolean(onSavePreset) &&
+    !presetOffered.includes(`${span.startTime}-${span.endTime}`) &&
+    !presets.some(
+      (preset) => preset.startTime === span.startTime && preset.endTime === span.endTime
+    ) &&
+    (recent.find(
+      (entry) => entry.startTime === span.startTime && entry.endTime === span.endTime
+    )?.count ?? 0) >= OFFER_AFTER;
 
   const doorSwitch = (
     <div
@@ -203,9 +232,19 @@ export function ShiftQuickAdd({
           gap: 4,
         }}
       >
-        <TimeBox value={start} caption="inizio" active={digits.length < 4} />
+        <TimeBox
+          digits={startDigits}
+          caption="inizio"
+          active={field === "start"}
+          onFocus={() => setField("start")}
+        />
         <span style={{ textAlign: "center", color: "#a3a3b5", fontSize: 16, fontWeight: 800 }}>→</span>
-        <TimeBox value={end} caption="fine" active={digits.length >= 4} />
+        <TimeBox
+          digits={endDigits}
+          caption="fine"
+          active={field === "end"}
+          onFocus={() => setField("end")}
+        />
       </div>
 
       {complete ? (
@@ -224,13 +263,15 @@ export function ShiftQuickAdd({
             }}
           >
             <span style={{ minWidth: 0, flex: 1, fontSize: 12.5, fontWeight: 760, color: "#4c1d95" }}>
-              Usi spesso {start}–{end}. Vuoi salvarlo fra le fasce?
+              Usi spesso {span?.startTime}–{span?.endTime}. Vuoi salvarlo fra le fasce?
             </span>
             <button
               type="button"
               onClick={() => {
-                onSavePreset?.({ startTime: start, endTime: end });
-                setPresetOffered((current) => current.concat(`${start}-${end}`));
+                if (span) {
+                  onSavePreset?.(span);
+                  setPresetOffered((current) => current.concat(`${span.startTime}-${span.endTime}`));
+                }
               }}
               style={{
                 flex: "0 0 auto",
@@ -277,9 +318,7 @@ export function ShiftQuickAdd({
             <button
               key={shortcut.key}
               type="button"
-              onClick={() =>
-                setDigits(`${shortcut.startTime.replace(":", "")}${shortcut.endTime.replace(":", "")}`.slice(0, 8))
-              }
+              onClick={() => applyRange(shortcut.startTime, shortcut.endTime)}
               style={{
                 padding: "8px 12px",
                 borderRadius: 999,
@@ -305,17 +344,13 @@ export function ShiftQuickAdd({
             {key}
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => setDigits((current) => (current.length === 2 || current.length === 6 ? `${current}00` : current))}
-          style={keyStyle(true)}
-        >
-          :00
-        </button>
+        {/* No ":00" key: an hour with no minutes typed is already on the
+            hour, so the key only ever confirmed what the box was showing. */}
+        <span aria-hidden="true" />
         <button type="button" onClick={() => press("0")} style={keyStyle(false)}>
           0
         </button>
-        <button type="button" onClick={() => setDigits((current) => current.slice(0, -1))} style={keyStyle(true)}>
+        <button type="button" onClick={backspace} style={keyStyle(true)}>
           ⌫
         </button>
       </div>
@@ -325,12 +360,17 @@ export function ShiftQuickAdd({
   // ——————————————————————————————— per orario ———————————————————————————————
 
   if (door === "time") {
-    if (screen === 1) {
-      const busy = busyAt(dayKey, start, end);
+    if (screen === 1 && span) {
+      const busy = busyAt(dayKey, span.startTime, span.endTime);
 
       return (
         <div style={{ display: "grid", gap: 13 }}>
-          <Head title="Chi ci lavora" detail={`${dayLabel} · ${start}–${end}`} onBack={() => setScreen(0)} backLabel="‹" />
+          <Head
+            title="Chi ci lavora"
+            detail={`${dayLabel} · ${span.startTime}–${span.endTime}`}
+            onBack={() => setScreen(0)}
+            backLabel="‹"
+          />
 
           <PeopleChips
             members={members}
@@ -349,7 +389,7 @@ export function ShiftQuickAdd({
             type="button"
             disabled={pending || memberIds.length === 0}
             onClick={() =>
-              onSave([{ date: dayKey, startTime: start, endTime: end, memberIds, isOnCall }])
+              onSave([{ date: dayKey, ...span, memberIds, isOnCall }])
             }
             style={ctaStyle(memberIds.length > 0 && !pending)}
           >
@@ -566,8 +606,8 @@ export function ShiftQuickAdd({
             onSave(
               chosenDays.map((day) => ({
                 date: day.key,
-                startTime: start,
-                endTime: end,
+                startTime: span?.startTime ?? "",
+                endTime: span?.endTime ?? "",
                 memberIds: [person.id],
                 isOnCall,
               }))
@@ -771,22 +811,49 @@ function Head({
   );
 }
 
-function TimeBox({ value, caption, active }: { value: string; caption: string; active: boolean }) {
-  const empty = value.includes("-");
+/**
+ * One of the two times. Tapping it is how you say which one you are writing,
+ * so "15", tap fine, "22" is a whole shift.
+ *
+ * The minutes show as a faded 00 until they are typed: on the hour is what
+ * the shift will be saved as, so the box says so rather than hiding it
+ * behind two dashes.
+ */
+function TimeBox({
+  digits,
+  caption,
+  active,
+  onFocus,
+}: {
+  digits: string;
+  caption: string;
+  active: boolean;
+  onFocus: () => void;
+}) {
+  const hours = digits.slice(0, 2);
+  const minutes = digits.slice(2, 4);
+  const empty = digits.length === 0;
+  const impliedMinutes = minutes.length < 2;
 
   return (
-    <span
+    <button
+      type="button"
+      onClick={onFocus}
+      aria-label={caption}
       style={{
         display: "grid",
         gap: 2,
         justifyItems: "center",
+        width: "100%",
         padding: "12px 6px",
         borderRadius: 16,
         background: active ? "#efecff" : "#ffffff",
         border: `1.5px solid ${active ? "#6d5ce7" : "#ebedf3"}`,
+        cursor: "pointer",
+        font: "inherit",
       }}
     >
-      <strong
+      <span
         style={{
           fontSize: 26,
           fontWeight: 830,
@@ -795,8 +862,11 @@ function TimeBox({ value, caption, active }: { value: string; caption: string; a
           color: empty ? "#d4d2e6" : active ? "#4c1d95" : "#16161d",
         }}
       >
-        {value}
-      </strong>
+        {empty ? "--" : hours.padEnd(2, "-")}
+        <span style={{ opacity: empty ? 1 : 0.42 }}>
+          :{empty ? "--" : impliedMinutes ? minutes.padEnd(2, "0") : minutes}
+        </span>
+      </span>
       <span
         style={{
           fontSize: 10,
@@ -808,7 +878,7 @@ function TimeBox({ value, caption, active }: { value: string; caption: string; a
       >
         {caption}
       </span>
-    </span>
+    </button>
   );
 }
 
@@ -860,19 +930,29 @@ function ctaStyle(enabled: boolean) {
   };
 }
 
-function formatSlice(digits: string, from: number) {
-  const part = digits.slice(from, from + 4).padEnd(4, "-");
+/**
+ * What was typed, as a time - or null while the hour is still incomplete.
+ * Minutes nobody typed are zero, so "15" is a quarter past three in the
+ * afternoon and needs no further keystrokes.
+ */
+function resolveTime(digits: string) {
+  if (digits.length < 2) {
+    return null;
+  }
 
-  return `${part.slice(0, 2)}:${part.slice(2)}`;
+  const hours = digits.slice(0, 2);
+  const minutes = digits.slice(2, 4).padEnd(2, "0");
+
+  if (Number(hours) > 23 || Number(minutes) > 59) {
+    return null;
+  }
+
+  return `${hours}:${minutes}`;
 }
 
-function isValidTime(part: string) {
-  return part.length === 4 && Number(part.slice(0, 2)) < 24 && Number(part.slice(2)) < 60;
-}
-
-function spanMinutes(startPart: string, endPart: string) {
-  const start = Number(startPart.slice(0, 2)) * 60 + Number(startPart.slice(2));
-  const end = Number(endPart.slice(0, 2)) * 60 + Number(endPart.slice(2));
+function spanMinutes(startTime: string, endTime: string) {
+  const start = Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3));
+  const end = Number(endTime.slice(0, 2)) * 60 + Number(endTime.slice(3));
 
   // A shift that ends before it starts has run past midnight.
   return end > start ? end - start : end + 24 * 60 - start;

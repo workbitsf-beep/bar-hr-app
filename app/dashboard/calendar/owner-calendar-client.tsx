@@ -3258,33 +3258,9 @@ export function OwnerCalendarClient({
                       animation: "dashboardModalEnter 120ms ease-out",
                     }}
                   >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                    }}
-                  >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>Nuovi turni</strong>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <IconButton
-                        type="button"
-                        onClick={() => setShowShiftComposer(false)}
-                        aria-label="Chiudi inserimento turni"
-                        disabled={isPending}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M6 6l12 12M18 6 6 18"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </IconButton>
-                    </div>
-                  </div>
+                  {/* No title bar of its own: the screen below already says
+                      which step it is and carries the one way out. Two ✕ one
+                      above the other did the same thing twice. */}
 
                   {savedShiftDrafts.length > 0 ? (
                     <div
