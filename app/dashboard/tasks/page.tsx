@@ -161,7 +161,7 @@ export default async function DashboardTasksPage({
                 </PrimaryButton>
               </form>
             ) : null}
-            <PopupAction title="Crea nuova nota" ariaLabel="Aggiungi nota">
+            <PopupAction title="Nuova nota" ariaLabel="Aggiungi nota">
               <TaskComposeForm
                 action={createTaskAction}
                 members={members

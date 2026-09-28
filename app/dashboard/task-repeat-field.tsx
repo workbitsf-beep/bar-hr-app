@@ -1,14 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 export type TaskRepeatUnitValue = "DAY" | "WEEK" | "MONTH";
 
 export type TaskRepeatDraft = {
   every: number;
   unit: TaskRepeatUnitValue;
 } | null;
-
-/** What a new series starts as: once a month, the commonest venue check. */
-export const DEFAULT_TASK_REPEAT: TaskRepeatDraft = { every: 1, unit: "MONTH" };
 
 const UNIT_OPTIONS: { value: TaskRepeatUnitValue; singular: string; plural: string }[] = [
   { value: "DAY", singular: "giorno", plural: "giorni" },
@@ -22,6 +21,21 @@ const UNIT_MAX: Record<TaskRepeatUnitValue, number> = {
   MONTH: 60,
 };
 
+/**
+ * The periods a venue actually works to. Everything else exists too, behind
+ * "Altro", but nobody should have to type "1" and pick "mese" to say monthly.
+ */
+const PRESETS: { label: string; repeat: TaskRepeatDraft }[] = [
+  { label: "Ogni giorno", repeat: { every: 1, unit: "DAY" } },
+  { label: "Ogni settimana", repeat: { every: 1, unit: "WEEK" } },
+  { label: "Ogni mese", repeat: { every: 1, unit: "MONTH" } },
+  { label: "Ogni 3 mesi", repeat: { every: 3, unit: "MONTH" } },
+  { label: "Ogni 6 mesi", repeat: { every: 6, unit: "MONTH" } },
+  { label: "Ogni anno", repeat: { every: 12, unit: "MONTH" } },
+];
+
+export const DEFAULT_TASK_REPEAT: TaskRepeatDraft = { every: 1, unit: "MONTH" };
+
 export function describeTaskRepeatDraft(repeat: TaskRepeatDraft) {
   if (!repeat) {
     return null;
@@ -33,63 +47,82 @@ export function describeTaskRepeatDraft(repeat: TaskRepeatDraft) {
     return null;
   }
 
+  if (repeat.every === 12 && repeat.unit === "MONTH") {
+    return "ogni anno";
+  }
+
   return repeat.every === 1 ? `ogni ${option.singular}` : `ogni ${repeat.every} ${option.plural}`;
 }
 
+function matchesPreset(repeat: TaskRepeatDraft, preset: TaskRepeatDraft) {
+  return Boolean(repeat && preset && repeat.every === preset.every && repeat.unit === preset.unit);
+}
+
 /**
- * Turns a note into one that comes back on its own.
+ * How often a note comes back.
  *
- * Off is the answer nearly every time, so off is what it shows: one pair of
- * pills, and the number only appears once repeating has been chosen.
+ * The periods people ask for are a short list, so the list is what is shown;
+ * the free number is there for the odd one out and stays folded away until it
+ * is needed.
  */
 export function TaskRepeatField({
   repeat,
   onChange,
+  allowNever = true,
   disabled = false,
 }: {
   repeat: TaskRepeatDraft;
   onChange: (repeat: TaskRepeatDraft) => void;
+  allowNever?: boolean;
   disabled?: boolean;
 }) {
-  const active = repeat !== null;
+  const isPreset = PRESETS.some((preset) => matchesPreset(repeat, preset.repeat));
+  const [showCustom, setShowCustom] = useState(Boolean(repeat) && !isPreset);
+  const customActive = showCustom || (Boolean(repeat) && !isPreset);
 
   return (
-    <div style={{ display: "grid", gap: 8 }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: 8,
-        }}
-      >
-        {[
-          { repeating: false, label: "Una volta" },
-          { repeating: true, label: "Si ripete" },
-        ].map((option) => (
-          <button
-            key={option.label}
-            type="button"
+    <div style={{ display: "grid", gap: 9 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+        {allowNever ? (
+          <PresetButton
+            label="Mai"
+            active={repeat === null}
             disabled={disabled}
-            onClick={() => onChange(option.repeating ? (repeat ?? DEFAULT_TASK_REPEAT) : null)}
-            style={{
-              minHeight: 40,
-              borderRadius: 14,
-              border:
-                active === option.repeating
-                  ? "1px solid rgba(124, 58, 237, 0.46)"
-                  : "1px solid #e2e8f0",
-              background: active === option.repeating ? "#f3e8ff" : "#ffffff",
-              color: active === option.repeating ? "#4c1d95" : "#334155",
-              fontWeight: 800,
-              cursor: disabled ? "default" : "pointer",
+            onClick={() => {
+              setShowCustom(false);
+              onChange(null);
             }}
-          >
-            {option.label}
-          </button>
+          />
+        ) : null}
+
+        {PRESETS.map((preset) => (
+          <PresetButton
+            key={preset.label}
+            label={preset.label}
+            active={matchesPreset(repeat, preset.repeat)}
+            disabled={disabled}
+            onClick={() => {
+              setShowCustom(false);
+              onChange(preset.repeat);
+            }}
+          />
         ))}
+
+        <PresetButton
+          label="Altro…"
+          active={customActive}
+          disabled={disabled}
+          onClick={() => {
+            setShowCustom(true);
+
+            if (!repeat) {
+              onChange(DEFAULT_TASK_REPEAT);
+            }
+          }}
+        />
       </div>
 
-      {repeat ? (
+      {customActive && repeat ? (
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontWeight: 800, color: "#0f172a" }}>Ogni</span>
           <input
@@ -102,10 +135,7 @@ export function TaskRepeatField({
             onChange={(event) => {
               const next = Number(event.target.value);
 
-              onChange({
-                ...repeat,
-                every: Number.isFinite(next) ? Math.trunc(next) : 1,
-              });
+              onChange({ ...repeat, every: Number.isFinite(next) ? Math.trunc(next) : 1 });
             }}
             onBlur={() =>
               onChange({
@@ -156,5 +186,38 @@ export function TaskRepeatField({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function PresetButton({
+  label,
+  active,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minHeight: 38,
+        padding: "0 13px",
+        borderRadius: 999,
+        border: active ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #e2e8f0",
+        background: active ? "#f3e8ff" : "#ffffff",
+        color: active ? "#4c1d95" : "#475569",
+        fontSize: 13,
+        fontWeight: 800,
+        cursor: disabled ? "default" : "pointer",
+      }}
+    >
+      {label}
+    </button>
   );
 }
