@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { PwaRegister } from "@/app/components/pwa-register";
 import { PasskeySetupPrompt } from "@/app/components/passkey-setup-prompt";
+import { DayRollover } from "@/app/components/day-rollover";
 import { RefreshOnReturn } from "@/app/components/refresh-on-return";
 import { RuntimeLanguageSync } from "@/app/components/runtime-language-sync";
 import { ViewportResizeSync } from "@/app/components/viewport-resize-sync";
@@ -1405,6 +1406,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <PwaRegister />
         <PasskeySetupPrompt />
         <RefreshOnReturn />
+        <DayRollover />
         <WorkbitRouteTransition />
         <div className="workbit-global-ambient" aria-hidden="true">
           <span className="workbit-global-ambient__light workbit-global-ambient__light--one" />

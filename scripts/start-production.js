@@ -4,6 +4,15 @@ const path = require("node:path");
 
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
+// The container runs in UTC, and the app reads "today" from the server's own
+// clock: which day a shift belongs to, whether a day is in the past, what the
+// calendar marks as today. Between midnight and two in the morning Italian
+// time, UTC is still yesterday, so the whole app was a day behind for those
+// two hours every night. Europe/Rome is already what APP_TIME_ZONE says the
+// venues run on, so the process runs on it too. Must be set before anything
+// formats a date.
+process.env.TZ = process.env.TZ || "Europe/Rome";
+
 if (
   process.env.DISABLE_INTERNAL_CRON !== "true" &&
   !process.env.INTERNAL_CRON_SECRET &&
