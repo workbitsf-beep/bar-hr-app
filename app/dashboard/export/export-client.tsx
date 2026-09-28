@@ -1,19 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityType } from "@prisma/client";
 import { isNativeApp } from "@/lib/native-app";
-import {
-  EmptyState,
-  FormField,
-  IconButton,
-  ItemCard,
-  ItemList,
-  Panel,
-  PrimaryButton,
-  Select,
-  Stack,
-} from "../ui";
+import { EmptyState, Panel, PrimaryButton, Stack } from "../ui";
 import { formatDurationClock } from "@/lib/time-format";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 
@@ -72,6 +62,70 @@ type ExportPayload = {
   };
 };
 
+const ALL = "__ALL__";
+
+function monthLabel(month: number, year: number) {
+  return new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" }).format(
+    new Date(year, month - 1, 1, 12)
+  );
+}
+
+function monthName(month: number) {
+  return new Intl.DateTimeFormat("it-IT", { month: "long" }).format(new Date(2026, month - 1, 1, 12));
+}
+
+function shiftMonth(month: number, year: number, delta: number) {
+  const moved = new Date(year, month - 1 + delta, 1, 12);
+
+  return { month: moved.getMonth() + 1, year: moved.getFullYear() };
+}
+
+function Figure({ label, value, lead = false }: { label: string; value: string; lead?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "grid",
+        gap: 1,
+        padding: "11px 12px",
+        borderRadius: 15,
+        background: lead ? "#f3e8ff" : "#f8fafc",
+        border: `1px solid ${lead ? "rgba(124, 58, 237, 0.42)" : "#e9edf3"}`,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 820,
+          letterSpacing: "0.07em",
+          textTransform: "uppercase",
+          color: lead ? "#8b5cf6" : "#94a3b8",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 20,
+          fontWeight: 830,
+          letterSpacing: "-0.03em",
+          fontVariantNumeric: "tabular-nums",
+          color: lead ? "#4c1d95" : "#0f172a",
+        }}
+      >
+        {value}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * One card: what you are looking at is what the button downloads.
+ *
+ * The preview used to open as a second panel underneath the form, so while you
+ * read it you could no longer see what you had chosen, and changing month
+ * meant scrolling back up. There is nothing to open now - the month's figures
+ * are simply on screen, and they follow the arrows.
+ */
 export function ExportClient({
   employees,
   defaultMonth,
@@ -86,29 +140,27 @@ export function ExportClient({
   allowEmployeeSelection: boolean;
   allowGeneralReport?: boolean;
 }) {
-  const [userId, setUserId] = useState(allowGeneralReport ? "__ALL__" : employees[0]?.id ?? "");
-  const [month, setMonth] = useState(String(defaultMonth));
-  const [year, setYear] = useState(String(defaultYear));
-  const [loading, setLoading] = useState<"preview" | "pdf" | null>(null);
+  const [userId, setUserId] = useState(allowGeneralReport ? ALL : employees[0]?.id ?? "");
+  const [month, setMonth] = useState(defaultMonth);
+  const [year, setYear] = useState(defaultYear);
+  const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<ExportPayload | null>(null);
 
-  async function previewExport() {
-    setLoading("preview");
+  const load = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+
+    setLoading(true);
     setMessage("");
 
     try {
       const response = await fetch("/api/export/monthly", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId,
-          month: Number(month),
-          year: Number(year),
-          format: "json",
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, month, year, format: "json" }),
       });
 
       const payload = (await response.json().catch(() => null)) as
@@ -117,20 +169,26 @@ export function ExportClient({
         | null;
 
       if (!response.ok || !payload || payload.ok !== true) {
-        setMessage((payload as { message?: string } | null)?.message || "Anteprima non disponibile");
+        setResult(null);
+        setMessage((payload as { message?: string } | null)?.message || "Report non disponibile");
         return;
       }
 
       setResult(payload);
     } catch {
-      setMessage("Impossibile generare l'anteprima in questo momento.");
+      setResult(null);
+      setMessage("Impossibile leggere le ore in questo momento.");
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
-  }
+  }, [month, userId, year]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function downloadPdf() {
-    setLoading("pdf");
+    setDownloading(true);
     setMessage("");
 
     try {
@@ -141,22 +199,18 @@ export function ExportClient({
 
       const response = await fetch("/api/export/monthly", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          month: Number(month),
-          year: Number(year),
+          month,
+          year,
           format: "pdf",
           deliver: asLink ? "link" : "file",
         }),
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { message?: string }
-          | null;
+        const payload = (await response.json().catch(() => null)) as { message?: string } | null;
         setMessage(payload?.message || "PDF non disponibile");
         return;
       }
@@ -189,243 +243,270 @@ export function ExportClient({
     } catch {
       setMessage("Impossibile scaricare il PDF in questo momento.");
     } finally {
-      setLoading(null);
+      setDownloading(false);
     }
   }
 
-  const monthOptions = Array.from({ length: 12 }, (_, index) => {
-    const value = String(index + 1);
-    const label = new Intl.DateTimeFormat("it-IT", { month: "long" }).format(
-      new Date(2026, index, 1)
-    );
+  const whoLabel =
+    userId === ALL ? "Tutto il team" : employees.find((one) => one.id === userId)?.label ?? "";
 
-    return { value, label };
-  });
-  const yearOptions = Array.from({ length: 21 }, (_, index) => {
-    const value = String(defaultYear - 10 + index);
-    return { value, label: value };
-  });
+  // A result of nothing should say whose nothing it is. "Nessuna timbratura nel
+  // periodo selezionato" left people wondering if they had picked the wrong
+  // month.
+  // Someone reading their own report is not a third person: "Mario Rossi non
+  // ha timbrature" is a strange thing to be told about yourself.
+  const emptyMessage = !allowEmployeeSelection
+    ? `Non hai timbrature a ${monthName(month)}.`
+    : result?.mode === "company"
+      ? `Nessuna registrazione per ${whoLabel} a ${monthName(month)}.`
+      : `${whoLabel} non ha timbrature a ${monthName(month)}.`;
 
   return (
     <Stack className="workbit-export-page">
-      <Panel title="Genera report" className="workbit-export-generator">
+      <Panel
+        title={allowEmployeeSelection ? "Report" : "Le tue ore"}
+        className="workbit-export-generator"
+      >
         {employees.length === 0 ? (
           <EmptyState message="Nessuna persona disponibile per l'export." />
         ) : (
-          <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 13 }}>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
+                gridTemplateColumns: "34px minmax(0, 1fr) 34px",
+                alignItems: "center",
+                gap: 8,
+                padding: 5,
+                borderRadius: 14,
+                background: "#f8fafc",
+                border: "1px solid #e9edf3",
               }}
             >
-              <FormField label="Profilo">
-                <Select
-                  value={userId}
-                  onChange={(event) => setUserId(event.target.value)}
-                  disabled={!allowEmployeeSelection}
-                >
-                  {allowGeneralReport ? <option value="__ALL__">Report generale</option> : null}
-                  {employees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.label}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-
-              <FormField label="Mese">
-                <Select
-                  value={month}
-                  onChange={(event) => setMonth(event.target.value)}
-                >
-                  {monthOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-
-              <FormField label="Anno">
-                <Select
-                  value={year}
-                  onChange={(event) => setYear(event.target.value)}
-                >
-                  {yearOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
+              <button
+                type="button"
+                aria-label="Mese precedente"
+                onClick={() => {
+                  const moved = shiftMonth(month, year, -1);
+                  setMonth(moved.month);
+                  setYear(moved.year);
+                }}
+                style={arrowStyle}
+              >
+                &lsaquo;
+              </button>
+              <span
+                style={{
+                  textAlign: "center",
+                  fontWeight: 820,
+                  fontSize: 14.5,
+                  letterSpacing: "-0.02em",
+                  color: "#0f172a",
+                  textTransform: "capitalize",
+                }}
+              >
+                {monthLabel(month, year)}
+              </span>
+              <button
+                type="button"
+                aria-label="Mese successivo"
+                onClick={() => {
+                  const moved = shiftMonth(month, year, 1);
+                  setMonth(moved.month);
+                  setYear(moved.year);
+                }}
+                style={arrowStyle}
+              >
+                &rsaquo;
+              </button>
             </div>
 
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <PrimaryButton
-                type="button"
-                onClick={previewExport}
-                disabled={loading !== null || !userId}
+            {allowEmployeeSelection ? (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {allowGeneralReport ? (
+                  <ChoiceChip
+                    label="Tutto il team"
+                    active={userId === ALL}
+                    onClick={() => setUserId(ALL)}
+                  />
+                ) : null}
+                {employees.map((employee) => (
+                  <ChoiceChip
+                    key={employee.id}
+                    label={employee.label.split(" ")[0]}
+                    active={userId === employee.id}
+                    onClick={() => setUserId(employee.id)}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {result?.mode === "company" ? (
+              <div
+                className="dashboard-inline-grid"
+                style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}
               >
-                {loading === "preview" ? "Caricamento..." : "Anteprima"}
-              </PrimaryButton>
-              <PrimaryButton
-                type="button"
-                tone="sand"
-                onClick={downloadPdf}
-                disabled={loading !== null || !userId}
+                <Figure label="Ferie" value={String(result.summary?.vacation ?? 0)} lead />
+                <Figure label="Permessi" value={String(result.summary?.permission ?? 0)} />
+                <Figure label="Malattia" value={String(result.summary?.sickness ?? 0)} />
+                <Figure label="Straordinari" value={String(result.summary?.overtime ?? 0)} />
+                <Figure label="Corsi" value={String(result.summary?.courses ?? 0)} />
+                <Figure label="Chiusure" value={String(result.summary?.closures ?? 0)} />
+              </div>
+            ) : (
+              <div
+                className="dashboard-inline-grid"
+                style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}
               >
-                {loading === "pdf" ? "Generazione..." : "Scarica PDF"}
-              </PrimaryButton>
-            </div>
+                <Figure
+                  label="Reali"
+                  value={formatDurationClock(result?.totals.realHours ?? 0)}
+                  lead
+                />
+                <Figure
+                  label="Arrotond."
+                  value={formatDurationClock(result?.totals.roundedHours ?? 0)}
+                />
+                <Figure label="Giornate" value={String(result?.data.length ?? 0)} />
+              </div>
+            )}
 
             {message ? (
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{message}</p>
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 14,
+                  background: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  color: "#9a3412",
+                  fontWeight: 800,
+                  fontSize: 13,
+                }}
+              >
+                {message}
+              </div>
             ) : null}
+
+            {loading ? (
+              <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 750 }}>Leggo le ore…</span>
+            ) : result && result.data.length === 0 ? (
+              <EmptyState message={emptyMessage} />
+            ) : result ? (
+              <div style={{ display: "grid", gap: 7 }}>
+                {result.data.map((day) => (
+                  <div
+                    key={day.date}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      alignItems: "center",
+                      gap: 11,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      border: "1px solid #e9edf3",
+                      background: "#ffffff",
+                    }}
+                  >
+                    <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
+                      <strong style={{ fontSize: 13.5, color: "#0f172a" }}>{day.date}</strong>
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          color: "#64748b",
+                          fontWeight: 700,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {result.mode === "company"
+                          ? `${day.items?.length ?? 0} registrazioni`
+                          : day.entries
+                              .map(
+                                (entry) =>
+                                  `${new Date(entry.clockIn).toLocaleTimeString("it-IT", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    timeZone: APP_TIME_ZONE,
+                                  })}–${new Date(entry.clockOut).toLocaleTimeString("it-IT", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    timeZone: APP_TIME_ZONE,
+                                  })}`
+                              )
+                              .join(" · ") || "Nessuna timbratura"}
+                      </span>
+                    </span>
+
+                    {result.mode === "company" ? null : (
+                      <strong
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 830,
+                          fontVariantNumeric: "tabular-nums",
+                          color: "#4c1d95",
+                        }}
+                      >
+                        {formatDurationClock(day.totals.realHours)}
+                      </strong>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <PrimaryButton type="button" onClick={downloadPdf} disabled={downloading || !userId}>
+              {downloading
+                ? "Preparo il PDF..."
+                : allowEmployeeSelection
+                  ? `Scarica il PDF di ${monthName(month)}`
+                  : `Scarica le tue ore di ${monthName(month)}`}
+            </PrimaryButton>
           </div>
         )}
       </Panel>
-
-      {result ? (
-        <Panel
-          title="Anteprima mensile"
-          className="workbit-export-preview"
-          action={
-            <IconButton
-              type="button"
-              aria-label="Chiudi anteprima"
-              onClick={() => setResult(null)}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M6 6l12 12M18 6 6 18"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </IconButton>
-          }
-        >
-          <div style={{ display: "grid", gap: 16 }}>
-            {result.mode === "company" ? (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <ItemCard title="Indisponibilita" meta={String(result.summary?.availability ?? 0)} />
-                <ItemCard title="Ferie" meta={String(result.summary?.vacation ?? 0)} />
-                <ItemCard title="Permessi" meta={String(result.summary?.permission ?? 0)} />
-                <ItemCard title="Straordinari" meta={String(result.summary?.overtime ?? 0)} />
-                <ItemCard title="Corsi" meta={String(result.summary?.courses ?? 0)} />
-                <ItemCard title="Chiusure" meta={String(result.summary?.closures ?? 0)} />
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <ItemCard title="Ore reali" meta={formatDurationClock(result.totals.realHours)} />
-                <ItemCard
-                  title="Ore arrotondate"
-                  meta={formatDurationClock(result.totals.roundedHours)}
-                />
-              </div>
-            )}
-
-            {result.data.length === 0 ? (
-              <EmptyState
-                message={
-                  result.mode === "company"
-                    ? "Nessuna registrazione nel periodo selezionato."
-                    : "Nessuna timbratura nel periodo selezionato."
-                }
-              />
-            ) : (
-              <ItemList>
-                {result.data.map((day) => (
-                  <ItemCard
-                    key={day.date}
-                    title={day.date}
-                    subtitle={
-                      result.mode === "company"
-                        ? `${day.items?.length ?? 0} registrazioni`
-                        : `Ore reali ${formatDurationClock(day.totals.realHours)} - Ore arrotondate ${formatDurationClock(day.totals.roundedHours)}`
-                    }
-                    meta={
-                      result.mode === "company"
-                        ? undefined
-                        : day.labels.length > 0
-                          ? `Etichette: ${day.labels.join(", ")}`
-                          : "Nessuna etichetta"
-                    }
-                    footer={
-                      result.mode === "company" ? (
-                        <div style={{ display: "grid", gap: 8 }}>
-                          {(day.items ?? []).map((item) => (
-                            <div
-                              key={item.id}
-                              style={{ color: "#334155", fontSize: 14, display: "grid", gap: 4 }}
-                            >
-                              <strong style={{ color: "#0f172a" }}>
-                                {item.type}: {item.title}
-                              </strong>
-                              <span>
-                                {new Date(item.startsAt).toLocaleString("it-IT", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  timeZone: APP_TIME_ZONE,
-                                })}{" "}
-                                -{" "}
-                                {new Date(item.endsAt).toLocaleString("it-IT", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  timeZone: APP_TIME_ZONE,
-                                })}
-                              </span>
-                              {item.note ? <span style={{ color: "#64748b" }}>{item.note}</span> : null}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ display: "grid", gap: 8 }}>
-                          {day.entries.length === 0 ? (
-                            <div style={{ color: "#64748b", fontSize: 14 }}>
-                              Nessuna timbratura per questa giornata.
-                            </div>
-                          ) : (
-                            day.entries.map((entry) => (
-                              <div
-                                key={`${entry.inLogId}-${entry.outLogId}`}
-                                style={{ color: "#334155", fontSize: 14 }}
-                              >
-                              {new Date(entry.clockIn).toLocaleTimeString("it-IT", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                timeZone: APP_TIME_ZONE,
-                              })}{" "}
-                              -{" "}
-                                {new Date(entry.clockOut).toLocaleTimeString("it-IT", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                timeZone: APP_TIME_ZONE,
-                              })}{" "}
-                                - reali {formatDurationClock(entry.realHours)} - arrotondate{" "}
-                                {formatDurationClock(entry.roundedHours)}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-                ))}
-              </ItemList>
-            )}
-          </div>
-        </Panel>
-      ) : null}
     </Stack>
+  );
+}
+
+const arrowStyle = {
+  display: "inline-grid",
+  placeItems: "center",
+  height: 30,
+  borderRadius: 10,
+  background: "#ffffff",
+  border: "1px solid #e9edf3",
+  color: "#64748b",
+  fontSize: 16,
+  fontWeight: 800,
+  cursor: "pointer",
+} as const;
+
+function ChoiceChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "8px 13px",
+        borderRadius: 999,
+        border: active ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #e2e8f0",
+        background: active ? "#f3e8ff" : "#ffffff",
+        color: active ? "#4c1d95" : "#475569",
+        fontSize: 12.5,
+        fontWeight: 800,
+        cursor: "pointer",
+      }}
+    >
+      {label}
+    </button>
   );
 }
