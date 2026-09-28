@@ -2621,7 +2621,9 @@ function DashboardResponsiveStyles() {
         overflow-x: auto;
         overflow-y: hidden;
         padding-bottom: 6px;
-        scroll-snap-type: x proximity;
+        /* One flick moves one week. With proximity, momentum carried the
+           strip past two or three of them. */
+        scroll-snap-type: x mandatory;
         overscroll-behavior-x: contain;
         scrollbar-width: none;
         -ms-overflow-style: none;
@@ -2643,6 +2645,7 @@ function DashboardResponsiveStyles() {
         max-width: 100%;
         box-sizing: border-box;
         scroll-snap-align: start;
+        scroll-snap-stop: always;
       }
 
       .dashboard-calendar-page .dashboard-week-card {

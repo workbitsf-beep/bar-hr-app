@@ -1090,6 +1090,43 @@ export function OwnerCalendarClient({
     [calendarView, initialFocusedDay, visibleDayItems]
   );
 
+  // The strip tells us which week is on screen. The focused day has to follow
+  // it, because the strip re-aligns itself on the focused week: left behind,
+  // it dragged the calendar back to the week you had just scrolled away from.
+  const daysRef = useRef(days);
+  useEffect(() => {
+    daysRef.current = days;
+  }, [days]);
+
+  const handleActiveWeekChange = useCallback((weekStart: string) => {
+    setVisibleWeekStart(weekStart);
+
+    if (!weekStart) {
+      return;
+    }
+
+    setFocusedDayDate((current) => {
+      const week = chunkByWeek(daysRef.current).find(
+        (entry) => entry[0]?.date.slice(0, 10) === weekStart
+      );
+
+      if (!week || week.some((day) => day.date === current)) {
+        return current;
+      }
+
+      // Keep the same weekday where the week has one, so scrolling sideways
+      // reads as moving a week, not as jumping to a different day.
+      const weekdayIndex = Math.max(
+        0,
+        chunkByWeek(daysRef.current)
+          .find((entry) => entry.some((day) => day.date === current))
+          ?.findIndex((day) => day.date === current) ?? 0
+      );
+
+      return (week[weekdayIndex] ?? week.find((day) => day.isToday) ?? week[0])?.date ?? current;
+    });
+  }, []);
+
   const toggleExpandedWeekDay = useCallback((date: string) => {
     setExpandedWeekDays((current) => {
       const next = new Set(current);
@@ -1198,6 +1235,10 @@ export function OwnerCalendarClient({
   );
   function openDay(day: DayItem, mode: CalendarModalMode = "day") {
     setModalContentReady(false);
+    // The day you opened becomes the focused one, so closing the popup leaves
+    // the calendar where you were and not back on today's week.
+    skipDayScrollIntoViewRef.current = true;
+    setFocusedDayDate(day.date);
     setSelectedDate(day.date);
     setActiveCalendarModal(mode);
     setEditingShiftId(null);
@@ -1924,6 +1965,9 @@ export function OwnerCalendarClient({
                   flex: "0 0 100%",
                   width: "100%",
                   scrollSnapAlign: "start",
+                  // One swipe, one day: without this the momentum ran through
+                  // three or four cards before stopping.
+                  scrollSnapStop: "always",
                   alignSelf: "start",
                   minHeight: "auto",
                   padding: "12px min(14px, 4vw)",
@@ -2097,7 +2141,7 @@ export function OwnerCalendarClient({
       <CalendarWeekStrip
         className="dashboard-week-strip"
         resetKey={calendarWindowKey}
-        onActiveWeekChange={setVisibleWeekStart}
+        onActiveWeekChange={handleActiveWeekChange}
         onWheel={handleCalendarBoundaryWheel}
         onTouchStart={handleCalendarBoundaryTouchStart}
         onTouchEnd={handleCalendarBoundaryTouchEnd}
