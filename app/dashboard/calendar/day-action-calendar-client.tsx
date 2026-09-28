@@ -345,20 +345,44 @@ const WEEK_BADGE_STYLES: Record<WeekBadgeTone, { background: string; border: str
   closure: { background: "#f1f5f9", border: "#cbd5e1", color: "#475569" },
 };
 
+/** The dot that stands in for a category while the day is closed up. */
+const WEEK_TONE_DOTS: Record<WeekBadgeTone, string> = {
+  note: "#f59e0b",
+  vacation: "#10b981",
+  permission: "#f97316",
+  course: "#0ea5e9",
+  availability: "#94a3b8",
+  onCall: "#f6b73c",
+  overtime: "#a855f7",
+  closure: "#e0868f",
+};
+
+/** The same colour, dark enough to read as a word. */
+const WEEK_TONE_LABELS: Record<WeekBadgeTone, string> = {
+  note: "#b45309",
+  vacation: "#047857",
+  permission: "#c2410c",
+  course: "#0284c7",
+  availability: "#64748b",
+  onCall: "#a15c07",
+  overtime: "#7e22ce",
+  closure: "#a8424f",
+};
+
 function getRequestBadge(type: string): { key: string; label: string; tone: WeekBadgeTone } {
   if (type === RequestType.OVERTIME) {
-    return { key: "overtime", label: "⭐ Straordinari", tone: "overtime" };
+    return { key: "overtime", label: "Straordinari", tone: "overtime" };
   }
 
   if (type === RequestType.PERMISSION) {
-    return { key: "permission", label: "🟠 Permessi", tone: "permission" };
+    return { key: "permission", label: "Permessi", tone: "permission" };
   }
 
   if (type === RequestType.SICKNESS) {
-    return { key: "sickness", label: "🏥 Malattia", tone: "availability" };
+    return { key: "sickness", label: "Malattia", tone: "availability" };
   }
 
-  return { key: "vacation", label: "🏖️ Ferie", tone: "vacation" };
+  return { key: "vacation", label: "Ferie", tone: "vacation" };
 }
 
 function buildWeekBadges(day: DayItem, features: FeatureFlags): WeekBadge[] {
@@ -378,7 +402,7 @@ function buildWeekBadges(day: DayItem, features: FeatureFlags): WeekBadge[] {
   };
 
   if (features.tasks || features.noticeBoard) {
-    addBadge("notes", "📌 Note", (features.tasks ? day.tasks.length : 0) + (features.noticeBoard ? day.notes.length : 0), "note");
+    addBadge("notes", "Note", (features.tasks ? day.tasks.length : 0) + (features.noticeBoard ? day.notes.length : 0), "note");
   }
 
   if (features.requests) {
@@ -389,15 +413,15 @@ function buildWeekBadges(day: DayItem, features: FeatureFlags): WeekBadge[] {
   }
 
   if (features.courses) {
-    addBadge("courses", "🎓 Corsi", day.courses.length, "course");
+    addBadge("courses", "Corsi", day.courses.length, "course");
   }
 
   if (features.availability) {
-    addBadge("availability", "🚫 Indisponibilità", day.availabilities.length, "availability");
+    addBadge("availability", "Indisponibilità", day.availabilities.length, "availability");
   }
 
   if (features.shifts) {
-    addBadge("on-call", "📍 Reperibilità", day.shifts.filter((shift) => shift.isOnCall).length, "onCall");
+    addBadge("on-call", "Reperibilità", day.shifts.filter((shift) => shift.isOnCall).length, "onCall");
   }
 
   addBadge("closures", "Chiusure", day.closures.length, "closure");
@@ -405,41 +429,166 @@ function buildWeekBadges(day: DayItem, features: FeatureFlags): WeekBadge[] {
   return Array.from(badges.values());
 }
 
-function renderWeekBadge(badge: WeekBadge, onOpen: () => void) {
-  const style = WEEK_BADGE_STYLES[badge.tone];
+/**
+ * A closed-up day says what else it holds with one dot per category. The word
+ * and the count are in the label, for anyone who taps or reads with a screen
+ * reader; on screen a row of seven coloured pills was more ink than the shifts
+ * underneath them.
+ */
+function renderWeekDot(badge: WeekBadge, onOpen: () => void) {
+  const label = badge.count > 1 ? `${badge.label} · ${badge.count}` : badge.label;
 
   return (
     <button
       key={badge.key}
       type="button"
+      title={label}
+      aria-label={label}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
         onOpen();
       }}
       style={{
-        border: `1px solid ${style.border}`,
-        background: style.background,
-        color: style.color,
+        width: 14,
+        height: 14,
+        padding: 0,
+        border: 0,
         borderRadius: 999,
-        padding: "4px 8px",
-        fontSize: 11,
-        fontWeight: 850,
-        lineHeight: 1,
+        background: "transparent",
+        display: "inline-grid",
+        placeItems: "center",
         cursor: "pointer",
-        whiteSpace: "nowrap",
+        flex: "0 0 auto",
       }}
     >
-      {badge.label} +{badge.count}
+      <span
+        aria-hidden="true"
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: 999,
+          background: WEEK_TONE_DOTS[badge.tone],
+          display: "block",
+        }}
+      />
     </button>
   );
 }
 
-function renderWeekSection(title: string, children: ReactNode) {
+function renderWeekSection(title: string, children: ReactNode, tone: WeekBadgeTone = "note") {
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <strong style={{ color: "#0f172a", fontSize: 12 }}>{title}</strong>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 9.5,
+          fontWeight: 800,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: WEEK_TONE_LABELS[tone],
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 999,
+            background: WEEK_TONE_DOTS[tone],
+            display: "block",
+            flex: "0 0 auto",
+          }}
+        />
+        {title}
+      </span>
       <div style={{ display: "grid", gap: 6 }}>{children}</div>
+    </div>
+  );
+}
+
+/**
+ * A shift as one line inside the week card: no box of its own, because the day
+ * is already a card and the week is already a card around that.
+ *
+ * Bold is spent on one thing only - your own hours and your own name - so a
+ * glance down the week finds where you are working.
+ */
+function renderWeekShiftLine(
+  shift: ShiftItem,
+  locale: string,
+  currentUserId: string,
+  onOpen: () => void
+) {
+  const mine = shift.assignments.some((assignment) => assignment.id === currentUserId);
+
+  return (
+    <div
+      key={shift.id}
+      className="workbit-week-shift-line"
+      role="button"
+      tabIndex={0}
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpen();
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        onOpen();
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        minWidth: 0,
+        fontSize: 13,
+        lineHeight: 1.35,
+        cursor: "pointer",
+        touchAction: "manipulation",
+      }}
+    >
+      <span
+        style={{
+          flex: "0 0 auto",
+          fontVariantNumeric: "tabular-nums",
+          fontWeight: mine ? 850 : 600,
+          color: mine ? "#17161f" : "#3a3850",
+        }}
+      >
+        {formatTime(shift.startTime, locale)}–{formatTime(shift.endTime, locale)}
+      </span>
+      {shift.isOnCall ? (
+        <span style={{ flex: "0 0 auto", color: "#a15c07", fontSize: 11, fontWeight: 600 }}>
+          {shift.confirmedAt ? "Reperibilità" : "Reperibilità in attesa"}
+        </span>
+      ) : null}
+      <span
+        style={{
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          color: "#55536a",
+          fontSize: 12.5,
+          fontWeight: 500,
+        }}
+      >
+        {formatAssignmentNames(shift.assignments)}
+      </span>
+      <span
+        title={shift.confirmedAt ? "Confermato" : "In attesa"}
+        aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
+        style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", flex: "0 0 auto" }}
+      >
+        {renderShiftStateIcon(Boolean(shift.confirmedAt), 14)}
+      </span>
     </div>
   );
 }
@@ -2485,6 +2634,8 @@ export function DayActionCalendarClient({
                   const isExpanded = expandedWeekDays.has(day.date);
                   const categoryBadges = buildWeekBadges(day, features);
                   const isPastDay = day.date.slice(0, 10) < todayKey;
+                  const isClosedDay = day.closures.length > 0;
+                  const hasShifts = features.shifts && day.shifts.length > 0;
                   return (
                   <div
                     key={day.date}
@@ -2512,49 +2663,88 @@ export function DayActionCalendarClient({
                     data-calendar-today={day.isToday ? "true" : undefined}
                     data-calendar-closed={day.closures.length > 0 ? "true" : undefined}
                     style={{
+                      // A rail three pixels wide carries the state, and only
+                      // today gets a tinted ground: one coloured card per
+                      // screen instead of seven.
                       display: "grid",
-                      gap: 6,
+                      gridTemplateColumns: "3px minmax(0, 1fr)",
                       width: "100%",
                       maxWidth: "100%",
                       boxSizing: "border-box",
-                      padding: 10,
-                      borderRadius: 16,
-                      background: day.closures.length > 0 ? "#fff3f4" : "#ffffff",
-                      border:
-                        day.closures.length > 0
-                          ? "1px solid rgba(185, 78, 91, 0.24)"
-                          : day.isToday
-                            ? "2px solid #0f172a"
-                            : "1px solid #e2e8f0",
-                      boxShadow:
-                        day.closures.length > 0
-                          ? "0 8px 20px rgba(145, 61, 73, 0.08)"
-                          : "0 8px 20px rgba(15, 23, 42, 0.05)",
-                      opacity:
-                        isPastDay
-                          ? 0.58
-                          : day.inCurrentMonth
-                            ? 1
-                            : 0.7,
+                      borderRadius: 15,
+                      overflow: "hidden",
+                      background: day.isToday ? "#f8f6ff" : "#ffffff",
+                      border: `1px solid ${
+                        day.isToday ? "#d9d0f8" : isClosedDay ? "#f0d5d9" : "#e9e6f5"
+                      }`,
+                      opacity: isPastDay ? 0.5 : day.inCurrentMonth ? 1 : 0.7,
                       textAlign: "left",
                       cursor: isPastDay ? "default" : "pointer",
                     }}
                   >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        background: day.isToday
+                          ? "#4c1d95"
+                          : isClosedDay
+                            ? "#e5a3aa"
+                            : "#e9e6f5",
+                      }}
+                    />
+                    <div style={{ display: "grid", gap: 6, minWidth: 0, padding: "10px 12px" }}>
                     <div
                       className="workbit-week-day-header"
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 6,
-                        flexWrap: "wrap",
-                      }}
+                      style={{ display: "flex", alignItems: "center", gap: 7 }}
                     >
-                      <strong style={{ color: "#0f172a", fontSize: 14 }}>
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontSize: 12.5,
+                          letterSpacing: "0.01em",
+                          fontWeight: day.isToday ? 760 : 620,
+                          color: day.isToday ? "#4c1d95" : isClosedDay ? "#a8424f" : "#6b6880",
+                        }}
+                      >
                         {formatCompactDayLabel(day.date, locale)}
-                      </strong>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        {day.isToday ? <StatusPill label="Oggi" tone="neutral" /> : null}
+                      </span>
+                      {day.isToday ? (
+                        <span
+                          style={{
+                            flex: "0 0 auto",
+                            fontSize: 9,
+                            fontWeight: 780,
+                            letterSpacing: "0.11em",
+                            color: "#6d5ce7",
+                          }}
+                        >
+                          OGGI
+                        </span>
+                      ) : null}
+                      {isClosedDay ? (
+                        <span style={{ flex: "0 0 auto", fontSize: 11, fontWeight: 620, color: "#a8424f" }}>
+                          Chiuso
+                        </span>
+                      ) : null}
+
+                      {/* The dots are the closed-up summary. While the day is
+                          open the sections below say the same thing with the
+                          same words. */}
+                      {categoryBadges.length > 0 && !isExpanded ? (
+                        <span
+                          className="workbit-week-badges"
+                          style={{ display: "inline-flex", gap: 2, alignItems: "center", flex: "0 0 auto" }}
+                        >
+                          {categoryBadges.map((badge) =>
+                            renderWeekDot(badge, () => toggleExpandedWeekDay(day.date))
+                          )}
+                        </span>
+                      ) : null}
+
+                      {/* Nothing sits behind the arrow on a day that holds only
+                          shifts, so the arrow is not drawn there. */}
+                      {categoryBadges.length > 0 ? (
                         <span
                           className="workbit-week-details"
                           role="button"
@@ -2575,28 +2765,18 @@ export function DayActionCalendarClient({
                             toggleExpandedWeekDay(day.date);
                           }}
                           style={{
-                            borderRadius: 999,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 6,
-                            minHeight: 28,
-                            padding: "5px 10px",
-                            background: isExpanded ? "linear-gradient(135deg, #f5f3ff, #ffffff)" : "#ffffff",
-                            border: "1px solid rgba(124, 58, 237, 0.18)",
-                            color: "#6d28d9",
-                            fontSize: 11,
-                            fontWeight: 900,
+                            flex: "0 0 auto",
+                            width: 18,
+                            height: 18,
+                            display: "inline-grid",
+                            placeItems: "center",
+                            color: "#b6b3c9",
                             cursor: "pointer",
-                            lineHeight: 1,
-                            boxShadow: isExpanded ? "0 8px 18px rgba(124, 58, 237, 0.10)" : "none",
-                            transition: "background 140ms ease, box-shadow 140ms ease, border-color 140ms ease",
                           }}
                         >
-                          <span>{isExpanded ? "Chiudi" : "Dettagli"}</span>
                           <svg
-                            width="12"
-                            height="12"
+                            width="11"
+                            height="11"
                             viewBox="0 0 24 24"
                             fill="none"
                             aria-hidden="true"
@@ -2608,21 +2788,21 @@ export function DayActionCalendarClient({
                             <path
                               d="M7 10l5 5 5-5"
                               stroke="currentColor"
-                              strokeWidth="2.4"
+                              strokeWidth="2.8"
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
                           </svg>
                         </span>
-                      </span>
+                      ) : null}
                     </div>
 
-                    {features.shifts && day.shifts.length > 0 ? (
-                      <div className="workbit-week-shifts" style={{ display: "grid", gap: 6 }}>
+                    {hasShifts ? (
+                      <div className="workbit-week-shifts" style={{ display: "grid", gap: 5 }}>
                         {groupShiftsByTime(day.shifts).map((shift) =>
                           renderShiftSwipeActions(
                             shift,
-                            renderShiftCard(shift, locale, true, () => {
+                            renderWeekShiftLine(shift, locale, currentUserId, () => {
                               setSelectedDate(day.date);
                               setActiveCalendarModal("shifts");
                               setEditingShiftId(null);
@@ -2631,15 +2811,12 @@ export function DayActionCalendarClient({
                           )
                         )}
                       </div>
-                    ) : null}
+                    ) : isClosedDay ? null : (
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
+                        {isPastDay ? "Giornata passata" : "Nessun turno"}
+                      </span>
+                    )}
 
-                    {categoryBadges.length > 0 ? (
-                      <div className="workbit-week-badges" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                        {categoryBadges.map((badge) =>
-                          renderWeekBadge(badge, () => toggleExpandedWeekDay(day.date))
-                        )}
-                      </div>
-                    ) : null}
 
                     {isExpanded ? (
                       <div
@@ -2654,7 +2831,7 @@ export function DayActionCalendarClient({
                       >
                         {features.requests && [...day.requests, ...day.pendingRequests].filter((request) => request.type === RequestType.PERMISSION).length > 0
                           ? renderWeekSection(
-                              "🟠 Permessi",
+                              "Permessi",
                               <>
                                 {day.requests
                                   .filter((request) => request.type === RequestType.PERMISSION)
@@ -2669,12 +2846,13 @@ export function DayActionCalendarClient({
                                 {day.pendingRequests
                                   .filter((request) => request.type === RequestType.PERMISSION)
                                   .map((request) => renderPendingRequestCard(request, true))}
-                              </>
+                              </>,
+                              "permission"
                             )
                           : null}
                         {features.requests && [...day.requests, ...day.pendingRequests].filter((request) => request.type === RequestType.VACATION).length > 0
                           ? renderWeekSection(
-                              "🏖️ Ferie",
+                              "Ferie",
                               <>
                                 {day.requests
                                   .filter((request) => request.type === RequestType.VACATION)
@@ -2689,18 +2867,20 @@ export function DayActionCalendarClient({
                                 {day.pendingRequests
                                   .filter((request) => request.type === RequestType.VACATION)
                                   .map((request) => renderPendingRequestCard(request, true))}
-                              </>
+                              </>,
+                              "vacation"
                             )
                           : null}
                         {features.courses && day.courses.length > 0
                           ? renderWeekSection(
-                              "🎓 Corsi",
-                              day.courses.map((course) => renderCourseCard(course, locale, true))
+                              "Corsi",
+                              day.courses.map((course) => renderCourseCard(course, locale, true)),
+                              "course"
                             )
                           : null}
                         {(features.tasks && day.tasks.length > 0) || (features.noticeBoard && day.notes.length > 0)
                           ? renderWeekSection(
-                              "📌 Note",
+                              "Note",
                               <>
                                 {features.tasks
                                   ? day.tasks.map((task) =>
@@ -2728,12 +2908,13 @@ export function DayActionCalendarClient({
                                       )
                                     )
                                   : null}
-                              </>
+                              </>,
+                              "note"
                             )
                           : null}
                         {features.availability && day.availabilities.length > 0
                           ? renderWeekSection(
-                              "🚫 Indisponibilità",
+                              "Indisponibilità",
                               day.availabilities.map((availability) =>
                                 renderDeleteSwipeCard(
                                   `availability-${availability.id}`,
@@ -2741,20 +2922,22 @@ export function DayActionCalendarClient({
                                   "Elimina indisponibilita",
                                   () => handleDeleteAvailability(availability.id)
                                 )
-                              )
+                              ),
+                              "availability"
                             )
                           : null}
                         {features.shifts && day.shifts.filter((shift) => shift.isOnCall).length > 0
                           ? renderWeekSection(
-                              "📍 Reperibilità",
+                              "Reperibilità",
                               day.shifts
                                 .filter((shift) => shift.isOnCall)
-                                .map((shift) => renderPendingOnCallCard(shift, locale, true))
+                                .map((shift) => renderPendingOnCallCard(shift, locale, true)),
+                              "onCall"
                             )
                           : null}
                         {features.requests && [...day.requests, ...day.pendingRequests].filter((request) => request.type === RequestType.OVERTIME).length > 0
                           ? renderWeekSection(
-                              "⭐ Straordinari",
+                              "Straordinari",
                               <>
                                 {day.requests
                                   .filter((request) => request.type === RequestType.OVERTIME)
@@ -2769,7 +2952,8 @@ export function DayActionCalendarClient({
                                 {day.pendingRequests
                                   .filter((request) => request.type === RequestType.OVERTIME)
                                   .map((request) => renderPendingRequestCard(request, true))}
-                              </>
+                              </>,
+                              "overtime"
                             )
                           : null}
                         {day.closures.length > 0
@@ -2782,7 +2966,8 @@ export function DayActionCalendarClient({
                                   formatRange(closure.startTime, closure.endTime, locale),
                                   "closure"
                                 )
-                              )
+                              ),
+                              "closure"
                             )
                           : null}
                       </div>
@@ -2946,6 +3131,7 @@ export function DayActionCalendarClient({
                         </>
                       );
                     })()}
+                    </div>
                   </div>
                   );
                 })}

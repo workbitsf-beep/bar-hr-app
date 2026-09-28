@@ -3865,132 +3865,40 @@ function DashboardResponsiveStyles() {
           white-space: nowrap;
         }
 
+        /* The day card carries its own colours inline now: a three-pixel rail
+           for the state and a tinted ground only on today. Pinning background,
+           border and shadow here fought those and won, so the block below is
+           down to what is genuinely about the small screen. */
         .workbit-week-day-card {
           gap: 0 !important;
           padding: 0 !important;
           overflow: hidden;
-          border: 1px solid rgba(94, 92, 230, 0.09) !important;
-          border-radius: 18px !important;
-          background: #ffffff !important;
-          box-shadow: 0 8px 20px rgba(61, 42, 153, 0.045) !important;
+          border-radius: 15px !important;
+          box-shadow: none !important;
         }
 
         .workbit-week-day-card[data-calendar-today="true"] {
-          border: 1.5px solid rgba(94, 92, 230, 0.42) !important;
           opacity: 1 !important;
         }
 
-        .workbit-week-day-card[data-calendar-closed="true"] {
-          border-color: rgba(185, 78, 91, 0.24) !important;
-          background: #fff3f4 !important;
-          box-shadow: 0 8px 20px rgba(145, 61, 73, 0.07) !important;
-        }
-
-        .workbit-week-day-card[data-calendar-closed="true"] .workbit-week-day-header > strong {
-          color: #8f3e49 !important;
-        }
-
-        .workbit-week-day-card[data-calendar-closed="true"] .workbit-day-shift-row {
-          background: #fff8f8 !important;
-        }
-
         .workbit-week-day-header {
-          min-height: 42px;
-          padding: 9px 11px 7px;
+          min-height: 30px;
           flex-wrap: nowrap !important;
-        }
-
-        .workbit-week-day-header > strong {
-          color: #737178 !important;
-          font-size: 12px !important;
-          font-weight: 900 !important;
-          white-space: nowrap;
-        }
-
-        .workbit-week-day-card[data-calendar-today="true"] .workbit-week-day-header > strong {
-          color: #17171f !important;
-        }
-
-        .workbit-week-details {
-          min-height: 24px !important;
-          padding: 0 !important;
-          border: 0 !important;
-          background: transparent !important;
-          color: #5e5ce6 !important;
-          font-size: 12px !important;
-          font-weight: 900 !important;
-          box-shadow: none !important;
-        }
-
-        .workbit-week-details svg {
-          display: none !important;
         }
 
         .workbit-week-shifts {
-          gap: 0 !important;
+          gap: 5px !important;
         }
 
-        .workbit-week-shifts .workbit-day-shift-row {
-          padding: 10px 12px !important;
-          border: 0 !important;
-          border-top: 1px solid #ecebf0 !important;
-          border-radius: 0 !important;
-          background: #ffffff !important;
-          box-shadow: none !important;
-        }
-
-        .workbit-week-shifts .workbit-day-shift-row > div {
-          flex-wrap: nowrap !important;
-          gap: 10px !important;
+        .workbit-week-shift-line {
           min-height: 24px;
         }
 
-        .workbit-week-shifts .workbit-day-shift-row > div > strong {
-          min-width: 90px;
-          color: #a7a5ac !important;
-          font-size: 13px !important;
-          font-weight: 950 !important;
-          white-space: nowrap;
-        }
-
-        .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > strong {
-          color: #17171f !important;
-        }
-
-        .workbit-week-shifts .workbit-day-shift-row > div > span:not(:last-child) {
-          min-width: 0;
-          color: #8e8e93 !important;
-          font-size: 13px !important;
-          line-height: 1.15;
-        }
-
-        .workbit-week-day-card[data-calendar-today="true"] .workbit-day-shift-row > div > span:not(:last-child) {
-          color: #17171f !important;
-        }
-
-        .workbit-week-shifts .workbit-day-shift-row > div > span:last-child {
-          width: 23px;
-          height: 23px;
-          flex: 0 0 23px;
-          border-radius: 999px;
-          background: #e4f8e9;
-        }
-
-        .workbit-week-shifts .workbit-day-shift-row > div > span[aria-label="In attesa"] {
-          background: #fff3dc;
-        }
-
-        .workbit-week-badges {
-          gap: 6px !important;
-          padding: 8px 11px 10px;
-          border-top: 1px solid #ecebf0;
-        }
-
-        .workbit-week-badges > button {
-          min-height: 24px !important;
-          padding: 4px 9px !important;
+        .workbit-week-details {
+          min-height: 18px !important;
+          padding: 0 !important;
           border: 0 !important;
-          font-size: 11px !important;
+          background: transparent !important;
           box-shadow: none !important;
         }
       }
