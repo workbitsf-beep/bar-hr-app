@@ -72,6 +72,13 @@ export function SingleDayTimeRangeInput({
   const [date, setDate] = useState(initialStart.date || initialEnd.date || today);
   const [startTime, setStartTime] = useState(initialStart.time);
   const [endTime, setEndTime] = useState(initialEnd.time);
+  // Open from the start when the hours it was given match no preset.
+  const [exact, setExact] = useState(
+    Boolean(initialStart.time || initialEnd.time) &&
+      !TIME_PRESETS.some(
+        (preset) => preset.startTime === initialStart.time && preset.endTime === initialEnd.time
+      )
+  );
   const safeDate = date && date < today ? today : date;
 
   return (
@@ -140,16 +147,52 @@ export function SingleDayTimeRangeInput({
             );
           })}
         </div>
+
+        {startTime && endTime ? (
+          <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+            {startTime} – {endTime}
+          </span>
+        ) : null}
       </div>
 
-      <label style={{ display: "grid", gap: 8 }}>
-        <span style={{ fontWeight: 600, color: "#1e293b" }}>Ora inizio</span>
-        <TimeInput value={startTime} onChange={setStartTime} required={required} />
-      </label>
-      <label style={{ display: "grid", gap: 8 }}>
-        <span style={{ fontWeight: 600, color: "#1e293b" }}>Ora fine</span>
-        <TimeInput value={endTime} onChange={setEndTime} required={required} />
-      </label>
+      {/* The exact hours are folded away: with the presets above, four number
+          boxes and two colons were making the form longer, not shorter. They
+          open for the odd shift that does not fit a preset. */}
+      <div style={{ gridColumn: "1 / -1", display: "grid", gap: 10 }}>
+        {exact ? (
+          <div
+            className="dashboard-inline-grid"
+            style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}
+          >
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Ora inizio</span>
+              <TimeInput value={startTime} onChange={setStartTime} required={required} />
+            </label>
+            <label style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontWeight: 600, color: "#1e293b" }}>Ora fine</span>
+              <TimeInput value={endTime} onChange={setEndTime} required={required} />
+            </label>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExact(true)}
+            style={{
+              justifySelf: "start",
+              padding: "10px 13px",
+              borderRadius: 14,
+              border: "1px dashed #cbd5e1",
+              background: "transparent",
+              color: "#64748b",
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            ＋ Ora esatta
+          </button>
+        )}
+      </div>
       <input type="hidden" name={startName} value={buildDateTime(safeDate, startTime)} />
       <input type="hidden" name={endName} value={buildDateTime(safeDate, endTime)} />
     </div>

@@ -106,6 +106,7 @@ export function CourseComposeForm({
   const [queued, setQueued] = useState<CourseDraft[]>([]);
   const [showExtras, setShowExtras] = useState(false);
   const [multiDay, setMultiDay] = useState(false);
+  const [exactHours, setExactHours] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -117,6 +118,7 @@ export function CourseComposeForm({
     setDraft(createDraft(nextKind));
     setShowExtras(false);
     setMultiDay(false);
+    setExactHours(false);
     setError("");
   }
 
@@ -407,20 +409,47 @@ export function CourseComposeForm({
               })}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-              <TextInput
-                type="time"
-                aria-label="Ora inizio"
-                value={draft.startTime}
-                onChange={(event) => setDraft({ ...draft, startTime: event.target.value })}
-              />
-              <TextInput
-                type="time"
-                aria-label="Ora fine"
-                value={draft.endTime}
-                onChange={(event) => setDraft({ ...draft, endTime: event.target.value })}
-              />
-            </div>
+            <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+              {draft.startTime} – {draft.endTime}
+            </span>
+
+            {/* Folded away, like everywhere else: the presets answer it nearly
+                always, and two time boxes under them only made the form
+                longer. */}
+            {exactHours ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                <TextInput
+                  type="time"
+                  aria-label="Ora inizio"
+                  value={draft.startTime}
+                  onChange={(event) => setDraft({ ...draft, startTime: event.target.value })}
+                />
+                <TextInput
+                  type="time"
+                  aria-label="Ora fine"
+                  value={draft.endTime}
+                  onChange={(event) => setDraft({ ...draft, endTime: event.target.value })}
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setExactHours(true)}
+                style={{
+                  justifySelf: "start",
+                  padding: "10px 13px",
+                  borderRadius: 14,
+                  border: "1px dashed #cbd5e1",
+                  background: "transparent",
+                  color: "#64748b",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                ＋ Ora esatta
+              </button>
+            )}
           </div>
 
           <FormField label="A chi">
