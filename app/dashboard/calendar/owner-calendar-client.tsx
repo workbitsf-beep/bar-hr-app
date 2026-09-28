@@ -22,6 +22,7 @@ import type { ShiftPreset } from "@/lib/shift-presets";
 import type { FeatureFlags } from "@/lib/features";
 import { TimeInput } from "@/app/components/time-input";
 import {
+  addStandardShiftPresetAction,
   completeTaskAction,
   createBoardNoteAction,
   createShiftAction,
@@ -42,6 +43,7 @@ import { CalendarWeekStrip } from "./calendar-week-strip";
 import { groupShiftsByTime } from "./group-shifts-by-time";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 import { scrollToTodayCard } from "./scroll-to-today-button";
+import { ShiftQuickAdd } from "./shift-quick-add";
 import {
   addDaysToDateKey,
   chunkByWeek,
@@ -185,6 +187,18 @@ type ShiftDraft = {
   memberIds: string[];
   isOnCall: boolean;
 };
+
+const clockFormatter = new Intl.DateTimeFormat("it-IT", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: APP_TIME_ZONE,
+});
+
+/** An instant as the venue's own wall clock reads it: "09:00". */
+function formatClockValue(value: string) {
+  return clockFormatter.format(new Date(value)).replace("24:", "00:");
+}
 
 function createShiftDraft(dateIso: string): ShiftDraft {
   return {
@@ -809,6 +823,7 @@ export function OwnerCalendarClient({
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
+  const [composerMode, setComposerMode] = useState<"quick" | "full">("quick");
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [shiftDrafts, setShiftDrafts] = useState<ShiftDraft[]>([]);
@@ -818,6 +833,29 @@ export function OwnerCalendarClient({
   const [selectedShiftWeekdays, setSelectedShiftWeekdays] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [noteConfirmationsById, setNoteConfirmationsById] = useState<Record<string, NoteItem["confirmations"]>>({});
+  // The hours this venue actually works, counted from the shifts already on
+  // the calendar. Typed times beat standard slots here, so the keypad offers
+  // back what has been typed before rather than only what settings holds.
+  const recentShiftTimes = useMemo(() => {
+    const counts = new Map<string, { startTime: string; endTime: string; count: number }>();
+
+    for (const day of days) {
+      for (const shift of day.shifts) {
+        const startTime = formatClockValue(shift.startTime);
+        const endTime = formatClockValue(shift.endTime);
+        const key = `${startTime}-${endTime}`;
+        const entry = counts.get(key);
+
+        if (entry) {
+          entry.count += 1;
+        } else {
+          counts.set(key, { startTime, endTime, count: 1 });
+        }
+      }
+    }
+
+    return Array.from(counts.values()).sort((left, right) => right.count - left.count);
+  }, [days]);
   const calendarTopRef = useRef<HTMLDivElement | null>(null);
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const dayScrollTimerRef = useRef<number | null>(null);
@@ -1663,26 +1701,32 @@ export function OwnerCalendarClient({
     return Boolean(draft?.date && draft.startTime && draft.endTime && draft.memberIds.length > 0);
   }
 
-  function addShiftDraft() {
+  /**
+   * `source` lets the quick keypad hand its own draft straight in, instead of
+   * writing it to state first and racing the render.
+   */
+  function addShiftDraft(source?: ShiftDraft) {
     if (!selectedDay) {
       return;
     }
 
     setShowShiftComposer(true);
-    if (!currentShiftDraft) {
+    const draftToSave = source ?? currentShiftDraft;
+
+    if (!draftToSave) {
       setCurrentShiftDraft(createShiftDraft(selectedDay.date));
       return;
     }
 
-    if (!isShiftDraftValid(currentShiftDraft)) {
+    if (!isShiftDraftValid(draftToSave)) {
       setFeedback({ tone: "danger", message: "Completa il turno prima di aggiungerlo alla lista." });
       return;
     }
 
     const draftsToAdd = createRepeatedShiftDrafts(
-      currentShiftDraft,
-      shiftInsertMode,
-      selectedShiftWeekdays,
+      draftToSave,
+      source ? "DAY" : shiftInsertMode,
+      source ? [] : selectedShiftWeekdays,
       todayKey
     );
 
@@ -3275,7 +3319,65 @@ export function OwnerCalendarClient({
                     );
                   })}
 
-                  {currentShiftDraft ? (
+                  {composerMode === "quick" && selectedDay ? (
+                    <>
+                      <ShiftQuickAdd
+                        // A saved shift lands in the list above; remounting
+                        // here clears the keypad for the next one.
+                        key={`${selectedDay.date}-${savedShiftDrafts.length}`}
+                        dayLabel={formatDayLabel(selectedDay.date, locale)}
+                        members={members.map((member) => ({
+                          id: member.id,
+                          name: `${member.firstName} ${member.lastName}`.trim(),
+                        }))}
+                        presets={presets}
+                        recent={recentShiftTimes}
+                        pending={isPending}
+                        onCancel={() => setShowShiftComposer(false)}
+                        onSave={(shift) =>
+                          addShiftDraft({
+                            ...createShiftDraft(selectedDay.date),
+                            startTime: shift.startTime,
+                            endTime: shift.endTime,
+                            memberIds: shift.memberIds,
+                            isOnCall: shift.isOnCall,
+                          })
+                        }
+                        onSavePreset={(slot) =>
+                          runAction(async () => {
+                            const formData = new FormData();
+                            formData.set("startTime", slot.startTime);
+                            formData.set("endTime", slot.endTime);
+                            await addStandardShiftPresetAction(formData);
+                          }, "Fascia salvata.")
+                        }
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setComposerMode("full");
+                          if (!currentShiftDraft) {
+                            setCurrentShiftDraft(createShiftDraft(selectedDay.date));
+                          }
+                        }}
+                        style={{
+                          justifySelf: "center",
+                          border: 0,
+                          background: "transparent",
+                          color: "#6b7280",
+                          fontSize: 12.5,
+                          fontWeight: 760,
+                          textDecoration: "underline",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Ripetizioni, più giorni, per dipendente
+                      </button>
+                    </>
+                  ) : null}
+
+                  {composerMode === "full" && currentShiftDraft ? (
                     <div
                       key={currentShiftDraft.id}
                       style={{
@@ -3575,7 +3677,7 @@ export function OwnerCalendarClient({
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <IconButton
                           type="button"
-                          onClick={addShiftDraft}
+                          onClick={() => addShiftDraft()}
                           aria-label="Aggiungi turno alla lista"
                           disabled={isPending || !isShiftDraftValid(currentShiftDraft)}
                           style={{
@@ -3602,7 +3704,7 @@ export function OwnerCalendarClient({
                   >
                     <IconButton
                       type="button"
-                      onClick={addShiftDraft}
+                      onClick={() => addShiftDraft()}
                       aria-label="Aggiungi turno alla lista"
                       disabled={isPending || !isShiftDraftValid(currentShiftDraft)}
                       style={{
@@ -3641,6 +3743,7 @@ export function OwnerCalendarClient({
                       type="button"
                       tone="sand"
                       onClick={() => {
+                        setComposerMode("quick");
                         setShowShiftComposer(true);
                         if (!currentShiftDraft) {
                           setCurrentShiftDraft(createShiftDraft(day.date));

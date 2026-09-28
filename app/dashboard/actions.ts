@@ -36,6 +36,7 @@ import { closeUserAccount } from "@/lib/account-retirement";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { normalizeRoundingStep } from "@/lib/rounding";
+import { buildShiftPresets } from "@/lib/shift-presets";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
 import { formatDateTimeInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { parseTaskDueDate } from "@/lib/task-dates";
@@ -4118,6 +4119,82 @@ export async function promoteToSuperAdminAction(formData: FormData) {
 
   revalidatePath("/dashboard/super-admin/settings");
   redirect(appendStatusToPath(returnPath, { success: "super-admin-added" }));
+}
+
+/**
+ * Save one more standard slot, from wherever the hours were just typed.
+ *
+ * The full list lives in the settings page; this is the shortcut offered in
+ * the calendar the third or fourth time the same two times get typed in.
+ */
+export async function addStandardShiftPresetAction(formData: FormData) {
+  const { role, activeBarId } = await getActionContext();
+  ensureOwnerRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const startTime = parseOptionalTime(formData.get("startTime"));
+  const endTime = parseOptionalTime(formData.get("endTime"));
+
+  if (!startTime || !endTime) {
+    throw new Error("Orario non valido");
+  }
+
+  const settings = await prisma.barSettings.findUnique({
+    where: { barId: activeBarId },
+    select: {
+      standardShiftPresets: true,
+      morningStartTime: true,
+      morningEndTime: true,
+      afternoonStartTime: true,
+      afternoonEndTime: true,
+      eveningStartTime: true,
+      eveningEndTime: true,
+    },
+  });
+
+  // The venue may still be on the old three morning/afternoon/evening fields.
+  // Carry those over into the list the first time it saves one from here, so
+  // the settings page keeps showing what it showed before.
+  const existing = buildShiftPresets(settings).map((preset, index) => ({
+    id: preset.key,
+    title: preset.label || `Orario ${index + 1}`,
+    startTime: preset.startTime,
+    endTime: preset.endTime,
+  }));
+
+  if (existing.some((preset) => preset.startTime === startTime && preset.endTime === endTime)) {
+    revalidatePath("/dashboard/calendar");
+    return;
+  }
+
+  const title = String(formData.get("title") ?? "").trim() || `Orario ${existing.length + 1}`;
+
+  await prisma.barSettings.upsert({
+    where: { barId: activeBarId },
+    update: {
+      standardShiftPresets: existing.concat({
+        id: `CUSTOM_${Date.now()}`,
+        title,
+        startTime,
+        endTime,
+      }),
+    },
+    create: {
+      barId: activeBarId,
+      standardShiftPresets: existing.concat({
+        id: `CUSTOM_${Date.now()}`,
+        title,
+        startTime,
+        endTime,
+      }),
+    },
+  });
+
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/settings");
 }
 
 export async function updateSettingsAction(formData: FormData) {
