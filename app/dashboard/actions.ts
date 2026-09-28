@@ -38,7 +38,7 @@ import { invalidateReportingCache } from "@/lib/reporting";
 import { normalizeRoundingStep } from "@/lib/rounding";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
-import { formatDateTimeInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
+import { APP_TIME_ZONE, formatDateTimeInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { parseTaskDueDate } from "@/lib/task-dates";
 import {
   parseTaskRepeat,
@@ -508,14 +508,28 @@ function getShiftConflictLabel(type: "AVAILABILITY" | RequestType) {
   return "ferie";
 }
 
+/** "08:30–14:15", for saying which shift is in the way. */
+function describeShiftSpan(startTime: Date, endTime: Date) {
+  const formatter = new Intl.DateTimeFormat("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: APP_TIME_ZONE,
+  });
+
+  return `${formatter.format(startTime)}–${formatter.format(endTime)}`;
+}
+
 async function assertNoShiftAssignmentConflicts(input: {
   barId: string;
   employeeIds: string[];
   startTime: Date;
   endTime: Date;
   isOnCall?: boolean;
+  /** The shift being edited, which cannot clash with itself. */
+  excludeShiftId?: string;
 }) {
-  const [availabilityConflicts, requestConflicts] = await Promise.all([
+  const [availabilityConflicts, requestConflicts, shiftConflicts] = await Promise.all([
     prisma.availability.findMany({
       where: {
         barId: input.barId,
@@ -569,6 +583,43 @@ async function assertNoShiftAssignmentConflicts(input: {
         },
       },
     }),
+    // Nobody can be in two places at once. This used to go unchecked, so a
+    // venue could end up with the same person on three shifts that all ran
+    // through the same morning.
+    prisma.shift.findMany({
+      where: {
+        barId: input.barId,
+        ...(input.excludeShiftId ? { id: { not: input.excludeShiftId } } : {}),
+        startTime: {
+          lt: input.endTime,
+        },
+        endTime: {
+          gt: input.startTime,
+        },
+        assignments: {
+          some: {
+            userId: {
+              in: input.employeeIds,
+            },
+          },
+        },
+      },
+      select: {
+        startTime: true,
+        endTime: true,
+        assignments: {
+          select: {
+            userId: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+    }),
   ]);
 
   const conflicts = new Map<string, { name: string; reasons: Set<string> }>();
@@ -589,6 +640,21 @@ async function assertNoShiftAssignmentConflicts(input: {
         conflicts.get(request.employeeId)?.reasons ?? new Set<string>([getShiftConflictLabel(request.type)]),
     });
     conflicts.get(request.employeeId)?.reasons.add(getShiftConflictLabel(request.type));
+  }
+
+  for (const shift of shiftConflicts) {
+    const span = describeShiftSpan(shift.startTime, shift.endTime);
+
+    for (const assignment of shift.assignments) {
+      if (!input.employeeIds.includes(assignment.userId)) {
+        continue;
+      }
+
+      const name = `${assignment.user.firstName} ${assignment.user.lastName}`.trim();
+      const entry = conflicts.get(assignment.userId) ?? { name, reasons: new Set<string>() };
+      entry.reasons.add(`ha già un turno ${span}`);
+      conflicts.set(assignment.userId, entry);
+    }
   }
 
   if (conflicts.size === 0) {
@@ -2488,6 +2554,7 @@ export async function updateShiftAction(formData: FormData) {
     startTime,
     endTime,
     isOnCall,
+    excludeShiftId: shiftId,
   });
   const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
   const existingShift = await prisma.shift.findFirst({

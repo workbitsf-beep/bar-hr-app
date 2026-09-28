@@ -510,6 +510,210 @@ function renderWeekSection(title: string, children: ReactNode, tone: WeekBadgeTo
 }
 
 /**
+ * Who is booked twice at the same time, and which shifts are involved.
+ *
+ * The server refuses to save an overlap now, but the ones already in the
+ * database predate that check, so the day says so instead of pretending the
+ * schedule is fine.
+ */
+function buildShiftOverlaps(shifts: ShiftItem[]) {
+  const clashing = new Set<string>();
+  const byPerson = new Map<string, { name: string; shiftIds: Set<string> }>();
+
+  for (let index = 0; index < shifts.length; index += 1) {
+    for (let other = index + 1; other < shifts.length; other += 1) {
+      const left = shifts[index];
+      const right = shifts[other];
+
+      if (!hasTimeOverlap(left.startTime, left.endTime, right.startTime, right.endTime)) {
+        continue;
+      }
+
+      for (const assignment of left.assignments) {
+        if (!right.assignments.some((entry) => entry.id === assignment.id)) {
+          continue;
+        }
+
+        clashing.add(left.id);
+        clashing.add(right.id);
+
+        const person = byPerson.get(assignment.id) ?? {
+          name: `${assignment.firstName} ${assignment.lastName}`.trim(),
+          shiftIds: new Set<string>(),
+        };
+        person.shiftIds.add(left.id);
+        person.shiftIds.add(right.id);
+        byPerson.set(assignment.id, person);
+      }
+    }
+  }
+
+  const people = Array.from(byPerson.values());
+  const message =
+    people.length === 0
+      ? null
+      : people.length === 1
+        ? `${people[0].name} è in ${people[0].shiftIds.size} turni che si accavallano`
+        : `${people.map((person) => person.name).join(", ")} hanno turni che si accavallano`;
+
+  return { clashing, message };
+}
+
+/** The small capitals above a list, with the one round button that adds to it. */
+function renderDaySectionHeader(
+  label: string,
+  count: number,
+  addLabel: string,
+  onAdd: () => void,
+  disabled: boolean,
+  canAdd = true
+) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span
+        style={{
+          flex: 1,
+          minWidth: 0,
+          fontSize: 9.5,
+          fontWeight: 830,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#a3a0b8",
+        }}
+      >
+        {count > 0 ? `${label} · ${count}` : label}
+      </span>
+      {canAdd ? (
+        <button
+          type="button"
+          onClick={onAdd}
+          aria-label={addLabel}
+          title={addLabel}
+          disabled={disabled}
+          style={{
+            width: 26,
+            height: 26,
+            flex: "0 0 auto",
+            borderRadius: 999,
+            border: 0,
+            background: "#efecff",
+            color: "#4c1d95",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 15,
+            fontWeight: 700,
+            lineHeight: 1,
+            cursor: disabled ? "default" : "pointer",
+            opacity: disabled ? 0.5 : 1,
+          }}
+        >
+          +
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A shift inside the day sheet. One mark per row - the state, with its word -
+ * because the whole row already opens the shift, so the chevron beside it said
+ * nothing the row did not.
+ */
+function renderDayShiftRow(
+  shift: ShiftItem,
+  locale: string,
+  currentUserId: string,
+  clashing: boolean
+) {
+  const mine = shift.assignments.some((assignment) => assignment.id === currentUserId);
+  const confirmed = Boolean(shift.confirmedAt);
+
+  return (
+    <div
+      className="dashboard-list-card"
+      key={shift.id}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "3px minmax(0, 1fr)",
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        borderRadius: 13,
+        overflow: "hidden",
+        background: "#ffffff",
+        border: `1px solid ${clashing ? "#f5dcb3" : "#eae7f6"}`,
+        textAlign: "left",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{ background: clashing ? "#f0a742" : mine ? "#6d5ce7" : "#eae7f6" }}
+      />
+      <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, padding: "10px 11px" }}>
+        <span
+          style={{
+            flex: "0 0 auto",
+            fontSize: 14,
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: "-0.012em",
+            fontWeight: mine ? 850 : 600,
+            color: mine ? "#17161f" : "#3a3850",
+          }}
+        >
+          {formatTime(shift.startTime, locale)}–{formatTime(shift.endTime, locale)}
+        </span>
+        {shift.isOnCall ? (
+          <span style={{ flex: "0 0 auto", fontSize: 11, fontWeight: 640, color: "#a15c07" }}>
+            reperibilità
+          </span>
+        ) : null}
+        <span
+          style={{
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 12.5,
+            fontWeight: 500,
+            color: "#6b6880",
+          }}
+        >
+          {formatAssignmentNames(shift.assignments)}
+        </span>
+        <span
+          style={{
+            marginLeft: "auto",
+            flex: "0 0 auto",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            fontSize: 11,
+            fontWeight: 640,
+            color: confirmed ? "#15803d" : "#a15c07",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 999,
+              display: "inline-grid",
+              placeItems: "center",
+              fontSize: 9,
+              background: confirmed ? "#e7f7ec" : "#fdf0dc",
+            }}
+          >
+            {confirmed ? "✓" : "◷"}
+          </span>
+          {confirmed ? "" : "in attesa"}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/**
  * A shift as one line inside the week card: no box of its own, because the day
  * is already a card and the week is already a card around that.
  *
@@ -1319,6 +1523,7 @@ export function DayActionCalendarClient({
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
   );
+  const dayOverlaps = useMemo(() => buildShiftOverlaps(selectedDay?.shifts ?? []), [selectedDay]);
   const selectedNote = useMemo(() => {
     const note = selectedDay?.notes.find((item) => item.id === selectedNoteId) ?? null;
     const confirmations = selectedNoteId ? noteConfirmationsById[selectedNoteId] : null;
@@ -3223,16 +3428,44 @@ export function DayActionCalendarClient({
                     paddingRight: 56,
                   }}
                 >
-                <div style={{ display: "grid", gap: 6 }}>
-                  <strong style={{ fontSize: 22, color: "#0f172a" }}>
+                <div style={{ display: "grid", gap: 1 }}>
+                  {/* The year pushed the title onto a second line and nobody
+                      was in doubt about it. */}
+                  <strong
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 830,
+                      letterSpacing: "-0.028em",
+                      color: "#17161f",
+                      textTransform: "capitalize",
+                    }}
+                  >
                     {new Intl.DateTimeFormat(locale, {
                       weekday: "long",
                       day: "numeric",
-                      month: "long",
-                      year: "numeric",
                       timeZone: APP_TIME_ZONE,
                     }).format(new Date(selectedDay.date))}
                   </strong>
+                  {selectedDay.isToday ? (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 780,
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        color: "#6d5ce7",
+                      }}
+                    >
+                      Oggi
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11.5, fontWeight: 620, color: "#a3a0b8" }}>
+                      {new Intl.DateTimeFormat(locale, {
+                        month: "long",
+                        timeZone: APP_TIME_ZONE,
+                      }).format(new Date(selectedDay.date))}
+                    </span>
+                  )}
                 </div>
                 </div>
 
@@ -3280,33 +3513,59 @@ export function DayActionCalendarClient({
 
                 {modalContentReady && features.shifts && activeCalendarModal !== "notes" ? (
                   <div style={{ display: "grid", gap: 12 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <strong style={{ fontSize: 18, color: "#0f172a" }}>Turni del giorno</strong>
-                      {canManageOptionalShifts ? (
-                        <PrimaryButton
-                          type="button"
-                          tone="sand"
-                          onClick={() => {
-                            setShowShiftComposer(true);
-                            if (!currentShiftDraft) {
-                              setCurrentShiftDraft(createShiftDraft(selectedDay.date));
-                            }
+                    {dayOverlaps.message ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 9,
+                          padding: "11px 12px",
+                          borderRadius: 13,
+                          background: "#fff8ed",
+                          border: "1px solid #f5dcb3",
+                        }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            flex: "0 0 auto",
+                            width: 18,
+                            height: 18,
+                            borderRadius: 999,
+                            background: "#f0a742",
+                            color: "#ffffff",
+                            display: "grid",
+                            placeItems: "center",
+                            fontSize: 11,
+                            fontWeight: 800,
                           }}
-                          aria-label="Aggiungi turno"
-                          disabled={isPending}
-                          style={{ minHeight: 38, borderRadius: 999, paddingInline: 14 }}
                         >
-                          + Turni
-                        </PrimaryButton>
-                      ) : null}
-                    </div>
+                          !
+                        </span>
+                        <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
+                          <strong style={{ fontSize: 12.5, fontWeight: 800, color: "#92400e" }}>
+                            {dayOverlaps.message}
+                          </strong>
+                          <span style={{ fontSize: 12, fontWeight: 520, color: "#a16207", lineHeight: 1.45 }}>
+                            Parlane con chi fa i turni.
+                          </span>
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {renderDaySectionHeader(
+                      "Turni",
+                      selectedDay.shifts.length,
+                      "Aggiungi turno",
+                      () => {
+                        setShowShiftComposer(true);
+                        if (!currentShiftDraft) {
+                          setCurrentShiftDraft(createShiftDraft(selectedDay.date));
+                        }
+                      },
+                      isPending,
+                      canManageOptionalShifts
+                    )}
 
                     {showShiftComposer && canManageOptionalShifts ? createPortal(
                       <div
@@ -4046,48 +4305,7 @@ export function DayActionCalendarClient({
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.shifts.map((shift) => renderShiftSwipeActions(shift, (
-                          <div
-                            key={shift.id}
-                            className="dashboard-list-card"
-                            style={{
-                              width: "100%",
-                              padding: 14,
-                              borderRadius: 18,
-                              border: "1px solid #e2e8f0",
-                              background: "#f8fafc",
-                              textAlign: "left",
-                              display: "grid",
-                              gap: 6,
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                              <div style={{ display: "grid", gap: 6 }}>
-                                <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                                  {formatRange(shift.startTime, shift.endTime, locale)}
-                                </strong>
-                                {shift.isOnCall ? (
-                                  <StatusPill
-                                    label={shift.confirmedAt ? "Reperibilita" : "Reperibilita in attesa"}
-                                    tone={shift.confirmedAt ? "warning" : "danger"}
-                                  />
-                                ) : null}
-                                <span style={{ color: "#475569" }}>
-                                  {formatAssignmentNames(shift.assignments)}
-                                </span>
-                                <span
-                                  title={shift.confirmedAt ? "Confermato" : "In attesa"}
-                                  aria-label={shift.confirmedAt ? "Confermato" : "In attesa"}
-                                  style={{
-                                    justifySelf: "start",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  {renderShiftStateIcon(Boolean(shift.confirmedAt), 18)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                          renderDayShiftRow(shift, locale, currentUserId, dayOverlaps.clashing.has(shift.id))
                         ), selectedDay.date, true))}
                       </div>
                     )}
@@ -4160,49 +4378,20 @@ export function DayActionCalendarClient({
 
                 {modalContentReady && (features.tasks || features.noticeBoard) && activeCalendarModal !== "shifts" ? (
                   <div style={{ display: "grid", gap: 10 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                    <strong style={{ fontSize: 18, color: "#0f172a" }}>
-                      📌 Note del{" "}
-                      {new Intl.DateTimeFormat(locale, {
-                        day: "numeric",
-                        month: "long",
-                        timeZone: APP_TIME_ZONE,
-                      }).format(new Date(selectedDay.date))}
-                    </strong>
-                      <CountBadge count={selectedDay.tasks.length + selectedDay.notes.length} />
-                      {canOpenTaskComposer ? (
-                        <IconButton
-                          type="button"
-                          onClick={() => setQuickComposer("task")}
-                          aria-label="Aggiungi note"
-                          disabled={isPending}
-                        >
-                          <svg
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M12 5v14M5 12h14"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </IconButton>
-                      ) : null}
-                    </div>
+                    {/* The date is already in the title of the sheet, and the
+                        count no longer needs a black pill of its own. */}
+                    {renderDaySectionHeader(
+                      "Note",
+                      selectedDay.tasks.length + selectedDay.notes.length,
+                      "Aggiungi note",
+                      () => setQuickComposer("task"),
+                      isPending,
+                      canOpenTaskComposer
+                    )}
                     {selectedDay.tasks.length === 0 && selectedDay.notes.length === 0 ? (
-                      <div style={{ color: "#64748b" }}>Nessuna nota collegata a questa giornata.</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
+                        Nessuna nota in questa giornata.
+                      </div>
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.tasks.map((task) =>
