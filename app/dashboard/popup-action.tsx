@@ -13,7 +13,7 @@ export function PopupAction({
   initialOpen = false,
   triggerContent,
   triggerStyle,
-  renderTrigger,
+  triggerRow,
 }: {
   title: string;
   ariaLabel: string;
@@ -25,12 +25,13 @@ export function PopupAction({
   /** Merged last, for the few triggers that are a full-width call to action. */
   triggerStyle?: CSSProperties;
   /**
-   * Draws the opener itself, for rows that are a row rather than a button. The
-   * built-in trigger carries .dashboard-popup-trigger, and the stylesheet
-   * forces that class to a 36px lilac pill with !important - which squashed
-   * every list row that tried to be one.
+   * The opener, for rows that are a row rather than a button. It is a node and
+   * not a callback, because a server component cannot hand a function across
+   * to a client one. The built-in trigger carries .dashboard-popup-trigger,
+   * and the stylesheet pins that class to a 36px lilac pill with !important,
+   * which squashed every list row that tried to be one.
    */
-  renderTrigger?: (open: () => void) => ReactNode;
+  triggerRow?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -71,8 +72,25 @@ export function PopupAction({
 
   return (
     <>
-      {renderTrigger ? (
-        renderTrigger(() => setOpen(true))
+      {triggerRow ? (
+        <button
+          type="button"
+          aria-label={ariaLabel}
+          onClick={() => setOpen(true)}
+          style={{
+            display: "block",
+            width: "100%",
+            padding: 0,
+            border: 0,
+            background: "transparent",
+            textAlign: "left",
+            font: "inherit",
+            color: "inherit",
+            cursor: "pointer",
+          }}
+        >
+          {triggerRow}
+        </button>
       ) : (
       <button
         type="button"

@@ -1,24 +1,17 @@
-"use client";
-
 import type { CSSProperties, ReactNode } from "react";
 
 /**
- * A row that opens something.
+ * The visual shell of a list row that opens something.
  *
- * It carries none of the app's button classes on purpose: the stylesheet
- * forces .dashboard-popup-trigger to a 36px lilac pill with !important, which
- * is right for a plus button and wrong for every list row that tried to be
- * one.
+ * It deliberately carries none of the app's button classes: the stylesheet
+ * pins .dashboard-popup-trigger to a 36px lilac pill with !important, which is
+ * right for a plus button and wrong for every row that tried to be one.
  */
 export function ListRowTrigger({
-  onClick,
-  label,
   children,
   tone = "plain",
   minHeight = 62,
 }: {
-  onClick: () => void;
-  label: string;
   children: ReactNode;
   tone?: "plain" | "live" | "warn";
   minHeight?: number;
@@ -30,10 +23,7 @@ export function ListRowTrigger({
   };
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
+    <div
       style={{
         display: "flex",
         alignItems: "center",
@@ -42,14 +32,11 @@ export function ListRowTrigger({
         minHeight,
         padding: "12px 14px",
         borderRadius: 18,
-        textAlign: "left",
-        cursor: "pointer",
-        font: "inherit",
-        color: "#0f172a",
+        boxSizing: "border-box",
         ...palette[tone],
       }}
     >
       {children}
-    </button>
+    </div>
   );
 }

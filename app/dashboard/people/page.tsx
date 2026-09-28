@@ -262,10 +262,8 @@ export default async function DashboardPeoplePage({
         key={member.id}
         title={name}
         ariaLabel={`Apri la scheda di ${name}`}
-        renderTrigger={(open) => (
+        triggerRow={(
           <ListRowTrigger
-            onClick={open}
-            label={`Apri la scheda di ${name}`}
             tone={live ? "live" : row.warning ? "warn" : "plain"}
             minHeight={66}
           >

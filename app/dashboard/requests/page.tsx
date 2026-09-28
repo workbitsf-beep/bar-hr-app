@@ -774,10 +774,8 @@ export default async function DashboardRequestsPage({
           <PopupAction
             title="Straordinari"
             ariaLabel="Apri straordinari"
-            renderTrigger={(open) => (
+            triggerRow={(
               <ListRowTrigger
-                onClick={open}
-                label="📋 Straordinari registrati"
                 minHeight={56}
               >
                 <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
@@ -879,10 +877,8 @@ export default async function DashboardRequestsPage({
           <PopupAction
             title="Chiusure"
             ariaLabel="Apri chiusure"
-            renderTrigger={(open) => (
+            triggerRow={(
               <ListRowTrigger
-                onClick={open}
-                label="📝 Chiusure e ferie aziendali"
                 minHeight={56}
               >
                 <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
@@ -995,10 +991,8 @@ export default async function DashboardRequestsPage({
           <PopupAction
             title="Indisponibilità"
             ariaLabel="Apri indisponibilità"
-            renderTrigger={(open) => (
+            triggerRow={(
               <ListRowTrigger
-                onClick={open}
-                label="🚫 Indisponibilità del team"
                 minHeight={56}
               >
                 <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
