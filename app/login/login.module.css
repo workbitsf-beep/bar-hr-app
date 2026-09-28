@@ -1,9 +1,18 @@
 .page {
   /* Same frame as the venue app: the logo block stays put while the form
      scrolls under it. --wb-inset-* carries the phone's bar sizes, which a web
-     view never reports through env(). */
+     view never reports through env().
+
+     The frame is sized to what is actually on screen, not to the page. On
+     iPhone the keyboard covers the bottom half without shrinking the page, so
+     a frame pinned to the page put the whole form behind the keyboard and left
+     the user typing into a blank screen. --workbit-vh and --workbit-viewport-top
+     come from the visual viewport and do shrink and shift with the keyboard. */
   position: fixed;
-  inset: 0;
+  top: var(--workbit-viewport-top, 0px);
+  left: 0;
+  right: 0;
+  height: var(--workbit-vh, 100dvh);
   display: flex;
   flex-direction: column;
   padding: max(14px, env(safe-area-inset-top), var(--wb-inset-top, 0px)) 10px
@@ -43,11 +52,22 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: clamp(28px, 7dvh, 64px) 2px 12px;
+  padding: clamp(20px, calc(var(--workbit-vh, 100dvh) * 0.07), 64px) 2px 12px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 20px;
+}
+
+/* Centred while there is room, and scrollable from the top once there is not.
+   "justify-content: center" would have pushed the heading above the scroll
+   origin the moment the keyboard made the box shorter than the form, putting
+   it out of reach. Auto margins give way instead of overflowing upwards. */
+.content > :first-child {
+  margin-top: auto;
+}
+
+.content > :last-child {
+  margin-bottom: auto;
 }
 
 .heading {
