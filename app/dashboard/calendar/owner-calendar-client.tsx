@@ -1325,6 +1325,19 @@ export function OwnerCalendarClient({
       setSelectedDate(null);
       setActiveCalendarModal(null);
       setFeedback(null);
+
+      // Moving the focused day is enough for the day view, which scrolls its
+      // own strip. The week strip has to be pushed by hand, or "Oggi" left it
+      // on whatever week the finger had reached.
+      window.requestAnimationFrame(() => {
+        const card = document.querySelector<HTMLElement>('[data-current-week="true"]');
+        const strip = card?.closest<HTMLElement>(".dashboard-week-strip") ?? null;
+
+        if (card && strip) {
+          strip.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
+          setVisibleWeekStart(card.dataset.weekStart ?? "");
+        }
+      });
     }
 
     window.addEventListener("workbit:calendar-show-today-day", handleShowTodayAsDay);
@@ -1586,8 +1599,8 @@ export function OwnerCalendarClient({
   function openDay(day: DayItem, mode: CalendarModalMode = "day") {
     setModalContentReady(false);
     // The day you opened becomes the focused one, so closing the popup leaves
-    // the calendar where you were and not back on today's week.
-    skipDayScrollIntoViewRef.current = true;
+    // the calendar where you were and not back on today's week. The strip
+    // scrolling itself onto that day is exactly where it should end up.
     setFocusedDayDate(day.date);
     setSelectedDate(day.date);
     setActiveCalendarModal(mode);
@@ -2377,8 +2390,18 @@ export function OwnerCalendarClient({
                 {!hasEvents ? <div style={{ color: "#64748b" }}>Nessun evento in questa giornata.</div> : null}
                 {features.shifts && (day.shifts.length > 0 || day.date.slice(0, 10) >= todayKey) ? (
                   <div className="workbit-calendar-day-section workbit-calendar-day-shifts" style={{ display: "grid", gap: 6 }}>
-                    <div className="workbit-calendar-day-section-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <strong>👤 Turni</strong>
+                    <div className="workbit-calendar-day-section-title">
+                      {renderDaySectionHeader(
+                        "Turni",
+                        day.shifts.length,
+                        "Aggiungi turni",
+                        () => {
+                          openDay(day);
+                          setShowShiftComposer(true);
+                        },
+                        isPending,
+                        day.date.slice(0, 10) >= todayKey
+                      )}
                     </div>
                     {day.shifts.length === 0 ? (
                       <div style={{ color: "#64748b" }}>Nessun turno in questa giornata.</div>

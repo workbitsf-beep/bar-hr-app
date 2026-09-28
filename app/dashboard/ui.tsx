@@ -3740,8 +3740,11 @@ function DashboardResponsiveStyles() {
           box-shadow: 0 8px 20px rgba(61, 42, 153, 0.045);
         }
 
+        /* The row used to be "👤 Turni" and nothing else, so it was hidden
+           here. It carries the button that adds a shift now. */
         .workbit-calendar-day-shifts > .workbit-calendar-day-section-title {
-          display: none !important;
+          min-height: 26px;
+          padding: 0 4px;
         }
 
         .workbit-calendar-day-shifts .workbit-day-shift-row {
