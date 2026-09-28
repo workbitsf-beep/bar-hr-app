@@ -6,6 +6,7 @@ import {
   Role,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import type { ReactNode } from "react";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
@@ -31,7 +32,6 @@ import {
   Panel,
   PrimaryButton,
   Select,
-  Stack,
   StatusPill,
   SuccessCallout,
   TextArea,
@@ -43,7 +43,6 @@ import { PopupAction } from "../popup-action";
 import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
 import { ShiftChangeForm } from "./shift-change-form";
-import { ListRowTrigger } from "../list-row-trigger";
 import { AskSomething } from "./ask-something";
 
 const AVAILABILITY_VISIBILITY_HOURS = 24;
@@ -193,6 +192,162 @@ function DeleteSwipeButton({ label }: { label: string }) {
         />
       </svg>
     </button>
+  );
+}
+
+/**
+ * One kind of row, everywhere on this page: 62 tall, white, 18 round. It turns
+ * amber only when it is waiting for an answer, and nothing else changes.
+ */
+function RequestRow({
+  emoji,
+  title,
+  detail,
+  pending = false,
+  trailing,
+}: {
+  emoji: string;
+  title: string;
+  detail?: string;
+  pending?: boolean;
+  trailing?: ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        minHeight: 62,
+        padding: "12px 14px",
+        borderRadius: 18,
+        boxSizing: "border-box",
+        border: `1px solid ${pending ? "#fde68a" : "#e9edf3"}`,
+        background: pending ? "#fffbeb" : "#ffffff",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 38,
+          height: 38,
+          flex: "0 0 auto",
+          display: "inline-grid",
+          placeItems: "center",
+          borderRadius: 12,
+          background: pending ? "#ffffff" : "#f8fafc",
+          fontSize: 16,
+        }}
+      >
+        {emoji}
+      </span>
+
+      <span style={{ display: "grid", gap: 2, minWidth: 0, flex: "1 1 auto" }}>
+        <strong style={{ fontSize: 14.5, letterSpacing: "-0.015em", color: "#0f172a" }}>
+          {title}
+        </strong>
+        {detail ? (
+          <span
+            style={{
+              fontSize: 12.5,
+              fontWeight: pending ? 780 : 690,
+              color: pending ? "#92400e" : "#64748b",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {detail}
+          </span>
+        ) : null}
+      </span>
+
+      {trailing}
+    </div>
+  );
+}
+
+function RequestGroup({ label, count, hot = false }: { label: string; count?: number; hot?: boolean }) {
+  return (
+    <span
+      style={{
+        marginTop: 7,
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 10,
+        fontSize: 11.5,
+        fontWeight: 820,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: hot ? "#92400e" : "#94a3b8",
+      }}
+    >
+      <span>{label}</span>
+      {count === undefined ? null : <span>{count}</span>}
+    </span>
+  );
+}
+
+/** A quiet row that opens what it holds. The sheet carries the title, so the
+ *  list inside never repeats it. */
+function ArchiveRow({
+  title,
+  emoji,
+  count,
+  sheetTitle,
+  children,
+}: {
+  title: string;
+  emoji: string;
+  count: number;
+  sheetTitle: string;
+  children: ReactNode;
+}) {
+  return (
+    <PopupAction
+      title={sheetTitle}
+      ariaLabel={`Apri ${title}`}
+      triggerRow={
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            minHeight: 62,
+            padding: "12px 14px",
+            borderRadius: 18,
+            boxSizing: "border-box",
+            border: "1px solid #e9edf3",
+            background: "#f8fafc",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 38,
+              height: 38,
+              flex: "0 0 auto",
+              display: "inline-grid",
+              placeItems: "center",
+              borderRadius: 12,
+              background: "#ffffff",
+              fontSize: 16,
+            }}
+          >
+            {emoji}
+          </span>
+          <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780, color: "#0f172a" }}>
+            {title}
+          </span>
+          <span style={{ flex: "0 0 auto", color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
+            {count} &rsaquo;
+          </span>
+        </div>
+      }
+    >
+      <div style={{ display: "grid", gap: 12 }}>{children}</div>
+    </PopupAction>
   );
 }
 
@@ -496,15 +651,133 @@ export default async function DashboardRequestsPage({
   );
   const overtimeRequests = requests.filter((request) => request.type === RequestType.OVERTIME);
 
+  // What is happening in the venue right now or in the next fortnight: the
+  // closures people plan around, and who has said they cannot be there.
+  const horizon = new Date();
+  horizon.setDate(horizon.getDate() + 14);
+
+  const happeningNow = [
+    ...closures
+      .filter((closure) => closure.endsAt >= availabilityVisibleAfter && closure.startsAt <= horizon)
+      .map((closure) => ({
+        key: `closure-${closure.id}`,
+        emoji: "📝",
+        title: closure.title,
+        detail: `${formatDate(closure.startsAt)}${
+          closure.startsAt.toDateString() !== closure.endsAt.toDateString()
+            ? ` – ${formatDate(closure.endsAt)}`
+            : ""
+        } · ${closureTypeLabel(closure.type)}`,
+        at: closure.startsAt,
+      })),
+    ...availabilities
+      .filter(
+        (availability) =>
+          availability.endsAt >= availabilityVisibleAfter && availability.startsAt <= horizon
+      )
+      .map((availability) => ({
+        key: `availability-${availability.id}`,
+        emoji: "🚫",
+        title:
+          availability.user.id === session.user.id
+            ? "Non ci sei"
+            : `${availability.user.firstName} non c'è`,
+        detail: `${formatDateTime(availability.startsAt)} – ${formatDateTime(availability.endsAt)}`,
+        at: availability.startsAt,
+      })),
+  ].sort((left, right) => left.at.getTime() - right.at.getTime());
+
+  const ownAvailabilities = availabilities.filter(
+    (availability) => availability.user.id === session.user.id
+  );
+
   return (
     <div className="workbit-requests-page">
-      <div className="workbit-requests-heading">
-        <span>Gestisci</span>
-        <h2>{canManageClosures ? "Richieste e chiusure" : "Richieste"}</h2>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div className="workbit-requests-heading">
+          <span>{canManageClosures ? "Gestisci" : "Le tue"}</span>
+          <h2>Richieste</h2>
+        </div>
+
+        {canManageClosures ? (
+          <PopupAction title="Cosa aggiungi?" ariaLabel="Aggiungi">
+            <AskSomething
+              heading="Cosa aggiungi?"
+              options={[
+                ...(canUseOvertime && role === Role.OWNER
+                  ? [
+                      {
+                        id: "overtime",
+                        emoji: "📋",
+                        label: "Straordinario",
+                        hint: "Ore già fatte da registrare",
+                        form: (
+                <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                  <input type="hidden" name="type" value="OVERTIME" />
+
+                  <div
+                    className="dashboard-inline-grid"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <FormField label="Persona">
+                      <Select name="employeeId" required defaultValue="">
+                        <option value="" disabled>
+                          Seleziona una persona
+                        </option>
+                        {overtimeMembers.map((member) => (
+                          <option key={member.user.id} value={member.user.id}>
+                            {member.user.firstName} {member.user.lastName} - {member.role}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
+
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
+                    </div>
+                  </div>
+
+                  <FormField label="Dettaglio">
+                    <TextArea name="reason" placeholder="Motivo o descrizione dello straordinario" />
+                  </FormField>
+
+                  <input type="hidden" name="notifySuccess" value="1" />
+
+                  <div className="dashboard-form-actions">
+                    <PrimaryButton type="submit">Registra straordinario</PrimaryButton>
+                  </div>
+                </form>
+                        ),
+                      },
+                    ]
+                  : []),
+                {
+                  id: "closure",
+                  emoji: "📝",
+                  label: "Chiusura o ferie aziendali",
+                  hint: "Giorni in cui il locale è chiuso",
+                  form: <ClosureComposeForm action={createCalendarClosureAction} />,
+                },
+              ]}
+            />
+          </PopupAction>
+        ) : null}
       </div>
 
-      <Stack className="workbit-requests-stack">
+      <div style={{ display: "grid", gap: 10 }}>
         {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
+
         {canCreateRequests ? (
           <PopupAction
             title="Nuova richiesta"
@@ -644,24 +917,14 @@ export default async function DashboardRequestsPage({
           </PopupAction>
         ) : null}
 
+
         {features.requests && pendingRequests.length > 0 ? (
-          <div style={{ display: "grid", gap: 9 }}>
-            <span
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                gap: 10,
-                fontSize: 11.5,
-                fontWeight: 820,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "#92400e",
-              }}
-            >
-              <span>{canManageClosures ? "Da approvare" : "In attesa di risposta"}</span>
-              <span>{pendingRequests.length}</span>
-            </span>
+          <>
+            <RequestGroup
+              label={canManageClosures ? "Da approvare" : "In attesa di risposta"}
+              count={pendingRequests.length}
+              hot
+            />
 
             {pendingRequests.map((request) => {
               const canPeerReview =
@@ -678,117 +941,134 @@ export default async function DashboardRequestsPage({
                 !isPrivateAbsenceRequest(request.type);
 
               return (
-                <div
+                <RequestRow
                   key={request.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "38px minmax(0, 1fr) auto",
-                    alignItems: "center",
-                    gap: 11,
-                    padding: "11px 12px",
-                    borderRadius: 16,
-                    border: "1px solid #fde68a",
-                    background: "#fffbeb",
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 38,
-                      height: 38,
-                      display: "inline-grid",
-                      placeItems: "center",
-                      borderRadius: 12,
-                      background: "#ffffff",
-                      fontSize: 16,
-                    }}
-                  >
-                    {requestEmoji(request.type)}
-                  </span>
-
-                  <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
-                    <strong style={{ fontSize: 14.5, letterSpacing: "-0.015em", color: "#0f172a" }}>
-                      {requestLabel(request.type)}
-                      {canManageClosures ? ` · ${request.employee.firstName}` : ""}
-                    </strong>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 780,
-                        color: "#92400e",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {canSeeRequestDetails
-                        ? `${request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}${
-                            request.endsAt ? ` – ${formatDateTime(request.endsAt)}` : ""
-                          }`
-                        : "Dettaglio riservato"}
-                    </span>
-                  </span>
-
-                  {canPeerReview || canOwnerReview ? (
-                    <span style={{ display: "flex", gap: 6, flex: "0 0 auto" }}>
-                      <form action={reviewRequestAction}>
-                        <input type="hidden" name="requestId" value={request.id} />
-                        <input type="hidden" name="decision" value="REJECTED" />
-                        <input type="hidden" name="notifySuccess" value="1" />
-                        <button type="submit" aria-label="Rifiuta" style={rejectButtonStyle}>
-                          ✕
-                        </button>
-                      </form>
-                      <form action={reviewRequestAction}>
-                        <input type="hidden" name="requestId" value={request.id} />
-                        <input type="hidden" name="decision" value="APPROVED" />
-                        <input type="hidden" name="notifySuccess" value="1" />
-                        <button type="submit" aria-label="Approva" style={approveButtonStyle}>
-                          ✓
-                        </button>
-                      </form>
-                    </span>
-                  ) : (
-                    <StatusPill label="In attesa" tone="warning" />
-                  )}
-                </div>
+                  emoji={requestEmoji(request.type)}
+                  title={`${requestLabel(request.type)}${
+                    canManageClosures ? ` · ${request.employee.firstName}` : ""
+                  }`}
+                  detail={
+                    canSeeRequestDetails
+                      ? `${request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}${
+                          request.endsAt ? ` – ${formatDateTime(request.endsAt)}` : ""
+                        }`
+                      : "Dettaglio riservato"
+                  }
+                  pending
+                  trailing={
+                    canPeerReview || canOwnerReview ? (
+                      <span style={{ display: "flex", gap: 7, flex: "0 0 auto" }}>
+                        <form action={reviewRequestAction}>
+                          <input type="hidden" name="requestId" value={request.id} />
+                          <input type="hidden" name="decision" value="REJECTED" />
+                          <input type="hidden" name="notifySuccess" value="1" />
+                          <button type="submit" aria-label="Rifiuta" style={rejectButtonStyle}>
+                            ✕
+                          </button>
+                        </form>
+                        <form action={reviewRequestAction}>
+                          <input type="hidden" name="requestId" value={request.id} />
+                          <input type="hidden" name="decision" value="APPROVED" />
+                          <input type="hidden" name="notifySuccess" value="1" />
+                          <button type="submit" aria-label="Approva" style={approveButtonStyle}>
+                            ✓
+                          </button>
+                        </form>
+                      </span>
+                    ) : (
+                      <StatusPill label="In attesa" tone="warning" />
+                    )
+                  }
+                />
               );
             })}
-          </div>
+          </>
         ) : null}
 
-        <span
-          style={{
-            marginTop: 3,
-            fontSize: 11.5,
-            fontWeight: 820,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "#94a3b8",
-          }}
-        >
-          Il locale
-        </span>
+        {canManageClosures && happeningNow.length > 0 ? (
+          <>
+            <RequestGroup label="In questi giorni" />
+            {happeningNow.map((item) => (
+              <RequestRow key={item.key} emoji={item.emoji} title={item.title} detail={item.detail} />
+            ))}
+          </>
+        ) : null}
 
-        {role === Role.OWNER && canUseOvertime ? (
-          <PopupAction
-            title="Straordinari"
-            ariaLabel="Apri straordinari"
-            triggerRow={(
-              <ListRowTrigger
-                minHeight={56}
+        {!canManageClosures && features.requests && closedRequests.length > 0 ? (
+          <>
+            <RequestGroup label="Già risposte" />
+            {closedRequests.map((request) => (
+              <RequestRow
+                key={request.id}
+                emoji={requestEmoji(request.type)}
+                title={requestLabel(request.type)}
+                detail={`${request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}${
+                  request.endsAt ? ` – ${formatDateTime(request.endsAt)}` : ""
+                }`}
+                trailing={
+                  <StatusPill
+                    label={requestStatusLabel(request.status)}
+                    tone={requestTone(request.status)}
+                  />
+                }
+              />
+            ))}
+          </>
+        ) : null}
+
+        {!canManageClosures && features.availability && !isCompany ? (
+          <>
+            <RequestGroup label="Quando non ci sei" count={ownAvailabilities.length} />
+            {ownAvailabilities.length === 0 ? (
+              <div
+                style={{
+                  padding: 16,
+                  borderRadius: 16,
+                  background: "#f8fafc",
+                  color: "#64748b",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  textAlign: "center",
+                }}
               >
-                <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
-                  📋 Straordinari registrati
-                </span>
-                <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
-                  {overtimeRequests.length} &rsaquo;
-                </span>
-              </ListRowTrigger>
+                Niente in programma.
+              </div>
+            ) : (
+              ownAvailabilities.map((availability) => (
+                <SwipeRevealAction
+                  key={availability.id}
+                  enabled
+                  action={
+                    <form action={deleteAvailabilityAction}>
+                      <input type="hidden" name="availabilityId" value={availability.id} />
+                      <DeleteSwipeButton label="Elimina indisponibilità" />
+                    </form>
+                  }
+                >
+                  <RequestRow
+                    emoji="🚫"
+                    title={formatDate(availability.startsAt)}
+                    detail={`${formatDateTime(availability.startsAt)} – ${formatDateTime(
+                      availability.endsAt
+                    )}${availability.reason ? ` · ${availability.reason}` : ""}`}
+                  />
+                </SwipeRevealAction>
+              ))
             )}
-          >
-          <div style={{ display: "grid", gap: 12 }}>
+          </>
+        ) : null}
 
+        {canManageClosures ? (
+          <>
+            <RequestGroup label="Archivio" />
+
+            {canUseOvertime && role === Role.OWNER ? (
+              <ArchiveRow
+                title="Straordinari registrati"
+                emoji="📋"
+                count={overtimeRequests.length}
+                sheetTitle="Straordinari registrati"
+              >
             <div style={{ display: "grid", gap: 12 }}>
               {overtimeRequests.length === 0 ? (
                 <EmptyState message="Nessuno straordinario registrato." />
@@ -822,76 +1102,15 @@ export default async function DashboardRequestsPage({
                 </ItemList>
               )}
             </div>
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <PopupAction
-                title="Straordinario"
-                ariaLabel="Aggiungi straordinario"
-                className="workbit-request-plus"
-              >
-                <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
-                  <input type="hidden" name="type" value="OVERTIME" />
+              </ArchiveRow>
+            ) : null}
 
-                  <div
-                    className="dashboard-inline-grid"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <FormField label="Persona">
-                      <Select name="employeeId" required defaultValue="">
-                        <option value="" disabled>
-                          Seleziona una persona
-                        </option>
-                        {overtimeMembers.map((member) => (
-                          <option key={member.user.id} value={member.user.id}>
-                            {member.user.firstName} {member.user.lastName} - {member.role}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormField>
-
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
-                    </div>
-                  </div>
-
-                  <FormField label="Dettaglio">
-                    <TextArea name="reason" placeholder="Motivo o descrizione dello straordinario" />
-                  </FormField>
-
-                  <input type="hidden" name="notifySuccess" value="1" />
-
-                  <div className="dashboard-form-actions">
-                    <PrimaryButton type="submit">Registra straordinario</PrimaryButton>
-                  </div>
-                </form>
-              </PopupAction>
-              </div>
-            </div>
-          </PopupAction>
-        ) : null}
-
-        {canManageClosures ? (
-          <PopupAction
-            title="Chiusure"
-            ariaLabel="Apri chiusure"
-            triggerRow={(
-              <ListRowTrigger
-                minHeight={56}
-              >
-                <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
-                  📝 Chiusure e ferie aziendali
-                </span>
-                <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
-                  {closures.length} &rsaquo;
-                </span>
-              </ListRowTrigger>
-            )}
-          >
-          <div style={{ display: "grid", gap: 12 }}>
-
+            <ArchiveRow
+              title="Chiusure e ferie aziendali"
+              emoji="📝"
+              count={closures.length}
+              sheetTitle="Chiusure e ferie aziendali"
+            >
             {closures.length === 0 ? (
               <EmptyState message="Nessuna chiusura registrata." />
             ) : (
@@ -974,39 +1193,15 @@ export default async function DashboardRequestsPage({
                 ))}
               </ItemList>
             )}
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <PopupAction
-                title="Chiusura"
-                ariaLabel="Aggiungi chiusura"
-                className="workbit-request-plus"
-              >
-                <ClosureComposeForm action={createCalendarClosureAction} />
-              </PopupAction>
-              </div>
-            </div>
-          </PopupAction>
-        ) : null}
+            </ArchiveRow>
 
-        {features.availability && !isCompany ? (
-          <PopupAction
-            title="Indisponibilità"
-            ariaLabel="Apri indisponibilità"
-            triggerRow={(
-              <ListRowTrigger
-                minHeight={56}
+            {features.availability && !isCompany ? (
+              <ArchiveRow
+                title="Indisponibilità del team"
+                emoji="🚫"
+                count={availabilities.length}
+                sheetTitle="Indisponibilità del team"
               >
-                <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
-                  🚫 Indisponibilità del team
-                </span>
-                <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
-                  {availabilities.length} &rsaquo;
-                </span>
-              </ListRowTrigger>
-            )}
-          >
-            <div style={{ display: "grid", gap: 12 }}>
-
-              <div style={{ display: "grid", gap: 12 }}>
               {availabilities.length === 0 ? (
                 <EmptyState message="Nessuna indisponibilità registrata." />
               ) : (
@@ -1046,18 +1241,16 @@ export default async function DashboardRequestsPage({
                   })}
                 </ItemList>
               )}
-              </div>
-            </div>
-          </PopupAction>
-        ) : null}
-        {features.requests ? (
-          <Panel
-            className="workbit-requests-history-panel"
-            title="Già chiuse"
-            action={
-              closedRequests.length === 1 ? "1 richiesta" : `${closedRequests.length} richieste`
-            }
-          >
+              </ArchiveRow>
+            ) : null}
+
+            {features.requests ? (
+              <ArchiveRow
+                title="Richieste già chiuse"
+                emoji="✓"
+                count={closedRequests.length}
+                sheetTitle="Richieste già chiuse"
+              >
             {closedRequests.length === 0 ? (
               <EmptyState message="Nessuna richiesta chiusa." />
             ) : (
@@ -1164,9 +1357,11 @@ export default async function DashboardRequestsPage({
                 })}
               </ItemList>
             )}
-          </Panel>
+              </ArchiveRow>
+            ) : null}
+          </>
         ) : null}
-      </Stack>
+      </div>
     </div>
   );
 }

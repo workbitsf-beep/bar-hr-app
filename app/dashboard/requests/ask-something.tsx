@@ -19,14 +19,20 @@ export type AskOption = {
  * one list now, and the kind decides which questions come next - the same
  * shape as notes, courses and document upload.
  */
-export function AskSomething({ options }: { options: AskOption[] }) {
+export function AskSomething({
+  options,
+  heading = "Cosa ti serve?",
+}: {
+  options: AskOption[];
+  heading?: string;
+}) {
   const [chosen, setChosen] = useState<string | null>(null);
   const option = options.find((item) => item.id === chosen) ?? null;
 
   if (!option) {
     return (
       <div style={{ display: "grid", gap: 10 }}>
-        <strong style={{ color: "#0f172a", fontSize: 15 }}>Cosa ti serve?</strong>
+        <strong style={{ color: "#0f172a", fontSize: 15 }}>{heading}</strong>
 
         <div style={{ display: "grid", gap: 8 }}>
           {options.map((item) => (
