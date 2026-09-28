@@ -483,11 +483,14 @@ function formatShiftDuration(durationMs: number) {
 function ShiftBox({
   pair,
   position,
+  total,
   onCancel,
   pending = false,
 }: {
   pair: ClockLogPair;
   position: number;
+  /** How many shifts the day has: with one, "1º turno" says nothing. */
+  total: number;
   onCancel?: (pair: ClockLogPair) => void;
   pending?: boolean;
 }) {
@@ -536,9 +539,11 @@ function ShiftBox({
         >
           {misstamp
             ? "Timbratura per sbaglio?"
-            : pair.clockOut
-              ? `${position}º turno`
-              : "In corso"}
+            : !pair.clockOut
+              ? "In corso"
+              : total > 1
+                ? `${position}º turno`
+                : ""}
         </span>
 
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -1961,9 +1966,6 @@ function OwnerTimeLogsPanel({
                                 }}
                               >
                                 {dayGroup.dayLabel}
-                              </span>{" "}
-                              <span style={{ fontSize: 11.5, fontWeight: 750, color: "#94a3b8" }}>
-                                &middot; {formatPairCount(dayGroup.pairs)}
                               </span>
                             </span>
                             <span
@@ -1987,6 +1989,7 @@ function OwnerTimeLogsPanel({
                               key={pair.id}
                               pair={pair}
                               position={index + 1}
+                              total={dayGroup.pairs.length}
                               onCancel={cancelPair}
                               pending={cancelling}
                             />
@@ -2231,9 +2234,6 @@ function PersonalTimeLogsPanel({
                         }}
                       >
                         {dayGroup.dayKey === todayKey ? "Oggi" : dayGroup.dayLabel}
-                      </span>{" "}
-                      <span style={{ fontSize: 11.5, fontWeight: 750, color: "#94a3b8" }}>
-                        &middot; {formatPairCount(dayGroup.pairs)}
                       </span>
                     </span>
                     <span
@@ -2253,7 +2253,12 @@ function PersonalTimeLogsPanel({
                   </div>
 
                   {dayGroup.pairs.map((pair, index) => (
-                    <ShiftBox key={pair.id} pair={pair} position={index + 1} />
+                    <ShiftBox
+                      key={pair.id}
+                      pair={pair}
+                      position={index + 1}
+                      total={dayGroup.pairs.length}
+                    />
                   ))}
                 </div>
               );
