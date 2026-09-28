@@ -2248,6 +2248,17 @@ export function OwnerCalendarClient({
                   return;
                 }
 
+                // Opening the day view lands on today, whatever week you had
+                // scrolled to. Somewhere in the middle of next month is not
+                // where anyone means to start.
+                if (mode === "day") {
+                  const today = days.find((item) => item.isToday);
+
+                  if (today) {
+                    setFocusedDayDate(today.date);
+                  }
+                }
+
                 setCalendarView(mode);
               }}
               style={{
