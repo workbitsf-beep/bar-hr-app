@@ -4322,6 +4322,76 @@ async function deleteStaleAutoClockOut(userId: string, barId: string, sessionSta
   });
 }
 
+/**
+ * Cancels a clock-in and clock-out that were stamped by mistake.
+ *
+ * These are attendance records, so two things are non-negotiable. It only ever
+ * removes the two stamps it was handed, both belonging to one person in this
+ * venue, and it tells that person what was removed. The notice is the trail:
+ * nobody's hours change quietly.
+ */
+export async function deleteTimeLogPairAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOwnerRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const userId = String(formData.get("userId") ?? "").trim();
+  const logIds = normalizeIds(String(formData.get("logIds") ?? "").split(","));
+
+  if (!userId || logIds.length === 0) {
+    throw new Error("Missing time log data");
+  }
+
+  const logs = await prisma.timeLog.findMany({
+    where: {
+      id: { in: logIds },
+      userId,
+      barId: activeBarId,
+    },
+    select: {
+      id: true,
+      type: true,
+      timestamp: true,
+    },
+    orderBy: { timestamp: "asc" },
+  });
+
+  if (logs.length === 0) {
+    throw new Error("Time log not found");
+  }
+
+  await prisma.timeLog.deleteMany({
+    where: {
+      id: { in: logs.map((log) => log.id) },
+      userId,
+      barId: activeBarId,
+    },
+  });
+
+  invalidateReportingCache(activeBarId, userId);
+
+  const first = logs[0];
+  const last = logs[logs.length - 1];
+  const when =
+    logs.length > 1
+      ? `${formatDateTimeInTimeZone(first.timestamp)} - ${formatDateTimeInTimeZone(last.timestamp)}`
+      : formatDateTimeInTimeZone(first.timestamp);
+
+  await notifyUsers([userId], {
+    barId: activeBarId,
+    title: "Timbratura annullata",
+    message: `${getFullName(session.user)} ha annullato una timbratura del ${when}.\nSe non era un errore, avvisalo così la rimettiamo.`,
+    type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CANCELLED,
+    actionUrl: "/dashboard/timelogs",
+  });
+
+  revalidatePath("/dashboard/timelogs");
+  revalidatePath("/dashboard/export");
+}
+
 export async function createManualTimeLogAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);

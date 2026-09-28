@@ -18,15 +18,14 @@ import { isNativeApp } from "@/lib/native-app";
 import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 import {
   EmptyState,
-  FormField,
   ItemList,
   Panel,
   PrimaryButton,
   Select,
   Stack,
-  TextInput,
   formatDateTime,
 } from "../ui";
+import { deleteTimeLogPairAction } from "../actions";
 import { useOverlayLock } from "../use-overlay-lock";
 import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-format";
 import { calculateRoundedWorkDuration } from "@/lib/rounding";
@@ -243,8 +242,13 @@ function getClockTypeVisual(type: ClockType) {
   };
 }
 
-function ClockLogRow({ log }: { log: LogItem }) {
-  const visual = getClockTypeVisual(log.type);
+function ClockLogRow({ log, muted = false }: { log: LogItem; muted?: boolean }) {
+  const base = getClockTypeVisual(log.type);
+  // A stamp that lasted no time keeps its arrow but loses its colour: green
+  // and red mean "this happened", and this one probably did not.
+  const visual = muted
+    ? { ...base, background: "#fffbeb", border: "#fde68a", color: "#92400e", timeColor: "#92400e" }
+    : base;
 
   return (
     <div
@@ -457,6 +461,220 @@ function groupLogsByDay(logs: LogItem[]) {
       ),
     }))
     .sort((a, b) => new Date(b.latest).getTime() - new Date(a.latest).getTime());
+}
+
+/**
+ * Under a minute between clocking in and out. Nobody works forty seconds: it
+ * is a double tap, and until now it looked exactly like a real shift.
+ */
+const MISSTAMP_THRESHOLD_MS = 60_000;
+
+function isMisstampedPair(pair: ClockLogPair) {
+  if (!pair.clockIn || !pair.clockOut) {
+    return false;
+  }
+
+  const duration = getClockPairDurationMs(pair);
+
+  return duration === null || duration < MISSTAMP_THRESHOLD_MS;
+}
+
+function formatShiftDuration(durationMs: number) {
+  const minutes = Math.floor(durationMs / 60_000);
+
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`;
+}
+
+/**
+ * One shift, as one object.
+ *
+ * The green and the red are the same two cards as before - they read from
+ * across the room, which is the point of them. What is new is underneath: how
+ * long it lasted, so nobody does the subtraction in their head four times a
+ * day, and a plain question when it lasted no time at all.
+ */
+function ShiftBox({
+  pair,
+  position,
+  onCancel,
+  pending = false,
+}: {
+  pair: ClockLogPair;
+  position: number;
+  onCancel?: (pair: ClockLogPair) => void;
+  pending?: boolean;
+}) {
+  const durationMs = getClockPairDurationMs(pair);
+  const misstamp = isMisstampedPair(pair);
+  const stamps = [pair.clockIn, pair.clockOut].filter(Boolean) as LogItem[];
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 8,
+        padding: 10,
+        borderRadius: 18,
+        border: `1px solid ${misstamp ? "#fde68a" : "#e9edf3"}`,
+        background: misstamp ? "#fffbeb" : "#ffffff",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${Math.max(1, stamps.length)}, minmax(0, 1fr))`,
+          gap: 8,
+        }}
+      >
+        {stamps.map((log) => (
+          <ClockLogRow key={log.id} log={log} muted={misstamp} />
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          padding: "0 3px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12.5,
+            fontWeight: misstamp ? 830 : 780,
+            color: misstamp ? "#92400e" : "#64748b",
+          }}
+        >
+          {misstamp
+            ? "Timbratura per sbaglio?"
+            : pair.clockOut
+              ? `${position}º turno`
+              : "In corso"}
+        </span>
+
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          {misstamp && onCancel ? (
+            <button
+              type="button"
+              onClick={() => onCancel(pair)}
+              disabled={pending}
+              style={{
+                padding: "5px 11px",
+                borderRadius: 999,
+                background: "#ffffff",
+                border: "1px solid #fde68a",
+                color: "#92400e",
+                fontSize: 11.5,
+                fontWeight: 850,
+                cursor: pending ? "default" : "pointer",
+              }}
+            >
+              Annulla
+            </button>
+          ) : null}
+          <strong
+            style={{
+              fontSize: 14,
+              fontVariantNumeric: "tabular-nums",
+              color: misstamp ? "#92400e" : "#0f172a",
+            }}
+          >
+            {pair.clockOut ? formatShiftDuration(durationMs ?? 0) : "—"}
+          </strong>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function initialsOfName(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function shiftMonthKey(monthKey: string, delta: number) {
+  const [year, month] = monthKey.split("-").map(Number);
+
+  return getMonthKey(new Date(Date.UTC(year, month - 1 + delta, 1, 12)));
+}
+
+const monthArrowStyle = {
+  display: "inline-grid",
+  placeItems: "center",
+  height: 30,
+  borderRadius: 10,
+  background: "#ffffff",
+  border: "1px solid #e9edf3",
+  color: "#64748b",
+  fontSize: 16,
+  fontWeight: 800,
+  cursor: "pointer",
+} as const;
+
+const footerActionStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  width: "100%",
+  padding: "12px 13px",
+  borderRadius: 15,
+  border: "1px dashed #cbd5e1",
+  background: "transparent",
+  color: "#64748b",
+  fontSize: 13.5,
+  fontWeight: 800,
+  textAlign: "left",
+  cursor: "pointer",
+} as const;
+
+/** One figure of the month, with the word that says which figure it is. */
+function SheetTotal({ label, value, lead = false }: { label: string; value: string; lead?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "grid",
+        gap: 1,
+        padding: "10px 12px",
+        borderRadius: 15,
+        background: lead ? "#f3e8ff" : "#f8fafc",
+        border: `1px solid ${lead ? "rgba(124, 58, 237, 0.42)" : "#e9edf3"}`,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 820,
+          letterSpacing: "0.07em",
+          textTransform: "uppercase",
+          color: lead ? "#8b5cf6" : "#94a3b8",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 19,
+          fontWeight: 830,
+          letterSpacing: "-0.03em",
+          fontVariantNumeric: "tabular-nums",
+          color: lead ? "#4c1d95" : "#0f172a",
+        }}
+      >
+        {value}
+      </span>
+    </span>
+  );
 }
 
 function ClockDayCard({
@@ -1240,9 +1458,12 @@ function OwnerTimeLogsPanel({
   initialLogs: LogItem[];
   settings: BarSettingsSummary;
 }) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [dayFilter, setDayFilter] = useState("");
+  const [sheetMonth, setSheetMonth] = useState(getCurrentMonthKey());
+  const [onlyToFix, setOnlyToFix] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   useOverlayLock(Boolean(selectedUser));
 
   useEffect(() => {
@@ -1287,23 +1508,82 @@ function OwnerTimeLogsPanel({
   );
 
   const selectedMonthSummary = useMemo(
-    () => (selectedGroup ? getMonthWorkSummary(selectedGroup.logs, getCurrentMonthKey(), settings) : null),
-    [selectedGroup, settings]
+    () => (selectedGroup ? getMonthWorkSummary(selectedGroup.logs, sheetMonth, settings) : null),
+    [selectedGroup, settings, sheetMonth]
   );
 
-  const selectedDayGroups = useMemo(() => {
+  // Every day of the chosen month, with the mistakes counted separately: they
+  // are the reason this sheet gets opened at the end of a month.
+  const monthDayGroups = useMemo(() => {
     if (!selectedGroup) {
       return [];
     }
 
     return groupLogsByDay(selectedGroup.logs).filter((group) =>
-      dayFilter ? group.dayKey === dayFilter : true
+      group.dayKey.startsWith(sheetMonth)
     );
-  }, [dayFilter, selectedGroup]);
+  }, [selectedGroup, sheetMonth]);
+
+  const misstampCount = useMemo(
+    () =>
+      monthDayGroups.reduce(
+        (total, group) => total + group.pairs.filter(isMisstampedPair).length,
+        0
+      ),
+    [monthDayGroups]
+  );
+
+  const visibleDayGroups = useMemo(() => {
+    if (!onlyToFix) {
+      return monthDayGroups;
+    }
+
+    return monthDayGroups
+      .map((group) => ({ ...group, pairs: group.pairs.filter(isMisstampedPair) }))
+      .filter((group) => group.pairs.length > 0);
+  }, [monthDayGroups, onlyToFix]);
+
+  const workedDayCount = useMemo(
+    () => monthDayGroups.filter((group) => getDayWorkedDurationMs(group.pairs) > 0).length,
+    [monthDayGroups]
+  );
 
   function closeModal() {
     setSelectedUser(null);
-    setDayFilter("");
+    setSheetMonth(getCurrentMonthKey());
+    setOnlyToFix(false);
+  }
+
+  async function cancelPair(pair: ClockLogPair) {
+    if (!selectedGroup || cancelling) {
+      return;
+    }
+
+    const logIds = [pair.clockIn?.id, pair.clockOut?.id].filter(Boolean) as string[];
+
+    if (logIds.length === 0) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Annullare questa timbratura? Il dipendente riceve un avviso, cosi nessuno si trova le ore cambiate senza saperlo."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setCancelling(true);
+
+    try {
+      const formData = new FormData();
+      formData.set("userId", selectedGroup.id);
+      formData.set("logIds", logIds.join(","));
+      await deleteTimeLogPairAction(formData);
+      router.refresh();
+    } finally {
+      setCancelling(false);
+    }
   }
 
   return (
@@ -1406,76 +1686,274 @@ function OwnerTimeLogsPanel({
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: 12,
-                    flexWrap: "wrap",
                   }}
                 >
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong style={{ fontSize: 22, color: "#0f172a" }}>{selectedGroup.name}</strong>
-                    <span style={{ color: "#475569" }}>
-                      {selectedDayGroups.reduce((total, group) => total + group.pairs.length, 0)} visibili
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "40px minmax(0, 1fr)",
+                      gap: 11,
+                      alignItems: "center",
+                      minWidth: 0,
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: 40,
+                        height: 40,
+                        display: "inline-grid",
+                        placeItems: "center",
+                        borderRadius: 999,
+                        background: "#f3e8ff",
+                        color: "#4c1d95",
+                        fontSize: 14,
+                        fontWeight: 850,
+                      }}
+                    >
+                      {initialsOfName(selectedGroup.name)}
                     </span>
-                    {selectedMonthSummary ? (
-                      <span style={{ color: "#4c1d95", fontWeight: 800 }}>
-                        Mese: reali {formatDurationFromMilliseconds(selectedMonthSummary.realMs)} · arrotondate{" "}
-                        {formatDurationFromMilliseconds(selectedMonthSummary.roundedMs)}
+                    <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
+                      <strong style={{ fontSize: 19, color: "#0f172a", letterSpacing: "-0.03em" }}>
+                        {selectedGroup.name}
+                      </strong>
+                      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+                        {formatShiftCount(selectedGroup.logs)} in tutto
                       </span>
-                    ) : null}
+                    </span>
                   </div>
 
-                  <PrimaryButton type="button" tone="sand" onClick={closeModal}>
-                    Chiudi
-                  </PrimaryButton>
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    aria-label="Chiudi timbrature"
+                    style={{
+                      width: 34,
+                      height: 34,
+                      flex: "0 0 auto",
+                      display: "inline-grid",
+                      placeItems: "center",
+                      borderRadius: 999,
+                      border: "1px solid #e2e8f0",
+                      background: "#f8fafc",
+                      color: "#64748b",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M6 6l12 12M18 6 6 18"
+                        stroke="currentColor"
+                        strokeWidth="1.9"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
                 </div>
 
-                <FormField label="Filtra per giorno">
-                  <TextInput
-                    type="date"
-                    value={dayFilter}
-                    onChange={(event) => setDayFilter(event.target.value)}
-                  />
-                </FormField>
+                {/* The month with arrows, in place of the empty day picker.
+                    Timbrature get looked at a month at a time, at the end of
+                    the month, to pay people. */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "34px minmax(0, 1fr) 34px",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: 5,
+                    borderRadius: 14,
+                    background: "#f8fafc",
+                    border: "1px solid #e9edf3",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSheetMonth((current) => shiftMonthKey(current, -1))}
+                    aria-label="Mese precedente"
+                    style={monthArrowStyle}
+                  >
+                    &lsaquo;
+                  </button>
+                  <span
+                    style={{
+                      textAlign: "center",
+                      fontWeight: 820,
+                      fontSize: 14.5,
+                      letterSpacing: "-0.02em",
+                      color: "#0f172a",
+                    }}
+                  >
+                    {formatMonthLabel(sheetMonth)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSheetMonth((current) => shiftMonthKey(current, 1))}
+                    aria-label="Mese successivo"
+                    style={monthArrowStyle}
+                  >
+                    &rsaquo;
+                  </button>
+                </div>
 
-                {selectedDayGroups.length === 0 ? (
-                  <EmptyState message="Nessuna timbratura trovata per il giorno selezionato." />
+                <div
+                  className="dashboard-inline-grid"
+                  style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}
+                >
+                  <SheetTotal
+                    label="Reali"
+                    value={formatDurationFromMilliseconds(selectedMonthSummary?.realMs ?? 0)}
+                    lead
+                  />
+                  <SheetTotal
+                    label="Arrotondate"
+                    value={formatDurationFromMilliseconds(selectedMonthSummary?.roundedMs ?? 0)}
+                  />
+                  <SheetTotal label="Giorni" value={String(workedDayCount)} />
+                </div>
+
+                {misstampCount > 0 ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      background: "#fffbeb",
+                      border: "1px solid #fde68a",
+                      color: "#92400e",
+                      fontSize: 12.5,
+                      fontWeight: 780,
+                    }}
+                  >
+                    <span>
+                      {misstampCount === 1
+                        ? "1 turno sotto il minuto"
+                        : `${misstampCount} turni sotto il minuto`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOnlyToFix((current) => !current)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 999,
+                        background: "#ffffff",
+                        border: "1px solid #fde68a",
+                        color: "#92400e",
+                        fontSize: 12,
+                        fontWeight: 850,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {onlyToFix ? "Vedi tutti" : "Vedi"}
+                    </button>
+                  </div>
+                ) : null}
+
+                {visibleDayGroups.length === 0 ? (
+                  <EmptyState
+                    message={
+                      onlyToFix
+                        ? "Nessuna timbratura da correggere in questo mese."
+                        : "Nessuna timbratura in questo mese."
+                    }
+                  />
                 ) : (
-                  <ItemList>
-                    {selectedDayGroups.map((dayGroup) => (
-                      <ClockDayCard
-                        key={dayGroup.dayKey}
-                        dayLabel={dayGroup.dayLabel}
-                        pairs={dayGroup.pairs}
-                        subtitle={formatPairCount(dayGroup.pairs)}
-                      >
+                  <div style={{ display: "grid", gap: 14 }}>
+                    {visibleDayGroups.map((dayGroup) => {
+                      const dayWorkedMs = getDayWorkedDurationMs(dayGroup.pairs);
+
+                      return (
+                        <div key={dayGroup.dayKey} style={{ display: "grid", gap: 9 }}>
                           <div
                             style={{
-                              display: "grid",
-                              gap: 8,
+                              display: "flex",
+                              alignItems: "baseline",
+                              justifyContent: "space-between",
+                              gap: 10,
                             }}
                           >
-                            {dayGroup.pairs.map((pair) => {
-                              const row = [pair.clockIn, pair.clockOut].filter(Boolean) as LogItem[];
-                              return (
-                              <div
-                                key={pair.id}
+                            <span style={{ minWidth: 0 }}>
+                              <span
                                 style={{
-                                  display: "grid",
-                                  gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))`,
-                                  gap: 8,
+                                  fontSize: 14.5,
+                                  fontWeight: 820,
+                                  letterSpacing: "-0.02em",
+                                  color: "#0f172a",
                                 }}
                               >
-                                {row.map((log) => (
-                                  <ClockLogRow key={log.id} log={log} />
-                                ))}
-                              </div>
-                              );
-                            })}
+                                {dayGroup.dayLabel}
+                              </span>{" "}
+                              <span style={{ fontSize: 11.5, fontWeight: 750, color: "#94a3b8" }}>
+                                &middot; {formatPairCount(dayGroup.pairs)}
+                              </span>
+                            </span>
+                            <span
+                              style={{
+                                flex: "0 0 auto",
+                                fontSize: 13,
+                                fontWeight: 830,
+                                fontVariantNumeric: "tabular-nums",
+                                borderRadius: 999,
+                                padding: "3px 10px",
+                                color: dayWorkedMs > 0 ? "#4c1d95" : "#92400e",
+                                background: dayWorkedMs > 0 ? "#f3e8ff" : "#fffbeb",
+                              }}
+                            >
+                              {formatDurationFromMilliseconds(dayWorkedMs)}
+                            </span>
                           </div>
-                      </ClockDayCard>
-                    ))}
-                  </ItemList>
+
+                          {dayGroup.pairs.map((pair, index) => (
+                            <ShiftBox
+                              key={pair.id}
+                              pair={pair}
+                              position={index + 1}
+                              onCancel={cancelPair}
+                              pending={cancelling}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
+
+                <div style={{ height: 1, background: "#e9edf3" }} />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeModal();
+                    window.setTimeout(() => {
+                      document
+                        .querySelector(".workbit-manual-timelog")
+                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }, 80);
+                  }}
+                  style={footerActionStyle}
+                >
+                  <span>+ Aggiungi una timbratura mancante</span>
+                  <span style={{ color: "#cbd5e1" }}>&rsaquo;</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard/export")}
+                  style={{
+                    ...footerActionStyle,
+                    border: "1px solid #e9edf3",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                  }}
+                >
+                  <span>Esporta il mese in PDF</span>
+                  <span style={{ color: "#94a3b8" }}>&rsaquo;</span>
+                </button>
               </section>
             </div>,
             document.body

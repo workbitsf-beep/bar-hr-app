@@ -95,9 +95,8 @@ export function buildNoteMeta(input: {
     input.assignedLabel ? { text: input.assignedLabel, alarming: false } : null,
     input.authorLabel ? { text: `da ${input.authorLabel}`, alarming: false } : null,
     input.repeatLabel ? { text: input.repeatLabel, alarming: false } : null,
-    !input.requiresConfirmation && !input.done
-      ? { text: "solo da leggere", alarming: false }
-      : null,
+    // No "solo da leggere": a note with nothing to confirm is a reminder, and
+    // the absence of a tick button already says so.
   ];
 
   return {

@@ -128,7 +128,7 @@ export default async function DashboardTimeLogsPage({
     <Stack>
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
       {isOwner ? (
-        <Panel title="Timbrature manuali">
+        <Panel title="Timbrature manuali" className="workbit-manual-timelog">
           {members.length === 0 ? (
             <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
           ) : (

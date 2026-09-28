@@ -30,6 +30,9 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   TIMELOG_CLOCK_OUT_REMINDER_BEFORE: "timelog.clock-out.before",
   TIMELOG_CLOCK_OUT_REMINDER_END: "timelog.clock-out.end",
   TIMELOG_AUTO_CLOCK_OUT: "timelog.auto-clock-out",
+  // Nobody's hours change quietly: cancelling a stamp tells the person it
+  // belonged to.
+  TIMELOG_CANCELLED: "timelog.cancelled",
   BILLING_ACTIVE: "billing.active",
   BILLING_PAST_DUE: "billing.past_due",
   BILLING_CANCELED: "billing.canceled",
