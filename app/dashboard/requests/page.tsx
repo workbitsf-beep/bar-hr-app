@@ -5,7 +5,6 @@ import {
   RequestType,
   Role,
 } from "@prisma/client";
-import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
@@ -44,8 +43,50 @@ import { PopupAction } from "../popup-action";
 import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
 import { ShiftChangeForm } from "./shift-change-form";
+import { AskSomething } from "./ask-something";
 
 const AVAILABILITY_VISIBILITY_HOURS = 24;
+
+const approveButtonStyle = {
+  width: 34,
+  height: 34,
+  display: "inline-grid",
+  placeItems: "center",
+  borderRadius: 999,
+  border: "1px solid #bfe8cd",
+  background: "#e9f7ee",
+  color: "#15803d",
+  fontSize: 14,
+  fontWeight: 900,
+  cursor: "pointer",
+} as const;
+
+const rejectButtonStyle = {
+  ...approveButtonStyle,
+  border: "1px solid #f6cfcf",
+  background: "#fdecec",
+  color: "#b91c1c",
+} as const;
+
+function requestEmoji(type: RequestType | string) {
+  if (type === RequestType.VACATION) {
+    return "🏖️";
+  }
+
+  if (type === RequestType.PERMISSION) {
+    return "⏱️";
+  }
+
+  if (type === RequestType.SICKNESS) {
+    return "🤒";
+  }
+
+  if (type === RequestType.OVERTIME) {
+    return "📋";
+  }
+
+  return "🔄";
+}
 
 function closureTypeLabel(type: CalendarClosureType) {
   if (type === CalendarClosureType.HOLIDAY) {
@@ -151,31 +192,6 @@ function DeleteSwipeButton({ label }: { label: string }) {
         />
       </svg>
     </button>
-  );
-}
-
-function RequestLaunchCard({
-  icon,
-  title,
-  subtitle,
-  action,
-}: {
-  icon: string;
-  title: string;
-  subtitle: string;
-  action: ReactNode;
-}) {
-  return (
-    <section className="workbit-request-launch-card">
-      <span className="workbit-request-launch-icon" aria-hidden="true">
-        {icon}
-      </span>
-      <div className="workbit-request-launch-copy">
-        <strong>{title}</strong>
-        <span>{subtitle}</span>
-      </div>
-      <div className="workbit-request-launch-action">{action}</div>
-    </section>
   );
 }
 
@@ -468,6 +484,15 @@ export default async function DashboardRequestsPage({
       : Promise.resolve([]),
   ]);
   const standardRequests = requests.filter((request) => request.type !== RequestType.OVERTIME);
+  // What is waiting for an answer is why this page gets opened - by the owner
+  // to give one, by the employee to see whether it came. It used to be at the
+  // bottom, mixed in with everything already settled.
+  const pendingRequests = standardRequests.filter(
+    (request) => request.status === RequestStatus.PENDING
+  );
+  const closedRequests = standardRequests.filter(
+    (request) => request.status !== RequestStatus.PENDING
+  );
   const overtimeRequests = requests.filter((request) => request.type === RequestType.OVERTIME);
 
   return (
@@ -480,86 +505,255 @@ export default async function DashboardRequestsPage({
       <Stack className="workbit-requests-stack">
         {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
         {canCreateRequests ? (
-          <>
-            <RequestLaunchCard
-              icon="📝"
-              title="Nuova richiesta"
-              subtitle="Ferie, permesso o malattia"
-              action={
-                <PopupAction
-                  title="Nuova richiesta"
-                  ariaLabel="Aggiungi richiesta"
-                  className="workbit-request-plus"
-                >
-                  <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
-                    <RequestDateFields />
-
-                    <FormField label="Motivo">
-                      <TextArea
-                        name="reason"
-                        placeholder="Spiega brevemente la richiesta o le ore extra svolte"
-                      />
-                    </FormField>
-
-                    <FormField label="Codice certificato malattia">
-                      <TextInput
-                        name="certificateCode"
-                        placeholder="Obbligatorio solo se scegli Malattia"
-                      />
-                    </FormField>
-
-                    <input type="hidden" name="notifySuccess" value="1" />
-
-                    <div className="dashboard-form-actions">
-                      <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
-                    </div>
-                  </form>
-                </PopupAction>
-              }
+          <PopupAction
+            title="Nuova richiesta"
+            ariaLabel="Chiedi qualcosa"
+            triggerContent="＋ Chiedi qualcosa"
+            triggerStyle={{
+              width: "100%",
+              minHeight: 52,
+              borderRadius: 18,
+              border: 0,
+              background: "linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%)",
+              color: "#ffffff",
+              fontSize: 15.5,
+              fontWeight: 830,
+              boxShadow: "0 10px 22px rgba(94, 92, 230, 0.26)",
+            }}
+          >
+            <AskSomething
+              options={[
+                {
+                  id: "vacation",
+                  emoji: "🏖️",
+                  label: "Ferie",
+                  hint: "Uno o più giorni · da approvare",
+                  form: (
+                    <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                      <RequestDateFields type={RequestType.VACATION} />
+                      <FormField label="Motivo">
+                        <TextArea name="reason" placeholder="Facoltativo" />
+                      </FormField>
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <div className="dashboard-form-actions">
+                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
+                      </div>
+                    </form>
+                  ),
+                },
+                {
+                  id: "permission",
+                  emoji: "⏱️",
+                  label: "Permesso",
+                  hint: "Qualche ora in un giorno",
+                  form: (
+                    <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                      <RequestDateFields type={RequestType.PERMISSION} />
+                      <FormField label="Motivo">
+                        <TextArea name="reason" placeholder="Facoltativo" />
+                      </FormField>
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <div className="dashboard-form-actions">
+                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
+                      </div>
+                    </form>
+                  ),
+                },
+                {
+                  id: "sickness",
+                  emoji: "🤒",
+                  label: "Malattia",
+                  hint: "Serve il codice del certificato",
+                  form: (
+                    <form action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                      <RequestDateFields type={RequestType.SICKNESS} />
+                      <FormField label="Codice certificato">
+                        <TextInput name="certificateCode" placeholder="Il numero sul certificato" />
+                      </FormField>
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <div className="dashboard-form-actions">
+                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
+                      </div>
+                    </form>
+                  ),
+                },
+                ...(isCompany || ownShifts.length === 0
+                  ? []
+                  : [
+                      {
+                        id: "swap",
+                        emoji: "🔄",
+                        label: "Cambio turno",
+                        hint: "Proponi uno scambio a un collega",
+                        form: (
+                          <ShiftChangeForm
+                            action={createShiftChangeRequestAction}
+                            ownShifts={ownShifts.map((shift) => ({
+                              id: shift.id,
+                              title: shift.title,
+                              startTime: shift.startTime.toISOString(),
+                              endTime: shift.endTime.toISOString(),
+                            }))}
+                            teammates={teammates.map((teammate) => ({
+                              id: teammate.user.id,
+                              firstName: teammate.user.firstName,
+                              lastName: teammate.user.lastName,
+                            }))}
+                            teammateShifts={teammateShifts.flatMap((shift) =>
+                              shift.assignments.map((assignment) => ({
+                                id: shift.id,
+                                title: shift.title,
+                                startTime: shift.startTime.toISOString(),
+                                endTime: shift.endTime.toISOString(),
+                                userId: assignment.user.id,
+                                userName: `${assignment.user.firstName} ${assignment.user.lastName}`.trim(),
+                              }))
+                            )}
+                          />
+                        ),
+                      },
+                    ]),
+                ...(features.availability && !isCompany
+                  ? [
+                      {
+                        id: "unavailable",
+                        emoji: "🚫",
+                        label: "Non posso esserci",
+                        hint: "Avvisi senza chiedere permesso",
+                        form: (
+                          <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
+                            <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
+                            <FormField label="Motivo">
+                              <TextArea
+                                name="reason"
+                                placeholder="Facoltativo: esame, visita, evento personale"
+                              />
+                            </FormField>
+                            <input type="hidden" name="notifySuccess" value="1" />
+                            <div className="dashboard-form-actions">
+                              <PrimaryButton type="submit">Salva</PrimaryButton>
+                            </div>
+                          </form>
+                        ),
+                      },
+                    ]
+                  : []),
+              ]}
             />
+          </PopupAction>
+        ) : null}
 
-            {!isCompany ? (
-              <RequestLaunchCard
-                icon="🔄"
-                title="Cambio turno"
-                subtitle={ownShifts.length === 0 ? "Nessun turno disponibile" : "Proponi uno scambio"}
-                action={
-                  ownShifts.length === 0 ? null : (
-                    <PopupAction
-                      title="Cambio turno"
-                      ariaLabel="Aggiungi cambio turno"
-                      className="workbit-request-plus"
+        {features.requests && pendingRequests.length > 0 ? (
+          <div style={{ display: "grid", gap: 9 }}>
+            <span
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: 10,
+                fontSize: 11.5,
+                fontWeight: 820,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#92400e",
+              }}
+            >
+              <span>{canManageClosures ? "Da approvare" : "In attesa di risposta"}</span>
+              <span>{pendingRequests.length}</span>
+            </span>
+
+            {pendingRequests.map((request) => {
+              const canPeerReview =
+                request.type === "SHIFT_CHANGE" &&
+                request.swapWithUserId === session.user.id &&
+                request.peerStatus !== RequestStatus.REJECTED;
+              const canOwnerReview =
+                canManageClosures &&
+                request.type !== RequestType.SICKNESS &&
+                (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
+              const canSeeRequestDetails =
+                canManageClosures ||
+                request.employee.id === session.user.id ||
+                !isPrivateAbsenceRequest(request.type);
+
+              return (
+                <div
+                  key={request.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "38px minmax(0, 1fr) auto",
+                    alignItems: "center",
+                    gap: 11,
+                    padding: "11px 12px",
+                    borderRadius: 16,
+                    border: "1px solid #fde68a",
+                    background: "#fffbeb",
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 38,
+                      height: 38,
+                      display: "inline-grid",
+                      placeItems: "center",
+                      borderRadius: 12,
+                      background: "#ffffff",
+                      fontSize: 16,
+                    }}
+                  >
+                    {requestEmoji(request.type)}
+                  </span>
+
+                  <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
+                    <strong style={{ fontSize: 14.5, letterSpacing: "-0.015em", color: "#0f172a" }}>
+                      {requestLabel(request.type)}
+                      {canManageClosures ? ` · ${request.employee.firstName}` : ""}
+                    </strong>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 780,
+                        color: "#92400e",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
                     >
-                      <ShiftChangeForm
-                        action={createShiftChangeRequestAction}
-                        ownShifts={ownShifts.map((shift) => ({
-                          id: shift.id,
-                          title: shift.title,
-                          startTime: shift.startTime.toISOString(),
-                          endTime: shift.endTime.toISOString(),
-                        }))}
-                        teammates={teammates.map((teammate) => ({
-                          id: teammate.user.id,
-                          firstName: teammate.user.firstName,
-                          lastName: teammate.user.lastName,
-                        }))}
-                        teammateShifts={teammateShifts.flatMap((shift) =>
-                          shift.assignments.map((assignment) => ({
-                            id: shift.id,
-                            title: shift.title,
-                            startTime: shift.startTime.toISOString(),
-                            endTime: shift.endTime.toISOString(),
-                            userId: assignment.user.id,
-                            userName: `${assignment.user.firstName} ${assignment.user.lastName}`.trim(),
-                          }))
-                        )}
-                      />
-                    </PopupAction>
-                  )
-                }
-              />
-            ) : null}
-          </>
+                      {canSeeRequestDetails
+                        ? `${request.startsAt ? formatDateTime(request.startsAt) : "Data non disponibile"}${
+                            request.endsAt ? ` – ${formatDateTime(request.endsAt)}` : ""
+                          }`
+                        : "Dettaglio riservato"}
+                    </span>
+                  </span>
+
+                  {canPeerReview || canOwnerReview ? (
+                    <span style={{ display: "flex", gap: 6, flex: "0 0 auto" }}>
+                      <form action={reviewRequestAction}>
+                        <input type="hidden" name="requestId" value={request.id} />
+                        <input type="hidden" name="decision" value="REJECTED" />
+                        <input type="hidden" name="notifySuccess" value="1" />
+                        <button type="submit" aria-label="Rifiuta" style={rejectButtonStyle}>
+                          ✕
+                        </button>
+                      </form>
+                      <form action={reviewRequestAction}>
+                        <input type="hidden" name="requestId" value={request.id} />
+                        <input type="hidden" name="decision" value="APPROVED" />
+                        <input type="hidden" name="notifySuccess" value="1" />
+                        <button type="submit" aria-label="Approva" style={approveButtonStyle}>
+                          ✓
+                        </button>
+                      </form>
+                    </span>
+                  ) : (
+                    <StatusPill label="In attesa" tone="warning" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : null}
 
         {role === Role.OWNER && canUseOvertime ? (
@@ -752,28 +946,7 @@ export default async function DashboardRequestsPage({
               className="workbit-requests-list-panel workbit-availability-panel"
               title="Indisponibilità"
               action={
-                <PopupAction
-                  title="Indisponibilità"
-                  ariaLabel="Aggiungi indisponibilità"
-                  className="workbit-request-plus"
-                >
-                  <form action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
-                    <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
-
-                    <FormField label="Motivo">
-                      <TextArea
-                        name="reason"
-                        placeholder="Facoltativo: esame, visita, evento personale"
-                      />
-                    </FormField>
-
-                    <input type="hidden" name="notifySuccess" value="1" />
-
-                    <div className="dashboard-form-actions">
-                      <PrimaryButton type="submit">Salva indisponibilità</PrimaryButton>
-                    </div>
-                  </form>
-                </PopupAction>
+                availabilities.length === 1 ? "1 giorno" : `${availabilities.length} giorni`
               }
             >
               <div style={{ display: "grid", gap: 12 }}>
@@ -822,14 +995,16 @@ export default async function DashboardRequestsPage({
         {features.requests ? (
           <Panel
             className="workbit-requests-list-panel workbit-requests-history-panel"
-            title="Storico richieste"
-            action={`${standardRequests.length} elementi`}
+            title="Già chiuse"
+            action={
+              closedRequests.length === 1 ? "1 richiesta" : `${closedRequests.length} richieste`
+            }
           >
-            {standardRequests.length === 0 ? (
-              <EmptyState message="Nessuna richiesta presente." />
+            {closedRequests.length === 0 ? (
+              <EmptyState message="Nessuna richiesta chiusa." />
             ) : (
               <ItemList scrollable>
-                {standardRequests.map((request) => {
+                {closedRequests.map((request) => {
                   const canPeerReview =
                     request.type === "SHIFT_CHANGE" &&
                     request.swapWithUserId === session.user.id &&

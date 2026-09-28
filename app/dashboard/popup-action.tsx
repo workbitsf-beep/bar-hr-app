@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useOverlayLock } from "./use-overlay-lock";
 
 export function PopupAction({
@@ -12,6 +12,7 @@ export function PopupAction({
   closeOnSubmit = false,
   initialOpen = false,
   triggerContent,
+  triggerStyle,
 }: {
   title: string;
   ariaLabel: string;
@@ -20,6 +21,8 @@ export function PopupAction({
   closeOnSubmit?: boolean;
   initialOpen?: boolean;
   triggerContent?: ReactNode;
+  /** Merged last, for the few triggers that are a full-width call to action. */
+  triggerStyle?: CSSProperties;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -88,6 +91,7 @@ export function PopupAction({
           fontWeight: 800,
           boxShadow: "0 10px 18px rgba(15, 23, 42, 0.08)",
           cursor: "pointer",
+          ...triggerStyle,
         }}
       >
         {triggerContent ?? (

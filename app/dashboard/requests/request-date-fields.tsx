@@ -1,13 +1,17 @@
 "use client";
 
 import { RequestType } from "@prisma/client";
-import { useState } from "react";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
-import { FormField, Select, TextInput } from "../ui";
+import { FormField, TextInput } from "../ui";
 
-export function RequestDateFields() {
-  const [type, setType] = useState<string>(RequestType.VACATION);
-
+/**
+ * The dates a request needs, for a kind that has already been chosen.
+ *
+ * The kind used to be the first question inside the form, a dropdown of three;
+ * it is now the screen before, so what is left here is only the dates - and a
+ * permesso, which is hours out of one day, asks for hours instead of two days.
+ */
+export function RequestDateFields({ type }: { type: RequestType }) {
   return (
     <div
       className="dashboard-inline-grid"
@@ -17,13 +21,7 @@ export function RequestDateFields() {
         gap: 12,
       }}
     >
-      <FormField label="Tipo">
-        <Select name="type" value={type} onChange={(event) => setType(event.target.value)}>
-          <option value={RequestType.VACATION}>Ferie</option>
-          <option value={RequestType.PERMISSION}>Permesso</option>
-          <option value={RequestType.SICKNESS}>Malattia</option>
-        </Select>
-      </FormField>
+      <input type="hidden" name="type" value={type} />
 
       {type === RequestType.PERMISSION ? (
         <div style={{ gridColumn: "1 / -1" }}>
