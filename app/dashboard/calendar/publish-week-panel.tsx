@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmationToast } from "@/app/components/confirmation-toast";
-import { IconButton } from "../ui";
 
 type PublishFeedback = {
   tone: "success" | "danger";
@@ -98,29 +97,42 @@ export function PublishWeekPanel({
         paddingInline: 0,
       }}
     >
-      <IconButton
+      {/* It says what it does. A tick in a circle is the most important
+          action on this page and nobody could guess it published the week. */}
+      <button
         type="button"
         onClick={handlePublish}
         disabled={isPending}
-        aria-label="Conferma turni"
-        title="Conferma turni"
+        aria-label="Pubblica la settimana"
+        title="Pubblica la settimana"
         style={{
-          width: variant === "wide" ? "100%" : 38,
-          minWidth: variant === "wide" ? "100%" : 38,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          width: variant === "wide" ? "100%" : "auto",
           height: variant === "wide" ? 62 : 38,
-          background: hasPendingShifts ? "#f5f3ff" : "#ffffff",
-          color: hasPendingShifts ? "#6d28d9" : "#7c3aed",
-          border: "1px solid rgba(124, 58, 237, 0.16)",
-          boxShadow: variant === "wide" ? "0 16px 34px rgba(88, 28, 135, 0.10)" : "none",
+          padding: variant === "wide" ? "0 20px" : "0 13px",
+          background: hasPendingShifts
+            ? "linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%)"
+            : "#ffffff",
+          color: hasPendingShifts ? "#ffffff" : "#6d28d9",
+          border: hasPendingShifts ? "0" : "1px solid rgba(124, 58, 237, 0.24)",
+          boxShadow: hasPendingShifts ? "0 8px 18px rgba(94, 92, 230, 0.24)" : "none",
           opacity: isPending ? 0.7 : 1,
-          fontSize: variant === "wide" ? 32 : 16,
-          fontWeight: 900,
+          fontSize: variant === "wide" ? 17 : 12.5,
+          fontWeight: 850,
           borderRadius: 999,
-          marginInline: 0,
+          whiteSpace: "nowrap",
+          cursor: isPending ? "default" : "pointer",
         }}
       >
-        {isPending ? "..." : "✓"}
-      </IconButton>
+        {isPending
+          ? "Pubblico…"
+          : hasPendingShifts
+            ? `Pubblica ${pendingCount}`
+            : "Pubblicata"}
+      </button>
 
       {feedback ? (
         <ConfirmationToast

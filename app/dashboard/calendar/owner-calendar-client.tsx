@@ -2241,23 +2241,6 @@ export function OwnerCalendarClient({
                   : undefined,
               }}
             >
-              <div className="workbit-week-range" style={{ display: "grid", gap: 4 }}>
-                {week[0] && week[week.length - 1] ? (
-                  <span style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    {new Intl.DateTimeFormat(locale, {
-                      day: "numeric",
-                      month: "long",
-                      timeZone: APP_TIME_ZONE,
-                    }).format(new Date(week[0].date))}
-                    {"\u00a0—\u00a0"}
-                    {new Intl.DateTimeFormat(locale, {
-                      day: "numeric",
-                      month: "long",
-                      timeZone: APP_TIME_ZONE,
-                    }).format(new Date(week[week.length - 1].date))}
-                  </span>
-                ) : null}
-              </div>
 
               <div style={{ display: "grid", gap: 12 }}>
                 {week.map((day) => {
@@ -2412,7 +2395,11 @@ export function OwnerCalendarClient({
                       </div>
                     ) : null}
 
-                    {categoryBadges.length > 0 ? (
+                    {/* The badges are the closed-up summary. While the day is
+                        open the sections below say the same thing with the
+                        same words, so the day printed "Corsi +1" and then
+                        "Corsi" straight underneath. */}
+                    {categoryBadges.length > 0 && !isExpanded ? (
                       <div className="workbit-week-badges" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                         {categoryBadges.map((badge) =>
                           renderWeekBadge(badge, () => toggleExpandedWeekDay(day.date))
