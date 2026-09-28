@@ -5,7 +5,6 @@ import { ActivityType } from "@prisma/client";
 import { isNativeApp } from "@/lib/native-app";
 import { EmptyState, Panel, PrimaryButton, Stack } from "../ui";
 import { formatDurationClock } from "@/lib/time-format";
-import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 type EmployeeOption = {
   id: string;
@@ -247,6 +246,21 @@ export function ExportClient({
     }
   }
 
+  // Only days that were actually worked. Counting every day the month has,
+  // empty ones included, is how "GIORNATE 24" ended up over a list of
+  // twenty-four "Nessuna timbratura".
+  const workedDays = result?.data.filter((day) => day.totals.realHours > 0).length ?? 0;
+
+  // Ferie, permessi and malattia are already stamped on the days they cover,
+  // so they only have to be counted.
+  const absenceDays = new Map<string, number>();
+
+  for (const day of result?.data ?? []) {
+    for (const label of day.labels) {
+      absenceDays.set(label, (absenceDays.get(label) ?? 0) + 1);
+    }
+  }
+
   const whoLabel =
     userId === ALL ? "Tutto il team" : employees.find((one) => one.id === userId)?.label ?? "";
 
@@ -367,7 +381,7 @@ export function ExportClient({
                   label="Arrotond."
                   value={formatDurationClock(result?.totals.roundedHours ?? 0)}
                 />
-                <Figure label="Giornate" value={String(result?.data.length ?? 0)} />
+                <Figure label="Giornate" value={String(workedDays)} />
               </div>
             )}
 
@@ -389,71 +403,34 @@ export function ExportClient({
 
             {loading ? (
               <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 750 }}>Leggo le ore…</span>
-            ) : result && result.data.length === 0 ? (
-              <EmptyState message={emptyMessage} />
-            ) : result ? (
-              <div style={{ display: "grid", gap: 7 }}>
-                {result.data.map((day) => (
-                  <div
-                    key={day.date}
+            ) : absenceDays.size > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {Array.from(absenceDays.entries()).map(([label, days]) => (
+                  <span
+                    key={label}
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "minmax(0, 1fr) auto",
-                      alignItems: "center",
-                      gap: 11,
-                      padding: "10px 12px",
-                      borderRadius: 14,
-                      border: "1px solid #e9edf3",
-                      background: "#ffffff",
+                      padding: "8px 13px",
+                      borderRadius: 999,
+                      border: "1px solid #e2e8f0",
+                      background: "#f8fafc",
+                      color: "#334155",
+                      fontSize: 12.5,
+                      fontWeight: 800,
                     }}
                   >
-                    <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
-                      <strong style={{ fontSize: 13.5, color: "#0f172a" }}>{day.date}</strong>
-                      <span
-                        style={{
-                          fontSize: 11.5,
-                          color: "#64748b",
-                          fontWeight: 700,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {result.mode === "company"
-                          ? `${day.items?.length ?? 0} registrazioni`
-                          : day.entries
-                              .map(
-                                (entry) =>
-                                  `${new Date(entry.clockIn).toLocaleTimeString("it-IT", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    timeZone: APP_TIME_ZONE,
-                                  })}–${new Date(entry.clockOut).toLocaleTimeString("it-IT", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    timeZone: APP_TIME_ZONE,
-                                  })}`
-                              )
-                              .join(" · ") || "Nessuna timbratura"}
-                      </span>
-                    </span>
-
-                    {result.mode === "company" ? null : (
-                      <strong
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 830,
-                          fontVariantNumeric: "tabular-nums",
-                          color: "#4c1d95",
-                        }}
-                      >
-                        {formatDurationClock(day.totals.realHours)}
-                      </strong>
-                    )}
-                  </div>
+                    {label} · {days === 1 ? "1 giorno" : `${days} giorni`}
+                  </span>
                 ))}
               </div>
             ) : null}
+
+            {!loading && result && workedDays === 0 && absenceDays.size === 0 ? (
+              <EmptyState message={emptyMessage} />
+            ) : null}
+
+            {/* The day-by-day list lived here. The timbrature have a page of
+                their own, and they are in the PDF - printing them a third time
+                only made this page long. */}
 
             <PrimaryButton type="button" onClick={downloadPdf} disabled={downloading || !userId}>
               {downloading
