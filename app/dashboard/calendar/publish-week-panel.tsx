@@ -110,9 +110,12 @@ export function PublishWeekPanel({
           alignItems: "center",
           justifyContent: "center",
           gap: 6,
-          width: variant === "wide" ? "100%" : "auto",
-          height: variant === "wide" ? 62 : 38,
-          padding: variant === "wide" ? "0 20px" : "0 13px",
+          // The toolbar pins this slot to 34px, so a word does not fit there.
+          // Only the wide variant gets the name.
+          width: variant === "wide" ? "100%" : 34,
+          minWidth: variant === "wide" ? "100%" : 34,
+          height: variant === "wide" ? 62 : 34,
+          padding: variant === "wide" ? "0 20px" : 0,
           background: hasPendingShifts
             ? "linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%)"
             : "#ffffff",
@@ -120,18 +123,22 @@ export function PublishWeekPanel({
           border: hasPendingShifts ? "0" : "1px solid rgba(124, 58, 237, 0.24)",
           boxShadow: hasPendingShifts ? "0 8px 18px rgba(94, 92, 230, 0.24)" : "none",
           opacity: isPending ? 0.7 : 1,
-          fontSize: variant === "wide" ? 17 : 12.5,
+          fontSize: variant === "wide" ? 17 : 16,
           fontWeight: 850,
           borderRadius: 999,
           whiteSpace: "nowrap",
           cursor: isPending ? "default" : "pointer",
         }}
       >
-        {isPending
-          ? "Pubblico…"
-          : hasPendingShifts
-            ? `Pubblica ${pendingCount}`
-            : "Pubblicata"}
+        {variant === "wide"
+          ? isPending
+            ? "Pubblico…"
+            : hasPendingShifts
+              ? `Pubblica la settimana · ${pendingCount}`
+              : "Settimana pubblicata"
+          : isPending
+            ? "…"
+            : "✓"}
       </button>
 
       {feedback ? (
