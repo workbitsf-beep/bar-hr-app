@@ -124,72 +124,73 @@ export default async function DashboardTimeLogsPage({
 
   const initialLogs = isOwner ? logs : logs.slice(0, personalInitialLogLimit);
 
+  // Handed to the team panel rather than living in a card of its own: it
+  // is one subject, and a whole panel to explain one button left two
+  // thirds of the screen empty.
+  const manualEntry =
+    isOwner && members.length > 0 ? (
+      <div className="workbit-manual-timelog" style={{ display: "grid", gap: 8 }}>
+        <PopupAction
+          title="Aggiungi singola timbratura"
+          ariaLabel="Aggiungi singola timbratura"
+          triggerContent="Aggiungi timbratura"
+        >
+          <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
+            <div
+              className="dashboard-inline-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 12,
+              }}
+            >
+              <FormField label="Dipendente">
+                <Select name="userId" required defaultValue="">
+                  <option value="" disabled>
+                    Seleziona
+                  </option>
+                  {members.map((member) => (
+                    <option key={member.user.id} value={member.user.id}>
+                      {member.user.firstName} {member.user.lastName}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label="Tipo">
+                <Select name="type" defaultValue="IN">
+                  <option value="IN">Entrata</option>
+                  <option value="OUT">Uscita</option>
+                </Select>
+              </FormField>
+
+              <FormField label="Data e ora">
+                <DateTimeInput name="timestamp" required allowPast />
+              </FormField>
+
+              <FormField label="Nota">
+                <TextInput name="note" />
+              </FormField>
+            </div>
+
+            <input type="hidden" name="notifySuccess" value="1" />
+
+            <div className="dashboard-form-actions">
+              <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
+            </div>
+          </form>
+        </PopupAction>
+        <span style={{ color: "#94a3b8", fontSize: 12, fontWeight: 700, lineHeight: 1.5 }}>
+          Serve quando qualcuno ha dimenticato di timbrare.
+        </span>
+      </div>
+    ) : null;
+
   return (
     <Stack>
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
-      {isOwner ? (
-        <Panel title="Timbrature manuali" className="workbit-manual-timelog">
-          {members.length === 0 ? (
-            <EmptyState message="Nessun dipendente disponibile per aggiungere timbrature manuali." />
-          ) : (
-            <div style={{ display: "grid", gap: 12 }}>
-              <EmptyState message="Aggiungi una singola timbratura mancante scegliendo entrata oppure uscita." />
-              <PopupAction
-                title="Aggiungi singola timbratura"
-                ariaLabel="Aggiungi singola timbratura"
-                triggerContent="Aggiungi timbratura"
-              >
-                <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
-                  <div
-                    className="dashboard-inline-grid"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <FormField label="Dipendente">
-                      <Select name="userId" required defaultValue="">
-                        <option value="" disabled>
-                          Seleziona
-                        </option>
-                        {members.map((member) => (
-                          <option key={member.user.id} value={member.user.id}>
-                            {member.user.firstName} {member.user.lastName}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormField>
-
-                    <FormField label="Tipo">
-                      <Select name="type" defaultValue="IN">
-                        <option value="IN">Entrata</option>
-                        <option value="OUT">Uscita</option>
-                      </Select>
-                    </FormField>
-
-                    <FormField label="Data e ora">
-                      <DateTimeInput name="timestamp" required allowPast />
-                    </FormField>
-
-                    <FormField label="Nota">
-                      <TextInput name="note" />
-                    </FormField>
-                  </div>
-
-                  <input type="hidden" name="notifySuccess" value="1" />
-
-                  <div className="dashboard-form-actions">
-                    <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
-                  </div>
-                </form>
-              </PopupAction>
-            </div>
-          )}
-        </Panel>
-      ) : null}
-
       <TimeLogsClient
+        manualEntry={manualEntry}
         role={role}
         initialLogs={initialLogs.map((log) => ({
           id: log.id,

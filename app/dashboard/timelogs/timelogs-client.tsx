@@ -593,6 +593,132 @@ function ShiftBox({
   );
 }
 
+type TeamPerson = {
+  id: string;
+  name: string;
+  latest: string;
+  shiftCount: number;
+  monthMs: number;
+  since: string | null;
+};
+
+function groupLabelStyle(color: string) {
+  return {
+    marginTop: 3,
+    fontSize: 11.5,
+    fontWeight: 820,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color,
+  } as const;
+}
+
+/** How long they have been in, counted live rather than at page load. */
+function ElapsedSince({ since }: { since: string }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+
+    return () => window.clearInterval(id);
+  }, []);
+
+  const elapsed = Math.max(0, now - new Date(since).getTime());
+
+  return <>{formatDurationFromMilliseconds(elapsed)}</>;
+}
+
+function PersonRow({
+  person,
+  live = false,
+  onOpen,
+}: {
+  person: TeamPerson;
+  live?: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "36px minmax(0, 1fr) auto",
+        alignItems: "center",
+        gap: 11,
+        width: "100%",
+        padding: "11px 12px",
+        borderRadius: 16,
+        border: `1px solid ${live ? "#bbf7d0" : "#e9edf3"}`,
+        background: live ? "#f4fdf6" : "#ffffff",
+        textAlign: "left",
+        cursor: "pointer",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 36,
+          height: 36,
+          display: "inline-grid",
+          placeItems: "center",
+          borderRadius: 999,
+          background: live ? "#dcfce7" : "#f3e8ff",
+          color: live ? "#15803d" : "#4c1d95",
+          fontSize: 12.5,
+          fontWeight: 850,
+        }}
+      >
+        {initialsOfName(person.name)}
+      </span>
+
+      <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
+        <strong style={{ fontSize: 14.5, color: "#0f172a", letterSpacing: "-0.015em" }}>
+          {person.name}
+        </strong>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: live ? "#15803d" : "#64748b",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {person.since
+            ? `dalle ${formatClockTime(person.since)}`
+            : `ultima ${formatDateTime(person.latest)}`}
+        </span>
+      </span>
+
+      <span style={{ display: "grid", gap: 0, justifyItems: "end", flex: "0 0 auto" }}>
+        <strong
+          style={{
+            fontSize: 14,
+            fontWeight: 830,
+            fontVariantNumeric: "tabular-nums",
+            color: live ? "#15803d" : "#0f172a",
+          }}
+        >
+          {person.since ? <ElapsedSince since={person.since} /> : formatDurationFromMilliseconds(person.monthMs)}
+        </strong>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "#94a3b8",
+          }}
+        >
+          {person.since ? "in corso" : "mese"}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function initialsOfName(name: string) {
   return name
     .split(/\s+/)
@@ -1454,9 +1580,11 @@ function TemporaryWarningToast({
 function OwnerTimeLogsPanel({
   initialLogs,
   settings,
+  manualEntry,
 }: {
   initialLogs: LogItem[];
   settings: BarSettingsSummary;
+  manualEntry?: ReactNode;
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -1501,6 +1629,36 @@ function OwnerTimeLogsPanel({
       (a, b) => new Date(b.latest).getTime() - new Date(a.latest).getTime()
     );
   }, [initialLogs]);
+
+  // Someone is in service when their most recent stamp is an entrata. It is
+  // the same rule the clock-in button uses, read from the other side.
+  const people = useMemo(
+    () =>
+      groupedLogs.map((group) => {
+        const pairs = buildClockLogPairs(group.logs);
+        const openPair = pairs.find((pair) => pair.clockIn && !pair.clockOut) ?? null;
+        const monthMs = pairs.reduce(
+          (total, pair) =>
+            getMonthKey(pair.startTimestamp) === getCurrentMonthKey()
+              ? total + (getClockPairDurationMs(pair) ?? 0)
+              : total,
+          0
+        );
+
+        return {
+          id: group.id,
+          name: group.name,
+          latest: group.latest,
+          shiftCount: pairs.length,
+          monthMs,
+          since: openPair?.clockIn?.timestamp ?? null,
+        };
+      }),
+    [groupedLogs]
+  );
+
+  const onShiftNow = useMemo(() => people.filter((person) => person.since), [people]);
+  const offShift = useMemo(() => people.filter((person) => !person.since), [people]);
 
   const selectedGroup = useMemo(
     () => groupedLogs.find((group) => group.id === selectedUser) ?? null,
@@ -1588,54 +1746,51 @@ function OwnerTimeLogsPanel({
 
   return (
     <>
-      <Panel title="Timbrature del team" action={`${groupedLogs.length} persone`}>
+      <Panel title="Timbrature" className="workbit-timelogs-panel">
         {groupedLogs.length === 0 ? (
-          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-            Nessuna timbratura registrata.
-          </p>
+          <EmptyState message="Nessuna timbratura registrata." />
         ) : (
-          <div className="dashboard-scroll-list" style={{ display: "grid" }}>
-            {groupedLogs.map((group, index) => (
-              <button
-                key={group.id}
-                type="button"
-                onClick={() => setSelectedUser(group.id)}
-                style={{
-                  width: "100%",
-                  padding: "14px 2px",
-                  border: 0,
-                  borderTop: index === 0 ? 0 : "1px solid #eef0f6",
-                  background: "transparent",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ display: "grid", gap: 4 }}>
-                  <strong style={{ color: "#0f172a" }}>{group.name}</strong>
-                  <span style={{ color: "#475569", fontSize: 14 }}>
-                    {formatShiftCount(group.logs)} - ultima {formatDateTime(group.latest)}
-                  </span>
-                </div>
-
+          <div style={{ display: "grid", gap: 9 }}>
+            {/* Who is working right now, first. It is the only question anyone
+                opens this page to answer, and until now the page could not. */}
+            {onShiftNow.length > 0 ? (
+              <span style={groupLabelStyle("#15803d")}>
                 <span
-                  className="dashboard-list-button-arrow"
+                  aria-hidden="true"
                   style={{
-                    color: "#64748b",
-                    fontSize: 18,
-                    fontWeight: 700,
-                    lineHeight: 1,
+                    display: "inline-block",
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    background: "#22c55e",
+                    marginRight: 6,
                   }}
-                >
-                  &rsaquo;
-                </span>
-              </button>
+                />
+                In servizio adesso
+              </span>
+            ) : null}
+
+            {onShiftNow.map((person) => (
+              <PersonRow key={person.id} person={person} live onOpen={() => setSelectedUser(person.id)} />
             ))}
+
+            <span style={groupLabelStyle("#94a3b8")}>
+              {onShiftNow.length > 0 ? "Il resto del team" : "Il team"}
+            </span>
+
+            {offShift.length === 0 ? (
+              <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 700, padding: "2px 2px 6px" }}>
+                Sono tutti dentro.
+              </span>
+            ) : (
+              offShift.map((person) => (
+                <PersonRow key={person.id} person={person} onOpen={() => setSelectedUser(person.id)} />
+              ))
+            )}
           </div>
         )}
+
+        {manualEntry ? <div style={{ marginTop: 14 }}>{manualEntry}</div> : null}
       </Panel>
 
       {mounted && selectedGroup
@@ -2178,6 +2333,7 @@ export function TimeLogsClient({
   totals,
   todayTotals,
   hasMoreInitialLogs = false,
+  manualEntry = null,
 }: {
   role: Role | string;
   initialLogs: LogItem[];
@@ -2185,11 +2341,13 @@ export function TimeLogsClient({
   totals: Totals;
   todayTotals: Totals;
   hasMoreInitialLogs?: boolean;
+  /** The "add a missing stamp" form, handed in from the page. */
+  manualEntry?: ReactNode;
 }) {
   if (role === "OWNER") {
     return (
       <Stack>
-        <OwnerTimeLogsPanel initialLogs={initialLogs} settings={settings} />
+        <OwnerTimeLogsPanel initialLogs={initialLogs} settings={settings} manualEntry={manualEntry} />
       </Stack>
     );
   }
