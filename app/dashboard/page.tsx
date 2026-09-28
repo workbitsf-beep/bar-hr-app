@@ -714,7 +714,7 @@ export default async function DashboardPage() {
               </span>
               <div>
                 <b>
-                  {openTaskCount} {openTaskCount === 1 ? "mansione da fare" : "mansioni da fare"}
+                  {openTaskCount} {openTaskCount === 1 ? "nota da fare" : "note da fare"}
                 </b>
                 in scadenza oggi o già scadute
               </div>
