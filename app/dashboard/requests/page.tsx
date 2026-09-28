@@ -43,6 +43,7 @@ import { PopupAction } from "../popup-action";
 import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
 import { ShiftChangeForm } from "./shift-change-form";
+import { ListRowTrigger } from "../list-row-trigger";
 import { AskSomething } from "./ask-something";
 
 const AVAILABILITY_VISIBILITY_HOURS = 24;
@@ -773,32 +774,58 @@ export default async function DashboardRequestsPage({
           <PopupAction
             title="Straordinari"
             ariaLabel="Apri straordinari"
-            triggerContent={
-              <>
-                <span>📋 Straordinari registrati</span>
-                <span style={{ color: "#94a3b8", fontWeight: 800 }}>
+            renderTrigger={(open) => (
+              <ListRowTrigger
+                onClick={open}
+                label="📋 Straordinari registrati"
+                minHeight={56}
+              >
+                <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
+                  📋 Straordinari registrati
+                </span>
+                <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
                   {overtimeRequests.length} &rsaquo;
                 </span>
-              </>
-            }
-            triggerStyle={{
-              width: "100%",
-              minHeight: 52,
-              borderRadius: 15,
-              border: "1px solid #e9edf3",
-              background: "#f8fafc",
-              color: "#0f172a",
-              fontSize: 13.5,
-              fontWeight: 790,
-              justifyContent: "space-between",
-              padding: "0 14px",
-              boxShadow: "none",
-            }}
+              </ListRowTrigger>
+            )}
           >
-          <Panel
-            title="Straordinari"
-            action={
-              <PopupAction
+          <div style={{ display: "grid", gap: 12 }}>
+
+            <div style={{ display: "grid", gap: 12 }}>
+              {overtimeRequests.length === 0 ? (
+                <EmptyState message="Nessuno straordinario registrato." />
+              ) : (
+                <ItemList scrollable>
+                  {overtimeRequests.map((request) => {
+                    const canDeleteRequest = canManageClosures || request.employee.id === session.user.id;
+
+                    return (
+                      <SwipeRevealAction
+                        key={request.id}
+                        enabled={canDeleteRequest}
+                        action={
+                          <form action={deleteRequestAction}>
+                            <input type="hidden" name="requestId" value={request.id} />
+                            <DeleteSwipeButton label="Elimina straordinario" />
+                          </form>
+                        }
+                      >
+                        <ItemCard
+                          title={`${request.employee.firstName} ${request.employee.lastName}`}
+                          subtitle={`${formatDateTime(request.startsAt ?? request.createdAt)} - ${formatDateTime(
+                            request.endsAt ?? request.createdAt
+                          )}`}
+                          meta={request.reason || "Straordinario"}
+                          footer={<StatusPill label={requestStatusLabel(request.status)} tone={requestTone(request.status)} />}
+                        />
+                      </SwipeRevealAction>
+                    );
+                  })}
+                </ItemList>
+              )}
+            </div>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <PopupAction
                 title="Straordinario"
                 ariaLabel="Aggiungi straordinario"
                 className="workbit-request-plus"
@@ -843,42 +870,8 @@ export default async function DashboardRequestsPage({
                   </div>
                 </form>
               </PopupAction>
-            }
-          >
-            <div style={{ display: "grid", gap: 12 }}>
-              {overtimeRequests.length === 0 ? (
-                <EmptyState message="Nessuno straordinario registrato." />
-              ) : (
-                <ItemList scrollable>
-                  {overtimeRequests.map((request) => {
-                    const canDeleteRequest = canManageClosures || request.employee.id === session.user.id;
-
-                    return (
-                      <SwipeRevealAction
-                        key={request.id}
-                        enabled={canDeleteRequest}
-                        action={
-                          <form action={deleteRequestAction}>
-                            <input type="hidden" name="requestId" value={request.id} />
-                            <DeleteSwipeButton label="Elimina straordinario" />
-                          </form>
-                        }
-                      >
-                        <ItemCard
-                          title={`${request.employee.firstName} ${request.employee.lastName}`}
-                          subtitle={`${formatDateTime(request.startsAt ?? request.createdAt)} - ${formatDateTime(
-                            request.endsAt ?? request.createdAt
-                          )}`}
-                          meta={request.reason || "Straordinario"}
-                          footer={<StatusPill label={requestStatusLabel(request.status)} tone={requestTone(request.status)} />}
-                        />
-                      </SwipeRevealAction>
-                    );
-                  })}
-                </ItemList>
-              )}
+              </div>
             </div>
-          </Panel>
           </PopupAction>
         ) : null}
 
@@ -886,40 +879,23 @@ export default async function DashboardRequestsPage({
           <PopupAction
             title="Chiusure"
             ariaLabel="Apri chiusure"
-            triggerContent={
-              <>
-                <span>📝 Chiusure e ferie aziendali</span>
-                <span style={{ color: "#94a3b8", fontWeight: 800 }}>
+            renderTrigger={(open) => (
+              <ListRowTrigger
+                onClick={open}
+                label="📝 Chiusure e ferie aziendali"
+                minHeight={56}
+              >
+                <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
+                  📝 Chiusure e ferie aziendali
+                </span>
+                <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
                   {closures.length} &rsaquo;
                 </span>
-              </>
-            }
-            triggerStyle={{
-              width: "100%",
-              minHeight: 52,
-              borderRadius: 15,
-              border: "1px solid #e9edf3",
-              background: "#f8fafc",
-              color: "#0f172a",
-              fontSize: 13.5,
-              fontWeight: 790,
-              justifyContent: "space-between",
-              padding: "0 14px",
-              boxShadow: "none",
-            }}
+              </ListRowTrigger>
+            )}
           >
-          <Panel
-            title="Chiusure"
-            action={
-              <PopupAction
-                title="Chiusura"
-                ariaLabel="Aggiungi chiusura"
-                className="workbit-request-plus"
-              >
-                <ClosureComposeForm action={createCalendarClosureAction} />
-              </PopupAction>
-            }
-          >
+          <div style={{ display: "grid", gap: 12 }}>
+
             {closures.length === 0 ? (
               <EmptyState message="Nessuna chiusura registrata." />
             ) : (
@@ -1002,7 +978,16 @@ export default async function DashboardRequestsPage({
                 ))}
               </ItemList>
             )}
-          </Panel>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <PopupAction
+                title="Chiusura"
+                ariaLabel="Aggiungi chiusura"
+                className="workbit-request-plus"
+              >
+                <ClosureComposeForm action={createCalendarClosureAction} />
+              </PopupAction>
+              </div>
+            </div>
           </PopupAction>
         ) : null}
 
@@ -1010,35 +995,23 @@ export default async function DashboardRequestsPage({
           <PopupAction
             title="Indisponibilità"
             ariaLabel="Apri indisponibilità"
-            triggerContent={
-              <>
-                <span>🚫 Indisponibilità del team</span>
-                <span style={{ color: "#94a3b8", fontWeight: 800 }}>
+            renderTrigger={(open) => (
+              <ListRowTrigger
+                onClick={open}
+                label="🚫 Indisponibilità del team"
+                minHeight={56}
+              >
+                <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780 }}>
+                  🚫 Indisponibilità del team
+                </span>
+                <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
                   {availabilities.length} &rsaquo;
                 </span>
-              </>
-            }
-            triggerStyle={{
-              width: "100%",
-              minHeight: 52,
-              borderRadius: 15,
-              border: "1px solid #e9edf3",
-              background: "#f8fafc",
-              color: "#0f172a",
-              fontSize: 13.5,
-              fontWeight: 790,
-              justifyContent: "space-between",
-              padding: "0 14px",
-              boxShadow: "none",
-            }}
+              </ListRowTrigger>
+            )}
           >
-            <Panel
-              className="workbit-requests-list-panel workbit-availability-panel"
-              title="Indisponibilità"
-              action={
-                availabilities.length === 1 ? "1 giorno" : `${availabilities.length} giorni`
-              }
-            >
+            <div style={{ display: "grid", gap: 12 }}>
+
               <div style={{ display: "grid", gap: 12 }}>
               {availabilities.length === 0 ? (
                 <EmptyState message="Nessuna indisponibilità registrata." />
@@ -1080,12 +1053,12 @@ export default async function DashboardRequestsPage({
                 </ItemList>
               )}
               </div>
-            </Panel>
+            </div>
           </PopupAction>
         ) : null}
         {features.requests ? (
           <Panel
-            className="workbit-requests-list-panel workbit-requests-history-panel"
+            className="workbit-requests-history-panel"
             title="Già chiuse"
             action={
               closedRequests.length === 1 ? "1 richiesta" : `${closedRequests.length} richieste`
@@ -1147,13 +1120,20 @@ export default async function DashboardRequestsPage({
                         }
                         footer={
                           <div style={{ display: "grid", gap: 10 }}>
+                            {/* One verdict. The three pills were the request's
+                                own status plus the two halves of a shift swap,
+                                which on anything else printed "Approvata"
+                                twice. */}
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <StatusPill label={requestStatusLabel(request.status)} tone={requestTone(request.status)} />
-                              {request.peerStatus ? (
-                                <StatusPill label={requestStatusLabel(request.peerStatus)} tone={requestTone(request.peerStatus)} />
-                              ) : null}
-                              {request.ownerStatus ? (
-                                <StatusPill label={requestStatusLabel(request.ownerStatus)} tone={requestTone(request.ownerStatus)} />
+                              <StatusPill
+                                label={requestStatusLabel(request.status)}
+                                tone={requestTone(request.status)}
+                              />
+                              {request.type === "SHIFT_CHANGE" && request.peerStatus ? (
+                                <StatusPill
+                                  label={`Collega: ${requestStatusLabel(request.peerStatus)}`}
+                                  tone={requestTone(request.peerStatus)}
+                                />
                               ) : null}
                             </div>
 

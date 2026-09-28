@@ -13,6 +13,7 @@ export function PopupAction({
   initialOpen = false,
   triggerContent,
   triggerStyle,
+  renderTrigger,
 }: {
   title: string;
   ariaLabel: string;
@@ -23,6 +24,13 @@ export function PopupAction({
   triggerContent?: ReactNode;
   /** Merged last, for the few triggers that are a full-width call to action. */
   triggerStyle?: CSSProperties;
+  /**
+   * Draws the opener itself, for rows that are a row rather than a button. The
+   * built-in trigger carries .dashboard-popup-trigger, and the stylesheet
+   * forces that class to a 36px lilac pill with !important - which squashed
+   * every list row that tried to be one.
+   */
+  renderTrigger?: (open: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -63,6 +71,9 @@ export function PopupAction({
 
   return (
     <>
+      {renderTrigger ? (
+        renderTrigger(() => setOpen(true))
+      ) : (
       <button
         type="button"
         aria-label={ariaLabel}
@@ -105,6 +116,7 @@ export function PopupAction({
           </svg>
         )}
       </button>
+      )}
 
       {mounted && open
         ? createPortal(

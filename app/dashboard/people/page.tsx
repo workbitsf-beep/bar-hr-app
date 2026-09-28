@@ -14,6 +14,7 @@ import {
   SuccessCallout,
 } from "../ui";
 import { PopupAction } from "../popup-action";
+import { ListRowTrigger } from "../list-row-trigger";
 import { ConfirmSubmit } from "./confirm-submit";
 import { NewPersonForm } from "./new-person-form";
 
@@ -261,33 +262,38 @@ export default async function DashboardPeoplePage({
         key={member.id}
         title={name}
         ariaLabel={`Apri la scheda di ${name}`}
-        triggerContent={
-          <>
+        renderTrigger={(open) => (
+          <ListRowTrigger
+            onClick={open}
+            label={`Apri la scheda di ${name}`}
+            tone={live ? "live" : row.warning ? "warn" : "plain"}
+            minHeight={66}
+          >
             <span
               aria-hidden="true"
               style={{
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 flex: "0 0 auto",
                 display: "inline-grid",
                 placeItems: "center",
                 borderRadius: 999,
                 background: live ? "#dcfce7" : row.warning ? "#ffffff" : "#f3e8ff",
                 color: live ? "#15803d" : row.warning ? "#92400e" : "#4c1d95",
-                fontSize: 12.5,
+                fontSize: 13,
                 fontWeight: 850,
               }}
             >
               {initialsOf(member.user.firstName, member.user.lastName)}
             </span>
 
-            <span style={{ display: "grid", gap: 1, minWidth: 0, flex: "1 1 auto", textAlign: "left" }}>
-              <strong style={{ fontSize: 14.5, letterSpacing: "-0.015em", color: "#0f172a" }}>
+            <span style={{ display: "grid", gap: 3, minWidth: 0, flex: "1 1 auto" }}>
+              <strong style={{ fontSize: 15, letterSpacing: "-0.015em", color: "#0f172a" }}>
                 {name}
               </strong>
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: 12.5,
                   fontWeight: live || row.warning ? 790 : 690,
                   color: live ? "#15803d" : row.warning ? "#92400e" : "#64748b",
                   overflow: "hidden",
@@ -299,11 +305,10 @@ export default async function DashboardPeoplePage({
               </span>
             </span>
 
-            <span style={{ flex: "0 0 auto", textAlign: "right" }}>
+            <span style={{ flex: "0 0 auto", textAlign: "right", display: "grid", gap: 1 }}>
               <strong
                 style={{
-                  display: "block",
-                  fontSize: 13.5,
+                  fontSize: 14.5,
                   fontWeight: 830,
                   fontVariantNumeric: "tabular-nums",
                   color: live ? "#15803d" : "#0f172a",
@@ -323,18 +328,8 @@ export default async function DashboardPeoplePage({
                 mese
               </span>
             </span>
-          </>
-        }
-        triggerStyle={{
-          width: "100%",
-          minHeight: 60,
-          gap: 11,
-          borderRadius: 16,
-          border: `1px solid ${live ? "#bfe8cd" : row.warning ? "#fde68a" : "#e9edf3"}`,
-          background: live ? "#f4fdf6" : row.warning ? "#fffbeb" : "#ffffff",
-          padding: "0 12px",
-          boxShadow: "none",
-        }}
+          </ListRowTrigger>
+        )}
       >
         <div style={{ display: "grid", gap: 13 }}>
           <span style={{ color: "#64748b", fontSize: 13, fontWeight: 720 }}>
