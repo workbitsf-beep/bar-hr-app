@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { AudienceSelector } from "@/app/components/audience-selector";
+import {
+  TaskRepeatField,
+  describeTaskRepeatDraft,
+  type TaskRepeatDraft,
+} from "../task-repeat-field";
 import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
@@ -18,6 +23,7 @@ function createEmptyEntry() {
     assignedToId: "",
     isUrgent: false,
     requiresConfirmation: true,
+    repeat: null as TaskRepeatDraft,
   };
 }
 
@@ -100,6 +106,12 @@ export function TaskComposeForm({
           name={`requiresConfirmation_${entry.id}`}
           value={entry.requiresConfirmation ? "on" : "off"}
         />
+        {entry.repeat ? (
+          <>
+            <input type="hidden" name={`repeatEvery_${entry.id}`} value={entry.repeat.every} />
+            <input type="hidden" name={`repeatUnit_${entry.id}`} value={entry.repeat.unit} />
+          </>
+        ) : null}
       </div>
     );
   }
@@ -141,6 +153,9 @@ export function TaskComposeForm({
                 <span style={{ color: "#64748b", fontSize: 12 }}>
                   {getAudienceLabel(entry)}
                   {entry.isUrgent ? " · Urgente" : ""}
+                  {describeTaskRepeatDraft(entry.repeat)
+                    ? ` · ${describeTaskRepeatDraft(entry.repeat)}`
+                    : ""}
                 </span>
               </button>
               <div style={{ display: "flex", gap: 6 }}>
@@ -248,6 +263,12 @@ export function TaskComposeForm({
                 </div>
               ) : null}
             </div>
+
+            <TaskRepeatField
+              repeat={draft.repeat}
+              onChange={(repeat) => setDraft({ ...draft, repeat })}
+            />
+
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <IconButton
                 type="button"

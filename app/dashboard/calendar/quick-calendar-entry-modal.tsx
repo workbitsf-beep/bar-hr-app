@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AudienceSelector } from "@/app/components/audience-selector";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
+import { TaskRepeatField, type TaskRepeatDraft } from "../task-repeat-field";
 import { IconButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
@@ -20,6 +21,7 @@ type EntryItem = {
   assignedToId: string;
   isUrgent: boolean;
   requiresConfirmation: boolean;
+  repeat: TaskRepeatDraft;
 };
 
 function createEmptyEntry(): EntryItem {
@@ -30,6 +32,7 @@ function createEmptyEntry(): EntryItem {
     assignedToId: "",
     isUrgent: false,
     requiresConfirmation: false,
+    repeat: null,
   };
 }
 
@@ -94,6 +97,12 @@ export function QuickCalendarEntryModal({
     }
 
     formData.set(`requiresConfirmation_${draft.id}`, draft.requiresConfirmation ? "on" : "off");
+
+    if (draft.repeat) {
+      formData.set(`repeatEvery_${draft.id}`, String(draft.repeat.every));
+      formData.set(`repeatUnit_${draft.id}`, draft.repeat.unit);
+    }
+
     formData.set("description", "");
     formData.set("dueDate", dueDate);
 
@@ -250,6 +259,11 @@ export function QuickCalendarEntryModal({
                 ))}
               </div>
             ) : null}
+
+            <TaskRepeatField
+              repeat={draft.repeat}
+              onChange={(repeat) => setDraft({ ...draft, repeat })}
+            />
 
             <label style={{ display: "grid", gap: 8 }}>
               <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>

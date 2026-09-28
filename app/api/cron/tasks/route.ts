@@ -10,15 +10,22 @@ export async function GET(request: Request): Promise<Response> {
 
   const [
     { runTaskEscalation },
+    { runTaskRecurrence },
     { runShiftRetentionCleanup },
     { runTimeLogReminders },
     { runDataRetention },
   ] = await Promise.all([
     import("@/lib/taskEscalation"),
+    import("@/lib/task-recurrence"),
     import("@/lib/shiftCleanup"),
     import("@/lib/timelog-reminders"),
     import("@/lib/data-retention"),
   ]);
+
+  // Recurrence runs before escalation: escalation rewrites an overdue note's
+  // date to tomorrow, which would otherwise move the series' anchor every day
+  // it stayed untouched.
+  const recurrenceResult = await runTaskRecurrence();
 
   const [taskResult, shiftResult, timelogReminderResult, retentionResult] = await Promise.all([
     runTaskEscalation(),
@@ -32,6 +39,7 @@ export async function GET(request: Request): Promise<Response> {
     ok: true,
     retention: retentionResult,
     updatedCount: taskResult.count,
+    renewedRecurringTaskCount: recurrenceResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,
     deletedRequestCount: shiftResult.deletedRequestCount,
     detachedTimeLogCount: shiftResult.detachedTimeLogCount,

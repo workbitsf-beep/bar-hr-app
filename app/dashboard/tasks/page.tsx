@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { describeTaskRepeat } from "@/lib/task-recurrence";
 import {
   completeTaskAction,
   createTaskAction,
@@ -82,6 +83,8 @@ export default async function DashboardTasksPage({
             status: true,
             isUrgent: true,
             requiresConfirmation: true,
+            repeatEvery: true,
+            repeatUnit: true,
             assignedToAll: true,
             assignedToId: true,
             assignedTo: {
@@ -228,7 +231,12 @@ export default async function DashboardTasksPage({
                 <ItemCard
                   className="workbit-note-card"
                   title={task.title}
-                  subtitle={`Data ${formatDate(task.dueDate)}`}
+                  subtitle={[
+                    `Data ${formatDate(task.dueDate)}`,
+                    describeTaskRepeat(task.repeatEvery, task.repeatUnit),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                   style={{
                     position: "relative",
                   }}

@@ -79,6 +79,12 @@ enum TaskStatus {
   DONE
 }
 
+enum TaskRepeatUnit {
+  DAY
+  WEEK
+  MONTH
+}
+
 enum RoundingMode {
   UP
   DOWN
@@ -541,6 +547,11 @@ model Task {
   dueDate              DateTime
   isUrgent             Boolean          @default(false)
   requiresConfirmation Boolean          @default(true)
+  // A note that comes back by itself: "controllo estintori ogni 6 mesi". Only
+  // the newest occurrence of a series carries the rule, so a series can never
+  // produce two pending notes for the same check.
+  repeatEvery          Int?
+  repeatUnit           TaskRepeatUnit?
   assignedToAll        Boolean          @default(false)
   barId                String           @db.Uuid
   bar                  Bar              @relation(fields: [barId], references: [id], onDelete: Cascade)

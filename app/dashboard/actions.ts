@@ -39,6 +39,12 @@ import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
 import { formatDateTimeInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { parseTaskDueDate } from "@/lib/task-dates";
 import {
+  parseTaskRepeat,
+  spawnNextTaskOccurrence,
+  RECURRING_TASK_FIELDS,
+  type TaskRepeat,
+} from "@/lib/task-recurrence";
+import {
   canManageOperations,
   canManagePeople,
   canReviewOperationalRequests,
@@ -617,6 +623,7 @@ type ParsedTaskDraft = {
   assignedToId: string;
   isUrgent: boolean;
   requiresConfirmation: boolean;
+  repeat: TaskRepeat | null;
 };
 
 function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
@@ -630,6 +637,7 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
     const assignedToAll = formData.get("assignedToAll") === "on";
     const isUrgent = formData.get("isUrgent") === "on";
     const requiresConfirmation = formData.get("requiresConfirmation") !== "off";
+    const repeat = parseTaskRepeat(formData.get("repeatEvery"), formData.get("repeatUnit"));
 
     return collectBulkTextEntries(formData, "title").map((title) => ({
       title,
@@ -637,6 +645,7 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
       assignedToId,
       isUrgent,
       requiresConfirmation,
+      repeat,
     }));
   }
 
@@ -647,6 +656,10 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
       const assignedToId = String(formData.get(`assignedToId_${entryId}`) ?? "").trim();
       const isUrgent = formData.get(`isUrgent_${entryId}`) === "on";
       const requiresConfirmation = formData.get(`requiresConfirmation_${entryId}`) !== "off";
+      const repeat = parseTaskRepeat(
+        formData.get(`repeatEvery_${entryId}`),
+        formData.get(`repeatUnit_${entryId}`)
+      );
 
       return {
         title,
@@ -654,6 +667,7 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
         assignedToId,
         isUrgent,
         requiresConfirmation,
+        repeat,
       };
     })
     .filter((entry) => entry.title.length > 0);
@@ -2128,6 +2142,8 @@ export async function createTaskAction(formData: FormData) {
       status: TaskStatus.TODO,
       isUrgent: taskDraft.isUrgent,
       requiresConfirmation: taskDraft.requiresConfirmation,
+      repeatEvery: taskDraft.repeat?.repeatEvery ?? null,
+      repeatUnit: taskDraft.repeat?.repeatUnit ?? null,
     })),
   });
 
@@ -2209,12 +2225,7 @@ export async function completeTaskAction(formData: FormData) {
       id: taskId,
       barId: activeBarId,
     },
-    select: {
-      id: true,
-      createdById: true,
-      assignedToId: true,
-      assignedToAll: true,
-    },
+    select: RECURRING_TASK_FIELDS,
   });
 
   if (!task) {
@@ -2254,6 +2265,10 @@ export async function completeTaskAction(formData: FormData) {
       },
     }),
   ]);
+
+  // A recurring check writes its own next round the moment this one is
+  // confirmed, counted from the date it was due.
+  await spawnNextTaskOccurrence(task);
 
   if (task.createdById !== session.user.id) {
     await notifyUsers([task.createdById], {
