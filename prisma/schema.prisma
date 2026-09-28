@@ -85,6 +85,13 @@ enum TaskRepeatUnit {
   MONTH
 }
 
+enum CourseKind {
+  HACCP
+  FIRE_SAFETY
+  FIRST_AID
+  OTHER
+}
+
 enum RoundingMode {
   UP
   DOWN
@@ -679,10 +686,14 @@ model Request {
 }
 
 model Course {
-  id            String   @id @default(uuid()) @db.Uuid
-  barId         String   @db.Uuid
+  id            String     @id @default(uuid()) @db.Uuid
+  barId         String     @db.Uuid
   title         String
   description   String?
+  // A course in a venue is nearly always a deadline: HACCP lasts three years,
+  // fire safety five. The kind knows how long, so nobody has to.
+  kind          CourseKind @default(OTHER)
+  expiresAt     DateTime?
   startsAt      DateTime
   endsAt        DateTime
   location      String?

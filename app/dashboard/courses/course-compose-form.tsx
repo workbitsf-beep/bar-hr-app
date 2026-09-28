@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { CourseKind } from "@prisma/client";
 import { AudienceSelector } from "@/app/components/audience-selector";
-import { TimeInput } from "@/app/components/time-input";
+import {
+  COURSE_KINDS,
+  describeCourseValidity,
+  expiryFromStart,
+  getCourseKind,
+  type CourseKindDefinition,
+} from "@/lib/course-kinds";
 import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
 
 type MemberOption = {
@@ -10,107 +17,82 @@ type MemberOption = {
   label: string;
 };
 
-type CourseMode = "single" | "multi";
-
 type CourseDraft = {
   id: string;
-  mode: CourseMode;
+  kind: CourseKind;
   title: string;
   description: string;
   date: string;
-  startDate: string;
   endDate: string;
   startTime: string;
   endTime: string;
+  expiresAt: string;
   location: string;
   assignedToAll: boolean;
   assignedToId: string;
 };
 
-function todayInputValue() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+/** The shapes a training day actually takes, instead of four number boxes. */
+const TIME_PRESETS = [
+  { label: "Mattina", startTime: "09:00", endTime: "13:00" },
+  { label: "Pomeriggio", startTime: "14:00", endTime: "18:00" },
+  { label: "Tutto il giorno", startTime: "09:00", endTime: "18:00" },
+];
+
+function toDateInputValue(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
-function createDraft(): CourseDraft {
+function createDraft(kind: CourseKindDefinition): CourseDraft {
   return {
     id: crypto.randomUUID(),
-    mode: "single",
-    title: "",
+    kind: kind.id,
+    title: kind.id === CourseKind.OTHER ? "" : kind.label,
     description: "",
     date: "",
-    startDate: "",
     endDate: "",
-    startTime: "",
-    endTime: "",
+    startTime: "14:00",
+    endTime: "18:00",
+    expiresAt: "",
     location: "",
     assignedToAll: true,
     assignedToId: "",
   };
 }
 
-function normalizeTime(value: string) {
-  const [rawHours = "", rawMinutes = ""] = value.split(":");
-  const hours = rawHours.replace(/\D/g, "").slice(0, 2);
-  const minutes = rawMinutes.replace(/\D/g, "").slice(0, 2);
-
-  if (!hours) {
-    return "";
-  }
-
-  return `${hours.padStart(2, "0")}:${minutes ? minutes.padStart(2, "0") : "00"}`;
-}
-
-function getDraftRange(draft: CourseDraft) {
-  const startDate = draft.mode === "single" ? draft.date : draft.startDate;
-  const endDate = draft.mode === "single" ? draft.date : draft.endDate;
-  const startTime = normalizeTime(draft.startTime);
-  const endTime = normalizeTime(draft.endTime);
-
-  return {
-    startDate,
-    endDate,
-    startTime,
-    endTime,
-    startsAt: startDate && startTime ? `${startDate}T${startTime}` : "",
-    endsAt: endDate && endTime ? `${endDate}T${endTime}` : "",
-  };
-}
-
 function isDraftValid(draft: CourseDraft) {
-  const today = todayInputValue();
-  const range = getDraftRange(draft);
-
-  if (!draft.title.trim() || !range.startDate || !range.endDate || !range.startTime || !range.endTime) {
+  if (!draft.title.trim() || !draft.date || !draft.startTime || !draft.endTime) {
     return false;
   }
 
-  if (range.startDate < today || range.endDate < range.startDate) {
+  if (!draft.assignedToAll && !draft.assignedToId) {
     return false;
   }
 
-  if (range.startDate === range.endDate && range.endTime <= range.startTime) {
+  const endDate = draft.endDate || draft.date;
+
+  if (endDate < draft.date) {
     return false;
   }
 
-  return true;
+  return endDate !== draft.date || draft.endTime > draft.startTime;
 }
 
-function rangeLabel(draft: CourseDraft) {
-  const range = getDraftRange(draft);
-
-  if (!range.startDate || !range.endDate || !range.startTime || !range.endTime) {
+function describeDay(value: string) {
+  if (!value) {
     return "";
   }
 
-  if (range.startDate === range.endDate) {
-    return `${range.startDate} ${range.startTime}-${range.endTime}`;
-  }
-
-  return `${range.startDate} - ${range.endDate} ${range.startTime}-${range.endTime}`;
+  return new Intl.DateTimeFormat("it-IT", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${value}T12:00:00`));
 }
 
 export function CourseComposeForm({
@@ -120,51 +102,73 @@ export function CourseComposeForm({
   members: MemberOption[];
   action: (formData: FormData) => Promise<void> | void;
 }) {
-  const [draft, setDraft] = useState<CourseDraft>(createDraft());
+  const [draft, setDraft] = useState<CourseDraft | null>(null);
   const [queued, setQueued] = useState<CourseDraft[]>([]);
+  const [showExtras, setShowExtras] = useState(false);
+  const [multiDay, setMultiDay] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
-  const today = todayInputValue();
-  const draftValid = isDraftValid(draft);
 
-  function setMode(mode: CourseMode) {
-    setDraft((current) => ({
-      ...current,
-      mode,
-      date: mode === "single" ? current.date || current.startDate : current.date,
-      startDate: mode === "multi" ? current.startDate || current.date : current.startDate,
-      endDate: mode === "multi" ? current.endDate || current.date : current.endDate,
-    }));
+  const kind = draft ? getCourseKind(draft.kind) : null;
+  const draftValid = draft ? isDraftValid(draft) : false;
+  const readyCount = queued.length + (draftValid ? 1 : 0);
+
+  function chooseKind(nextKind: CourseKindDefinition) {
+    setDraft(createDraft(nextKind));
+    setShowExtras(false);
+    setMultiDay(false);
     setError("");
   }
 
+  /** The expiry follows the date until someone types their own. */
+  function setDate(value: string) {
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const definition = getCourseKind(current.kind);
+      const suggested = value ? expiryFromStart(new Date(`${value}T12:00:00`), definition) : null;
+
+      return {
+        ...current,
+        date: value,
+        expiresAt: suggested ? toDateInputValue(suggested) : current.expiresAt,
+      };
+    });
+  }
+
   function addToList() {
-    if (!draftValid) {
-      setError("Controlla titolo, date e orari del corso.");
+    if (!draft || !draftValid) {
+      setError("Controlla titolo, data e orario del corso.");
       return;
     }
 
     setQueued((current) => current.concat(draft));
-    setDraft(createDraft());
+    setDraft(null);
+    setShowExtras(false);
+    setMultiDay(false);
     setError("");
   }
 
   function saveAll() {
-    const items = queued.concat(draftValid ? [draft] : []);
+    const items = queued.concat(draft && draftValid ? [draft] : []);
 
     if (items.length === 0) {
-      setError("Aggiungi almeno un corso valido.");
+      setError("Aggiungi almeno un corso.");
       return;
     }
 
     startTransition(async () => {
       for (const item of items) {
-        const range = getDraftRange(item);
+        const endDate = item.endDate || item.date;
         const formData = new FormData();
+        formData.set("kind", item.kind);
         formData.set("title", item.title);
         formData.set("description", item.description);
-        formData.set("startsAt", range.startsAt);
-        formData.set("endsAt", range.endsAt);
+        formData.set("startsAt", `${item.date}T${item.startTime}`);
+        formData.set("endsAt", `${endDate}T${item.endTime}`);
+        formData.set("expiresAt", item.expiresAt);
         formData.set("location", item.location);
         formData.set("notifySuccess", "1");
 
@@ -178,13 +182,28 @@ export function CourseComposeForm({
       }
 
       setQueued([]);
-      setDraft(createDraft());
+      setDraft(null);
       setError("");
     });
   }
 
   return (
     <div style={{ display: "grid", gap: 14, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+      {error ? (
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 16,
+            background: "#fff7ed",
+            border: "1px solid #fed7aa",
+            color: "#9a3412",
+            fontWeight: 800,
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
+
       {queued.length > 0 ? (
         <div style={{ display: "grid", gap: 8 }}>
           {queued.map((item) => (
@@ -206,155 +225,297 @@ export function CourseComposeForm({
                 onClick={() => {
                   setDraft(item);
                   setQueued((current) => current.filter((entry) => entry.id !== item.id));
-                  setError("");
                 }}
                 style={{
+                  flex: "1 1 auto",
                   border: 0,
                   background: "transparent",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                  textAlign: "left",
                   padding: 0,
+                  textAlign: "left",
+                  display: "grid",
+                  gap: 2,
+                  minWidth: 0,
+                  cursor: "pointer",
                 }}
               >
-                {item.title}
-                <span style={{ display: "block", color: "#64748b", fontSize: 12, fontWeight: 600 }}>
-                  {rangeLabel(item)}
+                <strong style={{ fontSize: 13, color: "#0f172a" }}>
+                  {getCourseKind(item.kind).emoji} {item.title}
+                </strong>
+                <span style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                  {describeDay(item.date)} · {item.startTime}–{item.endTime}
                 </span>
               </button>
-              <button
+              <IconButton
                 type="button"
                 onClick={() => setQueued((current) => current.filter((entry) => entry.id !== item.id))}
-                style={{ border: 0, background: "transparent", color: "#94a3b8", fontWeight: 800 }}
+                aria-label="Togli il corso"
               >
-                x
-              </button>
+                ×
+              </IconButton>
             </div>
           ))}
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <button
-          type="button"
-          onClick={() => setMode("single")}
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 999,
-            padding: "10px 12px",
-            background: draft.mode === "single" ? "#111827" : "#fff",
-            color: draft.mode === "single" ? "#fff" : "#475569",
-            fontWeight: 800,
-          }}
-        >
-          Un giorno
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("multi")}
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 999,
-            padding: "10px 12px",
-            background: draft.mode === "multi" ? "#111827" : "#fff",
-            color: draft.mode === "multi" ? "#fff" : "#475569",
-            fontWeight: 800,
-          }}
-        >
-          Più giorni
-        </button>
-      </div>
+      {/* The kind first: it is what a venue thinks in, and it knows how long
+          the certificate lasts so nobody has to. */}
+      {!draft || !kind ? (
+        <div style={{ display: "grid", gap: 10 }}>
+          <strong style={{ color: "#0f172a", fontSize: 15 }}>
+            {queued.length > 0 ? "Aggiungine un altro" : "Che corso è?"}
+          </strong>
 
-      <FormField label="Titolo corso">
-        <TextInput value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
-      </FormField>
-
-      {draft.mode === "single" ? (
-        <FormField label="Data">
-          <TextInput
-            type="date"
-            min={today}
-            value={draft.date}
-            onChange={(event) => setDraft({ ...draft, date: event.target.value })}
-          />
-        </FormField>
+          <div style={{ display: "grid", gap: 8 }}>
+            {COURSE_KINDS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => chooseKind(option)}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "42px minmax(0, 1fr)",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "11px 13px",
+                  borderRadius: 18,
+                  border: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 42,
+                    height: 42,
+                    display: "inline-grid",
+                    placeItems: "center",
+                    borderRadius: 14,
+                    background: "#f8fafc",
+                    fontSize: 18,
+                  }}
+                >
+                  {option.emoji}
+                </span>
+                <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
+                  <strong style={{ color: "#0f172a", fontSize: 15 }}>{option.label}</strong>
+                  <span style={{ color: "#64748b", fontSize: 12.5, fontWeight: 650 }}>
+                    {describeCourseValidity(option)}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       ) : (
-        <div className="dashboard-inline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
-          <FormField label="Data inizio">
-            <TextInput
-              type="date"
-              min={today}
-              value={draft.startDate}
-              onChange={(event) => {
-                const startDate = event.target.value;
-                setDraft({
-                  ...draft,
-                  startDate,
-                  endDate: draft.endDate && draft.endDate < startDate ? startDate : draft.endDate,
-                });
+        <div style={{ display: "grid", gap: 14 }}>
+          <button
+            type="button"
+            onClick={() => setDraft(null)}
+            style={{
+              justifySelf: "start",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 14px 8px 11px",
+              borderRadius: 999,
+              border: "1px solid rgba(124, 58, 237, 0.46)",
+              background: "#f3e8ff",
+              color: "#4c1d95",
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            <span aria-hidden="true">‹</span>
+            {kind.emoji} {kind.label}
+          </button>
+
+          {kind.id === CourseKind.OTHER ? (
+            <FormField label="Titolo">
+              <TextInput
+                value={draft.title}
+                onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+              />
+            </FormField>
+          ) : null}
+
+          <FormField label="Quando">
+            <TextInput type="date" value={draft.date} onChange={(event) => setDate(event.target.value)} />
+          </FormField>
+
+          {multiDay ? (
+            <FormField label="Fino al">
+              <TextInput
+                type="date"
+                value={draft.endDate}
+                onChange={(event) => setDraft({ ...draft, endDate: event.target.value })}
+              />
+            </FormField>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setMultiDay(true);
+                setDraft({ ...draft, endDate: draft.date });
               }}
+              style={{
+                justifySelf: "start",
+                padding: 0,
+                border: 0,
+                background: "transparent",
+                color: "#64748b",
+                fontSize: 13,
+                fontWeight: 780,
+                cursor: "pointer",
+              }}
+            >
+              ＋ Dura più di un giorno
+            </button>
+          )}
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 820, color: "#334155" }}>Orario</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+              {TIME_PRESETS.map((preset) => {
+                const active =
+                  draft.startTime === preset.startTime && draft.endTime === preset.endTime;
+
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() =>
+                      setDraft({ ...draft, startTime: preset.startTime, endTime: preset.endTime })
+                    }
+                    style={{
+                      minHeight: 38,
+                      padding: "0 13px",
+                      borderRadius: 999,
+                      border: active ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #e2e8f0",
+                      background: active ? "#f3e8ff" : "#ffffff",
+                      color: active ? "#4c1d95" : "#475569",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+              <TextInput
+                type="time"
+                aria-label="Ora inizio"
+                value={draft.startTime}
+                onChange={(event) => setDraft({ ...draft, startTime: event.target.value })}
+              />
+              <TextInput
+                type="time"
+                aria-label="Ora fine"
+                value={draft.endTime}
+                onChange={(event) => setDraft({ ...draft, endTime: event.target.value })}
+              />
+            </div>
+          </div>
+
+          <FormField label="A chi">
+            <AudienceSelector
+              members={members.map((member) => ({
+                id: member.id,
+                label: member.label.split(" - ")[0],
+              }))}
+              assignedToAll={draft.assignedToAll}
+              assignedToId={draft.assignedToId}
+              onChange={(value) => setDraft({ ...draft, ...value })}
             />
           </FormField>
-          <FormField label="Data fine">
-            <TextInput
-              type="date"
-              min={draft.startDate || today}
-              value={draft.endDate}
-              onChange={(event) => setDraft({ ...draft, endDate: event.target.value })}
-            />
-          </FormField>
+
+          {kind.validForMonths ? (
+            <FormField label="Scade il">
+              <TextInput
+                type="date"
+                value={draft.expiresAt}
+                onChange={(event) => setDraft({ ...draft, expiresAt: event.target.value })}
+              />
+            </FormField>
+          ) : null}
+
+          {showExtras ? (
+            <>
+              <FormField label="Luogo">
+                <TextInput
+                  value={draft.location}
+                  onChange={(event) => setDraft({ ...draft, location: event.target.value })}
+                />
+              </FormField>
+              <FormField label="Informazioni">
+                <TextArea
+                  value={draft.description}
+                  onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                  style={{ minHeight: 80 }}
+                />
+              </FormField>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowExtras(true)}
+              style={{
+                justifySelf: "start",
+                padding: "10px 13px",
+                borderRadius: 14,
+                border: "1px dashed #cbd5e1",
+                background: "transparent",
+                color: "#64748b",
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              ＋ Luogo e informazioni
+            </button>
+          )}
         </div>
       )}
 
-      <div className="dashboard-inline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
-        <FormField label="Ora inizio">
-          <TimeInput value={draft.startTime} onChange={(value) => setDraft({ ...draft, startTime: value })} />
-        </FormField>
-        <FormField label="Ora fine">
-          <TimeInput value={draft.endTime} onChange={(value) => setDraft({ ...draft, endTime: value })} />
-        </FormField>
-      </div>
-
-      <FormField label="Informazioni">
-        <TextArea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
-      </FormField>
-
-      <div className="dashboard-inline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-        <FormField label="Luogo">
-          <TextInput value={draft.location} onChange={(event) => setDraft({ ...draft, location: event.target.value })} />
-        </FormField>
-        <FormField label="Assegna a">
-          <AudienceSelector
-            members={members}
-            assignedToAll={draft.assignedToAll}
-            assignedToId={draft.assignedToId}
-            onChange={(value) => setDraft({ ...draft, ...value })}
-          />
-        </FormField>
-      </div>
-
-      {error ? <p style={{ margin: 0, color: "#b91c1c", fontWeight: 700 }}>{error}</p> : null}
-
-      <div className="dashboard-form-actions" style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <IconButton
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <button
           type="button"
           onClick={addToList}
-          aria-label="Aggiungi corso alla lista"
-          disabled={isPending || !draftValid}
+          disabled={!draftValid || isPending}
           style={{
-            width: 38,
-            height: 38,
-            background: draftValid ? "#dcfce7" : "#f1f5f9",
-            color: draftValid ? "#166534" : "#94a3b8",
-            border: "1px solid #bbf7d0",
+            padding: "10px 14px",
+            borderRadius: 14,
+            border: "1px dashed #cbd5e1",
+            background: "transparent",
+            color: draftValid ? "#4c1d95" : "#94a3b8",
+            fontSize: 13,
+            fontWeight: 820,
+            cursor: draftValid ? "pointer" : "default",
           }}
         >
-          ✓
-        </IconButton>
-        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || (queued.length === 0 && !draftValid)}>
+          + Aggiungi un altro
+        </button>
+
+        <PrimaryButton type="button" onClick={saveAll} disabled={isPending || readyCount === 0}>
           {isPending
             ? "Salvataggio..."
-            : `Salva tutti${queued.length + (draftValid ? 1 : 0) > 0 ? ` (${queued.length + (draftValid ? 1 : 0)})` : ""}`}
+            : readyCount > 1
+              ? `Salva corsi (${readyCount})`
+              : "Salva corso"}
         </PrimaryButton>
       </div>
     </div>

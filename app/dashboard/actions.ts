@@ -7,6 +7,7 @@ import {
   BillingInterval,
   CalendarClosureType,
   ClockType,
+  CourseKind,
   PlanType,
   Prisma,
   RequestStatus,
@@ -3285,6 +3286,11 @@ export async function createCourseAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
+  const kindValue = String(formData.get("kind") ?? "").trim().toUpperCase();
+  const kind = Object.values(CourseKind).includes(kindValue as CourseKind)
+    ? (kindValue as CourseKind)
+    : CourseKind.OTHER;
+  const expiresAt = parseOptionalDateOnly(formData.get("expiresAt"));
   const startsAt = parseRequiredDate(formData.get("startsAt"));
   const endsAt = parseRequiredDate(formData.get("endsAt"));
   const assignedToAll = formData.get("assignedToAll") === "on";
@@ -3311,6 +3317,8 @@ export async function createCourseAction(formData: FormData) {
       barId: activeBarId,
       title,
       description: description || null,
+      kind,
+      expiresAt,
       startsAt,
       endsAt,
       location: location || null,
