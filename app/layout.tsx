@@ -343,6 +343,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 display: none;
               }
 
+              /* The app turning itself on.
+                 Nothing here is a picture being enlarged: the mark stays at
+                 the size it was drawn and it is the ground around it that
+                 opens, so there is nothing to go soft. And every moving thing
+                 has exactly one animation covering its whole life - two of
+                 them on the same property is what made the old opening sit
+                 still for a second and then jump. */
               .workbit-boot {
                 position: fixed;
                 inset: 0;
@@ -352,37 +359,48 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 align-content: center;
                 gap: 18px;
                 overflow: hidden;
-                background: linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
-                transition: opacity 400ms ease-in;
+                /* Decoration only: the page underneath is live from the first
+                   frame and nothing here may swallow a tap. */
+                pointer-events: none;
                 padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
               }
 
               .workbit-boot[data-leaving="true"] {
                 opacity: 0;
-                pointer-events: none;
+                transition: opacity 160ms ease-in;
+              }
+
+              /* The dark ground, which closes in on itself to reveal the app. */
+              .workbit-boot__wipe {
+                position: absolute;
+                inset: 0;
+                overflow: hidden;
+                background: linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
+                animation: workbit-boot-wipe 780ms cubic-bezier(0.62, 0, 0.3, 1) 900ms both;
               }
 
               .workbit-boot__glow {
                 position: absolute;
                 border-radius: 999px;
-                filter: blur(46px);
-                pointer-events: none;
+                filter: blur(44px);
               }
 
               .workbit-boot__glow--one {
-                width: 46vmin;
-                height: 46vmin;
-                top: -12vmin;
-                right: -10vmin;
-                background: rgba(167, 124, 245, 0.42);
+                width: 62vmin;
+                height: 62vmin;
+                top: -10%;
+                right: -10%;
+                background: rgba(167, 124, 245, 0.55);
+                animation: workbit-boot-glow-one 1100ms cubic-bezier(0.35, 0.75, 0.25, 1) both;
               }
 
               .workbit-boot__glow--two {
-                width: 40vmin;
-                height: 40vmin;
-                bottom: -12vmin;
-                left: -10vmin;
-                background: rgba(109, 92, 231, 0.34);
+                width: 54vmin;
+                height: 54vmin;
+                bottom: -10%;
+                left: -10%;
+                background: rgba(109, 92, 231, 0.5);
+                animation: workbit-boot-glow-two 1100ms cubic-bezier(0.35, 0.75, 0.25, 1) both;
               }
 
               .workbit-boot__stack {
@@ -399,10 +417,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 border-radius: 31px;
                 overflow: hidden;
                 box-shadow: 0 22px 48px rgba(10, 4, 30, 0.55);
-                will-change: transform;
-                animation:
-                  workbit-boot-mark 560ms cubic-bezier(0.3, 1.3, 0.4, 1) both,
-                  workbit-boot-open 700ms cubic-bezier(0.62, 0, 0.3, 1) 1000ms both;
+                animation: workbit-boot-mark 1520ms cubic-bezier(0.3, 0.9, 0.3, 1) both;
               }
 
               .workbit-boot__mark img {
@@ -417,34 +432,47 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 font-size: 20px;
                 font-weight: 840;
                 letter-spacing: -0.026em;
-                animation:
-                  workbit-boot-word 340ms ease-out 620ms both,
-                  workbit-boot-word-out 240ms ease-in 1000ms both;
+                animation: workbit-boot-word 1520ms linear both;
               }
 
+              @keyframes workbit-boot-wipe {
+                from { clip-path: circle(150% at 50% 50%); }
+                to { clip-path: circle(0% at 50% 50%); }
+              }
+
+              @keyframes workbit-boot-glow-one {
+                0% { opacity: 0; transform: translate(70%, -80%); }
+                45% { opacity: 1; }
+                100% { opacity: 0.9; transform: translate(-6%, -6%); }
+              }
+
+              @keyframes workbit-boot-glow-two {
+                0% { opacity: 0; transform: translate(-70%, 80%); }
+                45% { opacity: 1; }
+                100% { opacity: 0.9; transform: translate(6%, 6%); }
+              }
+
+              /* One animation, the whole life: in, hold, out. */
               @keyframes workbit-boot-mark {
-                0% { opacity: 0; transform: scale(0.55); }
-                100% { opacity: 1; transform: none; }
-              }
-
-              /* The mark grows past the edges of the screen, its corners
-                 flattening as it goes, and turns seven degrees on the way -
-                 which is the whole difference between a zoom and a gesture. */
-              @keyframes workbit-boot-open {
-                0% { transform: scale(1) rotate(0deg); border-radius: 31px; }
-                100% { transform: scale(14) rotate(-7deg); border-radius: 0; opacity: 0.88; }
+                0% { opacity: 0; transform: scale(0.6); }
+                22% { opacity: 1; transform: scale(1.04); }
+                34% { transform: scale(1); }
+                74% { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(0.84); }
               }
 
               @keyframes workbit-boot-word {
-                from { opacity: 0; transform: translateY(7px); }
-                to { opacity: 1; transform: none; }
-              }
-
-              @keyframes workbit-boot-word-out {
-                to { opacity: 0; transform: translateY(-6px); }
+                0% { opacity: 0; transform: translateY(8px); }
+                30% { opacity: 0; transform: translateY(8px); }
+                46% { opacity: 1; transform: none; }
+                70% { opacity: 1; transform: none; }
+                86% { opacity: 0; transform: none; }
+                100% { opacity: 0; transform: none; }
               }
 
               @media (prefers-reduced-motion: reduce) {
+                .workbit-boot__wipe,
+                .workbit-boot__glow,
                 .workbit-boot__mark,
                 .workbit-boot__word {
                   animation: none;
@@ -1544,8 +1572,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         />
 
         <div className="workbit-boot" id="workbit-boot" aria-hidden="true">
-          <span className="workbit-boot__glow workbit-boot__glow--one" />
-          <span className="workbit-boot__glow workbit-boot__glow--two" />
+          {/* The lights live inside the ground, so they close away with it. */}
+          <span className="workbit-boot__wipe">
+            <span className="workbit-boot__glow workbit-boot__glow--one" />
+            <span className="workbit-boot__glow workbit-boot__glow--two" />
+          </span>
           <span className="workbit-boot__stack">
             <span className="workbit-boot__mark">
               <Image src="/logo.png" alt="" width={112} height={112} priority unoptimized />
