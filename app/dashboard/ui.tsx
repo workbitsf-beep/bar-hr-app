@@ -1695,67 +1695,21 @@ function DashboardResponsiveStyles() {
           color: #9a98a2 !important;
         }
 
-        .workbit-menu-navigation {
-          gap: 8px !important;
-        }
-
+        /* The menu draws its own rows now - a coloured dot, the name, a
+           chevron - so this block is down to the two things that are really
+           about the small screen: how tall a row has to be for a thumb, and
+           the shadow under the card. Everything it used to pin with
+           !important, including hiding the icon slot the dot lives in, was
+           quietly beating the markup. */
         .workbit-menu-navigation-list {
-          overflow: hidden;
-          border-radius: 18px;
-          background: #ffffff;
-          border: 1px solid rgba(60, 60, 67, 0.09);
           box-shadow: 0 4px 12px rgba(61, 42, 153, 0.04);
         }
 
         .workbit-menu-link {
-          min-height: 46px;
-          padding: 0 15px !important;
-          border: 0 !important;
-          border-radius: 0 !important;
-          background: #ffffff !important;
-          box-shadow: none !important;
-          color: #111118 !important;
-          font-size: 15px !important;
-          font-weight: 850 !important;
-        }
-
-        .workbit-menu-link + .workbit-menu-link {
-          border-top: 1px solid rgba(60, 60, 67, 0.11) !important;
-        }
-
-        .workbit-menu-link-copy {
-          gap: 0 !important;
-        }
-
-        .workbit-menu-link-icon {
-          display: none !important;
-        }
-
-        .workbit-menu-link-arrow {
-          color: #c1bec8 !important;
-        }
-
-        .workbit-menu-link-arrow svg {
-          width: 14px;
-          height: 14px;
-        }
-
-        .workbit-menu-content {
-          gap: 0 !important;
-          padding-top: 0 !important;
-          border-top: 0 !important;
-        }
-
-        .workbit-menu-details {
-          gap: 0 !important;
+          min-height: 48px;
         }
 
         .workbit-menu-account-card {
-          margin-bottom: 18px;
-          padding: 13px 15px !important;
-          border: 0 !important;
-          border-radius: 17px !important;
-          background: #ffffff !important;
           box-shadow: 0 4px 12px rgba(61, 42, 153, 0.04);
         }
 
@@ -3952,6 +3906,7 @@ export function DashboardShell({
   navItems,
   menuContent,
   headerAction,
+  menuFooter,
   belowHeader,
   brandContent,
   headerSwitch,
@@ -3964,6 +3919,8 @@ export function DashboardShell({
   menuLabel: string;
   navItems: DashboardNavItem[];
   menuContent?: ReactNode;
+  /** Sits at the foot of the menu: the way out. */
+  menuFooter?: ReactNode;
   headerAction?: ReactNode;
   belowHeader?: ReactNode;
   brandContent?: ReactNode;
@@ -4054,6 +4011,7 @@ export function DashboardShell({
             navItems={menuNavItems}
             menuLabel={menuLabel}
             menuContent={menuContent}
+            logoutAction={menuFooter}
             brandHref={navItems[0]?.href ?? "/dashboard"}
             headerAction={headerAction}
           />

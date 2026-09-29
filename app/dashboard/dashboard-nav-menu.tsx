@@ -15,139 +15,33 @@ type MenuPosition = {
   width: number;
 };
 
-function ArrowIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="m9 6 6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function NavMenuIcon({ href }: { href: string }) {
-  const common = {
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
-
-  if (href === "/dashboard/super-admin") {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="3.5" y="3.5" width="7" height="7" rx="2" {...common} />
-        <rect x="13.5" y="3.5" width="7" height="7" rx="2" {...common} />
-        <rect x="3.5" y="13.5" width="7" height="7" rx="2" {...common} />
-        <rect x="13.5" y="13.5" width="7" height="7" rx="2" {...common} />
-      </svg>
-    );
-  }
-
-  if (href === "/dashboard") {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M16 19v-1.1a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4V19" {...common} />
-        <circle cx="10.5" cy="7.5" r="3.5" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/calendar")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M7 3v3M17 3v3M4 9h16" {...common} />
-        <path d="M6.5 5h11A2.5 2.5 0 0 1 20 7.5v10A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-10A2.5 2.5 0 0 1 6.5 5Z" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/tasks") || href.includes("/board")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M8 7h11M8 12h11M8 17h7" {...common} />
-        <path d="m4 7 1 1 2-2M4 12l1 1 2-2M4 17l1 1 2-2" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/documents")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10l2 2h5.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-10Z" {...common} />
-        <path d="M8 12h8M8 15h5" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/shopping-list")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M3 4h2l2.4 11.4a2 2 0 0 0 2 1.6h7.2a2 2 0 0 0 2-1.6L20.5 8H6" {...common} />
-        <circle cx="9.5" cy="20" r="1.4" {...common} />
-        <circle cx="17" cy="20" r="1.4" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/timelogs") || href.includes("/export")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="8" {...common} />
-        <path d="M12 8v4l2.5 2.5" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/requests") || href.includes("/availability")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M6 4h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2Z" {...common} />
-        <path d="M8 9h8M8 13h5" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/people")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M16.5 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" {...common} />
-        <circle cx="10.2" cy="7.5" r="3.2" {...common} />
-        <path d="M17 9.5a2.5 2.5 0 0 1 2 2.4M19.5 19v-1a3.5 3.5 0 0 0-2-3.2" {...common} />
-      </svg>
-    );
-  }
-
-  if (href.includes("/settings")) {
-    return (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="3.4" {...common} />
-        <path d="M19 12a7 7 0 0 0-.12-1.3l2.02-1.54-2-3.46-2.38.96a7.3 7.3 0 0 0-2.24-1.3L14 2.8h-4l-.28 2.56a7.3 7.3 0 0 0-2.24 1.3L5.1 5.7l-2 3.46 2.02 1.54A7 7 0 0 0 5 12c0 .44.04.87.12 1.3L3.1 14.84l2 3.46 2.38-.96a7.3 7.3 0 0 0 2.24 1.3L10 21.2h4l.28-2.56a7.3 7.3 0 0 0 2.24-1.3l2.38.96 2-3.46-2.02-1.54c.08-.43.12-.86.12-1.3Z" {...common} />
-      </svg>
-    );
-  }
-
-  return (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 3.8 14.2 9l5.6.45-4.25 3.65 1.3 5.45L12 15.65l-4.85 2.9 1.3-5.45L4.2 9.45 9.8 9 12 3.8Z" {...common} />
-    </svg>
-  );
-}
+/** The colour each destination wears in the rest of the app. */
+const MENU_DOTS: Record<string, string> = {
+  "/dashboard": "#4c1d95",
+  "/dashboard/calendar": "#6d5ce7",
+  "/dashboard/tasks": "#f59e0b",
+  "/dashboard/documents": "#64748b",
+  "/dashboard/courses": "#0284c7",
+  "/dashboard/timelogs": "#0ea5e9",
+  "/dashboard/requests": "#10b981",
+  "/dashboard/people": "#a855f7",
+  "/dashboard/settings": "#64748b",
+  "/dashboard/export": "#7e22ce",
+};
 
 export function DashboardNavMenu({
   navItems,
   menuLabel,
   menuContent,
+  /** The way out, rendered at the foot of the menu rather than in the bar. */
+  logoutAction,
   brandHref,
   headerAction,
 }: {
   navItems: DashboardNavItem[];
   menuLabel: string;
   menuContent?: ReactNode;
+  logoutAction?: ReactNode;
   brandHref?: string;
   headerAction?: ReactNode;
 }) {
@@ -421,101 +315,128 @@ export function DashboardNavMenu({
                     </button>
                   </div>
 
-                  {navItems.length > 0 ? (
-                  <div className="workbit-menu-navigation" style={{ display: "grid", gap: 8 }}>
-                    <span
-                      className="workbit-menu-section-label"
-                      style={{
-                        paddingInline: 8,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        color: "#64748b",
-                      }}
-                    >
-                      Navigazione
-                    </span>
-
-                    <div className="workbit-menu-navigation-list">
-                    {navItems.map((item) => {
-                      const active =
-                        pathname === item.href ||
-                        (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
-                      return (
-                        <Link
-                          className="workbit-menu-link"
-                          key={item.href}
-                          href={item.href}
-                          onClick={closeMenu}
-                          data-dashboard-menu-close="true"
-                          data-active={active ? "true" : "false"}
-                          style={{
-                            textDecoration: "none",
-                            borderRadius: 18,
-                            padding: "14px 16px",
-                            background: active ? "#f3e8ff" : "#ffffff",
-                            color: active ? "#4c1d95" : "#0f172a",
-                            border: active
-                              ? "1px solid rgba(124, 58, 237, 0.36)"
-                              : "1px solid rgba(124, 58, 237, 0.10)",
-                            boxShadow: active ? "0 10px 22px rgba(124, 58, 237, 0.10)" : "none",
-                            fontWeight: 700,
-                            fontSize: 16,
-                            lineHeight: 1.35,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                          }}
-                        >
-                          <span className="workbit-menu-link-copy" style={{ display: "inline-flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                            <span
-                              className="workbit-menu-link-icon"
-                              aria-hidden="true"
-                              style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: 13,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flex: "0 0 auto",
-                                color: active ? "#ffffff" : "#6d28d9",
-                                background: active
-                                  ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)"
-                                  : "#f5f3ff",
-                                boxShadow: active ? "0 10px 18px rgba(124, 58, 237, 0.20)" : "none",
-                              }}
-                            >
-                              <NavMenuIcon href={item.href} />
-                            </span>
-                            <span style={{ minWidth: 0 }}>{item.label}</span>
-                          </span>
-                          <span className="workbit-menu-link-arrow" style={{ color: active ? "#4c1d95" : "#64748b", display: "inline-flex", flex: "0 0 auto" }}>
-                            <ArrowIcon />
-                          </span>
-                        </Link>
-                      );
-                    })}
-                    </div>
-                  </div>
-                  ) : null}
-
                   {menuContent ? (
-                    <div
-                      className="workbit-menu-content"
-                      style={{
-                        display: "grid",
-                        gap: 12,
-                        paddingTop: 12,
-                        borderTop: "1px solid rgba(124, 58, 237, 0.10)",
-                      }}
-                    >
+                    <div className="workbit-menu-content" style={{ display: "grid", gap: 12 }}>
                       {menuContent}
                     </div>
                   ) : null}
+
+                  {navItems.length > 0 ? (
+                  <div className="workbit-menu-navigation" style={{ display: "grid", gap: 9 }}>
+                    {[
+                      // Going somewhere, and taking something away with you,
+                      // are not the same errand: the report used to sit in the
+                      // same list as Corsi and Impostazioni, under a heading
+                      // that read "Navigazione".
+                      { label: "", items: navItems.filter((item) => item.href !== "/dashboard/export") },
+                      { label: "Scarica", items: navItems.filter((item) => item.href === "/dashboard/export") },
+                    ]
+                      .filter((section) => section.items.length > 0)
+                      .map((section) => (
+                        <div key={section.label || "vai"} style={{ display: "grid", gap: 6 }}>
+                          {section.label ? (
+                            <span
+                              className="workbit-menu-section-label"
+                              style={{
+                                paddingLeft: 4,
+                                fontSize: 9.5,
+                                fontWeight: 830,
+                                letterSpacing: "0.12em",
+                                textTransform: "uppercase",
+                                color: "#a3a0b8",
+                              }}
+                            >
+                              {section.label}
+                            </span>
+                          ) : null}
+
+                          <div
+                            className="workbit-menu-navigation-list"
+                            style={{
+                              background: "#ffffff",
+                              border: "1px solid #e9e6f5",
+                              borderRadius: 18,
+                              overflow: "hidden",
+                            }}
+                          >
+                            {section.items.map((item, index) => {
+                              const active =
+                                pathname === item.href ||
+                                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+                              return (
+                                <Link
+                                  className="workbit-menu-link"
+                                  key={item.href}
+                                  href={item.href}
+                                  onClick={closeMenu}
+                                  data-dashboard-menu-close="true"
+                                  data-active={active ? "true" : "false"}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 11,
+                                    padding: "13px",
+                                    borderTop: index === 0 ? undefined : "1px solid #f4f2fb",
+                                    background: active ? "#f6f3ff" : "transparent",
+                                    textDecoration: "none",
+                                    color: active ? "#4c1d95" : "#17161f",
+                                  }}
+                                >
+                                  <span
+                                    className="workbit-menu-link-icon"
+                                    aria-hidden="true"
+                                    style={{
+                                      width: 7,
+                                      height: 7,
+                                      flex: "0 0 auto",
+                                      borderRadius: 999,
+                                      background: MENU_DOTS[item.href] ?? "#94a3b8",
+                                    }}
+                                  />
+                                  <span
+                                    className="workbit-menu-link-copy"
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 0,
+                                      fontSize: 14.5,
+                                      fontWeight: active ? 820 : 740,
+                                    }}
+                                  >
+                                    {item.href === "/dashboard/export" ? "Report in PDF" : item.label}
+                                  </span>
+                                  <span
+                                    className="workbit-menu-link-arrow"
+                                    aria-hidden="true"
+                                    style={{ flex: "0 0 auto", color: "#c8c5d8", fontSize: 15 }}
+                                  >
+                                    ›
+                                  </span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                  ) : null}
+
+                  {/* Leaving used to be a wordless icon in the white bar at
+                      the top, nowhere near the menu you were reading. */}
+                  {logoutAction ? (
+                    <div
+                      style={{
+                        background: "#fdf2f3",
+                        border: "1px solid #f0cdd2",
+                        borderRadius: 18,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {logoutAction}
+                    </div>
+                  ) : null}
+
+
                 </nav>
               </div>
             </>,

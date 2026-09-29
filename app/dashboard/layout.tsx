@@ -15,7 +15,7 @@ import {
 } from "./actions";
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
 import { ConsoleShell } from "./super-admin/console-shell";
-import { DashboardShell, IconButton } from "./ui";
+import { DashboardShell } from "./ui";
 
 export default async function DashboardLayout({
   children,
@@ -109,35 +109,60 @@ export default async function DashboardLayout({
             : undefined
         }
         menuContent={
-          <div className="workbit-menu-details" style={{ display: "grid", gap: 14 }}>
+          <div className="workbit-menu-details" style={{ display: "grid", gap: 9 }}>
+            {/* Who you are, with a face and a role. The card above it used to
+                print the venue's name and then yours underneath, and when a
+                venue is named after its owner - which is common - nothing
+                said which of the two was which. */}
             <div
               className="workbit-menu-account-card"
               style={{
-                display: "grid",
-                gap: 4,
-                padding: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 11,
+                padding: 13,
                 borderRadius: 18,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                border: "1px solid #e9e6f5",
               }}
             >
-              <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                {role === "SUPER_ADMIN" ? "Console Super Admin" : activeBarName ?? t.noBarSelected}
-              </strong>
-              <span style={{ color: "#64748b", lineHeight: 1.5 }}>
-                {session.user.firstName} {session.user.lastName} - {getRoleLabel(language, role)}
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 42,
+                  height: 42,
+                  flex: "0 0 auto",
+                  borderRadius: 999,
+                  display: "grid",
+                  placeItems: "center",
+                  background: "linear-gradient(135deg, #4c1d95, #8b5cf6)",
+                  color: "#ffffff",
+                  fontSize: 14,
+                  fontWeight: 850,
+                }}
+              >
+                {`${session.user.firstName?.[0] ?? ""}${session.user.lastName?.[0] ?? ""}`.toUpperCase()}
+              </span>
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                <strong style={{ fontSize: 15.5, fontWeight: 820, letterSpacing: "-0.018em", color: "#17161f" }}>
+                  {session.user.firstName} {session.user.lastName}
+                </strong>
+                <span style={{ fontSize: 11.5, fontWeight: 550, color: "#a3a0b8" }}>
+                  {getRoleLabel(language, role)}
+                </span>
               </span>
             </div>
 
-            <span className="workbit-menu-section-label">Locale</span>
-
-            {accessibleBars.length > 0 ? (
+            {/* The venue, said once and labelled, so it cannot be mistaken for
+                a person. The switcher only appears where there is something to
+                switch to: with one venue it was a dropdown holding one line. */}
+            {accessibleBars.length > 1 ? (
               <AutoSubmitSelectForm
                 action={selectBarAction}
                 name="barId"
                 defaultValue={activeBarId ?? ""}
                 ariaLabel={t.selectBar}
-                label="Sede attiva"
+                label="Locale"
                 className="workbit-menu-select-row"
                 closeMenuOnChange
                 options={accessibleBars.map((bar) => ({
@@ -145,22 +170,33 @@ export default async function DashboardLayout({
                   label: bar.name,
                 }))}
               />
-            ) : null}
-
-            <AutoSubmitSelectForm
-              action={setLanguageAction}
-              name="language"
-              defaultValue={language}
-              ariaLabel={t.language}
-              label={t.language}
-              className="workbit-menu-select-row"
-              closeMenuOnChange
-              options={languageOptions.map((option) => ({
-                value: option.value,
-                label: option.label,
-              }))}
-            />
-
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gap: 1,
+                  padding: "11px 13px",
+                  borderRadius: 15,
+                  background: "#f6f3ff",
+                  border: "1px solid #ddd6fe",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 830,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: "#7c6bd6",
+                  }}
+                >
+                  Locale
+                </span>
+                <strong style={{ fontSize: 14.5, fontWeight: 810, color: "#4c1d95" }}>
+                  {activeBarName ?? t.noBarSelected}
+                </strong>
+              </div>
+            )}
           </div>
         }
         headerAction={
@@ -200,27 +236,41 @@ export default async function DashboardLayout({
               </form>
             ) : null}
 
-            <LogoutForm action={logoutAction} style={{ display: "inline-flex" }}>
-              <IconButton type="submit" aria-label={t.logout} title={t.logout}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M10 7V5.75C10 4.78 10.78 4 11.75 4h6.5C19.22 4 20 4.78 20 5.75v12.5c0 .97-.78 1.75-1.75 1.75h-6.5A1.75 1.75 0 0 1 10 18.25V17"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M14 12H4m0 0 3-3m-3 3 3 3"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                </svg>
-              </IconButton>
-            </LogoutForm>
           </div>
+        }
+        menuFooter={
+          <LogoutForm action={logoutAction} style={{ display: "block" }}>
+            <button
+              type="submit"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 11,
+                width: "100%",
+                padding: 13,
+                border: 0,
+                background: "transparent",
+                color: "#a11626",
+                font: "inherit",
+                fontSize: 14.5,
+                fontWeight: 820,
+                textAlign: "left",
+                cursor: "pointer",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 7,
+                  height: 7,
+                  flex: "0 0 auto",
+                  borderRadius: 999,
+                  background: "#b3202f",
+                }}
+              />
+              {t.logout}
+            </button>
+          </LogoutForm>
         }
       >
         {children}
