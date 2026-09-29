@@ -133,8 +133,8 @@ function SettingsRow({
       <span
         aria-hidden="true"
         style={{
-          width: 7,
-          height: 7,
+          width: 9,
+          height: 9,
           flex: "0 0 auto",
           borderRadius: 999,
           background: tone === "danger" ? "#b3202f" : dot,

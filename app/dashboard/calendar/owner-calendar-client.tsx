@@ -496,8 +496,8 @@ function renderWeekDot(badge: WeekBadge, onOpen: () => void) {
       <span
         aria-hidden="true"
         style={{
-          width: 6,
-          height: 6,
+          width: 8,
+          height: 8,
           borderRadius: 999,
           background: WEEK_TONE_DOTS[badge.tone],
           display: "block",
@@ -525,8 +525,8 @@ function renderWeekSection(title: string, children: ReactNode, tone: WeekBadgeTo
         <span
           aria-hidden="true"
           style={{
-            width: 6,
-            height: 6,
+            width: 8,
+            height: 8,
             borderRadius: 999,
             background: WEEK_TONE_DOTS[tone],
             display: "block",
@@ -759,8 +759,8 @@ function renderDaySheetSection(
           <span
             aria-hidden="true"
             style={{
-              width: 6,
-              height: 6,
+              width: 8,
+              height: 8,
               borderRadius: 999,
               background: WEEK_TONE_DOTS[tone],
               flex: "0 0 auto",

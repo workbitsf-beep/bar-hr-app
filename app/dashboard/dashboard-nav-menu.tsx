@@ -387,8 +387,8 @@ export function DashboardNavMenu({
                                     className="workbit-menu-link-icon"
                                     aria-hidden="true"
                                     style={{
-                                      width: 7,
-                                      height: 7,
+                                      width: 9,
+                                      height: 9,
                                       flex: "0 0 auto",
                                       borderRadius: 999,
                                       background: MENU_DOTS[item.href] ?? "#94a3b8",

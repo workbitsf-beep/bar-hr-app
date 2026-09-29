@@ -1683,8 +1683,8 @@ function OwnerTimeLogsPanel({
                   aria-hidden="true"
                   style={{
                     display: "inline-block",
-                    width: 7,
-                    height: 7,
+                    width: 9,
+                    height: 9,
                     borderRadius: 999,
                     background: "#22c55e",
                     marginRight: 6,

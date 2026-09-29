@@ -86,8 +86,8 @@ function SaveState({ idleLabel }: { idleLabel: string }) {
       <span
         aria-hidden="true"
         style={{
-          width: 7,
-          height: 7,
+          width: 9,
+          height: 9,
           borderRadius: 999,
           background: pending ? "#94a3b8" : justSaved ? "#16a34a" : "#cbd5e1",
         }}
@@ -227,8 +227,8 @@ export function LocaleSettingsPopupContent({
                 <span
                   aria-hidden="true"
                   style={{
-                    width: 7,
-                    height: 7,
+                    width: 9,
+                    height: 9,
                     flex: "0 0 auto",
                     borderRadius: 999,
                     background: FEATURE_DOTS[feature.key] ?? "#94a3b8",
@@ -307,8 +307,8 @@ export function LocaleSettingsPopupContent({
             <span
               aria-hidden="true"
               style={{
-                width: 7,
-                height: 7,
+                width: 9,
+                height: 9,
                 flex: "0 0 auto",
                 borderRadius: 999,
                 background: "#94a3b8",

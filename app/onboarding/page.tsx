@@ -86,8 +86,8 @@ function FeatureToggleGrid({
           <span
             aria-hidden="true"
             style={{
-              width: 7,
-              height: 7,
+              width: 9,
+              height: 9,
               flex: "0 0 auto",
               borderRadius: 999,
               background: FEATURE_DOTS[feature.key] ?? "#94a3b8",
@@ -1220,8 +1220,8 @@ export default async function OnboardingPage({
               <span
                 aria-hidden="true"
                 style={{
-                  width: 7,
-                  height: 7,
+                  width: 9,
+                  height: 9,
                   flex: "0 0 auto",
                   borderRadius: 999,
                   background: "#94a3b8",
