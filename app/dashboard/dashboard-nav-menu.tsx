@@ -191,7 +191,13 @@ export function DashboardNavMenu({
                 style={{
                   position: "fixed",
                   inset: 0,
-                  zIndex: isCompact ? 40 : 2147483646,
+                  // The floating bar at the foot of the app is painted at 200.
+                  // With the open menu at 40 that bar sat on top of it, and
+                  // what it covered was the last thing in the menu: the way
+                  // out. The button was never clipped - something was lying
+                  // over it. A full-screen sheet covers the screen, so it goes
+                  // above the bar and just under a popup opened from it.
+                  zIndex: isCompact ? 2147483644 : 2147483646,
                   overflow: "hidden",
                   background: isCompact ? "rgba(255,255,255,0.78)" : "rgba(255,255,255,0.28)",
                   backdropFilter: "none",
@@ -223,7 +229,10 @@ export function DashboardNavMenu({
                     maxHeight: isCompact ? "100dvh" : "calc(100dvh - 32px)",
                     overflowY: "auto",
                     padding: isCompact
-                      ? "0 20px calc(118px + max(env(safe-area-inset-bottom), var(--wb-inset-bottom, 0px)))"
+                      // The runway used to be 118px, to keep the menu clear of
+                      // the floating bar. The bar is behind the menu now, so
+                      // the only thing left to clear is the phone's own strip.
+                      ? "0 20px 14px"
                       : 16,
                     borderRadius: isCompact ? 0 : 24,
                     border: isCompact ? 0 : "1px solid rgba(124, 58, 237, 0.12)",
@@ -424,7 +433,9 @@ export function DashboardNavMenu({
                   {/* Leaving used to be a wordless icon in the white bar at
                       the top, nowhere near the menu you were reading. */}
                   {logoutAction ? (
-                    <div className="workbit-menu-logout">{logoutAction}</div>
+                    <div className="workbit-menu-logout-dock">
+                      <div className="workbit-menu-logout">{logoutAction}</div>
+                    </div>
                   ) : null}
 
 

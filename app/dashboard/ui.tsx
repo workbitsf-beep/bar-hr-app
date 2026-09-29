@@ -1725,6 +1725,19 @@ function DashboardResponsiveStyles() {
           box-shadow: none !important;
         }
 
+        /* The way out sits on the floor of the menu and stays there while the
+           rest scrolls past it, so it is in the same place whether the menu is
+           at the top or at the end. It carries the phone's bottom inset and
+           the menu's own colour, so the links pass behind it cleanly. */
+        .workbit-menu-panel .workbit-menu-logout-dock {
+          position: sticky;
+          bottom: 0;
+          z-index: 3;
+          margin: 4px -20px -14px;
+          padding: 10px 20px calc(14px + max(env(safe-area-inset-bottom), var(--wb-inset-bottom, 0px)));
+          background: #efebfa;
+        }
+
         .workbit-menu-header-card {
           display: flex;
           align-items: center;
