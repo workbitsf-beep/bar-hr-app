@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
+import Image from "next/image";
 import { PwaRegister } from "@/app/components/pwa-register";
 import { PasskeySetupPrompt } from "@/app/components/passkey-setup-prompt";
 import { BootSplash } from "@/app/components/boot-splash";
@@ -321,6 +322,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               /* ——— the app turning itself on, once per launch ——— */
+              html[data-workbit-booted="1"] .workbit-boot {
+                display: none;
+              }
+
               .workbit-boot {
                 position: fixed;
                 inset: 0;
@@ -1518,6 +1523,28 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           overflowX: "hidden",
         }}
       >
+        {/* Decided before anything paints: a document that has already booted
+            in this web view - or belongs to someone who asked for less motion
+            - never shows the curtain at all, so there is no flash of it on a
+            page change. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var r=document.documentElement;var booted=false;try{booted=sessionStorage.getItem("workbit-booted")==="1";sessionStorage.setItem("workbit-booted","1")}catch(e){}if(!booted&&window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){booted=true}if(booted){r.setAttribute("data-workbit-booted","1")}}catch(e){}})()`,
+          }}
+        />
+
+        <div className="workbit-boot" id="workbit-boot" aria-hidden="true">
+          <span className="workbit-boot__glow workbit-boot__glow--one" />
+          <span className="workbit-boot__glow workbit-boot__glow--two" />
+          <span className="workbit-boot__stack">
+            <span className="workbit-boot__mark">
+              <Image src="/logo.png" alt="" width={112} height={112} priority unoptimized />
+              <span className="workbit-boot__shine" />
+            </span>
+            <span className="workbit-boot__word">Workbit</span>
+          </span>
+        </div>
+
         <ViewportResizeSync />
         <RuntimeLanguageSync language={htmlLang} />
         <PwaRegister />

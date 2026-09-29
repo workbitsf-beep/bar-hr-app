@@ -1,50 +1,41 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 /**
- * The app turning itself on.
+ * Takes the opening curtain away once it has played.
  *
- * Only on a cold start: the app opened from nothing, not a page change inside
- * it. The mark lands, a light passes over it, the name appears, and the whole
- * thing steps aside for whatever was underneath - the login screen, or the
- * dashboard when the session is still good.
+ * The curtain itself is in the server HTML, so it is on screen in the very
+ * first paint - before React has hydrated, before the page underneath has
+ * drawn anything. Putting it in a client component meant the page flashed up
+ * first and the logo landed on top of it a moment later, which is backwards.
  *
- * It never holds anyone up. The page renders behind it from the first frame,
- * so this is a curtain, not a queue: when it lifts the app is already there.
+ * This only does the leaving: wait, fade, and mark the document booted so the
+ * curtain is gone for good. Whatever was rendering behind it - the login
+ * screen, or the dashboard when the session is still good - has had the whole
+ * time to arrive.
  */
-const FLAG = "workbit-booted";
 const ON_SCREEN_MS = 1150;
 const FADE_MS = 340;
 
 export function BootSplash() {
-  const [phase, setPhase] = useState<"hidden" | "playing" | "leaving">("hidden");
-
   useEffect(() => {
-    // sessionStorage lasts as long as the web view does, which in the
-    // installed app means one launch. A tab in a browser behaves the same.
-    let alreadyBooted = true;
+    const root = document.documentElement;
 
-    try {
-      alreadyBooted = sessionStorage.getItem(FLAG) === "1";
-      sessionStorage.setItem(FLAG, "1");
-    } catch {
-      // Private windows and locked-down web views refuse storage. Showing the
-      // opening twice is better than crashing on the way in.
-      alreadyBooted = false;
-    }
-
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-
-    if (alreadyBooted || reduced) {
+    // The inline script in the layout has already decided. A document marked
+    // booted either came from a page change or belongs to someone who asked
+    // for less motion, and there is no curtain to take away.
+    if (root.getAttribute("data-workbit-booted") === "1") {
       return;
     }
 
-    setPhase("playing");
+    const leave = window.setTimeout(() => {
+      document.getElementById("workbit-boot")?.setAttribute("data-leaving", "true");
+    }, ON_SCREEN_MS);
 
-    const leave = window.setTimeout(() => setPhase("leaving"), ON_SCREEN_MS);
-    const done = window.setTimeout(() => setPhase("hidden"), ON_SCREEN_MS + FADE_MS);
+    const done = window.setTimeout(() => {
+      root.setAttribute("data-workbit-booted", "1");
+    }, ON_SCREEN_MS + FADE_MS);
 
     return () => {
       window.clearTimeout(leave);
@@ -52,22 +43,5 @@ export function BootSplash() {
     };
   }, []);
 
-  if (phase === "hidden") {
-    return null;
-  }
-
-  return (
-    <div className="workbit-boot" data-leaving={phase === "leaving" ? "true" : undefined} aria-hidden="true">
-      <span className="workbit-boot__glow workbit-boot__glow--one" />
-      <span className="workbit-boot__glow workbit-boot__glow--two" />
-
-      <span className="workbit-boot__stack">
-        <span className="workbit-boot__mark">
-          <Image src="/logo.png" alt="" width={112} height={112} priority unoptimized />
-          <span className="workbit-boot__shine" />
-        </span>
-        <span className="workbit-boot__word">Workbit</span>
-      </span>
-    </div>
-  );
+  return null;
 }
