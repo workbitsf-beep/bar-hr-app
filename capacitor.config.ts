@@ -14,7 +14,12 @@ const config: CapacitorConfig & { errorPath?: string } = {
   appId: "it.workbit.app",
   appName: "Workbit",
   webDir: "capacitor-web",
-  backgroundColor: "#f7f3ff",
+  // What the web view paints before the page has drawn anything, and behind
+  // it while the system bars are being measured. It was lilac, so a cold
+  // start showed a lilac screen and then a pale band under the opening. It is
+  // the opening's own dark now, so the handover cannot be seen.
+  // Reaches phones only through a new native build, not through a deploy.
+  backgroundColor: "#140a2c",
   // Shown instead of the system's grey network error when the site cannot be
   // reached. Capacitor loads it by itself on a failed main-frame load.
   errorPath: "index.html",

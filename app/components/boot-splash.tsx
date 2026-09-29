@@ -36,6 +36,7 @@ export function BootSplash() {
 
     const done = window.setTimeout(() => {
       root.setAttribute("data-workbit-booted", "1");
+      root.removeAttribute("data-workbit-booting");
     }, ON_SCREEN_MS + FADE_MS);
 
     return () => {

@@ -343,6 +343,17 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 display: none;
               }
 
+              /* While the opening plays, the page behind it is the same dark
+                 as the opening. The web view resizes once at start-up as the
+                 system bars are measured, and for a frame or two a fixed
+                 layer is shorter than the screen - which is where the pale
+                 band along the bottom was coming from. Now whatever shows in
+                 that gap is the same colour as what covers it. */
+              html[data-workbit-booting="1"],
+              html[data-workbit-booting="1"] body {
+                background: #140a2c !important;
+              }
+
               /* The app turning itself on.
                  Nothing here is a picture being enlarged: the mark stays at
                  the size it was drawn and it is the ground around it that
@@ -1571,7 +1582,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
             page change. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var r=document.documentElement;var booted=false;try{booted=sessionStorage.getItem("workbit-booted")==="1";sessionStorage.setItem("workbit-booted","1")}catch(e){}if(!booted&&window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){booted=true}if(booted){r.setAttribute("data-workbit-booted","1")}}catch(e){}})()`,
+            __html: `(function(){try{var r=document.documentElement;var booted=false;try{booted=sessionStorage.getItem("workbit-booted")==="1";sessionStorage.setItem("workbit-booted","1")}catch(e){}if(!booted&&window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){booted=true}if(booted){r.setAttribute("data-workbit-booted","1")}else{r.setAttribute("data-workbit-booting","1")}}catch(e){}})()`,
           }}
         />
 
