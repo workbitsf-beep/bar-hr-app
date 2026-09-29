@@ -31,6 +31,28 @@ const config: CapacitorConfig & { errorPath?: string } = {
     allowMixedContent: false,
   },
   plugins: {
+    /**
+     * Holds the launch screen up until the page says it is ready.
+     *
+     * The shell loads the live site, so between the system letting go and
+     * the first paint there is a stretch with nothing drawn - a blank screen
+     * the app could do nothing about, because its own code had not arrived
+     * yet. The splash now covers exactly that gap and is dismissed by the
+     * page itself, the moment the opening is on screen.
+     *
+     * launchAutoHide stays on as a backstop: if the page never loads - no
+     * network, the error page - the splash clears by itself after eight
+     * seconds instead of hanging there for good.
+     */
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 8000,
+      backgroundColor: "#140a2c",
+      showSpinner: false,
+      androidScaleType: "CENTER_CROP",
+      splashFullScreen: true,
+      splashImmersive: false,
+    },
     // A web view has no passkey support of its own, so the plugin stands in for
     // it and forwards to the phone's own credential manager. The domain named
     // here has to be the one the passkeys were registered against, and the same

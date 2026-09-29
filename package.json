@@ -22,6 +22,7 @@
     "@capacitor/geolocation": "^8.2.2",
     "@capacitor/ios": "^8.5.2",
     "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/splash-screen": "^8.0.2",
     "@capgo/capacitor-passkey": "^8.5.2",
     "@prisma/client": "^6.19.1",
     "@simplewebauthn/browser": "^13.3.0",

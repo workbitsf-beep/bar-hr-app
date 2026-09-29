@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Process \"https://github.com/workbitsf-beep/bar-hr-app/settings/secrets/actions/new\")",
+      "PowerShell(gh secret list --repo workbitsf-beep/bar-hr-app)",
+      "PowerShell(Start-Process \"https://github.com/workbitsf-beep/bar-hr-app/actions/workflows/android.yml\")",
+      "PowerShell(foreach \\($h in @\\(\"https://workbit.it/\",\"https://www.workbit.it/\",\"https://app.workbit.it/\"\\)\\) { try { $r = Invoke-WebRequest -Uri $h -MaximumRedirection 0 -ErrorAction Stop -UseBasicParsing; \"$h -> $\\($r.StatusCode\\)\" } catch { $resp = $_.Exception.Response; if \\($resp\\) { \"$h -> $\\([int]$resp.StatusCode\\) Location=$\\($resp.Headers['Location']\\)\" } else { \"$h -> ERRORE: $\\($_.Exception.Message\\)\" } } })",
+      "PowerShell(try { $r = Invoke-RestMethod -Uri \"https://app.workbit.it/api/auth/webauthn/login/options\" -Method Post -ContentType \"application/json\" -Body \"{}\" -ErrorAction Stop; \"rpId = \" + $r.options.rpId } catch { \"ERRORE: \" + $_.Exception.Message; if \\($_.ErrorDetails\\) { $_.ErrorDetails.Message } })",
+      "PowerShell(Resolve-DnsName workbit.it -Type A -ErrorAction SilentlyContinue)",
+      "PowerShell(Resolve-DnsName app.workbit.it -ErrorAction SilentlyContinue)",
+      "Bash(node -r dotenv/config \"C:/Users/Loris/AppData/Local/Temp/claude/c--Users-Loris-bar-hr-app/3cf43901-d6ae-49c6-b497-f2947e3e7385/scratchpad/count-passkeys.js\")",
+      "Bash(node -r dotenv/config scripts/.tmp-count-passkeys.js)",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts,null,2\\)\\)\")",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"https://app.workbit.it/logo.png\" -UseBasicParsing -ErrorAction Stop; \"logo.png -> $\\($r.StatusCode\\), $\\($r.Headers['Content-Type']\\), $\\($r.RawContentLength\\) byte\" } catch { \"logo.png -> ERRORE: $\\($_.Exception.Message\\)\" })"
+    ]
+  }
+}
