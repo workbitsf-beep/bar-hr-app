@@ -3089,7 +3089,7 @@ export function DayActionCalendarClient({
                       )
                     : null}
 
-                  {features.shifts && (day.shifts.length > 0 || (!isClosedDay && canManageOptionalShifts))
+                  {features.shifts && (day.shifts.length > 0 || canManageOptionalShifts)
                     ? renderDaySheetSection(
                         "shifts",
                         "Turni",
@@ -3494,7 +3494,7 @@ export function DayActionCalendarClient({
                           )
                         )}
                       </div>
-                    ) : isClosedDay ? null : (
+                    ) : (
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
                         {isPastDay ? "Giornata passata" : "Nessun turno"}
                       </span>

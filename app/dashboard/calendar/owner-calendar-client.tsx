@@ -2804,7 +2804,7 @@ export function OwnerCalendarClient({
                       )
                     : null}
 
-                  {features.shifts && (day.shifts.length > 0 || (!isClosedDay && canAddToDay))
+                  {features.shifts && (day.shifts.length > 0 || canAddToDay)
                     ? renderDaySheetSection(
                         "shifts",
                         "Turni",
@@ -3195,7 +3195,7 @@ export function OwnerCalendarClient({
                           )
                         )}
                       </div>
-                    ) : isClosedDay ? null : (
+                    ) : (
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
                         {isPastDay ? "Giornata passata" : "Nessun turno"}
                       </span>
