@@ -322,6 +322,23 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               }
 
               /* ——— the app turning itself on, once per launch ——— */
+              /* The kind of venue, chosen by touching one of two cards. The
+                 radio inside carries the value; this is only how it looks. */
+              .workbit-onboarding-pick {
+                position: relative;
+                transition: border-color 120ms ease, background 120ms ease;
+              }
+
+              .workbit-onboarding-pick:has(input:checked) {
+                border-color: #6d5ce7 !important;
+                background: #f6f3ff !important;
+              }
+
+              .workbit-onboarding-pick:has(input:focus-visible) {
+                outline: 2px solid #6d5ce7;
+                outline-offset: 2px;
+              }
+
               html[data-workbit-booted="1"] .workbit-boot {
                 display: none;
               }

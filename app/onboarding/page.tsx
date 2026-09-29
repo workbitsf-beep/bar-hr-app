@@ -16,6 +16,7 @@ import {
 import { featureToggleDefinitions, getFeatureFlags, parseFeatureFlags, type FeatureSettingsInput } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
 import { prisma } from "@/lib/prisma";
+import { BrandLogo } from "@/components/brand-logo";
 import { normalizeRoundingStep } from "@/lib/rounding";
 import {
   createTemporaryPassword,
@@ -36,6 +37,26 @@ function hasCompletedRoundingSetup(
   );
 }
 
+/** The colour each feature answers to elsewhere in the app. */
+const FEATURE_DOTS: Record<string, string> = {
+  timeTracking: "#0ea5e9",
+  shifts: "#6d5ce7",
+  requests: "#10b981",
+  availability: "#94a3b8",
+  overtime: "#a855f7",
+  tasks: "#f59e0b",
+  noticeBoard: "#f59e0b",
+  courses: "#0284c7",
+  documents: "#64748b",
+  reports: "#7e22ce",
+};
+
+/**
+ * One row per feature, each saying what it is for.
+ *
+ * They were tiles in a two-column grid, which on a phone stacked into a
+ * column of boxes anyway - so they are a list, and the list can be read.
+ */
 function FeatureToggleGrid({
   settings,
   activityType,
@@ -49,46 +70,45 @@ function FeatureToggleGrid({
   );
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <strong style={{ color: "#0f172a", fontSize: 18 }}>Scegli cosa usare</strong>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: 10,
-        }}
-      >
-        {visibleFeatureDefinitions.map((feature) => (
-          <label
-            key={feature.key}
+    <div style={{ display: "grid" }}>
+      {visibleFeatureDefinitions.map((feature, index) => (
+        <label
+          key={feature.key}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "11px 0",
+            borderTop: index === 0 ? undefined : "1px solid #f4f2fb",
+            cursor: "pointer",
+          }}
+        >
+          <span
+            aria-hidden="true"
             style={{
-              display: "grid",
-              gap: 8,
-              padding: 14,
-              borderRadius: 18,
-              border: features[feature.key]
-                ? "1px solid rgba(124, 58, 237, 0.28)"
-                : "1px solid rgba(148, 163, 184, 0.22)",
-              background: features[feature.key]
-                ? "linear-gradient(135deg, rgba(237,233,254,0.82), rgba(255,255,255,0.96))"
-                : "#f8fafc",
+              width: 7,
+              height: 7,
+              flex: "0 0 auto",
+              borderRadius: 999,
+              background: FEATURE_DOTS[feature.key] ?? "#94a3b8",
             }}
-          >
-            <span style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 700 }}>
-              <input
-                type="checkbox"
-                name={feature.field}
-                defaultChecked={features[feature.key]}
-              />
-              <span aria-hidden="true">{feature.emoji}</span>
+          />
+          <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+            <strong style={{ fontSize: 13.5, fontWeight: 740, color: "#17161f" }}>
               {feature.shortLabel}
-            </span>
-            <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.45 }}>
+            </strong>
+            <span style={{ fontSize: 11.5, fontWeight: 520, color: "#a3a0b8" }}>
               {feature.description}
             </span>
-          </label>
-        ))}
-      </div>
+          </span>
+          <input
+            type="checkbox"
+            name={feature.field}
+            defaultChecked={features[feature.key]}
+            style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
+          />
+        </label>
+      ))}
     </div>
   );
 }
@@ -703,110 +723,150 @@ async function finishOnboardingAction() {
   redirect("/dashboard/calendar");
 }
 
+/**
+ * The frame every step sits in.
+ *
+ * A venue owner does this once, on a phone, minutes after being told Workbit
+ * exists - so it is the first thing they ever see of it. It used to be cream
+ * and sand with a black header, which is nothing like the app they were about
+ * to use: the same lilac ground, the same white cards and the same violet
+ * belong here more than anywhere.
+ *
+ * Where it stands is said once, in four strokes and a count, instead of a
+ * progress bar, a "Passo 2 di 4" and a row of four named tiles all saying it
+ * at the same time.
+ */
 function StepShell({
   currentStep,
   steps,
   children,
 }: {
   currentStep: StepNumber;
-  steps: Array<{ id: StepNumber; title: string }>;
+  steps: Array<{ id: StepNumber; title: string; lead: string }>;
   children: ReactNode;
 }) {
   const currentIndex = Math.max(0, steps.findIndex((step) => step.id === currentStep));
-  const progressPercent = Math.round(((currentIndex + 1) / steps.length) * 100);
+  const step = steps[currentIndex] ?? steps[0];
+  const isLast = currentIndex === steps.length - 1;
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        padding: 24,
+        position: "relative",
+        minHeight: "100dvh",
+        padding: "18px 14px 26px",
+        overflow: "hidden",
         background:
-          "linear-gradient(180deg, #f8f2e6 0%, #efe5d3 45%, #f7f4ec 100%)",
+          "radial-gradient(circle at 88% 4%, rgba(137, 92, 246, 0.14), transparent 30%), linear-gradient(180deg, #f8f6ff 0%, #efebfa 48%, #ebe6f8 100%)",
+        color: "#17161f",
       }}
     >
       <SessionKeepAlive />
+
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          width: "58vmin",
+          height: "58vmin",
+          top: "-18vmin",
+          right: "-16vmin",
+          borderRadius: 999,
+          filter: "blur(54px)",
+          background: "rgba(139, 92, 246, 0.22)",
+          pointerEvents: "none",
+        }}
+      />
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          width: "44vmin",
+          height: "44vmin",
+          bottom: "-14vmin",
+          left: "-16vmin",
+          borderRadius: 999,
+          filter: "blur(54px)",
+          background: "rgba(76, 29, 149, 0.12)",
+          pointerEvents: "none",
+        }}
+      />
+
       <div
         style={{
-          maxWidth: 1080,
+          position: "relative",
+          width: "min(100%, 520px)",
           margin: "0 auto",
           display: "grid",
-          gap: 24,
+          gap: 13,
         }}
       >
-        <header
-          style={{
-            background: "#1f2937",
-            color: "#f8fafc",
-            borderRadius: 24,
-            padding: 24,
-            display: "grid",
-            gap: 16,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 32 }}>Configurazione iniziale</h1>
-            <strong style={{ color: "#ddd6fe", fontSize: 15 }}>
-              Passo {currentIndex + 1} di {steps.length}
-            </strong>
-          </div>
-          <div
-            aria-label={`Avanzamento configurazione ${progressPercent}%`}
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <BrandLogo size={26} showIcon label="Workbit" style={{ gap: 9, flex: 1 }} />
+          <span
             style={{
-              height: 10,
-              borderRadius: 999,
-              background: "rgba(255,255,255,0.16)",
-              overflow: "hidden",
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              color: "#8b88a3",
+              fontVariantNumeric: "tabular-nums",
             }}
           >
-            <div
+            {currentIndex + 1} / {steps.length}
+          </span>
+        </div>
+
+        <div
+          role="progressbar"
+          aria-valuenow={currentIndex + 1}
+          aria-valuemin={1}
+          aria-valuemax={steps.length}
+          aria-label={`Passo ${currentIndex + 1} di ${steps.length}`}
+          style={{ display: "flex", gap: 5 }}
+        >
+          {steps.map((entry, index) => (
+            <span
+              key={entry.id}
               style={{
-                width: `${progressPercent}%`,
-                height: "100%",
+                flex: 1,
+                height: 4,
                 borderRadius: 999,
-                background: "linear-gradient(90deg, #a78bfa, #ffffff)",
-                transition: "width 180ms ease",
+                background:
+                  index <= currentIndex
+                    ? "linear-gradient(90deg, #5e4ae3, #8b5cf6)"
+                    : "#ddd8f2",
               }}
             />
-          </div>
-        </header>
+          ))}
+        </div>
 
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {steps.map((step) => {
-            const isActive = currentStep === step.id;
-            const isDone = currentStep > step.id;
-
-            return (
-              <div
-                key={step.id}
-                style={{
-                  borderRadius: 18,
-                  padding: 16,
-                  background: isActive
-                    ? "#1f2937"
-                    : isDone
-                      ? "#d8efe0"
-                      : "#fffdf8",
-                  color: isActive ? "#fff" : "#1f2937",
-                  border: "1px solid #e8dec9",
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 700,
-                  }}
-                >
-                  {step.title}
-                </div>
-              </div>
-            );
-          })}
-        </section>
+        <div style={{ display: "grid", gap: 3, padding: "8px 3px 0" }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "#6d5ce7",
+            }}
+          >
+            {isLast ? "Ultimo passo" : "Configurazione"}
+          </span>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "clamp(26px, 7.4vw, 32px)",
+              fontWeight: 850,
+              letterSpacing: "-0.036em",
+              lineHeight: 1.06,
+            }}
+          >
+            {step?.title}
+          </h1>
+          <p style={{ margin: "2px 0 0", fontSize: 13.5, color: "#6b6880", lineHeight: 1.45 }}>
+            {step?.lead}
+          </p>
+        </div>
 
         {children}
       </div>
@@ -819,27 +879,39 @@ function Card({
   subtitle,
   children,
 }: {
-  title: string;
+  title?: string;
   subtitle?: string;
   children: ReactNode;
 }) {
   return (
     <section
       style={{
-        background: "#fffdf8",
-        border: "1px solid #eadfc9",
-        borderRadius: 24,
-        padding: 24,
-        boxShadow: "0 10px 30px rgba(74, 58, 27, 0.08)",
+        background: "#ffffff",
+        border: "1px solid #e9e6f5",
+        borderRadius: 20,
+        padding: "15px 14px 16px",
+        boxShadow: "0 12px 34px rgba(61, 42, 153, 0.08)",
+        display: "grid",
+        gap: 13,
       }}
     >
-      <h2 style={{ margin: 0, fontSize: 24 }}>{title}</h2>
-      {subtitle ? (
-        <p style={{ margin: "10px 0 0", color: "#6b7280", lineHeight: 1.6 }}>
-          {subtitle}
-        </p>
+      {title ? (
+        <span
+          style={{
+            fontSize: 9.5,
+            fontWeight: 830,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#a3a0b8",
+          }}
+        >
+          {title}
+        </span>
       ) : null}
-      <div style={{ marginTop: 20 }}>{children}</div>
+      {subtitle ? (
+        <p style={{ margin: 0, color: "#8b88a3", fontSize: 12.5, lineHeight: 1.5 }}>{subtitle}</p>
+      ) : null}
+      {children}
     </section>
   );
 }
@@ -864,8 +936,18 @@ function Input({
   autoComplete?: string;
 }) {
   return (
-    <label style={{ display: "grid", gap: 8 }}>
-      <span style={{ fontWeight: 600 }}>{label}</span>
+    <label style={{ display: "grid", gap: 6 }}>
+      <span
+        style={{
+          fontSize: 9.5,
+          fontWeight: 830,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#a3a0b8",
+        }}
+      >
+        {label}
+      </span>
       <input
         name={name}
         type={type}
@@ -875,11 +957,16 @@ function Input({
         required={required}
         autoComplete={autoComplete}
         style={{
+          width: "100%",
+          height: 46,
+          padding: "0 13px",
           borderRadius: 14,
-          border: "1px solid #d9cdb8",
-          padding: "12px 14px",
-          fontSize: 15,
-          background: "#fff",
+          border: "1.5px solid #e9e6f5",
+          background: "#fbfaff",
+          color: "#17161f",
+          fontSize: 16,
+          fontWeight: 600,
+          outline: "none",
         }}
       />
     </label>
@@ -890,14 +977,17 @@ function SubmitButton({ label }: { label: string }) {
   return (
     <PendingButton
       type="submit"
-      pendingLabel="Invio in corso..."
+      pendingLabel="Un momento…"
       style={{
-        background: "#1f2937",
-        color: "#fff",
+        width: "100%",
+        minHeight: 50,
         border: 0,
-        borderRadius: 999,
-        padding: "12px 18px",
-        fontWeight: 700,
+        borderRadius: 16,
+        background: "linear-gradient(135deg, #3b1d8f 0%, #5e4ae3 55%, #8b5cf6 100%)",
+        color: "#ffffff",
+        fontSize: 15.5,
+        fontWeight: 830,
+        boxShadow: "0 10px 22px rgba(94, 74, 227, 0.26)",
       }}
       idleStyle={{
         cursor: "pointer",
@@ -923,18 +1013,38 @@ export default async function OnboardingPage({
   const globalGpsRadius = await getGlobalGpsRadius();
   const timeTrackingEnabled = activeBar?.settings?.timeTrackingEnabled !== false;
   const showGpsStep = activeBar?.activityType !== ActivityType.COMPANY && timeTrackingEnabled;
+  // The title of each step is what the screen is about, said the way someone
+  // would say it out loud, with a line underneath for why it is being asked.
+  const stepLocale = {
+    id: 1 as StepNumber,
+    title: "Il tuo locale",
+    lead: "Come si chiama e che lavoro ci si fa.",
+  };
+  const stepPosizione = {
+    id: 2 as StepNumber,
+    title: "Dove si timbra",
+    lead: "Il punto da cui il personale può entrare e uscire.",
+  };
+  const stepFunzioni = {
+    title: "Cosa ti serve",
+    lead: "Accendi solo quello che usi. Si cambia quando vuoi.",
+  };
+  const stepTeam = {
+    title: "La tua squadra",
+    lead: "Invitali ora o più avanti, non cambia niente.",
+  };
   const onboardingSteps = showGpsStep
-    ? ([
-        { id: 1 as StepNumber, title: "Locale" },
-        { id: 2 as StepNumber, title: "Posizione" },
-        { id: 3 as StepNumber, title: "Scegli cosa usare" },
-        { id: 4 as StepNumber, title: "Team" },
-      ] as const)
-    : ([
-        { id: 1 as StepNumber, title: "Locale" },
-        { id: 2 as StepNumber, title: "Scegli cosa usare" },
-        { id: 3 as StepNumber, title: "Team" },
-      ] as const);
+    ? [
+        stepLocale,
+        stepPosizione,
+        { id: 3 as StepNumber, ...stepFunzioni },
+        { id: 4 as StepNumber, ...stepTeam },
+      ]
+    : [
+        stepLocale,
+        { id: 2 as StepNumber, ...stepFunzioni },
+        { id: 3 as StepNumber, ...stepTeam },
+      ];
   const teamMembers = activeBar?.memberships ?? [];
   const featureSettings =
     activeBar?.activityType === ActivityType.COMPANY
@@ -946,7 +1056,6 @@ export default async function OnboardingPage({
       : activeBar?.settings;
   const invitedMembers =
     activeBar?.memberships.filter((membership) => membership.role !== Role.OWNER) ?? [];
-  const ownerMembers = teamMembers.filter((membership) => membership.role === Role.OWNER);
   const alternateBar = activeBar
     ? ownedBars.find((bar) => bar.id !== activeBar.id) ?? null
     : null;
@@ -966,47 +1075,81 @@ export default async function OnboardingPage({
   return (
     <StepShell currentStep={currentStep} steps={[...onboardingSteps]}>
       {currentStep === 1 ? (
-        <Card
-          title="Crea il locale"
-        >
-          <form action={createBarAction} style={{ display: "grid", gap: 16 }}>
+        <Card>
+          <form action={createBarAction} style={{ display: "grid", gap: 14 }}>
             <Input
               name="name"
-              label="Nome locale"
+              label="Nome"
               placeholder="Nome del locale"
             />
-            <label style={{ display: "grid", gap: 8 }}>
-              <span style={{ fontWeight: 600 }}>Attività</span>
-              <select
-                name="activityType"
-                defaultValue="RESTAURANT"
+
+            {/* Two choices in all, and they decide how many steps there even
+                are: worth touching, not worth a dropdown. */}
+            <div style={{ display: "grid", gap: 6 }}>
+              <span
                 style={{
-                  borderRadius: 14,
-                  border: "1px solid #d9cdb8",
-                  padding: "12px 14px",
-                  fontSize: 15,
-                  background: "#fff",
+                  fontSize: 9.5,
+                  fontWeight: 830,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "#a3a0b8",
                 }}
               >
-                <option value="RESTAURANT">Ristorazione</option>
-                <option value="COMPANY">Azienda</option>
-              </select>
-            </label>
-            <div>
-              <SubmitButton label="Continua" />
+                Attività
+              </span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {[
+                  {
+                    value: "RESTAURANT",
+                    title: "Ristorazione",
+                    lead: "Bar, ristorante, pizzeria",
+                  },
+                  { value: "COMPANY", title: "Azienda", lead: "Uffici, negozi" },
+                ].map((option, index) => (
+                  <label
+                    key={option.value}
+                    className="workbit-onboarding-pick"
+                    style={{
+                      display: "grid",
+                      gap: 3,
+                      padding: "12px 11px",
+                      borderRadius: 15,
+                      border: "1.5px solid #e9e6f5",
+                      background: "#fbfaff",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="activityType"
+                      value={option.value}
+                      defaultChecked={index === 0}
+                      style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+                    />
+                    <strong style={{ fontSize: 13.5, fontWeight: 820, color: "#17161f" }}>
+                      {option.title}
+                    </strong>
+                    <span style={{ fontSize: 11.5, fontWeight: 550, color: "#8b88a3", lineHeight: 1.35 }}>
+                      {option.lead}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
+
+            <SubmitButton label="Continua" />
           </form>
         </Card>
       ) : null}
 
       {activeBar && ownedBars.length > 1 ? (
-        <Card title="Cambia attivita">
+        <Card title="Cambia attività">
           <AutoSubmitSelectForm
             action={switchBarAction}
             name="barId"
             defaultValue={activeBar.id}
-            ariaLabel="Cambia attivita"
-            label="Attivita attiva"
+            ariaLabel="Cambia attività"
+            label="Attività attiva"
             options={ownedBars.map((bar) => ({
               value: bar.id,
               label: `${bar.name} - ${bar.activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione"}`,
@@ -1019,7 +1162,7 @@ export default async function OnboardingPage({
             </form>
           ) : null}
           <div style={{ marginTop: 12, color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
-            Puoi tornare all&apos;altra attivita quando vuoi e riprendere la configurazione in seguito.
+            Puoi tornare all&apos;altra attività quando vuoi e riprendere la configurazione in seguito.
           </div>
         </Card>
       ) : null}
@@ -1037,9 +1180,7 @@ export default async function OnboardingPage({
             />
 
             <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
-            <div>
-              <SubmitButton label="Continua" />
-            </div>
+            <SubmitButton label="Continua" />
           </form>
         </Card>
       ) : null}
@@ -1050,9 +1191,7 @@ export default async function OnboardingPage({
             <input type="hidden" name="settingsSection" value="features" />
             <FeatureToggleGrid settings={featureSettings} activityType={activeBar.activityType} />
 
-            <div>
-              <SubmitButton label="Continua" />
-            </div>
+            <SubmitButton label="Continua" />
           </form>
         </Card>
       ) : null}
@@ -1064,203 +1203,235 @@ export default async function OnboardingPage({
           <form action={saveRoundingAction} style={{ display: "grid", gap: 18 }}>
             <FeatureToggleGrid settings={featureSettings} activityType={activeBar.activityType} />
 
+            {/* It belongs in the same list as everything else you are
+                switching on, not in a checkbox of its own below it. */}
             <label
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                fontWeight: 600,
+                gap: 10,
+                padding: "11px 0",
+                borderTop: "1px solid #f4f2fb",
+                cursor: "pointer",
               }}
             >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 7,
+                  height: 7,
+                  flex: "0 0 auto",
+                  borderRadius: 999,
+                  background: "#94a3b8",
+                }}
+              />
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                <strong style={{ fontSize: 13.5, fontWeight: 740, color: "#17161f" }}>
+                  Arrotonda le ore
+                </strong>
+                <span style={{ fontSize: 11.5, fontWeight: 520, color: "#a3a0b8" }}>
+                  Al quarto d&apos;ora più vicino.
+                </span>
+              </span>
               <input
                 name="roundingEnabled"
                 type="checkbox"
                 defaultChecked={Boolean(activeBar.settings?.roundingEnabled)}
+                style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
               />
-              Attiva arrotondamento ore
             </label>
 
             <input type="hidden" name="roundingMinutes" value="15" />
             <input type="hidden" name="roundingMode" value="NEAREST" />
             <input type="hidden" name="roundingAcknowledged" value="on" />
 
-            <div>
-              <SubmitButton label="Continua" />
-            </div>
+            <SubmitButton label="Continua" />
           </form>
         </Card>
       ) : null}
 
       {currentStep === (showGpsStep ? 4 : 3) && activeBar ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: 20,
-          }}
-        >
-          <Card
-            title="Invita il team"
+        <Card>
+          {/* One card, not two side by side. The two tiles that counted
+              people and owners are gone: the count is in the label, and how
+              many owners there are is read off a list three rows long. */}
+          <span
+            style={{
+              fontSize: 9.5,
+              fontWeight: 830,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#a3a0b8",
+            }}
           >
-            <form action={inviteEmployeeAction} style={{ display: "grid", gap: 18 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: 16,
-                }}
-              >
-                <Input name="firstName" label="Nome" />
-                <Input name="lastName" label="Cognome" />
-                <Input
-                  name="email"
-                  label="Email"
-                  type="email"
-                  required
-                  placeholder="nome@locale.it"
-                />
-                <label style={{ display: "grid", gap: 8 }}>
-                  <span style={{ fontWeight: 600 }}>Ruolo</span>
-                  <select
-                    name="role"
-                    defaultValue="EMPLOYEE"
-                    style={{
-                      borderRadius: 14,
-                      border: "1px solid #d9cdb8",
-                      padding: "12px 14px",
-                      fontSize: 15,
-                      background: "#fff",
-                    }}
-                  >
-                    <option value="OWNER">Titolare</option>
-                    <option value="EMPLOYEE">Dipendente</option>
-                    <option value="MANAGER">Responsabile</option>
-                  </select>
-                </label>
-              </div>
-              <div>
-                <SubmitButton label="Invita" />
-              </div>
-            </form>
-          </Card>
+            {teamMembers.length > 0 ? `Persone · ${teamMembers.length}` : "Persone"}
+          </span>
 
-          <Card
-            title="Team attuale"
-            subtitle={
-              teamMembers.length > 0
-                ? "Persone gia collegate al locale."
-                : "Nessuna persona invitata."
-            }
-          >
-            <div style={{ display: "grid", gap: 12 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                  gap: 12,
-                }}
-              >
+          {teamMembers.length > 0 ? (
+            <div style={{ display: "grid", gap: 6 }}>
+              {teamMembers.map((membership) => (
                 <div
+                  key={membership.id}
                   style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    background: "#f7f2e9",
-                    border: "1px solid #eadfc9",
+                    display: "grid",
+                    gridTemplateColumns: "3px minmax(0, 1fr)",
+                    borderRadius: 13,
+                    overflow: "hidden",
+                    border: "1px solid #f0eef9",
                   }}
                 >
-                  <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase" }}>
-                    Persone collegate
-                  </div>
-                  <strong style={{ fontSize: 22, color: "#1f2937" }}>{teamMembers.length}</strong>
-                </div>
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    background: "#f7f2e9",
-                    border: "1px solid #eadfc9",
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase" }}>
-                    Titolari
-                  </div>
-                  <strong style={{ fontSize: 16, color: "#1f2937" }}>
-                    {ownerMembers.length}
-                  </strong>
-                </div>
-              </div>
-
-              {teamMembers.length > 0 ? (
-                teamMembers.map((membership) => (
-                  <div
-                    key={membership.id}
+                  <span
+                    aria-hidden="true"
+                    style={{ background: membership.role === Role.OWNER ? "#6d5ce7" : "#c9c4e8" }}
+                  />
+                  <span
                     style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      background: "#fff",
-                      border: "1px solid #eadfc9",
-                      display: "grid",
-                      gap: 8,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "10px 11px",
+                      minWidth: 0,
                     }}
                   >
-                    <div
+                    <span
+                      aria-hidden="true"
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        alignItems: "center",
-                        flexWrap: "wrap",
+                        width: 32,
+                        height: 32,
+                        flex: "0 0 auto",
+                        borderRadius: 999,
+                        display: "grid",
+                        placeItems: "center",
+                        background: "#f1effe",
+                        color: "#4c1d95",
+                        fontSize: 10.5,
+                        fontWeight: 850,
                       }}
                     >
-                      <strong>
+                      {`${membership.user.firstName?.[0] ?? ""}${membership.user.lastName?.[0] ?? ""}`.toUpperCase()}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                      <strong style={{ fontSize: 13.5, fontWeight: 780, color: "#17161f" }}>
                         {membership.user.firstName} {membership.user.lastName}
                       </strong>
                       <span
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          letterSpacing: "0.04em",
-                          textTransform: "uppercase",
-                          background:
-                            membership.role === Role.OWNER
-                              ? "#fee2e2"
-                              : membership.role === Role.MANAGER
-                                ? "#dbeafe"
-                                : "#ede9fe",
-                          color:
-                            membership.role === Role.OWNER
-                              ? "#b91c1c"
-                              : membership.role === Role.MANAGER
-                                ? "#1d4ed8"
-                                : "#6d28d9",
+                          fontSize: 11.5,
+                          fontWeight: 520,
+                          color: "#a3a0b8",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        {membership.role === Role.OWNER
-                          ? "Titolare"
-                          : membership.role === Role.MANAGER
-                            ? "Responsabile"
-                            : "Dipendente"}
+                        {membership.user.email}
                       </span>
-                    </div>
-                    <div style={{ color: "#6b7280" }}>{membership.user.email}</div>
-                  </div>
-                ))
-              ) : (
-                <p style={{ margin: 0, color: "#6b7280", lineHeight: 1.6 }}>
-                  Puoi completare ora la configurazione e aggiungere persone in seguito.
-                </p>
-              )}
+                    </span>
+                    {/* The role in the app's own small capitals, instead of
+                        the red, blue and lilac invented on this page alone. */}
+                    <span
+                      style={{
+                        flex: "0 0 auto",
+                        fontSize: 9,
+                        fontWeight: 830,
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        color: "#8b88a3",
+                      }}
+                    >
+                      {membership.role === Role.OWNER
+                        ? "Titolare"
+                        : membership.role === Role.MANAGER
+                          ? "Responsabile"
+                          : "Dipendente"}
+                    </span>
+                  </span>
+                </div>
+              ))}
             </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
+              Nessuno ancora. Puoi finire adesso e invitarli quando vuoi.
+            </p>
+          )}
 
-            <form action={finishOnboardingAction} style={{ marginTop: 20 }}>
-              <SubmitButton label="Completa configurazione" />
+          {/* The invite form used to sit open above the list. It waits behind
+              a summary now, because most of the time there is nothing to add. */}
+          <details style={{ display: "grid", gap: 12 }}>
+            <summary
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                minHeight: 44,
+                padding: "0 13px",
+                borderRadius: 14,
+                border: "1.5px solid #ddd6fe",
+                background: "#ffffff",
+                color: "#4c1d95",
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: "pointer",
+                listStyle: "none",
+              }}
+            >
+              <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>
+                +
+              </span>
+              Invita una persona
+            </summary>
+
+            <form action={inviteEmployeeAction} style={{ display: "grid", gap: 12, paddingTop: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <Input name="firstName" label="Nome" />
+                <Input name="lastName" label="Cognome" />
+              </div>
+              <Input
+                name="email"
+                label="Email"
+                type="email"
+                required
+                placeholder="nome@locale.it"
+              />
+              <label style={{ display: "grid", gap: 6 }}>
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 830,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: "#a3a0b8",
+                  }}
+                >
+                  Ruolo
+                </span>
+                <select
+                  name="role"
+                  defaultValue="EMPLOYEE"
+                  style={{
+                    height: 46,
+                    borderRadius: 14,
+                    border: "1.5px solid #e9e6f5",
+                    background: "#fbfaff",
+                    padding: "0 11px",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: "#17161f",
+                  }}
+                >
+                  <option value="EMPLOYEE">Dipendente</option>
+                  <option value="MANAGER">Responsabile</option>
+                  <option value="OWNER">Titolare</option>
+                </select>
+              </label>
+              <SubmitButton label="Invita" />
             </form>
-          </Card>
-        </div>
+          </details>
+
+          <form action={finishOnboardingAction}>
+            <SubmitButton label="Completa configurazione" />
+          </form>
+        </Card>
       ) : null}
     </StepShell>
   );
