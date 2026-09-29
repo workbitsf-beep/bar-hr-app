@@ -336,13 +336,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 gap: 18px;
                 overflow: hidden;
                 background: linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
-                transition: opacity 340ms ease, transform 340ms ease;
+                transition: opacity 400ms ease-in;
                 padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
               }
 
               .workbit-boot[data-leaving="true"] {
                 opacity: 0;
-                transform: scale(1.04);
                 pointer-events: none;
               }
 
@@ -383,7 +382,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 border-radius: 31px;
                 overflow: hidden;
                 box-shadow: 0 22px 48px rgba(10, 4, 30, 0.55);
-                animation: workbit-boot-mark 620ms cubic-bezier(0.3, 1.35, 0.4, 1) both;
+                will-change: transform;
+                animation:
+                  workbit-boot-mark 560ms cubic-bezier(0.3, 1.3, 0.4, 1) both,
+                  workbit-boot-open 700ms cubic-bezier(0.62, 0, 0.3, 1) 1000ms both;
               }
 
               .workbit-boot__mark img {
@@ -393,39 +395,27 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 object-fit: cover;
               }
 
-              /* The light that passes over the mark once it has landed. */
-              .workbit-boot__shine {
-                position: absolute;
-                top: -30%;
-                bottom: -30%;
-                left: 0;
-                width: 44%;
-                background: linear-gradient(
-                  90deg,
-                  transparent,
-                  rgba(255, 255, 255, 0.46),
-                  transparent
-                );
-                animation: workbit-boot-shine 780ms cubic-bezier(0.4, 0, 0.3, 1) 420ms both;
-              }
-
               .workbit-boot__word {
                 color: #ffffff;
                 font-size: 20px;
                 font-weight: 840;
                 letter-spacing: -0.026em;
-                animation: workbit-boot-word 380ms ease-out 560ms both;
+                animation:
+                  workbit-boot-word 340ms ease-out 620ms both,
+                  workbit-boot-word-out 240ms ease-in 1000ms both;
               }
 
               @keyframes workbit-boot-mark {
-                0% { opacity: 0; transform: translateY(-24px) scale(0.82); }
-                60% { transform: translateY(3px) scale(1.03); }
+                0% { opacity: 0; transform: scale(0.55); }
                 100% { opacity: 1; transform: none; }
               }
 
-              @keyframes workbit-boot-shine {
-                from { transform: translateX(-150%) skewX(-18deg); }
-                to { transform: translateX(250%) skewX(-18deg); }
+              /* The mark grows past the edges of the screen, its corners
+                 flattening as it goes, and turns seven degrees on the way -
+                 which is the whole difference between a zoom and a gesture. */
+              @keyframes workbit-boot-open {
+                0% { transform: scale(1) rotate(0deg); border-radius: 31px; }
+                100% { transform: scale(14) rotate(-7deg); border-radius: 0; opacity: 0.88; }
               }
 
               @keyframes workbit-boot-word {
@@ -433,9 +423,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 to { opacity: 1; transform: none; }
               }
 
+              @keyframes workbit-boot-word-out {
+                to { opacity: 0; transform: translateY(-6px); }
+              }
+
               @media (prefers-reduced-motion: reduce) {
                 .workbit-boot__mark,
-                .workbit-boot__shine,
                 .workbit-boot__word {
                   animation: none;
                 }
@@ -1539,7 +1532,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           <span className="workbit-boot__stack">
             <span className="workbit-boot__mark">
               <Image src="/logo.png" alt="" width={112} height={112} priority unoptimized />
-              <span className="workbit-boot__shine" />
             </span>
             <span className="workbit-boot__word">Workbit</span>
           </span>

@@ -15,8 +15,9 @@ import { useEffect } from "react";
  * screen, or the dashboard when the session is still good - has had the whole
  * time to arrive.
  */
-const ON_SCREEN_MS = 1150;
-const FADE_MS = 340;
+/** The mark has finished opening out by here, so the ground can go. */
+const ON_SCREEN_MS = 1280;
+const FADE_MS = 400;
 
 export function BootSplash() {
   useEffect(() => {
