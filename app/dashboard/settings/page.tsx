@@ -1,12 +1,20 @@
 import type { ReactNode } from "react";
-import { ActivityType, Prisma, Role } from "@prisma/client";
+import { ActivityType, Prisma, Role, type AppLanguage } from "@prisma/client";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
 import { featureToggleDefinitions, getFeatureFlags } from "@/lib/features";
 import { getGlobalGpsRadius } from "@/lib/gps-settings";
-import { getLegalDocumentsWithAcceptance, legalDocumentTypeLabels } from "@/lib/legal-documents";
+import {
+  getLegalDocumentsWithAcceptance,
+  getRequiredLegalDocumentsForUser,
+  legalDocumentTypeLabels,
+} from "@/lib/legal-documents";
 import { prisma } from "@/lib/prisma";
-import { deleteOwnerAccountAndBarAction, updateSettingsAction } from "../actions";
+import {
+  deleteOwnerAccountAndBarAction,
+  setLanguageAction,
+  updateSettingsAction,
+} from "../actions";
 import { getDashboardContext } from "../context";
 import {
   EmptyState,
@@ -21,6 +29,7 @@ import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
+import { PushSettingsClient } from "./push-settings-client";
 import { SupportPanel } from "./support-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 import { ExternalLink } from "@/app/components/external-link";
@@ -87,69 +96,171 @@ function parseStandardHoursFromSettings(settings?: {
   ].filter((entry) => entry.startTime || entry.endTime);
 }
 
-function SettingsSectionCard({
-  icon,
+/**
+ * One setting, as a row you touch.
+ *
+ * It used to be a card the height of a thumb, with an emoji in a lilac square
+ * and a button that said "Gestisci" - or "Apri", which meant exactly the same
+ * thing. The row is the button now, the chevron says so, and the space that
+ * bought is spent on something true on the right: how many features are on,
+ * how wide the clock-in circle is, when the subscription renews.
+ */
+function SettingsRow({
+  dot,
   title,
-  description,
+  lead,
   status,
-  action,
+  statusTone = "plain",
   tone = "default",
 }: {
-  icon: string;
+  dot: string;
   title: string;
-  description: string;
+  lead?: string;
   status?: string;
-  action: ReactNode;
+  statusTone?: "plain" | "warn";
   tone?: "default" | "danger";
 }) {
   return (
-    <section
-      className="workbit-settings-card"
-      data-tone={tone}
+    <span
       style={{
-        display: "grid",
-        gap: 16,
-        padding: 18,
-        borderRadius: 26,
-        background:
-          tone === "danger"
-            ? "linear-gradient(180deg, #fff 0%, #fff7f7 100%)"
-            : "linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%)",
-        border:
-          tone === "danger"
-            ? "1px solid rgba(220, 38, 38, 0.16)"
-            : "1px solid rgba(124, 58, 237, 0.10)",
-        boxShadow: "0 14px 34px rgba(88, 28, 135, 0.06)",
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        minWidth: 0,
+        padding: "12px 13px",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start" }}>
-        <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
+      <span
+        aria-hidden="true"
+        style={{ width: 7, height: 7, flex: "0 0 auto", borderRadius: 999, background: dot }}
+      />
+      <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+        <strong
+          style={{
+            fontSize: 14,
+            fontWeight: 760,
+            color: tone === "danger" ? "#a8424f" : "#17161f",
+          }}
+        >
+          {title}
+        </strong>
+        {lead ? (
+          <span
+            style={{
+              fontSize: 11.5,
+              fontWeight: 520,
+              color: "#a3a0b8",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {lead}
+          </span>
+        ) : null}
+      </span>
+      {status ? (
+        <span
+          style={{
+            flex: "0 0 auto",
+            fontSize: 12,
+            fontWeight: 640,
+            fontVariantNumeric: "tabular-nums",
+            color: statusTone === "warn" ? "#a15c07" : "#6b6880",
+          }}
+        >
+          {status}
+        </span>
+      ) : null}
+      <span aria-hidden="true" style={{ flex: "0 0 auto", color: "#c8c5d8", fontSize: 15 }}>
+        ›
+      </span>
+    </span>
+  );
+}
+
+/** A handful of rows under one small-capitals heading. */
+function SettingsGroup({ label, children }: { label?: string; children: ReactNode }) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      {label ? (
+        <span
+          style={{
+            paddingLeft: 4,
+            fontSize: 9.5,
+            fontWeight: 830,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#a3a0b8",
+          }}
+        >
+          {label}
+        </span>
+      ) : null}
+      <div
+        className="workbit-settings-group"
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e9e6f5",
+          borderRadius: 18,
+          overflow: "hidden",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** The language, where people look for it instead of up in the header. */
+function LanguagePanel({ current }: { current: AppLanguage }) {
+  const options: Array<{ value: AppLanguage; label: string }> = [
+    { value: "it" as AppLanguage, label: "Italiano" },
+    { value: "en" as AppLanguage, label: "English" },
+    { value: "es" as AppLanguage, label: "Español" },
+  ];
+
+  return (
+    <form action={setLanguageAction} style={{ display: "grid", gap: 7 }}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="submit"
+          name="language"
+          value={option.value}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "11px 12px",
+            borderRadius: 13,
+            border: `1.5px solid ${option.value === current ? "#6d5ce7" : "#e9e6f5"}`,
+            background: option.value === current ? "#f6f3ff" : "#fbfaff",
+            color: option.value === current ? "#4c1d95" : "#17161f",
+            fontSize: 14,
+            fontWeight: 700,
+            textAlign: "left",
+            cursor: "pointer",
+          }}
+        >
           <span
             aria-hidden="true"
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 18,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: tone === "danger" ? "#fee2e2" : "#f3e8ff",
-              color: tone === "danger" ? "#991b1b" : "#4c1d95",
-              fontSize: 21,
+              width: 16,
+              height: 16,
               flex: "0 0 auto",
+              borderRadius: 999,
+              border:
+                option.value === current ? "5px solid #6d5ce7" : "1.5px solid #d4d0e8",
             }}
-          >
-            {icon}
-          </span>
-          <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
-            <strong style={{ color: "#0f172a", fontSize: 18 }}>{title}</strong>
-            <span style={{ color: "#64748b", lineHeight: 1.45, fontSize: 14 }}>{description}</span>
-          </div>
-        </div>
-        {status ? <StatusPill label={status} tone={tone === "danger" ? "danger" : "neutral"} /> : null}
-      </div>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>{action}</div>
-    </section>
+          />
+          {option.label}
+        </button>
+      ))}
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: "#a3a0b8", textAlign: "center" }}>
+        Cambia subito, senza salvare.
+      </span>
+    </form>
   );
 }
 
@@ -182,7 +293,7 @@ async function LegalDocumentsPanel({ userId }: { userId: string }) {
                 <div style={{ display: "grid", gap: 4 }}>
                   <strong style={{ color: "#0f172a" }}>{document.title}</strong>
                   <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                    {legalDocumentTypeLabels[document.type]} · v{document.version}.{document.revision}
+                    {legalDocumentTypeLabels[document.type]} Â· v{document.version}.{document.revision}
                   </span>
                   {currentAcceptance ? (
                     <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
@@ -306,9 +417,18 @@ export default async function DashboardSettingsPage({
   const error = normalizeParam(params.error);
   const success = normalizeParam(params.success);
   const openBillingPopup = normalizeParam(params.billing) === "1" || normalizeParam(params.open) === "billing";
-  const { session, role, activeBarId, activeBarName, activeBarActivityType, billingStatus } =
-    await getDashboardContext();
+  const {
+    session,
+    role,
+    activeBarId,
+    activeBarName,
+    activeBarActivityType,
+    billingStatus,
+    language: sessionLanguage,
+  } = await getDashboardContext();
   const passkeyCount = await getPasskeyCount(session.user.id);
+  const languageLabel =
+    sessionLanguage === "en" ? "English" : sessionLanguage === "es" ? "Español" : "Italiano";
 
   const securityContent = (
     <div style={{ display: "grid", gap: 14 }}>
@@ -319,20 +439,83 @@ export default async function DashboardSettingsPage({
     </div>
   );
 
+  // What someone who is not the owner can actually decide. It used to be one
+  // card - "Sicurezza" - and nothing else: a whole page in the bottom bar for
+  // a single button, with no way to choose a language or say which
+  // notifications they wanted.
+  const accountGroup = (
+    <SettingsGroup label="Il tuo account">
+      <PopupAction
+        title="Accesso"
+        ariaLabel="Apri accesso"
+        triggerRow={
+          <SettingsRow
+            dot="#4c1d95"
+            title="Accesso"
+            lead="Password e sblocco col telefono"
+            status={passkeyCount > 0 ? "Attivo" : "Solo password"}
+          />
+        }
+      >
+        {securityContent}
+      </PopupAction>
+
+      <PopupAction
+        title="Notifiche"
+        ariaLabel="Apri notifiche"
+        triggerRow={
+          <SettingsRow
+            dot="#a855f7"
+            title="Notifiche"
+            lead="Cosa ti arriva sul telefono"
+          />
+        }
+      >
+        <PushSettingsClient />
+      </PopupAction>
+
+      <PopupAction
+        title="Lingua"
+        ariaLabel="Apri lingua"
+        triggerRow={<SettingsRow dot="#64748b" title="Lingua" status={languageLabel} />}
+      >
+        <LanguagePanel current={sessionLanguage} />
+      </PopupAction>
+    </SettingsGroup>
+  );
+
+  const helpGroup = (
+    <SettingsGroup label="Documenti e assistenza">
+      <PopupAction
+        title="Documenti legali"
+        ariaLabel="Apri documenti legali"
+        triggerRow={
+          <SettingsRow
+            dot="#94a3b8"
+            title="Documenti legali"
+            lead="Privacy, termini, DPA"
+          />
+        }
+      >
+        <LegalDocumentsPanel userId={session.user.id} />
+      </PopupAction>
+
+      <PopupAction
+        title="Assistenza"
+        ariaLabel="Apri assistenza"
+        triggerRow={<SettingsRow dot="#7e22ce" title="Scrivi all&rsquo;assistenza" />}
+      >
+        <SupportPanel activeBarName={activeBarName} userEmail={session.user.email} />
+      </PopupAction>
+    </SettingsGroup>
+  );
+
   if (role !== Role.OWNER) {
     return (
       <Stack columns="minmax(0, 760px)" className="workbit-settings-page">
         <SettingsPageHeading />
-        <SettingsSectionCard
-          icon="🔐"
-          title="Sicurezza"
-          description="Password e accesso biometrico."
-          action={
-            <PopupAction title="Sicurezza" ariaLabel="Apri sicurezza" triggerContent="Apri">
-              {securityContent}
-            </PopupAction>
-          }
-        />
+        {accountGroup}
+        {helpGroup}
       </Stack>
     );
   }
@@ -341,16 +524,7 @@ export default async function DashboardSettingsPage({
     return (
       <Stack columns="minmax(0, 760px)" className="workbit-settings-page">
         <SettingsPageHeading />
-        <SettingsSectionCard
-          icon="🔐"
-          title="Sicurezza"
-          description="Password e accesso biometrico."
-          action={
-            <PopupAction title="Sicurezza" ariaLabel="Apri sicurezza" triggerContent="Apri">
-              {securityContent}
-            </PopupAction>
-          }
-        />
+        {accountGroup}
         <Panel title="Impostazioni locale">
           <EmptyState message="Locale non selezionato." />
         </Panel>
@@ -358,6 +532,7 @@ export default async function DashboardSettingsPage({
     );
   }
 
+  const legalDocumentsPending = (await getRequiredLegalDocumentsForUser(session.user.id)).length;
   const [settings, globalGpsRadius, resolvedBillingStatus, activeBar] = await Promise.all([
     prisma.barSettings.findUnique({
       where: { barId: activeBarId },
@@ -421,46 +596,46 @@ export default async function DashboardSettingsPage({
     (feature) => getFeatureFlags(featureSettings)[feature.key]
   ).length;
 
-  // No closeOnSubmit here: this panel saves itself on every switch, so closing
-  // on submit shut the popup in the user's face the moment they turned
-  // something off. Closing is what the Chiudi button is for.
-  const localePopup = (
-    <PopupAction title="Locale / Attività" ariaLabel="Apri locale e attività" triggerContent="Gestisci">
-      <LocaleSettingsPopupContent
-        activityName={activeBar?.name ?? activeBarName ?? "Attività"}
-        activityLabel={activeBar?.activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione"}
-        addressLabel={
-          [activeBar?.addressLine1, activeBar?.postalCode, activeBar?.city].filter(Boolean).join(" · ") ||
-          "Indirizzo non impostato"
-        }
-        contactLabel={
-          activeBar?.email || activeBar?.phone
-            ? [activeBar.email, activeBar.phone].filter(Boolean).join(" · ")
-            : "Contatti non impostati"
-        }
-        settings={featureSettings}
-        globalGpsRadius={globalGpsRadius}
-        isRestaurant={isRestaurant}
-      />
-    </PopupAction>
-  );
+  // No closeOnSubmit on the venue panels: they save themselves on every
+  // switch, so closing on submit shut the window in the user's face the
+  // moment they turned something off. Closing is what the Chiudi button is
+  // for.
+  const localeProps = {
+    activityName: activeBar?.name ?? activeBarName ?? "Attività",
+    activityLabel:
+      activeBar?.activityType === ActivityType.COMPANY ? "Azienda" : "Ristorazione",
+    addressLabel:
+      [activeBar?.addressLine1, activeBar?.postalCode, activeBar?.city].filter(Boolean).join(" · ") ||
+      "Indirizzo non impostato",
+    contactLabel:
+      activeBar?.email || activeBar?.phone
+        ? [activeBar.email, activeBar.phone].filter(Boolean).join(" · ")
+        : "Contatti non impostati",
+    settings: featureSettings,
+    globalGpsRadius,
+    isRestaurant,
+  };
 
-  const standardHoursPopup = (
-    <PopupAction title="Orari standard" ariaLabel="Apri orari standard" triggerContent="Gestisci" closeOnSubmit>
-      <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
-        <input type="hidden" name="settingsSection" value="hours" />
-        <StandardHoursForm initialEntries={standardHours} />
-        <div className="dashboard-form-actions">
-          <PrimaryButton type="button" tone="sand" data-popup-close>
-            Annulla
-          </PrimaryButton>
-        </div>
-      </form>
-    </PopupAction>
-  );
+  // What the row says on the right: the date that actually matters, not "Ok".
+  const billingRowStatus = resolvedBillingStatus.currentPeriodEnd
+    ? `Rinnova il ${new Intl.DateTimeFormat("it-IT", {
+        day: "numeric",
+        month: "short",
+      }).format(resolvedBillingStatus.currentPeriodEnd)}`
+    : resolvedBillingStatus.trialEndsAt
+      ? `Prova fino al ${new Intl.DateTimeFormat("it-IT", {
+          day: "numeric",
+          month: "short",
+        }).format(resolvedBillingStatus.trialEndsAt)}`
+      : resolvedBillingStatus.canAccess
+        ? "Attivo"
+        : "Da attivare";
+  const hasGpsPoint = settings?.gpsLatitude !== null && settings?.gpsLongitude !== null;
+  const timeTrackingOn = getFeatureFlags(featureSettings).timeTracking;
+  const requiredLegalCount = legalDocumentsPending;
 
   return (
-    <Stack columns="repeat(auto-fit, minmax(280px, 1fr))" className="workbit-settings-page">
+    <Stack columns="minmax(0, 760px)" className="workbit-settings-page">
       <SettingsPageHeading />
       {success === "bar-deleted" ? (
         <Panel title="Operazione completata">
@@ -468,77 +643,143 @@ export default async function DashboardSettingsPage({
         </Panel>
       ) : null}
 
-      <SettingsSectionCard
-        icon="🏢"
-        title="Locale / Attività"
-        description="Dati principali, funzioni attive e posizione GPS."
-        status={`${activeFeatureCount} funzioni`}
-        action={localePopup}
-      />
+      <SettingsGroup label="Il locale">
+        <PopupAction
+          title="Locale e attività"
+          ariaLabel="Apri locale e attività"
+          triggerRow={
+            <SettingsRow
+              dot="#6d5ce7"
+              title="Locale e attività"
+              lead={localeProps.addressLabel}
+              status={localeProps.activityLabel}
+            />
+          }
+        >
+          <LocaleSettingsPopupContent {...localeProps} section="info" />
+        </PopupAction>
 
-      <SettingsSectionCard
-        icon="🕒"
-        title="Orari standard"
-        description="Turni predefiniti personalizzati da riusare nel calendario."
-        status={standardHours.length ? `${standardHours.length} orari` : "Vuoto"}
-        action={standardHoursPopup}
-      />
+        <PopupAction
+          title="Cosa usi"
+          ariaLabel="Apri le funzioni attive"
+          triggerRow={
+            <SettingsRow
+              dot="#0ea5e9"
+              title="Cosa usi"
+              lead="Le funzioni accese"
+              status={`${activeFeatureCount} di ${visibleFeatureDefinitions.length}`}
+            />
+          }
+        >
+          <LocaleSettingsPopupContent {...localeProps} section="features" />
+        </PopupAction>
 
-      <SettingsSectionCard
-        icon="📄"
-        title="Documenti legali"
-        description="Privacy, termini, cookie, geolocalizzazione, DPA e contratto SaaS."
-        action={
-          <PopupAction title="Documenti legali" ariaLabel="Apri documenti legali" triggerContent="Apri">
-            <LegalDocumentsPanel userId={session.user.id} />
-          </PopupAction>
-        }
-      />
-
-      <SettingsSectionCard
-        icon="💳"
-        title="Abbonamento"
-        description="Piano Stripe, stato pagamento, trial e rinnovo."
-        status={resolvedBillingStatus.canAccess ? "Ok" : "Da verificare"}
-        action={
-          <PopupAction
-            title="Abbonamento"
-            ariaLabel="Apri abbonamento"
-            triggerContent="Gestisci"
-            initialOpen={openBillingPopup}
-          >
-            <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
-          </PopupAction>
-        }
-      />
-
-      <SettingsSectionCard
-        icon="💬"
-        title="Supporto"
-        description="Scrivi all'assistenza, con i dati del locale già compilati."
-        action={
-          <PopupAction title="Supporto" ariaLabel="Apri supporto" triggerContent="Apri">
-            <SupportPanel activeBarName={activeBarName} userEmail={session.user.email} />
-          </PopupAction>
-        }
-      />
-
-      <SettingsSectionCard
-        icon="🔐"
-        title="Sicurezza"
-        description="Password, biometria e cancellazione account/locale."
-        action={
-          <PopupAction title="Sicurezza" ariaLabel="Apri sicurezza" triggerContent="Apri">
-            <div style={{ display: "grid", gap: 14 }}>
-              {securityContent}
-              <Panel title="Eliminazione account e locale">
-                <DangerDeleteForm error={error} activeBarName={activeBarName} />
-              </Panel>
+        <PopupAction
+          title="Orari standard"
+          ariaLabel="Apri orari standard"
+          closeOnSubmit
+          triggerRow={
+            <SettingsRow
+              dot="#f59e0b"
+              title="Orari standard"
+              lead="Le fasce del calendario"
+              status={standardHours.length ? String(standardHours.length) : "Nessuna"}
+            />
+          }
+        >
+          <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+            <input type="hidden" name="settingsSection" value="hours" />
+            <StandardHoursForm initialEntries={standardHours} />
+            <div className="dashboard-form-actions">
+              <PrimaryButton type="button" tone="sand" data-popup-close>
+                Annulla
+              </PrimaryButton>
             </div>
+          </form>
+        </PopupAction>
+
+        {isRestaurant && timeTrackingOn ? (
+          <PopupAction
+            title="Dove si timbra"
+            ariaLabel="Apri la posizione di timbratura"
+            triggerRow={
+              <SettingsRow
+                dot="#10b981"
+                title="Dove si timbra"
+                lead="Posizione e raggio"
+                status={hasGpsPoint ? `${globalGpsRadius} m` : "Da impostare"}
+                statusTone={hasGpsPoint ? "plain" : "warn"}
+              />
+            }
+          >
+            <LocaleSettingsPopupContent {...localeProps} section="tracking" />
           </PopupAction>
-        }
-        tone={error.startsWith("delete-") ? "danger" : "default"}
-      />
+        ) : null}
+      </SettingsGroup>
+
+      {accountGroup}
+
+      <SettingsGroup label="Abbonamento e assistenza">
+        <PopupAction
+          title="Abbonamento"
+          ariaLabel="Apri abbonamento"
+          initialOpen={openBillingPopup}
+          triggerRow={
+            <SettingsRow
+              dot="#0284c7"
+              title="Abbonamento"
+              lead="Piano e pagamento"
+              status={billingRowStatus}
+              statusTone={resolvedBillingStatus.canAccess ? "plain" : "warn"}
+            />
+          }
+        >
+          <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
+        </PopupAction>
+
+        <PopupAction
+          title="Documenti legali"
+          ariaLabel="Apri documenti legali"
+          triggerRow={
+            <SettingsRow
+              dot="#94a3b8"
+              title="Documenti legali"
+              lead="Privacy, termini, DPA"
+              status={requiredLegalCount > 0 ? `${requiredLegalCount} da firmare` : "Firmati"}
+              statusTone={requiredLegalCount > 0 ? "warn" : "plain"}
+            />
+          }
+        >
+          <LegalDocumentsPanel userId={session.user.id} />
+        </PopupAction>
+
+        <PopupAction
+          title="Assistenza"
+          ariaLabel="Apri assistenza"
+          triggerRow={<SettingsRow dot="#7e22ce" title="Scrivi all&rsquo;assistenza" />}
+        >
+          <SupportPanel activeBarName={activeBarName} userEmail={session.user.email} />
+        </PopupAction>
+      </SettingsGroup>
+
+      {/* The most irreversible thing in the app used to be a form at the
+          bottom of a window opened from a card about passwords. */}
+      <SettingsGroup>
+        <PopupAction
+          title="Elimina tutto"
+          ariaLabel="Elimina locale e account"
+          triggerRow={
+            <SettingsRow
+              dot="#e0868f"
+              title="Elimina locale e account"
+              lead="Non si torna indietro"
+              tone="danger"
+            />
+          }
+        >
+          <DangerDeleteForm error={error} activeBarName={activeBarName} />
+        </PopupAction>
+      </SettingsGroup>
     </Stack>
   );
 }

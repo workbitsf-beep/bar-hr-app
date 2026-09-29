@@ -83,6 +83,14 @@ function SaveState({ idleLabel }: { idleLabel: string }) {
   );
 }
 
+/**
+ * The venue's settings, in the three pieces the settings page opens
+ * separately.
+ *
+ * They used to be one window: who the venue is, which features are on, and
+ * where people clock in - three unrelated errands behind one "Gestisci".
+ * They are three rows now, and this renders whichever one was asked for.
+ */
 export function LocaleSettingsPopupContent({
   activityName,
   activityLabel,
@@ -91,7 +99,8 @@ export function LocaleSettingsPopupContent({
   settings,
   globalGpsRadius,
   isRestaurant,
-}: LocaleSettingsPopupContentProps) {
+  section = "all",
+}: LocaleSettingsPopupContentProps & { section?: "all" | "info" | "features" | "tracking" }) {
   const savedFeatures = useMemo(() => getFeatureFlags(settings), [settings]);
   const [features, setFeatures] = useState(savedFeatures);
   const trackingFormRef = useRef<HTMLFormElement>(null);
@@ -156,26 +165,33 @@ export function LocaleSettingsPopupContent({
     }
   }
 
+  const showInfo = section === "all" || section === "info";
+  const showFeatures = section === "all" || section === "features";
+  const showTracking = section === "all" || section === "tracking";
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div
-        style={{
-          display: "grid",
-          gap: 8,
-          padding: 16,
-          borderRadius: 22,
-          background: "#ffffff",
-          border: "1px solid rgba(124, 58, 237, 0.12)",
-          color: "#334155",
-          lineHeight: 1.55,
-        }}
-      >
-        <strong style={{ color: "#0f172a" }}>{activityName}</strong>
-        <span>{activityLabel}</span>
-        <span>{addressLabel}</span>
-        <span>{contactLabel}</span>
-      </div>
+      {showInfo ? (
+        <div
+          style={{
+            display: "grid",
+            gap: 8,
+            padding: 16,
+            borderRadius: 22,
+            background: "#ffffff",
+            border: "1px solid rgba(124, 58, 237, 0.12)",
+            color: "#334155",
+            lineHeight: 1.55,
+          }}
+        >
+          <strong style={{ color: "#0f172a" }}>{activityName}</strong>
+          <span>{activityLabel}</span>
+          <span>{addressLabel}</span>
+          <span>{contactLabel}</span>
+        </div>
+      ) : null}
 
+      {showFeatures ? (
       <form ref={featuresFormRef} action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
         <input type="hidden" name="settingsSection" value="features" />
         <div style={{ display: "grid", gap: 12 }}>
@@ -265,8 +281,9 @@ export function LocaleSettingsPopupContent({
           </PrimaryButton>
         </div>
       </form>
+      ) : null}
 
-      {isRestaurant && timeTrackingActive ? (
+      {showTracking && isRestaurant && timeTrackingActive ? (
         <form
           ref={trackingFormRef}
           action={updateSettingsAction}
