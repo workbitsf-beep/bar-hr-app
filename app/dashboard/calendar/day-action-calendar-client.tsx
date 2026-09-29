@@ -313,17 +313,94 @@ function isOwnShift(shift: Pick<ShiftItem, "assignments">) {
   return shift.assignments.some((assignment) => assignment.isCurrentUser);
 }
 
-function formatAssignmentNames(assignments: ShiftAssignment[]) {
-  return assignments.map((assignment, index) => {
-    const name = `${assignment.firstName} ${assignment.lastName}`;
-    return (
-      <span key={assignment.id} style={{ fontWeight: 400 }}>
-        {index > 0 ? ", " : null}
-        {assignment.isCurrentUser ? <strong style={{ fontWeight: 900 }}>{name}</strong> : name}
-      </span>
+/**
+ * How a shift says who is on it.
+ *
+ * It used to print everyone's first and last name in whatever order the
+ * assignments had been saved, joined by commas, and let the row clip - so the
+ * third person on a Sunday became "..." and you had to open the day to find
+ * out who they were. The surname was eating half the line and almost never
+ * earning it: in a bar of five, "Eva" is who she is.
+ *
+ * So: your own name is "Tu" and comes first, always. Everyone else is a first
+ * name, and a surname initial appears only where two people would otherwise
+ * read the same - Anna Simonetto and Anna Brocca become "Anna S." and "Anna
+ * B.", and stay that way on every shift, whether or not they happen to be
+ * working the same one.
+ */
+function shortNameFor(assignment: ShiftAssignment, sharedFirstNames: Set<string>) {
+  if (assignment.isCurrentUser) {
+    return "Tu";
+  }
+
+  const first = assignment.firstName.trim();
+  const initial = assignment.lastName.trim()[0];
+
+  if (!first) {
+    return assignment.lastName.trim() || "—";
+  }
+
+  return sharedFirstNames.has(first.toLowerCase()) && initial
+    ? `${first} ${initial.toUpperCase()}.`
+    : first;
+}
+
+/** First names carried by more than one person, so they need the surname. */
+function collectSharedFirstNames(days: DayItem[]) {
+  const seen = new Map<string, Set<string>>();
+
+  for (const day of days) {
+    for (const shift of day.shifts) {
+      for (const assignment of shift.assignments) {
+        const key = assignment.firstName.trim().toLowerCase();
+
+        if (!key) {
+          continue;
+        }
+
+        const owners = seen.get(key) ?? new Set<string>();
+        owners.add(assignment.id);
+        seen.set(key, owners);
+      }
+    }
+  }
+
+  return new Set(
+    Array.from(seen.entries())
+      .filter(([, owners]) => owners.size > 1)
+      .map(([key]) => key)
+  );
+}
+
+function formatAssignmentNames(
+  assignments: ShiftAssignment[],
+  sharedFirstNames: Set<string> = new Set()
+) {
+  // You first, then the rest in a fixed order, so the same shift reads the
+  // same way every time it is drawn.
+  const ordered = assignments.slice().sort((left, right) => {
+    if (left.isCurrentUser !== right.isCurrentUser) {
+      return left.isCurrentUser ? -1 : 1;
+    }
+
+    return `${left.firstName} ${left.lastName}`.localeCompare(
+      `${right.firstName} ${right.lastName}`,
+      "it"
     );
   });
+
+  return ordered.map((assignment, index) => (
+    <span key={assignment.id} style={{ fontWeight: 400 }}>
+      {index > 0 ? ", " : null}
+      {assignment.isCurrentUser ? (
+        <strong style={{ fontWeight: 900 }}>{shortNameFor(assignment, sharedFirstNames)}</strong>
+      ) : (
+        shortNameFor(assignment, sharedFirstNames)
+      )}
+    </span>
+  ));
 }
+
 
 type WeekBadgeTone = "note" | "vacation" | "permission" | "course" | "availability" | "onCall" | "overtime" | "closure";
 
@@ -921,6 +998,7 @@ function renderDaySectionHeader(
 function renderDayShiftRow(
   shift: ShiftItem,
   locale: string,
+  sharedFirstNames: Set<string>,
   currentUserId: string,
   clashing: boolean
 ) {
@@ -977,7 +1055,7 @@ function renderDayShiftRow(
             color: "#6b6880",
           }}
         >
-          {formatAssignmentNames(shift.assignments)}
+          {formatAssignmentNames(shift.assignments, sharedFirstNames)}
         </span>
         <span
           style={{
@@ -1022,6 +1100,7 @@ function renderDayShiftRow(
 function renderWeekShiftLine(
   shift: ShiftItem,
   locale: string,
+  sharedFirstNames: Set<string>,
   currentUserId: string,
   onOpen: () => void
 ) {
@@ -1083,7 +1162,7 @@ function renderWeekShiftLine(
           fontWeight: 500,
         }}
       >
-        {formatAssignmentNames(shift.assignments)}
+        {formatAssignmentNames(shift.assignments, sharedFirstNames)}
       </span>
       <span
         title={shift.confirmedAt ? "Confermato" : "In attesa"}
@@ -1141,6 +1220,7 @@ function renderShiftStateIcon(confirmed: boolean, size = 16) {
 function renderShiftCard(
   shift: ShiftItem,
   locale: string,
+  sharedFirstNames: Set<string>,
   mobile = false,
   onOpen?: () => void
 ) {
@@ -1198,7 +1278,7 @@ function renderShiftCard(
           </span>
         ) : null}
         <span style={{ color: "#475569", fontSize: mobile ? 12 : 11 }}>
-          {formatAssignmentNames(shift.assignments)}
+          {formatAssignmentNames(shift.assignments, sharedFirstNames)}
         </span>
         <span
           title={shift.confirmedAt ? "Confermato" : "In attesa"}
@@ -1421,7 +1501,12 @@ function renderPendingRequestCard(request: PendingRequestItem, mobile = false) {
   );
 }
 
-function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = false) {
+function renderPendingOnCallCard(
+  shift: ShiftItem,
+  locale: string,
+  sharedFirstNames: Set<string>,
+  mobile = false
+) {
   return (
     <div
       key={shift.id}
@@ -1441,7 +1526,7 @@ function renderPendingOnCallCard(shift: ShiftItem, locale: string, mobile = fals
         Reperibilita da approvare
       </strong>
       <span style={{ color: "#334155" }}>{formatRange(shift.startTime, shift.endTime, locale)}</span>
-      <span style={{ color: "#475569" }}>{formatAssignmentNames(shift.assignments)}</span>
+      <span style={{ color: "#475569" }}>{formatAssignmentNames(shift.assignments, sharedFirstNames)}</span>
     </div>
   );
 }
@@ -1835,6 +1920,10 @@ export function DayActionCalendarClient({
     () => days.find((day) => day.date === selectedDate) ?? null,
     [days, selectedDate]
   );
+  // Which first names are carried by more than one person, so only those
+  // need a surname initial - and they get it on every shift, not only where
+  // the two happen to work together.
+  const sharedFirstNames = useMemo(() => collectSharedFirstNames(days), [days]);
   const dayOverlaps = useMemo(() => buildShiftOverlaps(selectedDay?.shifts ?? []), [selectedDay]);
   const selectedNote = useMemo(() => {
     const note = selectedDay?.notes.find((item) => item.id === selectedNoteId) ?? null;
@@ -3012,7 +3101,7 @@ export function DayActionCalendarClient({
                             : groupShiftsByTime(day.shifts).map((shift) =>
                                 renderShiftSwipeActions(
                                   shift,
-                                  renderWeekShiftLine(shift, locale, currentUserId, () => {
+                                  renderWeekShiftLine(shift, locale, sharedFirstNames, currentUserId, () => {
                                     setSelectedDate(day.date);
                                     setActiveCalendarModal("shifts");
                                     setEditingShiftId(null);
@@ -3396,7 +3485,7 @@ export function DayActionCalendarClient({
                         {groupShiftsByTime(day.shifts).map((shift) =>
                           renderShiftSwipeActions(
                             shift,
-                            renderWeekShiftLine(shift, locale, currentUserId, () => {
+                            renderWeekShiftLine(shift, locale, sharedFirstNames, currentUserId, () => {
                               setSelectedDate(day.date);
                               setActiveCalendarModal("shifts");
                               setEditingShiftId(null);
@@ -3525,7 +3614,7 @@ export function DayActionCalendarClient({
                               "Reperibilità",
                               day.shifts
                                 .filter((shift) => shift.isOnCall)
-                                .map((shift) => renderPendingOnCallCard(shift, locale, true)),
+                                .map((shift) => renderPendingOnCallCard(shift, locale, sharedFirstNames, true)),
                               "onCall"
                             )
                           : null}
@@ -3582,7 +3671,7 @@ export function DayActionCalendarClient({
                             `shift-${shift.id}`,
                             renderShiftSwipeActions(
                               shift,
-                              renderShiftCard(shift, locale, true, () => {
+                              renderShiftCard(shift, locale, sharedFirstNames, true, () => {
                               setSelectedDate(day.date);
                               setActiveCalendarModal("shifts");
                               setEditingShiftId(null);
@@ -4669,7 +4758,7 @@ export function DayActionCalendarClient({
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.shifts.map((shift) => renderShiftSwipeActions(shift, (
-                          renderDayShiftRow(shift, locale, currentUserId, dayOverlaps.clashing.has(shift.id))
+                          renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))
                         ), selectedDay.date, true))}
                       </div>
                     )}
@@ -4722,7 +4811,7 @@ export function DayActionCalendarClient({
                               gap: 10,
                             }}
                           >
-                            {renderPendingOnCallCard(shift, locale, true)}
+                            {renderPendingOnCallCard(shift, locale, sharedFirstNames, true)}
 
                             <div className="dashboard-action-row">
                               <PrimaryButton
