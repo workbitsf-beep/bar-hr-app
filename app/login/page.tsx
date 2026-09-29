@@ -6,17 +6,47 @@ import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import {
   clearRememberedLoginEmail,
+  clearRememberedLoginName,
   clearPersistentSession,
   clearPasskeySetupPending,
   hasPasskeyPreferred,
   getRememberedLoginEmail,
+  getRememberedLoginName,
   hasPersistentSessionMarker,
   markPersistentSession,
   markPasskeySetupPending,
   rememberLoginEmail,
+  rememberLoginName,
 } from "@/lib/client-session";
 import { PasskeyLoginButton } from "./passkey-login-button";
 import styles from "./login.module.css";
+
+/** "Buongiorno" until noon, and so on, from the phone's own clock. */
+function greetingFor(date: Date) {
+  const hour = date.getHours();
+
+  if (hour < 13) {
+    return "Buongiorno";
+  }
+
+  return hour < 18 ? "Buon pomeriggio" : "Buonasera";
+}
+
+/** Two letters for the circle: from the name if we have it, else the address. */
+function initialsFor(name: string, email: string) {
+  const fromName = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+
+  if (fromName) {
+    return fromName;
+  }
+
+  return email.slice(0, 2).toUpperCase() || "??";
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +57,14 @@ export default function LoginPage() {
   const [autoPromptPasskey, setAutoPromptPasskey] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [error, setError] = useState("");
+  const [hint, setHint] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Who this phone remembers. While it is set the address is an identity, not
+  // a field: nobody types their own email every morning.
+  const [knownEmail, setKnownEmail] = useState("");
+  const [knownName, setKnownName] = useState("");
+  const [greeting, setGreeting] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -73,7 +110,11 @@ export default function LoginPage() {
 
     if (rememberedEmail) {
       setEmail(rememberedEmail);
+      setKnownEmail(rememberedEmail);
+      setKnownName(getRememberedLoginName());
     }
+
+    setGreeting(greetingFor(new Date()));
   }, []);
 
   useEffect(() => {
@@ -84,9 +125,36 @@ export default function LoginPage() {
     setAutoPromptPasskey(hasPasskeyPreferred());
   }, [sessionChecked]);
 
+  function keepIdentity(nextEmail: string, firstName?: string) {
+    if (!rememberMe) {
+      clearRememberedLoginEmail();
+      clearRememberedLoginName();
+      return;
+    }
+
+    rememberLoginEmail(nextEmail);
+
+    if (firstName) {
+      rememberLoginName(firstName);
+    }
+  }
+
+  /** Forgets this phone's account and hands the form back its email field. */
+  function forgetIdentity() {
+    clearRememberedLoginEmail();
+    clearRememberedLoginName();
+    setKnownEmail("");
+    setKnownName("");
+    setEmail("");
+    setPassword("");
+    setError("");
+    setHint("Account scollegato da questo telefono.");
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setHint("");
     setLoading(true);
 
     try {
@@ -102,6 +170,7 @@ export default function LoginPage() {
             ok?: boolean;
             message?: string;
             redirectTo?: string;
+            firstName?: string;
             promptPasskeySetup?: boolean;
           }
         | null;
@@ -111,11 +180,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (rememberMe) {
-        rememberLoginEmail(email);
-      } else {
-        clearRememberedLoginEmail();
-      }
+      keepIdentity(email, data.firstName);
 
       if (data?.promptPasskeySetup) {
         markPasskeySetupPending();
@@ -132,46 +197,79 @@ export default function LoginPage() {
     }
   }
 
-  function handlePasskeySuccess(redirectTo: string, authenticatedEmail?: string) {
+  function handlePasskeySuccess(
+    redirectTo: string,
+    authenticatedEmail?: string,
+    firstName?: string
+  ) {
     setAutoPromptPasskey(true);
-
-    if (rememberMe) {
-      rememberLoginEmail(authenticatedEmail || email);
-    } else {
-      clearRememberedLoginEmail();
-    }
-
+    keepIdentity(authenticatedEmail || email, firstName);
     markPersistentSession();
     router.push(redirectTo);
   }
 
+  const initials = initialsFor(knownName, knownEmail);
+  const displayName = knownName || knownEmail.split("@")[0] || "";
+
   return (
     <main className={`workbit-login-page ${styles.page}`}>
       <section className={styles.shell}>
-        <header className={styles.brandCard}>
-          <BrandLogo size={40} priority showIcon label="Workbit" style={{ gap: 11 }} />
+        <header className={styles.brandRow}>
+          <BrandLogo size={28} priority showIcon label="Workbit" style={{ gap: 9 }} />
         </header>
 
         <div className={styles.content}>
           <div className={styles.heading}>
-            <span className={styles.eyebrow}>Il tuo spazio di lavoro</span>
-            <h1>Bentornato</h1>
-            <p>Accedi per continuare su Workbit.</p>
+            {knownEmail ? (
+              <>
+                <span className={styles.eyebrow}>{greeting}</span>
+                <h1>{displayName}</h1>
+              </>
+            ) : (
+              <>
+                <span className={styles.eyebrow}>Il tuo lavoro, in ordine</span>
+                <h1>Accedi</h1>
+              </>
+            )}
           </div>
 
+          {knownEmail ? (
+            <div className={styles.identityCard}>
+              <span className={styles.identityRail} aria-hidden="true" />
+              <div className={styles.identityRow}>
+                <span className={styles.avatar} aria-hidden="true">
+                  {initials}
+                </span>
+                <span className={styles.identityText}>
+                  <strong>{displayName}</strong>
+                  <span>{knownEmail}</span>
+                </span>
+                <button
+                  className={`workbit-press-feedback ${styles.swapButton}`}
+                  type="button"
+                  onClick={forgetIdentity}
+                >
+                  Cambia
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <form className={styles.authCard} onSubmit={handleSubmit}>
-            <label className={styles.field}>
-              <span>Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="nome@locale.it"
-                autoComplete="email"
-                inputMode="email"
-                required
-              />
-            </label>
+            {knownEmail ? null : (
+              <label className={styles.field}>
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="nome@locale.it"
+                  autoComplete="email"
+                  inputMode="email"
+                  required
+                />
+              </label>
+            )}
 
             <label className={styles.field}>
               <span>Password</span>
@@ -180,7 +278,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Inserisci la password"
+                  placeholder="La tua password"
                   autoComplete="current-password"
                   required
                 />
@@ -213,7 +311,7 @@ export default function LoginPage() {
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}
                 />
-                <span>Ricordami</span>
+                <span>Resta collegato</span>
               </label>
 
               <button
@@ -226,6 +324,7 @@ export default function LoginPage() {
             </div>
 
             {error ? <p className={styles.errorMessage}>{error}</p> : null}
+            {!error && hint ? <p className={styles.hintMessage}>{hint}</p> : null}
 
             <div className={styles.actions}>
               <button
@@ -240,14 +339,17 @@ export default function LoginPage() {
                 email={email}
                 rememberMe={rememberMe}
                 onError={setError}
+                onCancel={(message) => {
+                  setError("");
+                  setHint(message);
+                }}
                 onSuccess={handlePasskeySuccess}
                 compact
+                className={styles.bioButton}
                 autoPrompt={autoPromptPasskey}
               />
             </div>
           </form>
-
-          <p className={styles.securityNote}>Accesso protetto e sicuro</p>
         </div>
       </section>
     </main>

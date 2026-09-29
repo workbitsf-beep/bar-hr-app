@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { PwaRegister } from "@/app/components/pwa-register";
 import { PasskeySetupPrompt } from "@/app/components/passkey-setup-prompt";
+import { BootSplash } from "@/app/components/boot-splash";
 import { DayRollover } from "@/app/components/day-rollover";
 import { RefreshOnReturn } from "@/app/components/refresh-on-return";
 import { RuntimeLanguageSync } from "@/app/components/runtime-language-sync";
@@ -317,6 +318,122 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 background: linear-gradient(90deg, transparent, rgba(255,255,255,0.26), rgba(168,85,247,0.42), rgba(59,130,246,0.24), transparent);
                 transform: translate3d(-50%, 0, 0) rotate(-14deg);
                 animation: workbit-global-beam 7s ease-in-out infinite alternate;
+              }
+
+              /* ——— the app turning itself on, once per launch ——— */
+              .workbit-boot {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483647;
+                display: grid;
+                place-items: center;
+                align-content: center;
+                gap: 18px;
+                overflow: hidden;
+                background: linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
+                transition: opacity 340ms ease, transform 340ms ease;
+                padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+              }
+
+              .workbit-boot[data-leaving="true"] {
+                opacity: 0;
+                transform: scale(1.04);
+                pointer-events: none;
+              }
+
+              .workbit-boot__glow {
+                position: absolute;
+                border-radius: 999px;
+                filter: blur(46px);
+                pointer-events: none;
+              }
+
+              .workbit-boot__glow--one {
+                width: 46vmin;
+                height: 46vmin;
+                top: -12vmin;
+                right: -10vmin;
+                background: rgba(167, 124, 245, 0.42);
+              }
+
+              .workbit-boot__glow--two {
+                width: 40vmin;
+                height: 40vmin;
+                bottom: -12vmin;
+                left: -10vmin;
+                background: rgba(109, 92, 231, 0.34);
+              }
+
+              .workbit-boot__stack {
+                position: relative;
+                display: grid;
+                justify-items: center;
+                gap: 16px;
+              }
+
+              .workbit-boot__mark {
+                position: relative;
+                width: 112px;
+                height: 112px;
+                border-radius: 31px;
+                overflow: hidden;
+                box-shadow: 0 22px 48px rgba(10, 4, 30, 0.55);
+                animation: workbit-boot-mark 620ms cubic-bezier(0.3, 1.35, 0.4, 1) both;
+              }
+
+              .workbit-boot__mark img {
+                display: block;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+              }
+
+              /* The light that passes over the mark once it has landed. */
+              .workbit-boot__shine {
+                position: absolute;
+                top: -30%;
+                bottom: -30%;
+                left: 0;
+                width: 44%;
+                background: linear-gradient(
+                  90deg,
+                  transparent,
+                  rgba(255, 255, 255, 0.46),
+                  transparent
+                );
+                animation: workbit-boot-shine 780ms cubic-bezier(0.4, 0, 0.3, 1) 420ms both;
+              }
+
+              .workbit-boot__word {
+                color: #ffffff;
+                font-size: 20px;
+                font-weight: 840;
+                letter-spacing: -0.026em;
+                animation: workbit-boot-word 380ms ease-out 560ms both;
+              }
+
+              @keyframes workbit-boot-mark {
+                0% { opacity: 0; transform: translateY(-24px) scale(0.82); }
+                60% { transform: translateY(3px) scale(1.03); }
+                100% { opacity: 1; transform: none; }
+              }
+
+              @keyframes workbit-boot-shine {
+                from { transform: translateX(-150%) skewX(-18deg); }
+                to { transform: translateX(250%) skewX(-18deg); }
+              }
+
+              @keyframes workbit-boot-word {
+                from { opacity: 0; transform: translateY(7px); }
+                to { opacity: 1; transform: none; }
+              }
+
+              @media (prefers-reduced-motion: reduce) {
+                .workbit-boot__mark,
+                .workbit-boot__shine,
+                .workbit-boot__word {
+                  animation: none;
+                }
               }
 
               .workbit-global-ambient__veil {
@@ -1407,6 +1524,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <PasskeySetupPrompt />
         <RefreshOnReturn />
         <DayRollover />
+        <BootSplash />
         <WorkbitRouteTransition />
         <div className="workbit-global-ambient" aria-hidden="true">
           <span className="workbit-global-ambient__light workbit-global-ambient__light--one" />

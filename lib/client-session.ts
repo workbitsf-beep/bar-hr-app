@@ -3,6 +3,7 @@
 const PERSISTENT_SESSION_KEY = "token";
 const PERSISTENT_SESSION_MARKER = "cookie-session";
 const REMEMBERED_EMAIL_KEY = "remembered-email";
+const REMEMBERED_NAME_KEY = "workbit-remembered-name";
 const PASSKEY_PREFERRED_KEY = "workbit-passkey-preferred";
 const PASSKEY_SETUP_PENDING_KEY = "workbit-passkey-setup-pending";
 
@@ -58,6 +59,45 @@ export function getRememberedLoginEmail() {
     return localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+/**
+ * The first name of whoever logged in last on this device.
+ *
+ * Kept beside the remembered address so the login screen can greet the person
+ * by name instead of showing them a form to fill in with what it already
+ * knows. It is a courtesy, never a credential: an empty one only costs a
+ * plainer greeting.
+ */
+export function rememberLoginName(firstName: string) {
+  try {
+    const normalized = firstName.trim();
+
+    if (!normalized) {
+      localStorage.removeItem(REMEMBERED_NAME_KEY);
+      return;
+    }
+
+    localStorage.setItem(REMEMBERED_NAME_KEY, normalized);
+  } catch {
+    // Keep login working even if storage is unavailable.
+  }
+}
+
+export function getRememberedLoginName() {
+  try {
+    return localStorage.getItem(REMEMBERED_NAME_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function clearRememberedLoginName() {
+  try {
+    localStorage.removeItem(REMEMBERED_NAME_KEY);
+  } catch {
+    // Ignore storage cleanup failures.
   }
 }
 

@@ -10,15 +10,22 @@ import {
   clearPasskeySetupPending,
   markPasskeyPreferred,
 } from "@/lib/client-session";
-import { describePasskeyFailure, ensureNativePasskeySupport } from "@/lib/native-passkeys";
+import {
+  describePasskeyFailure,
+  ensureNativePasskeySupport,
+  isPasskeyCancelled,
+} from "@/lib/native-passkeys";
 
 type PasskeyLoginButtonProps = {
   email: string;
   rememberMe: boolean;
   onError: (message: string) => void;
-  onSuccess: (redirectTo: string, authenticatedEmail?: string) => void;
+  /** A cancelled prompt is not a failure, so it arrives by its own door. */
+  onCancel?: (message: string) => void;
+  onSuccess: (redirectTo: string, authenticatedEmail?: string, firstName?: string) => void;
   compact?: boolean;
   autoPrompt?: boolean;
+  className?: string;
 };
 
 type ApiResponse = {
@@ -26,6 +33,7 @@ type ApiResponse = {
   message?: string;
   redirectTo?: string;
   email?: string;
+  firstName?: string;
   options?: Parameters<typeof startAuthentication>[0]["optionsJSON"];
 };
 
@@ -33,9 +41,11 @@ export function PasskeyLoginButton({
   email,
   rememberMe,
   onError,
+  onCancel,
   onSuccess,
   compact = false,
   autoPrompt = false,
+  className,
 }: PasskeyLoginButtonProps) {
   const [available, setAvailable] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -117,14 +127,27 @@ export function PasskeyLoginButton({
 
       markPasskeyPreferred();
       clearPasskeySetupPending();
-      onSuccess(verifyPayload.redirectTo || "/dashboard", verifyPayload.email);
+      onSuccess(
+        verifyPayload.redirectTo || "/dashboard",
+        verifyPayload.email,
+        verifyPayload.firstName
+      );
     } catch (err) {
+      const message = describePasskeyFailure(err, "accesso");
+
+      // Dismissing the phone's own prompt is a decision, not a fault: it does
+      // not belong in the console or in a red box.
+      if (isPasskeyCancelled(err)) {
+        onCancel?.(message);
+        return;
+      }
+
       console.error("[passkey] login failed", err);
-      onError(describePasskeyFailure(err, "accesso"));
+      onError(message);
     } finally {
       setLoading(false);
     }
-  }, [email, onError, onSuccess, rememberMe]);
+  }, [email, onCancel, onError, onSuccess, rememberMe]);
 
   useEffect(() => {
     if (!autoPrompt || autoPromptedRef.current || checking || loading || !available) {
@@ -135,69 +158,53 @@ export function PasskeyLoginButton({
     void handlePasskeyLogin();
   }, [autoPrompt, available, checking, loading, handlePasskeyLogin]);
 
+  /**
+   * "Sblocca con il telefono", not "con l'impronta": on an iPhone it is Face
+   * ID, on Android it can be a face or a finger, on a laptop a Windows PIN -
+   * and nothing in the browser says which. The mark is a phone with a tick,
+   * which is true whatever the device used to recognise you.
+   */
   return (
     <button
-      className="workbit-passkey-login"
+      className={className ? `workbit-passkey-login ${className}` : "workbit-passkey-login"}
       type="button"
       onClick={handlePasskeyLogin}
       disabled={loading || checking || !available}
-      aria-label="Accedi con biometria"
-      title="Accedi con biometria"
-      style={{
-        background: compact ? "#eef2ff" : "#f8fafc",
-        color: "#0f172a",
-        border: "1px solid #dbe3ee",
-        borderRadius: 999,
-        padding: compact ? 0 : "14px 18px",
-        width: compact ? 52 : "auto",
-        height: compact ? 52 : "auto",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 700,
-        fontSize: 16,
-        cursor: loading || checking || !available ? "default" : "pointer",
-        opacity: loading || checking || !available ? 0.65 : 1,
-      }}
+      aria-label="Sblocca con il telefono"
+      style={
+        compact
+          ? undefined
+          : {
+              background: "#f8fafc",
+              color: "#0f172a",
+              border: "1px solid #dbe3ee",
+              borderRadius: 999,
+              padding: "14px 18px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: 16,
+              cursor: loading || checking || !available ? "default" : "pointer",
+              opacity: loading || checking || !available ? 0.65 : 1,
+            }
+      }
     >
-      {compact ? (
-        <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center" }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M7 10c0-2.76 2.24-5 5-5 1.37 0 2.61.55 3.51 1.44"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M5 14.5c0-4.14 3.36-7.5 7.5-7.5 1.97 0 3.76.76 5.1 2"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M8 15.5c0-2.5 2-4.5 4.5-4.5 1.05 0 2.02.36 2.78.97"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M12 9v1.5m0 2v1.5m0 2v1.5"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-      ) : loading ? (
-        "Verifica biometrica..."
-      ) : checking ? (
-        "Controllo biometria..."
-      ) : email ? (
-        `Accedi con Biometria - ${email}`
-      ) : (
-        "Accedi con Biometria"
-      )}
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="6" y="2.6" width="12" height="18.8" rx="3" stroke="currentColor" strokeWidth="1.7" />
+        <path
+          d="M9.6 12.4l1.8 1.8 3.4-3.6"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {loading
+        ? "Ti sto riconoscendo…"
+        : checking
+          ? "Un momento…"
+          : "Sblocca con il telefono"}
     </button>
   );
 }

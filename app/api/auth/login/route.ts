@@ -36,6 +36,7 @@ export async function POST(req: Request): Promise<Response> {
     where: { email },
     select: {
       id: true,
+      firstName: true,
       passwordHash: true,
       role: true,
       language: true,
@@ -86,6 +87,8 @@ export async function POST(req: Request): Promise<Response> {
   });
   return NextResponse.json({
     ok: true,
+    // The name is what the login screen greets with the next time round.
+    firstName: user.firstName,
     promptPasskeySetup: passkeyCount === 0,
     redirectTo: await getPostLoginDestination({
       userId: user.id,

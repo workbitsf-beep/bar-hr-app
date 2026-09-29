@@ -59,9 +59,29 @@ async function install() {
  * message. Keeping only one of the two loses the answer half the time, so both
  * are shown when they differ.
  */
-export function describePasskeyFailure(error: unknown, action: "registrazione" | "accesso") {
+/**
+ * True when the person simply dismissed the prompt.
+ *
+ * A browser says so with a NotAllowedError. Android says so with a plain Error
+ * whose message carries code 16, ERROR_USER_CANCELED, or 13 for the "cancel"
+ * button - so without reading the message the app took a deliberate act for a
+ * fault and showed the name of an Android class in red.
+ */
+export function isPasskeyCancelled(error: unknown) {
   if (error instanceof Error && error.name === "NotAllowedError") {
-    return "Operazione annullata o non autorizzata dal dispositivo.";
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error ?? "");
+
+  return /\[(10|13|16)\]|cancel|annull|abort/i.test(message);
+}
+
+export function describePasskeyFailure(error: unknown, action: "registrazione" | "accesso") {
+  if (isPasskeyCancelled(error)) {
+    return action === "registrazione"
+      ? "Registrazione annullata."
+      : "Accesso annullato. Entra con la password.";
   }
 
   const sentence =

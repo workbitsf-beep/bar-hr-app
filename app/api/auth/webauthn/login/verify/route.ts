@@ -44,6 +44,7 @@ export async function POST(req: Request): Promise<Response> {
           select: {
             id: true,
             email: true,
+            firstName: true,
             role: true,
             language: true,
             mustChangePwd: true,
@@ -151,6 +152,7 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({
       ok: true,
       email: credentialRecord.user.email,
+      firstName: credentialRecord.user.firstName,
       promptPasskeySetup: false,
       redirectTo: await getPostLoginDestination({
         userId: credentialRecord.user.id,

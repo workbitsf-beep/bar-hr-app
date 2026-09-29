@@ -24,7 +24,35 @@
   color: #111827;
 }
 
+/* The same lights the dashboard shell carries, so the way in and the app
+   behind it are lit by one lamp. */
+.page::before,
+.page::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(54px);
+  pointer-events: none;
+}
+
+.page::before {
+  width: 58vmin;
+  height: 58vmin;
+  top: -18vmin;
+  right: -16vmin;
+  background: rgba(139, 92, 246, 0.24);
+}
+
+.page::after {
+  width: 44vmin;
+  height: 44vmin;
+  bottom: -14vmin;
+  left: -16vmin;
+  background: rgba(76, 29, 149, 0.13);
+}
+
 .shell {
+  position: relative;
   width: min(100%, 520px);
   flex: 1 1 auto;
   min-height: 0;
@@ -33,16 +61,13 @@
   flex-direction: column;
 }
 
-.brandCard {
+/* The name of the app, once, small. It used to sit in a white bar of its own
+   that took a sixth of the screen and had nothing to navigate to. */
+.brandRow {
   flex: 0 0 auto;
-  min-height: 70px;
-  padding: 13px 17px;
   display: flex;
   align-items: center;
-  border: 1px solid rgba(94, 92, 230, 0.1);
-  border-radius: 27px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 24px rgba(61, 42, 153, 0.08);
+  padding: 2px 7px 0;
 }
 
 .content {
@@ -55,7 +80,7 @@
   padding: clamp(20px, calc(var(--workbit-vh, 100dvh) * 0.07), 64px) 2px 12px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
 
 /* Centred while there is room, and scrollable from the top once there is not.
@@ -72,78 +97,147 @@
 
 .heading {
   display: grid;
-  gap: 4px;
-  padding: 0 7px;
+  gap: 2px;
+  padding: 0 7px 4px;
 }
 
 .eyebrow {
   color: #6757e8;
-  font-size: 13px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .heading h1 {
   margin: 0;
   color: #111827;
-  font-size: clamp(34px, 9vw, 44px);
-  line-height: 1;
-  font-weight: 820;
-  letter-spacing: -0.055em;
+  font-size: clamp(32px, 8.6vw, 42px);
+  line-height: 1.02;
+  font-weight: 850;
+  letter-spacing: -0.052em;
 }
 
-.heading p {
-  margin: 5px 0 0;
-  color: #8a8495;
+/* ——— who you are: the account that stays put ——— */
+.identityCard {
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr);
+  border: 1px solid rgba(94, 92, 230, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.97);
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(61, 42, 153, 0.07);
+}
+
+.identityRail {
+  background: #4c1d95;
+}
+
+.identityRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px 13px 13px 14px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #4c1d95, #8b5cf6);
+  color: #ffffff;
   font-size: 15px;
-  line-height: 1.45;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  box-shadow: 0 6px 16px rgba(76, 29, 149, 0.26);
+}
+
+.identityText {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.identityText strong {
+  color: #16151f;
+  font-size: 15.5px;
+  font-weight: 830;
+  letter-spacing: -0.018em;
+}
+
+.identityText span {
+  color: #8b88a3;
+  font-size: 12.5px;
   font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swapButton {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f0ff;
+  color: #6d5ce7;
+  font-size: 11.5px;
+  font-weight: 790;
+  cursor: pointer;
 }
 
 .authCard {
-  padding: 22px;
+  padding: 17px 16px 18px;
   display: grid;
-  gap: 17px;
+  gap: 13px;
   border: 1px solid rgba(94, 92, 230, 0.1);
-  border-radius: 28px;
+  border-radius: 22px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: 0 12px 34px rgba(61, 42, 153, 0.09);
 }
 
 .field {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .field > span {
-  color: #242036;
-  font-size: 14px;
-  font-weight: 720;
+  color: #a3a0b8;
+  font-size: 9.5px;
+  font-weight: 830;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .field input {
   width: 100%;
-  height: 52px;
+  height: 50px;
   padding: 0 15px;
-  border: 1px solid rgba(94, 92, 230, 0.14) !important;
-  border-radius: 17px !important;
+  border: 1.5px solid rgba(94, 92, 230, 0.14) !important;
+  border-radius: 15px !important;
   outline: none;
   background: #fbfaff !important;
   color: #111827 !important;
   font-size: 16px;
-  font-weight: 550;
+  font-weight: 600;
   box-shadow: none !important;
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 .field input::placeholder {
-  color: #aaa4b5;
+  color: #b6b3c9;
+  font-weight: 500;
 }
 
 .field input:focus {
-  border-color: rgba(94, 92, 230, 0.52) !important;
+  border-color: rgba(94, 92, 230, 0.55) !important;
   background: #ffffff !important;
-  box-shadow: 0 0 0 4px rgba(94, 92, 230, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(94, 92, 230, 0.12) !important;
 }
 
 .passwordField {
@@ -157,7 +251,7 @@
 .passwordToggle {
   position: absolute;
   top: 50%;
-  right: 7px;
+  right: 6px;
   width: 40px;
   height: 40px;
   padding: 0;
@@ -168,7 +262,7 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #6757e8;
+  color: #8b88a3;
   cursor: pointer;
 }
 
@@ -189,9 +283,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #4e485a;
-  font-size: 13px;
-  font-weight: 680;
+  color: #55536a;
+  font-size: 12.5px;
+  font-weight: 650;
   cursor: pointer;
 }
 
@@ -206,41 +300,54 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #5e5ce6;
-  font-size: 13px;
-  font-weight: 720;
+  color: #6d5ce7;
+  font-size: 12.5px;
+  font-weight: 760;
   text-align: right;
   cursor: pointer;
 }
 
+/* Something went wrong. */
 .errorMessage {
-  margin: -2px 0 0;
+  margin: 0;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: #fff1f2;
-  color: #b42318;
-  font-size: 13px;
-  line-height: 1.4;
+  border-radius: 13px;
+  background: #fdeef0;
+  color: #a8424f;
+  font-size: 12.5px;
+  line-height: 1.45;
   font-weight: 650;
+}
+
+/* You did something on purpose, and this is only saying so. Dismissing the
+   phone's own prompt used to arrive here in red, carrying the name of an
+   Android class. */
+.hintMessage {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: #f2f0fa;
+  color: #6b6880;
+  font-size: 12.5px;
+  line-height: 1.45;
+  font-weight: 620;
 }
 
 .actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 54px;
-  gap: 10px;
-  align-items: center;
+  gap: 9px;
 }
 
 .submitButton {
-  min-height: 54px;
+  min-height: 52px;
   padding: 0 22px;
   border: 0;
-  border-radius: 18px !important;
-  background: linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #3b1d8f 0%, #5e4ae3 55%, #8b5cf6 100%) !important;
   color: #ffffff !important;
-  font-size: 16px;
-  font-weight: 780;
-  box-shadow: 0 12px 26px rgba(94, 92, 230, 0.23) !important;
+  font-size: 15.5px;
+  font-weight: 820;
+  box-shadow: 0 10px 22px rgba(94, 74, 227, 0.26) !important;
   cursor: pointer;
 }
 
@@ -249,12 +356,43 @@
   opacity: 0.68;
 }
 
-.securityNote {
-  margin: 0;
-  color: #9b95a7;
-  font-size: 12px;
-  font-weight: 620;
-  text-align: center;
+/* The way in that needs no password: a word, so nobody has to guess, and the
+   same width as Accedi because it is not a lesser option. */
+.bioButton {
+  min-height: 50px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1.5px solid #ddd6fe !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  color: #4c1d95 !important;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.bioButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.bioButton svg {
+  flex: 0 0 auto;
+}
+
+.switchAccount {
+  justify-self: center;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: #8b88a3;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 @media (max-width: 390px) {
@@ -263,11 +401,11 @@
   }
 
   .content {
-    padding-top: 32px;
+    padding-top: 30px;
   }
 
   .authCard {
-    padding: 19px;
+    padding: 16px 14px 17px;
   }
 
   .optionsRow {
