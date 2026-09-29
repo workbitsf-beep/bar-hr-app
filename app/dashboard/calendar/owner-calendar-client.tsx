@@ -811,7 +811,9 @@ function renderDaySheetRow(
   text: string,
   meta: string,
   tone: WeekBadgeTone,
-  onOpen?: () => void
+  onOpen?: () => void,
+  /** A finished note is crossed out here too, not only on the Note page. */
+  done = false
 ) {
   return (
     <div
@@ -852,7 +854,8 @@ function renderDaySheetRow(
             whiteSpace: "nowrap",
             fontSize: 13,
             fontWeight: 640,
-            color: "#17161f",
+            color: done ? "#a3a0b8" : "#17161f",
+            textDecoration: done ? "line-through" : "none",
           }}
         >
           {text}
@@ -1283,7 +1286,13 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
         touchAction: "manipulation",
       }}
     >
-      <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
+      <strong
+        style={{
+          color: task.meta.done ? "#94a3b8" : "#0f172a",
+          textDecoration: task.meta.done ? "line-through" : "none",
+          fontSize: mobile ? 12 : 12,
+        }}
+      >
         📌 {truncateCalendarText(task.title)}
       </strong>
       {/* The cell already says which day it is, so the date is dropped and
@@ -2859,7 +2868,8 @@ export function OwnerCalendarClient({
                                 () => {
                                   setSelectedDate(day.date);
                                   setActiveCalendarModal("notes");
-                                }
+                                },
+                                task.meta.done
                               ),
                               "Elimina nota",
                               () => handleDeleteTask(task.id)

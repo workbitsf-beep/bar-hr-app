@@ -24,7 +24,10 @@ export function NoteRow({
   action?: ReactNode;
   compact?: boolean;
 }) {
-  const done = !action && meta.parts[0]?.text.startsWith("fatta da");
+  // It used to read the first line of the meta and look for the words "fatta
+  // da", which meant a note nobody had signed stayed black and upright after
+  // it was finished. The meta says so outright now.
+  const done = meta.done;
 
   return (
     <div

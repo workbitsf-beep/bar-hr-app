@@ -55,6 +55,13 @@ export type NoteMetaPart = { text: string; alarming: boolean };
 export type NoteMeta = {
   parts: NoteMetaPart[];
   late: boolean;
+  /**
+   * Whether the note is finished. It travels with the meta so that every
+   * place a note is drawn - the Note page, the calendar's week card, the
+   * day sheet, the day popup - can strike it through without each one
+   * working it out again from a different field.
+   */
+  done: boolean;
   /** The strip of colour on the left edge, or nothing when there is no news. */
   accent: string | null;
 };
@@ -102,6 +109,7 @@ export function buildNoteMeta(input: {
   return {
     parts: parts.filter((part): part is NoteMetaPart => part !== null),
     late,
+    done: input.done,
     accent: late ? "#ef4444" : input.repeatLabel ? "#7c3aed" : null,
   };
 }
