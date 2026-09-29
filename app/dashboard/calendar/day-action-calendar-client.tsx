@@ -4095,8 +4095,6 @@ export function DayActionCalendarClient({
                             style={{
                               display: "grid",
                               gap: 8,
-                              maxHeight: 156,
-                              overflowY: "auto",
                               padding: 10,
                               borderRadius: 18,
                               background: "rgba(248,250,252,0.92)",
@@ -4106,6 +4104,28 @@ export function DayActionCalendarClient({
                             <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
                               Turni salvati in questo inserimento
                             </span>
+                            {/* The list, and only the list, scrolls - the
+                                heading stays put above it. Two things were
+                                wrong here. The box was a grid with a fixed
+                                height, and a grid with a height that small
+                                squeezes its rows to fit instead of
+                                overflowing, so every card was sliced across
+                                the middle. And its one column was free to
+                                size itself to the longest name, which pushed
+                                the cards out past the right edge where the box
+                                clipped them - which is why a name stopped dead
+                                with no "..." after it. */}
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "minmax(0, 1fr)",
+                                alignContent: "start",
+                                gap: 8,
+                                maxHeight: "min(192px, 26dvh)",
+                                overflowY: "auto",
+                                overflowX: "hidden",
+                              }}
+                            >
                             {savedShiftDrafts.map((draft) => {
                               const draftMemberNames =
                                 draft.memberIds
@@ -4142,8 +4162,19 @@ export function DayActionCalendarClient({
                                     >
                                       {draftMemberNames}
                                     </strong>
-                                    <span style={{ color: "#64748b", fontSize: 12 }}>
-                                      {draft.date} · {draft.startTime} - {draft.endTime}
+                                    {/* The day was printed raw, as 2026-10-05,
+                                        in an app that says "Lunedì 5"
+                                        everywhere else. */}
+                                    <span
+                                      style={{
+                                        color: "#64748b",
+                                        fontSize: 12,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {formatCompactDayLabel(draft.date, locale)} · {draft.startTime}–{draft.endTime}
                                       {draft.isOnCall ? " · Reperibilità" : ""}
                                     </span>
                                   </div>
@@ -4171,6 +4202,7 @@ export function DayActionCalendarClient({
                                 ? renderShiftSwipeActions(savedShift, savedCard, draft.date, true)
                                 : savedCard;
                             })}
+                            </div>
                           </div>
                         ) : null}
                         {shiftDrafts.map((draft, index) => {
