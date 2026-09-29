@@ -1697,6 +1697,38 @@ function DashboardResponsiveStyles() {
         opacity: 0.5;
       }
 
+      /* The arrow that follows a thumb dragged in from the edge of the screen.
+         It rides above the menu, so closing the menu with the same gesture
+         shows the same mark, and under a popup, which the gesture leaves
+         alone. Only transform and opacity move, so it costs nothing to draw. */
+      .workbit-edge-hint {
+        position: fixed;
+        top: 50%;
+        z-index: 2147483645;
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(94, 92, 230, 0.16);
+        box-shadow: 0 10px 26px rgba(61, 42, 153, 0.18);
+        color: #4c1d95;
+        pointer-events: none;
+        transition: opacity 130ms ease;
+        will-change: transform, opacity;
+      }
+
+      .workbit-edge-hint svg {
+        transform: rotate(var(--wb-edge-turn, 0deg));
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .workbit-edge-hint {
+          transition: none;
+        }
+      }
+
       /* The day is one sheet with its sections divided by a hairline. The
          first one has nothing above it to separate itself from. */
       .workbit-day-sheet-section + .workbit-day-sheet-section {

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
+import { EdgeSwipeNavigation } from "@/app/components/edge-swipe-navigation";
 import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
@@ -86,6 +87,7 @@ export default async function DashboardLayout({
   return (
     <>
       <SessionKeepAlive />
+      <EdgeSwipeNavigation />
       <NotificationBarSync activeBarId={activeBarId} />
       <PushRegistration />
       <NativePermissions />
