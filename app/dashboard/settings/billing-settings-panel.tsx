@@ -158,27 +158,82 @@ export function BillingSettingsPanel({
       }
     >
       <div style={{ display: "grid", gap: 12 }}>
-        <div style={{ color: "#334155", lineHeight: 1.7 }}>
-          Locale: {activeBarName ?? "Locale attivo"}
-          <br />
-          Piano: {formatPlan(status.planType)}
-          <br />
-          Intervallo: {formatInterval(status.billingInterval)}
-          <br />
-          Sconto mensile: {status.monthlyDiscountPercent > 0 ? `${status.monthlyDiscountPercent}%` : "Nessuno"}
-          <br />
-          Rinnovo / scadenza: {formatNullableDate(status.currentPeriodEnd)}
-          <br />
-          Fine trial: {formatNullableDate(status.trialEndsAt)}
+        {/* Six lines of "label: value" separated by <br>, with the one date
+            that matters buried in the middle. It leads now. */}
+        <div
+          style={{
+            display: "grid",
+            gap: 2,
+            padding: "13px 14px",
+            borderRadius: 16,
+            background: "#f6f3ff",
+            border: "1px solid #ddd6fe",
+          }}
+        >
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 830,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "#7c6bd6",
+            }}
+          >
+            {status.currentPeriodEnd
+              ? "Prossimo rinnovo"
+              : status.trialEndsAt
+                ? "La prova finisce"
+                : "Abbonamento"}
+          </span>
+          <strong
+            style={{
+              fontSize: 21,
+              fontWeight: 850,
+              letterSpacing: "-0.03em",
+              color: "#4c1d95",
+            }}
+          >
+            {status.currentPeriodEnd
+              ? formatNullableDate(status.currentPeriodEnd)
+              : status.trialEndsAt
+                ? formatNullableDate(status.trialEndsAt)
+                : billingDisplay.label}
+          </strong>
         </div>
 
-        <div style={{ color: billingDisplay.messageColor, lineHeight: 1.7 }}>{billingDisplay.message}</div>
+        <div style={{ display: "grid" }}>
+          {[
+            { label: "Locale", value: activeBarName ?? "Locale attivo" },
+            { label: "Piano", value: formatPlan(status.planType) },
+            { label: "Fatturazione", value: formatInterval(status.billingInterval) },
+            {
+              label: "Sconto",
+              value:
+                status.monthlyDiscountPercent > 0
+                  ? `${status.monthlyDiscountPercent}%`
+                  : "Nessuno",
+            },
+          ].map((row, index) => (
+            <span
+              key={row.label}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "9px 0",
+                borderTop: index === 0 ? undefined : "1px solid #f4f2fb",
+                fontSize: 13,
+              }}
+            >
+              <span style={{ flex: 1, color: "#6b6880", fontWeight: 550 }}>{row.label}</span>
+              <strong style={{ fontWeight: 760, color: "#17161f" }}>{row.value}</strong>
+            </span>
+          ))}
+        </div>
 
-        {status.monthlyDiscountPercent > 0 ? (
-          <div style={{ color: "#166534", lineHeight: 1.7 }}>
-            Sconto mensile attivo: {status.monthlyDiscountPercent}%.
-          </div>
-        ) : null}
+        <div style={{ color: billingDisplay.messageColor, lineHeight: 1.6, fontSize: 13 }}>
+          {billingDisplay.message}
+        </div>
 
         <BillingCheckoutClient
           canActivate={canActivateCheckout}

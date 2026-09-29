@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import {
   deleteOwnerAccountAndBarAction,
   setLanguageAction,
+  updateBarDetailsAction,
   updateSettingsAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
@@ -132,14 +133,21 @@ function SettingsRow({
     >
       <span
         aria-hidden="true"
-        style={{ width: 7, height: 7, flex: "0 0 auto", borderRadius: 999, background: dot }}
+        style={{
+          width: 7,
+          height: 7,
+          flex: "0 0 auto",
+          borderRadius: 999,
+          background: tone === "danger" ? "#b3202f" : dot,
+        }}
       />
       <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
         <strong
           style={{
             fontSize: 14,
-            fontWeight: 760,
-            color: tone === "danger" ? "#a8424f" : "#17161f",
+            // A rose that reads as decoration on white is the wrong warning.
+            fontWeight: tone === "danger" ? 820 : 760,
+            color: tone === "danger" ? "#a11626" : "#17161f",
           }}
         >
           {title}
@@ -148,8 +156,8 @@ function SettingsRow({
           <span
             style={{
               fontSize: 11.5,
-              fontWeight: 520,
-              color: "#a3a0b8",
+              fontWeight: tone === "danger" ? 620 : 520,
+              color: tone === "danger" ? "#c2586a" : "#a3a0b8",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -180,7 +188,15 @@ function SettingsRow({
 }
 
 /** A handful of rows under one small-capitals heading. */
-function SettingsGroup({ label, children }: { label?: string; children: ReactNode }) {
+function SettingsGroup({
+  label,
+  tone = "default",
+  children,
+}: {
+  label?: string;
+  tone?: "default" | "danger";
+  children: ReactNode;
+}) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
       {label ? (
@@ -200,8 +216,8 @@ function SettingsGroup({ label, children }: { label?: string; children: ReactNod
       <div
         className="workbit-settings-group"
         style={{
-          background: "#ffffff",
-          border: "1px solid #e9e6f5",
+          background: tone === "danger" ? "#fdf2f3" : "#ffffff",
+          border: `1px solid ${tone === "danger" ? "#f0cdd2" : "#e9e6f5"}`,
           borderRadius: 18,
           overflow: "hidden",
         }}
@@ -209,6 +225,85 @@ function SettingsGroup({ label, children }: { label?: string; children: ReactNod
         {children}
       </div>
     </div>
+  );
+}
+
+/**
+ * The venue's details, as fields rather than as a paragraph.
+ *
+ * This window used to print the name, the address and the contacts and let
+ * you do nothing about any of it - and they are what goes on documents and
+ * in emails, so they change.
+ */
+function VenueDetailsPanel({
+  name,
+  activityLabel,
+  addressLine1,
+  postalCode,
+  city,
+  phone,
+  email,
+}: {
+  name: string;
+  activityLabel: string;
+  addressLine1: string | null;
+  postalCode: string | null;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+}) {
+  return (
+    <form action={updateBarDetailsAction} style={{ display: "grid", gap: 13 }}>
+      <FormField label="Nome">
+        <TextInput name="name" defaultValue={name} required />
+      </FormField>
+
+      <FormField label="Tipo">
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            minHeight: 46,
+            padding: "0 13px",
+            borderRadius: 14,
+            background: "#f4f3fa",
+            color: "#8b88a3",
+            fontSize: 14.5,
+            fontWeight: 620,
+          }}
+        >
+          {activityLabel}
+        </span>
+      </FormField>
+
+      <FormField label="Indirizzo">
+        <TextInput name="addressLine1" defaultValue={addressLine1 ?? ""} placeholder="Via e numero" />
+      </FormField>
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 96px) minmax(0, 1fr)", gap: 10 }}>
+        <FormField label="CAP">
+          <TextInput name="postalCode" defaultValue={postalCode ?? ""} inputMode="numeric" />
+        </FormField>
+        <FormField label="Città">
+          <TextInput name="city" defaultValue={city ?? ""} />
+        </FormField>
+      </div>
+
+      <FormField label="Telefono">
+        <TextInput name="phone" type="tel" defaultValue={phone ?? ""} placeholder="Non impostato" />
+      </FormField>
+
+      <FormField label="Email">
+        <TextInput name="email" type="email" defaultValue={email ?? ""} placeholder="Non impostata" />
+      </FormField>
+
+      <div className="dashboard-form-actions">
+        <PrimaryButton type="button" tone="sand" data-popup-close>
+          Annulla
+        </PrimaryButton>
+        <PrimaryButton type="submit">Salva</PrimaryButton>
+      </div>
+    </form>
   );
 }
 
@@ -361,31 +456,63 @@ async function getPasskeyCount(userId: string) {
 function DangerDeleteForm({
   error,
   activeBarName,
+  memberCount,
 }: {
   error: string;
   activeBarName: string | null;
+  memberCount: number;
 }) {
   return (
     <form action={deleteOwnerAccountAndBarAction} style={{ display: "grid", gap: 14 }}>
+      {/* It used to say "e i dati collegati", which is true and tells you
+          nothing. This says what goes and who it belongs to. */}
       <div
         style={{
-          padding: 16,
-          borderRadius: 22,
-          background: "#fff7f7",
-          border: "1px solid rgba(220, 38, 38, 0.18)",
-          color: "#991b1b",
-          lineHeight: 1.6,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
+          padding: "13px 14px",
+          borderRadius: 16,
+          background: "#fdf2f3",
+          border: "1px solid #f0cdd2",
         }}
       >
-        Questa azione elimina il locale attivo {activeBarName ? `"${activeBarName}"` : ""} e i dati collegati.
-        Se il tuo account non ha altre attività collegate, verrà eliminato anche l’account.
+        <span
+          aria-hidden="true"
+          style={{
+            flex: "0 0 auto",
+            width: 19,
+            height: 19,
+            borderRadius: 999,
+            background: "#b3202f",
+            color: "#ffffff",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 12,
+            fontWeight: 850,
+          }}
+        >
+          !
+        </span>
+        <span style={{ display: "grid", gap: 3, minWidth: 0 }}>
+          <strong style={{ fontSize: 13.5, fontWeight: 830, color: "#a11626" }}>
+            {activeBarName ? `Sparisce ${activeBarName}` : "Sparisce il locale"}
+            {memberCount > 0
+              ? ` e tutto quello di ${memberCount} ${memberCount === 1 ? "persona" : "persone"}`
+              : ""}
+          </strong>
+          <span style={{ fontSize: 12.5, fontWeight: 560, color: "#a8535f", lineHeight: 1.5 }}>
+            Turni, timbrature, richieste, note e documenti. Se non hai altri locali sparisce anche
+            il tuo account. <strong style={{ fontWeight: 830 }}>Non si torna indietro.</strong>
+          </span>
+        </span>
       </div>
 
-      <FormField label="Conferma scrivendo ELIMINA">
-        <TextInput name="confirmation" required autoComplete="off" />
+      <FormField label="Scrivi ELIMINA per confermare">
+        <TextInput name="confirmation" required autoComplete="off" placeholder="ELIMINA" />
       </FormField>
 
-      <FormField label="Password account">
+      <FormField label="La tua password">
         <TextInput name="password" type="password" required autoComplete="current-password" />
       </FormField>
 
@@ -401,7 +528,7 @@ function DangerDeleteForm({
           Annulla
         </PrimaryButton>
         <PrimaryButton type="submit" tone="red">
-          Elimina account e locale
+          Elimina definitivamente
         </PrimaryButton>
       </div>
     </form>
@@ -533,6 +660,8 @@ export default async function DashboardSettingsPage({
   }
 
   const legalDocumentsPending = (await getRequiredLegalDocumentsForUser(session.user.id)).length;
+  // How many people the deletion would take with it, so the warning can say so.
+  const memberCount = await prisma.employeeBar.count({ where: { barId: activeBarId } });
   const [settings, globalGpsRadius, resolvedBillingStatus, activeBar] = await Promise.all([
     prisma.barSettings.findUnique({
       where: { barId: activeBarId },
@@ -656,7 +785,15 @@ export default async function DashboardSettingsPage({
             />
           }
         >
-          <LocaleSettingsPopupContent {...localeProps} section="info" />
+          <VenueDetailsPanel
+            name={activeBar?.name ?? activeBarName ?? ""}
+            activityLabel={localeProps.activityLabel}
+            addressLine1={activeBar?.addressLine1 ?? null}
+            postalCode={activeBar?.postalCode ?? null}
+            city={activeBar?.city ?? null}
+            phone={activeBar?.phone ?? null}
+            email={activeBar?.email ?? null}
+          />
         </PopupAction>
 
         <PopupAction
@@ -707,7 +844,7 @@ export default async function DashboardSettingsPage({
                 dot="#10b981"
                 title="Dove si timbra"
                 lead="Posizione e raggio"
-                status={hasGpsPoint ? `${globalGpsRadius} m` : "Da impostare"}
+                status={hasGpsPoint ? "Impostata" : "Da impostare"}
                 statusTone={hasGpsPoint ? "plain" : "warn"}
               />
             }
@@ -764,7 +901,7 @@ export default async function DashboardSettingsPage({
 
       {/* The most irreversible thing in the app used to be a form at the
           bottom of a window opened from a card about passwords. */}
-      <SettingsGroup>
+      <SettingsGroup tone="danger">
         <PopupAction
           title="Elimina tutto"
           ariaLabel="Elimina locale e account"
@@ -777,7 +914,7 @@ export default async function DashboardSettingsPage({
             />
           }
         >
-          <DangerDeleteForm error={error} activeBarName={activeBarName} />
+          <DangerDeleteForm error={error} activeBarName={activeBarName} memberCount={memberCount} />
         </PopupAction>
       </SettingsGroup>
     </Stack>

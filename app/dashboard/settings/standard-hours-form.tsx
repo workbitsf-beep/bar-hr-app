@@ -107,7 +107,9 @@ export function StandardHoursForm({
         >
           <input type="hidden" name="standardShiftPresetId" value={entry.id} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <strong style={{ color: "#0f172a" }}>Orario {index + 1}</strong>
+            <strong style={{ color: "#0f172a" }}>
+              {entry.title.trim() || `Fascia ${index + 1}`}
+            </strong>
             <IconButton
               type="button"
               aria-label="Elimina orario"
@@ -124,7 +126,10 @@ export function StandardHoursForm({
             name={`standardShiftPresetTitle_${entry.id}`}
             value={entry.title}
             onChange={(event) => updateEntry(entry.id, { title: event.target.value })}
-            placeholder="Titolo opzionale"
+            // Not "titolo opzionale": this is the word that shows on the
+            // keypad when a shift is being written, and left empty the slot
+            // ends up called "Orario 2".
+            placeholder="Nome, tipo mattina"
           />
 
           <div

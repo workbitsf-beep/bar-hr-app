@@ -4264,6 +4264,47 @@ export async function addStandardShiftPresetAction(formData: FormData) {
   revalidatePath("/dashboard/settings");
 }
 
+/**
+ * The venue's own details: name, where it is, how to reach it.
+ *
+ * The settings page showed all of this as text. A venue that moves, or
+ * changes its phone number, had to go through a super admin to say so.
+ */
+export async function updateBarDetailsAction(formData: FormData) {
+  const { role, activeBarId } = await getActionContext();
+  ensureOwnerRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+
+  if (!name) {
+    throw new Error("Il nome del locale non può restare vuoto.");
+  }
+
+  const optional = (field: string) => {
+    const value = String(formData.get(field) ?? "").trim();
+    return value || null;
+  };
+
+  await prisma.bar.update({
+    where: { id: activeBarId },
+    data: {
+      name,
+      addressLine1: optional("addressLine1"),
+      postalCode: optional("postalCode"),
+      city: optional("city"),
+      phone: optional("phone"),
+      email: optional("email"),
+    },
+  });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+}
+
 export async function updateSettingsAction(formData: FormData) {
   const { role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);

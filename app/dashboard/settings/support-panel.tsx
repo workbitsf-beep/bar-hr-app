@@ -96,9 +96,6 @@ export function SupportPanel({
         <Link href="/terms" style={{ color: "#7b2ff7", textDecoration: "none" }}>
           Termini
         </Link>
-        <Link href="/account-deletion" style={{ color: "#7b2ff7", textDecoration: "none" }}>
-          Cancellazione account
-        </Link>
       </div>
     </div>
   );
