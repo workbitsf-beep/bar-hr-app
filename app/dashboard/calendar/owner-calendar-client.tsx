@@ -3556,16 +3556,14 @@ export function OwnerCalendarClient({
                 padding: 16,
               }}
             >
-              <button
-                type="button"
-                aria-label="Chiudi popup"
-                onClick={closeModal}
+              <div
+                aria-hidden="true"
                 style={{
                   position: "absolute",
                   inset: 0,
-                  border: 0,
                   background: "rgba(15, 23, 42, 0.28)",
                   backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
                 }}
               />
 
@@ -3716,11 +3714,9 @@ export function OwnerCalendarClient({
                     WebkitBackdropFilter: "blur(10px)",
                     boxSizing: "border-box",
                   }}
-                  onClick={() => setShowShiftComposer(false)}
                 >
                   <section
                     className="dashboard-modal-panel"
-                    onClick={(event) => event.stopPropagation()}
                     style={{
                       position: "relative",
                       display: "grid",

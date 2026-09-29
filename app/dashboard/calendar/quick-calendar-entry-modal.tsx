@@ -108,7 +108,6 @@ export function QuickCalendarEntryModal({
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
       }}
-      onClick={onClose}
     >
       <section
         className="dashboard-modal-panel"
@@ -124,7 +123,6 @@ export function QuickCalendarEntryModal({
           padding: 22,
           boxShadow: "0 20px 48px rgba(15, 23, 42, 0.16)",
         }}
-        onClick={(event) => event.stopPropagation()}
       >
         <IconButton
           type="button"

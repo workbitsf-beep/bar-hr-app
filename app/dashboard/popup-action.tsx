@@ -149,16 +149,18 @@ export function PopupAction({
                 padding: 16,
               }}
             >
-              <button
-                type="button"
-                aria-label={`Chiudi ${title}`}
-                onClick={closePopup}
+              {/* The veil is only a veil. It used to be a full-screen close
+                  button, so a thumb landing anywhere off the panel - while
+                  scrolling a long list, or reaching for a field near the edge -
+                  threw the popup away along with what had been typed into it.
+                  A popup now closes when the ✕ is pressed, when Escape is
+                  pressed, or when its form is done. */}
+              <div
+                aria-hidden="true"
                 style={{
                   position: "absolute",
                   inset: 0,
-                  border: 0,
                   background: "rgba(15, 23, 42, 0.16)",
-                  cursor: "pointer",
                 }}
               />
 

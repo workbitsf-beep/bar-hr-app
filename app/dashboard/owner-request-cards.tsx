@@ -275,16 +275,14 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
                 padding: 16,
               }}
             >
-              <button
-                type="button"
-                aria-label="Chiudi popup richiesta"
-                onClick={closeModal}
+              <div
+                aria-hidden="true"
                 style={{
                   position: "absolute",
                   inset: 0,
-                  border: 0,
                   background: "rgba(15, 23, 42, 0.28)",
                   backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
                 }}
               />
 
