@@ -359,81 +359,123 @@ function LanguagePanel({ current }: { current: AppLanguage }) {
   );
 }
 
+/**
+ * The venue's legal documents, one row each.
+ *
+ * Every row used to carry a "Visualizza" button that opened a second window
+ * on top of the one already open. The row is the way in now, and the one
+ * still waiting for a signature wears the amber rail the calendar uses for
+ * something that needs attention.
+ */
 async function LegalDocumentsPanel({ userId }: { userId: string }) {
   const documents = await getLegalDocumentsWithAcceptance(userId);
 
-  return (
-    <div style={{ display: "grid", gap: 12 }}>
-      {documents.length === 0 ? (
-        <EmptyState message="Nessun documento legale disponibile." />
-      ) : (
-        documents.map((document) => {
-          const currentAcceptance = document.acceptances.find(
-            (acceptance) =>
-              acceptance.version === document.version && acceptance.revision === document.revision
-          );
-          const accepted = Boolean(currentAcceptance);
+  if (documents.length === 0) {
+    return <EmptyState message="Nessun documento legale disponibile." />;
+  }
 
-          return (
-            <div
-              key={document.id}
-              style={{
-                padding: 16,
-                borderRadius: 22,
-                background: "#ffffff",
-                border: "1px solid rgba(124, 58, 237, 0.12)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <div style={{ display: "grid", gap: 4 }}>
-                  <strong style={{ color: "#0f172a" }}>{document.title}</strong>
-                  <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                    {legalDocumentTypeLabels[document.type]} Â· v{document.version}.{document.revision}
-                  </span>
-                  {currentAcceptance ? (
-                    <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
-                      Accettato il {currentAcceptance.acceptedAt.toLocaleDateString("it-IT")}
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      {documents.map((document) => {
+        const currentAcceptance = document.acceptances.find(
+          (acceptance) =>
+            acceptance.version === document.version && acceptance.revision === document.revision
+        );
+        const accepted = Boolean(currentAcceptance);
+        const pending = !accepted && document.isRequired;
+
+        return (
+          <PopupAction
+            key={document.id}
+            title={document.title}
+            ariaLabel={`Apri ${document.title}`}
+            triggerRow={
+              <span
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "3px minmax(0, 1fr)",
+                  borderRadius: 13,
+                  overflow: "hidden",
+                  border: `1px solid ${pending ? "#f5dcb3" : "#f0eef9"}`,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{ background: pending ? "#f0a742" : accepted ? "#6ed3a8" : "#c9c4e8" }}
+                />
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 11px",
+                    minWidth: 0,
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                    <strong style={{ fontSize: 13.5, fontWeight: 770, color: "#17161f" }}>
+                      {document.title}
+                    </strong>
+                    <span
+                      style={{
+                        fontSize: 11.5,
+                        fontWeight: 520,
+                        color: "#a3a0b8",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      v{document.version}.{document.revision}
+                      {currentAcceptance
+                        ? ` · accettato il ${currentAcceptance.acceptedAt.toLocaleDateString("it-IT", {
+                            day: "numeric",
+                            month: "short",
+                          })}`
+                        : ` · ${legalDocumentTypeLabels[document.type]}`}
                     </span>
-                  ) : null}
-                </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <StatusPill
-                    label={accepted ? "Accettato" : document.isRequired ? "Da accettare" : "Disponibile"}
-                    tone={accepted ? "success" : document.isRequired ? "warning" : "neutral"}
-                  />
-                  <PopupAction
-                    title={document.title}
-                    ariaLabel={`Visualizza ${document.title}`}
-                    triggerContent="Visualizza"
+                  </span>
+                  <span
+                    style={{
+                      flex: "0 0 auto",
+                      fontSize: 9.5,
+                      fontWeight: 830,
+                      letterSpacing: "0.09em",
+                      textTransform: "uppercase",
+                      color: pending ? "#a15c07" : "#8b88a3",
+                    }}
                   >
-                    <div style={{ display: "grid", gap: 12, color: "#334155", lineHeight: 1.65 }}>
-                      <StatusPill label={`Versione ${document.version}.${document.revision}`} tone="neutral" />
-                      {document.content ? (
-                        <div style={{ whiteSpace: "pre-wrap" }}>{document.content}</div>
-                      ) : (
-                        <span style={{ color: "#64748b" }}>Contenuto testuale non presente.</span>
-                      )}
-                      {document.fileName ? (
-                        <ExternalLink
-                          href={`/api/legal-documents/${document.id}`}
-                          style={{ color: "#6d28d9", fontWeight: 800 }}
-                        >
-                          Apri PDF
-                        </ExternalLink>
-                      ) : null}
-                      <div className="dashboard-form-actions">
-                        <PrimaryButton type="button" tone="sand" data-popup-close>
-                          Chiudi
-                        </PrimaryButton>
-                      </div>
-                    </div>
-                  </PopupAction>
-                </div>
-              </div>
+                    {accepted ? "Firmato" : pending ? "Da firmare" : "Disponibile"}
+                  </span>
+                  <span aria-hidden="true" style={{ flex: "0 0 auto", color: "#c8c5d8", fontSize: 14 }}>
+                    ›
+                  </span>
+                </span>
+              </span>
+            }
+          >
+            <div style={{ display: "grid", gap: 12, color: "#334155", lineHeight: 1.65 }}>
+              <StatusPill
+                label={`Versione ${document.version}.${document.revision}`}
+                tone="neutral"
+              />
+              {document.content ? (
+                <div style={{ whiteSpace: "pre-wrap" }}>{document.content}</div>
+              ) : (
+                <span style={{ color: "#64748b" }}>Contenuto testuale non presente.</span>
+              )}
+              {document.fileName ? (
+                <ExternalLink
+                  href={`/api/legal-documents/${document.id}`}
+                  style={{ color: "#6d28d9", fontWeight: 800 }}
+                >
+                  Apri PDF
+                </ExternalLink>
+              ) : null}
             </div>
-          );
-        })
-      )}
+          </PopupAction>
+        );
+      })}
     </div>
   );
 }
@@ -557,12 +599,39 @@ export default async function DashboardSettingsPage({
   const languageLabel =
     sessionLanguage === "en" ? "English" : sessionLanguage === "es" ? "Español" : "Italiano";
 
+  // One window, not two panels stacked inside one: both of these answer the
+  // same question, which is how you get in.
   const securityContent = (
-    <div style={{ display: "grid", gap: 14 }}>
-      <PasswordChangePanel />
-      <Panel title="Accesso biometrico">
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ display: "grid", gap: 8 }}>
+        <span
+          style={{
+            fontSize: 9.5,
+            fontWeight: 830,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#a3a0b8",
+          }}
+        >
+          Sblocco col telefono
+        </span>
         <WebAuthnRegistrationPanel initialPasskeyCount={passkeyCount} />
-      </Panel>
+      </div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        <span
+          style={{
+            fontSize: 9.5,
+            fontWeight: 830,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#a3a0b8",
+          }}
+        >
+          Password
+        </span>
+        <PasswordChangePanel />
+      </div>
     </div>
   );
 

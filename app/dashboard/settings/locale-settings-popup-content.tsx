@@ -33,6 +33,20 @@ type LocaleSettingsPopupContentProps = {
  * With the change saved on its own, the only thing missing is the
  * reassurance the button used to give by being pressed.
  */
+/** The colour each feature answers to elsewhere in the app. */
+const FEATURE_DOTS: Record<string, string> = {
+  timeTracking: "#0ea5e9",
+  shifts: "#6d5ce7",
+  requests: "#10b981",
+  availability: "#94a3b8",
+  overtime: "#a855f7",
+  tasks: "#f59e0b",
+  noticeBoard: "#f59e0b",
+  courses: "#0284c7",
+  documents: "#64748b",
+  reports: "#7e22ce",
+};
+
 function SaveState({ idleLabel }: { idleLabel: string }) {
   const { pending } = useFormStatus();
   const [justSaved, setJustSaved] = useState(false);
@@ -194,79 +208,58 @@ export function LocaleSettingsPopupContent({
       {showFeatures ? (
       <form ref={featuresFormRef} action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
         <input type="hidden" name="settingsSection" value="features" />
-        <div style={{ display: "grid", gap: 12 }}>
-          <strong style={{ color: "#0f172a", fontSize: 18 }}>Scegli cosa usare</strong>
-          <div
-            className="dashboard-inline-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 10,
-            }}
-          >
-            {visibleFeatureDefinitions.map((feature) => {
-              const enabled = features[feature.key];
+        <div style={{ display: "grid" }}>
+          {visibleFeatureDefinitions.map((feature, index) => {
+            const enabled = features[feature.key];
 
-              return (
-                <label
-                  key={feature.key}
+            return (
+              <label
+                key={feature.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "11px 0",
+                  borderTop: index === 0 ? undefined : "1px solid #f4f2fb",
+                  cursor: "pointer",
+                }}
+              >
+                <span
+                  aria-hidden="true"
                   style={{
-                    display: "grid",
-                    gap: 10,
-                    padding: 12,
-                    borderRadius: 18,
-                    border: enabled
-                      ? "1px solid rgba(124, 58, 237, 0.28)"
-                      : "1px solid rgba(148, 163, 184, 0.22)",
-                    background: enabled
-                      ? "linear-gradient(135deg, rgba(237,233,254,0.84), rgba(255,255,255,0.96))"
-                      : "#f8fafc",
+                    width: 7,
+                    height: 7,
+                    flex: "0 0 auto",
+                    borderRadius: 999,
+                    background: FEATURE_DOTS[feature.key] ?? "#94a3b8",
+                    opacity: enabled ? 1 : 0.4,
                   }}
-                >
-                  <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 999,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "rgba(124, 58, 237, 0.12)",
-                        color: "#6d28d9",
-                        fontSize: 15,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {feature.emoji}
-                    </span>
-                    <input
-                      type="checkbox"
-                      name={feature.field}
-                      checked={enabled}
-                      onChange={(event) => {
-                        setFeatures((current) => ({
-                          ...current,
-                          [feature.key]: event.target.checked,
-                          ...(feature.key === "tasks"
-                            ? { noticeBoard: event.target.checked }
-                            : {}),
-                        }));
-                        scheduleSave("features", featuresFormRef.current);
-                      }}
-                    />
-                    <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
-                      <span style={{ fontWeight: 800, color: "#0f172a" }}>{feature.shortLabel}</span>
-                      <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.35 }}>
-                        {feature.description}
-                      </span>
-                    </span>
+                />
+                <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                  <strong style={{ fontSize: 13.5, fontWeight: 740, color: "#17161f" }}>
+                    {feature.shortLabel}
+                  </strong>
+                  <span style={{ fontSize: 11.5, fontWeight: 520, color: "#a3a0b8" }}>
+                    {feature.description}
                   </span>
-                </label>
-              );
-            })}
-          </div>
+                </span>
+                <input
+                  type="checkbox"
+                  name={feature.field}
+                  checked={enabled}
+                  onChange={(event) => {
+                    setFeatures((current) => ({
+                      ...current,
+                      [feature.key]: event.target.checked,
+                      ...(feature.key === "tasks" ? { noticeBoard: event.target.checked } : {}),
+                    }));
+                    scheduleSave("features", featuresFormRef.current);
+                  }}
+                  style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
+                />
+              </label>
+            );
+          })}
         </div>
 
         {/* No save button: the switch is the save. What is left to show is
@@ -299,39 +292,55 @@ export function LocaleSettingsPopupContent({
             submitOnLocate
           />
           <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
-          <div
+          <label
             style={{
-              display: "grid",
+              display: "flex",
+              alignItems: "center",
               gap: 10,
-              padding: 14,
-              borderRadius: 20,
-              border: "1px solid rgba(124, 58, 237, 0.16)",
-              background: "linear-gradient(135deg, rgba(245,243,255,0.9), #ffffff)",
+              padding: "12px 0 0",
+              borderTop: "1px solid #f4f2fb",
+              cursor: "pointer",
             }}
           >
-            <strong style={{ color: "#0f172a" }}>Arrotondamento ore</strong>
-            <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 800, color: "#0f172a" }}>
-              <input
-                type="checkbox"
-                name="roundingEnabled"
-                checked={roundingEnabled}
-                onChange={(event) => {
-                  setRoundingEnabled(event.target.checked);
+            <span
+              aria-hidden="true"
+              style={{
+                width: 7,
+                height: 7,
+                flex: "0 0 auto",
+                borderRadius: 999,
+                background: "#94a3b8",
+                opacity: roundingEnabled ? 1 : 0.4,
+              }}
+            />
+            <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+              <strong style={{ fontSize: 13.5, fontWeight: 740, color: "#17161f" }}>
+                Arrotonda le ore
+              </strong>
+              <span style={{ fontSize: 11.5, fontWeight: 520, color: "#a3a0b8" }}>
+                Tolleranza 5 minuti, poi scatto al quarto d&apos;ora
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              name="roundingEnabled"
+              checked={roundingEnabled}
+              onChange={(event) => {
+                setRoundingEnabled(event.target.checked);
 
-                  if (!event.target.checked) {
-                    setRoundingAcknowledged(false);
-                    setRoundingConsent(false);
-                    scheduleSave("gps", trackingFormRef.current);
-                    return;
-                  }
+                if (!event.target.checked) {
+                  setRoundingAcknowledged(false);
+                  setRoundingConsent(false);
+                  scheduleSave("gps", trackingFormRef.current);
+                  return;
+                }
 
-                  // Switching it on still goes through the warning, which is
-                  // what saves it once accepted.
-                  setShowRoundingInfo(true);
-                }}
-              />
-              Attiva arrotondamento
-            </label>
+                // Switching it on still goes through the warning, which is
+                // what saves it once accepted.
+                setShowRoundingInfo(true);
+              }}
+              style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
+            />
             <input type="hidden" name="roundingMinutes" value="15" />
             <input type="hidden" name="roundingMode" value="NEAREST" />
             <input
@@ -339,10 +348,7 @@ export function LocaleSettingsPopupContent({
               name="roundingAcknowledged"
               value={roundingAcknowledged ? "on" : ""}
             />
-            <span style={{ color: "#64748b", fontSize: 13 }}>
-              Regola fissa: tolleranza 5 minuti, poi scatto al quarto d&apos;ora.
-            </span>
-          </div>
+          </label>
           <div
             className="dashboard-form-actions"
             style={{ alignItems: "center", justifyContent: "space-between" }}
