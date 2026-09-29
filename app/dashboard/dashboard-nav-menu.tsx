@@ -424,16 +424,7 @@ export function DashboardNavMenu({
                   {/* Leaving used to be a wordless icon in the white bar at
                       the top, nowhere near the menu you were reading. */}
                   {logoutAction ? (
-                    <div
-                      style={{
-                        background: "#fdf2f3",
-                        border: "1px solid #f0cdd2",
-                        borderRadius: 18,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {logoutAction}
-                    </div>
+                    <div className="workbit-menu-logout">{logoutAction}</div>
                   ) : null}
 
 

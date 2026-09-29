@@ -240,35 +240,9 @@ export default async function DashboardLayout({
         }
         menuFooter={
           <LogoutForm action={logoutAction} style={{ display: "block" }}>
-            <button
-              type="submit"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 11,
-                width: "100%",
-                padding: 13,
-                border: 0,
-                background: "transparent",
-                color: "#a11626",
-                font: "inherit",
-                fontSize: 14.5,
-                fontWeight: 820,
-                textAlign: "left",
-                cursor: "pointer",
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 7,
-                  height: 7,
-                  flex: "0 0 auto",
-                  borderRadius: 999,
-                  background: "#b3202f",
-                }}
-              />
-              {t.logout}
+            <button type="submit" className="workbit-menu-logout-button">
+              <span aria-hidden="true" className="workbit-menu-logout-dot" />
+              <span>{t.logout}</span>
             </button>
           </LogoutForm>
         }

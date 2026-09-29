@@ -983,7 +983,10 @@ export default async function DashboardSettingsPage({
       <SettingsGroup tone="danger">
         <PopupAction
           title="Elimina tutto"
-          ariaLabel="Elimina locale e account"
+          // Not starting with "Elimina": a global rule paints every button
+          // whose label does in a red gradient with white text, which turned
+          // this row into dark red on red.
+          ariaLabel="Apri la cancellazione del locale"
           triggerRow={
             <SettingsRow
               dot="#e0868f"

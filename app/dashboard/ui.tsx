@@ -1597,6 +1597,53 @@ function DashboardResponsiveStyles() {
         letter-spacing: -0.045em;
       }
 
+      /* The way out, at the foot of the menu. Written as its own class with
+         everything stated - size, colour, font - because the sheet it sits in
+         is full of rules that pin a button's background and blank its text,
+         and an inline style is not always the last word. */
+      .workbit-menu-logout {
+        border-radius: 18px;
+        overflow: hidden;
+        background: #fdf2f3;
+        border: 1px solid #f0cdd2;
+      }
+
+      .workbit-menu-logout form {
+        display: block;
+      }
+
+      .workbit-menu-logout .workbit-menu-logout-button {
+        display: flex !important;
+        align-items: center !important;
+        gap: 11px !important;
+        width: 100% !important;
+        min-height: 50px !important;
+        padding: 13px !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        color: #a11626 !important;
+        font-family: inherit !important;
+        font-size: 14.5px !important;
+        font-weight: 820 !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        box-shadow: none !important;
+        cursor: pointer;
+      }
+
+      .workbit-menu-logout .workbit-menu-logout-button > span {
+        font-size: 14.5px !important;
+      }
+
+      .workbit-menu-logout .workbit-menu-logout-dot {
+        width: 7px !important;
+        height: 7px !important;
+        flex: 0 0 auto !important;
+        border-radius: 999px !important;
+        background: #b3202f !important;
+      }
+
       /* A switch, the way the app draws one everywhere a thing is turned on
          or off. The checkbox inside carries the value and the state; this is
          only what it looks like. */
