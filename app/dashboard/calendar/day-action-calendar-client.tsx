@@ -804,10 +804,7 @@ function renderDaySheetSection(
           </button>
         ) : null}
       </div>
-      {/* A day can hold a dozen shifts. Left to itself the list pushed the
-          rest of the week off the screen, so past a few entries the section
-          keeps its height and scrolls inside. */}
-      <div className="workbit-day-sheet-body">{children}</div>
+      {children}
     </div>
   );
 }

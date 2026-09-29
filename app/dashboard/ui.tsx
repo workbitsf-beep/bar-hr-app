@@ -1735,24 +1735,6 @@ function DashboardResponsiveStyles() {
         border-top: 1px solid #f2f0fa;
       }
 
-      /* A busy day used to grow without limit: ten shifts on Saturday and the
-         rest of the week was pushed off the bottom of the screen, so the one
-         thing the week view is for - seeing the week - was gone. Past roughly
-         six entries a list keeps its height and scrolls inside instead. */
-      .workbit-day-sheet-body {
-        display: grid;
-        gap: 6px;
-        max-height: min(228px, 34dvh);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .workbit-week-shifts {
-        max-height: min(186px, 30dvh);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
       @media (max-width: 1180px) {
         body:has(.workbit-menu-page-overlay) .dashboard-shell {
           isolation: auto !important;
