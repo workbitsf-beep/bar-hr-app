@@ -101,12 +101,14 @@ function FeatureToggleGrid({
               {feature.description}
             </span>
           </span>
-          <input
-            type="checkbox"
-            name={feature.field}
-            defaultChecked={features[feature.key]}
-            style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
-          />
+          <span className="workbit-switch">
+            <input
+              type="checkbox"
+              name={feature.field}
+              defaultChecked={features[feature.key]}
+            />
+            <i aria-hidden="true" />
+          </span>
         </label>
       ))}
     </div>
@@ -1233,12 +1235,14 @@ export default async function OnboardingPage({
                   Al quarto d&apos;ora più vicino.
                 </span>
               </span>
-              <input
-                name="roundingEnabled"
-                type="checkbox"
-                defaultChecked={Boolean(activeBar.settings?.roundingEnabled)}
-                style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
-              />
+              <span className="workbit-switch">
+                <input
+                  name="roundingEnabled"
+                  type="checkbox"
+                  defaultChecked={Boolean(activeBar.settings?.roundingEnabled)}
+                />
+                <i aria-hidden="true" />
+              </span>
             </label>
 
             <input type="hidden" name="roundingMinutes" value="15" />

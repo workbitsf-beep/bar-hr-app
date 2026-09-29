@@ -1597,6 +1597,59 @@ function DashboardResponsiveStyles() {
         letter-spacing: -0.045em;
       }
 
+      /* A switch, the way the app draws one everywhere a thing is turned on
+         or off. The checkbox inside carries the value and the state; this is
+         only what it looks like. */
+      .workbit-switch {
+        position: relative;
+        width: 42px;
+        height: 25px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: #e4e0f2;
+        transition: background 140ms ease;
+      }
+
+      .workbit-switch input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .workbit-switch i {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 19px;
+        height: 19px;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(16, 12, 40, 0.22);
+        transition: left 140ms ease;
+        pointer-events: none;
+      }
+
+      .workbit-switch:has(input:checked) {
+        background: linear-gradient(135deg, #5e4ae3, #8b5cf6);
+      }
+
+      .workbit-switch:has(input:checked) i {
+        left: 20px;
+      }
+
+      .workbit-switch:has(input:focus-visible) {
+        outline: 2px solid #6d5ce7;
+        outline-offset: 2px;
+      }
+
+      .workbit-switch:has(input:disabled) {
+        opacity: 0.5;
+      }
+
       /* The day is one sheet with its sections divided by a hairline. The
          first one has nothing above it to separate itself from. */
       .workbit-day-sheet-section + .workbit-day-sheet-section {

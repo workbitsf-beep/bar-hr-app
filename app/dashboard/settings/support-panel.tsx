@@ -29,71 +29,67 @@ export function SupportPanel({
   );
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-        Se qualcosa non funziona o hai un dubbio, scrivici. Rispondiamo all&apos;indirizzo del tuo
-        account.
-      </p>
-
+    <div style={{ display: "grid", gap: 11 }}>
       <a
         href={`mailto:${supportEmail}?subject=${subject}&body=${body}`}
         className="workbit-support-cta"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 12,
-          padding: "14px 16px",
-          borderRadius: 18,
-          background: "linear-gradient(135deg, #3d2a99 0%, #5e5ce6 58%, #8b5cf6 100%)",
+          justifyContent: "center",
+          minHeight: 48,
+          padding: "0 16px",
+          borderRadius: 15,
+          background: "linear-gradient(135deg, #3b1d8f 0%, #5e4ae3 55%, #8b5cf6 100%)",
           color: "#ffffff",
           textDecoration: "none",
-          fontWeight: 800,
+          fontSize: 14.5,
+          fontWeight: 820,
+          boxShadow: "0 10px 22px rgba(94, 74, 227, 0.26)",
+          wordBreak: "break-word",
+          textAlign: "center",
         }}
       >
-        <span aria-hidden="true" style={{ fontSize: 18 }}>
-          ✉️
-        </span>
-        <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
-          <span>Scrivi all&apos;assistenza</span>
-          <span style={{ fontSize: 12.5, fontWeight: 600, opacity: 0.82, wordBreak: "break-all" }}>
-            {supportEmail}
-          </span>
-        </span>
+        Scrivi a {supportEmail}
       </a>
 
       <div
         style={{
-          display: "grid",
-          gap: 2,
-          padding: "12px 14px",
-          borderRadius: 16,
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          color: "#64748b",
-          fontSize: 13,
-          lineHeight: 1.6,
+          padding: "11px 12px",
+          borderRadius: 13,
+          background: "#fbfaff",
+          border: "1px solid #e9e6f5",
+          fontSize: 12,
+          fontWeight: 540,
+          color: "#6b6880",
+          lineHeight: 1.5,
         }}
       >
-        <span>
-          <strong style={{ color: "#0f172a" }}>Locale:</strong> {activeBarName ?? "non selezionato"}
-        </span>
-        <span>
-          <strong style={{ color: "#0f172a" }}>Account:</strong> {userEmail}
-        </span>
-        <span style={{ marginTop: 6 }}>
-          Questi due dati sono già inseriti nel messaggio: servono a ritrovare la tua situazione
-          senza doverteli chiedere.
-        </span>
+        Nel messaggio mettiamo già{" "}
+        <strong style={{ fontWeight: 780, color: "#17161f" }}>
+          {activeBarName ?? "il locale"}
+        </strong>{" "}
+        e <strong style={{ fontWeight: 780, color: "#17161f" }}>{userEmail}</strong>, così non devi
+        spiegare chi sei.
       </div>
 
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13.5, fontWeight: 700 }}>
-        <Link href="/support" style={{ color: "#7b2ff7", textDecoration: "none" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 14,
+          flexWrap: "wrap",
+          justifyContent: "center",
+          fontSize: 12.5,
+          fontWeight: 720,
+        }}
+      >
+        <Link href="/support" style={{ color: "#8b88a3", textDecoration: "none" }}>
           Pagina di supporto
         </Link>
-        <Link href="/privacy" style={{ color: "#7b2ff7", textDecoration: "none" }}>
+        <Link href="/privacy" style={{ color: "#8b88a3", textDecoration: "none" }}>
           Privacy
         </Link>
-        <Link href="/terms" style={{ color: "#7b2ff7", textDecoration: "none" }}>
+        <Link href="/terms" style={{ color: "#8b88a3", textDecoration: "none" }}>
           Termini
         </Link>
       </div>

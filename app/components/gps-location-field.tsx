@@ -86,51 +86,94 @@ export function GpsLocationField({
     }
   }
 
+  const placed = latitude !== null && longitude !== null;
+
   return (
-    <div
-      style={{
-        display: "grid",
-        gap: 12,
-        padding: 16,
-        borderRadius: 20,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
-      }}
-    >
+    <div style={{ display: "grid", gap: 10 }}>
       <input type="hidden" name={latitudeName} value={latitude ?? ""} />
       <input type="hidden" name={longitudeName} value={longitude ?? ""} />
 
-      <div style={{ display: "grid", gap: 6 }}>
-        <strong style={{ color: "#0f172a" }}>Posizione del locale</strong>
-        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{message}</p>
-        {error ? <p style={{ margin: 0, color: "#b91c1c", fontSize: 14 }}>{error}</p> : null}
+      {/* Two number fields called latitude and longitude told nobody where
+          the venue was. A dot on a grid does. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "relative",
+          height: 118,
+          borderRadius: 15,
+          overflow: "hidden",
+          border: "1.5px solid #e9e6f5",
+          background: placed
+            ? "linear-gradient(150deg, #e6e2f8, #f3f1fb)"
+            : "linear-gradient(150deg, #f2f1f7, #fbfaff)",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "linear-gradient(rgba(124,58,237,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.09) 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+          }}
+        />
+        {placed ? (
+          <span
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "52%",
+              width: 15,
+              height: 15,
+              margin: "-7px 0 0 -7px",
+              borderRadius: 999,
+              background: "#4c1d95",
+              boxShadow: "0 0 0 7px rgba(76, 29, 149, 0.16)",
+            }}
+          />
+        ) : null}
       </div>
 
-      <div className="dashboard-form-actions">
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={handleLocate}
-          disabled={loading}
-          style={{
-            background: "#0f172a",
-            color: "#fff",
-            border: 0,
-            borderRadius: 999,
-            padding: "12px 18px",
-            fontWeight: 700,
-            cursor: loading ? "default" : "pointer",
-            opacity: loading ? 0.7 : 1,
-            boxShadow: "0 10px 20px rgba(15, 23, 42, 0.14)",
-          }}
-        >
-          {loading
-            ? "Localizzazione..."
-            : latitude !== null && longitude !== null
-              ? "Aggiorna posizione"
-              : "Localizza la mia posizione"}
-        </button>
-      </div>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={handleLocate}
+        disabled={loading}
+        style={{
+          minHeight: 46,
+          borderRadius: 14,
+          border: "1.5px solid #ddd6fe",
+          background: "#ffffff",
+          color: "#4c1d95",
+          font: "inherit",
+          fontSize: 14.5,
+          fontWeight: 800,
+          cursor: loading ? "default" : "pointer",
+          opacity: loading ? 0.65 : 1,
+        }}
+      >
+        {loading
+          ? "Ti sto localizzando…"
+          : placed
+            ? "Aggiorna la posizione"
+            : "Usa la posizione attuale"}
+      </button>
+
+      <span
+        style={{
+          fontSize: 11.5,
+          fontWeight: 600,
+          fontVariantNumeric: "tabular-nums",
+          color: error ? "#a8424f" : "#a3a0b8",
+          lineHeight: 1.45,
+        }}
+      >
+        {error
+          ? error
+          : placed
+            ? `${latitude?.toFixed(4)} · ${longitude?.toFixed(4)}`
+            : message}
+      </span>
     </div>
   );
 }

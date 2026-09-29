@@ -243,20 +243,22 @@ export function LocaleSettingsPopupContent({
                     {feature.description}
                   </span>
                 </span>
-                <input
-                  type="checkbox"
-                  name={feature.field}
-                  checked={enabled}
-                  onChange={(event) => {
+                <span className="workbit-switch">
+                  <input
+                    type="checkbox"
+                    name={feature.field}
+                    checked={enabled}
+                    onChange={(event) => {
                     setFeatures((current) => ({
-                      ...current,
-                      [feature.key]: event.target.checked,
-                      ...(feature.key === "tasks" ? { noticeBoard: event.target.checked } : {}),
+                    ...current,
+                    [feature.key]: event.target.checked,
+                    ...(feature.key === "tasks" ? { noticeBoard: event.target.checked } : {}),
                     }));
                     scheduleSave("features", featuresFormRef.current);
-                  }}
-                  style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
-                />
+                    }}
+                  />
+                  <i aria-hidden="true" />
+                </span>
               </label>
             );
           })}
@@ -321,26 +323,26 @@ export function LocaleSettingsPopupContent({
                 Tolleranza 5 minuti, poi scatto al quarto d&apos;ora
               </span>
             </span>
-            <input
-              type="checkbox"
-              name="roundingEnabled"
-              checked={roundingEnabled}
-              onChange={(event) => {
+            <span className="workbit-switch">
+              <input
+                type="checkbox"
+                name="roundingEnabled"
+                checked={roundingEnabled}
+                onChange={(event) => {
                 setRoundingEnabled(event.target.checked);
-
                 if (!event.target.checked) {
-                  setRoundingAcknowledged(false);
-                  setRoundingConsent(false);
-                  scheduleSave("gps", trackingFormRef.current);
-                  return;
+                setRoundingAcknowledged(false);
+                setRoundingConsent(false);
+                scheduleSave("gps", trackingFormRef.current);
+                return;
                 }
-
                 // Switching it on still goes through the warning, which is
                 // what saves it once accepted.
                 setShowRoundingInfo(true);
-              }}
-              style={{ width: 20, height: 20, flex: "0 0 auto", accentColor: "#5e4ae3" }}
-            />
+                }}
+              />
+              <i aria-hidden="true" />
+            </span>
             <input type="hidden" name="roundingMinutes" value="15" />
             <input type="hidden" name="roundingMode" value="NEAREST" />
             <input
