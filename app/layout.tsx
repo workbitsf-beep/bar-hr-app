@@ -354,6 +354,14 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 background: #140a2c !important;
               }
 
+              /* The shell's own ambient lights are several blurred layers
+                 animating without end. They are pleasant once the app is
+                 standing, and dead weight during the one second when it is
+                 loading, laying out and playing the opening all at once. */
+              html[data-workbit-booting="1"] .workbit-global-ambient {
+                display: none !important;
+              }
+
               /* The app turning itself on.
                  Nothing here is a picture being enlarged: the mark stays at
                  the size it was drawn and it is the ground around it that
@@ -385,37 +393,31 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 transition: opacity 160ms ease-in;
               }
 
-              /* The dark ground, which closes in on itself to reveal the app. */
+              /* The dark ground.
+                 It is one layer that moves with transform and opacity only,
+                 because those are the two things a phone can animate without
+                 redrawing anything. The lights are painted into its
+                 background as gradients rather than blurred boxes: a live
+                 blur, and a clip-path changing shape, both force the whole
+                 screen to be redrawn every frame - which is what turned the
+                 opening into a slideshow on the phone. */
               .workbit-boot__wipe {
                 position: fixed;
                 inset: 0;
-                overflow: hidden;
-                background: linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
-                animation: workbit-boot-wipe 780ms cubic-bezier(0.62, 0, 0.3, 1) 900ms both;
-              }
-
-              .workbit-boot__glow {
-                position: absolute;
-                border-radius: 999px;
-                filter: blur(44px);
-              }
-
-              .workbit-boot__glow--one {
-                width: 62vmin;
-                height: 62vmin;
-                top: -10%;
-                right: -10%;
-                background: rgba(167, 124, 245, 0.55);
-                animation: workbit-boot-glow-one 1100ms cubic-bezier(0.35, 0.75, 0.25, 1) both;
-              }
-
-              .workbit-boot__glow--two {
-                width: 54vmin;
-                height: 54vmin;
-                bottom: -10%;
-                left: -10%;
-                background: rgba(109, 92, 231, 0.5);
-                animation: workbit-boot-glow-two 1100ms cubic-bezier(0.35, 0.75, 0.25, 1) both;
+                transform-origin: 50% 50%;
+                background:
+                  radial-gradient(
+                    58% 40% at 80% 12%,
+                    rgba(167, 124, 245, 0.55),
+                    rgba(167, 124, 245, 0) 70%
+                  ),
+                  radial-gradient(
+                    52% 38% at 16% 90%,
+                    rgba(109, 92, 231, 0.5),
+                    rgba(109, 92, 231, 0) 70%
+                  ),
+                  linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
+                animation: workbit-boot-wipe 1400ms cubic-bezier(0.55, 0, 0.3, 1) both;
               }
 
               .workbit-boot__stack {
@@ -432,7 +434,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 border-radius: 31px;
                 overflow: hidden;
                 box-shadow: 0 22px 48px rgba(10, 4, 30, 0.55);
-                animation: workbit-boot-mark 1520ms cubic-bezier(0.3, 0.9, 0.3, 1) both;
+                will-change: transform;
+                animation: workbit-boot-mark 1400ms cubic-bezier(0.3, 0.9, 0.3, 1) both;
               }
 
               .workbit-boot__mark img {
@@ -447,47 +450,38 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 font-size: 20px;
                 font-weight: 840;
                 letter-spacing: -0.026em;
-                animation: workbit-boot-word 1520ms linear both;
+                animation: workbit-boot-word 1400ms linear both;
               }
 
+              /* Still, then the ground opens outward and dissolves. */
               @keyframes workbit-boot-wipe {
-                from { clip-path: circle(150% at 50% 50%); }
-                to { clip-path: circle(0% at 50% 50%); }
+                0% { opacity: 1; transform: scale(1); }
+                62% { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(1.35); }
               }
 
-              @keyframes workbit-boot-glow-one {
-                0% { opacity: 0; transform: translate(70%, -80%); }
-                45% { opacity: 1; }
-                100% { opacity: 0.9; transform: translate(-6%, -6%); }
-              }
-
-              @keyframes workbit-boot-glow-two {
-                0% { opacity: 0; transform: translate(-70%, 80%); }
-                45% { opacity: 1; }
-                100% { opacity: 0.9; transform: translate(6%, 6%); }
-              }
-
-              /* One animation, the whole life: in, hold, out. */
+              /* One animation, the whole life: in, hold, out. Two of them on
+                 the same property is what made the old opening sit still and
+                 then jump. */
               @keyframes workbit-boot-mark {
-                0% { opacity: 0; transform: scale(0.6); }
-                22% { opacity: 1; transform: scale(1.04); }
-                34% { transform: scale(1); }
-                74% { opacity: 1; transform: scale(1); }
-                100% { opacity: 0; transform: scale(0.84); }
+                0% { opacity: 0; transform: scale(0.62); }
+                20% { opacity: 1; transform: scale(1.04); }
+                32% { transform: scale(1); }
+                62% { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(1.18); }
               }
 
               @keyframes workbit-boot-word {
                 0% { opacity: 0; transform: translateY(8px); }
-                30% { opacity: 0; transform: translateY(8px); }
-                46% { opacity: 1; transform: none; }
-                70% { opacity: 1; transform: none; }
-                86% { opacity: 0; transform: none; }
+                26% { opacity: 0; transform: translateY(8px); }
+                42% { opacity: 1; transform: none; }
+                62% { opacity: 1; transform: none; }
+                78% { opacity: 0; transform: none; }
                 100% { opacity: 0; transform: none; }
               }
 
               @media (prefers-reduced-motion: reduce) {
                 .workbit-boot__wipe,
-                .workbit-boot__glow,
                 .workbit-boot__mark,
                 .workbit-boot__word {
                   animation: none;
@@ -1587,11 +1581,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         />
 
         <div className="workbit-boot" id="workbit-boot" aria-hidden="true">
-          {/* The lights live inside the ground, so they close away with it. */}
-          <span className="workbit-boot__wipe">
-            <span className="workbit-boot__glow workbit-boot__glow--one" />
-            <span className="workbit-boot__glow workbit-boot__glow--two" />
-          </span>
+          <span className="workbit-boot__wipe" />
           <span className="workbit-boot__stack">
             <span className="workbit-boot__mark">
               <Image src="/logo.png" alt="" width={112} height={112} priority unoptimized />
