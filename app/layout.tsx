@@ -362,7 +362,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                 /* Decoration only: the page underneath is live from the first
                    frame and nothing here may swallow a tap. */
                 pointer-events: none;
-                padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+                /* No safe-area padding here. An absolutely positioned child
+                   is placed against the padding box, so the dark ground was
+                   inset by it and left a bare strip along the bottom of the
+                   screen - the page showing through under the opening. The
+                   mark is centred anyway and never goes near the notch. */
               }
 
               .workbit-boot[data-leaving="true"] {
@@ -372,7 +376,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
               /* The dark ground, which closes in on itself to reveal the app. */
               .workbit-boot__wipe {
-                position: absolute;
+                position: fixed;
                 inset: 0;
                 overflow: hidden;
                 background: linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
