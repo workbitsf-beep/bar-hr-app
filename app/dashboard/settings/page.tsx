@@ -30,7 +30,6 @@ import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
-import { PushSettingsClient } from "./push-settings-client";
 import { SupportPanel } from "./support-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 import { ExternalLink } from "@/app/components/external-link";
@@ -367,8 +366,33 @@ function LanguagePanel({ current }: { current: AppLanguage }) {
  * still waiting for a signature wears the amber rail the calendar uses for
  * something that needs attention.
  */
-async function LegalDocumentsPanel({ userId }: { userId: string }) {
-  const documents = await getLegalDocumentsWithAcceptance(userId);
+/**
+ * What an employee is shown, and what is none of their business.
+ *
+ * The privacy notice and the geolocation notice are theirs: the app records
+ * where they are when they clock in, and the law that allows that also
+ * requires they be told, in terms they can go back and read. The DPA and the
+ * SaaS contract are between the venue and Workbit - they belong to whoever
+ * signed them, not to whoever works there.
+ */
+const EMPLOYEE_LEGAL_TYPES = new Set<string>([
+  "PRIVACY_POLICY",
+  "GEOLOCATION_NOTICE",
+  "COOKIE_POLICY",
+  "ACCOUNT_DELETION",
+]);
+
+async function LegalDocumentsPanel({
+  userId,
+  onlyOwnDocuments = false,
+}: {
+  userId: string;
+  onlyOwnDocuments?: boolean;
+}) {
+  const allDocuments = await getLegalDocumentsWithAcceptance(userId);
+  const documents = onlyOwnDocuments
+    ? allDocuments.filter((document) => EMPLOYEE_LEGAL_TYPES.has(String(document.type)))
+    : allDocuments;
 
   if (documents.length === 0) {
     return <EmptyState message="Nessun documento legale disponibile." />;
@@ -657,20 +681,6 @@ export default async function DashboardSettingsPage({
       </PopupAction>
 
       <PopupAction
-        title="Notifiche"
-        ariaLabel="Apri notifiche"
-        triggerRow={
-          <SettingsRow
-            dot="#a855f7"
-            title="Notifiche"
-            lead="Cosa ti arriva sul telefono"
-          />
-        }
-      >
-        <PushSettingsClient />
-      </PopupAction>
-
-      <PopupAction
         title="Lingua"
         ariaLabel="Apri lingua"
         triggerRow={<SettingsRow dot="#64748b" title="Lingua" status={languageLabel} />}
@@ -689,11 +699,11 @@ export default async function DashboardSettingsPage({
           <SettingsRow
             dot="#94a3b8"
             title="Documenti legali"
-            lead="Privacy, termini, DPA"
+            lead={role === Role.OWNER ? "Privacy, termini, DPA" : "Privacy e geolocalizzazione"}
           />
         }
       >
-        <LegalDocumentsPanel userId={session.user.id} />
+        <LegalDocumentsPanel userId={session.user.id} onlyOwnDocuments={role !== Role.OWNER} />
       </PopupAction>
 
       <PopupAction
