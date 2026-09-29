@@ -349,9 +349,25 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                  layer is shorter than the screen - which is where the pale
                  band along the bottom was coming from. Now whatever shows in
                  that gap is the same colour as what covers it. */
+              /* The band along the bottom is the page showing through where
+                 the web view is still shorter than the screen. Painting it a
+                 flat dark only changed its colour: the opening is a gradient,
+                 and down there the gradient is bright violet, so a near-black
+                 strip appeared under it. The page now carries the very same
+                 gradient, sized to the viewport exactly as the opening's is,
+                 so the two meet without a seam. */
               html[data-workbit-booting="1"],
               html[data-workbit-booting="1"] body {
-                background: #140a2c !important;
+                background-color: #4a2396 !important;
+                background-image: linear-gradient(
+                  168deg,
+                  #140a2c 0%,
+                  #2a1263 52%,
+                  #4a2396 100%
+                ) !important;
+                background-attachment: fixed !important;
+                background-size: cover !important;
+                background-repeat: no-repeat !important;
               }
 
               /* The shell's own ambient lights are several blurred layers
