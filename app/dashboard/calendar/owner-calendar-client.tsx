@@ -1886,6 +1886,33 @@ export function OwnerCalendarClient({
   // The weeks the "per dipendente" day picker can page through: the one
   // holding the open day, and the ones after it. Days already past are left
   // out, since a shift cannot be put there anyway.
+  /**
+   * The receipt of what has just been saved. Every line used to lead with the
+   * person's name, which is the same on all of them - five rows reading "Work
+   * Wo" - while the day, the one thing that differs, was the small grey line
+   * underneath. The day leads now, and the name is said once at the top when
+   * it is the same for all of them.
+   */
+  const savedDraftsPeopleVary = useMemo(
+    () => new Set(savedShiftDrafts.map((draft) => [...draft.memberIds].sort().join("+"))).size > 1,
+    [savedShiftDrafts]
+  );
+  const savedDraftsPeopleLabel = useMemo(() => {
+    const first = savedShiftDrafts[0];
+
+    if (!first) {
+      return "";
+    }
+
+    return (
+      first.memberIds
+        .map((memberId) => members.find((member) => member.id === memberId))
+        .filter(Boolean)
+        .map((member) => `${member?.firstName} ${member?.lastName}`.trim())
+        .join(", ") || "Nessuna persona"
+    );
+  }, [members, savedShiftDrafts]);
+
   const composerWeeks = useMemo(() => {
     const openKey = (selectedDay?.date ?? "").slice(0, 10);
     const todayValue = toDateInputValueInTimeZone(new Date());
@@ -3938,6 +3965,12 @@ export function OwnerCalendarClient({
                     style={{
                       position: "relative",
                       display: "grid",
+                      // A grid with a capped height squeezes its rows to fit
+                      // instead of letting them overflow, so the panel was
+                      // compressing the list of saved shifts, which then cut
+                      // its own cards in half. Rows keep their height and the
+                      // panel scrolls, which is what a scroll box is for.
+                      alignContent: "start",
                       gap: 12,
                       width: "min(92vw, 760px)",
                       maxHeight: "calc(100dvh - 32px)",
@@ -3968,7 +4001,8 @@ export function OwnerCalendarClient({
                       }}
                     >
                       <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
-                        Turni salvati in questo inserimento
+                        Salvati ora · {savedShiftDrafts.length}
+                        {savedDraftsPeopleVary ? "" : ` · ${savedDraftsPeopleLabel}`}
                       </span>
                       {/* The list, and only the list, scrolls - the heading
                           stays put above it. Two things were wrong here. The
@@ -4014,32 +4048,50 @@ export function OwnerCalendarClient({
                               minWidth: 0,
                             }}
                           >
-                            <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
-                              <strong
-                                style={{
-                                  color: "#0f172a",
-                                  fontSize: 13,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {draftMemberNames}
-                              </strong>
-                              {/* The day was printed raw, as 2026-10-05, in an
-                                  app that says "Lunedì 5" everywhere else. */}
+                            <div style={{ display: "grid", gap: 2, minWidth: 0, flex: 1 }}>
+                              <span style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
+                                <strong
+                                  style={{
+                                    minWidth: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    color: "#0f172a",
+                                    fontSize: 13.5,
+                                    letterSpacing: "-0.015em",
+                                  }}
+                                >
+                                  {formatCompactDayLabel(draft.date, locale)}
+                                </strong>
+                                <span
+                                  style={{
+                                    marginLeft: "auto",
+                                    flex: "0 0 auto",
+                                    fontSize: 12.5,
+                                    fontWeight: 700,
+                                    color: "#3a3850",
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {draft.startTime}–{draft.endTime}
+                                </span>
+                              </span>
+                              {savedDraftsPeopleVary || draft.isOnCall ? (
                               <span
                                 style={{
-                                  color: "#64748b",
-                                  fontSize: 12,
+                                  minWidth: 0,
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
+                                  color: "#64748b",
+                                  fontSize: 12,
                                 }}
                               >
-                                {formatCompactDayLabel(draft.date, locale)} · {draft.startTime}–{draft.endTime}
-                                {draft.isOnCall ? " · Reperibilità" : ""}
+                                {savedDraftsPeopleVary ? draftMemberNames : ""}
+                                {savedDraftsPeopleVary && draft.isOnCall ? " · " : ""}
+                                {draft.isOnCall ? "Reperibilità" : ""}
                               </span>
+                            ) : null}
                             </div>
                             <span
                               aria-label="Salvato"
