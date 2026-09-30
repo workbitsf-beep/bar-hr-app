@@ -1,5 +1,6 @@
 import { RequestType, Role } from "@prisma/client";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
+import { describeActionError } from "@/lib/rule-error";
 
 type DatedCalendarItem = {
   date: string;
@@ -162,5 +163,5 @@ export function truncateCalendarText(value: string, maxLength = 25) {
 }
 
 export function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Operazione non riuscita.";
+  return describeActionError(error);
 }

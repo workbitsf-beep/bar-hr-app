@@ -20,6 +20,7 @@ import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import type { FeatureFlags } from "@/lib/features";
+import { isActionFailure } from "@/lib/rule-error";
 import {
   addStandardShiftPresetAction,
   completeTaskAction,
@@ -1011,6 +1012,17 @@ function buildShiftOverlaps(shifts: ShiftItem[]) {
 }
 
 /** The small capitals above a list, with the one round button that adds to it. */
+/**
+ * A shift action hands a broken rule back as a value now, because Next.js
+ * hides anything thrown out of a server action. Throwing it here puts it
+ * where the surrounding catch can show it.
+ */
+function throwIfRefused(result: unknown) {
+  if (isActionFailure(result)) {
+    throw new Error(result.ruleError);
+  }
+}
+
 function renderDaySectionHeader(
   label: string,
   count: number,
@@ -2356,7 +2368,7 @@ export function OwnerCalendarClient({
 
     startTransition(async () => {
       try {
-        await deleteShiftAction(formData);
+        throwIfRefused(await deleteShiftAction(formData));
         setFeedback(null);
 
         if (editingShiftId === shiftId) {
@@ -2635,8 +2647,16 @@ export function OwnerCalendarClient({
           formData.append("employeeIds", memberId);
         }
 
-        const createdShift = await createShiftAction(formData);
-        savedDrafts.push({ ...draft, id: createdShift.id, shiftId: createdShift.id });
+        const created = await createShiftAction(formData);
+
+        // A rule the venue set comes back as a value, because Next.js hides
+        // anything an action throws. Throwing it here puts it in front of
+        // runAction's catch, which is what puts words on the screen.
+        if (isActionFailure(created)) {
+          throw new Error(created.ruleError);
+        }
+
+        savedDrafts.push({ ...draft, id: created.id, shiftId: created.id });
       }
 
       setSavedShiftDrafts((current) => sortShiftDraftsByDateTime(current.concat(savedDrafts)));
@@ -2686,7 +2706,7 @@ export function OwnerCalendarClient({
     formData.set("shiftId", shiftId);
 
     runAction(async () => {
-      await confirmShiftAction(formData);
+      throwIfRefused(await confirmShiftAction(formData));
     }, "Reperibilita approvata.");
   }
 

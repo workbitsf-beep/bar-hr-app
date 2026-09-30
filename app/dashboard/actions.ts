@@ -34,6 +34,7 @@ import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { closeUserAccount } from "@/lib/account-retirement";
 import { prisma } from "@/lib/prisma";
+import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { normalizeRoundingStep } from "@/lib/rounding";
 import { buildShiftPresets } from "@/lib/shift-presets";
@@ -210,7 +211,7 @@ function parseRequiredDate(value: FormDataEntryValue | null): Date {
   try {
     return parseDateTimeLocal(String(value ?? ""));
   } catch {
-    throw new Error("Data non valida");
+    throw new RuleError("Data non valida");
   }
 }
 
@@ -244,19 +245,19 @@ function ensureValidDateRange(startsAt: Date, endsAt: Date, message = "Intervall
     Number.isNaN(endsAt.getTime()) ||
     endsAt <= startsAt
   ) {
-    throw new Error(message);
+    throw new RuleError(message);
   }
 }
 
 function ensureShiftIsNotBeforeToday(startTime: Date) {
   if (toDateInputValueInTimeZone(startTime) < toDateInputValueInTimeZone(new Date())) {
-    throw new Error("Non puoi inserire turni prima del giorno corrente");
+    throw new RuleError("Non puoi inserire turni prima del giorno corrente");
   }
 }
 
 function ensureShiftCanStillBeChanged(startTime: Date) {
   if (toDateInputValueInTimeZone(startTime) < toDateInputValueInTimeZone(new Date())) {
-    throw new Error("I turni dei giorni passati non si possono modificare o eliminare");
+    throw new RuleError("I turni dei giorni passati non si possono modificare o eliminare");
   }
 }
 
@@ -303,7 +304,7 @@ function parseOptionalDateOnly(value: FormDataEntryValue | null): Date | null {
   const normalized = value.trim();
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    throw new Error("Data non valida");
+    throw new RuleError("Data non valida");
   }
 
   return parseDateTimeLocal(`${normalized}T00:00`);
@@ -666,10 +667,10 @@ async function assertNoShiftAssignmentConflicts(input: {
   );
 
   if (input.isOnCall) {
-    throw new Error("Impossibile assegnare alla reperibilità: il dipendente risulta assente o indisponibile.");
+    throw new RuleError("Impossibile assegnare alla reperibilità: il dipendente risulta assente o indisponibile.");
   }
 
-  throw new Error(`Non puoi assegnare questo turno a: ${details.join("; ")}`);
+  throw new RuleError(`Non puoi assegnare questo turno a: ${details.join("; ")}`);
 }
 
 function splitBulkTextEntries(value: string) {
@@ -2459,312 +2460,328 @@ export async function deleteAllCompletedTasksAction() {
 }
 
 export async function createShiftAction(formData: FormData) {
-  const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-  ensureOperationRole(role);
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureOperationRole(role);
 
-  if (!activeBarId) {
-    throw new Error("No active bar selected");
-  }
+    if (!activeBarId) {
+      throw new Error("No active bar selected");
+    }
 
-  await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
-  const title = String(formData.get("title") ?? "").trim();
-  const startTime = parseRequiredDate(formData.get("startTime"));
-  const endTime = parseRequiredDate(formData.get("endTime"));
-  const employeeIds = normalizeIds(formData.getAll("employeeIds"));
-  const isOnCall = formData.get("isOnCall") === "on";
+    const title = String(formData.get("title") ?? "").trim();
+    const startTime = parseRequiredDate(formData.get("startTime"));
+    const endTime = parseRequiredDate(formData.get("endTime"));
+    const employeeIds = normalizeIds(formData.getAll("employeeIds"));
+    const isOnCall = formData.get("isOnCall") === "on";
 
-  if (employeeIds.length === 0) {
-    throw new Error("Select at least one employee");
-  }
+    if (employeeIds.length === 0) {
+      throw new RuleError("Scegli almeno una persona per questo turno");
+    }
 
-  ensureValidDateRange(startTime, endTime, "Invalid shift range");
-  ensureShiftIsNotBeforeToday(startTime);
+    ensureValidDateRange(startTime, endTime, "Invalid shift range");
+    ensureShiftIsNotBeforeToday(startTime);
 
-  await ensureUsersBelongToBar(activeBarId, employeeIds);
-  await assertNoShiftAssignmentConflicts({
-    barId: activeBarId,
-    employeeIds,
-    startTime,
-    endTime,
-    isOnCall,
-  });
-  const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
-
-  const shift = await prisma.shift.create({
-    data: {
-      title: title || null,
+    await ensureUsersBelongToBar(activeBarId, employeeIds);
+    await assertNoShiftAssignmentConflicts({
+      barId: activeBarId,
+      employeeIds,
       startTime,
       endTime,
       isOnCall,
-      confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
-      confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
-      assignedToId: employeeIds[0],
-      barId: activeBarId,
-      createdById: session.user.id,
-      assignments: {
-        createMany: {
-          data: employeeIds.map((userId) => ({ userId })),
+    });
+    const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
+
+    const shift = await prisma.shift.create({
+      data: {
+        title: title || null,
+        startTime,
+        endTime,
+        isOnCall,
+        confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
+        confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
+        assignedToId: employeeIds[0],
+        barId: activeBarId,
+        createdById: session.user.id,
+        assignments: {
+          createMany: {
+            data: employeeIds.map((userId) => ({ userId })),
+          },
         },
       },
-    },
-    select: {
-      id: true,
-    },
-  });
+      select: {
+        id: true,
+      },
+    });
 
-  if (autoConfirm && !isOnCall) {
-    await scheduleShiftClockReminders([shift.id]);
+    if (autoConfirm && !isOnCall) {
+      await scheduleShiftClockReminders([shift.id]);
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+
+    return { id: shift.id };
+  } catch (error) {
+    return ruleFailure(error);
   }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/calendar");
-
-  return { id: shift.id };
 }
 
 export async function updateShiftAction(formData: FormData) {
-  const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-  ensureOperationRole(role);
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureOperationRole(role);
 
-  if (!activeBarId) {
-    throw new Error("No active bar selected");
-  }
+    if (!activeBarId) {
+      throw new Error("No active bar selected");
+    }
 
-  await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
-  const shiftId = String(formData.get("shiftId") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const startTime = parseRequiredDate(formData.get("startTime"));
-  const endTime = parseRequiredDate(formData.get("endTime"));
-  const employeeIds = normalizeIds(formData.getAll("employeeIds"));
-  const isOnCall = formData.get("isOnCall") === "on";
+    const shiftId = String(formData.get("shiftId") ?? "").trim();
+    const title = String(formData.get("title") ?? "").trim();
+    const startTime = parseRequiredDate(formData.get("startTime"));
+    const endTime = parseRequiredDate(formData.get("endTime"));
+    const employeeIds = normalizeIds(formData.getAll("employeeIds"));
+    const isOnCall = formData.get("isOnCall") === "on";
 
-  if (!shiftId || employeeIds.length === 0) {
-    throw new Error("Missing shift data");
-  }
+    if (!shiftId || employeeIds.length === 0) {
+      throw new RuleError("Dati del turno mancanti");
+    }
 
-  ensureValidDateRange(startTime, endTime, "Invalid shift range");
-  ensureShiftIsNotBeforeToday(startTime);
+    ensureValidDateRange(startTime, endTime, "Invalid shift range");
+    ensureShiftIsNotBeforeToday(startTime);
 
-  await ensureUsersBelongToBar(activeBarId, employeeIds);
-  await assertNoShiftAssignmentConflicts({
-    barId: activeBarId,
-    employeeIds,
-    startTime,
-    endTime,
-    isOnCall,
-    excludeShiftId: shiftId,
-  });
-  const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
-  const existingShift = await prisma.shift.findFirst({
-    where: {
-      id: shiftId,
+    await ensureUsersBelongToBar(activeBarId, employeeIds);
+    await assertNoShiftAssignmentConflicts({
       barId: activeBarId,
-    },
-    select: {
-      title: true,
-      startTime: true,
-      endTime: true,
-      isOnCall: true,
-      assignments: {
-        select: {
-          userId: true,
-        },
-      },
-    },
-  });
-
-  if (!existingShift) {
-    throw new Error("Shift not found");
-  }
-
-  ensureShiftCanStillBeChanged(existingShift.startTime);
-
-  await cancelShiftClockReminders([shiftId]);
-
-  await prisma.shift.update({
-    where: {
-      id: shiftId,
-    },
-    data: {
-      title: title || null,
-      assignedToId: employeeIds[0],
+      employeeIds,
       startTime,
       endTime,
       isOnCall,
-      confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
-      confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
-      assignments: {
-        deleteMany: {},
-        createMany: {
-          data: employeeIds.map((userId) => ({ userId })),
+      excludeShiftId: shiftId,
+    });
+    const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
+    const existingShift = await prisma.shift.findFirst({
+      where: {
+        id: shiftId,
+        barId: activeBarId,
+      },
+      select: {
+        title: true,
+        startTime: true,
+        endTime: true,
+        isOnCall: true,
+        assignments: {
+          select: {
+            userId: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  if (autoConfirm && !isOnCall) {
-    await scheduleShiftClockReminders([shiftId]);
+    if (!existingShift) {
+      throw new RuleError("Questo turno non esiste più");
+    }
+
+    ensureShiftCanStillBeChanged(existingShift.startTime);
+
+    await cancelShiftClockReminders([shiftId]);
+
+    await prisma.shift.update({
+      where: {
+        id: shiftId,
+      },
+      data: {
+        title: title || null,
+        assignedToId: employeeIds[0],
+        startTime,
+        endTime,
+        isOnCall,
+        confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
+        confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
+        assignments: {
+          deleteMany: {},
+          createMany: {
+            data: employeeIds.map((userId) => ({ userId })),
+          },
+        },
+      },
+    });
+
+    if (autoConfirm && !isOnCall) {
+      await scheduleShiftClockReminders([shiftId]);
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+  } catch (error) {
+    return ruleFailure(error);
   }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/calendar");
 }
 
 export async function confirmShiftAction(formData: FormData) {
-  const { session, activeBarId } = await getActionContext();
+  try {
+    const { session, activeBarId } = await getActionContext();
 
-  if (!activeBarId) {
-    throw new Error("No active bar selected");
-  }
-
-  const shiftId = String(formData.get("shiftId") ?? "").trim();
-
-  if (!shiftId) {
-    throw new Error("Missing shift id");
-  }
-
-  const shift = await prisma.shift.findFirst({
-    where: {
-      id: shiftId,
-      barId: activeBarId,
-    },
-    select: {
-      id: true,
-      isOnCall: true,
-      confirmedAt: true,
-      assignments: {
-        select: {
-          userId: true,
-        },
-      },
-    },
-  });
-
-  if (!shift) {
-    throw new Error("Shift not found");
-  }
-
-  if (!shift.isOnCall) {
-    throw new Error("Reperibilita non richiesta per questo turno");
-  }
-
-  if (shift.confirmedAt) {
-    return;
-  }
-
-  const isAssigned = shift.assignments.some((assignment) => assignment.userId === session.user.id);
-
-  if (!isAssigned) {
-    throw new Error("Puoi approvare solo la reperibilita assegnata a te");
-  }
-
-  await prisma.shift.update({
-    where: { id: shift.id },
-    data: {
-      confirmedAt: new Date(),
-      confirmedById: session.user.id,
-    },
-  });
-
-  const notificationContext = await getBarNotificationContext(activeBarId);
-
-  if (notificationContext) {
-    const recipients = excludeActorFromUsers(
-      notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
-      session.user.id
-    );
-
-    if (recipients.length > 0) {
-      await notifyUsers(recipients, {
-        barId: activeBarId,
-        title: "Reperibilità confermata",
-        message: `La reperibilità del turno selezionato è stata confermata da ${getFullName(session.user)}.`,
-        type: INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REVIEWED,
-        actionUrl: "/dashboard/calendar",
-      });
+    if (!activeBarId) {
+      throw new Error("No active bar selected");
     }
-  }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/calendar");
-}
+    const shiftId = String(formData.get("shiftId") ?? "").trim();
 
-export async function deleteShiftAction(formData: FormData) {
-  const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-  ensureOperationRole(role);
+    if (!shiftId) {
+      throw new Error("Missing shift id");
+    }
 
-  if (!activeBarId) {
-    throw new Error("No active bar selected");
-  }
-
-  await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
-
-  const shiftId = String(formData.get("shiftId") ?? "").trim();
-
-  if (!shiftId) {
-    throw new Error("Missing shift id");
-  }
-
-  const existingShift = await prisma.shift.findFirst({
-    where: {
-      id: shiftId,
-      barId: activeBarId,
-    },
-    select: {
-      title: true,
-      startTime: true,
-      endTime: true,
-      isOnCall: true,
-      assignments: {
-        select: {
-          userId: true,
+    const shift = await prisma.shift.findFirst({
+      where: {
+        id: shiftId,
+        barId: activeBarId,
+      },
+      select: {
+        id: true,
+        isOnCall: true,
+        confirmedAt: true,
+        assignments: {
+          select: {
+            userId: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  if (!existingShift) {
-    throw new Error("Shift not found");
-  }
+    if (!shift) {
+      throw new RuleError("Questo turno non esiste più");
+    }
 
-  ensureShiftCanStillBeChanged(existingShift.startTime);
+    if (!shift.isOnCall) {
+      throw new RuleError("Reperibilità non richiesta per questo turno");
+    }
 
-  await cancelShiftClockReminders([shiftId]);
-  const result = await deleteShiftWithCleanup(shiftId, { barId: activeBarId });
+    if (shift.confirmedAt) {
+      return;
+    }
 
-  if (!result.deleted) {
-    throw new Error("Shift not found");
-  }
+    const isAssigned = shift.assignments.some((assignment) => assignment.userId === session.user.id);
 
-  if (existingShift) {
+    if (!isAssigned) {
+      throw new RuleError("Puoi approvare solo la reperibilità assegnata a te");
+    }
+
+    await prisma.shift.update({
+      where: { id: shift.id },
+      data: {
+        confirmedAt: new Date(),
+        confirmedById: session.user.id,
+      },
+    });
+
     const notificationContext = await getBarNotificationContext(activeBarId);
 
     if (notificationContext) {
       const recipients = excludeActorFromUsers(
-        notificationContext.users.filter((user) =>
-          existingShift.assignments.some((assignment) => assignment.userId === user.id)
-        ),
+        notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
         session.user.id
       );
 
       if (recipients.length > 0) {
         await notifyUsers(recipients, {
           barId: activeBarId,
-          title: existingShift.isOnCall ? "Reperibilità eliminata" : "Turno eliminato",
-          message:
-            `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} prevista per ${formatRangeLabel(existingShift.startTime, existingShift.endTime)}${existingShift.title ? ` - ${existingShift.title}` : ""} è stata eliminata.`,
-          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_DELETED,
+          title: "Reperibilità confermata",
+          message: `La reperibilità del turno selezionato è stata confermata da ${getFullName(session.user)}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REVIEWED,
           actionUrl: "/dashboard/calendar",
         });
       }
     }
-  }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/requests");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+export async function deleteShiftAction(formData: FormData) {
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureOperationRole(role);
+
+    if (!activeBarId) {
+      throw new Error("No active bar selected");
+    }
+
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+
+    const shiftId = String(formData.get("shiftId") ?? "").trim();
+
+    if (!shiftId) {
+      throw new Error("Missing shift id");
+    }
+
+    const existingShift = await prisma.shift.findFirst({
+      where: {
+        id: shiftId,
+        barId: activeBarId,
+      },
+      select: {
+        title: true,
+        startTime: true,
+        endTime: true,
+        isOnCall: true,
+        assignments: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!existingShift) {
+      throw new RuleError("Questo turno non esiste più");
+    }
+
+    ensureShiftCanStillBeChanged(existingShift.startTime);
+
+    await cancelShiftClockReminders([shiftId]);
+    const result = await deleteShiftWithCleanup(shiftId, { barId: activeBarId });
+
+    if (!result.deleted) {
+      throw new RuleError("Questo turno non esiste più");
+    }
+
+    if (existingShift) {
+      const notificationContext = await getBarNotificationContext(activeBarId);
+
+      if (notificationContext) {
+        const recipients = excludeActorFromUsers(
+          notificationContext.users.filter((user) =>
+            existingShift.assignments.some((assignment) => assignment.userId === user.id)
+          ),
+          session.user.id
+        );
+
+        if (recipients.length > 0) {
+          await notifyUsers(recipients, {
+            barId: activeBarId,
+            title: existingShift.isOnCall ? "Reperibilità eliminata" : "Turno eliminato",
+            message:
+              `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} prevista per ${formatRangeLabel(existingShift.startTime, existingShift.endTime)}${existingShift.title ? ` - ${existingShift.title}` : ""} è stata eliminata.`,
+            type: INTERNAL_NOTIFICATION_TYPES.SHIFT_DELETED,
+            actionUrl: "/dashboard/calendar",
+          });
+        }
+      }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard/requests");
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }
 
 export async function createBoardNoteAction(formData: FormData) {
@@ -4917,7 +4934,7 @@ export async function createShiftChangeRequestAction(formData: FormData) {
   });
 
   if (!shift) {
-    throw new Error("Shift not found");
+    throw new RuleError("Questo turno non esiste più");
   }
 
   if (!swapShift) {

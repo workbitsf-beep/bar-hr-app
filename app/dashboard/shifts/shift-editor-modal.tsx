@@ -12,6 +12,7 @@ import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { TimeInput } from "@/app/components/time-input";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import { confirmShiftAction, deleteShiftAction, updateShiftAction } from "../actions";
+import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { IconButton, PrimaryButton, Select, SuccessCallout } from "../ui";
 import { useOverlayLock } from "../use-overlay-lock";
 
@@ -63,7 +64,18 @@ function formatRoleLabel(role: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Operazione non riuscita.";
+  return describeActionError(error);
+}
+
+/**
+ * A shift action hands a broken rule back as a value now, because Next.js
+ * hides anything thrown out of a server action. Throwing it here puts it
+ * where the surrounding catch can show it.
+ */
+function throwIfRefused(result: unknown) {
+  if (isActionFailure(result)) {
+    throw new Error(result.ruleError);
+  }
 }
 
 export function ShiftEditorModal({
@@ -193,7 +205,7 @@ export function ShiftEditorModal({
 
     startTransition(async () => {
       try {
-        await updateShiftAction(formData);
+        throwIfRefused(await updateShiftAction(formData));
         setFeedback(null);
         onUpdated?.(shift.id);
         onClose();
@@ -216,7 +228,7 @@ export function ShiftEditorModal({
 
     startTransition(async () => {
       try {
-        await deleteShiftAction(formData);
+        throwIfRefused(await deleteShiftAction(formData));
         setFeedback(null);
         onDeleted?.(shift.id);
         onClose();
@@ -243,7 +255,7 @@ export function ShiftEditorModal({
 
     startTransition(async () => {
       try {
-        await confirmShiftAction(formData);
+        throwIfRefused(await confirmShiftAction(formData));
         setFeedback({ tone: "success", message: "Reperibilita confermata." });
         onClose();
         window.setTimeout(() => {

@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import type { ShiftPreset } from "@/lib/shift-presets";
+import { describeActionError } from "@/lib/rule-error";
 import { TimeInput } from "@/app/components/time-input";
 import { FormField, PrimaryButton, Select, SuccessCallout, TextInput } from "../ui";
 
@@ -27,7 +28,7 @@ function formatRoleLabel(role: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Operazione non riuscita.";
+  return describeActionError(error);
 }
 
 export function ShiftCreateForm({
