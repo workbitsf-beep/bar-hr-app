@@ -809,7 +809,83 @@ function renderDaySheetSection(
   );
 }
 
-/** A plain line inside the day sheet: what it is on the left, when on the right. */
+type DaySectionTab = { key: string; label: string; tone: WeekBadgeTone; count: number };
+
+/**
+ * The row of jumps at the top of the day.
+ *
+ * The day sheet holds every category now, which on a busy day is a long
+ * scroll. These say what is in the day before you scroll it, and take you
+ * straight to a section - and they are the one place where a colour and its
+ * word are shown together, so the dots on the week card can be learnt.
+ */
+function DaySectionTabs({
+  tabs,
+  onPick,
+}: {
+  tabs: DaySectionTab[];
+  onPick: (key: string) => void;
+}) {
+  if (tabs.length < 2) {
+    return null;
+  }
+
+  return (
+    <div
+      className="workbit-day-tabs"
+      style={{
+        display: "flex",
+        gap: 6,
+        overflowX: "auto",
+        paddingBottom: 2,
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          onClick={() => onPick(tab.key)}
+          style={{
+            flex: "0 0 auto",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 11px",
+            borderRadius: 999,
+            border: "1px solid #ece9f8",
+            background: "#f7f5fe",
+            color: tab.count > 0 ? "#3a3850" : "#a3a0b8",
+            fontSize: 11,
+            fontWeight: 760,
+            letterSpacing: "0.01em",
+            cursor: "pointer",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 8,
+              height: 8,
+              flex: "0 0 auto",
+              borderRadius: 999,
+              background: WEEK_TONE_DOTS[tab.tone],
+              opacity: tab.count > 0 ? 1 : 0.42,
+            }}
+          />
+          {tab.label}
+          {tab.count > 0 ? (
+            <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 840 }}>{tab.count}</span>
+          ) : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A plain line inside the day sheet: what it is on the left, when on the right.
+ */
 function renderDaySheetRow(
   key: string,
   text: string,
@@ -945,7 +1021,10 @@ function renderDaySectionHeader(
   addLabel: string,
   onAdd: () => void,
   disabled: boolean,
-  canAdd = true
+  canAdd = true,
+  /** The category's colour, so a section is named here the way it is on the
+      week card - the same dot, not a different mark for the same thing. */
+  tone?: WeekBadgeTone
 ) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -953,6 +1032,9 @@ function renderDaySectionHeader(
         style={{
           flex: 1,
           minWidth: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 7,
           fontSize: 9.5,
           fontWeight: 830,
           letterSpacing: "0.12em",
@@ -960,6 +1042,18 @@ function renderDaySectionHeader(
           color: "#a3a0b8",
         }}
       >
+        {tone ? (
+          <span
+            aria-hidden="true"
+            style={{
+              width: 8,
+              height: 8,
+              flex: "0 0 auto",
+              borderRadius: 999,
+              background: WEEK_TONE_DOTS[tone],
+            }}
+          />
+        ) : null}
         {count > 0 ? `${label} · ${count}` : label}
       </span>
       {canAdd ? (
@@ -1319,7 +1413,7 @@ function renderAvailabilityCard(availability: AvailabilityItem, mobile = false) 
     >
       <div style={{ display: "grid", gap: 4 }}>
         <strong style={{ color: "#991b1b", fontSize: mobile ? 12 : 13 }}>
-          Indisponibilita: {availability.firstName} {availability.lastName}
+          Indisponibilità: {availability.firstName} {availability.lastName}
         </strong>
         <span style={{ color: "#b91c1c" }}>
           {formatRange(availability.startsAt, availability.endsAt, "it-IT")}
@@ -1716,6 +1810,8 @@ export function DayActionCalendarClient({
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [activeCalendarModal, setActiveCalendarModal] = useState<CalendarModalMode | null>(null);
+  /** The day popup's own scroll box, which the tabs at its top scroll. */
+  const dayPanelRef = useRef<HTMLElement | null>(null);
   const [modalContentReady, setModalContentReady] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
@@ -2335,6 +2431,34 @@ export function DayActionCalendarClient({
 
     navigateCalendarWindow(direction);
   }
+
+  /**
+   * Takes the day sheet to one of its sections. The panel is the scroll box,
+   * and every section carries a data-day-section, so this is the same move
+   * whether it comes from a tab or from the door the day was opened by.
+   */
+  const scrollToDaySection = useCallback((key: string) => {
+    const panel = dayPanelRef.current;
+    const target = panel?.querySelector(`[data-day-section="${key}"]`);
+
+    if (!panel || !(target instanceof HTMLElement)) {
+      return;
+    }
+
+    panel.scrollTo({ top: Math.max(0, target.offsetTop - 14), behavior: "smooth" });
+  }, []);
+
+  // Opening on the notes means opening the day at the notes - not opening a
+  // day that is nothing but notes, which is what it used to mean.
+  useEffect(() => {
+    if (!modalContentReady || !activeCalendarModal || activeCalendarModal === "day") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => scrollToDaySection(activeCalendarModal), 60);
+
+    return () => window.clearTimeout(timer);
+  }, [activeCalendarModal, modalContentReady, scrollToDaySection]);
 
   function closeModal() {
     if (isPending) {
@@ -3869,6 +3993,7 @@ export function DayActionCalendarClient({
               />
 
               <section
+                ref={dayPanelRef}
                 className="dashboard-modal-panel"
                 style={{
                   position: "relative",
@@ -3964,6 +4089,60 @@ export function DayActionCalendarClient({
                 </div>
                 </div>
 
+                {modalContentReady && selectedDay ? (
+                  <DaySectionTabs
+                    tabs={[
+                      features.shifts
+                        ? {
+                            key: "shifts",
+                            label: "Turni",
+                            tone: "onCall" as WeekBadgeTone,
+                            count: selectedDay.shifts.length,
+                          }
+                        : null,
+                      features.tasks || features.noticeBoard
+                        ? {
+                            key: "notes",
+                            label: "Note",
+                            tone: "note" as WeekBadgeTone,
+                            count: selectedDay.tasks.length + selectedDay.notes.length,
+                          }
+                        : null,
+                      features.requests
+                        ? {
+                            key: "requests",
+                            label: "Ferie e permessi",
+                            tone: "vacation" as WeekBadgeTone,
+                            count: selectedDay.requests.length,
+                          }
+                        : null,
+                      features.courses
+                        ? {
+                            key: "courses",
+                            label: "Corsi",
+                            tone: "course" as WeekBadgeTone,
+                            count: selectedDay.courses.length,
+                          }
+                        : null,
+                      features.availability
+                        ? {
+                            key: "availability",
+                            label: "Indisponibilità",
+                            tone: "availability" as WeekBadgeTone,
+                            count: selectedDay.availabilities.length,
+                          }
+                        : null,
+                      {
+                        key: "closures",
+                        label: "Chiusure",
+                        tone: "closure" as WeekBadgeTone,
+                        count: selectedDay.closures.length,
+                      },
+                    ].filter((tab): tab is DaySectionTab => tab !== null)}
+                    onPick={scrollToDaySection}
+                  />
+                ) : null}
+
                 {feedback ? (
                   feedback.tone === "success" ? (
                     <SuccessCallout>{feedback.message}</SuccessCallout>
@@ -4006,8 +4185,13 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady && features.shifts && activeCalendarModal !== "notes" ? (
-                  <div style={{ display: "grid", gap: 12 }}>
+                {/* Three doors used to open three different days: the shifts
+                    hid the notes, the notes hid the shifts, and ferie, corsi,
+                    indisponibilita and chiusure had no section at all - you
+                    could tap their dot and find nothing. Every section is
+                    drawn now, in the same order, from whichever door. */}
+                {modalContentReady && features.shifts ? (
+                  <div data-day-section="shifts" style={{ display: "grid", gap: 12 }}>
                     {dayOverlaps.message ? (
                       <div
                         style={{
@@ -4059,7 +4243,8 @@ export function DayActionCalendarClient({
                         }
                       },
                       isPending,
-                      canManageOptionalShifts
+                      canManageOptionalShifts,
+                      "onCall"
                     )}
 
                     {showShiftComposer && canManageOptionalShifts ? createPortal(
@@ -4812,10 +4997,10 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady && (activeCalendarModal === "day" || activeCalendarModal === "shifts") && (selectedDay?.pendingOnCallShifts ?? []).filter(
+                {modalContentReady && (selectedDay?.pendingOnCallShifts ?? []).filter(
                   (shift) => shift.assignments.some((assignment) => assignment.id === currentUserId)
                 ).length > 0 ? (
-                  <div style={{ display: "grid", gap: 12 }}>
+                  <div data-day-section="oncall" style={{ display: "grid", gap: 12 }}>
                     <div
                       style={{
                         display: "flex",
@@ -4876,8 +5061,8 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady && (features.tasks || features.noticeBoard) && activeCalendarModal !== "shifts" ? (
-                  <div style={{ display: "grid", gap: 10 }}>
+                {modalContentReady && (features.tasks || features.noticeBoard) ? (
+                  <div data-day-section="notes" style={{ display: "grid", gap: 10 }}>
                     {/* The date is already in the title of the sheet, and the
                         count no longer needs a black pill of its own. */}
                     {renderDaySectionHeader(
@@ -4886,7 +5071,8 @@ export function DayActionCalendarClient({
                       "Aggiungi note",
                       () => setQuickComposer("task"),
                       isPending,
-                      canOpenTaskComposer
+                      canOpenTaskComposer,
+                      "note"
                     )}
                     {selectedDay.tasks.length === 0 && selectedDay.notes.length === 0 ? (
                       <div style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
@@ -4932,6 +5118,131 @@ export function DayActionCalendarClient({
                             )}
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+                {/* The four that had no section at all. Their dot was on the
+                    week card, the day knew about them, and the popup had
+                    nowhere to show them. A dipendente can ask for ferie and
+                    declare an indisponibilita, so those two keep their +;
+                    corsi and chiusure are the locale's to decide, so here
+                    they are there to be read. */}
+                {modalContentReady && features.requests ? (
+                  <div data-day-section="requests" style={{ display: "grid", gap: 10 }}>
+                    {renderDaySectionHeader(
+                      "Ferie e permessi",
+                      selectedDay.requests.length,
+                      "Apri le richieste",
+                      () => router.push("/dashboard/requests"),
+                      isPending,
+                      true,
+                      "vacation"
+                    )}
+                    {selectedDay.requests.length === 0 ? (
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
+                        Nessuna richiesta in questa giornata.
+                      </div>
+                    ) : (
+                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 6 }}>
+                        {selectedDay.requests.map((request) =>
+                          renderDaySheetRow(
+                            `day-request-row-${request.id}`,
+                            `${request.firstName} ${request.lastName}`,
+                            formatRequestTypeLabel(request.type),
+                            "vacation"
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {modalContentReady && features.courses ? (
+                  <div data-day-section="courses" style={{ display: "grid", gap: 10 }}>
+                    {renderDaySectionHeader(
+                      "Corsi",
+                      selectedDay.courses.length,
+                      "Corsi",
+                      () => undefined,
+                      isPending,
+                      false,
+                      "course"
+                    )}
+                    {selectedDay.courses.length === 0 ? (
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
+                        Nessun corso in questa giornata.
+                      </div>
+                    ) : (
+                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 6 }}>
+                        {selectedDay.courses.map((course) =>
+                          renderDaySheetRow(
+                            `day-course-${course.id}`,
+                            course.title,
+                            formatRange(course.startTime, course.endTime, locale),
+                            "course"
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {modalContentReady && features.availability ? (
+                  <div data-day-section="availability" style={{ display: "grid", gap: 10 }}>
+                    {renderDaySectionHeader(
+                      "Indisponibilità",
+                      selectedDay.availabilities.length,
+                      "Apri le indisponibilità",
+                      () => router.push("/dashboard/requests"),
+                      isPending,
+                      true,
+                      "availability"
+                    )}
+                    {selectedDay.availabilities.length === 0 ? (
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
+                        Nessuna indisponibilità in questa giornata.
+                      </div>
+                    ) : (
+                      <div className="dashboard-scroll-list" style={{ display: "grid", gap: 6 }}>
+                        {selectedDay.availabilities.map((availability) =>
+                          renderDaySheetRow(
+                            `day-availability-row-${availability.id}`,
+                            `${availability.firstName} ${availability.lastName}`,
+                            formatRange(availability.startsAt, availability.endsAt, locale),
+                            "availability"
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {modalContentReady ? (
+                  <div data-day-section="closures" style={{ display: "grid", gap: 10 }}>
+                    {renderDaySectionHeader(
+                      "Chiusure",
+                      selectedDay.closures.length,
+                      "Chiusure",
+                      () => undefined,
+                      isPending,
+                      false,
+                      "closure"
+                    )}
+                    {selectedDay.closures.length === 0 ? (
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>
+                        Il locale è aperto in questa giornata.
+                      </div>
+                    ) : (
+                      <div style={{ display: "grid", gap: 6 }}>
+                        {selectedDay.closures.map((closure) =>
+                          renderDaySheetRow(
+                            `day-closure-${closure.id}`,
+                            closure.title,
+                            formatRange(closure.startTime, closure.endTime, locale),
+                            "closure"
+                          )
+                        )}
                       </div>
                     )}
                   </div>
