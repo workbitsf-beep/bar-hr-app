@@ -827,7 +827,10 @@ function DaySectionTabs({
   tabs: DaySectionTab[];
   onPick: (key: string) => void;
 }) {
-  if (tabs.length < 2) {
+  // Turni and Note are always there, so two tabs are a row of jumps to a sheet
+  // short enough to see whole. They earn their place from the third on, when
+  // the day is actually carrying something else.
+  if (tabs.length < 3) {
     return null;
   }
 
@@ -4155,7 +4158,7 @@ export function DayActionCalendarClient({
                             count: selectedDay.tasks.length + selectedDay.notes.length,
                           }
                         : null,
-                      features.requests
+                      features.requests && selectedDay.requests.length > 0
                         ? {
                             key: "requests",
                             label: "Ferie e permessi",
@@ -4163,7 +4166,7 @@ export function DayActionCalendarClient({
                             count: selectedDay.requests.length,
                           }
                         : null,
-                      features.courses
+                      features.courses && selectedDay.courses.length > 0
                         ? {
                             key: "courses",
                             label: "Corsi",
@@ -4171,7 +4174,7 @@ export function DayActionCalendarClient({
                             count: selectedDay.courses.length,
                           }
                         : null,
-                      features.availability
+                      features.availability && selectedDay.availabilities.length > 0
                         ? {
                             key: "availability",
                             label: "Indisponibilità",
@@ -4179,12 +4182,14 @@ export function DayActionCalendarClient({
                             count: selectedDay.availabilities.length,
                           }
                         : null,
-                      {
-                        key: "closures",
-                        label: "Chiusure",
-                        tone: "closure" as WeekBadgeTone,
-                        count: selectedDay.closures.length,
-                      },
+                      selectedDay.closures.length > 0
+                        ? {
+                            key: "closures",
+                            label: "Chiusure",
+                            tone: "closure" as WeekBadgeTone,
+                            count: selectedDay.closures.length,
+                          }
+                        : null,
                     ].filter((tab): tab is DaySectionTab => tab !== null)}
                     onPick={scrollToDaySection}
                   />
@@ -5193,21 +5198,19 @@ export function DayActionCalendarClient({
                     )}
                   </div>
                 ) : null}
-                {/* The four that had no section at all. Their dot was on the
-                    week card, the day knew about them, and the popup had
-                    nowhere to show them. A dipendente can ask for ferie and
-                    declare an indisponibilita, so those two keep their +;
-                    corsi and chiusure are the locale's to decide, so here
-                    they are there to be read. */}
-                {modalContentReady && features.requests ? (
+                {/* Adding belongs to turni and note; these four are here to
+                    be read, and only when there is something to read. An empty
+                    section with a + on it offered a way in to something this
+                    sheet does not do. */}
+                {modalContentReady && features.requests && selectedDay.requests.length > 0 ? (
                   <div data-day-section="requests" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Ferie e permessi",
                       selectedDay.requests.length,
-                      "Apri le richieste",
-                      () => router.push("/dashboard/requests"),
+                      "Ferie e permessi",
+                      () => undefined,
                       isPending,
-                      true,
+                      false,
                       "vacation"
                     )}
                     {selectedDay.requests.length === 0 ? (
@@ -5229,7 +5232,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady && features.courses ? (
+                {modalContentReady && features.courses && selectedDay.courses.length > 0 ? (
                   <div data-day-section="courses" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Corsi",
@@ -5259,15 +5262,15 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady && features.availability ? (
+                {modalContentReady && features.availability && selectedDay.availabilities.length > 0 ? (
                   <div data-day-section="availability" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Indisponibilità",
                       selectedDay.availabilities.length,
-                      "Apri le indisponibilità",
-                      () => router.push("/dashboard/requests"),
+                      "Indisponibilità",
+                      () => undefined,
                       isPending,
-                      true,
+                      false,
                       "availability"
                     )}
                     {selectedDay.availabilities.length === 0 ? (
@@ -5289,7 +5292,7 @@ export function DayActionCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady ? (
+                {modalContentReady && selectedDay.closures.length > 0 ? (
                   <div data-day-section="closures" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Chiusure",

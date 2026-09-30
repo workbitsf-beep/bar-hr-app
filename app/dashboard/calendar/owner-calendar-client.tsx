@@ -823,7 +823,10 @@ function DaySectionTabs({
   tabs: DaySectionTab[];
   onPick: (key: string) => void;
 }) {
-  if (tabs.length < 2) {
+  // Turni and Note are always there, so two tabs are a row of jumps to a sheet
+  // short enough to see whole. They earn their place from the third on, when
+  // the day is actually carrying something else.
+  if (tabs.length < 3) {
     return null;
   }
 
@@ -3873,7 +3876,7 @@ export function OwnerCalendarClient({
                               count: day.tasks.length + day.notes.length,
                             }
                           : null,
-                        features.requests
+                        features.requests && day.requests.length > 0
                           ? {
                               key: "requests",
                               label: "Ferie e permessi",
@@ -3881,7 +3884,7 @@ export function OwnerCalendarClient({
                               count: day.requests.length,
                             }
                           : null,
-                        features.courses
+                        features.courses && day.courses.length > 0
                           ? {
                               key: "courses",
                               label: "Corsi",
@@ -3889,7 +3892,7 @@ export function OwnerCalendarClient({
                               count: day.courses.length,
                             }
                           : null,
-                        features.availability
+                        features.availability && day.availabilities.length > 0
                           ? {
                               key: "availability",
                               label: "Indisponibilità",
@@ -3897,12 +3900,14 @@ export function OwnerCalendarClient({
                               count: day.availabilities.length,
                             }
                           : null,
-                        {
-                          key: "closures",
-                          label: "Chiusure",
-                          tone: "closure" as WeekBadgeTone,
-                          count: day.closures.length,
-                        },
+                        day.closures.length > 0
+                          ? {
+                              key: "closures",
+                              label: "Chiusure",
+                              tone: "closure" as WeekBadgeTone,
+                              count: day.closures.length,
+                            }
+                          : null,
                     ].filter((tab): tab is DaySectionTab => tab !== null)}
                     onPick={scrollToDaySection}
                   />
@@ -4435,18 +4440,19 @@ export function OwnerCalendarClient({
                   )}
                   </div>
                 ) : null}
-                {/* The four that had no section at all. Their dot was on the
-                    week card, the day knew about them, and the popup had
-                    nowhere to show them. */}
-                {modalContentReady && features.requests ? (
+                {/* Adding belongs to turni and note; these four are here to
+                    be read, and only when there is something to read. An empty
+                    section with a + on it offered a way in to something this
+                    sheet does not do. */}
+                {modalContentReady && features.requests && day.requests.length > 0 ? (
                   <div data-day-section="requests" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Ferie e permessi",
                       day.requests.length,
-                      "Apri le richieste",
-                      () => router.push("/dashboard/requests"),
+                      "Ferie e permessi",
+                      () => undefined,
                       isPending,
-                      true,
+                      false,
                       "vacation"
                     )}
                     {day.requests.length === 0 ? (
@@ -4473,15 +4479,15 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady && features.courses ? (
+                {modalContentReady && features.courses && day.courses.length > 0 ? (
                   <div data-day-section="courses" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Corsi",
                       day.courses.length,
-                      "Apri i corsi",
-                      () => router.push("/dashboard/courses"),
+                      "Corsi",
+                      () => undefined,
                       isPending,
-                      true,
+                      false,
                       "course"
                     )}
                     {day.courses.length === 0 ? (
@@ -4503,15 +4509,15 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady && features.availability ? (
+                {modalContentReady && features.availability && day.availabilities.length > 0 ? (
                   <div data-day-section="availability" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Indisponibilità",
                       day.availabilities.length,
-                      "Apri le indisponibilità",
-                      () => router.push("/dashboard/requests"),
+                      "Indisponibilità",
+                      () => undefined,
                       isPending,
-                      true,
+                      false,
                       "availability"
                     )}
                     {day.availabilities.length === 0 ? (
@@ -4538,15 +4544,15 @@ export function OwnerCalendarClient({
                   </div>
                 ) : null}
 
-                {modalContentReady ? (
+                {modalContentReady && day.closures.length > 0 ? (
                   <div data-day-section="closures" style={{ display: "grid", gap: 10 }}>
                     {renderDaySectionHeader(
                       "Chiusure",
                       day.closures.length,
-                      "Apri le chiusure",
-                      () => router.push("/dashboard/requests"),
+                      "Chiusure",
+                      () => undefined,
                       isPending,
-                      true,
+                      false,
                       "closure"
                     )}
                     {day.closures.length === 0 ? (
