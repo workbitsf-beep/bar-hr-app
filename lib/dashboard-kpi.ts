@@ -20,6 +20,9 @@ export type DashboardKpiData = {
     approvedPermissions: number;
     sickness: number;
     unavailability: number;
+    /** What today holds besides shifts, for the home screen's day card. */
+    courses: number;
+    closures: number;
   };
   requests: {
     pendingLeaves: number;
@@ -173,6 +176,8 @@ export async function getDashboardKpiData(
     boardLast7DaysCount,
     monthRequestTypes,
     courses,
+    todayCourseCount,
+    todayClosureCount,
   ] = await Promise.all([
     prisma.shiftAssignment.findMany({
       where: {
@@ -345,6 +350,28 @@ export async function getDashboardKpiData(
           },
         })
       : Promise.resolve([]),
+    prisma.course.count({
+      where: {
+        barId,
+        startsAt: {
+          lte: todayEnd,
+        },
+        endsAt: {
+          gte: todayStart,
+        },
+      },
+    }),
+    prisma.calendarClosure.count({
+      where: {
+        barId,
+        startsAt: {
+          lte: todayEnd,
+        },
+        endsAt: {
+          gte: todayStart,
+        },
+      },
+    }),
   ]);
 
   const scheduledUsers = todayAssignments.length;
@@ -497,6 +524,8 @@ export async function getDashboardKpiData(
       approvedPermissions: todayCounts.approvedPermissions,
       sickness: todayCounts.sickness,
       unavailability: todayUnavailabilityCount,
+      courses: todayCourseCount,
+      closures: todayClosureCount,
     },
     requests: pendingRequests,
     tasks: {

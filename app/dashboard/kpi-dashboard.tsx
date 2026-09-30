@@ -262,55 +262,30 @@ export function KpiDashboard({
     return null;
   }
 
-  // Only what has a number, so nothing here says zero. The order is the order
-  // an owner would deal with them in.
-  const attention = [
-    features.requests && data.requests.totalPending > 0
-      ? {
-          key: "requests",
-          count: data.requests.totalPending,
-          label: "Richieste da approvare",
-          detail: [
-            data.requests.pendingLeaves > 0 ? `${data.requests.pendingLeaves} ferie` : null,
-            data.requests.pendingPermissions > 0
-              ? `${data.requests.pendingPermissions} permessi`
-              : null,
-            data.requests.pendingShiftSwaps > 0
-              ? `${data.requests.pendingShiftSwaps} cambi turno`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(", "),
-          href: "/dashboard/requests",
-          urgent: true,
-        }
-      : null,
-    features.shifts && data.today.pendingShifts > 0
-      ? {
-          key: "shifts",
-          count: data.today.pendingShifts,
-          label: "Turni da confermare",
-          detail: "in programma oggi",
-          href: "/dashboard/calendar",
-          urgent: false,
-        }
-      : null,
-    features.tasks && data.tasks.openToday > 0
+  // What today is carrying, in the order it is worth knowing. This card used
+  // to be a list of chores - "Da sistemare" - which repeated what the rest of
+  // the home screen already asks for. It answers a simpler question now: what
+  // is on today. Shifts are deliberately absent: the roster block above says
+  // who is in, by name, and saying it twice made the screen argue with itself.
+  // Only what has a number, so nothing here says zero.
+  const today = [
+    features.tasks && data.tasks.totalToday > 0
       ? {
           key: "tasks",
-          count: data.tasks.openToday,
-          label: "Compiti aperti oggi",
-          detail: `su ${data.tasks.totalToday} assegnati`,
+          count: data.tasks.totalToday,
+          label: data.tasks.totalToday === 1 ? "Nota" : "Note",
+          detail:
+            data.tasks.openToday > 0
+              ? `${data.tasks.openToday} da fare`
+              : "tutte completate",
           href: "/dashboard/tasks",
-          urgent: false,
         }
       : null,
-    // Kept from the old tile, with the breakdown it never showed.
     features.requests && data.today.absences > 0
       ? {
           key: "absences",
           count: data.today.absences,
-          label: "Assenze oggi",
+          label: data.today.absences === 1 ? "Assente" : "Assenti",
           detail:
             [
               data.today.approvedLeaves > 0 ? `${data.today.approvedLeaves} ferie` : null,
@@ -319,26 +294,39 @@ export function KpiDashboard({
                 : null,
               data.today.sickness > 0 ? `${data.today.sickness} malattia` : null,
               data.today.unavailability > 0
-                ? `${data.today.unavailability} indisponibilita`
+                ? `${data.today.unavailability} indisponibilità`
                 : null,
             ]
               .filter(Boolean)
-              .join(", ") || "ferie, permessi o indisponibilita",
+              .join(", ") || "ferie, permessi o indisponibilità",
           href: "/dashboard/requests",
-          urgent: false,
         }
       : null,
-    // Who is in right now is told better by the roster block on the home
-    // screen, with names. It is only worth repeating here when shifts are off
-    // and that block cannot appear at all.
-    !features.shifts && features.timeTracking && data.today.presentUsers > 0
+    features.courses && data.today.courses > 0
+      ? {
+          key: "courses",
+          count: data.today.courses,
+          label: data.today.courses === 1 ? "Corso" : "Corsi",
+          detail: "in programma",
+          href: "/dashboard/courses",
+        }
+      : null,
+    data.today.closures > 0
+      ? {
+          key: "closures",
+          count: data.today.closures,
+          label: "Chiusura",
+          detail: "il locale è chiuso",
+          href: "/dashboard/calendar",
+        }
+      : null,
+    features.timeTracking && data.today.presentUsers > 0
       ? {
           key: "present",
           count: data.today.presentUsers,
-          label: "Persone presenti ora",
+          label: data.today.presentUsers === 1 ? "Presente ora" : "Presenti ora",
           detail: "entrata timbrata",
           href: "/dashboard/timelogs",
-          urgent: false,
         }
       : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -421,19 +409,19 @@ export function KpiDashboard({
 
           <section className="dashboard-team-card">
             <div className="dashboard-team-head">
-              <strong>Da sistemare</strong>
+              <strong>Oggi</strong>
               <span>{freshnessLabel}</span>
             </div>
 
-            {attention.length === 0 ? (
+            {today.length === 0 ? (
               <p className="dashboard-team-clear">
-                <i aria-hidden="true" /> Niente in attesa di te.
+                <i aria-hidden="true" /> Giornata senza niente in programma.
               </p>
             ) : (
-              attention.map((item) => (
+              today.map((item) => (
                 <div
                   key={item.key}
-                  className={`dashboard-team-todo${item.urgent ? " dashboard-team-todo--urgent" : ""}`}
+                  className="dashboard-team-todo"
                 >
                   <span className="dashboard-team-count">{item.count}</span>
                   <div>
@@ -601,11 +589,6 @@ export function KpiDashboard({
               background: #f1ecfe;
               font-variant-numeric: tabular-nums;
               flex: 0 0 auto;
-            }
-
-            .dashboard-team-todo--urgent .dashboard-team-count {
-              background: #fef3c7;
-              color: #92400e;
             }
 
             .dashboard-team-todo a {
