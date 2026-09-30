@@ -6,6 +6,7 @@ import { canReviewOperationalRequests } from "@/lib/permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
+import { serializeDay, toDayKey } from "@/lib/day-key";
 import { getDashboardContext } from "../context";
 import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
 import { DayActionCalendarClient } from "./day-action-calendar-client";
@@ -103,13 +104,6 @@ function parseAnchorDate(searchParams?: Record<string, string | string[] | undef
   }
 }
 
-function toLocalDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function dateKeyToLocalDate(dateKey: string) {
   const [year, month, day] = dateKey.split("-").map(Number);
   return new Date(year, (month ?? 1) - 1, day ?? 1);
@@ -124,7 +118,7 @@ function getRangeDayKeys(start: Date, end: Date) {
   limit.setHours(0, 0, 0, 0);
 
   while (cursor <= limit) {
-    keys.push(toLocalDateKey(cursor));
+    keys.push(toDayKey(cursor));
     cursor.setDate(cursor.getDate() + 1);
   }
 
@@ -793,8 +787,8 @@ export default async function DashboardCalendarPage({
   for (const course of courses) {
     const courseStartKey = toDateInputValueInTimeZone(course.startsAt);
     const courseEndKey = toDateInputValueInTimeZone(course.endsAt);
-    const visibleStartKey = toLocalDateKey(calendarStart);
-    const visibleEndKey = toLocalDateKey(calendarEnd);
+    const visibleStartKey = toDayKey(calendarStart);
+    const visibleEndKey = toDayKey(calendarEnd);
     const startKey = courseStartKey > visibleStartKey ? courseStartKey : visibleStartKey;
     const endKey = courseEndKey < visibleEndKey ? courseEndKey : visibleEndKey;
 
@@ -810,7 +804,7 @@ export default async function DashboardCalendarPage({
     const closureEnd = dateKeyToLocalDate(toDateInputValueInTimeZone(closure.endsAt));
 
     while (cursor <= closureEnd) {
-      const dayKey = toLocalDateKey(cursor);
+      const dayKey = toDayKey(cursor);
       const dayClosures = closuresByDay.get(dayKey) ?? [];
       dayClosures.push(closure);
       closuresByDay.set(dayKey, dayClosures);
@@ -819,14 +813,14 @@ export default async function DashboardCalendarPage({
   }
 
   for (const task of tasks) {
-    const dayKey = toLocalDateKey(task.dueDate);
+    const dayKey = toDayKey(task.dueDate);
     const dayTasks = tasksByDay.get(dayKey) ?? [];
     dayTasks.push(task);
     tasksByDay.set(dayKey, dayTasks);
   }
 
   for (const note of notes) {
-    const dayKey = toLocalDateKey(note.activityDate ?? note.createdAt);
+    const dayKey = toDayKey(note.activityDate ?? note.createdAt);
     const dayNotes = notesByDay.get(dayKey) ?? [];
     dayNotes.push(note);
     notesByDay.set(dayKey, dayNotes);
@@ -839,7 +833,7 @@ export default async function DashboardCalendarPage({
     const date = new Date(calendarStart);
     date.setDate(calendarStart.getDate() + index);
     date.setHours(0, 0, 0, 0);
-    const dayKey = toLocalDateKey(date);
+    const dayKey = toDayKey(date);
 
     return {
       date,
@@ -855,14 +849,9 @@ export default async function DashboardCalendarPage({
   });
 
   const serializedDays = days.map((day) => ({
-    // Anchored at UTC midnight of the day it means, not at the server's own
-    // midnight. The client reads a day's key by taking the first ten
-    // characters of this string, which is only the right day when the string
-    // is UTC-midnight based. Once the server was told to think in Europe/Rome,
-    // setHours(0,0,0,0) started producing 22:00Z of the day before - so the
-    // sheet said "Domenica 11" (Intl, in Rome) while its key said 2026-10-10,
-    // and a shift added on Sunday was created on Saturday.
-    date: `${toLocalDateKey(day.date)}T00:00:00.000Z`,
+    // Ancorata a mezzanotte UTC, non a quella del server: il perche sta in
+    // lib/day-key.ts, insieme ai test che impediscono che ricapiti.
+    date: serializeDay(day.date),
     isToday: day.date.toDateString() === today.toDateString(),
     inCurrentMonth: true,
     shifts: day.shifts.map((shift) => ({
@@ -919,7 +908,7 @@ export default async function DashboardCalendarPage({
           ? "Approvazione automatica"
           : null,
     })),
-    pendingRequests: (pendingRequestsByDay.get(toLocalDateKey(day.date)) ?? []).map((request) => ({
+    pendingRequests: (pendingRequestsByDay.get(toDayKey(day.date)) ?? []).map((request) => ({
       id: request.id,
       type: request.type,
       firstName: request.employee.firstName,
@@ -929,7 +918,7 @@ export default async function DashboardCalendarPage({
       reason: canSeePrivateRequestDetails ? request.reason ?? null : null,
       certificateCode: canSeePrivateRequestDetails ? request.certificateCode ?? null : null,
     })),
-    courses: (coursesByDay.get(toLocalDateKey(day.date)) ?? []).map((course) => ({
+    courses: (coursesByDay.get(toDayKey(day.date)) ?? []).map((course) => ({
       id: course.id,
       title: course.title,
       startTime: course.startsAt.toISOString(),
@@ -941,14 +930,14 @@ export default async function DashboardCalendarPage({
           ? `Assegnato a ${course.assignedTo.firstName} ${course.assignedTo.lastName}`
         : "Corso interno",
     })),
-    closures: (closuresByDay.get(toLocalDateKey(day.date)) ?? []).map((closure) => ({
+    closures: (closuresByDay.get(toDayKey(day.date)) ?? []).map((closure) => ({
       id: closure.id,
       title: closure.title,
       type: closure.type,
       startTime: closure.startsAt.toISOString(),
       endTime: closure.endsAt.toISOString(),
     })),
-    tasks: (tasksByDay.get(toLocalDateKey(day.date)) ?? []).map((task) => ({
+    tasks: (tasksByDay.get(toDayKey(day.date)) ?? []).map((task) => ({
       id: task.id,
       title: task.title,
       dueDate: task.dueDate.toISOString(),
@@ -978,7 +967,7 @@ export default async function DashboardCalendarPage({
             : null,
       }),
     })),
-    notes: (notesByDay.get(toLocalDateKey(day.date)) ?? []).map((note) => ({
+    notes: (notesByDay.get(toDayKey(day.date)) ?? []).map((note) => ({
       id: note.id,
       content: note.content,
       isPinned: note.isPinned,
@@ -1003,7 +992,7 @@ export default async function DashboardCalendarPage({
     role: member.role,
   }));
   const shiftPresets = buildShiftPresets(settings);
-  const initialFocusedDay = toLocalDateKey(anchorDate);
+  const initialFocusedDay = toDayKey(anchorDate);
   const initialCalendarView = parseCalendarView(params);
   const unconfirmedShiftCount = shifts.filter(
     (shift) => !shift.confirmedAt && !shift.isOnCall
@@ -1014,8 +1003,8 @@ export default async function DashboardCalendarPage({
     (isRestaurant || Boolean(settings?.companyShiftsEnabled));
   const publishWeekAction = canPublishShifts ? (
     <PublishWeekPanel
-      rangeStart={toLocalDateKey(calendarStart)}
-      rangeEnd={toLocalDateKey(calendarEnd)}
+      rangeStart={toDayKey(calendarStart)}
+      rangeEnd={toDayKey(calendarEnd)}
       pendingCount={unconfirmedShiftCount}
       variant="icon"
     />

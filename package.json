@@ -13,7 +13,8 @@
     "migrate:deploy": "node scripts/prisma-migrate-deploy.js",
     "lint": "eslint",
     "check:store": "node scripts/check-store-readiness.js",
-    "seed:super-admin": "node scripts/seed-super-admin.js"
+    "seed:super-admin": "node scripts/seed-super-admin.js",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
