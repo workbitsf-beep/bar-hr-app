@@ -88,7 +88,13 @@ export function buildNoteMeta(input: {
   now?: Date;
 }): NoteMeta {
   const now = input.now ?? new Date();
-  const late = !input.done && isOverdue(input.dueDate, now);
+
+  // Only something that has to be confirmed can be late. A note with nothing
+  // to tick is a reminder - a message pinned to a day, which deletes itself a
+  // day later and is escalated by nobody. Calling it "in ritardo", in red,
+  // asked the reader to do something about a thing there is nothing to do
+  // about, and to feel behind for a message that was simply read.
+  const late = input.requiresConfirmation && !input.done && isOverdue(input.dueDate, now);
 
   const parts: (NoteMetaPart | null)[] = [
     input.done && input.completedBy
