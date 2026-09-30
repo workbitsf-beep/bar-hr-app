@@ -295,6 +295,10 @@ model Subscription {
   stripeDiscountCouponId String?
   currentPeriodEnd       DateTime?
   trialEndsAt            DateTime?
+  // Quando e partito l'avviso "la prova scade fra tre giorni". Serve solo a
+  // non mandarlo due volte: il lavoro notturno gira ogni giorno e senza
+  // questo segno riscriverebbe alla stessa persona ogni mattina.
+  trialEndingNoticeAt    DateTime?
   invoices               Invoice[]
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt

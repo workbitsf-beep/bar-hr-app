@@ -328,6 +328,46 @@ export async function sendTemporaryPasswordEmail(
   });
 }
 
+/**
+ * L'avviso che la prova sta per finire.
+ *
+ * Alla scadenza l'abbonamento parte da solo: e quello che vogliamo, ma va
+ * detto prima e con una data, non lasciato scoprire dall'estratto conto. Chi
+ * scopre un addebito che non aspettava non disdice - contesta il pagamento, e
+ * una contestazione con Stripe costa piu di un abbonamento.
+ *
+ * Quindi qui si dice la data esatta, la cifra esatta, e dove si disdice.
+ */
+export async function sendTrialEndingEmail(
+  ownerEmail: string,
+  ownerName: string,
+  barName: string,
+  endsOn: Date
+) {
+  const giorno = new Intl.DateTimeFormat("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Rome",
+  }).format(endsOn);
+
+  return sendTemplatedEmail({
+    to: ownerEmail,
+    subject: `La prova di ${barName} scade fra tre giorni`,
+    title: "Fra tre giorni",
+    message: [
+      `Ciao ${ownerName},`,
+      `la prova gratuita di ${barName} finisce ${giorno}.`,
+      "",
+      "Da quel giorno parte l'abbonamento a 29,90 EUR al mese, e continua tutto come adesso: turni, timbrature, ore e report restano dove sono.",
+      "",
+      "Se invece non ti serve, disdici dalle impostazioni prima di quella data e non paghi niente. Bastano due tocchi e non devi scrivere a nessuno.",
+    ].join("\n"),
+    ctaLabel: "Apri le impostazioni",
+    ctaUrl: getEmailAppUrl("/dashboard/settings"),
+  });
+}
+
 export async function sendOwnerWelcomeEmail(
   ownerEmail: string,
   ownerName: string,

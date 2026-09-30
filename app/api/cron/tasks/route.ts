@@ -14,12 +14,14 @@ export async function GET(request: Request): Promise<Response> {
     { runShiftRetentionCleanup },
     { runTimeLogReminders },
     { runDataRetention },
+    { runTrialEndingReminders },
   ] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/task-recurrence"),
     import("@/lib/shiftCleanup"),
     import("@/lib/timelog-reminders"),
     import("@/lib/data-retention"),
+    import("@/lib/trial-reminders"),
   ]);
 
   // Recurrence runs before escalation: escalation rewrites an overdue note's
@@ -27,17 +29,21 @@ export async function GET(request: Request): Promise<Response> {
   // it stayed untouched.
   const recurrenceResult = await runTaskRecurrence();
 
-  const [taskResult, shiftResult, timelogReminderResult, retentionResult] = await Promise.all([
-    runTaskEscalation(),
-    runShiftRetentionCleanup(),
-    runTimeLogReminders(),
-    // Declared in the legal documents, and until now enforced nowhere.
-    runDataRetention(),
-  ]);
+  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult] =
+    await Promise.all([
+      runTaskEscalation(),
+      runShiftRetentionCleanup(),
+      runTimeLogReminders(),
+      // Declared in the legal documents, and until now enforced nowhere.
+      runDataRetention(),
+      // Tre giorni prima che una prova diventi un addebito, si avvisa.
+      runTrialEndingReminders(),
+    ]);
 
   return Response.json({
     ok: true,
     retention: retentionResult,
+    trialEndingNotices: trialResult,
     updatedCount: taskResult.count,
     renewedRecurringTaskCount: recurrenceResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,
