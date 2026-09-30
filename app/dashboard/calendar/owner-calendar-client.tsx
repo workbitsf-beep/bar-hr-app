@@ -2705,6 +2705,15 @@ export function OwnerCalendarClient({
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => {
           if (refreshDate) {
+            // Marked as already handled. This anchor is our own bookkeeping
+            // after a save, not somebody asking to be taken to a day, and the
+            // effect that honours such a request closes whatever sheet is
+            // open. It fired on the first save, when the anchor changed for
+            // the first time, and never again - which is exactly how it
+            // looked: the popup shut after the first shift and stayed put
+            // after the rest.
+            previousInitialFocusedDayRef.current = refreshDate;
+
             const url = new URL(window.location.href);
             url.searchParams.set("anchor", refreshDate);
             url.searchParams.delete("day");
