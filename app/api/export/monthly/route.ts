@@ -785,7 +785,14 @@ export const POST = withBar(
       }
 
       if (requestedUserId === "__ALL__") {
-        if (!canExportAll || activityType !== ActivityType.COMPANY) {
+        // Chi puo esportare tutti lo decide canExportAll, che gia distingue
+        // il titolare - sempre - dall'amministrazione, solo in azienda. Qui
+        // c'era in piu un vincolo sul tipo di attivita, e quel vincolo
+        // tagliava fuori proprio i locali: un titolare di bar risultava
+        // autorizzato e veniva respinto con un 403 dalla riga dopo. Il report
+        // di fine mese del team, che e una delle ragioni per cui si paga, non
+        // ha mai funzionato per il cliente principale.
+        if (!canExportAll) {
           return Response.json({ ok: false, message: "Non autorizzato" }, { status: 403 });
         }
 
