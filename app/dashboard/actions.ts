@@ -511,14 +511,25 @@ function getShiftConflictLabel(type: "AVAILABILITY" | RequestType) {
 
 /** "08:30–14:15", for saying which shift is in the way. */
 function describeShiftSpan(startTime: Date, endTime: Date) {
-  const formatter = new Intl.DateTimeFormat("it-IT", {
+  const clock = new Intl.DateTimeFormat("it-IT", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
     timeZone: APP_TIME_ZONE,
   });
 
-  return `${formatter.format(startTime)}–${formatter.format(endTime)}`;
+  // The day belongs in here. Without it the refusal read "ha già un turno
+  // 07:00–14:00" while the day on screen was plainly empty, which looks
+  // like the app talking nonsense - and it was hiding a real bug, a shift
+  // being written to the day before the one that was opened.
+  const day = new Intl.DateTimeFormat("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: APP_TIME_ZONE,
+  });
+
+  return `${day.format(startTime)} ${clock.format(startTime)}–${clock.format(endTime)}`;
 }
 
 async function assertNoShiftAssignmentConflicts(input: {

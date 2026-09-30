@@ -855,7 +855,14 @@ export default async function DashboardCalendarPage({
   });
 
   const serializedDays = days.map((day) => ({
-    date: day.date.toISOString(),
+    // Anchored at UTC midnight of the day it means, not at the server's own
+    // midnight. The client reads a day's key by taking the first ten
+    // characters of this string, which is only the right day when the string
+    // is UTC-midnight based. Once the server was told to think in Europe/Rome,
+    // setHours(0,0,0,0) started producing 22:00Z of the day before - so the
+    // sheet said "Domenica 11" (Intl, in Rome) while its key said 2026-10-10,
+    // and a shift added on Sunday was created on Saturday.
+    date: `${toLocalDateKey(day.date)}T00:00:00.000Z`,
     isToday: day.date.toDateString() === today.toDateString(),
     inCurrentMonth: true,
     shifts: day.shifts.map((shift) => ({
