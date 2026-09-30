@@ -20,6 +20,11 @@ import { combineDateAndTime, toDateInputValue } from "@/lib/shift-datetime";
 import { APP_TIME_ZONE, toDateInputValueInTimeZone } from "@/lib/time-zone";
 import type { ShiftPreset } from "@/lib/shift-presets";
 import type { FeatureFlags } from "@/lib/features";
+import {
+  buildShiftOverlaps,
+  collectSharedFirstNames,
+  shortNameFor,
+} from "@/lib/calendar-rules";
 import { isActionFailure } from "@/lib/rule-error";
 import {
   addStandardShiftPresetAction,
@@ -266,65 +271,6 @@ function shiftDraftToShiftItem(
 
 function isOwnShift(shift: Pick<ShiftItem, "assignments">) {
   return shift.assignments.some((assignment) => assignment.isCurrentUser);
-}
-
-/**
- * How a shift says who is on it.
- *
- * It used to print everyone's first and last name in whatever order the
- * assignments had been saved, joined by commas, and let the row clip - so the
- * third person on a Sunday became "..." and you had to open the day to find
- * out who they were. The surname was eating half the line and almost never
- * earning it: in a bar of five, "Eva" is who she is.
- *
- * So: your own name is "Tu" and comes first, always. Everyone else is a first
- * name, and a surname initial appears only where two people would otherwise
- * read the same - Anna Simonetto and Anna Brocca become "Anna S." and "Anna
- * B.", and stay that way on every shift, whether or not they happen to be
- * working the same one.
- */
-function shortNameFor(assignment: ShiftAssignment, sharedFirstNames: Set<string>) {
-  if (assignment.isCurrentUser) {
-    return "Tu";
-  }
-
-  const first = assignment.firstName.trim();
-  const initial = assignment.lastName.trim()[0];
-
-  if (!first) {
-    return assignment.lastName.trim() || "—";
-  }
-
-  return sharedFirstNames.has(first.toLowerCase()) && initial
-    ? `${first} ${initial.toUpperCase()}.`
-    : first;
-}
-
-/** First names carried by more than one person, so they need the surname. */
-function collectSharedFirstNames(days: DayItem[]) {
-  const seen = new Map<string, Set<string>>();
-
-  for (const day of days) {
-    for (const shift of day.shifts) {
-      for (const assignment of shift.assignments) {
-        const key = assignment.firstName.trim().toLowerCase();
-
-        if (!key) {
-          continue;
-        }
-
-        const owners = seen.get(key) ?? new Set<string>();
-        owners.add(assignment.id);
-        seen.set(key, owners);
-      }
-    }
-  }
-
-  return new Set(
-    Array.from(seen.entries())
-      .filter(([, owners]) => owners.size > 1)
-      .map(([key]) => key)
-  );
 }
 
 function formatAssignmentNames(
@@ -962,56 +908,6 @@ function renderDaySheetRow(
 /** The grey line a section shows when it is empty but still worth offering. */
 function renderDaySheetEmpty(text: string) {
   return <span style={{ fontSize: 12.5, fontWeight: 500, color: "#c2bfd4" }}>{text}</span>;
-}
-
-/**
- * Who is booked twice at the same time, and which shifts are involved.
- *
- * The server refuses to save an overlap now, but the ones already in the
- * database predate that check, so the day says so instead of pretending the
- * schedule is fine.
- */
-function buildShiftOverlaps(shifts: ShiftItem[]) {
-  const clashing = new Set<string>();
-  const byPerson = new Map<string, { name: string; shiftIds: Set<string> }>();
-
-  for (let index = 0; index < shifts.length; index += 1) {
-    for (let other = index + 1; other < shifts.length; other += 1) {
-      const left = shifts[index];
-      const right = shifts[other];
-
-      if (!hasTimeOverlap(left.startTime, left.endTime, right.startTime, right.endTime)) {
-        continue;
-      }
-
-      for (const assignment of left.assignments) {
-        if (!right.assignments.some((entry) => entry.id === assignment.id)) {
-          continue;
-        }
-
-        clashing.add(left.id);
-        clashing.add(right.id);
-
-        const person = byPerson.get(assignment.id) ?? {
-          name: `${assignment.firstName} ${assignment.lastName}`.trim(),
-          shiftIds: new Set<string>(),
-        };
-        person.shiftIds.add(left.id);
-        person.shiftIds.add(right.id);
-        byPerson.set(assignment.id, person);
-      }
-    }
-  }
-
-  const people = Array.from(byPerson.values());
-  const message =
-    people.length === 0
-      ? null
-      : people.length === 1
-        ? `${people[0].name} è in ${people[0].shiftIds.size} turni che si accavallano`
-        : `${people.map((person) => person.name).join(", ")} hanno turni che si accavallano`;
-
-  return { clashing, message };
 }
 
 /** The small capitals above a list, with the one round button that adds to it. */
