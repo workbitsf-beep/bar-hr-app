@@ -56,7 +56,15 @@ export function ruleFailure(error: unknown): ActionFailure {
 
   console.error("[workbit] action failed", error);
 
-  return { ruleError: ACTION_FAILURE_FALLBACK };
+  // Not a rule, so it is a fault, and the person reading it is one of nine
+  // people who can tell us about it directly. A short, cut-off line of the
+  // real error is worth far more to them than a shrug - it is the difference
+  // between "it does not work" and a fix. Cut short on purpose: enough to
+  // recognise the fault, not enough to spill a query or a stack.
+  const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const short = detail.replace(/\s+/g, " ").trim().slice(0, 140);
+
+  return { ruleError: short ? `${ACTION_FAILURE_FALLBACK} (${short})` : ACTION_FAILURE_FALLBACK };
 }
 
 /**
