@@ -3570,18 +3570,10 @@ export function DayActionCalendarClient({
                       className="workbit-week-day-header"
                       style={{ display: "flex", alignItems: "center", gap: 7 }}
                     >
-                      {/* The day used to take flex: 1 and push everything
-                          after it against the right edge, so the dots sat as
-                          far from the day they belong to as the row allowed.
-                          It takes only its own width now and the dots follow
-                          it; the arrow is the one thing kept on the right. */}
                       <span
                         style={{
-                          flex: "0 1 auto",
+                          flex: 1,
                           minWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
                           fontSize: 12.5,
                           letterSpacing: "0.01em",
                           fontWeight: day.isToday ? 760 : 620,
@@ -3646,7 +3638,6 @@ export function DayActionCalendarClient({
                             toggleExpandedWeekDay(day.date);
                           }}
                           style={{
-                            marginLeft: "auto",
                             flex: "0 0 auto",
                             width: 18,
                             height: 18,
