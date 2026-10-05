@@ -356,9 +356,14 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                  strip appeared under it. The page now carries the very same
                  gradient, sized to the viewport exactly as the opening's is,
                  so the two meet without a seam. */
+              /* The colour stays the app's own lilac and only the image is
+                 violet. On the iPhone, Safari tints the status bar from the
+                 page's background colour as it loads and keeps it: a violet
+                 colour here left a violet band over the app for good. The
+                 image covers the whole screen, so the opening looks the same. */
               html[data-workbit-booting="1"],
               html[data-workbit-booting="1"] body {
-                background-color: #4a2396 !important;
+                background-color: #f7f3ff !important;
                 background-image: linear-gradient(
                   168deg,
                   #140a2c 0%,
