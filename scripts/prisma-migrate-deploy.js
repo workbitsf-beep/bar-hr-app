@@ -173,6 +173,27 @@ let status = 1;
 for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
   console.info("[database] migration attempt", { attempt, maxAttempts });
 
+  // A blank database cannot be built by replaying the history: see
+  // bootstrap-empty-database.js. It does nothing on a database with tables.
+  const bootstrap = spawnSync(process.execPath, [require("node:path").join(__dirname, "bootstrap-empty-database.js")], {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+    },
+  });
+
+  if (bootstrap.status !== 0) {
+    status = bootstrap.status ?? 1;
+
+    if (attempt < maxAttempts) {
+      console.warn("[database] database not ready, retrying", { attempt, maxAttempts, retryDelayMs });
+      wait(retryDelayMs);
+    }
+
+    continue;
+  }
+
   const result = spawnSync(npxCommand, ["prisma", "migrate", "deploy"], {
     stdio: "inherit",
     env: {

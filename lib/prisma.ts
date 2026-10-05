@@ -176,12 +176,38 @@ function resolveDatabaseUrl() {
   );
 }
 
+// Prisma sizes its pool from the CPUs it sees, and on Railway it sees the
+// host's, not the container's: each copy of the app opened far more
+// connections than one Node process can use. Postgres takes about a hundred
+// in all, and during a deploy the old copies and the new ones are up at the
+// same time, so with a few replicas the database started refusing them -
+// "too many clients already" - and the app could not start. Ten per copy
+// leaves room for four copies twice over.
+const DEFAULT_CONNECTION_LIMIT = "10";
+
+function withConnectionLimit(databaseUrl: string) {
+  try {
+    const url = new URL(databaseUrl);
+
+    if (!url.searchParams.has("connection_limit")) {
+      url.searchParams.set(
+        "connection_limit",
+        readEnvironmentValue("PRISMA_CONNECTION_LIMIT") || DEFAULT_CONNECTION_LIMIT
+      );
+    }
+
+    return url.toString();
+  } catch {
+    return databaseUrl;
+  }
+}
+
 function prismaClientSingleton(databaseUrl = resolveDatabaseUrl()) {
   return new PrismaClient({
     log: prismaLogLevels,
     datasources: {
       db: {
-        url: databaseUrl,
+        url: withConnectionLimit(databaseUrl),
       },
     },
   });

@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/copy-standalone-assets.js",
-    "start": "node --max-old-space-size=512 scripts/start-production.js",
+    "start": "node --max-old-space-size=1024 scripts/start-production.js",
     "migrate:deploy": "node scripts/prisma-migrate-deploy.js",
     "lint": "eslint",
     "check:store": "node scripts/check-store-readiness.js",

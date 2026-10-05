@@ -74,6 +74,10 @@ function scheduleCacheSweep() {
   cacheSweepTimer.unref?.();
 }
 
+// The cache lives in this process only, and a clock-in clears it only here.
+// With more than one copy of the app running, the other copies would keep
+// serving the old totals for a few seconds, so CACHE_DRIVER=none is set
+// whenever replicas are above one. The database has the headroom for it.
 function shouldUseMemoryCache() {
   const driver = process.env.CACHE_DRIVER?.trim().toLowerCase();
   return !driver || driver === "memory";
