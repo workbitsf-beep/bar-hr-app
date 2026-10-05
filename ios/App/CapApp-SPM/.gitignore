@@ -7,3 +7,5 @@ DerivedData/
 .swiftpm/config/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+# Made by "cap sync" on macOS for the Firebase plugin; rebuilt on every sync.
+/symlinks

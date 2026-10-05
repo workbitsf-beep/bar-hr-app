@@ -12,6 +12,15 @@ import {
 import { prisma } from "@/lib/prisma";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { getAccessibleBarsForUser, getPostLoginDestination } from "@/lib/permissions";
+import { createAttemptThrottle } from "@/lib/attempt-throttle";
+
+// Ten wrong passwords for the same address in fifteen minutes, then a pause.
+// There was no limit at all: a script could try passwords without end.
+const failedLogins = createAttemptThrottle(15 * 60 * 1000, 10);
+
+// Compared against when the address does not exist, so a wrong address takes
+// as long to refuse as a wrong password and the timing gives nothing away.
+const UNKNOWN_USER_HASH = bcrypt.hashSync("workbit-unknown-user", 10);
 
 type LoginBody = {
   email?: string;
@@ -32,12 +41,21 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
+  if (!failedLogins.isAllowed(email)) {
+    return NextResponse.json(
+      { ok: false, message: "Troppi tentativi. Riprova tra qualche minuto." },
+      { status: 429 }
+    );
+  }
+
   const user = await prisma.user.findUnique({
     where: { email },
     select: {
       id: true,
       firstName: true,
       passwordHash: true,
+      tempPasswordHash: true,
+      tempPasswordExpiresAt: true,
       role: true,
       language: true,
       mustChangePwd: true,
@@ -45,13 +63,56 @@ export async function POST(req: Request): Promise<Response> {
     },
   });
 
+  const matchesPassword = await bcrypt.compare(password, user?.passwordHash ?? UNKNOWN_USER_HASH);
+  // The temporary password from "forgot password", while it is still valid.
+  const temporaryHash =
+    user?.tempPasswordHash &&
+    user.tempPasswordExpiresAt &&
+    user.tempPasswordExpiresAt.getTime() > Date.now()
+      ? user.tempPasswordHash
+      : null;
+  const matchesTemporary =
+    !matchesPassword && temporaryHash !== null && (await bcrypt.compare(password, temporaryHash));
+
   // A closed account keeps a placeholder no password can match, but the check
   // is explicit so the refusal never depends on that alone.
-  if (!user || user.retiredAt || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user || user.retiredAt || (!matchesPassword && !matchesTemporary)) {
+    failedLogins.record(email);
     return NextResponse.json(
       { ok: false, message: "Credenziali non valide" },
       { status: 401 }
     );
+  }
+
+  failedLogins.reset(email);
+  let mustChangePwd = user.mustChangePwd;
+
+  if (matchesTemporary && temporaryHash) {
+    // Used: it becomes the password, to be changed straight away, and any
+    // session still open elsewhere ends - someone recovering access may be
+    // recovering it from someone else.
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: temporaryHash,
+          mustChangePwd: true,
+          tempPasswordHash: null,
+          tempPasswordExpiresAt: null,
+        },
+      }),
+      prisma.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+    mustChangePwd = true;
+  } else if (user.tempPasswordHash) {
+    // They remembered the real one: the temporary password is no longer needed.
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { tempPasswordHash: null, tempPasswordExpiresAt: null },
+    });
   }
 
   const accessibleBars = await getAccessibleBarsForUser(user.id);
@@ -93,7 +154,7 @@ export async function POST(req: Request): Promise<Response> {
     redirectTo: await getPostLoginDestination({
       userId: user.id,
       role: user.role,
-      mustChangePwd: user.mustChangePwd,
+      mustChangePwd,
       activeBarId,
     }),
   });

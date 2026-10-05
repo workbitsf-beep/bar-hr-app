@@ -30,7 +30,28 @@ const config: CapacitorConfig & { errorPath?: string } = {
   android: {
     allowMixedContent: false,
   },
+  // The Firebase messaging plugin and the Firebase SDK it pulls in would
+  // otherwise collide on their Swift package identity (capacitor-firebase
+  // issue 959). Read by the Capacitor CLI from 8.4.
+  experimental: {
+    ios: {
+      spm: {
+        packageOptions: {
+          "@capacitor-firebase/messaging": {
+            symlink: true,
+          },
+        },
+      },
+    },
+  },
   plugins: {
+    // Push on both phones goes through Firebase now. With the plain push
+    // plugin an iPhone handed over Apple's own token, which the server - it
+    // sends through Firebase - cannot use, so iPhones would never have rung.
+    // A notification arriving while the app is open is still shown.
+    FirebaseMessaging: {
+      presentationOptions: ["alert", "badge", "sound"],
+    },
     /**
      * Holds the launch screen up until the page says it is ready.
      *

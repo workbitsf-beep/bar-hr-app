@@ -3,6 +3,16 @@ import { NextResponse } from "next/server";
 import { sendTemporaryPasswordEmail } from "@/lib/email/notifications";
 import { prisma } from "@/lib/prisma";
 import { createTemporaryPassword } from "@/lib/temporary-password";
+import { createAttemptThrottle } from "@/lib/attempt-throttle";
+import { callerKey } from "@/lib/signup-throttle";
+
+// Three emails an hour per address, twenty per caller: enough for a person
+// who mistyped, not for flooding someone's inbox.
+const perAddress = createAttemptThrottle(60 * 60 * 1000, 3);
+const perCaller = createAttemptThrottle(60 * 60 * 1000, 20);
+
+// A temporary password is good for a day; after that it must be asked again.
+const TEMPORARY_PASSWORD_TTL_MS = 24 * 60 * 60 * 1000;
 
 type ForgotPasswordBody = {
   email?: string;
@@ -19,6 +29,16 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
+  const caller = callerKey(req);
+
+  if (!perAddress.isAllowed(email) || !perCaller.isAllowed(caller)) {
+    // The same answer as success: a limit reached says nothing about the address.
+    return NextResponse.json({ ok: true });
+  }
+
+  perAddress.record(email);
+  perCaller.record(caller);
+
   const user = await prisma.user.findUnique({
     where: { email },
     select: {
@@ -26,23 +46,24 @@ export async function POST(req: Request): Promise<Response> {
       email: true,
       firstName: true,
       lastName: true,
-      passwordHash: true,
-      mustChangePwd: true,
+      retiredAt: true,
     },
   });
 
-  if (!user) {
+  if (!user || user.retiredAt) {
     return NextResponse.json({ ok: true });
   }
 
+  // The real password stays as it is. Before, it was replaced on the spot and
+  // every session closed, so anyone who knew an address could throw that
+  // person out of the app mid-shift, again and again.
   const temporaryPassword = createTemporaryPassword();
-  const nextPasswordHash = await bcrypt.hash(temporaryPassword, 10);
 
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      passwordHash: nextPasswordHash,
-      mustChangePwd: true,
+      tempPasswordHash: await bcrypt.hash(temporaryPassword, 10),
+      tempPasswordExpiresAt: new Date(Date.now() + TEMPORARY_PASSWORD_TTL_MS),
     },
   });
 
@@ -55,10 +76,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!emailResult.ok) {
     await prisma.user.update({
       where: { id: user.id },
-      data: {
-        passwordHash: user.passwordHash,
-        mustChangePwd: user.mustChangePwd,
-      },
+      data: { tempPasswordHash: null, tempPasswordExpiresAt: null },
     });
 
     return NextResponse.json(
@@ -66,16 +84,6 @@ export async function POST(req: Request): Promise<Response> {
       { status: 503 }
     );
   }
-
-  await prisma.session.updateMany({
-    where: {
-      userId: user.id,
-      revokedAt: null,
-    },
-    data: {
-      revokedAt: new Date(),
-    },
-  });
 
   return NextResponse.json({ ok: true });
 }

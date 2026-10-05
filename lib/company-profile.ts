@@ -59,7 +59,9 @@ export const COMPANY_PROFILE_DEFAULTS: CompanyProfile = {
   dpoContact: "",
   courtCity: "",
   hostingRegion: "",
-  trialDays: "14",
+  // The length the app applies, DEFAULT_TRIAL_DAYS in lib/billing.ts, and what
+  // the sign-up page promises. It said 14.
+  trialDays: "30",
   noticeDays: "30",
   exportDays: "30",
   breachHours: "48",

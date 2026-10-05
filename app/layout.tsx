@@ -51,11 +51,28 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: RootLayoutProps) {
   const cookieStore = await cookies();
   const htmlLang = normalizeLanguage(cookieStore.get(LANGUAGE_COOKIE_NAME)?.value ?? "it");
+  // Set by the script below the first time the page runs inside the installed
+  // app, so every later page is already marked when the server renders it.
+  const isNativeShell = cookieStore.get("wb-native")?.value === "1";
 
   return (
-    <html lang={htmlLang} style={{ colorScheme: "light" }}>
+    <html
+      lang={htmlLang}
+      style={{ colorScheme: "light" }}
+      data-native={isNativeShell ? "1" : undefined}
+      suppressHydrationWarning
+    >
       <head>
         <meta name="color-scheme" content="light" />
+        {/* Inside the installed app nothing is sold: Apple and Google refuse an
+            app that takes payment outside their own systems. The native bridge
+            is injected before the page's scripts, so this marks the document
+            before anything paints and the purchase controls never flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var c=window.Capacitor;if(c&&c.isNativePlatform&&c.isNativePlatform()){document.documentElement.setAttribute("data-native","1");if(document.cookie.indexOf("wb-native=1")<0){document.cookie="wb-native=1; path=/; max-age=31536000; samesite=lax; secure"}}}catch(e){}})()`,
+          }}
+        />
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -361,6 +378,20 @@ export default async function RootLayout({ children }: RootLayoutProps) {
                  page's background colour as it loads and keeps it: a violet
                  colour here left a violet band over the app for good. The
                  image covers the whole screen, so the opening looks the same. */
+              /* Web-only content (buying, cancelling) and its stand-in for
+                 the installed app. See the script at the top of <head>. */
+              .wb-native-only {
+                display: none !important;
+              }
+
+              html[data-native="1"] .wb-native-only {
+                display: block !important;
+              }
+
+              html[data-native="1"] .wb-web-only {
+                display: none !important;
+              }
+
               html[data-workbit-booting="1"],
               html[data-workbit-booting="1"] body {
                 background-color: #f7f3ff !important;

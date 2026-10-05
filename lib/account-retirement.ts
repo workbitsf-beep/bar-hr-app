@@ -54,6 +54,8 @@ export async function closeUserAccount(
       email: `chiuso-${userId}@account.invalid`,
       // Not a hash of anything, so no password can ever match it.
       passwordHash: `closed:${randomBytes(24).toString("hex")}`,
+      tempPasswordHash: null,
+      tempPasswordExpiresAt: null,
       mustChangePwd: false,
       retiredAt: new Date(),
     },

@@ -268,8 +268,12 @@ export async function POST(req: Request) {
     phone_number_collection: {
       enabled: true,
     },
+    // Workbit invoices businesses, so the VAT number is not optional. It was:
+    // someone could pay without one, and the webhook then held the venue as
+    // inactive. "if_supported" makes Checkout ask for it wherever Stripe can.
     tax_id_collection: {
       enabled: true,
+      required: "if_supported",
     },
     customer_update: {
       name: "auto",

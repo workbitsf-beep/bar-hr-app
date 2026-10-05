@@ -60,12 +60,32 @@ Quello che iOS **non** richiede, a differenza di Android: le barre di sistema so
 gestite, perché WKWebView riporta correttamente `env(safe-area-inset-*)` e il CSS
 esistente lo usa già.
 
-## Decisione obbligatoria sui pagamenti
+## Pagamenti nell'app installata
 
-Workbit vende un servizio SaaS B2B per attività. Prima della submission va verificato con gli
-account store se il checkout Stripe può essere mostrato nel wrapper nativo o deve essere gestito
-solo sul web. Non va aggiunto un wrapper Capacitor prima di questa decisione: una semplice WebView
-remota può essere respinta e un checkout esterno non conforme può bloccare la review.
+Decisione presa (ottobre 2026): nell'app installata non si vende nulla. Workbit è un servizio
+venduto alle attività per il loro personale (Apple 3.1.3(c), Enterprise Services), quindi non
+serve l'acquisto in-app purché l'app non mostri acquisti. All'avvio nell'app nativa la pagina
+viene marcata `data-native` (script in testa a `app/layout.tsx`, più il cookie `wb-native`) e
+tutto ciò che ha la classe `wb-web-only` sparisce: checkout, disdetta, inviti a rinnovare. Al
+loro posto un testo neutro senza link né prezzo (`wb-native-only`). Sul sito non cambia nulla.
+La registrazione di un nuovo locale, che mostra il prezzo, è raggiungibile solo dal sito.
+
+## Notifiche
+
+Su Android e iOS le notifiche passano dal plugin `@capacitor-firebase/messaging`, che dà un
+token Firebase su entrambi. Le app Android installate prima del cambio continuano a usare il
+vecchio plugin finché non vengono aggiornate (`lib/native-push.ts`). Per iOS mancano, e
+richiedono gli account: `GoogleService-Info.plist` dell'app iOS registrata su Firebase in
+`ios/App/App/`, la chiave APNs caricata su Firebase, la capability Push Notifications in Xcode.
+Senza il plist il plugin non si avvia ma l'app non va in crash.
+
+## Locale demo per i revisori
+
+`node scripts/create-review-demo.js --confirm` crea sul database indicato da `DATABASE_URL` il
+locale "Bar Aurora (demo)" con un titolare e un dipendente, e stampa le password. Raggio GPS
+planetario e un turno di 24 ore ogni giorno per tre mesi, perché i revisori non sono a
+Milano. `--remove` lo toglie. Testi delle schede e note per i revisori in
+`docs/store-listing.md`.
 
 ## Blocco release
 

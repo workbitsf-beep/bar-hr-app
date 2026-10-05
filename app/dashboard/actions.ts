@@ -2114,6 +2114,80 @@ export async function deleteOwnerAccountAndBarAction(formData: FormData) {
   redirect(nextActiveBarId ? "/dashboard/settings?success=bar-deleted" : "/onboarding");
 }
 
+/**
+ * Someone who is not the owner closes their own account.
+ *
+ * Apple and Google require that anyone with an account can delete it from
+ * inside the app; until now only the owner could, and only by deleting the
+ * whole venue. The person leaves every venue and every future shift, and the
+ * account is closed the way closeUserAccount closes any: the clock-ins the
+ * employer must keep stay on the register under their name, everything that
+ * identifies or lets them in is destroyed.
+ */
+export async function closeOwnAccountAction(formData: FormData) {
+  const session = await getSession();
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const { role } = await getActiveBarAccess(session);
+
+  // The owner's account goes with the venue, through its own flow.
+  if (role === Role.OWNER || String(role) === "SUPER_ADMIN") {
+    throw new Error("Unauthorized");
+  }
+
+  const ownedBars = await prisma.bar.count({ where: { ownerId: session.user.id } });
+
+  if (ownedBars > 0) {
+    redirect("/dashboard/settings?error=close-owner");
+  }
+
+  const confirmation = String(formData.get("confirmation") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (confirmation !== "ELIMINA" || !password) {
+    redirect("/dashboard/settings?error=close-confirmation");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { passwordHash: true },
+  });
+
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    redirect("/dashboard/settings?error=close-password");
+  }
+
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    // Off the shifts still to come, so nobody is expected at work.
+    await tx.shiftAssignment.deleteMany({
+      where: { userId: session.user.id, shift: { startTime: { gt: now } } },
+    });
+    await tx.shift.updateMany({
+      where: { assignedToId: session.user.id, startTime: { gt: now } },
+      data: { assignedToId: null },
+    });
+    await tx.employeeBar.updateMany({
+      where: { userId: session.user.id, isActive: true },
+      data: { isActive: false, endedAt: now },
+    });
+
+    await closeUserAccount(tx, session.user.id);
+  });
+
+  revalidatePath("/dashboard");
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
+
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE_NAME);
+  cookieStore.delete(SESSION_PERSIST_COOKIE_NAME);
+  redirect("/login?deleted=1");
+}
+
 export async function confirmVisibleShiftsAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);

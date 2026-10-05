@@ -106,6 +106,17 @@ export default function LoginPage() {
   }, [router]);
 
   useEffect(() => {
+    // Arriving from a closed account: the greeting by name and the remembered
+    // address belong to an account that no longer exists.
+    if (new URLSearchParams(window.location.search).get("deleted") === "1") {
+      clearRememberedLoginEmail();
+      clearRememberedLoginName();
+      clearPasskeySetupPending();
+      setHint("Account eliminato. I tuoi dati di accesso sono stati cancellati.");
+      setGreeting(greetingFor(new Date()));
+      return;
+    }
+
     const rememberedEmail = getRememberedLoginEmail();
 
     if (rememberedEmail) {

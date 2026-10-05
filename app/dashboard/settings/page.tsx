@@ -11,6 +11,7 @@ import {
 } from "@/lib/legal-documents";
 import { prisma } from "@/lib/prisma";
 import {
+  closeOwnAccountAction,
   deleteOwnerAccountAndBarAction,
   setLanguageAction,
   updateBarDetailsAction,
@@ -601,6 +602,65 @@ function DangerDeleteForm({
   );
 }
 
+// Closing one's own account, for everyone who is not the owner. The stores
+// require it inside the app; what it can and cannot erase is said plainly,
+// because the hours worked stay with the employer by law.
+function CloseAccountForm({ error }: { error: string }) {
+  return (
+    <form action={closeOwnAccountAction} style={{ display: "grid", gap: 14 }}>
+      <div
+        style={{
+          display: "grid",
+          gap: 4,
+          padding: "12px 14px",
+          borderRadius: 16,
+          background: "#fff1f2",
+          border: "1px solid #fecdd3",
+        }}
+      >
+        <strong style={{ fontSize: 13.5, fontWeight: 830, color: "#a11626" }}>
+          Il tuo account viene chiuso
+        </strong>
+        <span style={{ fontSize: 12.5, fontWeight: 560, color: "#a8535f", lineHeight: 1.5 }}>
+          Esci da tutti i locali e dai turni futuri, e non potrai più accedere. Email, password,
+          sblocco col telefono e notifiche vengono cancellati. Le timbrature e le richieste già
+          fatte restano al datore di lavoro, che per legge deve conservarle.{" "}
+          <strong style={{ fontWeight: 830 }}>Non si torna indietro.</strong>
+        </span>
+      </div>
+
+      <FormField label="Scrivi ELIMINA per confermare">
+        <TextInput name="confirmation" required autoComplete="off" placeholder="ELIMINA" />
+      </FormField>
+
+      <FormField label="La tua password">
+        <TextInput name="password" type="password" required autoComplete="current-password" />
+      </FormField>
+
+      {error === "close-confirmation" ? (
+        <p style={{ margin: 0, color: "#b91c1c", fontWeight: 800 }}>Scrivi ELIMINA per confermare.</p>
+      ) : null}
+      {error === "close-password" ? (
+        <p style={{ margin: 0, color: "#b91c1c", fontWeight: 800 }}>Password non corretta.</p>
+      ) : null}
+      {error === "close-owner" ? (
+        <p style={{ margin: 0, color: "#b91c1c", fontWeight: 800 }}>
+          Sei titolare di un locale: elimina prima il locale dalle sue impostazioni.
+        </p>
+      ) : null}
+
+      <div className="dashboard-form-actions">
+        <PrimaryButton type="button" tone="sand" data-popup-close>
+          Annulla
+        </PrimaryButton>
+        <PrimaryButton type="submit" tone="red">
+          Chiudi il mio account
+        </PrimaryButton>
+      </div>
+    </form>
+  );
+}
+
 export default async function DashboardSettingsPage({
   searchParams,
 }: {
@@ -722,6 +782,24 @@ export default async function DashboardSettingsPage({
         <SettingsPageHeading />
         {accountGroup}
         {helpGroup}
+        <SettingsGroup tone="danger">
+          <PopupAction
+            title="Chiudi account"
+            // Not starting with "Elimina": see the owner's danger row below.
+            ariaLabel="Apri la chiusura del tuo account"
+            initialOpen={error.startsWith("close-")}
+            triggerRow={
+              <SettingsRow
+                dot="#e0868f"
+                title="Elimina il mio account"
+                lead="Non si torna indietro"
+                tone="danger"
+              />
+            }
+          >
+            <CloseAccountForm error={error} />
+          </PopupAction>
+        </SettingsGroup>
       </Stack>
     );
   }

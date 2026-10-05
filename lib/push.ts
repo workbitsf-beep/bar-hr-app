@@ -164,6 +164,15 @@ export async function sendPushNotification(
           body: input.body,
         },
         data,
+        // iOS delivers a notification silently unless the payload asks for a
+        // sound; Android and the browser ring by default.
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+            },
+          },
+        },
         webpush: {
           notification: {
             title: input.title,

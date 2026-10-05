@@ -322,7 +322,7 @@ export async function sendTemporaryPasswordEmail(
     to: userEmail,
     subject: "Password temporanea Workbit",
     title: "Recupero password",
-    message: `Ciao ${userName},\nabbiamo generato una password temporanea per il tuo accesso.\nPassword temporanea: ${temporaryPassword}\nDopo il login ti verra richiesto di cambiarla subito.`,
+    message: `Ciao ${userName},\nabbiamo generato una password temporanea per il tuo accesso, valida 24 ore.\nPassword temporanea: ${temporaryPassword}\nDopo il login ti verrà chiesto di sceglierne una nuova.\nSe non hai chiesto tu il recupero, ignora questa email: la tua password attuale continua a funzionare.`,
     ctaLabel: "Apri login",
     ctaUrl: getEmailAppUrl("/login"),
   });

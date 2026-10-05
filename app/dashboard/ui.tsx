@@ -5100,13 +5100,21 @@ export function BillingRequiredState({
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
           Questo locale e attualmente bloccato perche l&apos;abbonamento non e attivo.
         </p>
-        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
+        <p
+          className={canManageBilling ? "wb-web-only" : undefined}
+          style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}
+        >
           {canManageBilling
             ? "Attiva o rinnova l’abbonamento per sbloccare turni, timbrature, mansioni, bacheca e report."
             : "Contatta il titolare del locale per riattivare l’abbonamento e sbloccare le funzionalita operative."}
         </p>
         {canManageBilling ? (
-          <div>
+          <p className="wb-native-only" style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
+            L&apos;abbonamento del locale si gestisce dall&apos;area titolare di Workbit sul web.
+          </p>
+        ) : null}
+        {canManageBilling ? (
+          <div className="wb-web-only">
             <Link
               href="/dashboard/settings?billing=1"
               style={{

@@ -67,6 +67,9 @@ export async function POST(req: Request): Promise<Response> {
     data: {
       passwordHash: await bcrypt.hash(newPassword, 10),
       mustChangePwd: false,
+      // A temporary password asked for meanwhile no longer applies.
+      tempPasswordHash: null,
+      tempPasswordExpiresAt: null,
     },
   });
 

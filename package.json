@@ -17,12 +17,12 @@
     "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
+    "@capacitor-firebase/messaging": "^8.5.2",
     "@capacitor/android": "^8.5.2",
     "@capacitor/browser": "^8.0.4",
     "@capacitor/core": "^8.5.2",
     "@capacitor/geolocation": "^8.2.2",
     "@capacitor/ios": "^8.5.2",
-    "@capacitor/push-notifications": "^8.1.2",
     "@capacitor/splash-screen": "^8.0.2",
     "@capgo/capacitor-passkey": "^8.5.2",
     "@prisma/client": "^6.19.1",

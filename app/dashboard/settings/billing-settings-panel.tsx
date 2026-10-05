@@ -231,16 +231,31 @@ export function BillingSettingsPanel({
           ))}
         </div>
 
-        <div style={{ color: billingDisplay.messageColor, lineHeight: 1.6, fontSize: 13 }}>
+        <div
+          className="wb-web-only"
+          style={{ color: billingDisplay.messageColor, lineHeight: 1.6, fontSize: 13 }}
+        >
           {billingDisplay.message}
         </div>
 
-        <BillingCheckoutClient
-          canActivate={canActivateCheckout}
-          canCancel={canCancelSubscription}
-          trialSetupRequired={requiresTrialCardSetup}
-          monthlyDiscountPercent={status.monthlyDiscountPercent}
-        />
+        <div className="wb-web-only">
+          <BillingCheckoutClient
+            canActivate={canActivateCheckout}
+            canCancel={canCancelSubscription}
+            trialSetupRequired={requiresTrialCardSetup}
+            monthlyDiscountPercent={status.monthlyDiscountPercent}
+          />
+        </div>
+
+        {/* In the installed app the subscription is shown, not sold: it is a
+            service bought by the business, managed from the owner's account
+            on the web. No link and no price, which is what the stores allow. */}
+        <p
+          className="wb-native-only"
+          style={{ margin: 0, color: "#6b6880", lineHeight: 1.6, fontSize: 13 }}
+        >
+          L&apos;abbonamento del locale si gestisce dall&apos;area titolare di Workbit sul web.
+        </p>
       </div>
     </Panel>
   );

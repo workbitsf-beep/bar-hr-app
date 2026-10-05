@@ -133,6 +133,11 @@ model User {
   id                       String                  @id @default(uuid()) @db.Uuid
   email                    String                  @unique
   passwordHash             String
+  /// A password asked for with "forgot password". It sits next to the real one
+  /// until it is used or expires: replacing the real password on request let
+  /// anyone who knew an address lock that person out, as often as they liked.
+  tempPasswordHash         String?
+  tempPasswordExpiresAt    DateTime?
   firstName                String
   lastName                 String
   role                     Role                    @default(EMPLOYEE)

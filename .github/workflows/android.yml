@@ -29,6 +29,10 @@ jobs:
       # Secrets cannot be read inside `if:` directly, so the presence check is
       # hoisted here. Without the key the build still runs, unsigned.
       HAS_KEYSTORE: ${{ secrets.WORKBIT_KEYSTORE_BASE64 != '' }}
+      # Read by android/app/build.gradle. The run number only grows, which is
+      # what Google Play asks of versionCode.
+      WORKBIT_VERSION_CODE: ${{ github.run_number }}
+      WORKBIT_VERSION_NAME: 1.0.${{ github.run_number }}
 
     steps:
       - name: Scarica il codice
@@ -82,6 +86,21 @@ jobs:
             echo "Nessuna chiave configurata: compilo la versione di prova."
             ./gradlew assembleDebug --no-daemon --stacktrace
           fi
+
+      # Google Play accepts only the App Bundle, not an APK. It is built only
+      # when the upload key is present, because Play rejects an unsigned one.
+      - name: Compila il pacchetto per Google Play
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Pubblica il pacchetto per Google Play
+        if: env.HAS_KEYSTORE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbit-google-play
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
 
       - name: Individua il file prodotto
         run: |

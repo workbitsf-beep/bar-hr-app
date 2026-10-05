@@ -168,6 +168,9 @@ async function getLocalSubscriptionStatus(barId: string) {
   });
 }
 
+// Only checked to log a missing VAT number, which the invoice needs. It used
+// to decide the subscription status: a customer who had paid without one was
+// stored as INACTIVE and found the venue locked. Payment decides access.
 async function customerHasTaxId(stripe: Stripe, customerId: string | null) {
   if (!customerId) {
     return false;
@@ -335,14 +338,14 @@ export async function POST(req: Request) {
             (typeof session.line_items === "object"
               ? session.line_items?.data?.[0]?.price?.id ?? null
               : null),
-          status: hasTaxId ? nextStatus : SubscriptionStatus.INACTIVE,
+          status: nextStatus,
           billingInterval:
             interval ?? mapInterval(subscriptionDetails?.items.data[0]?.price.recurring?.interval),
           currentPeriodEnd: getSubscriptionPeriodEnd(subscriptionDetails),
           trialEndsAt: toDateFromUnix(subscriptionDetails?.trial_end),
         });
 
-        if (hasTaxId && previous?.status !== SubscriptionStatus.ACTIVE) {
+        if (previous?.status !== SubscriptionStatus.ACTIVE) {
           await sendOwnerBillingEmail({
             barId: metadataBarId,
             kind: "activated",
@@ -363,6 +366,18 @@ export async function POST(req: Request) {
 
         if (!barId) {
           break;
+        }
+
+        // Updates to a subscription the venue has already replaced are history.
+        if (event.type === "customer.subscription.updated") {
+          const current = await prisma.subscription.findUnique({
+            where: { barId },
+            select: { stripeSubscriptionId: true },
+          });
+
+          if (current?.stripeSubscriptionId && current.stripeSubscriptionId !== subscription.id) {
+            break;
+          }
         }
 
         const previous = await getLocalSubscriptionStatus(barId);
@@ -389,14 +404,13 @@ export async function POST(req: Request) {
           stripeCustomerId,
           stripeSubscriptionId: subscription.id,
           stripePriceId: subscription.items.data[0]?.price.id ?? null,
-          status: hasTaxId ? nextStatus : SubscriptionStatus.INACTIVE,
+          status: nextStatus,
           billingInterval: mapInterval(subscription.items.data[0]?.price.recurring?.interval),
           currentPeriodEnd: getSubscriptionPeriodEnd(subscription),
           trialEndsAt: toDateFromUnix(subscription.trial_end),
         });
         if (
           event.type === "customer.subscription.created" &&
-          hasTaxId &&
           previous?.status !== SubscriptionStatus.ACTIVE &&
           mapStripeStatus(subscription.status) === SubscriptionStatus.ACTIVE
         ) {
@@ -418,6 +432,17 @@ export async function POST(req: Request) {
         });
 
         if (!barId) {
+          break;
+        }
+
+        // An old subscription ending - after a switch from monthly to yearly,
+        // say - must not cancel the one the venue is paying for now.
+        const current = await prisma.subscription.findUnique({
+          where: { barId },
+          select: { stripeSubscriptionId: true },
+        });
+
+        if (current?.stripeSubscriptionId && current.stripeSubscriptionId !== subscription.id) {
           break;
         }
 
@@ -484,7 +509,7 @@ export async function POST(req: Request) {
           stripeCustomerId,
           stripeSubscriptionId,
           stripePriceId: stripeSubscription?.items.data[0]?.price.id ?? null,
-          status: hasTaxId ? SubscriptionStatus.ACTIVE : SubscriptionStatus.INACTIVE,
+          status: SubscriptionStatus.ACTIVE,
           billingInterval: mapInterval(
             stripeSubscription?.items.data[0]?.price.recurring?.interval
           ),
@@ -492,7 +517,7 @@ export async function POST(req: Request) {
           trialEndsAt: toDateFromUnix(stripeSubscription?.trial_end),
         });
 
-        if (hasTaxId && previous?.status !== SubscriptionStatus.ACTIVE) {
+        if (previous?.status !== SubscriptionStatus.ACTIVE) {
           await sendOwnerBillingEmail({
             barId,
             kind: "activated",

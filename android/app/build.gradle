@@ -7,8 +7,11 @@ android {
         applicationId "it.workbit.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Google Play refuses an upload whose versionCode is not higher than
+        // the last one. The GitHub workflow passes its own run number, which
+        // only ever grows; a local build stays at 1.
+        versionCode((System.getenv("WORKBIT_VERSION_CODE") ?: "1") as Integer)
+        versionName(System.getenv("WORKBIT_VERSION_NAME") ?: "1.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
