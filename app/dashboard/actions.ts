@@ -51,7 +51,8 @@ import {
   canManageOperations,
   canManagePeople,
   canReviewOperationalRequests,
-  canManageTrainingAndDocuments,
+  canManageDocuments,
+  canManageTraining,
   getActiveBarAccess,
   getAccessibleBarsForUser,
   userCanAccessBar,
@@ -799,8 +800,14 @@ function ensureOperationRole(role: Role) {
   }
 }
 
-function ensureTrainingDocumentRole(role: Role) {
-  if (!canManageTrainingAndDocuments(role)) {
+function ensureTrainingRole(role: Role) {
+  if (!canManageTraining(role)) {
+    throw new Error("Unauthorized");
+  }
+}
+
+function ensureDocumentRole(role: Role) {
+  if (!canManageDocuments(role)) {
     throw new Error("Unauthorized");
   }
 }
@@ -3373,7 +3380,7 @@ export async function deleteCalendarClosureAction(formData: FormData) {
 
 export async function createCourseAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureTrainingDocumentRole(role);
+  ensureTrainingRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3461,7 +3468,7 @@ export async function createCourseAction(formData: FormData) {
 
 export async function deleteCourseAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureTrainingDocumentRole(role);
+  ensureTrainingRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3524,7 +3531,7 @@ export async function deleteCourseAction(formData: FormData) {
 
 export async function createDocumentAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureTrainingDocumentRole(role);
+  ensureDocumentRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3607,7 +3614,7 @@ export async function createDocumentAction(formData: FormData) {
 
 export async function toggleDocumentActiveAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
-  ensureTrainingDocumentRole(role);
+  ensureDocumentRole(role);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3682,7 +3689,7 @@ export async function deleteDocumentAction(formData: FormData) {
     throw new Error("Document not found");
   }
 
-  if (document.createdById !== session.user.id && !canManageTrainingAndDocuments(role)) {
+  if (document.createdById !== session.user.id && !canManageDocuments(role)) {
     throw new Error("Not authorized");
   }
 

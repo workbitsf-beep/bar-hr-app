@@ -2638,6 +2638,30 @@ function DashboardResponsiveStyles() {
         box-shadow: ${focusRing} !important;
       }
 
+      /* iOS Safari gives date and time fields an intrinsic width wider than a
+         phone popup and ignores width: 100% until the native look is dropped,
+         so "Da" and "A" ran off the right edge of the panel. */
+      input[type="date"],
+      input[type="datetime-local"],
+      input[type="time"],
+      input[type="month"] {
+        -webkit-appearance: none;
+        appearance: none;
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        min-height: 48px;
+        text-align: left;
+      }
+
+      input[type="date"]::-webkit-date-and-time-value,
+      input[type="datetime-local"]::-webkit-date-and-time-value,
+      input[type="time"]::-webkit-date-and-time-value,
+      input[type="month"]::-webkit-date-and-time-value {
+        text-align: left;
+      }
+
       .dashboard-form-field input[type="file"],
       .dashboard-modal-panel input[type="file"] {
         padding: 12px !important;
@@ -2794,6 +2818,12 @@ function DashboardResponsiveStyles() {
           max(16px, env(safe-area-inset-right))
           max(16px, env(safe-area-inset-bottom))
           max(16px, env(safe-area-inset-left)) !important;
+        /* One definite track, so the panel's max-height: 100% means "what is
+           left between the notch and the home bar" instead of the full screen. */
+        grid-template-rows: minmax(0, 1fr) !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        justify-items: center;
+        align-items: center;
         overflow: hidden;
         overscroll-behavior: contain;
       }
@@ -2801,7 +2831,7 @@ function DashboardResponsiveStyles() {
       .dashboard-modal-panel {
         width: 100% !important;
         max-width: min(calc(var(--workbit-vw, 100vw) - 32px), 820px) !important;
-        max-height: calc(var(--workbit-vh, 100dvh) - 32px) !important;
+        max-height: min(100%, calc(var(--workbit-vh, 100dvh) - 32px)) !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         padding: clamp(18px, 2.8vw, 24px) !important;
@@ -2985,7 +3015,7 @@ function DashboardResponsiveStyles() {
         .dashboard-modal-panel {
           width: 100% !important;
           max-width: min(420px, calc(var(--workbit-vw, 100vw) - 32px)) !important;
-          max-height: calc(var(--workbit-vh, 100dvh) - 32px) !important;
+          max-height: min(100%, calc(var(--workbit-vh, 100dvh) - 32px)) !important;
           padding: 18px !important;
           border-radius: 24px !important;
           overscroll-behavior: contain;

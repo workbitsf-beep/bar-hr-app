@@ -203,8 +203,14 @@ export function canReviewOperationalRequests(role: Role): boolean {
   return role === Role.OWNER || role === Role.MANAGER;
 }
 
-export function canManageTrainingAndDocuments(role: Role): boolean {
+export function canManageTraining(role: Role): boolean {
   return role === Role.OWNER || role === Role.MANAGER || role === Role.AMMINISTRAZIONE;
+}
+
+// Contracts and payslips are private. A responsabile runs the floor but has
+// no business reading a colleague's file - only the owner and the office do.
+export function canManageDocuments(role: Role): boolean {
+  return role === Role.OWNER || role === Role.AMMINISTRAZIONE;
 }
 
 export function canViewCompanyReports(role: Role): boolean {

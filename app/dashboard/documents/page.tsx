@@ -1,7 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canViewDocument } from "@/lib/documents";
-import { canManageTrainingAndDocuments } from "@/lib/permissions";
+import { canManageDocuments } from "@/lib/permissions";
 import { deleteDocumentAction } from "../actions";
 import { getDashboardContext } from "../context";
 import { SwipeRevealAction } from "../swipe-reveal-action";
@@ -33,7 +33,7 @@ export default async function DashboardDocumentsPage() {
     );
   }
 
-  const canManage = canManageTrainingAndDocuments(role as Role);
+  const canManage = canManageDocuments(role as Role);
 
   const [documents, recipients] = await Promise.all([
     prisma.document.findMany({

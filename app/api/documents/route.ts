@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { getSession } from "@/lib/auth";
-import { getActiveBarAccess, canManageTrainingAndDocuments } from "@/lib/permissions";
+import { getActiveBarAccess, canManageDocuments } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { getDocumentMimeType } from "@/lib/documents";
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     return jsonError("Nessuna attivita selezionata.", 400);
   }
 
-  if (!canManageTrainingAndDocuments(role)) {
+  if (!canManageDocuments(role)) {
     return jsonError("Permesso non sufficiente.", 403);
   }
 

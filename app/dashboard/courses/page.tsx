@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { canManageTrainingAndDocuments } from "@/lib/permissions";
+import { canManageTraining } from "@/lib/permissions";
 import { createCourseAction, deleteCourseAction } from "../actions";
 import { getDashboardContext } from "../context";
 import { CourseComposeForm } from "./course-compose-form";
@@ -43,7 +43,7 @@ export default async function DashboardCoursesPage({
     );
   }
 
-  const canManage = canManageTrainingAndDocuments(role as Role);
+  const canManage = canManageTraining(role as Role);
   const successMessage = success === "course-created" ? "Corso salvato correttamente." : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);

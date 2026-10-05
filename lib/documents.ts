@@ -31,7 +31,7 @@ export function canViewDocument(
   userId: string,
   role: Role | string
 ) {
-  if (role === Role.OWNER || role === Role.MANAGER || role === Role.AMMINISTRAZIONE) {
+  if (role === Role.OWNER || role === Role.AMMINISTRAZIONE) {
     return true;
   }
 
