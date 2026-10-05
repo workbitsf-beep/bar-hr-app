@@ -29,7 +29,8 @@ export async function findAssignedShiftForClockIn({
   const shifts = await prisma.shift.findMany({
     where: {
       barId,
-      isOnCall: false,
+      // On-call shifts are clockable too: being called in is exactly when
+      // someone on call works, and the stamp is what puts it on the report.
       AND: [
         {
           // Today's shifts, and last night's that is still running: someone
@@ -62,6 +63,7 @@ export async function findAssignedShiftForClockIn({
       id: true,
       startTime: true,
       endTime: true,
+      isOnCall: true,
     },
   });
 
@@ -73,6 +75,11 @@ export async function findAssignedShiftForClockIn({
     const currentDistance = getShiftDistanceFromTime(shift.startTime, shift.endTime, now);
     const closestDistance = getShiftDistanceFromTime(closest.startTime, closest.endTime, now);
 
-    return currentDistance < closestDistance ? shift : closest;
+    if (currentDistance !== closestDistance) {
+      return currentDistance < closestDistance ? shift : closest;
+    }
+
+    // Equally close: the planned shift wins over being on call.
+    return closest.isOnCall && !shift.isOnCall ? shift : closest;
   }, null);
 }

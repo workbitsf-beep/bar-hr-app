@@ -28,6 +28,8 @@ export type ExportEntry = {
   roundedDurationMs: number;
   realHours: number;
   roundedHours: number;
+  /** Worked on an on-call shift: someone was called in and clocked. */
+  onCall: boolean;
 };
 
 export type CompanyReportItem = {
@@ -99,6 +101,7 @@ type MinimalTimeLog = {
   shift: {
     startTime: Date;
     endTime: Date;
+    isOnCall?: boolean;
   } | null;
 };
 
@@ -226,7 +229,7 @@ async function buildRestaurantMonthlyDataset(
   monthEnd: Date,
   options: MonthlyDatasetOptions = {}
 ): Promise<MonthlyDataset> {
-  const [timeLogs, settings, approvedRequests, vacationClosures] = await Promise.all([
+  const [timeLogs, settings, approvedRequests, closures, availabilities, courses] = await Promise.all([
     prisma.timeLog.findMany({
       where: {
         userId,
@@ -244,6 +247,7 @@ async function buildRestaurantMonthlyDataset(
           select: {
             startTime: true,
             endTime: true,
+            isOnCall: true,
           },
         },
       },
@@ -264,7 +268,12 @@ async function buildRestaurantMonthlyDataset(
         barId,
         employeeId: userId,
         type: {
-          in: [RequestType.VACATION, RequestType.PERMISSION, RequestType.SICKNESS],
+          in: [
+            RequestType.VACATION,
+            RequestType.PERMISSION,
+            RequestType.SICKNESS,
+            RequestType.OVERTIME,
+          ],
         },
         status: RequestStatus.APPROVED,
         startsAt: {
@@ -282,10 +291,11 @@ async function buildRestaurantMonthlyDataset(
         reason: true,
       },
     }),
+    // Every closure, not only the collective holidays: a day the venue was
+    // shut belongs on the sheet, or it reads as a day missing.
     prisma.calendarClosure.findMany({
       where: {
         barId,
-        type: CalendarClosureType.VACATION,
         startsAt: {
           lt: monthEnd,
         },
@@ -296,6 +306,47 @@ async function buildRestaurantMonthlyDataset(
       select: {
         id: true,
         title: true,
+        type: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    }),
+    prisma.availability.findMany({
+      where: {
+        barId,
+        userId,
+        startsAt: {
+          lt: monthEnd,
+        },
+        endsAt: {
+          gte: monthStart,
+        },
+      },
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        reason: true,
+      },
+    }),
+    // Courses were read only by the company report. A bar's HACCP or fire
+    // safety day is exactly what the owner needs on the month's sheet.
+    prisma.course.findMany({
+      where: {
+        barId,
+        startsAt: {
+          lt: monthEnd,
+        },
+        endsAt: {
+          gte: monthStart,
+        },
+        OR: [{ assignedToAll: true }, { assignedToId: userId }],
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        location: true,
         startsAt: true,
         endsAt: true,
       },
@@ -304,6 +355,33 @@ async function buildRestaurantMonthlyDataset(
 
   const labelsByDay = new Map<string, Set<string>>();
   const requestItemsByDay = new Map<string, CompanyReportItem[]>();
+
+  // Puts an item on every day of the month it covers, once per day: a
+  // collective holiday over a holiday someone asked for is still one "Ferie".
+  function addSpanItem(startsAt: Date, endsAt: Date, label: string, item: CompanyReportItem) {
+    const cursor = new Date(startsAt);
+    cursor.setHours(0, 0, 0, 0);
+
+    const spanEnd = new Date(endsAt);
+    spanEnd.setHours(0, 0, 0, 0);
+
+    while (cursor <= spanEnd) {
+      if (cursor >= monthStart && cursor < monthEnd) {
+        const key = formatDayKey(cursor);
+        const labels = labelsByDay.get(key) ?? new Set<string>();
+        labels.add(label);
+        labelsByDay.set(key, labels);
+        const items = requestItemsByDay.get(key) ?? [];
+
+        if (!items.some((existing) => existing.id === item.id || (item.type === "Ferie" && existing.type === "Ferie"))) {
+          items.push(item);
+          requestItemsByDay.set(key, items);
+        }
+      }
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
 
   for (const request of approvedRequests) {
     if (!request.startsAt || !request.endsAt) {
@@ -339,35 +417,48 @@ async function buildRestaurantMonthlyDataset(
     }
   }
 
-  for (const closure of vacationClosures) {
-    const cursor = new Date(closure.startsAt);
-    cursor.setHours(0, 0, 0, 0);
+  for (const closure of closures) {
+    const isVacationClosure = closure.type === CalendarClosureType.VACATION;
+    const label = isVacationClosure ? "Ferie" : "Chiusura";
 
-    const closureEnd = new Date(closure.endsAt);
-    closureEnd.setHours(0, 0, 0, 0);
+    addSpanItem(closure.startsAt, closure.endsAt, label, {
+      id: closure.id,
+      type: label,
+      title:
+        closure.title?.trim() ||
+        (isVacationClosure
+          ? "Ferie collettive"
+          : closure.type === CalendarClosureType.HOLIDAY
+            ? "Festivita"
+            : "Chiusura"),
+      startsAt: closure.startsAt.toISOString(),
+      endsAt: closure.endsAt.toISOString(),
+    });
+  }
 
-    while (cursor <= closureEnd) {
-      if (cursor >= monthStart && cursor < monthEnd) {
-        const key = formatDayKey(cursor);
-        const labels = labelsByDay.get(key) ?? new Set<string>();
-        labels.add("Ferie");
-        labelsByDay.set(key, labels);
-        const items = requestItemsByDay.get(key) ?? [];
+  for (const availability of availabilities) {
+    addSpanItem(availability.startsAt, availability.endsAt, "Indisponibilita", {
+      id: availability.id,
+      type: "Indisponibilita",
+      title: options.includePrivateAbsenceDetails
+        ? availability.reason?.trim() || "Indisponibilita registrata"
+        : "Indisponibilita registrata",
+      startsAt: availability.startsAt.toISOString(),
+      endsAt: availability.endsAt.toISOString(),
+    });
+  }
 
-        if (!items.some((item) => item.type === "Ferie")) {
-          items.push({
-            id: closure.id,
-            type: "Ferie",
-            title: closure.title?.trim() || "Ferie collettive",
-            startsAt: closure.startsAt.toISOString(),
-            endsAt: closure.endsAt.toISOString(),
-          });
-          requestItemsByDay.set(key, items);
-        }
-      }
+  for (const course of courses) {
+    const noteParts = [course.location?.trim(), course.description?.trim()].filter(Boolean);
 
-      cursor.setDate(cursor.getDate() + 1);
-    }
+    addSpanItem(course.startsAt, course.endsAt, "Corso", {
+      id: course.id,
+      type: "Corso",
+      title: course.title,
+      startsAt: course.startsAt.toISOString(),
+      endsAt: course.endsAt.toISOString(),
+      note: noteParts.length > 0 ? noteParts.join(" - ") : null,
+    });
   }
 
   const groupedMap = new Map<string, GroupedDay>();
@@ -416,6 +507,7 @@ async function buildRestaurantMonthlyDataset(
       roundedDurationMs: duration.roundedMs,
       realHours: toHours(duration.realMs),
       roundedHours: toHours(duration.roundedMs),
+      onCall: Boolean((pendingIn.shift ?? log.shift)?.isOnCall),
     };
 
     day.entries.push(entry);

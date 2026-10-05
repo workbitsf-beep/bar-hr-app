@@ -251,8 +251,8 @@ export function ExportClient({
   // twenty-four "Nessuna timbratura".
   const workedDays = result?.data.filter((day) => day.totals.realHours > 0).length ?? 0;
 
-  // Ferie, permessi and malattia are already stamped on the days they cover,
-  // so they only have to be counted.
+  // Ferie, permessi, malattia, corsi and chiusure are already stamped on the
+  // days they cover, so they only have to be counted.
   const absenceDays = new Map<string, number>();
 
   for (const day of result?.data ?? []) {
@@ -418,7 +418,8 @@ export function ExportClient({
                       fontWeight: 800,
                     }}
                   >
-                    {label} · {days === 1 ? "1 giorno" : `${days} giorni`}
+                    {label === "Indisponibilita" ? "Indisponibilità" : label} ·{" "}
+                    {days === 1 ? "1 giorno" : `${days} giorni`}
                   </span>
                 ))}
               </div>

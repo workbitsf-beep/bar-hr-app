@@ -296,6 +296,7 @@ export default async function DashboardPage() {
             id: true,
             startTime: true,
             endTime: true,
+            isOnCall: true,
             assignments: {
               select: {
                 user: { select: { id: true, firstName: true, lastName: true } },
@@ -353,7 +354,7 @@ export default async function DashboardPage() {
             },
           },
           orderBy: { startTime: "asc" },
-          select: { id: true, startTime: true, endTime: true },
+          select: { id: true, startTime: true, endTime: true, isOnCall: true },
         })
       : Promise.resolve([]),
     // An unread notice of a reviewed request is exactly "an answer you have
@@ -466,6 +467,11 @@ export default async function DashboardPage() {
         continue;
       }
 
+      // Someone on call is not expected: they join the roster once called in.
+      if (shift.isOnCall && lastStampByUser.get(assignment.user.id) !== "IN") {
+        continue;
+      }
+
       crewToday.set(assignment.user.id, {
         id: assignment.user.id,
         name: `${assignment.user.firstName} ${assignment.user.lastName}`,
@@ -531,8 +537,9 @@ export default async function DashboardPage() {
   // Today's target is every shift of the day, not the one being worked. The
   // ring counts all of today's hours, so on a split day measuring them against
   // the evening shift alone turned the morning into overtime.
+  // Being on call is not hours owed: it becomes hours only if the call comes.
   const todayShiftsOfMine = myWeekShifts.filter(
-    (shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey
+    (shift) => !shift.isOnCall && toDateInputValueInTimeZone(shift.startTime) === todayKey
   );
   const plannedTodayMinutes =
     todayShiftsOfMine.length > 0

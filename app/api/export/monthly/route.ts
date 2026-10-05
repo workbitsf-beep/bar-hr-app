@@ -314,7 +314,13 @@ async function createMonthlyPdfBuffer(input: {
     const permissionItems = uniqueItems("Permesso");
     const vacationItems = uniqueItems("Ferie");
     const availabilityItems = uniqueItems("Indisponibilita");
-    const onCallItems = uniqueItems("Reperibilita");
+    // Being on call counts only once someone was called in and clocked: a
+    // stamped session on an on-call shift. Nothing ever wrote a
+    // "Reperibilita" item, so this read 0 for everybody.
+    const onCallSessions = input.dataset.groupedLogs.reduce(
+      (total, day) => total + day.entries.filter((entry) => entry.onCall).length,
+      0
+    );
     const permissionHours = sumItemHours("Permesso");
     const vacationHours = sumItemHours("Ferie");
     const overtimeHours = sumItemHours("Straordinario");
@@ -487,13 +493,13 @@ async function createMonthlyPdfBuffer(input: {
         rows.push({
           date: formatDateRange(entry.clockIn, entry.clockOut),
           day: formatShortDay(entry.clockIn),
-          status: "Lavorato",
-          type: "Turno",
+          status: entry.onCall ? "Reperibilita" : "Lavorato",
+          type: entry.onCall ? "Chiamata in reperibilita" : "Turno",
           planned: formatRange(entry.plannedStart, entry.plannedEnd),
           real: formatRange(entry.clockIn, entry.clockOut),
           total: getHours(entry.roundedHours),
           notes: entry.realHours !== entry.roundedHours ? `Reali ${getHours(entry.realHours)}` : "-",
-          color: colors.worked,
+          color: entry.onCall ? colors.onCall : colors.worked,
         });
       }
 
@@ -585,7 +591,7 @@ async function createMonthlyPdfBuffer(input: {
         ["Permessi", `${permissionItems.length} / ${formatDurationClock(permissionHours)}`],
         ["Ferie", `${vacationItems.length} / ${formatDurationClock(vacationHours)}`],
         ["Straordinari", formatDurationClock(overtimeHours)],
-        ["Reperibilita", String(onCallItems.length)],
+        ["Reperibilita", String(onCallSessions)],
         ["Indisponibilita", String(availabilityItems.length)],
       ];
       const xStart = marginX + 125;
