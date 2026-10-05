@@ -218,6 +218,8 @@ export default async function DashboardPage() {
           where: {
             barId: activeBarId,
             status: RequestStatus.PENDING,
+            // Someone's own request is answered by someone else.
+            employeeId: { not: session.user.id },
             type: {
               not: RequestType.SICKNESS,
             },
@@ -278,10 +280,16 @@ export default async function DashboardPage() {
       ? prisma.shift.findMany({
           where: {
             barId: activeBarId,
-            startTime: {
-              gte: startOfDay(now),
-              lt: addDays(startOfDay(now), 1),
-            },
+            // Last night's shift still running past midnight is part of now.
+            OR: [
+              {
+                startTime: {
+                  gte: startOfDay(now),
+                  lt: addDays(startOfDay(now), 1),
+                },
+              },
+              { startTime: { lt: startOfDay(now) }, endTime: { gt: now } },
+            ],
           },
           orderBy: { startTime: "asc" },
           select: {
@@ -314,7 +322,7 @@ export default async function DashboardPage() {
           where: {
             barId: activeBarId,
             timestamp: {
-              gte: startOfDay(now),
+              gte: addDays(startOfDay(now), -1),
               lt: addDays(startOfDay(now), 1),
             },
           },
@@ -431,11 +439,20 @@ export default async function DashboardPage() {
 
   // Only the last stamp of the day decides where someone stands: an entry
   // means they are in, an exit means the shift is done, nothing at all means
-  // they are still expected.
+  // they are still expected. Yesterday's stamps count only while an entry is
+  // still open: whoever came in before midnight is in, not expected, and an
+  // exit from last night says nothing about today's shift.
   const lastStampByUser = new Map<string, "IN" | "OUT">();
+  const todayStart = startOfDay(now);
 
   for (const log of crewTimeLogsToday) {
-    lastStampByUser.set(log.userId, log.type);
+    if (log.timestamp >= todayStart) {
+      lastStampByUser.set(log.userId, log.type);
+    } else if (log.type === "IN") {
+      lastStampByUser.set(log.userId, "IN");
+    } else {
+      lastStampByUser.delete(log.userId);
+    }
   }
 
   const crewToday = new Map<

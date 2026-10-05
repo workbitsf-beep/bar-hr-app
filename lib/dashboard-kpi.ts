@@ -199,8 +199,10 @@ export async function getDashboardKpiData(
     prisma.timeLog.findMany({
       where: {
         barId,
+        // From yesterday: whoever came in before midnight and has not left is
+        // present now, and only their last stamp says so.
         timestamp: {
-          gte: todayStart,
+          gte: addDays(todayStart, -1),
           lte: todayEnd,
         },
       },

@@ -991,6 +991,7 @@ export default async function DashboardRequestsPage({
                 request.peerStatus !== RequestStatus.REJECTED;
               const canOwnerReview =
                 canManageClosures &&
+                request.employee.id !== session.user.id &&
                 request.type !== RequestType.SICKNESS &&
                 (request.type !== "SHIFT_CHANGE" || request.peerStatus === RequestStatus.APPROVED);
               const canSeeRequestDetails =

@@ -72,6 +72,15 @@ export const PATCH = withBar(
       return Response.json({ ok: false, message: "Invalid shift update" }, { status: 400 });
     }
 
+    // Only people who work here can be put on this bar's shifts.
+    const activeMembers = await prisma.employeeBar.count({
+      where: { barId: session.activeBarId, isActive: true, userId: { in: employeeIds } },
+    });
+
+    if (activeMembers !== employeeIds.length) {
+      return Response.json({ ok: false, message: "Unknown employee" }, { status: 400 });
+    }
+
     await cancelShiftClockReminders([shiftId]);
 
     const updatedShift = await prisma.shift.update({

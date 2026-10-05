@@ -70,14 +70,6 @@ export const POST = withBar(
       );
     }
 
-    if (existingClockOut) {
-      await prisma.timeLog.delete({
-        where: {
-          id: existingClockOut.id,
-        },
-      });
-    }
-
     const settings = await prisma.barSettings.findUnique({
       where: {
         barId: session.activeBarId,
@@ -120,18 +112,27 @@ export const POST = withBar(
 
     const outTimestamp = new Date();
 
-    await prisma.timeLog.create({
-      data: {
-        type: ClockType.OUT,
-        userId: session.user.id,
-        barId: session.activeBarId,
-        shiftId: lastClockIn.shiftId,
-        latitude,
-        longitude,
-        timestamp: outTimestamp,
-        note: null,
-      },
-    });
+    // The automatic exit is replaced only once the real one is sure to be
+    // written. Deleting it before the position was checked meant a refused
+    // exit - out of range, no coordinates - reopened a closed shift, and its
+    // hours kept counting until someone noticed.
+    await prisma.$transaction([
+      ...(existingClockOut
+        ? [prisma.timeLog.delete({ where: { id: existingClockOut.id } })]
+        : []),
+      prisma.timeLog.create({
+        data: {
+          type: ClockType.OUT,
+          userId: session.user.id,
+          barId: session.activeBarId,
+          shiftId: lastClockIn.shiftId,
+          latitude,
+          longitude,
+          timestamp: outTimestamp,
+          note: null,
+        },
+      }),
+    ]);
 
     invalidateReportingCache(session.activeBarId, session.user.id);
     await closeClockOutReminders({

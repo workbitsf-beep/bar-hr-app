@@ -5055,6 +5055,21 @@ export async function reviewRequestAction(formData: FormData) {
     throw new Error("Request not found");
   }
 
+  // A decision is taken once. Reviewing again let a shift change that had
+  // already swapped the shifts be "rejected" afterwards, with the shifts left
+  // swapped. Getting here is usually innocent - the owner and a responsabile
+  // answering the same request from two phones - so it is a quiet no-op.
+  if (request.status !== RequestStatus.PENDING) {
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/requests");
+    return;
+  }
+
+  // A responsabile asks for leave like anyone else, and the owner answers it.
+  if (request.employeeId === session.user.id) {
+    throw new RuleError("Non puoi approvare una tua richiesta.");
+  }
+
   let shiftChangeNotification:
     | {
         approved: boolean;

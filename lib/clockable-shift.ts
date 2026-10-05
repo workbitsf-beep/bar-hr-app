@@ -30,18 +30,27 @@ export async function findAssignedShiftForClockIn({
     where: {
       barId,
       isOnCall: false,
-      startTime: {
-        gte: dayStart,
-        lte: dayEnd,
-      },
-      OR: [
-        { assignedToId: userId },
+      AND: [
         {
-          assignments: {
-            some: {
-              userId,
+          // Today's shifts, and last night's that is still running: someone
+          // arriving at ten past midnight for an 18:00-02:00 shift found no
+          // shift "today" and could not clock in at all.
+          OR: [
+            { startTime: { gte: dayStart, lte: dayEnd } },
+            { startTime: { lt: dayStart }, endTime: { gt: now } },
+          ],
+        },
+        {
+          OR: [
+            { assignedToId: userId },
+            {
+              assignments: {
+                some: {
+                  userId,
+                },
+              },
             },
-          },
+          ],
         },
       ],
     },

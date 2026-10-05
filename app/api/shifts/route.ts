@@ -63,6 +63,15 @@ export const POST = withBar(
       );
     }
 
+    // Only people who work here can be put on this bar's shifts.
+    const activeMembers = await prisma.employeeBar.count({
+      where: { barId: session.activeBarId, isActive: true, userId: { in: employeeIds } },
+    });
+
+    if (activeMembers !== employeeIds.length) {
+      return Response.json({ ok: false, message: "Unknown employee" }, { status: 400 });
+    }
+
     let startTime: Date;
     let endTime: Date;
 

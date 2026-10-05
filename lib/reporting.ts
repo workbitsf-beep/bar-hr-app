@@ -13,6 +13,7 @@ import {
   calculateShiftAwareRoundedWorkDuration,
 } from "@/lib/rounding";
 import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
+import { sessionsStartingBefore, withSessionLookahead } from "@/lib/session-window";
 
 export type ExportEntry = {
   inLogId: string;
@@ -232,7 +233,7 @@ async function buildRestaurantMonthlyDataset(
         barId,
         timestamp: {
           gte: monthStart,
-          lt: monthEnd,
+          lt: withSessionLookahead(monthEnd),
         },
       },
       select: {
@@ -376,7 +377,7 @@ async function buildRestaurantMonthlyDataset(
   let totalRealMs = 0;
   let totalRoundedMs = 0;
 
-  for (const log of timeLogs) {
+  for (const log of sessionsStartingBefore(timeLogs, monthEnd)) {
     if (log.type === ClockType.IN) {
       pendingIn = log;
       continue;
@@ -702,7 +703,7 @@ export async function buildMonthlyTotals(
             barId,
             timestamp: {
               gte: monthStart,
-              lt: monthEnd,
+              lt: withSessionLookahead(monthEnd),
             },
           },
           select: {
@@ -730,7 +731,7 @@ export async function buildMonthlyTotals(
         }),
       ]);
 
-      const totals = calculateMonthlyTotals(timeLogs, settings);
+      const totals = calculateMonthlyTotals(sessionsStartingBefore(timeLogs, monthEnd), settings);
 
       return {
         realHours: toHours(totals.totalRealMs),
@@ -762,7 +763,7 @@ export async function buildDailyTotals(
             barId,
             timestamp: {
               gte: dayStart,
-              lt: dayEnd,
+              lt: withSessionLookahead(dayEnd),
             },
           },
           select: {
@@ -790,7 +791,7 @@ export async function buildDailyTotals(
         }),
       ]);
 
-      const totals = calculateMonthlyTotals(timeLogs, settings);
+      const totals = calculateMonthlyTotals(sessionsStartingBefore(timeLogs, dayEnd), settings);
 
       return {
         realHours: toHours(totals.totalRealMs),
