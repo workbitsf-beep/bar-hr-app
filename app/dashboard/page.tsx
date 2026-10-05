@@ -511,6 +511,22 @@ export default async function DashboardPage() {
     0
   );
 
+  // Today's target is every shift of the day, not the one being worked. The
+  // ring counts all of today's hours, so on a split day measuring them against
+  // the evening shift alone turned the morning into overtime.
+  const todayShiftsOfMine = myWeekShifts.filter(
+    (shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey
+  );
+  const plannedTodayMinutes =
+    todayShiftsOfMine.length > 0
+      ? todayShiftsOfMine.reduce(
+          (total, shift) => total + (shift.endTime.getTime() - shift.startTime.getTime()) / 60000,
+          0
+        )
+      : timerShift
+        ? (timerShift.endTime.getTime() - timerShift.startTime.getTime()) / 60000
+        : 0;
+
   const monthWorkedDays = new Set(
     monthClockIns.map((entry) => toDateInputValueInTimeZone(entry.timestamp))
   ).size;
@@ -624,8 +640,7 @@ export default async function DashboardPage() {
           {features.timeTracking && ownHours ? (
             <WorkHoursRing
               activeClockInAt={activeClockInAt}
-              shiftStartAt={timerShift?.startTime.toISOString() ?? null}
-              shiftEndAt={timerShift?.endTime.toISOString() ?? null}
+              plannedTodayMinutes={Math.max(0, Math.round(plannedTodayMinutes))}
               closedTodayMinutes={Math.round((todayHours?.roundedHours ?? 0) * 60)}
               closedMonthMinutes={Math.round(ownHours.roundedHours * 60)}
               monthDays={monthWorkedDays}

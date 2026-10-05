@@ -9,20 +9,19 @@ import { useEffect, useState } from "react";
  * right now sat nowhere: the figure stood still all shift and jumped at the
  * end. Both numbers carry the open session here, and both move together.
  *
- * The ring measures how much of today's shift has passed. With no shift to
+ * The ring measures how much of today's shifts has passed. With no shift to
  * measure against it stays empty rather than inventing a proportion.
  */
 export function WorkHoursRing({
   activeClockInAt,
-  shiftStartAt,
-  shiftEndAt,
+  plannedTodayMinutes,
   closedTodayMinutes,
   closedMonthMinutes,
   monthDays,
 }: {
   activeClockInAt: string | null;
-  shiftStartAt: string | null;
-  shiftEndAt: string | null;
+  /** Every shift of today added up: a split day is measured whole. */
+  plannedTodayMinutes: number;
   closedTodayMinutes: number;
   closedMonthMinutes: number;
   monthDays: number;
@@ -51,10 +50,7 @@ export function WorkHoursRing({
   const todayMinutes = closedTodayMinutes + openMinutes;
   const monthMinutes = closedMonthMinutes + openMinutes;
 
-  const shiftMinutes =
-    shiftStartAt && shiftEndAt
-      ? Math.max(0, (new Date(shiftEndAt).getTime() - new Date(shiftStartAt).getTime()) / 60000)
-      : 0;
+  const shiftMinutes = plannedTodayMinutes;
 
   // 414.7 is the circle's circumference at this radius; the offset is what is
   // left to travel.
