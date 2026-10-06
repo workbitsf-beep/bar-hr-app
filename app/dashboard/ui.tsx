@@ -48,7 +48,6 @@ const softCardStyle: CSSProperties = {
   boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
 };
 
-const focusRing = "var(--workbit-focus)";
 
 function resolveUiEmoji(title: string) {
   const normalized = title.toLowerCase();

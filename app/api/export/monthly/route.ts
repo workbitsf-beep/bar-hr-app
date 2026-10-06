@@ -52,7 +52,6 @@ type SessionWithBar = {
   };
 };
 
-type MonthlyDataset = Awaited<ReturnType<typeof buildMonthlyDataset>>;
 
 const WORKBIT_FONT_CANDIDATES = [
   path.join(process.cwd(), "public", "fonts", "Workbit-Regular.ttf"),
