@@ -575,6 +575,35 @@ function DangerDeleteForm({
         </span>
       </div>
 
+      {/* The clock-ins are the employer's to keep for five years, by law, and
+          deleting the venue deletes them. The reports are the way to keep
+          them, so they come before the button, not after. */}
+      <div
+        style={{
+          display: "grid",
+          gap: 8,
+          padding: "12px 14px",
+          borderRadius: 16,
+          background: "#f6f3ff",
+          border: "1px solid #ddd6fe",
+          fontSize: 13,
+          color: "#4c1d95",
+          lineHeight: 1.55,
+        }}
+      >
+        <span>
+          Per legge le timbrature vanno conservate 5 anni. Prima di eliminare, scarica i report
+          dei mesi che ti servono: dopo non si recuperano.
+        </span>
+        <a href="/dashboard/export" style={{ color: "#4c1d95", fontWeight: 700 }}>
+          Vai ai report ›
+        </a>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 600 }}>
+          <input type="checkbox" name="reportsDownloaded" required />
+          Ho scaricato i report che mi servono
+        </label>
+      </div>
+
       <FormField label="Scrivi ELIMINA per confermare">
         <TextInput name="confirmation" required autoComplete="off" placeholder="ELIMINA" />
       </FormField>
@@ -583,6 +612,11 @@ function DangerDeleteForm({
         <TextInput name="password" type="password" required autoComplete="current-password" />
       </FormField>
 
+      {error === "delete-reports" ? (
+        <p style={{ margin: 0, color: "#b91c1c", fontWeight: 800 }}>
+          Conferma di aver scaricato i report che ti servono.
+        </p>
+      ) : null}
       {error === "delete-confirmation" ? (
         <p style={{ margin: 0, color: "#b91c1c", fontWeight: 800 }}>Scrivi ELIMINA per confermare.</p>
       ) : null}

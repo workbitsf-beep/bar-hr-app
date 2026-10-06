@@ -49,10 +49,17 @@ function getExpiredTaskFilters(
   reminderCutoff: Date,
   completedCutoff: Date
 ): Prisma.TaskWhereInput[] {
+  // A confirmed task is proof of who confirmed it: it goes to the archive
+  // (lib/note-visibility.ts) and data-retention.ts removes it after a year.
+  const notConfirmedProof: Prisma.TaskWhereInput = {
+    NOT: { requiresConfirmation: true, status: TaskStatus.DONE },
+  };
+
   return [
     ...expiredByBarActivity.map((entry) => ({
       bar: entry.bar,
       dueDate: { lt: entry.cutoff },
+      ...notConfirmedProof,
     })),
     {
       status: TaskStatus.TODO,
@@ -62,6 +69,7 @@ function getExpiredTaskFilters(
     {
       status: TaskStatus.DONE,
       completedAt: { lte: completedCutoff },
+      requiresConfirmation: false,
     },
   ];
 }
@@ -138,9 +146,18 @@ export async function deleteShiftWithCleanup(
   };
 }
 
+/**
+ * Clears what only matters for a day or a season: availabilities, closures,
+ * expired courses, done or lapsed tasks, the board's day-old notes.
+ *
+ * Nothing here has archive value. Shifts, requests and confirmation notes are
+ * records, and are kept and finally deleted by lib/data-retention.ts, on the
+ * periods the legal documents state - one rule per record, in one place. Two
+ * jobs deleting the same things on different clocks is how holidays and
+ * courses were lost on 6 October 2026.
+ */
 export async function runShiftRetentionCleanup(now = new Date()) {
   const { restaurantCutoff, companyCutoff } = getCalendarRetentionCutoffs(now);
-  const availabilityCutoff = getAvailabilityRetentionCutoff(now);
   const reminderCutoff = getHoursRetentionCutoff(TASK_REMINDER_RETENTION_HOURS, now);
   const completedTaskCutoff = getHoursRetentionCutoff(COMPLETED_TASK_RETENTION_HOURS, now);
   const noteCutoff = getHoursRetentionCutoff(NOTE_RETENTION_HOURS, now);
@@ -154,169 +171,20 @@ export async function runShiftRetentionCleanup(now = new Date()) {
       cutoff: companyCutoff,
     },
   ];
-  const expiredShifts = await prisma.shift.findMany({
-    where: {
-      OR: expiredByBarActivity.map((entry) => ({
-        bar: entry.bar,
-        endTime: { lt: entry.cutoff },
-      })),
-    },
-    select: {
-      id: true,
-    },
-    take: 500,
-  });
-
-  if (expiredShifts.length === 0) {
-    const standaloneResult = await deleteExpiredCalendarItems(
-      expiredByBarActivity,
-      availabilityCutoff,
-      reminderCutoff,
-      completedTaskCutoff,
-      noteCutoff
-    );
-
-    return {
-      restaurantCutoff,
-      companyCutoff,
-      deletedShiftCount: 0,
-      deletedRequestCount: standaloneResult.deletedRequestCount,
-      detachedTimeLogCount: 0,
-      deletedAvailabilityCount: standaloneResult.deletedAvailabilityCount,
-      deletedCourseCount: standaloneResult.deletedCourseCount,
-      deletedClosureCount: standaloneResult.deletedClosureCount,
-      deletedTaskCount: standaloneResult.deletedTaskCount,
-      deletedNoteCount: standaloneResult.deletedNoteCount,
-    };
-  }
-
-  const shiftIds = expiredShifts.map((shift) => shift.id);
-  const result = await prisma.$transaction(async (tx) => {
-    const deletedRequests = await tx.request.deleteMany({
-      where: {
-        shiftId: {
-          in: shiftIds,
-        },
-        type: RequestType.SHIFT_CHANGE,
-      },
-    });
-
-    const deletedOldRequests = await tx.request.deleteMany({
-      where: {
-        // Only shift changes, which belong to the calendar. Holidays, leave,
-        // sickness and overtime are the employer's record: the legal documents
-        // promise five years and data-retention.ts enforces it. Deleting them
-        // here at sixty days emptied the reports of every month but the last
-        // two and broke the promise.
-        type: RequestType.SHIFT_CHANGE,
-        OR: expiredByBarActivity.flatMap((entry) => [
-          {
-            bar: entry.bar,
-            endsAt: { lt: entry.cutoff },
-          },
-          {
-            bar: entry.bar,
-            endsAt: null,
-            startsAt: { lt: entry.cutoff },
-          },
-          {
-            bar: entry.bar,
-            endsAt: null,
-            startsAt: null,
-            createdAt: { lt: entry.cutoff },
-          },
-        ]),
-      },
-    });
-
-    const detachedTimeLogs = await tx.timeLog.updateMany({
-      where: {
-        shiftId: {
-          in: shiftIds,
-        },
-      },
-      data: {
-        shiftId: null,
-      },
-    });
-
-    const deletedAvailabilities = await tx.availability.deleteMany({
-      where: {
-        // Kept as long as the rest of the calendar, because the month's report
-        // counts them. Deleted a day after they ended, the report's
-        // "Indisponibilita" read zero for everyone.
-        endsAt: { lt: availabilityCutoff },
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          endsAt: { lt: entry.cutoff },
-        })),
-      },
-    });
-
-    const deletedCourses = await tx.course.deleteMany({
-      where: {
-        // A course is kept while what it certifies is still valid: HACCP lasts
-        // years, and deleting it sixty days after the lesson made the person
-        // look up to date when the expiry could no longer be tracked.
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          endsAt: { lt: entry.cutoff },
-          OR: [{ expiresAt: null }, { expiresAt: { lt: entry.cutoff } }],
-        })),
-      },
-    });
-
-    const deletedClosures = await tx.calendarClosure.deleteMany({
-      where: {
-        OR: expiredByBarActivity.map((entry) => ({
-          bar: entry.bar,
-          endsAt: { lt: entry.cutoff },
-        })),
-      },
-    });
-
-    const deletedTasks = await tx.task.deleteMany({
-      where: {
-        OR: getExpiredTaskFilters(
-          expiredByBarActivity,
-          reminderCutoff,
-          completedTaskCutoff
-        ),
-      },
-    });
-
-    const deletedNotes = await tx.note.deleteMany({
-      where: {
-        createdAt: { lt: noteCutoff },
-        // A note written for a day of the calendar waits for that day: it was
-        // deleted a day after being written, often before the day came.
-        OR: [{ activityDate: null }, { activityDate: { lt: noteCutoff } }],
-      },
-    });
-
-    const deletedShifts = await tx.shift.deleteMany({
-      where: {
-        id: {
-          in: shiftIds,
-        },
-      },
-    });
-
-    return {
-      deletedShiftCount: deletedShifts.count,
-      deletedRequestCount: deletedRequests.count + deletedOldRequests.count,
-      detachedTimeLogCount: detachedTimeLogs.count,
-      deletedAvailabilityCount: deletedAvailabilities.count,
-      deletedCourseCount: deletedCourses.count,
-      deletedClosureCount: deletedClosures.count,
-      deletedTaskCount: deletedTasks.count,
-      deletedNoteCount: deletedNotes.count,
-    };
-  });
+  const result = await deleteExpiredCalendarItems(
+    expiredByBarActivity,
+    getAvailabilityRetentionCutoff(now),
+    reminderCutoff,
+    completedTaskCutoff,
+    noteCutoff
+  );
 
   return {
     restaurantCutoff,
     companyCutoff,
+    deletedShiftCount: 0,
+    deletedRequestCount: 0,
+    detachedTimeLogCount: 0,
     ...result,
   };
 }
@@ -332,34 +200,6 @@ async function deleteExpiredCalendarItems(
   noteCutoff = getHoursRetentionCutoff(NOTE_RETENTION_HOURS)
 ) {
   return prisma.$transaction(async (tx) => {
-    const deletedRequests = await tx.request.deleteMany({
-      where: {
-        // Only shift changes, which belong to the calendar. Holidays, leave,
-        // sickness and overtime are the employer's record: the legal documents
-        // promise five years and data-retention.ts enforces it. Deleting them
-        // here at sixty days emptied the reports of every month but the last
-        // two and broke the promise.
-        type: RequestType.SHIFT_CHANGE,
-        OR: expiredByBarActivity.flatMap((entry) => [
-          {
-            bar: entry.bar,
-            endsAt: { lt: entry.cutoff },
-          },
-          {
-            bar: entry.bar,
-            endsAt: null,
-            startsAt: { lt: entry.cutoff },
-          },
-          {
-            bar: entry.bar,
-            endsAt: null,
-            startsAt: null,
-            createdAt: { lt: entry.cutoff },
-          },
-        ]),
-      },
-    });
-
     const deletedAvailabilities = await tx.availability.deleteMany({
       where: {
         // Kept as long as the rest of the calendar, because the month's report
@@ -411,11 +251,13 @@ async function deleteExpiredCalendarItems(
         // A note written for a day of the calendar waits for that day: it was
         // deleted a day after being written, often before the day came.
         OR: [{ activityDate: null }, { activityDate: { lt: noteCutoff } }],
+        // A note that asked for confirmation is proof of who read it: it
+        // leaves the board but is kept (lib/note-visibility.ts).
+        requiresConfirmation: false,
       },
     });
 
     return {
-      deletedRequestCount: deletedRequests.count,
       deletedAvailabilityCount: deletedAvailabilities.count,
       deletedCourseCount: deletedCourses.count,
       deletedClosureCount: deletedClosures.count,

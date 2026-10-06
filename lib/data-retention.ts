@@ -2,6 +2,10 @@ import "server-only";
 
 import { getCompanyProfile } from "@/lib/company-profile";
 import { prisma } from "@/lib/prisma";
+import { CONFIRMED_NOTE_ARCHIVE_MONTHS } from "@/lib/note-visibility";
+
+// Not personal records: delivery history and short-lived links.
+const NOTIFICATION_RETENTION_DAYS = 90;
 
 /**
  * Throwing away what there is no longer a reason to keep.
@@ -129,6 +133,48 @@ export async function runDataRetention() {
   } else {
     result.requestsDeleted = "non impostato";
   }
+
+  // Planned shifts live as long as the clock-ins they explain: the planned
+  // hours and the on-call mark are what an overtime question is settled on.
+  // They used to go after sixty days, taking the on-call count of every older
+  // report with them.
+  if (periods.timeLogs) {
+    const removed = await prisma.shift.deleteMany({
+      where: { endTime: { lt: monthsAgo(periods.timeLogs) } },
+    });
+    result.shiftsDeleted = removed.count;
+  } else {
+    result.shiftsDeleted = "non impostato";
+  }
+
+  // The archive of confirmation notes: proof of who read what, for a year.
+  const notesRemoved = await prisma.note.deleteMany({
+    where: {
+      requiresConfirmation: true,
+      createdAt: { lt: monthsAgo(CONFIRMED_NOTE_ARCHIVE_MONTHS) },
+    },
+  });
+  result.confirmationNotesDeleted = notesRemoved.count;
+
+  const tasksRemoved = await prisma.task.deleteMany({
+    where: {
+      requiresConfirmation: true,
+      status: "DONE",
+      completedAt: { lt: monthsAgo(CONFIRMED_NOTE_ARCHIVE_MONTHS) },
+    },
+  });
+  result.confirmedTasksDeleted = tasksRemoved.count;
+
+  const notificationsRemoved = await prisma.notification.deleteMany({
+    where: { createdAt: { lt: new Date(Date.now() - NOTIFICATION_RETENTION_DAYS * 86_400_000) } },
+  });
+  result.notificationsDeleted = notificationsRemoved.count;
+
+  const [ticketsRemoved, tokensRemoved] = await Promise.all([
+    prisma.downloadTicket.deleteMany({ where: { expiresAt: { lt: new Date() } } }),
+    prisma.documentAccessToken.deleteMany({ where: { expiresAt: { lt: new Date() } } }),
+  ]);
+  result.expiredLinksDeleted = ticketsRemoved.count + tokensRemoved.count;
 
   // Last, and only once the period the employer is held to has run out.
   if (periods.timeLogs) {

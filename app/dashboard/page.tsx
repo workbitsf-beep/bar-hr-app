@@ -2,6 +2,7 @@ import { RequestStatus, RequestType, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { visibleOnBoard } from "@/lib/note-visibility";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
 import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardContext } from "./context";
@@ -395,8 +396,13 @@ export default async function DashboardPage() {
           where: {
             barId: activeBarId,
             createdAt: { gte: addDays(now, -30) },
-            OR: [{ employeeId: null }, { employeeId: session.user.id }],
             readReceipts: { none: { userId: session.user.id } },
+            // Only what is still on the board: an archived note cannot be
+            // opened, so it must not count as one waiting to be read.
+            AND: [
+              { OR: [{ employeeId: null }, { employeeId: session.user.id }] },
+              visibleOnBoard(now),
+            ],
           },
         })
       : Promise.resolve(0),

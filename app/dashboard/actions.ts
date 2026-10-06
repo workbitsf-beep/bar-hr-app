@@ -1985,6 +1985,11 @@ export async function deleteOwnerAccountAndBarAction(formData: FormData) {
   const confirmation = String(formData.get("confirmation") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
+  // The venue's clock-ins go with it; the owner must have taken the reports.
+  if (formData.get("reportsDownloaded") !== "on") {
+    redirect("/dashboard/settings?error=delete-reports");
+  }
+
   if (confirmation !== "ELIMINA" || !password) {
     redirect("/dashboard/settings?error=delete-confirmation");
   }

@@ -23,6 +23,8 @@ import {
 import { PopupAction } from "../popup-action";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { TaskComposeForm } from "./task-compose-form";
+import { ConfirmationArchive } from "./confirmation-archive";
+import { confirmedTaskArchived } from "@/lib/note-visibility";
 
 export default async function DashboardTasksPage({
   searchParams,
@@ -66,6 +68,8 @@ export default async function DashboardTasksPage({
     prisma.task.findMany({
           where: {
             barId: activeBarId,
+            // Confirmed a day ago or more: in the archive, not on the page.
+            NOT: confirmedTaskArchived(),
             ...(role === Role.EMPLOYEE
               ? {
                   OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
@@ -158,6 +162,15 @@ export default async function DashboardTasksPage({
                   Elimina note completate
                 </PrimaryButton>
               </form>
+            ) : null}
+            {canManage ? (
+              <PopupAction
+                title="Archivio conferme"
+                ariaLabel="Apri archivio conferme"
+                triggerContent="Archivio"
+              >
+                <ConfirmationArchive barId={activeBarId} />
+              </PopupAction>
             ) : null}
             <PopupAction title="Nuova nota" ariaLabel="Aggiungi nota">
               <TaskComposeForm

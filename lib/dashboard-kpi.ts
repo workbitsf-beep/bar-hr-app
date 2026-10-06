@@ -6,6 +6,7 @@ import {
   TaskStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { visibleOnBoard } from "@/lib/note-visibility";
 import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 
 export type DashboardKpiData = {
@@ -297,6 +298,7 @@ export async function getDashboardKpiData(
     prisma.note.findMany({
       where: {
         barId,
+        ...visibleOnBoard(now),
       },
       orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
       take: 4,

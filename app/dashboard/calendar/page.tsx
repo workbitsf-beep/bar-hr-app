@@ -1,5 +1,6 @@
 import { ActivityType, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { visibleOnBoard } from "@/lib/note-visibility";
 import { buildNoteMeta } from "@/lib/note-list-format";
 import { describeTaskRepeat } from "@/lib/task-recurrence";
 import { canReviewOperationalRequests } from "@/lib/permissions";
@@ -656,6 +657,7 @@ export default async function DashboardCalendarPage({
                 where: {
                   barId: activeBarId,
                   AND: [
+                    visibleOnBoard(),
                     {
                       OR: [
                         {

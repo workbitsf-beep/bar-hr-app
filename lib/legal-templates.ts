@@ -151,7 +151,9 @@ function buildPrivacy(profile: CompanyProfile) {
     `• Note sul personale: ${value(profile, "retentionNotes")}.`,
     `• Documenti caricati: ${value(profile, "retentionDocuments")}.`,
     `• Log di accesso: ${value(profile, "retentionAccessLogs")}.`,
-    "Per i dati del personale il locale, in quanto titolare, può chiedere la cancellazione anticipata. La cancellazione di un account o di un locale elimina anche tutti i dati collegati, salvo quelli che dobbiamo conservare per legge.",
+    `• Turni pianificati: ${value(profile, "retentionTimelogs")}, come le timbrature che spiegano.`,
+    "• Notifiche: 90 giorni.",
+    "Per i dati del personale il locale, in quanto titolare, può chiedere la cancellazione anticipata. Quando una persona chiude il proprio account, credenziali, sessioni e notifiche vengono cancellati subito, mentre timbrature e richieste restano al locale per i periodi indicati. L'eliminazione di un locale, decisa dal titolare, cancella tutti i dati del locale, comprese le timbrature: prima di procedere il titolare è invitato a scaricare i report che deve conservare.",
     "",
 
     "9. COME PROTEGGIAMO I DATI",
@@ -606,7 +608,7 @@ function buildProcessingRegister(profile: CompanyProfile) {
     "",
     "Categorie di trattamenti svolti per conto dei titolari:",
     "• Gestione degli account del personale — nome, cognome, email, ruolo, credenziali, passkey, lingua, identificativi dei dispositivi. Conservazione: fino all'eliminazione dell'account.",
-    "• Pianificazione dei turni — turni, assegnazioni, conferme, disponibilità. Conservazione: per la durata del contratto con il locale.",
+    `• Pianificazione dei turni — turni, assegnazioni, conferme, disponibilità. Conservazione: turni e assegnazioni ${value(profile, "retentionTimelogs")}, come le timbrature che spiegano; disponibilità e chiusure 60 giorni dopo la data (400 giorni per le aziende).`,
     `• Rilevazione delle presenze — data e ora delle timbrature, inserimenti manuali, chiusure automatiche. Conservazione: ${value(profile, "retentionTimelogs")}.`,
     `• Verifica della posizione alla timbratura — coordinate geografiche del dispositivo nel momento della timbratura; posizione e raggio della sede. Conservazione: ${value(profile, "retentionPosition")}.`,
     `• Gestione delle richieste — ferie, permessi, cambio turno, straordinari, malattia; motivazioni, esito, revisore. Conservazione: ${value(profile, "retentionRequests")}.`,
@@ -615,7 +617,7 @@ function buildProcessingRegister(profile: CompanyProfile) {
       : "",
     `• Note sul personale — testo libero dei responsabili su singoli dipendenti, conferme di lettura. Conservazione: ${value(profile, "retentionNotes")}.`,
     `• Archiviazione dei documenti — file caricati dal locale, anche contratti e buste paga. Conservazione: ${value(profile, "retentionDocuments")}.`,
-    "• Formazione — corsi assegnati, scadenze, stato di completamento. Conservazione: per la durata del contratto con il locale.",
+    "• Formazione — corsi assegnati, scadenze, stato di completamento. Conservazione: fino alla scadenza del certificato del corso e per 60 giorni dopo; i corsi senza scadenza 60 giorni dopo la data del corso.",
     "• Notifiche ed email — identificativo del dispositivo, indirizzo email, testo del messaggio. Conservazione: il tempo necessario all'invio.",
     "",
 

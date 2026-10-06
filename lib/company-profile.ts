@@ -76,9 +76,11 @@ export const COMPANY_PROFILE_DEFAULTS: CompanyProfile = {
   // (decided on 6 Oct 2026), and a note written for a calendar day until that
   // day has passed.
   retentionNotes:
-    "per 24 ore dalla pubblicazione; le note riferite a un giorno del calendario fino al giorno successivo",
+    "per 24 ore dalla pubblicazione; le note riferite a un giorno del calendario fino al giorno successivo; le note che chiedono una conferma di lettura, con chi le ha confermate e quando, per 12 mesi",
+  // Decided on 6 Oct 2026: the owner manages documents, Workbit deletes
+  // none on its own. The text used to promise a deletion nothing performed.
   retentionDocuments:
-    "fino a quando il locale li rimuove, e comunque non oltre la cessazione del rapporto di lavoro",
+    "fino a quando il locale li rimuove: conservazione e cancellazione dei documenti sono decise e gestite dal locale, in qualità di titolare del trattamento",
   retentionAccessLogs: "per 12 mesi",
   retentionTaxData: "per 10 anni, come previsto dalla normativa civilistica e fiscale",
   collectsCertificateCode: true,
