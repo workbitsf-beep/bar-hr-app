@@ -258,6 +258,10 @@ model Bar {
   roundingStepMin        Int                     @default(15)
   exitToleranceMin       Int                     @default(13)
   activityType           ActivityType            @default(RESTAURANT)
+  /// When and from where the owner declared, at public signup, to run a real
+  /// business with this VAT number. Null for venues opened by hand.
+  businessDeclaredAt     DateTime?
+  businessDeclaredIp     String?
   ownerId                String                  @db.Uuid
   owner                  User                    @relation("BarOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   memberships            EmployeeBar[]

@@ -361,6 +361,21 @@ export default function LoginPage() {
               />
             </div>
           </form>
+
+          {/* Chi ha scaricato l'app senza un invito: un titolare apre qui il suo
+              locale. Un dipendente invece entra con l'accesso del titolare. */}
+          <div className={styles.signupCard}>
+            <span className={styles.signupText}>
+              <strong>Hai un locale?</strong>
+              <span>Aprilo su Workbit in due minuti, 30 giorni gratis.</span>
+            </span>
+            <a className={`workbit-press-feedback ${styles.signupButton}`} href="/registrazione">
+              Registrati
+            </a>
+          </div>
+          <p className={styles.inviteNote}>
+            Lavori in un locale? Il tuo accesso te lo manda il titolare.
+          </p>
         </div>
       </section>
     </main>

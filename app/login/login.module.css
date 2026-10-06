@@ -434,3 +434,56 @@
     transition: none;
   }
 }
+
+/* Chi non ha ancora un account: il titolare si registra da qui. */
+.signupCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 14px 18px;
+  border: 1px solid rgba(109, 61, 240, 0.16);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.signupText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.signupText strong {
+  color: #15132b;
+  font-size: 15px;
+  font-weight: 820;
+}
+
+.signupText span {
+  color: #6b6880;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.signupButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #6d3df0, #9b5cff);
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 10px 22px rgba(109, 61, 240, 0.28);
+}
+
+.inviteNote {
+  margin: -4px 0 0;
+  padding: 0 7px;
+  color: #8b88a3;
+  font-size: 12.5px;
+  text-align: center;
+}

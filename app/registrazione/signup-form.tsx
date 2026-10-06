@@ -5,10 +5,9 @@ import { useState } from "react";
 /**
  * Il modulo per aprire un locale.
  *
- * Cinque campi, non dodici. Indirizzo, numero di persone, orari e GPS si
- * chiedono dopo, nell'onboarding, quando la persona e gia dentro e ha visto
- * che l'app esiste: un modulo lungo davanti alla porta e un modulo che si
- * abbandona a meta.
+ * Chi sei e la tua attivita: ragione sociale, partita IVA e indirizzo, con la
+ * dichiarazione di gestirla davvero - niente registrazioni finte. Numero di
+ * persone, orari e GPS si chiedono dopo, nell'onboarding.
  */
 export function SignupForm() {
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
@@ -97,6 +96,53 @@ export function SignupForm() {
         </label>
       </fieldset>
 
+      <fieldset className="wb-signup__group">
+        <legend>La tua attività</legend>
+        <label>
+          <span>Ragione sociale</span>
+          <input name="legalName" autoComplete="organization" required maxLength={160} />
+        </label>
+        <label>
+          <span>Partita IVA</span>
+          <input
+            name="vatNumber"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="11 cifre"
+            required
+            maxLength={16}
+          />
+        </label>
+        <label>
+          <span>Indirizzo del locale</span>
+          <input name="addressLine1" autoComplete="street-address" required maxLength={160} />
+        </label>
+        <div className="wb-signup__pair wb-signup__pair--cap">
+          <label>
+            <span>CAP</span>
+            <input
+              name="postalCode"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              required
+              maxLength={5}
+            />
+          </label>
+          <label>
+            <span>Città</span>
+            <input name="city" autoComplete="address-level2" required maxLength={80} />
+          </label>
+        </div>
+      </fieldset>
+
+      <label className="wb-signup__declare">
+        <input type="checkbox" name="businessDeclaration" required />
+        <span>
+          Dichiaro di essere titolare o legale rappresentante di un&apos;attività in essere, e che i
+          dati inseriti sono veri.
+        </span>
+      </label>
+
       {/* Invisibile a una persona, irresistibile per un riempitore automatico. */}
       <input
         name="companyWebsite"
@@ -116,7 +162,9 @@ export function SignupForm() {
         {state === "sending" ? "Un attimo…" : "Apri il locale"}
       </button>
 
-      <p className="wb-signup__fine">
+      {/* Nell'app installata il prezzo non si nomina: gli store non vogliono
+          rimandi a pagamenti fuori da loro. Sul web resta. */}
+      <p className="wb-signup__fine wb-web-only">
         Trenta giorni gratis. Alla scadenza l&apos;abbonamento parte da solo a 29,99 € al mese: ti
         avvisiamo tre giorni prima, e puoi disdire quando vuoi dalle impostazioni.
       </p>

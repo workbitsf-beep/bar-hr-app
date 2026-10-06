@@ -48,13 +48,13 @@ export default async function RegistrationPage() {
             Apri il tuo <span>locale.</span>
           </h1>
           <p>
-            Cinque campi e ci sei. Turni, orari e squadra li imposti dopo, dentro l&apos;app, in
-            una decina di minuti.
+            Workbit è per attività vere: ti chiediamo i dati del locale e la partita IVA. Turni,
+            orari e squadra li imposti dopo, dentro l&apos;app.
           </p>
           <ul className="wb-signup__perks">
-            <li>Pronto in due minuti</li>
+            <li>Pronto in pochi minuti</li>
             <li>Inviti il team quando vuoi</li>
-            <li>Poi 29,99 € al mese, disdici quando vuoi</li>
+            <li className="wb-web-only">Poi 29,99 € al mese, disdici quando vuoi</li>
           </ul>
         </section>
 
