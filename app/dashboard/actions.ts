@@ -1392,7 +1392,10 @@ export async function selectBarAction(formData: FormData) {
     redirect("/dashboard/settings");
   }
 
-  const returnPath = await getReturnPathFromReferer("/dashboard");
+  // Jumping in from the console: the console is closed to the venue role, so
+  // land on the venue's home instead of back where the tap came from.
+  const referer = await getReturnPathFromReferer("/dashboard");
+  const returnPath = referer.startsWith("/dashboard/super-admin") ? "/dashboard" : referer;
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/settings");

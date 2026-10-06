@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export type Tone = "neutral" | "positive" | "warning" | "negative";
 
@@ -194,14 +195,13 @@ export function DataList({ items }: { items: Array<{ label: string; value: React
   );
 }
 
-export function Forbidden() {
-  return (
-    <div className="wbc-page">
-      <Section title="Accesso negato">
-        <Empty>Questa area è riservata al super admin.</Empty>
-      </Section>
-    </div>
-  );
+/**
+ * A console page opened outside the console role - most often the super admin
+ * who has stepped into a venue and goes back in history. Nothing to read
+ * there, so send them home rather than to a dead end.
+ */
+export function Forbidden(): never {
+  redirect("/dashboard");
 }
 
 const TONE_COLOR: Record<Tone, string> = {
