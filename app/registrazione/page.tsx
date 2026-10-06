@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { BrandMark } from "@/components/brand-mark";
 import { SignupForm } from "./signup-form";
 import "./signup.css";
 
@@ -27,24 +28,43 @@ export default async function RegistrationPage() {
 
   return (
     <main className="wb-signup">
+      <header className="wb-signup__bar">
+        <a className="wb-signup__brand" href="https://workbit.it" aria-label="Workbit, torna al sito">
+          <BrandMark size={38} />
+          <span>Workbit</span>
+        </a>
+        <a className="wb-signup__login" href="/login">
+          Accedi
+        </a>
+      </header>
+
       <div className="wb-signup__inner">
-        <header className="wb-signup__head">
+        <section className="wb-signup__head">
           <span className="wb-signup__kicker">
             <i aria-hidden="true" />
             Trenta giorni gratis
           </span>
-          <h1>Apri il tuo locale.</h1>
+          <h1>
+            Apri il tuo <span>locale.</span>
+          </h1>
           <p>
             Cinque campi e ci sei. Turni, orari e squadra li imposti dopo, dentro l&apos;app, in
             una decina di minuti.
           </p>
-        </header>
+          <ul className="wb-signup__perks">
+            <li>Pronto in due minuti</li>
+            <li>Inviti il team quando vuoi</li>
+            <li>Poi 29,99 € al mese, disdici quando vuoi</li>
+          </ul>
+        </section>
 
-        <SignupForm />
+        <div className="wb-signup__side">
+          <SignupForm />
 
-        <p className="wb-signup__back">
-          Hai già un account? <a href="/login">Entra da qui</a>
-        </p>
+          <p className="wb-signup__back">
+            Hai già un account? <a href="/login">Entra da qui</a>
+          </p>
+        </div>
       </div>
     </main>
   );
