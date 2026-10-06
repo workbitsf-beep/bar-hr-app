@@ -3971,3 +3971,49 @@
         margin: 0 !important;
         line-height: 1.2 !important;
       }
+
+      /* Notes header: delete completed, archive and add sit on one line as
+         three round icons. The delete used to be a red label that wrapped onto
+         a row of its own above the title. */
+      .workbit-notes-panel .dashboard-panel-header .workbit-notes-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+      }
+
+      .workbit-notes-panel .dashboard-panel-header .workbit-notes-actions .workbit-notes-icon {
+        position: relative !important;
+        width: 38px !important;
+        min-width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 999px !important;
+        display: inline-grid !important;
+        place-items: center !important;
+        box-shadow: none !important;
+        font-size: 0 !important;
+        cursor: pointer;
+      }
+
+      .workbit-notes-panel .dashboard-panel-header .workbit-notes-actions .workbit-notes-icon::after {
+        content: none !important;
+      }
+
+      .workbit-notes-panel .dashboard-panel-header .workbit-notes-actions .workbit-notes-icon > svg {
+        display: block !important;
+        width: 18px !important;
+        height: 18px !important;
+      }
+
+      .workbit-notes-panel .dashboard-panel-header .workbit-notes-actions .workbit-notes-icon--archive {
+        background: #efecff !important;
+        color: #6255ed !important;
+      }
+
+      .workbit-notes-panel .dashboard-panel-header .workbit-notes-actions .workbit-notes-icon--danger {
+        background: #fdecec !important;
+        color: #e5484d !important;
+      }

@@ -16,7 +16,6 @@ import {
   IconButton,
   ItemList,
   Panel,
-  PrimaryButton,
   Stack,
   SuccessCallout,
 } from "../ui";
@@ -155,19 +154,42 @@ export default async function DashboardTasksPage({
         title="Note"
         className="workbit-notes-panel"
         action={
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="workbit-notes-actions">
             {canManage && tasks.some((task) => task.status === "DONE") ? (
-              <form action={deleteAllCompletedTasksAction}>
-                <PrimaryButton type="submit" tone="red">
-                  Elimina note completate
-                </PrimaryButton>
+              <form action={deleteAllCompletedTasksAction} style={{ display: "contents" }}>
+                <button
+                  type="submit"
+                  className="workbit-notes-icon workbit-notes-icon--danger"
+                  aria-label="Elimina note completate"
+                  title="Elimina note completate"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 7h16M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7m-8.5 0 .8 12.2c.1.9.8 1.8 1.8 1.8h5.8c1 0 1.7-.9 1.8-1.8L17.5 7M10 11v6M14 11v6"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
               </form>
             ) : null}
             {canManage ? (
               <PopupAction
                 title="Archivio conferme"
                 ariaLabel="Apri archivio conferme"
-                triggerContent="Archivio"
+                className="workbit-notes-icon workbit-notes-icon--archive"
+                triggerContent={
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M3 7.5c0-1.1.9-2 2-2h4.2l2 2.2H19c1.1 0 2 .9 2 2v7.8c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V7.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                }
               >
                 <ConfirmationArchive barId={activeBarId} />
               </PopupAction>
