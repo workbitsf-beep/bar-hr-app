@@ -87,6 +87,48 @@ async function ensureMonthlyDiscountCoupon(input: {
   return coupon.id;
 }
 
+/**
+ * Dal secondo locale lo stesso titolare paga il 10% in meno, sul mensile come
+ * sull'annuale: e quello che promette il sito (workbit.it/prezzi). Il primo
+ * locale aperto paga pieno; ogni locale aperto dopo ha lo sconto, da solo,
+ * senza che il super admin lo imposti a mano.
+ *
+ * Il buono e uno solo per tutti, con un id fisso: si crea la prima volta che
+ * serve e poi si riusa.
+ */
+const ADDITIONAL_VENUE_DISCOUNT_PERCENT = 10;
+const ADDITIONAL_VENUE_COUPON_ID = "workbit-secondo-locale-10";
+
+async function ownerHasEarlierVenue(bar: { id: string; ownerId: string; createdAt: Date }) {
+  const earlier = await prisma.bar.count({
+    where: {
+      ownerId: bar.ownerId,
+      id: { not: bar.id },
+      createdAt: { lt: bar.createdAt },
+    },
+  });
+
+  return earlier > 0;
+}
+
+async function ensureAdditionalVenueCoupon(stripe: Stripe) {
+  try {
+    const existing = await stripe.coupons.retrieve(ADDITIONAL_VENUE_COUPON_ID);
+    return existing.id;
+  } catch {
+    const coupon = await stripe.coupons.create({
+      id: ADDITIONAL_VENUE_COUPON_ID,
+      percent_off: ADDITIONAL_VENUE_DISCOUNT_PERCENT,
+      duration: "forever",
+      name: `Workbit dal secondo locale ${ADDITIONAL_VENUE_DISCOUNT_PERCENT}%`,
+      metadata: {
+        kind: "ADDITIONAL_VENUE_DISCOUNT",
+      },
+    });
+    return coupon.id;
+  }
+}
+
 export async function POST(req: Request) {
   const session = await getSession();
 
@@ -171,6 +213,8 @@ export async function POST(req: Request) {
         name: true,
         email: true,
         legalName: true,
+        ownerId: true,
+        createdAt: true,
         owner: {
           select: {
             id: true,
@@ -259,6 +303,13 @@ export async function POST(req: Request) {
           monthlyDiscountPercent,
         })
       : null;
+  // A discount set by hand in the console wins; otherwise a venue after the
+  // owner's first gets the additional-venue discount.
+  const additionalVenueCouponId =
+    !monthlyCouponId && (await ownerHasEarlierVenue(bar))
+      ? await ensureAdditionalVenueCoupon(stripe)
+      : null;
+  const couponId = monthlyCouponId ?? additionalVenueCouponId;
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: stripeCustomerId,
@@ -286,11 +337,11 @@ export async function POST(req: Request) {
         quantity: 1,
       },
     ],
-    ...(monthlyCouponId
+    ...(couponId
       ? {
           discounts: [
             {
-              coupon: monthlyCouponId,
+              coupon: couponId,
             },
           ],
         }
@@ -300,6 +351,7 @@ export async function POST(req: Request) {
       ownerId: bar.owner.id,
       interval,
       monthlyDiscountPercent: String(monthlyDiscountPercent),
+      additionalVenueDiscount: additionalVenueCouponId ? String(ADDITIONAL_VENUE_DISCOUNT_PERCENT) : "0",
       checkoutKind: pendingTrialSetup ? "TRIAL_SETUP" : "PAID_START",
     },
     subscription_data: {
