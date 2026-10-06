@@ -11,14 +11,11 @@ export const metadata: Metadata = {
 };
 
 /**
- * La pagina che mancava: qui qualcuno che non conosciamo apre il suo locale.
+ * Qui qualcuno che non conosciamo apre il suo locale.
  *
- * Per ora non e collegata a niente - ne dal sito, ne dalla pagina di accesso.
- * Esiste all'indirizzo e basta, cosi si puo provare davvero senza che nel
- * frattempo ci arrivi gente. Il pulsante del sito si gira qui quando decidiamo
- * noi, cambiando due righe in lib/site.ts di workbit-site.
- *
- * Per la stessa ragione dice a Google di non indicizzarla.
+ * Ci arriva dal sito: ogni "Prova gratis" di workbit.it porta qui (trialHref
+ * in lib/site.ts di workbit-site). A Google non la facciamo indicizzare: la
+ * porta d'ingresso nelle ricerche e il sito, non il modulo.
  */
 export default async function RegistrationPage() {
   const session = await getSession();
