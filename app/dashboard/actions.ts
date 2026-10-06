@@ -1121,12 +1121,17 @@ async function ensureOwnerUsersExist(ownerIds: string[]) {
     return;
   }
 
+  // Any open account can be made an owner: the memberships saved next make it
+  // one, and syncUserRole then moves its role (never a super admin's). Asking
+  // for the OWNER role up front refused the super admin's own venue and
+  // anyone being promoted, and the console's subscription form crashed with
+  // "Owner not found".
   const owners = await prisma.user.findMany({
     where: {
       id: {
         in: ownerIds,
       },
-      role: Role.OWNER,
+      retiredAt: null,
     },
     select: {
       id: true,
