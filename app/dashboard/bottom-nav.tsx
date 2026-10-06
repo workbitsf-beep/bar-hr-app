@@ -22,7 +22,7 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
   return [...preferred, ...fill].slice(0, 5);
 }
 
-function BottomNavIcon({ href }: { href: string }) {
+export function BottomNavIcon({ href }: { href: string }) {
   const common = {
     stroke: "currentColor",
     strokeWidth: 1.8,
@@ -111,7 +111,7 @@ function getBottomNavLabel(item: DashboardNavItem, index: number) {
   return item.label;
 }
 
-function isNavItemActive(pathname: string, href: string) {
+export function isNavItemActive(pathname: string, href: string) {
   if (href === "/dashboard") {
     return pathname === href;
   }

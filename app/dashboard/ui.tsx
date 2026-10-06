@@ -9,6 +9,7 @@ import { ConfirmationToast } from "@/app/components/confirmation-toast";
 import { PendingButton } from "@/app/components/pending-button";
 import { RevealOnScroll } from "@/app/components/workbit-animations";
 import { ActiveBottomNav } from "./bottom-nav";
+import { DesktopSidebar } from "./desktop-sidebar";
 import {
   formatDateInTimeZone,
   formatDateTimeInTimeZone,
@@ -236,6 +237,14 @@ export function DashboardShell({
         padding: 0,
       }}
     >
+      <DesktopSidebar
+        navItems={navItems}
+        appName={appName}
+        brandHref={navItems[0]?.href ?? "/dashboard"}
+        accountContent={menuContent}
+        footer={menuFooter}
+      />
+
       <div
         className="wb-shell-head dashboard-shell-inner workbit-animated-page__content"
         style={{
@@ -342,6 +351,122 @@ function DashboardAppShellStyles() {
           .dashboard-bottom-nav {
             width: min(430px, calc(100% - 20px)) !important;
             max-width: calc(100% - 20px) !important;
+          }
+
+          /* ---------- On a computer ----------
+             From 1100px the sections move into a column on the left
+             (DesktopSidebar), the bar at the bottom and the menu button go,
+             and the page gets the room a screen has. Below 1100px none of
+             this applies: the phone layout is untouched. */
+          .wb-desk-side { display: none; }
+
+          @media (min-width: 1100px) {
+            .dashboard-shell { padding-left: 264px !important; }
+
+            .wb-desk-side {
+              position: fixed;
+              top: 0;
+              bottom: 0;
+              left: 0;
+              z-index: 3;
+              width: 264px;
+              display: flex;
+              flex-direction: column;
+              gap: 14px;
+              padding: 20px 14px 18px;
+              overflow-y: auto;
+              background: rgba(255, 255, 255, 0.62);
+              border-right: 1px solid rgba(255, 255, 255, 0.95);
+              box-shadow: 8px 0 30px rgba(61, 42, 153, 0.05);
+              backdrop-filter: blur(16px) saturate(140%);
+              -webkit-backdrop-filter: blur(16px) saturate(140%);
+            }
+
+            .wb-desk-brand {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              padding: 2px 8px 4px;
+              font-size: 19px;
+              font-weight: 900;
+              letter-spacing: -0.03em;
+              color: #15132b;
+            }
+
+            .wb-desk-account { display: grid; gap: 8px; }
+
+            .wb-desk-nav { display: grid; gap: 3px; }
+
+            .wb-desk-nav a {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              min-height: 42px;
+              padding: 0 12px;
+              border-radius: 13px;
+              color: #4c4670;
+              font-size: 14.5px;
+              font-weight: 650;
+              text-decoration: none;
+            }
+
+            .wb-desk-nav a svg { width: 20px; height: 20px; flex: 0 0 auto; color: #a297cf; }
+            .wb-desk-icon { display: inline-flex; flex: 0 0 auto; }
+            .wb-desk-nav a:hover { background: rgba(255, 255, 255, 0.8); color: #15132b; }
+
+            .wb-desk-nav a[data-on="1"] {
+              background: #ffffff;
+              color: #15132b;
+              font-weight: 750;
+              box-shadow: 0 6px 16px rgba(80, 40, 160, 0.09);
+            }
+
+            .wb-desk-nav a[data-on="1"] svg { color: #6d3df0; }
+
+            .wb-desk-nav a:focus-visible {
+              outline: 3px solid #8b5cff;
+              outline-offset: 2px;
+            }
+
+            .wb-desk-foot { margin-top: auto; }
+
+            .wb-desk-foot .workbit-menu-logout-button {
+              display: flex !important;
+              align-items: center;
+              gap: 10px;
+              width: 100%;
+              min-height: 44px;
+              padding: 0 14px;
+              border: 1px solid #f3cfd6 !important;
+              border-radius: 14px;
+              background: #ffffff !important;
+              color: #c2334d !important;
+              font: inherit;
+              font-size: 14px;
+              font-weight: 700;
+              cursor: pointer;
+            }
+
+            .wb-desk-foot .workbit-menu-logout-dot {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: #e5484d;
+              flex: 0 0 auto;
+            }
+
+            .dashboard-bottom-nav,
+            .dashboard-menu-button { display: none !important; }
+
+            /* The logo already sits in the column; the header keeps the
+               venue, who you are and the actions. */
+            .dashboard-shell-brand > :first-child { display: none !important; }
+
+            .wb-shell-head { padding: 18px 32px 0 !important; }
+
+            .wb-shell-scroll { padding: 18px 32px 56px !important; }
+
+            .dashboard-shell-inner { max-width: 1180px !important; }
           }
         `,
       }}
