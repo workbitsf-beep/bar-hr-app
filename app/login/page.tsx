@@ -367,7 +367,7 @@ export default function LoginPage() {
           <div className={styles.signupCard}>
             <span className={styles.signupText}>
               <strong>Hai un locale?</strong>
-              <span>Aprilo su Workbit in due minuti, 30 giorni gratis.</span>
+              <span>Aprilo su Workbit con la tua partita IVA, 30 giorni gratis.</span>
             </span>
             <a className={`workbit-press-feedback ${styles.signupButton}`} href="/registrazione">
               Registrati
