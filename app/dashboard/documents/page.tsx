@@ -4,6 +4,7 @@ import { canViewDocument } from "@/lib/documents";
 import { canManageDocuments } from "@/lib/permissions";
 import { deleteDocumentAction } from "../actions";
 import { getDashboardContext } from "../context";
+import { DocumentsAside } from "../desktop-asides";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { DocumentComposeForm } from "./document-compose-form";
 import { DocumentRow } from "./document-row";
@@ -200,6 +201,7 @@ export default async function DashboardDocumentsPage() {
   }
 
   return (
+    <div className="wb-desk-split">
     <Stack className="workbit-documents-page">
       <Panel
         title="Documenti"
@@ -371,5 +373,9 @@ export default async function DashboardDocumentsPage() {
         }}
       />
     </Stack>
+      <aside className="wb-desk-only">
+        {canManage ? null : <DocumentsAside barId={activeBarId} userId={session.user.id} />}
+      </aside>
+    </div>
   );
 }

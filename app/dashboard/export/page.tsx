@@ -1,6 +1,7 @@
 import { ActivityType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
+import { ReportAside } from "../desktop-asides";
 import { BillingRequiredState, EmptyState, Panel } from "../ui";
 import { ExportClient } from "./export-client";
 
@@ -56,6 +57,7 @@ export default async function DashboardExportPage() {
   const now = new Date();
 
   return (
+    <div className="wb-desk-split">
     <>
       <ExportClient
         employees={employees.map((employee) => ({
@@ -70,5 +72,9 @@ export default async function DashboardExportPage() {
         allowGeneralReport={canSelectEmployees && activeBarActivityType === ActivityType.COMPANY}
       />
     </>
+      <aside className="wb-desk-only">
+        <ReportAside barId={activeBarId} userId={session.user.id} role={role as Role} />
+      </aside>
+    </div>
   );
 }

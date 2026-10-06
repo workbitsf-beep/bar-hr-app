@@ -25,6 +25,7 @@ import {
 import { getDashboardContext } from "../context";
 import { ClassicBack } from "../classic-toggle";
 import { DesktopRequests } from "./desktop-requests";
+import { RequestsAside } from "../desktop-asides";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import {
   BillingRequiredState,
@@ -1381,7 +1382,14 @@ export default async function DashboardRequestsPage({
   // On a computer whoever decides gets the list-and-detail page
   // (desktop-requests.tsx); everyone else, and the phone, keep this one.
   if (!canManageClosures || !features.requests) {
-    return phonePage;
+    return (
+      <div className="wb-desk-split">
+        {phonePage}
+        <aside className="wb-desk-only">
+          <RequestsAside barId={activeBarId} userId={session.user.id} />
+        </aside>
+      </div>
+    );
   }
 
   const selectedId = Array.isArray(params.r) ? params.r[0] : params.r;

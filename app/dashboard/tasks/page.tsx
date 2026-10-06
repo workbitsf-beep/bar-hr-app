@@ -11,6 +11,7 @@ import {
   deleteTaskAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
+import { NotesAside } from "../desktop-asides";
 import {
   BillingRequiredState,
   EmptyState,
@@ -149,6 +150,7 @@ export default async function DashboardTasksPage({
   ]);
 
   return (
+    <div className="wb-desk-split">
     <Stack columns="1fr" className="workbit-notes-page">
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
@@ -334,5 +336,9 @@ export default async function DashboardTasksPage({
         )}
       </Panel>
     </Stack>
+      <aside className="wb-desk-only">
+        <NotesAside barId={activeBarId} userId={session.user.id} manage={canManage} />
+      </aside>
+    </div>
   );
 }

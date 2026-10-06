@@ -363,6 +363,18 @@ function DashboardAppShellStyles() {
 
           .wb-classic-back { display: none; }
 
+          /* A phone page with a summary column beside it on a computer. */
+          @media (min-width: 1100px) {
+            .wb-desk-split {
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) 340px;
+              gap: 16px;
+              align-items: start;
+            }
+
+            .wb-desk-split:has(> .wb-desk-only:empty) { display: block; }
+          }
+
           @media (min-width: 1100px) {
             .wb-desk-only { display: block; }
             .wb-phone-only { display: none; }
