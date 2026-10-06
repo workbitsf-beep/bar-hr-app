@@ -30,6 +30,8 @@ export type ExportEntry = {
   roundedHours: number;
   /** Worked on an on-call shift: someone was called in and clocked. */
   onCall: boolean;
+  /** Whose session it is, set only when several people share one report. */
+  personLabel?: string;
 };
 
 export type CompanyReportItem = {

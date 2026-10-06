@@ -4,6 +4,7 @@ import path from "node:path";
 import { ActivityType, Role } from "@prisma/client";
 import { createDownloadTicket } from "@/lib/download-tickets";
 import { buildMonthlyDataset } from "@/lib/reporting";
+import { mergeCompanyDatasets, mergeRestaurantDatasets } from "@/lib/report-merge";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { formatDurationClock } from "@/lib/time-format";
@@ -494,7 +495,9 @@ async function createMonthlyPdfBuffer(input: {
           date: formatDateRange(entry.clockIn, entry.clockOut),
           day: formatShortDay(entry.clockIn),
           status: entry.onCall ? "Reperibilita" : "Lavorato",
-          type: entry.onCall ? "Chiamata in reperibilita" : "Turno",
+          type: `${entry.personLabel ? `${entry.personLabel} · ` : ""}${
+            entry.onCall ? "Chiamata in reperibilita" : "Turno"
+          }`,
           planned: formatRange(entry.plannedStart, entry.plannedEnd),
           real: formatRange(entry.clockIn, entry.clockOut),
           total: getHours(entry.roundedHours),
@@ -658,74 +661,6 @@ async function createMonthlyPdfBuffer(input: {
   });
 }
 
-function mergeCompanyDatasets(
-  datasets: Array<{ userLabel: string; dataset: MonthlyDataset }>
-): MonthlyDataset {
-  const groupedMap = new Map<string, MonthlyDataset["groupedLogs"][number]>();
-  const summary = {
-    availability: 0,
-    vacation: 0,
-    permission: 0,
-    sickness: 0,
-    overtime: 0,
-    courses: 0,
-    closures: 0,
-    total: 0,
-  };
-
-  for (const { userLabel, dataset } of datasets) {
-    if (dataset.mode !== "company") {
-      continue;
-    }
-
-    summary.availability += dataset.summary.availability;
-    summary.vacation += dataset.summary.vacation;
-    summary.permission += dataset.summary.permission;
-    summary.sickness += dataset.summary.sickness;
-    summary.overtime += dataset.summary.overtime;
-    summary.courses += dataset.summary.courses;
-    summary.closures += dataset.summary.closures;
-    summary.total += dataset.summary.total;
-
-    for (const day of dataset.groupedLogs) {
-      const current =
-        groupedMap.get(day.date) ?? {
-          date: day.date,
-          entries: [],
-          totals: {
-            realHours: 0,
-            roundedHours: 0,
-          },
-          labels: [],
-          items: [],
-        };
-
-      current.items = [
-        ...(current.items ?? []),
-        ...(day.items ?? []).map((item) => ({
-          ...item,
-          id: `${userLabel}-${item.id}`,
-          title: `${userLabel} - ${item.title}`,
-        })),
-      ].sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
-
-      groupedMap.set(day.date, current);
-    }
-  }
-
-  return {
-    mode: "company",
-    groupedLogs: Array.from(groupedMap.values()).sort((left, right) =>
-      left.date.localeCompare(right.date)
-    ),
-    totals: {
-      realHours: 0,
-      roundedHours: 0,
-    },
-    summary,
-  };
-}
-
 /**
  * Returns the file, or an address to fetch it from.
  *
@@ -837,7 +772,13 @@ export const POST = withBar(
           })
         );
 
-        const dataset = mergeCompanyDatasets(datasets);
+        // A venue's team report used to go through the company merge, which
+        // skips every dataset that is not a company's: a bar's whole-team PDF
+        // came out empty - no hours, no shifts, no holidays.
+        const dataset =
+          activityType === ActivityType.COMPANY
+            ? mergeCompanyDatasets(datasets)
+            : mergeRestaurantDatasets(datasets);
 
         if (format === "pdf") {
           const pdfBuffer = await createMonthlyPdfBuffer({
