@@ -299,6 +299,10 @@ model Subscription {
   stripePriceId          String?
   stripeDiscountCouponId String?
   currentPeriodEnd       DateTime?
+  /// When the latest charge was issued and not yet confirmed paid. The venue
+  /// keeps working for seven days from here, then it stops until the payment
+  /// arrives. Cleared when Stripe reports the invoice paid.
+  paymentDueSince        DateTime?
   trialEndsAt            DateTime?
   // Quando e partito l'avviso "la prova scade fra tre giorni". Serve solo a
   // non mandarlo due volte: il lavoro notturno gira ogni giorno e senza

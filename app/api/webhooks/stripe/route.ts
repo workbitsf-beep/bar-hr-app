@@ -18,6 +18,12 @@ function mapStripeStatus(status: string | null | undefined) {
   switch (status) {
     case "active":
       return SubscriptionStatus.ACTIVE;
+    // The first payment is still being confirmed - a SEPA debit takes days.
+    // Held as active; the seven-day window on paymentDueSince decides whether
+    // the venue keeps working. It was INACTIVE, which locked out a customer
+    // the moment they paid by bank debit.
+    case "incomplete":
+      return SubscriptionStatus.ACTIVE;
     case "trialing":
       return SubscriptionStatus.TRIALING;
     case "past_due":
@@ -473,7 +479,30 @@ export async function POST(req: Request) {
       case "invoice.voided":
       case "invoice.marked_uncollectible": {
         const invoice = event.data.object as Stripe.Invoice;
-        await syncStripeInvoiceEvent(invoice);
+        const synced = await syncStripeInvoiceEvent(invoice);
+
+        if (!synced || !synced.stripeSubscriptionId) {
+          break;
+        }
+
+        // A charge has been issued: the seven days start now, unless an
+        // earlier unpaid charge already started them.
+        if (event.type === "invoice.finalized" && invoice.status === "open" && invoice.amount_due > 0) {
+          await prisma.subscription.updateMany({
+            where: { barId: synced.barId, paymentDueSince: null },
+            data: { paymentDueSince: new Date() },
+          });
+          invalidateBillingStatusCache(synced.barId);
+        }
+
+        // A voided invoice is no longer owed.
+        if (event.type === "invoice.voided") {
+          await prisma.subscription.updateMany({
+            where: { barId: synced.barId },
+            data: { paymentDueSince: null },
+          });
+          invalidateBillingStatusCache(synced.barId);
+        }
         break;
       }
 
@@ -517,6 +546,13 @@ export async function POST(req: Request) {
           trialEndsAt: toDateFromUnix(stripeSubscription?.trial_end),
         });
 
+        // Paid: the month is settled and the seven-day window closes.
+        await prisma.subscription.updateMany({
+          where: { barId },
+          data: { paymentDueSince: null },
+        });
+        invalidateBillingStatusCache(barId);
+
         if (previous?.status !== SubscriptionStatus.ACTIVE) {
           await sendOwnerBillingEmail({
             barId,
@@ -544,6 +580,12 @@ export async function POST(req: Request) {
             planType: PlanType.PAID,
             status: SubscriptionStatus.PAST_DUE,
           },
+        });
+        // Normally already set when the invoice was issued; set here too in
+        // case that event was missed.
+        await prisma.subscription.updateMany({
+          where: { barId, paymentDueSince: null },
+          data: { paymentDueSince: new Date() },
         });
         invalidateBillingStatusCache(barId);
 

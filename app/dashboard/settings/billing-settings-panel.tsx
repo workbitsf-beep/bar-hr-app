@@ -51,6 +51,23 @@ function isDateWithinDays(value: Date | null, days: number) {
 }
 
 function getBillingDisplay(status: BillingStatusResult) {
+  // A charge issued and not yet paid: say how long the venue keeps working.
+  if (status.planType === PlanType.PAID && status.paymentDueUntil) {
+    return status.canAccess
+      ? {
+          label: "Pagamento in attesa",
+          tone: "warning" as const,
+          message: `Il pagamento non risulta ancora. Il locale resta attivo fino al ${formatNullableDate(status.paymentDueUntil)}, poi si blocca finché non arriva.`,
+          messageColor: "#92400e",
+        }
+      : {
+          label: "Bloccato",
+          tone: "danger" as const,
+          message: "Il pagamento non è arrivato entro 7 giorni. Il locale si riattiva appena risulta pagato.",
+          messageColor: "#991b1b",
+        };
+  }
+
   const isManagedOutsideStripe =
     status.planType === PlanType.FREE || status.planType === PlanType.LIFETIME;
   const relevantEndDate =

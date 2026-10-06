@@ -9,9 +9,21 @@ import {
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
+import {
+  computeCanAccess,
+  getBillingGracePeriodEndsAt,
+  getPaymentDueUntil,
+} from "@/lib/billing-access";
+
+export {
+  BILLING_GRACE_PERIOD_DAYS,
+  PAYMENT_DUE_WINDOW_DAYS,
+  getBillingGracePeriodEndsAt,
+  getPaymentDueUntil,
+} from "@/lib/billing-access";
 
 export const DEFAULT_TRIAL_DAYS = 30;
-export const BILLING_GRACE_PERIOD_DAYS = 7;
+
 
 export type BillingStatusResult = {
   planType: PlanType;
@@ -19,6 +31,8 @@ export type BillingStatusResult = {
   billingInterval: BillingInterval | null;
   monthlyDiscountPercent: number;
   currentPeriodEnd: Date | null;
+  paymentDueSince: Date | null;
+  paymentDueUntil: Date | null;
   gracePeriodEndsAt: Date | null;
   isInGracePeriod: boolean;
   trialEndsAt: Date | null;
@@ -42,49 +56,6 @@ export function requiresSubscriptionActivation(input: {
   );
 }
 
-export function getBillingGracePeriodEndsAt(currentPeriodEnd: Date | null) {
-  if (!currentPeriodEnd) {
-    return null;
-  }
-
-  return new Date(
-    currentPeriodEnd.getTime() + BILLING_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
-  );
-}
-
-function computeCanAccess(input: {
-  planType: PlanType;
-  status: SubscriptionStatus;
-  currentPeriodEnd: Date | null;
-  trialEndsAt: Date | null;
-}) {
-  const now = Date.now();
-
-  if (input.planType === PlanType.FREE || input.planType === PlanType.LIFETIME) {
-    return true;
-  }
-
-  if (input.planType === PlanType.TRIAL) {
-    return Boolean(input.trialEndsAt && input.trialEndsAt.getTime() > now);
-  }
-
-  const gracePeriodEndsAt = getBillingGracePeriodEndsAt(input.currentPeriodEnd);
-  const isWithinGracePeriod = Boolean(
-    gracePeriodEndsAt && gracePeriodEndsAt.getTime() >= now
-  );
-
-  if (isWithinGracePeriod) {
-    return true;
-  }
-
-  return (
-    input.planType === PlanType.PAID &&
-    (input.status === SubscriptionStatus.ACTIVE ||
-      input.status === SubscriptionStatus.TRIALING) &&
-    (!input.currentPeriodEnd || input.currentPeriodEnd.getTime() >= now)
-  );
-}
-
 export const getBillingStatus = cache(async function getBillingStatus(
   barId: string
 ): Promise<BillingStatusResult> {
@@ -100,6 +71,7 @@ export const getBillingStatus = cache(async function getBillingStatus(
           billingInterval: true,
           monthlyDiscountPercent: true,
           currentPeriodEnd: true,
+          paymentDueSince: true,
           trialEndsAt: true,
           stripeCustomerId: true,
           stripeSubscriptionId: true,
@@ -114,6 +86,8 @@ export const getBillingStatus = cache(async function getBillingStatus(
     billingInterval: subscription?.billingInterval ?? null,
     monthlyDiscountPercent: subscription?.monthlyDiscountPercent ?? 0,
     currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
+    paymentDueSince: subscription?.paymentDueSince ?? null,
+    paymentDueUntil: getPaymentDueUntil(subscription?.paymentDueSince ?? null),
     gracePeriodEndsAt: getBillingGracePeriodEndsAt(subscription?.currentPeriodEnd ?? null),
     isInGracePeriod: false,
     trialEndsAt: subscription?.trialEndsAt ?? null,
