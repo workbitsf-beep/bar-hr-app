@@ -72,7 +72,11 @@ export const COMPANY_PROFILE_DEFAULTS: CompanyProfile = {
     "per 12 mesi dalla timbratura; trascorso questo termine le coordinate vengono cancellate e restano solo data e ora",
   retentionRequests: "per 5 anni dalla chiusura della richiesta",
   retentionCertificate: "per 30 giorni dalla fine del periodo di assenza",
-  retentionNotes: "fino alla cessazione del rapporto di lavoro con il locale",
+  // What lib/shiftCleanup.ts does: the board is the day's messages, kept a day
+  // (decided on 6 Oct 2026), and a note written for a calendar day until that
+  // day has passed.
+  retentionNotes:
+    "per 24 ore dalla pubblicazione; le note riferite a un giorno del calendario fino al giorno successivo",
   retentionDocuments:
     "fino a quando il locale li rimuove, e comunque non oltre la cessazione del rapporto di lavoro",
   retentionAccessLogs: "per 12 mesi",
