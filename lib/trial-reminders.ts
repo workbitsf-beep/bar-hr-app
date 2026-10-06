@@ -34,6 +34,9 @@ export async function runTrialEndingReminders(now = new Date()) {
       status: SubscriptionStatus.TRIALING,
       trialEndsAt: { gte: from, lt: to },
       trialEndingNoticeAt: null,
+      // Solo chi ha registrato la carta: a chi non l'ha fatto non parte
+      // nessun addebito, e l'avviso gli direbbe il contrario.
+      stripeSubscriptionId: { not: null },
     },
     select: {
       id: true,

@@ -351,17 +351,24 @@ export async function sendTrialEndingEmail(
     timeZone: "Europe/Rome",
   }).format(endsOn);
 
+  // The notice can go out one, two or three days before the end, so the
+  // subject counts the days instead of always saying three.
+  const daysLeft = Math.max(1, Math.ceil((endsOn.getTime() - Date.now()) / 86_400_000));
+  const when = daysLeft === 1 ? "domani" : `fra ${daysLeft} giorni`;
+
   return sendTemplatedEmail({
     to: ownerEmail,
-    subject: `La prova di ${barName} scade fra tre giorni`,
-    title: "Fra tre giorni",
+    subject: `La prova di ${barName} scade ${when}`,
+    title: when.charAt(0).toUpperCase() + when.slice(1),
     message: [
       `Ciao ${ownerName},`,
       `la prova gratuita di ${barName} finisce ${giorno}.`,
       "",
       "Da quel giorno parte l'abbonamento a 29,90 EUR al mese, e continua tutto come adesso: turni, timbrature, ore e report restano dove sono.",
       "",
-      "Se invece non ti serve, disdici dalle impostazioni prima di quella data e non paghi niente. Bastano due tocchi e non devi scrivere a nessuno.",
+      // The installed app sells nothing, so it cannot cancel either: the
+      // owner's area on the web is where this is done.
+      "Se invece non ti serve, disdici dall'area titolare di Workbit sul sito prima di quella data e non paghi niente. Bastano due clic e non devi scrivere a nessuno.",
     ].join("\n"),
     ctaLabel: "Apri le impostazioni",
     ctaUrl: getEmailAppUrl("/dashboard/settings"),
