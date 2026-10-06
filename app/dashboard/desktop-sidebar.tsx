@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { BottomNavIcon, isNavItemActive } from "./bottom-nav";
 import type { DashboardNavItem } from "./context";
+import { CommandPalette } from "./command-palette";
 
 /**
  * The venue app on a computer: every section in a column on the left, instead
@@ -39,6 +40,8 @@ export function DesktopSidebar({
       </div>
 
       {accountContent ? <div className="wb-desk-account">{accountContent}</div> : null}
+
+      <CommandPalette navItems={navItems} />
 
       <nav className="wb-desk-nav" data-no-runtime-translate="">
         {navItems.map((item) => {

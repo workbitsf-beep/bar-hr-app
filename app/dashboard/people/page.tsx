@@ -17,6 +17,9 @@ import { PopupAction } from "../popup-action";
 import { ListRowTrigger } from "../list-row-trigger";
 import { ConfirmSubmit } from "./confirm-submit";
 import { NewPersonForm } from "./new-person-form";
+import { ClassicBack, ClassicToggle } from "../classic-toggle";
+import { Avatar } from "../desk-helpers";
+import "../desk.css";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -397,7 +400,7 @@ export default async function DashboardPeoplePage({
     );
   }
 
-  return (
+  const phonePage = (
     <>
       <Stack className="workbit-people-page">
         {success === "employee-created" ? (
@@ -457,6 +460,230 @@ export default async function DashboardPeoplePage({
           )}
         </Panel>
       </Stack>
+    </>
+  );
+
+  // ---- On a computer: the team as a table, the chosen person on the side.
+  const selectedUserId =
+    (Array.isArray(params.u) ? params.u[0] : params.u) ??
+    rows.find((row) => row.member.role !== Role.OWNER)?.member.user.id ??
+    rows[0]?.member.user.id ??
+    null;
+  const selected = rows.find((row) => row.member.user.id === selectedUserId) ?? null;
+  const weekStart = new Date(now);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000);
+  const [selectedShifts, selectedDocuments, selectedCourses] = selected
+    ? await Promise.all([
+        prisma.shift.findMany({
+          where: {
+            barId: activeBarId,
+            startTime: { gte: weekStart, lt: weekEnd },
+            assignments: { some: { userId: selected.member.user.id } },
+          },
+          orderBy: { startTime: "asc" },
+          select: { id: true, title: true, startTime: true, endTime: true, isOnCall: true, confirmedAt: true },
+        }),
+        prisma.document.findMany({
+          where: { barId: activeBarId, isActive: true, assignedToId: selected.member.user.id },
+          orderBy: { createdAt: "desc" },
+          take: 6,
+          select: { id: true, title: true, createdAt: true },
+        }),
+        prisma.course.findMany({
+          where: {
+            barId: activeBarId,
+            OR: [{ assignedToId: selected.member.user.id }, { assignedToAll: true }],
+          },
+          orderBy: { expiresAt: "asc" },
+          take: 6,
+          select: { id: true, title: true, startsAt: true, endsAt: true, expiresAt: true },
+        }),
+      ])
+    : [[], [], []];
+  const shortDate = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", timeZone: "Europe/Rome" });
+  const dayName = new Intl.DateTimeFormat("it-IT", { weekday: "short", day: "numeric", timeZone: "Europe/Rome" });
+  const time = (value: Date) =>
+    value.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+
+  return (
+    <>
+      <div className="wb-desk-only">
+        <div className="wbd">
+          {success === "employee-created" ? (
+            <SuccessCallout>Account creato. La password temporanea è stata inviata via email.</SuccessCallout>
+          ) : null}
+          {success === "employee-removed" ? <SuccessCallout>Persona rimossa da questo locale.</SuccessCallout> : null}
+          <div className="wbd-top">
+            <h1>Persone</h1>
+            <span className="wbd-tag wbd-tag--violet">
+              {members.length === 1 ? "1 persona" : `${members.length} persone`}
+              {onShift.length ? ` · ${onShift.length} in servizio` : ""}
+            </span>
+            <span className="wbd-spacer" />
+            <ClassicToggle />
+            <PopupAction title="Nuova persona" ariaLabel="Aggiungi persona" triggerContent="+ Nuova persona">
+              <NewPersonForm action={createEmployeeAction} isCompany={isCompany} />
+            </PopupAction>
+          </div>
+
+          <div className="wbd-twocol">
+            <section className="wbd-card wbd-table-card">
+              <table className="wbd-table">
+                <thead>
+                  <tr>
+                    <th>Persona</th>
+                    <th>Adesso</th>
+                    <th className="num">Ore del mese</th>
+                    <th className="num">Documenti</th>
+                    <th>Da guardare</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={row.member.id}
+                      style={row.member.user.id === selected?.member.user.id ? { background: "#f6f2ff" } : undefined}
+                    >
+                      <td>
+                        <Link className="row-link wbd-who" href={`/dashboard/people?u=${row.member.user.id}`} scroll={false}>
+                          <Avatar user={row.member.user} />
+                          <span style={{ display: "grid", whiteSpace: "nowrap" }}>
+                            <b>
+                              {row.member.user.firstName} {row.member.user.lastName}
+                            </b>
+                            <small style={{ color: "#847ea3", fontSize: 12 }}>{formatRoleLabel(row.member.role)}</small>
+                          </span>
+                        </Link>
+                      </td>
+                      <td>
+                        {row.since ? (
+                          <span className="wbd-tag wbd-tag--ok">Dentro dalle {time(row.since)}</span>
+                        ) : (
+                          <span className="wbd-tag wbd-tag--gray">Fuori</span>
+                        )}
+                      </td>
+                      <td className="num">{row.monthMs ? formatDurationFromMilliseconds(row.monthMs) : "—"}</td>
+                      <td className="num">{row.member.role === Role.OWNER ? "—" : row.documents}</td>
+                      <td>
+                        {row.warning ? (
+                          <span className={`wbd-tag ${row.expired ? "wbd-tag--bad" : "wbd-tag--warn"}`}>{row.warning}</span>
+                        ) : (
+                          <span className="wbd-tag wbd-tag--ok">In regola</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+
+            {selected ? (
+              <aside className="wbd-panel">
+                <section className="wbd-card">
+                  <div className="wbd-person-head">
+                    <Avatar user={selected.member.user} />
+                    <div>
+                      <h2>
+                        {selected.member.user.firstName} {selected.member.user.lastName}
+                      </h2>
+                      <small>
+                        {formatRoleLabel(selected.member.role)} · {selected.member.user.email}
+                      </small>
+                    </div>
+                  </div>
+                  <div className="wbd-boxes" style={{ marginTop: 14 }}>
+                    <div className="wbd-box">
+                      <span>Mese</span>
+                      <b>{selected.monthMs ? formatDurationFromMilliseconds(selected.monthMs) : "—"}</b>
+                    </div>
+                    <div className="wbd-box">
+                      <span>Settimana</span>
+                      <b>{selectedShifts.filter((s) => !s.isOnCall).length} turni</b>
+                    </div>
+                    <div className="wbd-box">
+                      <span>Paga oraria</span>
+                      <b>{selected.member.hourlyRate ? `${Number(selected.member.hourlyRate)} €` : "—"}</b>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="wbd-card">
+                  <h3>
+                    Questa settimana
+                    <Link className="wbd-r" href="/dashboard/calendar">
+                      Turni →
+                    </Link>
+                  </h3>
+                  {selectedShifts.length === 0 ? <p className="wbd-empty">Nessun turno.</p> : null}
+                  {selectedShifts.map((shift) => (
+                    <div key={shift.id} className="wbd-line">
+                      <i>{dayName.format(shift.startTime).toUpperCase()}</i>
+                      <span>
+                        <b>
+                          {shift.isOnCall ? "Reperibilità" : `${time(shift.startTime)}–${time(shift.endTime)}`}
+                        </b>
+                        <small>
+                          {shift.title ?? ""}
+                          {!shift.confirmedAt && !shift.isOnCall ? " · bozza" : ""}
+                        </small>
+                      </span>
+                    </div>
+                  ))}
+                </section>
+
+                <section className="wbd-card">
+                  <h3>
+                    Documenti e corsi
+                    <Link className="wbd-r" href="/dashboard/documents">
+                      Documenti →
+                    </Link>
+                  </h3>
+                  {selectedDocuments.length === 0 && selectedCourses.length === 0 ? (
+                    <p className="wbd-empty">Nessun documento personale e nessun corso.</p>
+                  ) : null}
+                  {selectedDocuments.map((doc) => (
+                    <div key={doc.id} className="wbd-line">
+                      <i>DOC</i>
+                      <span>
+                        <b>{doc.title}</b>
+                        <small>caricato il {shortDate.format(doc.createdAt)}</small>
+                      </span>
+                    </div>
+                  ))}
+                  {selectedCourses.map((course) => {
+                    const urgency = getCourseUrgency(course);
+                    return (
+                      <div key={course.id} className="wbd-line">
+                        <i>CORSO</i>
+                        <span>
+                          <b>{course.title}</b>
+                          <small>{course.expiresAt ? `valido fino al ${shortDate.format(course.expiresAt)}` : "senza scadenza"}</small>
+                        </span>
+                        <span
+                          className={`wbd-tag ${urgency === "expired" ? "wbd-tag--bad" : urgency === "expiring" ? "wbd-tag--warn" : "wbd-tag--ok"}`}
+                        >
+                          {urgency === "expired" ? "Scaduto" : urgency === "expiring" ? "In scadenza" : "In regola"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </section>
+
+                <section className="wbd-card">
+                  <h3>Gestisci</h3>
+                  {renderPerson(selected, Boolean(selected.since))}
+                </section>
+              </aside>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="wb-phone-only">
+        <ClassicBack />
+        {phonePage}
+      </div>
     </>
   );
 }

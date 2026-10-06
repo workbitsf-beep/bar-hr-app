@@ -361,10 +361,51 @@ function DashboardAppShellStyles() {
           .wb-desk-side { display: none; }
           .wb-desk-only { display: none; }
 
+          .wb-classic-back { display: none; }
+
           @media (min-width: 1100px) {
             .wb-desk-only { display: block; }
             .wb-phone-only { display: none; }
+            html[data-desk-classic="1"] .wb-desk-only { display: none; }
+            html[data-desk-classic="1"] .wb-phone-only { display: block; }
+            html[data-desk-classic="1"] .wb-classic-back {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              padding: 10px 14px;
+              margin-bottom: 12px;
+              border-radius: 14px;
+              background: #f1ebff;
+              color: #4c4670;
+              font-size: 13.5px;
+              font-weight: 650;
+            }
           }
+
+          .wb-classic-back button,
+          .wb-classic-toggle {
+            height: 38px;
+            padding: 0 16px;
+            border: 0;
+            border-radius: 999px;
+            font: inherit;
+            font-size: 13.5px;
+            font-weight: 750;
+            cursor: pointer;
+          }
+
+          .wb-classic-back button {
+            background: linear-gradient(120deg, #6d3df0, #9b5cff);
+            color: #ffffff;
+          }
+
+          .wb-classic-toggle {
+            background: transparent;
+            color: #6d3df0;
+          }
+
+          .wb-classic-toggle:hover { background: #f1ebff; }
 
           @media (min-width: 1100px) {
             .dashboard-shell { padding-left: 264px !important; }
@@ -381,11 +422,11 @@ function DashboardAppShellStyles() {
               gap: 14px;
               padding: 20px 14px 18px;
               overflow-y: auto;
-              background: rgba(255, 255, 255, 0.62);
+              /* Solid, not frosted: a backdrop-filter here would make the
+                 column the containing block of the Ctrl K window and clip it. */
+              background: #f7f3ff;
               border-right: 1px solid rgba(255, 255, 255, 0.95);
               box-shadow: 8px 0 30px rgba(61, 42, 153, 0.05);
-              backdrop-filter: blur(16px) saturate(140%);
-              -webkit-backdrop-filter: blur(16px) saturate(140%);
             }
 
             .wb-desk-brand {
@@ -452,6 +493,90 @@ function DashboardAppShellStyles() {
 
             .wb-desk-foot { margin-top: auto; }
 
+            .wb-cmd-trigger {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
+              height: 40px;
+              padding: 0 10px 0 14px;
+              border: 0;
+              border-radius: 13px;
+              background: #ffffff;
+              box-shadow: inset 0 0 0 1px #e3dcf7;
+              color: #847ea3;
+              font: inherit;
+              font-size: 13.5px;
+              font-weight: 600;
+              cursor: pointer;
+            }
+
+            .wb-cmd-trigger kbd,
+            .wb-cmd-item small {
+              padding: 2px 7px;
+              border-radius: 6px;
+              background: #f1ebff;
+              color: #6d3df0;
+              font-family: inherit;
+              font-size: 11px;
+              font-weight: 800;
+            }
+
+            .wb-cmd-bg {
+              position: fixed;
+              inset: 0;
+              z-index: 500;
+              display: flex;
+              justify-content: center;
+              align-items: flex-start;
+              padding-top: 14vh;
+              background: rgba(21, 19, 43, 0.32);
+            }
+
+            .wb-cmd {
+              width: min(560px, calc(100% - 32px));
+              overflow: hidden;
+              border-radius: 22px;
+              background: #ffffff;
+              box-shadow: 0 30px 70px rgba(40, 20, 90, 0.3);
+            }
+
+            .wb-cmd input {
+              width: 100%;
+              height: 58px;
+              padding: 0 20px;
+              border: 0;
+              border-bottom: 1px solid #efe9fc;
+              outline: none;
+              font: inherit;
+              font-size: 17px;
+              color: #15132b;
+            }
+
+            .wb-cmd-list { max-height: 50vh; overflow-y: auto; padding: 8px; display: grid; gap: 2px; }
+
+            .wb-cmd-item {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              width: 100%;
+              min-height: 44px;
+              padding: 0 12px;
+              border: 0;
+              border-radius: 12px;
+              background: transparent;
+              color: #15132b;
+              font: inherit;
+              font-size: 14.5px;
+              text-align: left;
+              cursor: pointer;
+            }
+
+            .wb-cmd-item b { font-weight: 700; }
+            .wb-cmd-item--on { background: #f6f2ff; }
+            .wb-cmd-empty { margin: 0; padding: 14px 12px; color: #847ea3; font-size: 14px; }
+
             .wb-desk-foot .workbit-menu-logout-button {
               display: flex !important;
               align-items: center;
@@ -489,6 +614,20 @@ function DashboardAppShellStyles() {
             .wb-shell-scroll { padding: 18px 32px 56px !important; }
 
             .dashboard-shell-inner { max-width: 1180px !important; }
+
+            /* Lists that were one long column on a phone: two on a computer. */
+            .workbit-documents-overview > div:not(.dashboard-panel-header) {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+
+            .workbit-courses-panel > div:not(.dashboard-panel-header) > div {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              align-items: start;
+            }
+
+            .workbit-courses-panel > div:not(.dashboard-panel-header) > div > span:first-child {
+              grid-column: 1 / -1;
+            }
           }
         `,
       }}

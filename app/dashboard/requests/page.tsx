@@ -23,6 +23,8 @@ import {
   reviewRequestAction,
 } from "../actions";
 import { getDashboardContext } from "../context";
+import { ClassicBack } from "../classic-toggle";
+import { DesktopRequests } from "./desktop-requests";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import {
   BillingRequiredState,
@@ -740,7 +742,7 @@ export default async function DashboardRequestsPage({
     (availability) => availability.user.id === session.user.id
   );
 
-  return (
+  const phonePage = (
     <div className="workbit-requests-page">
       <div
         style={{
@@ -1374,5 +1376,32 @@ export default async function DashboardRequestsPage({
         ) : null}
       </div>
     </div>
+  );
+
+  // On a computer whoever decides gets the list-and-detail page
+  // (desktop-requests.tsx); everyone else, and the phone, keep this one.
+  if (!canManageClosures || !features.requests) {
+    return phonePage;
+  }
+
+  const selectedId = Array.isArray(params.r) ? params.r[0] : params.r;
+  const coverResult = Array.isArray(params.cover) ? params.cover[0] : params.cover;
+
+  return (
+    <>
+      <div className="wb-desk-only">
+        <DesktopRequests
+          barId={activeBarId}
+          userId={session.user.id}
+          selectedId={selectedId ?? null}
+          coverResult={coverResult ?? null}
+          canSeePrivate={canManageClosures}
+        />
+      </div>
+      <div className="wb-phone-only">
+        <ClassicBack />
+        {phonePage}
+      </div>
+    </>
   );
 }

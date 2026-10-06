@@ -17,6 +17,8 @@ import {
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { TimeLogsClient } from "./timelogs-client";
+import { ClassicBack } from "../classic-toggle";
+import { DesktopTimeLogs } from "./desktop-timelogs";
 
 export default async function DashboardTimeLogsPage({
   searchParams,
@@ -186,7 +188,7 @@ export default async function DashboardTimeLogsPage({
       </div>
     ) : null;
 
-  return (
+  const phonePage = (
     <Stack>
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
       <TimeLogsClient
@@ -224,5 +226,33 @@ export default async function DashboardTimeLogsPage({
         }
       />
     </Stack>
+  );
+
+  // On a computer the owner gets the table (desktop-timelogs.tsx); the phone,
+  // and everyone else, keep this page.
+  if (!isOwner) {
+    return phonePage;
+  }
+
+  const filter = (Array.isArray(params.f) ? params.f[0] : params.f) ?? "tutte";
+  const personId = (Array.isArray(params.p) ? params.p[0] : params.p) ?? null;
+
+  return (
+    <>
+      <div className="wb-desk-only">
+        {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
+        <DesktopTimeLogs
+          barId={activeBarId}
+          logs={logs}
+          manualEntry={manualEntry}
+          filter={filter}
+          personId={personId}
+        />
+      </div>
+      <div className="wb-phone-only">
+        <ClassicBack />
+        {phonePage}
+      </div>
+    </>
   );
 }

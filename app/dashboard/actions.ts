@@ -5632,3 +5632,87 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
     return ruleFailure(error);
   }
 }
+
+/**
+ * "Copri con…" from the requests page on a computer: the shifts the person
+ * asking for time off had on those days are copied, as drafts, to a colleague.
+ * The copies go through the same clash checks as any new shift (holidays,
+ * other shifts, unavailability) and are skipped when they would not fit; the
+ * request itself is decided separately, with its own button.
+ */
+export async function coverRequestShiftsAction(formData: FormData) {
+  const { session, role, activeBarId } = await getActionContext();
+  ensureOperationRole(role);
+
+  if (!activeBarId) {
+    throw new Error("No active bar selected");
+  }
+
+  const requestId = String(formData.get("requestId") ?? "").trim();
+  const coverUserId = String(formData.get("coverUserId") ?? "").trim();
+
+  const request = await prisma.request.findFirst({
+    where: { id: requestId, barId: activeBarId },
+    select: { id: true, employeeId: true, startsAt: true, endsAt: true },
+  });
+
+  if (!request || !request.startsAt || !coverUserId || coverUserId === request.employeeId) {
+    redirect(`/dashboard/requests?r=${encodeURIComponent(requestId)}&cover=0`);
+  }
+
+  await ensureUsersBelongToBar(activeBarId, [coverUserId]);
+
+  const fromKey = toDateInputValueInTimeZone(request.startsAt);
+  const toKey = toDateInputValueInTimeZone(request.endsAt ?? request.startsAt);
+  const rangeStart = parseDateTimeLocal(`${fromKey}T00:00`);
+  const rangeEnd = parseDateTimeLocal(`${addDaysToDayKey(toKey, 1)}T00:00`);
+  const todayKey = toDateInputValueInTimeZone(new Date());
+
+  const shifts = await prisma.shift.findMany({
+    where: {
+      barId: activeBarId,
+      startTime: { gte: rangeStart, lt: rangeEnd },
+      assignments: { some: { userId: request.employeeId } },
+    },
+    select: { title: true, startTime: true, endTime: true, isOnCall: true },
+  });
+
+  let created = 0;
+
+  for (const shift of shifts) {
+    if (toDateInputValueInTimeZone(shift.startTime) < todayKey) {
+      continue;
+    }
+
+    try {
+      await assertNoShiftAssignmentConflicts({
+        barId: activeBarId,
+        employeeIds: [coverUserId],
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        isOnCall: shift.isOnCall,
+      });
+    } catch {
+      continue;
+    }
+
+    await prisma.shift.create({
+      data: {
+        title: shift.title,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        isOnCall: shift.isOnCall,
+        barId: activeBarId,
+        assignedToId: coverUserId,
+        createdById: session.user.id,
+        assignments: { create: { userId: coverUserId } },
+      },
+    });
+    created += 1;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/requests");
+  redirect(`/dashboard/requests?r=${encodeURIComponent(requestId)}&cover=${created}`);
+}
