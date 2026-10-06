@@ -128,6 +128,7 @@ function getShiftClockStateFromLogs(
   return {
     hasClockIn: Boolean(lastIn),
     hasClockOut: Boolean(outAfterLastIn),
+    lastInAt: lastIn?.timestamp ?? null,
   };
 }
 
@@ -155,12 +156,12 @@ function shouldReceiveClockReminder(assignment: {
 async function runAutoClockOut(now: Date) {
   const cutoff = new Date(now.getTime() - AUTO_CLOCK_OUT_DELAY_MS);
   const windowStart = new Date(now.getTime() - AUTO_CLOCK_OUT_DELAY_MS - AUTO_CLOCK_OUT_LOOKBACK_MS);
+  // Every shift someone can clock into is one they can forget to clock out
+  // of. Draft shifts and on-call shifts are clockable, and leaving them out
+  // here left those sessions open for good: the next clock-in was refused and
+  // the hours kept growing until someone noticed.
   const shifts = await prisma.shift.findMany({
     where: {
-      confirmedAt: {
-        not: null,
-      },
-      isOnCall: false,
       endTime: {
         gte: windowStart,
         lte: cutoff,
@@ -263,11 +264,17 @@ async function runAutoClockOut(now: Date) {
         continue;
       }
 
+      // Never before the entry: someone who clocked in after the planned
+      // end got an exit earlier than their entry, which the reports skip, and
+      // the session stayed open.
+      const exitAt =
+        state.lastInAt && state.lastInAt > shift.endTime ? state.lastInAt : shift.endTime;
+
       dueAutoClockOuts.push({
         userId: assignment.userId,
         barId: shift.barId,
         shiftId: shift.id,
-        endTime: shift.endTime,
+        endTime: exitAt,
       });
     }
   }

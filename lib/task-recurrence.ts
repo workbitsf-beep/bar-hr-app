@@ -122,8 +122,13 @@ function addRepeat(from: Date, every: number, unit: TaskRepeatUnit, steps: numbe
 
   if (unit === TaskRepeatUnit.DAY || unit === TaskRepeatUnit.WEEK) {
     const days = unit === TaskRepeatUnit.WEEK ? amount * 7 : amount;
+    // On the calendar, not in blocks of 24 hours: across the change to or from
+    // daylight saving a check "every day at 9" moved to 8 or 10. The server
+    // runs on Europe/Rome, so setDate keeps the wall-clock hour.
+    const next = new Date(from);
+    next.setDate(next.getDate() + days);
 
-    return new Date(from.getTime() + days * 86_400_000);
+    return next;
   }
 
   // Months are not a fixed length, so they are counted on the calendar and

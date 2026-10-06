@@ -403,6 +403,8 @@ export async function cancelUserShiftClockReminders(input: {
   return result.count;
 }
 
+const STALE_REMINDER_MS = 30 * 60 * 1000;
+
 export async function runDueScheduledClockNotifications(now = new Date()) {
   const due = await prisma.scheduledNotification.findMany({
     where: {
@@ -488,7 +490,12 @@ export async function runDueScheduledClockNotifications(now = new Date()) {
       ? getShiftClockStateFromLogs(logsByUserAndShift.get(`${item.userId}:${item.shiftId}`) ?? [])
       : { hasClockIn: false, hasClockOut: false };
     const isClockInReminder = CLOCK_IN_TYPES.includes(item.type);
+    // After the server has been down, the backlog would all go out at once:
+    // "your shift has started" four hours late only confuses. A reminder that
+    // missed its moment by more than half an hour is dropped.
+    const isStale = now.getTime() - item.sendAt.getTime() > STALE_REMINDER_MS;
     const shouldSkip =
+      isStale ||
       (isClockInReminder && state.hasClockIn) ||
       (!isClockInReminder && (!state.hasClockIn || state.hasClockOut));
 

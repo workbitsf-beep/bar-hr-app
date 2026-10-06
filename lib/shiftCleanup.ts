@@ -203,6 +203,12 @@ export async function runShiftRetentionCleanup(now = new Date()) {
 
     const deletedOldRequests = await tx.request.deleteMany({
       where: {
+        // Only shift changes, which belong to the calendar. Holidays, leave,
+        // sickness and overtime are the employer's record: the legal documents
+        // promise five years and data-retention.ts enforces it. Deleting them
+        // here at sixty days emptied the reports of every month but the last
+        // two and broke the promise.
+        type: RequestType.SHIFT_CHANGE,
         OR: expiredByBarActivity.flatMap((entry) => [
           {
             bar: entry.bar,
@@ -236,15 +242,26 @@ export async function runShiftRetentionCleanup(now = new Date()) {
 
     const deletedAvailabilities = await tx.availability.deleteMany({
       where: {
+        // Kept as long as the rest of the calendar, because the month's report
+        // counts them. Deleted a day after they ended, the report's
+        // "Indisponibilita" read zero for everyone.
         endsAt: { lt: availabilityCutoff },
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
       },
     });
 
     const deletedCourses = await tx.course.deleteMany({
       where: {
+        // A course is kept while what it certifies is still valid: HACCP lasts
+        // years, and deleting it sixty days after the lesson made the person
+        // look up to date when the expiry could no longer be tracked.
         OR: expiredByBarActivity.map((entry) => ({
           bar: entry.bar,
           endsAt: { lt: entry.cutoff },
+          OR: [{ expiresAt: null }, { expiresAt: { lt: entry.cutoff } }],
         })),
       },
     });
@@ -271,6 +288,9 @@ export async function runShiftRetentionCleanup(now = new Date()) {
     const deletedNotes = await tx.note.deleteMany({
       where: {
         createdAt: { lt: noteCutoff },
+        // A note written for a day of the calendar waits for that day: it was
+        // deleted a day after being written, often before the day came.
+        OR: [{ activityDate: null }, { activityDate: { lt: noteCutoff } }],
       },
     });
 
@@ -314,6 +334,12 @@ async function deleteExpiredCalendarItems(
   return prisma.$transaction(async (tx) => {
     const deletedRequests = await tx.request.deleteMany({
       where: {
+        // Only shift changes, which belong to the calendar. Holidays, leave,
+        // sickness and overtime are the employer's record: the legal documents
+        // promise five years and data-retention.ts enforces it. Deleting them
+        // here at sixty days emptied the reports of every month but the last
+        // two and broke the promise.
+        type: RequestType.SHIFT_CHANGE,
         OR: expiredByBarActivity.flatMap((entry) => [
           {
             bar: entry.bar,
@@ -336,15 +362,26 @@ async function deleteExpiredCalendarItems(
 
     const deletedAvailabilities = await tx.availability.deleteMany({
       where: {
+        // Kept as long as the rest of the calendar, because the month's report
+        // counts them. Deleted a day after they ended, the report's
+        // "Indisponibilita" read zero for everyone.
         endsAt: { lt: availabilityCutoff },
+        OR: expiredByBarActivity.map((entry) => ({
+          bar: entry.bar,
+          endsAt: { lt: entry.cutoff },
+        })),
       },
     });
 
     const deletedCourses = await tx.course.deleteMany({
       where: {
+        // A course is kept while what it certifies is still valid: HACCP lasts
+        // years, and deleting it sixty days after the lesson made the person
+        // look up to date when the expiry could no longer be tracked.
         OR: expiredByBarActivity.map((entry) => ({
           bar: entry.bar,
           endsAt: { lt: entry.cutoff },
+          OR: [{ expiresAt: null }, { expiresAt: { lt: entry.cutoff } }],
         })),
       },
     });
@@ -371,6 +408,9 @@ async function deleteExpiredCalendarItems(
     const deletedNotes = await tx.note.deleteMany({
       where: {
         createdAt: { lt: noteCutoff },
+        // A note written for a day of the calendar waits for that day: it was
+        // deleted a day after being written, often before the day came.
+        OR: [{ activityDate: null }, { activityDate: { lt: noteCutoff } }],
       },
     });
 

@@ -20,15 +20,14 @@ import { sendTrialEndingEmail } from "@/lib/email/notifications";
 const GIORNI_DI_PREAVVISO = 3;
 
 export async function runTrialEndingReminders(now = new Date()) {
-  // La finestra e di un giorno intero, non un istante: il lavoro notturno
-  // gira una volta al giorno, e se puntasse a un momento preciso basterebbe
-  // un ritardo di un'ora per saltare qualcuno per sempre.
-  const from = new Date(now);
-  from.setDate(from.getDate() + GIORNI_DI_PREAVVISO);
-  from.setHours(0, 0, 0, 0);
-
-  const to = new Date(from);
-  to.setDate(to.getDate() + 1);
+  // Chiunque scada entro i prossimi tre giorni e non sia ancora stato
+  // avvisato. Prima la finestra era il solo giorno a tre giorni da oggi: se
+  // quel giorno il lavoro non girava, o la prova era gia piu corta, l'avviso
+  // non partiva mai e l'addebito arrivava senza preavviso.
+  const from = now;
+  const to = new Date(now);
+  to.setDate(to.getDate() + GIORNI_DI_PREAVVISO);
+  to.setHours(23, 59, 59, 999);
 
   const inScadenza = await prisma.subscription.findMany({
     where: {
