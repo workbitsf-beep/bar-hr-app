@@ -18,7 +18,9 @@ import { isNativeApp } from "@/lib/native-app";
  * waits here, and hands over to a curtain already painted, so there is never
  * a frame with nothing on it.
  */
-const ON_SCREEN_MS = 1400;
+// The logo takes 1.3s to build, holds, then leaves with the ground at 1.65s
+// (app/workbit-global.css). The curtain is taken away when that is done.
+const ON_SCREEN_MS = 2000;
 const FADE_MS = 120;
 
 /**

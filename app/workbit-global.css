@@ -391,7 +391,7 @@
                     rgba(109, 92, 231, 0) 70%
                   ),
                   linear-gradient(168deg, #140a2c 0%, #2a1263 52%, #4a2396 100%);
-                animation: workbit-boot-wipe 1400ms cubic-bezier(0.55, 0, 0.3, 1) both;
+                animation: workbit-boot-wipe 2000ms cubic-bezier(0.55, 0, 0.3, 1) both;
               }
 
               .workbit-boot__stack {
@@ -401,64 +401,128 @@
                 gap: 16px;
               }
 
-              .workbit-boot__mark {
-                position: relative;
-                width: 112px;
-                height: 112px;
-                border-radius: 31px;
-                overflow: hidden;
-                box-shadow: 0 22px 48px rgba(10, 4, 30, 0.55);
-                will-change: transform;
-                animation: workbit-boot-mark 1400ms cubic-bezier(0.3, 0.9, 0.3, 1) both;
+              /* The mark building itself, on the dark ground above. Times are
+                 fractions of the 2s opening: the construction takes the first
+                 1.3s ("veloce" in the prototype), it holds, and from 1.65s it
+                 leaves with the ground. Every stroke uses pathLength=1, so one
+                 dash value draws any of them whatever its real length. */
+              .workbit-boot__logo {
+                width: 148px;
+                height: 148px;
+                overflow: visible;
+                animation: workbit-boot-out 2000ms cubic-bezier(0.55, 0, 0.3, 1) both;
               }
 
-              .workbit-boot__mark img {
-                display: block;
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
+              .workbit-boot__orbit {
+                fill: none;
+                stroke: url(#workbit-boot-orbit);
+                stroke-width: 12;
+                stroke-linecap: round;
+                stroke-dasharray: 1;
+                stroke-dashoffset: 1;
               }
 
-              .workbit-boot__word {
-                color: #ffffff;
-                font-size: 20px;
-                font-weight: 840;
-                letter-spacing: -0.026em;
-                animation: workbit-boot-word 1400ms linear both;
+              .workbit-boot__orbit--one {
+                animation: workbit-boot-draw 715ms cubic-bezier(0.55, 0.05, 0.35, 1) 65ms forwards;
+              }
+
+              .workbit-boot__orbit--two {
+                animation: workbit-boot-draw 715ms cubic-bezier(0.55, 0.05, 0.35, 1) 234ms forwards;
+              }
+
+              .workbit-boot__outline {
+                fill: none;
+                stroke-width: 7;
+                stroke-linejoin: round;
+                stroke-dasharray: 1;
+                stroke-dashoffset: 1;
+              }
+
+              .workbit-boot__outline--w {
+                stroke: #ffffff;
+                animation:
+                  workbit-boot-draw 650ms ease-in-out 234ms forwards,
+                  workbit-boot-fade 325ms ease-out 1014ms forwards;
+              }
+
+              .workbit-boot__outline--b {
+                stroke: #c38bff;
+                animation:
+                  workbit-boot-draw 650ms ease-in-out 442ms forwards,
+                  workbit-boot-fade 325ms ease-out 1092ms forwards;
+              }
+
+              .workbit-boot__solid {
+                opacity: 0;
+              }
+
+              .workbit-boot__solid--w {
+                fill: #f5f4fb;
+                animation: workbit-boot-show 390ms ease-out 806ms forwards;
+              }
+
+              .workbit-boot__solid--b {
+                fill: url(#workbit-boot-b);
+                animation: workbit-boot-show 390ms ease-out 936ms forwards;
+              }
+
+              .workbit-boot__letters {
+                transform-origin: 512px 534px;
+                animation: workbit-boot-settle 455ms cubic-bezier(0.3, 1.4, 0.5, 1) 1040ms both;
               }
 
               /* Still, then the ground opens outward and dissolves. */
               @keyframes workbit-boot-wipe {
                 0% { opacity: 1; transform: scale(1); }
-                62% { opacity: 1; transform: scale(1); }
+                82% { opacity: 1; transform: scale(1); }
                 100% { opacity: 0; transform: scale(1.35); }
               }
 
-              /* One animation, the whole life: in, hold, out. Two of them on
-                 the same property is what made the old opening sit still and
-                 then jump. */
-              @keyframes workbit-boot-mark {
-                0% { opacity: 0; transform: scale(0.62); }
-                20% { opacity: 1; transform: scale(1.04); }
-                32% { transform: scale(1); }
-                62% { opacity: 1; transform: scale(1); }
-                100% { opacity: 0; transform: scale(1.18); }
+              @keyframes workbit-boot-draw {
+                to { stroke-dashoffset: 0; }
               }
 
-              @keyframes workbit-boot-word {
-                0% { opacity: 0; transform: translateY(8px); }
-                26% { opacity: 0; transform: translateY(8px); }
-                42% { opacity: 1; transform: none; }
-                62% { opacity: 1; transform: none; }
-                78% { opacity: 0; transform: none; }
-                100% { opacity: 0; transform: none; }
+              @keyframes workbit-boot-fade {
+                to { opacity: 0; }
+              }
+
+              @keyframes workbit-boot-show {
+                to { opacity: 1; }
+              }
+
+              @keyframes workbit-boot-settle {
+                0% { transform: scale(0.97); }
+                60% { transform: scale(1.025); }
+                100% { transform: scale(1); }
+              }
+
+              /* The finished mark leaves with the ground. */
+              @keyframes workbit-boot-out {
+                0% { opacity: 1; transform: scale(1); }
+                82% { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(1.14); }
               }
 
               @media (prefers-reduced-motion: reduce) {
                 .workbit-boot__wipe,
-                .workbit-boot__mark,
-                .workbit-boot__word {
+                .workbit-boot__logo,
+                .workbit-boot__orbit,
+                .workbit-boot__outline,
+                .workbit-boot__solid,
+                .workbit-boot__letters {
                   animation: none;
+                }
+
+                .workbit-boot__orbit {
+                  stroke-dashoffset: 0;
+                }
+
+                .workbit-boot__solid {
+                  opacity: 1;
+                }
+
+                .workbit-boot__outline {
+                  opacity: 0;
                 }
               }
 
