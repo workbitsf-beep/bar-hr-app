@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { visibleOnBoard } from "@/lib/note-visibility";
 import { buildNoteMeta } from "@/lib/note-list-format";
 import { describeTaskRepeat } from "@/lib/task-recurrence";
+import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
 import { canReviewOperationalRequests } from "@/lib/permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
@@ -625,6 +626,7 @@ export default async function DashboardCalendarPage({
                   repeatEvery: true,
                   repeatUnit: true,
                   completedAt: true,
+                  createdAt: true,
                   assignedToAll: true,
                   assignedTo: {
                     select: {
@@ -939,36 +941,42 @@ export default async function DashboardCalendarPage({
       startTime: closure.startsAt.toISOString(),
       endTime: closure.endsAt.toISOString(),
     })),
-    tasks: (tasksByDay.get(toDayKey(day.date)) ?? []).map((task) => ({
-      id: task.id,
-      title: task.title,
-      dueDate: task.dueDate.toISOString(),
-      status: task.status,
-      isUrgent: task.isUrgent,
-      requiresConfirmation: task.requiresConfirmation,
-      // What the note's line says is worked out in one place, so it reads the
-      // same here as it does on the Note page.
-      meta: buildNoteMeta({
-        dueDate: task.dueDate,
-        done: task.status === TaskStatus.DONE,
-        urgent: task.isUrgent,
+    // A note given to several people is one copy each; here it is one row,
+    // with every name, and its ids together so a tick or a delete reaches all.
+    tasks: groupSharedTasks(tasksByDay.get(toDayKey(day.date)) ?? []).map((group) => {
+      const task = group.lead;
+      const done = group.members.every((member) => member.status === TaskStatus.DONE);
+      const lastDone = group.members
+        .filter((member) => member.completedBy && member.completedAt)
+        .sort((a, b) => b.completedAt!.getTime() - a.completedAt!.getTime())[0];
+
+      return {
+        id: group.ids,
+        title: task.title,
+        dueDate: task.dueDate.toISOString(),
+        status: done ? TaskStatus.DONE : TaskStatus.TODO,
+        isUrgent: task.isUrgent,
         requiresConfirmation: task.requiresConfirmation,
-        repeatLabel: describeTaskRepeat(task.repeatEvery, task.repeatUnit),
-        assignedLabel: task.assignedToAll
-          ? null
-          : task.assignedTo
-            ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
-            : "non assegnata",
-        authorLabel: task.createdBy.id === session.user.id ? null : task.createdBy.firstName,
-        completedBy:
-          task.completedBy && task.completedAt
-            ? {
-                name: `${task.completedBy.firstName} ${task.completedBy.lastName}`,
-                at: task.completedAt,
-              }
-            : null,
-      }),
-    })),
+        // What the note's line says is worked out in one place, so it reads the
+        // same here as it does on the Note page.
+        meta: buildNoteMeta({
+          dueDate: task.dueDate,
+          done,
+          urgent: task.isUrgent,
+          requiresConfirmation: task.requiresConfirmation,
+          repeatLabel: describeTaskRepeat(task.repeatEvery, task.repeatUnit),
+          assignedLabel: task.assignedToAll ? null : describeAssignees(group.members),
+          authorLabel: task.createdBy.id === session.user.id ? null : task.createdBy.firstName,
+          completedBy:
+            done && lastDone?.completedBy && lastDone.completedAt
+              ? {
+                  name: `${lastDone.completedBy.firstName} ${lastDone.completedBy.lastName}`,
+                  at: lastDone.completedAt,
+                }
+              : null,
+        }),
+      };
+    }),
     notes: (notesByDay.get(toDayKey(day.date)) ?? []).map((note) => ({
       id: note.id,
       content: note.content,

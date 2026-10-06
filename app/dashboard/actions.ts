@@ -2381,6 +2381,22 @@ export async function createTaskAction(formData: FormData) {
   revalidatePath("/dashboard/tasks");
 }
 
+/**
+ * A note given to several people is one row per person (each confirms their
+ * own), shown as a single row to whoever manages them. That row carries all
+ * its ids, comma-separated, so ticking or deleting it acts on every copy.
+ */
+function readTaskIds(formData: FormData) {
+  return Array.from(
+    new Set(
+      String(formData.get("taskId") ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 50);
+}
+
 export async function completeTaskAction(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
@@ -2388,12 +2404,39 @@ export async function completeTaskAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const taskId = String(formData.get("taskId") ?? "").trim();
+  const taskIds = readTaskIds(formData);
 
-  if (!taskId) {
+  if (taskIds.length === 0) {
     throw new Error("Missing task id");
   }
 
+  // Copies already done are left alone: completing one twice would write a
+  // second next round for a recurring note.
+  const pending = await prisma.task.findMany({
+    where: { id: { in: taskIds }, barId: activeBarId, status: { not: TaskStatus.DONE } },
+    select: { id: true },
+  });
+
+  for (const { id: taskId } of pending) {
+    await completeOneTask({ taskId, session, role, activeBarId });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/dashboard/tasks");
+}
+
+async function completeOneTask({
+  taskId,
+  session,
+  role,
+  activeBarId,
+}: {
+  taskId: string;
+  session: Awaited<ReturnType<typeof getActionContext>>["session"];
+  role: Role;
+  activeBarId: string;
+}) {
   const task = await prisma.task.findFirst({
     where: {
       id: taskId,
@@ -2453,10 +2496,6 @@ export async function completeTaskAction(formData: FormData) {
       actionUrl: "/dashboard/tasks",
     });
   }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/tasks");
 }
 
 export async function deleteCompletedTaskAction(formData: FormData) {
@@ -2467,15 +2506,15 @@ export async function deleteCompletedTaskAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const taskId = String(formData.get("taskId") ?? "").trim();
+  const taskIds = readTaskIds(formData);
 
-  if (!taskId) {
+  if (taskIds.length === 0) {
     throw new Error("Missing task id");
   }
 
-  const task = await prisma.task.findFirst({
+  const tasks = await prisma.task.findMany({
     where: {
-      id: taskId,
+      id: { in: taskIds },
       barId: activeBarId,
     },
     select: {
@@ -2484,17 +2523,18 @@ export async function deleteCompletedTaskAction(formData: FormData) {
     },
   });
 
-  if (!task) {
+  if (tasks.length !== taskIds.length) {
     throw new Error("Task not found");
   }
 
-  if (task.status !== TaskStatus.DONE) {
+  if (tasks.some((task) => task.status !== TaskStatus.DONE)) {
     throw new Error("Only completed tasks can be deleted");
   }
 
-  await prisma.task.delete({
+  await prisma.task.deleteMany({
     where: {
-      id: task.id,
+      id: { in: taskIds },
+      barId: activeBarId,
     },
   });
 
@@ -2510,15 +2550,15 @@ export async function deleteTaskAction(formData: FormData) {
     throw new Error("No active bar selected");
   }
 
-  const taskId = String(formData.get("taskId") ?? "").trim();
+  const taskIds = readTaskIds(formData);
 
-  if (!taskId) {
+  if (taskIds.length === 0) {
     throw new Error("Missing task id");
   }
 
-  const task = await prisma.task.findFirst({
+  const tasks = await prisma.task.findMany({
     where: {
-      id: taskId,
+      id: { in: taskIds },
       barId: activeBarId,
     },
     select: {
@@ -2527,16 +2567,16 @@ export async function deleteTaskAction(formData: FormData) {
     },
   });
 
-  if (!task) {
+  if (tasks.length !== taskIds.length) {
     throw new Error("Task not found");
   }
 
-  if (task.createdById !== session.user.id && !canManageOperations(role)) {
+  if (tasks.some((task) => task.createdById !== session.user.id) && !canManageOperations(role)) {
     throw new Error("Unauthorized");
   }
 
-  await prisma.task.delete({
-    where: { id: task.id },
+  await prisma.task.deleteMany({
+    where: { id: { in: taskIds }, barId: activeBarId },
   });
 
   revalidatePath("/dashboard");

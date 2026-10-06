@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { describeTaskRepeat } from "@/lib/task-recurrence";
+import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
 import { buildNoteMeta } from "@/lib/note-list-format";
 import { NoteRow } from "../note-row";
 import {
@@ -86,6 +87,7 @@ export default async function DashboardTasksPage({
             requiresConfirmation: true,
             repeatEvery: true,
             repeatUnit: true,
+            createdAt: true,
             assignedToAll: true,
             assignedToId: true,
             assignedTo: {
@@ -219,25 +221,31 @@ export default async function DashboardTasksPage({
           <EmptyState message="Nessuna nota disponibile." />
         ) : (
           <ItemList>
-            {tasks.map((task) => {
-              const isDone = task.status === "DONE";
+            {groupSharedTasks(tasks).map((group) => {
+              // A note given to several people comes back as one row here,
+              // with everyone's name; each of them still confirms their own.
+              const task = group.lead;
+              const isDone = group.members.every((member) => member.status === "DONE");
+              const pendingIds = group.members
+                .filter((member) => member.status !== "DONE")
+                .map((member) => member.id)
+                .join(",");
               const canComplete =
                 !isDone &&
                 task.requiresConfirmation &&
                 (canManage || task.assignedToAll || task.assignedToId === session.user.id);
               const canDeleteTask = canManage || task.createdBy.id === session.user.id;
-              const lastCompletion = task.completions[0];
+              const allCompletions = group.members
+                .flatMap((member) => member.completions)
+                .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
+              const lastCompletion = allCompletions[0];
               const meta = buildNoteMeta({
                 dueDate: task.dueDate,
                 done: isDone,
                 urgent: task.isUrgent,
                 requiresConfirmation: task.requiresConfirmation,
                 repeatLabel: describeTaskRepeat(task.repeatEvery, task.repeatUnit),
-                assignedLabel: task.assignedToAll
-                  ? null
-                  : task.assignedTo
-                    ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
-                    : "non assegnata",
+                assignedLabel: task.assignedToAll ? null : describeAssignees(group.members),
                 authorLabel:
                   task.createdBy.id === session.user.id ? null : task.createdBy.firstName,
                 completedBy: lastCompletion
@@ -250,18 +258,19 @@ export default async function DashboardTasksPage({
 
               // Who else confirmed it. On a note for the whole team that list
               // is the proof the check was done, so it stays.
-              const extraCompletions = task.completions
+              // On a shared note the ticks are already next to each name.
+              const extraCompletions = (group.members.length > 1 ? [] : allCompletions)
                 .slice(1)
                 .map((completion) => completion.user.firstName)
                 .join(", ");
 
               return (
                 <SwipeRevealAction
-                  key={task.id}
+                  key={group.ids}
                   enabled={canDeleteTask}
                   action={
                     <form action={deleteTaskAction}>
-                      <input type="hidden" name="taskId" value={task.id} />
+                      <input type="hidden" name="taskId" value={group.ids} />
                       <button
                         type="submit"
                         aria-label="Elimina nota"
@@ -296,7 +305,7 @@ export default async function DashboardTasksPage({
                   action={
                     canComplete ? (
                       <form action={completeTaskAction}>
-                        <input type="hidden" name="taskId" value={task.id} />
+                        <input type="hidden" name="taskId" value={pendingIds} />
                         <input type="hidden" name="notifySuccess" value="1" />
                         <IconButton
                           type="submit"
