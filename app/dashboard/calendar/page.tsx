@@ -14,6 +14,7 @@ import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
 import { DayActionCalendarClient } from "./day-action-calendar-client";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
+import { DesktopWeekPlanner } from "./desktop-planner";
 import { ScrollToTodayButton } from "./scroll-to-today-button";
 
 type CalendarPageSettings = {
@@ -1025,6 +1026,21 @@ export default async function DashboardCalendarPage({
     <Stack className="dashboard-calendar-page" columns="minmax(0, 1fr)">
       <Panel title={features.shifts ? "Turni" : "Calendario"}>
         {canManageRestaurantShifts ? (
+          <>
+          {/* On a computer the week is a grid of people and days; the phone
+              keeps its calendar. Which one shows is decided in CSS at 1100px,
+              in desktop-planner.tsx. */}
+          <div className="wbp-desktop-only">
+            <DesktopWeekPlanner
+              days={serializedDays}
+              members={memberOptions}
+              presets={shiftPresets}
+              locale={locale}
+              currentUserId={session.user.id}
+              initialDayKey={initialFocusedDay}
+            />
+          </div>
+          <div className="wbp-phone-only">
           <OwnerCalendarClient
             locale={locale}
             weekdayLabels={weekdayLabels}
@@ -1040,6 +1056,8 @@ export default async function DashboardCalendarPage({
             todayAction={todayAction}
             publishAction={publishWeekAction}
           />
+          </div>
+          </>
         ) : (
           <DayActionCalendarClient
             locale={locale}

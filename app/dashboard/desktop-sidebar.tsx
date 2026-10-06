@@ -40,7 +40,7 @@ export function DesktopSidebar({
 
       {accountContent ? <div className="wb-desk-account">{accountContent}</div> : null}
 
-      <nav className="wb-desk-nav">
+      <nav className="wb-desk-nav" data-no-runtime-translate="">
         {navItems.map((item) => {
           const active = isNavItemActive(pathname, item.href);
 

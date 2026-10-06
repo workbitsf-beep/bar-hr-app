@@ -30,7 +30,7 @@ export function ConsoleRail() {
   const pathname = usePathname() ?? ROOT;
 
   return (
-    <nav className="wbc-rail" aria-label="Sezioni console">
+    <nav className="wbc-rail" aria-label="Sezioni console" data-no-runtime-translate="">
       {SECTIONS.map((section) => {
         const active = isActive(pathname, section.href);
 

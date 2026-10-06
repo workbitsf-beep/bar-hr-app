@@ -4,6 +4,15 @@ import { useEffect } from "react";
 import { translateRuntimeValue } from "@/lib/language";
 
 function translateNode(language: string, node: Node) {
+  // Navigation that already carries its own labels opts out: translating it
+  // after the page arrived made React find different text while hydrating
+  // the parts that streamed in later, and rebuild them from scratch.
+  const element = node instanceof HTMLElement ? node : node.parentElement;
+
+  if (element?.closest("[data-no-runtime-translate]")) {
+    return;
+  }
+
   if (node.nodeType === Node.TEXT_NODE) {
     if (
       node.parentElement &&

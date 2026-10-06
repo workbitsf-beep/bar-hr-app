@@ -43,7 +43,7 @@ export default async function ConsolePeoplePage({
       }
     : { isActive: true };
 
-  const [owners, staff, staffTotal] = await Promise.all([
+  const [owners, staff, staffTotal, venues] = await Promise.all([
     prisma.user.findMany({
       where: { role: Role.OWNER },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
@@ -68,6 +68,16 @@ export default async function ConsolePeoplePage({
       },
     }),
     prisma.employeeBar.count({ where: { isActive: true } }),
+    // The staff live on their venue's page; here each venue is one line.
+    prisma.bar.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        memberships: { where: { isActive: true }, select: { role: true } },
+      },
+    }),
   ]);
 
   const languageOptions = getLanguageOptions();
@@ -77,8 +87,8 @@ export default async function ConsolePeoplePage({
       <div className="wbc-page-head">
         <h1 className="wbc-title">Persone</h1>
         <p className="wbc-desc">
-          Titolari della rete e tutti gli account collegati ai locali. Il personale si aggiunge dalla pagina del
-          singolo locale.
+          I titolari della rete e, per ogni locale, le sue persone. Si aprono dal locale, dove si aggiungono e si
+          tolgono.
         </p>
       </div>
 
@@ -150,30 +160,57 @@ export default async function ConsolePeoplePage({
         </div>
       </Section>
 
-      <Section title={`Personale · ${staff.length}`}>
+      <Section title={query ? `Ricerca · ${staff.length}` : `Personale per locale · ${venues.length}`}>
         <form method="GET" className="wbc-search">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
             <path d="m21 21-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <input type="search" name="q" defaultValue={query} placeholder="Cerca per nome o email" />
+          <input type="search" name="q" defaultValue={query} placeholder="Cerca una persona per nome o email" />
         </form>
 
-        <div>
-          {staff.length === 0 ? (
-            <Empty>Nessuna persona trovata.</Empty>
-          ) : (
-            staff.map((member) => (
-              <Row
-                key={member.id}
-                href={`/dashboard/super-admin/bar/${member.bar.id}`}
-                title={fullName(member.user)}
-                meta={`${member.user.email} · ${roleLabel(member.role)}`}
-                valueMeta={member.bar.name}
-              />
-            ))
-          )}
-        </div>
+        {query ? (
+          <div>
+            {staff.length === 0 ? (
+              <Empty>Nessuna persona trovata.</Empty>
+            ) : (
+              staff.map((member) => (
+                <Row
+                  key={member.id}
+                  href={`/dashboard/super-admin/bar/${member.bar.id}`}
+                  title={fullName(member.user)}
+                  meta={`${member.user.email} · ${roleLabel(member.role)}`}
+                  valueMeta={member.bar.name}
+                />
+              ))
+            )}
+          </div>
+        ) : (
+          <div>
+            {venues.length === 0 ? (
+              <Empty>Nessun locale.</Empty>
+            ) : (
+              venues.map((venue) => {
+                const counts = new Map<string, number>();
+                for (const membership of venue.memberships) {
+                  const label = roleLabel(membership.role);
+                  counts.set(label, (counts.get(label) ?? 0) + 1);
+                }
+                const breakdown = [...counts.entries()].map(([label, count]) => `${count} ${label.toLowerCase()}`).join(" · ");
+                return (
+                  <Row
+                    key={venue.id}
+                    href={`/dashboard/super-admin/bar/${venue.id}`}
+                    title={venue.name}
+                    meta={[venue.city, breakdown || "nessuna persona"].filter(Boolean).join(" · ")}
+                    value={`${venue.memberships.length}`}
+                    valueMeta={venue.memberships.length === 1 ? "persona" : "persone"}
+                  />
+                );
+              })
+            )}
+          </div>
+        )}
       </Section>
     </div>
   );

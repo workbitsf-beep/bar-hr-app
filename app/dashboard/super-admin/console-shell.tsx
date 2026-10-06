@@ -27,7 +27,8 @@ export function ConsoleShell({
       .join("") || "W";
 
   return (
-    <div className="wbc-root">
+    // The console is Italian only: the runtime translator stays out of it.
+    <div className="wbc-root" data-no-runtime-translate="">
       <header className="wbc-head">
         <div className="wbc-head-in">
           <span className="wbc-mark">
@@ -92,12 +93,13 @@ export function ConsoleShell({
 /* Inside the installed app the system bar sizes arrive as --wb-inset-*, since
    a web view is not told about them through env(). In a browser those
    variables are absent and env() answers instead. */
+/* No backdrop-filter here: it makes the header the containing block of
+   every fixed element inside it, and the venue list opened from the header
+   was clipped to the header's 60px. */
 .wbc-head {
   flex: 0 0 auto;
-  background: rgba(241, 235, 255, 0.82);
+  background: #f3eeff;
   border-bottom: 1px solid rgba(109, 61, 240, 0.08);
-  backdrop-filter: saturate(1.4) blur(12px);
-  -webkit-backdrop-filter: saturate(1.4) blur(12px);
   padding-top: max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px));
 }
 
@@ -204,6 +206,7 @@ export function ConsoleShell({
 
 .wbc-scroll {
   flex: 1 1 auto;
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px)) + 92px);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -212,13 +215,18 @@ export function ConsoleShell({
 
 .wbc-page { padding: 26px 16px 40px; max-width: 920px; margin: 0 auto; }
 
-/* The four sections stay at the bottom, as a floating bar. */
+/* The four sections float over the page at the bottom, with nothing behind
+   them: the page scrolls underneath and keeps room at its end. */
 .wbc-rail {
-  flex: 0 0 auto;
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px)) + 12px);
+  z-index: 20;
+  transform: translateX(-50%);
   display: flex;
   gap: 4px;
   width: min(560px, calc(100% - 24px));
-  margin: 0 auto calc(max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px)) + 10px);
+  margin: 0;
   padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.95);
   border-radius: 999px;

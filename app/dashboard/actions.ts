@@ -39,7 +39,12 @@ import { invalidateReportingCache } from "@/lib/reporting";
 import { normalizeRoundingStep } from "@/lib/rounding";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
-import { APP_TIME_ZONE, formatDateTimeInTimeZone, toDateInputValueInTimeZone } from "@/lib/time-zone";
+import {
+  APP_TIME_ZONE,
+  formatDateTimeInTimeZone,
+  toDateInputValueInTimeZone,
+  toTimeInputValueInTimeZone,
+} from "@/lib/time-zone";
 import { parseTaskDueDate } from "@/lib/task-dates";
 import {
   parseTaskRepeat,
@@ -5389,4 +5394,241 @@ export async function reviewRequestAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/export");
   revalidatePath("/dashboard/calendar");
+}
+
+/* ---------- The week planner on a computer ---------- */
+
+function addDaysToDayKey(dayKey: string, days: number) {
+  const [year, month, day] = dayKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+/** The same wall-clock time on another day, in the venue's time zone. */
+function sameTimeOnDay(source: Date, dayKey: string) {
+  return parseDateTimeLocal(`${dayKey}T${toTimeInputValueInTimeZone(source)}`);
+}
+
+/**
+ * Drags one person's shift to another day or another person in the planner.
+ *
+ * A shift can hold several people. Moving the only one moves the shift;
+ * moving one of several takes that person out and gives them a shift of their
+ * own, with the same title and hours, on the day and row it was dropped on.
+ * Either way it goes through the same checks as the editor - not in the past,
+ * nobody on holiday or busy - and comes back unpublished, like any edit.
+ */
+export async function moveShiftMemberAction(formData: FormData) {
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureOperationRole(role);
+
+    if (!activeBarId) {
+      throw new Error("No active bar selected");
+    }
+
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+
+    const shiftId = String(formData.get("shiftId") ?? "").trim();
+    const fromMemberId = String(formData.get("fromMemberId") ?? "").trim();
+    const toMemberId = String(formData.get("toMemberId") ?? "").trim();
+    const toDay = String(formData.get("toDay") ?? "").trim();
+
+    if (!shiftId || !fromMemberId || !toMemberId || !/^\d{4}-\d{2}-\d{2}$/.test(toDay)) {
+      throw new RuleError("Dati dello spostamento mancanti");
+    }
+
+    const shift = await prisma.shift.findFirst({
+      where: { id: shiftId, barId: activeBarId },
+      select: {
+        title: true,
+        startTime: true,
+        endTime: true,
+        isOnCall: true,
+        confirmedAt: true,
+        assignments: { select: { userId: true } },
+      },
+    });
+
+    if (!shift) {
+      throw new RuleError("Questo turno non esiste più");
+    }
+
+    const memberIds = shift.assignments.map((assignment) => assignment.userId);
+
+    if (!memberIds.includes(fromMemberId)) {
+      throw new RuleError("Questa persona non è più in quel turno");
+    }
+
+    ensureShiftCanStillBeChanged(shift.startTime);
+
+    const startTime = sameTimeOnDay(shift.startTime, toDay);
+    const endTime = new Date(startTime.getTime() + (shift.endTime.getTime() - shift.startTime.getTime()));
+    const sameDay = toDateInputValueInTimeZone(shift.startTime) === toDay;
+
+    if (sameDay && fromMemberId === toMemberId) {
+      return { ok: true };
+    }
+
+    if (sameDay && memberIds.includes(toMemberId)) {
+      throw new RuleError("Questa persona è già in quel turno");
+    }
+
+    ensureShiftIsNotBeforeToday(startTime);
+    await ensureUsersBelongToBar(activeBarId, [toMemberId]);
+
+    const others = memberIds.filter((id) => id !== fromMemberId);
+    const movesWholeShift = others.length === 0;
+
+    await assertNoShiftAssignmentConflicts({
+      barId: activeBarId,
+      employeeIds: [toMemberId],
+      startTime,
+      endTime,
+      isOnCall: shift.isOnCall,
+      excludeShiftId: movesWholeShift ? shiftId : undefined,
+    });
+
+    await cancelShiftClockReminders([shiftId]);
+
+    if (movesWholeShift) {
+      await prisma.shift.update({
+        where: { id: shiftId },
+        data: {
+          startTime,
+          endTime,
+          assignedToId: toMemberId,
+          confirmedAt: null,
+          confirmedById: null,
+          assignments: { deleteMany: {}, create: { userId: toMemberId } },
+        },
+      });
+    } else {
+      await prisma.$transaction([
+        prisma.shiftAssignment.deleteMany({ where: { shiftId, userId: fromMemberId } }),
+        prisma.shift.update({ where: { id: shiftId }, data: { assignedToId: others[0] } }),
+        prisma.shift.create({
+          data: {
+            title: shift.title,
+            startTime,
+            endTime,
+            isOnCall: shift.isOnCall,
+            barId: activeBarId,
+            assignedToId: toMemberId,
+            createdById: session.user.id,
+            assignments: { create: { userId: toMemberId } },
+          },
+        }),
+      ]);
+
+      if (shift.confirmedAt && !shift.isOnCall) {
+        await scheduleShiftClockReminders([shiftId]);
+      }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/**
+ * Copies last week's shifts onto the week that starts on `weekStart`, as
+ * drafts to check and publish. A copy is skipped when its day is already
+ * past, when its people are no longer in the venue, or when it would clash
+ * with something already there - so pressing it twice copies nothing twice.
+ */
+export async function copyPreviousWeekShiftsAction(formData: FormData) {
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureOperationRole(role);
+
+    if (!activeBarId) {
+      throw new Error("No active bar selected");
+    }
+
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+
+    const weekStart = String(formData.get("weekStart") ?? "").trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+      throw new RuleError("Settimana non valida");
+    }
+
+    const sourceStart = parseDateTimeLocal(`${addDaysToDayKey(weekStart, -7)}T00:00`);
+    const sourceEnd = parseDateTimeLocal(`${weekStart}T00:00`);
+    const todayKey = toDateInputValueInTimeZone(new Date());
+
+    const [sources, activeMembers] = await Promise.all([
+      prisma.shift.findMany({
+        where: { barId: activeBarId, startTime: { gte: sourceStart, lt: sourceEnd } },
+        orderBy: { startTime: "asc" },
+        select: {
+          title: true,
+          startTime: true,
+          endTime: true,
+          isOnCall: true,
+          assignments: { select: { userId: true } },
+        },
+      }),
+      prisma.employeeBar.findMany({
+        where: { barId: activeBarId, isActive: true },
+        select: { userId: true },
+      }),
+    ]);
+
+    const active = new Set(activeMembers.map((member) => member.userId));
+    let created = 0;
+    let skipped = 0;
+
+    for (const source of sources) {
+      const dayKey = addDaysToDayKey(toDateInputValueInTimeZone(source.startTime), 7);
+      const employeeIds = source.assignments.map((a) => a.userId).filter((id) => active.has(id));
+
+      if (dayKey < todayKey || employeeIds.length === 0) {
+        skipped += 1;
+        continue;
+      }
+
+      const startTime = sameTimeOnDay(source.startTime, dayKey);
+      const endTime = new Date(startTime.getTime() + (source.endTime.getTime() - source.startTime.getTime()));
+
+      try {
+        await assertNoShiftAssignmentConflicts({
+          barId: activeBarId,
+          employeeIds,
+          startTime,
+          endTime,
+          isOnCall: source.isOnCall,
+        });
+      } catch {
+        skipped += 1;
+        continue;
+      }
+
+      await prisma.shift.create({
+        data: {
+          title: source.title,
+          startTime,
+          endTime,
+          isOnCall: source.isOnCall,
+          barId: activeBarId,
+          assignedToId: employeeIds[0],
+          createdById: session.user.id,
+          assignments: { createMany: { data: employeeIds.map((userId) => ({ userId })) } },
+        },
+      });
+      created += 1;
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+
+    return { ok: true, created, skipped };
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }
