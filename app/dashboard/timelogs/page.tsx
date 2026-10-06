@@ -101,8 +101,8 @@ export default async function DashboardTimeLogsPage({
         id: true,
         type: true,
         timestamp: true,
-        latitude: true,
-        longitude: true,
+        // No coordinates: nothing on this page shows them, and sending them to
+        // the browser with every clock-in was data no one needed to receive.
         isManual: true,
         note: true,
         user: {
@@ -196,8 +196,6 @@ export default async function DashboardTimeLogsPage({
           id: log.id,
           type: log.type,
           timestamp: log.timestamp.toISOString(),
-          latitude: log.latitude,
-          longitude: log.longitude,
           isManual: log.isManual,
           note: log.note,
           user: {

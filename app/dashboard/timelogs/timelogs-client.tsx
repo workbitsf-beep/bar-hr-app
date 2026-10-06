@@ -32,8 +32,6 @@ type LogItem = {
   id: string;
   type: ClockType;
   timestamp: string;
-  latitude: number | null;
-  longitude: number | null;
   isManual: boolean;
   note: string | null;
   user: {

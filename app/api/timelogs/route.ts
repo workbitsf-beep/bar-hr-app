@@ -17,8 +17,6 @@ function serializeTimeLog(log: {
   id: string;
   type: "IN" | "OUT";
   timestamp: Date;
-  latitude: number | null;
-  longitude: number | null;
   isManual: boolean;
   note: string | null;
   user: {
@@ -31,8 +29,8 @@ function serializeTimeLog(log: {
     id: log.id,
     type: log.type,
     timestamp: log.timestamp.toISOString(),
-    latitude: log.latitude,
-    longitude: log.longitude,
+    // Coordinates stay on the server: the position is checked at clock-in and
+    // nothing in the app shows it afterwards.
     isManual: log.isManual,
     note: log.note,
     user: {
@@ -80,8 +78,6 @@ export const GET = withBar(
         id: true,
         type: true,
         timestamp: true,
-        latitude: true,
-        longitude: true,
         isManual: true,
         note: true,
         user: {
