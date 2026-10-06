@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BrandMark } from "@/components/brand-mark";
 import { ConsoleAccount } from "./console-account";
 import { ConsoleRail } from "./console-rail";
 import { VenueJump } from "./console-venue-jump";
@@ -30,8 +31,11 @@ export function ConsoleShell({
       <header className="wbc-head">
         <div className="wbc-head-in">
           <span className="wbc-mark">
-            <i />
-            Workbit <span>Console</span>
+            <BrandMark size={36} />
+            <span>
+              Workbit
+              <small>Console</small>
+            </span>
           </span>
 
           <div className="wbc-head-tools">
@@ -53,17 +57,20 @@ export function ConsoleShell({
           __html: `
 .wbc-root {
   --k-paper: #ffffff;
-  --k-ink: #15161c;
-  --k-ink-2: #5b5e70;
-  --k-ink-3: #9a9cac;
-  --k-line: #e8e8ef;
-  --k-line-strong: #d5d5e0;
-  --k-accent: #6d28d9;
-  --k-accent-soft: #f2ecfd;
-  --k-pos: #0e7a5f;
-  --k-warn: #a5620d;
-  --k-neg: #b3261e;
-  --k-fill: #f6f6fa;
+  --k-ink: #15132b;
+  --k-ink-2: #4c4670;
+  --k-ink-3: #8a84a8;
+  --k-line: #efe9fc;
+  --k-line-strong: #ddd3f8;
+  --k-accent: #6d3df0;
+  --k-accent-2: #9b5cff;
+  --k-accent-soft: #efe8ff;
+  --k-pos: #1f9d63;
+  --k-warn: #b7791f;
+  --k-neg: #c2334d;
+  --k-fill: #fbfaff;
+  --k-card: rgba(255, 255, 255, 0.86);
+  --k-shadow: 0 18px 44px rgba(80, 40, 160, 0.08);
   --k-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   position: fixed;
@@ -71,7 +78,9 @@ export function ConsoleShell({
   z-index: 40;
   display: flex;
   flex-direction: column;
-  background: var(--k-paper);
+  background:
+    radial-gradient(60% 40% at 85% 0%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #f1ebff 0%, #e2d6fc 70%, #d6c6f8 100%);
   color: var(--k-ink);
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
@@ -85,18 +94,21 @@ export function ConsoleShell({
    variables are absent and env() answers instead. */
 .wbc-head {
   flex: 0 0 auto;
-  background: var(--k-ink);
+  background: rgba(241, 235, 255, 0.82);
+  border-bottom: 1px solid rgba(109, 61, 240, 0.08);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
   padding-top: max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px));
 }
 
 .wbc-head-in {
-  height: 52px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 0 16px;
-  max-width: 760px;
+  max-width: 920px;
   margin: 0 auto;
   width: 100%;
 }
@@ -104,17 +116,22 @@ export function ConsoleShell({
 .wbc-mark {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--k-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
-  color: #ffffff;
+  gap: 9px;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--k-ink);
 }
 
-.wbc-mark i { width: 6px; height: 6px; border-radius: 50%; background: var(--k-accent); flex: 0 0 auto; }
-.wbc-mark span { color: rgba(255, 255, 255, 0.5); }
+.wbc-mark small {
+  display: block;
+  margin-top: 1px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--k-accent);
+}
 
 .wbc-head-tools { display: flex; align-items: center; gap: 9px; flex: 0 1 auto; min-width: 0; }
 
@@ -122,22 +139,23 @@ export function ConsoleShell({
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  max-width: 152px;
+  max-width: 160px;
   min-width: 0;
-  height: 34px;
-  padding: 0 13px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  height: 38px;
+  padding: 0 15px;
+  border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(109, 61, 240, 0.18);
+  color: var(--k-ink);
   font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-.wbc-jump svg { flex: 0 0 auto; opacity: 0.75; }
+.wbc-jump svg { flex: 0 0 auto; color: var(--k-accent); }
 .wbc-jump span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wbc-jump:disabled { opacity: 0.55; cursor: default; }
 
@@ -146,15 +164,15 @@ export function ConsoleShell({
   align-items: center;
   gap: 11px;
   width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
+  min-height: 52px;
+  padding: 0 16px;
   border: 1px solid var(--k-line);
-  border-radius: 12px;
-  background: var(--k-fill);
+  border-radius: 16px;
+  background: #ffffff;
   color: var(--k-ink);
   font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 650;
   text-align: left;
   cursor: pointer;
 }
@@ -165,23 +183,23 @@ export function ConsoleShell({
 .wbc-jump-row:disabled { opacity: 0.55; cursor: default; }
 
 @media (max-width: 400px) {
-  .wbc-mark span { display: none; }
-  .wbc-jump { max-width: 118px; }
+  .wbc-mark small { display: none; }
+  .wbc-jump { max-width: 120px; }
 }
 
 .wbc-avatar {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.09);
+  border: 0;
+  background: linear-gradient(120deg, #6d3df0, #9b5cff);
   color: #ffffff;
-  font-family: var(--k-mono);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   cursor: pointer;
   flex: 0 0 auto;
+  box-shadow: 0 8px 18px rgba(109, 61, 240, 0.28);
 }
 
 .wbc-scroll {
@@ -192,55 +210,69 @@ export function ConsoleShell({
   -webkit-overflow-scrolling: touch;
 }
 
-.wbc-page { padding: 22px 16px 34px; max-width: 760px; margin: 0 auto; }
+.wbc-page { padding: 26px 16px 40px; max-width: 920px; margin: 0 auto; }
 
+/* The four sections stay at the bottom, as a floating bar. */
 .wbc-rail {
   flex: 0 0 auto;
   display: flex;
-  background: var(--k-ink);
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px));
+  gap: 4px;
+  width: min(560px, calc(100% - 24px));
+  margin: 0 auto calc(max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px)) + 10px);
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  box-shadow: 0 16px 40px rgba(80, 40, 160, 0.16);
 }
 
 .wbc-rail a {
   flex: 1 1 0;
-  padding: 12px 4px 14px;
+  padding: 11px 4px;
+  border-radius: 999px;
   text-align: center;
-  font-family: var(--k-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.46);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--k-ink-2);
   text-decoration: none;
-  border-top: 2px solid transparent;
 }
 
-.wbc-rail a[data-on="1"] { color: #ffffff; border-top-color: var(--k-accent); }
+.wbc-rail a[data-on="1"] {
+  background: linear-gradient(120deg, #6d3df0, #9b5cff);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(109, 61, 240, 0.3);
+}
 
 /* ---------- page furniture ---------- */
-.wbc-page-head { display: grid; gap: 8px; margin-bottom: 22px; }
-.wbc-title { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.028em; text-wrap: balance; }
-.wbc-desc { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--k-ink-2); max-width: 58ch; }
+.wbc-page-head { display: grid; gap: 10px; margin-bottom: 24px; }
+.wbc-title {
+  margin: 0;
+  font-size: clamp(30px, 6vw, 44px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.wbc-desc { margin: 0; font-size: 15px; line-height: 1.55; color: var(--k-ink-2); max-width: 60ch; }
 
 .wbc-back {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 12px;
-  font-family: var(--k-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--k-ink-3);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--k-accent);
   text-decoration: none;
 }
 
 .wbc-label {
   margin: 0;
-  font-family: var(--k-mono);
-  font-size: 10.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--k-ink-3);
@@ -249,27 +281,48 @@ export function ConsoleShell({
 /* ---------- figures ---------- */
 .wbc-figure-band {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  border-top: 1px solid var(--k-line);
-  border-bottom: 1px solid var(--k-line);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
 }
 
-.wbc-figure { display: grid; gap: 6px; padding: 15px 14px 16px; border-left: 1px solid var(--k-line); min-width: 0; }
-.wbc-figure:first-child { border-left: 0; padding-left: 0; }
+.wbc-figure {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 16px 18px 18px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: var(--k-shadow);
+  min-width: 0;
+}
+
+/* The first figure of a band is the one that matters: in violet. */
+.wbc-figure:first-child { background: linear-gradient(135deg, #6d3df0, #9b5cff); color: #ffffff; }
+.wbc-figure:first-child .wbc-label,
+.wbc-figure:first-child .wbc-figure-meta { color: rgba(255, 255, 255, 0.82); }
+.wbc-figure:first-child .wbc-figure-value { color: #ffffff; }
+
 .wbc-figure-value {
-  font-size: clamp(19px, 5.4vw, 28px);
-  font-weight: 600;
-  letter-spacing: -0.038em;
+  font-size: clamp(24px, 5.4vw, 34px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-.wbc-figure-word { font-size: clamp(15px, 4.2vw, 20px); letter-spacing: -0.015em; }
-.wbc-figure-meta { font-size: 11.5px; line-height: 1.4; color: var(--k-ink-2); }
+.wbc-figure-word { font-size: clamp(17px, 4.2vw, 22px); letter-spacing: -0.02em; }
+.wbc-figure-meta { font-size: 12.5px; line-height: 1.4; color: var(--k-ink-2); }
 
-/* ---------- sections ---------- */
-.wbc-section { margin-top: 28px; }
+/* ---------- sections: white cards ---------- */
+.wbc-section {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 26px;
+  background: var(--k-card);
+  box-shadow: var(--k-shadow);
+}
 .wbc-section:first-child { margin-top: 0; }
 
 .wbc-section-head {
@@ -277,27 +330,48 @@ export function ConsoleShell({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--k-line);
+  padding-bottom: 12px;
 }
 
-.wbc-section-body { padding-top: 15px; display: grid; gap: 15px; }
-.wbc-section-body.wbc-flush { padding-top: 0; gap: 0; }
+.wbc-section-body { padding-top: 4px; display: grid; gap: 15px; }
+.wbc-section-body.wbc-flush { padding-top: 0; gap: 8px; }
 
 /* ---------- rows ---------- */
-.wbc-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--k-line); }
-.wbc-row-link { text-decoration: none; color: inherit; }
+.wbc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--k-line);
+  border-radius: 18px;
+  background: #ffffff;
+}
+.wbc-row-link { text-decoration: none; color: inherit; transition: border-color 0.15s ease; }
+.wbc-row-link:hover { border-color: var(--k-line-strong); }
 .wbc-row-link:active { background: var(--k-fill); }
 .wbc-row-main { flex: 1 1 auto; min-width: 0; display: grid; gap: 3px; }
-.wbc-row-title { font-size: 15px; font-weight: 600; letter-spacing: -0.012em; overflow-wrap: anywhere; }
-.wbc-row-meta { font-size: 12.5px; line-height: 1.4; color: var(--k-ink-2); overflow-wrap: anywhere; }
+.wbc-row-title { font-size: 15.5px; font-weight: 750; letter-spacing: -0.012em; overflow-wrap: anywhere; }
+.wbc-row-meta { font-size: 13px; line-height: 1.4; color: var(--k-ink-3); overflow-wrap: anywhere; }
 .wbc-row-side { flex: 0 0 auto; display: grid; gap: 4px; justify-items: end; text-align: right; }
-.wbc-row-value { font-family: var(--k-mono); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.wbc-row-value-meta { font-family: var(--k-mono); font-size: 10.5px; color: var(--k-ink-3); font-variant-numeric: tabular-nums; }
+.wbc-row-value { font-size: 14.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.wbc-row-value-meta { font-size: 11.5px; color: var(--k-ink-3); font-variant-numeric: tabular-nums; }
 .wbc-row-chevron { flex: 0 0 auto; color: var(--k-ink-3); }
 
-/* ---------- status ---------- */
-.wbc-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+/* ---------- status: soft pills ---------- */
+.wbc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f1eef9;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.wbc-status:has(.wbc-t-positive) { background: #e2f6ec; }
+.wbc-status:has(.wbc-t-warning) { background: #fff3dc; }
+.wbc-status:has(.wbc-t-negative) { background: #fde8ec; }
 .wbc-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
 .wbc-bg-neutral { background: var(--k-ink-3); }
 .wbc-bg-positive { background: var(--k-pos); }
@@ -311,8 +385,9 @@ export function ConsoleShell({
 /* ---------- data list ---------- */
 .wbc-datalist { margin: 0; display: grid; }
 .wbc-datalist-row { display: flex; justify-content: space-between; align-items: baseline; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--k-line); }
-.wbc-datalist-row dt { margin: 0; font-size: 13px; color: var(--k-ink-2); flex: 0 0 auto; }
-.wbc-datalist-row dd { margin: 0; font-size: 13.5px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.wbc-datalist-row:last-child { border-bottom: 0; }
+.wbc-datalist-row dt { margin: 0; font-size: 14px; color: var(--k-ink-3); font-weight: 600; flex: 0 0 auto; }
+.wbc-datalist-row dd { margin: 0; font-size: 14.5px; font-weight: 700; text-align: right; overflow-wrap: anywhere; }
 
 /* ---------- donut ---------- */
 .wbc-donut { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }
@@ -331,29 +406,28 @@ export function ConsoleShell({
 }
 
 .wbc-donut-center strong {
-  font-size: 25px;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .wbc-donut-center span {
-  font-family: var(--k-mono);
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 9.5px;
+  font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--k-ink-3);
 }
 
-.wbc-donut-legend { flex: 1 1 190px; min-width: 0; margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+.wbc-donut-legend { flex: 1 1 190px; min-width: 0; margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
 
 .wbc-donut-legend li {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 12.5px;
+  gap: 10px;
+  font-size: 14px;
   color: var(--k-ink-2);
 }
 
@@ -364,24 +438,22 @@ export function ConsoleShell({
   display: inline-flex;
   align-items: baseline;
   gap: 7px;
-  font-family: var(--k-mono);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--k-ink);
 }
 
-.wbc-donut-legend-value i { font-style: normal; font-size: 10px; color: var(--k-ink-3); min-width: 30px; text-align: right; }
+.wbc-donut-legend-value i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--k-ink-3); min-width: 32px; text-align: right; }
 
 /* ---------- charts ---------- */
-.wbc-chart { display: grid; gap: 9px; }
+.wbc-chart { display: grid; gap: 10px; }
 .wbc-chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 
 .wbc-chart-scale {
-  font-family: var(--k-mono);
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.11em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--k-ink-3);
 }
@@ -389,7 +461,7 @@ export function ConsoleShell({
 .wbc-chart-plot {
   display: flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: 4px;
   padding-top: 2px;
   border-bottom: 1px solid var(--k-line-strong);
   background-image: repeating-linear-gradient(
@@ -406,8 +478,8 @@ export function ConsoleShell({
 .wbc-col-fill {
   display: block;
   width: 100%;
-  border-radius: 2px 2px 0 0;
-  background: var(--k-accent);
+  border-radius: 7px 7px 3px 3px;
+  background: linear-gradient(180deg, #a98cff, #6d3df0);
 }
 
 .wbc-chart-axis {
@@ -415,9 +487,7 @@ export function ConsoleShell({
   justify-content: space-between;
   align-items: baseline;
   gap: 10px;
-  font-family: var(--k-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.04em;
+  font-size: 11px;
   color: var(--k-ink-3);
 }
 
@@ -428,10 +498,9 @@ export function ConsoleShell({
   display: flex;
   flex-wrap: wrap;
   gap: 0 8px;
-  font-family: var(--k-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.11em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--k-ink-3);
 }
@@ -439,17 +508,17 @@ export function ConsoleShell({
 .wbc-stamp i { font-style: normal; margin-right: 8px; color: var(--k-line-strong); }
 
 /* ---------- prose helpers ---------- */
-.wbc-empty { margin: 0; padding: 18px 0; color: var(--k-ink-3); font-size: 13.5px; }
-.wbc-note { margin: 0; padding: 12px 14px; border-radius: 10px; font-size: 12.5px; line-height: 1.55; background: var(--k-fill); color: var(--k-ink-2); }
-.wbc-note-positive { background: #e9f6f1; color: var(--k-pos); }
-.wbc-note-warning { background: #fdf4e8; color: var(--k-warn); }
-.wbc-note-negative { background: #fdeeed; color: var(--k-neg); }
+.wbc-empty { margin: 0; padding: 16px 2px; color: var(--k-ink-3); font-size: 14px; }
+.wbc-note { margin: 0; padding: 12px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.55; background: #f6f2ff; color: var(--k-ink-2); }
+.wbc-note-positive { background: #e2f6ec; color: var(--k-pos); }
+.wbc-note-warning { background: #fff3dc; color: var(--k-warn); }
+.wbc-note-negative { background: #fde8ec; color: var(--k-neg); }
 
 /* ---------- forms ---------- */
-.wbc-field { display: grid; gap: 8px; min-width: 0; }
-.wbc-field-label { font-family: var(--k-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--k-ink-3); }
-.wbc-field-hint { font-size: 11.5px; line-height: 1.45; color: var(--k-ink-3); }
-.wbc-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+.wbc-field { display: grid; gap: 7px; min-width: 0; }
+.wbc-field-label { font-size: 12.5px; font-weight: 750; color: #3a3850; }
+.wbc-field-hint { font-size: 12px; line-height: 1.45; color: var(--k-ink-3); }
+.wbc-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 15px; }
 
 .wbc-root input[type="text"],
 .wbc-root input[type="email"],
@@ -465,10 +534,10 @@ export function ConsoleShell({
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  background: var(--k-fill);
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 12px 13px;
+  background-color: var(--k-fill);
+  border: 1.5px solid #e4e1f0;
+  border-radius: 14px;
+  padding: 12px 14px;
   font-family: inherit;
   font-size: 15px;
   line-height: 1.35;
@@ -480,15 +549,15 @@ export function ConsoleShell({
 .wbc-root select {
   background-image: ${SELECT_CHEVRON};
   background-repeat: no-repeat;
-  background-position: right 13px center;
-  padding-right: 36px;
+  background-position: right 14px center;
+  padding-right: 38px;
 }
 
 .wbc-root input:focus,
 .wbc-root select:focus,
 .wbc-root textarea:focus {
   outline: none;
-  background: #ffffff;
+  background-color: #ffffff;
   border-color: var(--k-accent);
   box-shadow: 0 0 0 3px var(--k-accent-soft);
 }
@@ -502,18 +571,19 @@ export function ConsoleShell({
 .wbc-root input[type="file"] {
   width: 100%;
   background: var(--k-fill);
-  border-radius: 10px;
-  padding: 11px 13px;
-  font-size: 13px;
+  border: 1.5px dashed var(--k-line-strong);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 13.5px;
   color: var(--k-ink-2);
 }
 
-.wbc-check { display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 600; }
+.wbc-check { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 650; }
 .wbc-check input { width: 18px; height: 18px; accent-color: var(--k-accent); }
 
 .wbc-search { position: relative; display: flex; align-items: center; }
-.wbc-search svg { position: absolute; left: 13px; color: var(--k-ink-3); pointer-events: none; }
-.wbc-search input { padding-left: 38px; }
+.wbc-search svg { position: absolute; left: 15px; color: var(--k-ink-3); pointer-events: none; }
+.wbc-root .wbc-search input { padding-left: 42px; border-radius: 999px; background-color: #ffffff; }
 
 /* ---------- buttons ---------- */
 .wbc-btn {
@@ -521,43 +591,45 @@ export function ConsoleShell({
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 44px;
-  padding: 11px 18px;
+  min-height: 46px;
+  padding: 11px 22px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 999px;
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 14.5px;
+  font-weight: 750;
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-.wbc-btn-primary { background: var(--k-ink); color: #ffffff; }
-.wbc-btn-ghost { background: transparent; color: var(--k-ink); border-color: var(--k-line-strong); }
-.wbc-btn-danger { background: transparent; color: var(--k-neg); border-color: rgba(179, 38, 30, 0.32); }
+.wbc-btn-primary { background: linear-gradient(120deg, #6d3df0, #9b5cff); color: #ffffff; box-shadow: 0 10px 24px rgba(109, 61, 240, 0.28); }
+.wbc-btn-ghost { background: #ffffff; color: var(--k-ink); border-color: rgba(109, 61, 240, 0.2); }
+.wbc-btn-danger { background: #fde8ec; color: var(--k-neg); border-color: rgba(194, 51, 77, 0.2); }
 .wbc-btn:disabled { opacity: 0.42; cursor: default; }
-.wbc-btn-sm { min-height: 36px; padding: 8px 14px; font-size: 12.5px; border-radius: 9px; }
+.wbc-btn-sm { min-height: 38px; padding: 8px 16px; font-size: 13px; }
 .wbc-btn-block { width: 100%; }
 .wbc-btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.wbc-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.wbc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .wbc-chip {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--k-line-strong);
+  border: 0;
   border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
+  padding: 8px 15px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 0 0 1px var(--k-line-strong);
+  font-size: 13px;
+  font-weight: 700;
   color: var(--k-ink-2);
   text-decoration: none;
   white-space: nowrap;
 }
 
-.wbc-chip[data-on="1"] { background: var(--k-ink); border-color: var(--k-ink); color: #ffffff; }
+.wbc-chip[data-on="1"] { background: var(--k-ink); box-shadow: none; color: #ffffff; }
 
 /* ---------- account dialog ---------- */
 .wbc-overlay {
@@ -568,22 +640,22 @@ export function ConsoleShell({
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(10, 10, 14, 0.52);
+  background: rgba(21, 19, 43, 0.4);
 }
 
 .wbc-dialog {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   max-height: 84vh;
   overflow-y: auto;
   display: grid;
   gap: 16px;
-  padding: 20px;
-  border-radius: 16px;
+  padding: 22px;
+  border-radius: 26px;
   background: #ffffff;
   color: var(--k-ink);
   font-size: 15px;
-  box-shadow: 0 24px 60px rgba(10, 10, 20, 0.28);
+  box-shadow: 0 30px 70px rgba(40, 20, 90, 0.3);
 }
 
 .wbc-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -592,18 +664,18 @@ export function ConsoleShell({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: 0;
-  border-radius: 9px;
-  background: var(--k-fill);
+  border-radius: 50%;
+  background: #f1ebff;
   color: var(--k-ink-2);
   cursor: pointer;
 }
 
 .wbc-account-id { display: grid; gap: 3px; padding-bottom: 14px; border-bottom: 1px solid var(--k-line); }
-.wbc-account-id strong { font-size: 16px; font-weight: 600; }
-.wbc-account-id span { font-size: 12.5px; color: var(--k-ink-2); }
+.wbc-account-id strong { font-size: 17px; font-weight: 800; }
+.wbc-account-id span { font-size: 13px; color: var(--k-ink-2); }
           `,
         }}
       />

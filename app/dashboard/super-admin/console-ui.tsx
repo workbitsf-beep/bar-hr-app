@@ -212,7 +212,7 @@ const TONE_COLOR: Record<Tone, string> = {
 };
 
 /** Palette for donuts whose slices are things (venues), not states. */
-export const SERIES_COLORS = ["#6d28d9", "#0e7a5f", "#a5620d", "#3b6fd4", "#b3261e", "#8b8fa3"];
+export const SERIES_COLORS = ["#6d3df0", "#1f9d63", "#ffb547", "#b79cff", "#c2334d", "#d9d2ef"];
 
 export type Slice = { label: string; value: number; tone?: Tone; color?: string };
 
