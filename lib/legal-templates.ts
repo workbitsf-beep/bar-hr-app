@@ -216,7 +216,7 @@ function buildTerms(profile: CompanyProfile) {
     "",
 
     "6. PREZZI E PAGAMENTI",
-    `I prezzi sono quelli pubblicati su ${value(profile, "website")} al momento dell'attivazione, IVA esclusa salvo diversa indicazione. L'abbonamento si paga in anticipo tramite Stripe e si rinnova automaticamente per periodi della stessa durata. Il Fornitore emette fattura elettronica per ogni pagamento.`,
+    `I prezzi sono quelli pubblicati su ${value(profile, "website")} al momento dell'attivazione, ${value(profile, "priceTaxNote")}. L'abbonamento si paga in anticipo tramite Stripe e si rinnova automaticamente per periodi della stessa durata. Il Fornitore emette fattura elettronica per ogni pagamento.`,
     `Le variazioni di prezzo vengono comunicate almeno ${value(profile, "noticeDays")} giorni prima e si applicano dal rinnovo successivo; il Cliente che non le accetta può disdire prima del rinnovo. In caso di mancato pagamento, il Fornitore può sospendere il Servizio dopo un avviso.`,
     "",
 

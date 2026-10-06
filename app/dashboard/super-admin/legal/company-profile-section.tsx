@@ -38,6 +38,7 @@ const GROUPS: Array<{ legend: string; fields: Field[] }> = [
     legend: "Contratto",
     fields: [
       { key: "trialDays" },
+      { key: "priceTaxNote", wide: true, hint: "come compare nelle condizioni" },
       { key: "noticeDays" },
       { key: "exportDays" },
       { key: "breachHours" },

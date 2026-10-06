@@ -25,6 +25,7 @@ export type CompanyProfile = {
   courtCity: string;
   hostingRegion: string;
   trialDays: string;
+  priceTaxNote: string;
   noticeDays: string;
   exportDays: string;
   breachHours: string;
@@ -62,6 +63,10 @@ export const COMPANY_PROFILE_DEFAULTS: CompanyProfile = {
   // The length the app applies, DEFAULT_TRIAL_DAYS in lib/billing.ts, and what
   // the sign-up page promises. It said 14.
   trialDays: "30",
+  // Workbit is in the regime forfettario: no VAT is charged. The terms said
+  // "IVA esclusa", which is wrong for it; a change of regime is a change here.
+  priceTaxNote:
+    "non soggetti a IVA: il Fornitore applica il regime forfettario (art. 1, commi 54-89, Legge 190/2014)",
   noticeDays: "30",
   exportDays: "30",
   breachHours: "48",
@@ -106,6 +111,7 @@ export const COMPANY_PROFILE_LABELS: Record<keyof CompanyProfile, string> = {
   courtCity: "Foro competente",
   hostingRegion: "Area dei server",
   trialDays: "Giorni di prova",
+  priceTaxNote: "Prezzi e IVA",
   noticeDays: "Giorni di preavviso",
   exportDays: "Giorni per esportare i dati",
   breachHours: "Ore per avvisare di una violazione",
