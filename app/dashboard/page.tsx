@@ -8,6 +8,7 @@ import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardContext } from "./context";
 import { reviewRequestAction } from "./actions";
 import { KpiDashboard } from "./kpi-dashboard";
+import { DesktopToday } from "./desktop-today";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
 import { ClockActionsPanel, type ClockActionStatus } from "./timelogs/timelogs-client";
@@ -639,7 +640,7 @@ export default async function DashboardPage() {
       </div>
     ) : null;
 
-  return (
+  const phoneHome = (
     <Stack>
       {isOperationalProfile ? (
         <div className="workbit-home">
@@ -884,5 +885,22 @@ export default async function DashboardPage() {
       ) : null}
 
     </Stack>
+  );
+
+  // On a computer the home is "Oggi" (desktop-today.tsx); the phone keeps
+  // this one. Which shows is decided in CSS at 1100px.
+  return (
+    <>
+      <div className="wb-desk-only">
+        <DesktopToday
+          barId={activeBarId}
+          userId={session.user.id}
+          firstName={session.user.firstName}
+          role={role as Role}
+          locale="it-IT"
+        />
+      </div>
+      <div className="wb-phone-only">{phoneHome}</div>
+    </>
   );
 }

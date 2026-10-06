@@ -359,6 +359,12 @@ function DashboardAppShellStyles() {
              and the page gets the room a screen has. Below 1100px none of
              this applies: the phone layout is untouched. */
           .wb-desk-side { display: none; }
+          .wb-desk-only { display: none; }
+
+          @media (min-width: 1100px) {
+            .wb-desk-only { display: block; }
+            .wb-phone-only { display: none; }
+          }
 
           @media (min-width: 1100px) {
             .dashboard-shell { padding-left: 264px !important; }
@@ -394,6 +400,22 @@ function DashboardAppShellStyles() {
             }
 
             .wb-desk-account { display: grid; gap: 8px; }
+
+            /* The venue switcher from the menu, given the column's full width. */
+            .wb-desk-account .dashboard-inline-actions {
+              display: grid !important;
+              grid-template-columns: minmax(0, 1fr) !important;
+              gap: 6px !important;
+              padding: 11px 13px !important;
+              border-radius: 15px !important;
+              background: #f6f3ff !important;
+              border: 1px solid #ddd6fe !important;
+            }
+
+            .wb-desk-account .dashboard-inline-actions select {
+              width: 100% !important;
+              max-width: none !important;
+            }
 
             .wb-desk-nav { display: grid; gap: 3px; }
 

@@ -14,7 +14,7 @@ import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
 import { DayActionCalendarClient } from "./day-action-calendar-client";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
-import { DesktopWeekPlanner } from "./desktop-planner";
+import { ClassicViewBack, DesktopWeekPlanner } from "./desktop-planner";
 import { ScrollToTodayButton } from "./scroll-to-today-button";
 
 type CalendarPageSettings = {
@@ -1030,6 +1030,7 @@ export default async function DashboardCalendarPage({
           {/* On a computer the week is a grid of people and days; the phone
               keeps its calendar. Which one shows is decided in CSS at 1100px,
               in desktop-planner.tsx. */}
+          <ClassicViewBack />
           <div className="wbp-desktop-only">
             <DesktopWeekPlanner
               days={serializedDays}
@@ -1051,6 +1052,40 @@ export default async function DashboardCalendarPage({
             initialFocusedDay={initialFocusedDay}
             initialCalendarView={initialCalendarView}
             role={String(role)}
+            currentUserId={session.user.id}
+            features={features}
+            todayAction={todayAction}
+            publishAction={publishWeekAction}
+          />
+          </div>
+          </>
+        ) : features.shifts && role === Role.EMPLOYEE ? (
+          <>
+          <ClassicViewBack />
+          <div className="wbp-desktop-only">
+            <DesktopWeekPlanner
+              days={serializedDays}
+              members={memberOptions}
+              presets={shiftPresets}
+              locale={locale}
+              currentUserId={session.user.id}
+              initialDayKey={initialFocusedDay}
+              mode="view"
+            />
+          </div>
+          <div className="wbp-phone-only">
+          <DayActionCalendarClient
+            locale={locale}
+            weekdayLabels={weekdayLabels}
+            days={serializedDays}
+            filteredDay={dayFilter}
+            initialFocusedDay={initialFocusedDay}
+            initialCalendarView={initialCalendarView}
+            role={String(role)}
+            activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
+            companyShiftsEnabled={Boolean(settings?.companyShiftsEnabled)}
+            members={memberOptions}
+            presets={shiftPresets}
             currentUserId={session.user.id}
             features={features}
             todayAction={todayAction}

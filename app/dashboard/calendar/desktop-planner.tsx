@@ -113,6 +113,7 @@ export function DesktopWeekPlanner({
   locale,
   currentUserId,
   initialDayKey,
+  mode = "manage",
 }: {
   days: PlannerDay[];
   members: Member[];
@@ -120,8 +121,12 @@ export function DesktopWeekPlanner({
   locale: string;
   currentUserId: string;
   initialDayKey: string;
+  /** "manage" for the owner and the manager; "view" for everyone else: only
+   * published shifts, nothing to drag or add, their own row on top. */
+  mode?: "manage" | "view";
 }) {
   const router = useRouter();
+  const manage = mode === "manage";
   const [weekStart, setWeekStart] = useState(() => mondayOf(initialDayKey));
   const [editing, setEditing] = useState<PlannerShift | null>(null);
   const [creating, setCreating] = useState<{ dayKey: string; member: Member } | null>(null);
@@ -138,14 +143,31 @@ export function DesktopWeekPlanner({
   const weekDays = weekKeys.map((key) => byKey.get(key) ?? null);
 
   // People who work shifts first, the owner last; the order of the team page.
+  // Someone who only looks sees their own row first.
   const rows = useMemo(
-    () => [...members].sort((a, b) => Number(a.role === "OWNER") - Number(b.role === "OWNER")),
-    [members]
+    () =>
+      [...members].sort(
+        (a, b) =>
+          (manage ? 0 : Number(b.id === currentUserId) - Number(a.id === currentUserId)) ||
+          Number(a.role === "OWNER") - Number(b.role === "OWNER")
+      ),
+    [members, manage, currentUserId]
   );
 
+  // What a person who does not plan the week may see: published shifts, and
+  // an on-call request addressed to them.
+  const isVisible = (shift: PlannerShift) =>
+    manage || Boolean(shift.confirmedAt) || (shift.isOnCall && shift.assignments.some((a) => a.id === currentUserId));
+
   const weekShifts = weekDays.flatMap((day, index) =>
-    (day?.shifts ?? []).filter((shift) => toDateInputValueInTimeZone(shift.startTime) === weekKeys[index])
+    (day?.shifts ?? []).filter(
+      (shift) => isVisible(shift) && toDateInputValueInTimeZone(shift.startTime) === weekKeys[index]
+    )
   );
+  const myWeek = weekShifts
+    .filter((shift) => shift.assignments.some((a) => a.id === currentUserId))
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const myHours = myWeek.filter((shift) => !shift.isOnCall).reduce((sum, shift) => sum + hoursOf(shift), 0);
   const draftCount = weekShifts.filter((shift) => !shift.confirmedAt && !shift.isOnCall).length;
 
   const pending = useMemo(() => {
@@ -253,15 +275,26 @@ export function DesktopWeekPlanner({
           ) : null}
         </div>
         <div className="wbp-actions">
-          <button type="button" className="wbp-btn" disabled={isPending} onClick={copyPreviousWeek}>
-            Copia settimana prima
+          <button
+            type="button"
+            className="wbp-btn wbp-btn--quiet"
+            onClick={() => document.documentElement.setAttribute("data-cal-classic", "1")}
+          >
+            Vista classica
           </button>
-          <PublishWeekPanel
-            rangeStart={weekKeys[0]}
-            rangeEnd={weekKeys[6]}
-            pendingCount={draftCount}
-            variant="wide"
-          />
+          {manage ? (
+            <>
+              <button type="button" className="wbp-btn" disabled={isPending} onClick={copyPreviousWeek}>
+                Copia settimana prima
+              </button>
+              <PublishWeekPanel
+                rangeStart={weekKeys[0]}
+                rangeEnd={weekKeys[6]}
+                pendingCount={draftCount}
+                variant="wide"
+              />
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -298,13 +331,18 @@ export function DesktopWeekPlanner({
               .reduce((sum, shift) => sum + hoursOf(shift), 0);
 
             return [
-              <div key={`${member.id}-name`} className="wbp-person">
+              <div
+                key={`${member.id}-name`}
+                className={`wbp-person${!manage && member.id === currentUserId ? " wbp-person--me" : ""}`}
+              >
                 <span className="wbp-avatar" aria-hidden="true">
                   {`${member.firstName[0] ?? ""}${member.lastName[0] ?? ""}`.toUpperCase()}
                 </span>
                 <span className="wbp-person-text">
                   <b>
-                    {member.firstName} {member.lastName[0] ? `${member.lastName[0]}.` : ""}
+                    {!manage && member.id === currentUserId
+                      ? "Tu"
+                      : `${member.firstName} ${member.lastName[0] ? `${member.lastName[0]}.` : ""}`}
                   </b>
                   <small>{hours ? formatHours(hours) : "nessun turno"}</small>
                 </span>
@@ -319,6 +357,7 @@ export function DesktopWeekPlanner({
                 // would draw it twice.
                 const shifts = (day?.shifts ?? []).filter(
                   (shift) =>
+                    isVisible(shift) &&
                     toDateInputValueInTimeZone(shift.startTime) === key &&
                     shift.assignments.some((a) => a.id === member.id)
                 );
@@ -336,9 +375,11 @@ export function DesktopWeekPlanner({
                     role="gridcell"
                     className={`wbp-cell${closed ? " wbp-cell--closed" : ""}${past ? " wbp-cell--past" : ""}${
                       dropTarget === cellId ? " wbp-cell--drop" : ""
-                    }${key === todayKey ? " wbp-cell--today" : ""}`}
+                    }${key === todayKey ? " wbp-cell--today" : ""}${
+                      !manage && member.id === currentUserId ? " wbp-cell--me" : ""
+                    }`}
                     onDragOver={(event) => {
-                      if (dragging && !past) {
+                      if (manage && dragging && !past) {
                         event.preventDefault();
                         setDropTarget(cellId);
                       }
@@ -353,7 +394,7 @@ export function DesktopWeekPlanner({
                     ))}
                     {unavailable ? <span className="wbp-unavailable">Non disponibile</span> : null}
                     {shifts.map((shift) => {
-                      const movable = !past;
+                      const movable = manage && !past;
                       const draft = !shift.confirmedAt && !shift.isOnCall;
                       return (
                         <button
@@ -368,7 +409,7 @@ export function DesktopWeekPlanner({
                             setDragging(null);
                             setDropTarget(null);
                           }}
-                          onClick={() => setEditing(shift)}
+                          onClick={() => (manage ? setEditing(shift) : undefined)}
                           className={`wbp-shift${shift.isOnCall ? " wbp-shift--call" : ""}${
                             draft ? " wbp-shift--draft" : ""
                           }${Number(hm(shift.startTime).slice(0, 2)) < 16 ? " wbp-shift--day" : " wbp-shift--evening"}`}
@@ -393,7 +434,7 @@ export function DesktopWeekPlanner({
                         </button>
                       );
                     })}
-                    {!past && !closed && member.role !== "OWNER" ? (
+                    {manage && !past && !closed && member.role !== "OWNER" ? (
                       <button
                         type="button"
                         className="wbp-add"
@@ -413,7 +454,7 @@ export function DesktopWeekPlanner({
           {weekKeys.map((key, index) => {
             const day = weekDays[index];
             const working = (day?.shifts ?? []).filter(
-              (shift) => !shift.isOnCall && toDateInputValueInTimeZone(shift.startTime) === key
+              (shift) => isVisible(shift) && !shift.isOnCall && toDateInputValueInTimeZone(shift.startTime) === key
             );
             const lunch = new Set(
               working.filter((s) => Number(hm(s.startTime).slice(0, 2)) < 16).flatMap((s) => s.assignments.map((a) => a.id))
@@ -437,6 +478,53 @@ export function DesktopWeekPlanner({
         </div>
 
         <aside className="wbp-side">
+          {!manage ? (
+            <section className="wbp-card">
+              <h3>
+                La tua settimana <span>{myWeek.length}</span>
+              </h3>
+              <p className="wbp-mine-hours">
+                <b>{formatHours(myHours)}</b> di lavoro
+              </p>
+              {myWeek.length === 0 ? <p className="wbp-empty">Nessun turno questa settimana.</p> : null}
+              {myWeek.map((shift) => {
+                const day = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric" }).format(
+                  new Date(shift.startTime)
+                );
+                const mates = weekShifts
+                  .filter(
+                    (other) =>
+                      !other.isOnCall &&
+                      other.startTime < shift.endTime &&
+                      other.endTime > shift.startTime
+                  )
+                  .flatMap((other) => other.assignments)
+                  .filter((person, index, all) => person.id !== currentUserId && all.findIndex((p) => p.id === person.id) === index)
+                  .map((person) => person.firstName);
+                return (
+                  <div key={shift.id} className="wbp-request">
+                    <b>
+                      {day} · {shift.isOnCall ? "Reperibilità" : `${hm(shift.startTime)}–${hm(shift.endTime)}`}
+                    </b>
+                    <small>
+                      {shift.title ? `${shift.title}` : ""}
+                      {mates.length ? `${shift.title ? " · " : ""}con ${mates.join(", ")}` : ""}
+                      {shift.isOnCall && !shift.confirmedAt ? " · da accettare in Vista classica" : ""}
+                    </small>
+                  </div>
+                );
+              })}
+              <span className="wbp-links">
+                <Link href="/dashboard/requests" className="wbp-link">
+                  Chiedi ferie o permesso →
+                </Link>
+                <Link href="/dashboard/timelogs" className="wbp-link">
+                  Le tue timbrature →
+                </Link>
+              </span>
+            </section>
+          ) : null}
+          {manage ? (
           <section className="wbp-card">
             <h3>
               Da decidere <span>{pending.length}</span>
@@ -491,15 +579,20 @@ export function DesktopWeekPlanner({
               </Link>
             ) : null}
           </section>
+          ) : null}
 
           <section className="wbp-card wbp-legend">
             <h3>Come si legge</h3>
             <span><i className="wbp-dot wbp-dot--day" />Turno di giorno</span>
             <span><i className="wbp-dot wbp-dot--evening" />Turno di sera</span>
             <span><i className="wbp-dot wbp-dot--call" />Reperibilità</span>
-            <span><i className="wbp-dot wbp-dot--draft" />Bozza da pubblicare</span>
+            {manage ? <span><i className="wbp-dot wbp-dot--draft" />Bozza da pubblicare</span> : null}
             <span><i className="wbp-dot wbp-dot--absence" />Ferie, permessi, malattia</span>
-            <p>Trascina un turno su un altro giorno o su un&apos;altra persona per spostarlo. Clic per modificarlo.</p>
+            {manage ? (
+              <p>Trascina un turno su un altro giorno o su un&apos;altra persona per spostarlo. Clic per modificarlo.</p>
+            ) : (
+              <p>Vedi i turni pubblicati di tutto il team. Per cambi turno e reperibilità usa la Vista classica.</p>
+            )}
           </section>
         </aside>
       </div>
@@ -533,6 +626,22 @@ export function DesktopWeekPlanner({
       ) : null}
 
       <PlannerStyles />
+    </div>
+  );
+}
+
+/** In the classic view on a computer: the way back to the grid. */
+export function ClassicViewBack() {
+  return (
+    <div className="wbp-classic-back">
+      <span>Stai usando la vista classica.</span>
+      <button
+        type="button"
+        className="wbp-btn wbp-btn--primary"
+        onClick={() => document.documentElement.removeAttribute("data-cal-classic")}
+      >
+        Torna alla settimana
+      </button>
     </div>
   );
 }
@@ -664,9 +773,13 @@ function PlannerStyles() {
       dangerouslySetInnerHTML={{
         __html: `
 .wbp-desktop-only { display: none; }
+.wbp-classic-back { display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; margin-bottom: 12px; border-radius: 14px; background: #f1ebff; color: #4c4670; font-size: 13.5px; font-weight: 650; }
 @media (min-width: 1100px) {
   .wbp-desktop-only { display: block; }
   .wbp-phone-only { display: none; }
+  html[data-cal-classic="1"] .wbp-desktop-only { display: none; }
+  html[data-cal-classic="1"] .wbp-phone-only { display: block; }
+  html[data-cal-classic="1"] .wbp-classic-back { display: flex; }
 }
 .wbp { display: grid; gap: 14px; color: #15132b; }
 .wbp-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -678,6 +791,13 @@ function PlannerStyles() {
 .wbp-actions > :last-child button { min-height: 40px !important; height: 40px !important; padding: 0 18px !important; font-size: 14px !important; border-radius: 999px !important; }
 .wbp-btn { height: 40px; padding: 0 18px; border-radius: 999px; border: 0; background: #ffffff; box-shadow: inset 0 0 0 1px #e0d7f8; color: #15132b; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; white-space: nowrap; }
 .wbp-btn:disabled { opacity: 0.55; cursor: default; }
+.wbp-btn--quiet { box-shadow: none; background: transparent; color: #6d3df0; }
+.wbp-btn--quiet:hover { background: #f1ebff; }
+.wbp-person--me { background: #f6f2ff; }
+.wbp-cell--me { background: #fbf9ff; }
+.wbp-mine-hours { margin: 0; font-size: 14px; color: #4c4670; }
+.wbp-mine-hours b { font-size: 22px; font-weight: 900; letter-spacing: -0.03em; color: #15132b; }
+.wbp-links { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid #f0ebfc; }
 .wbp-btn--primary { background: linear-gradient(120deg, #6d3df0, #9b5cff); color: #ffffff; box-shadow: 0 8px 18px rgba(109, 61, 240, 0.28); }
 .wbp-feedback { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; border-radius: 14px; font-size: 14px; font-weight: 650; }
 .wbp-feedback button { border: 0; background: transparent; font-size: 18px; color: inherit; cursor: pointer; }
