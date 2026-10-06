@@ -158,10 +158,10 @@ export function BillingSettingsPanel({
   const canCancelSubscription =
     (status.planType === PlanType.PAID || isTrialReady) &&
     status.status !== SubscriptionStatus.CANCELED &&
-    (status.status !== SubscriptionStatus.INACTIVE ||
-      Boolean(status.stripeSubscriptionId) ||
-      Boolean(status.stripeCustomerId) ||
-      Boolean(status.currentPeriodEnd));
+    // Something to cancel: a live status, or at least a Stripe subscription.
+    // A customer record left by a checkout that was never completed showed
+    // "Disattiva abbonamento" on a subscription already shown as off.
+    (status.status !== SubscriptionStatus.INACTIVE || Boolean(status.stripeSubscriptionId));
   const billingDisplay = getBillingDisplay(status);
 
   return (

@@ -364,7 +364,7 @@ export async function sendTrialEndingEmail(
       `Ciao ${ownerName},`,
       `la prova gratuita di ${barName} finisce ${giorno}.`,
       "",
-      "Da quel giorno parte l'abbonamento a 29,90 EUR al mese, e continua tutto come adesso: turni, timbrature, ore e report restano dove sono.",
+      "Da quel giorno parte l'abbonamento a 29,99 EUR al mese, e continua tutto come adesso: turni, timbrature, ore e report restano dove sono.",
       "",
       // The installed app sells nothing, so it cannot cancel either: the
       // owner's area on the web is where this is done.

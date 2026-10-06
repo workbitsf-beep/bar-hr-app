@@ -117,7 +117,7 @@ export function SignupForm() {
       </button>
 
       <p className="wb-signup__fine">
-        Trenta giorni gratis. Alla scadenza l&apos;abbonamento parte da solo a 29,90 € al mese: ti
+        Trenta giorni gratis. Alla scadenza l&apos;abbonamento parte da solo a 29,99 € al mese: ti
         avvisiamo tre giorni prima, e puoi disdire quando vuoi dalle impostazioni.
       </p>
     </form>
