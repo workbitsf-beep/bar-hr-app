@@ -202,7 +202,17 @@ export const getDashboardContext = cache(async function getDashboardContext(
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
   const notesEnabled = features.tasks || features.noticeBoard;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
-  const calendarNavLabel = t.shifts;
+  // The calendar is where courses, holidays, leave and closures live too, not
+  // only shifts: a company that does not use shifts or clock-ins still plans
+  // its year there. It goes from the menu only when nothing it shows is on.
+  const hasCalendarModules =
+    features.shifts ||
+    features.requests ||
+    features.availability ||
+    features.tasks ||
+    features.noticeBoard ||
+    features.courses;
+  const calendarNavLabel = features.shifts ? t.shifts : t.calendar;
 
   const navItems: DashboardNavItem[] =
     String(role) === "SUPER_ADMIN"
@@ -214,7 +224,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
         ]
       : [
           { label: "Profilo", href: "/dashboard" },
-          ...(features.shifts ? [{ label: calendarNavLabel, href: "/dashboard/calendar" }] : []),
+          ...(hasCalendarModules ? [{ label: calendarNavLabel, href: "/dashboard/calendar" }] : []),
           ...(notesEnabled
             ? [{ label: "Note", href: "/dashboard/tasks" }]
             : []),

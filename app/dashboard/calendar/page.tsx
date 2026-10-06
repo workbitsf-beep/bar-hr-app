@@ -294,7 +294,7 @@ export default async function DashboardCalendarPage({
 
   if (!hasCalendarModules) {
     return (
-      <Panel title="Turni">
+      <Panel title="Calendario">
         <EmptyState message="Nessuna funzione calendario attiva nelle impostazioni." />
       </Panel>
     );
@@ -1013,7 +1013,7 @@ export default async function DashboardCalendarPage({
 
   return (
     <Stack className="dashboard-calendar-page" columns="minmax(0, 1fr)">
-      <Panel title="Turni">
+      <Panel title={features.shifts ? "Turni" : "Calendario"}>
         {canManageRestaurantShifts ? (
           <OwnerCalendarClient
             locale={locale}

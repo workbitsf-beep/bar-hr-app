@@ -910,7 +910,17 @@ function DashboardResponsiveStyles() {
         color: #a19cb0;
       }
 
+      /* Held at the bottom of the window while the list scrolls under it: with
+         a long list the button was the last thing in it, off screen, and you
+         had to scroll down after every tick to confirm. The shadow above it is
+         the window's own white, so the rows fade out behind it. */
       .workbit-cart-list button[type="submit"] {
+        position: sticky;
+        bottom: 4px;
+        z-index: 1;
+        box-shadow:
+          0 -16px 16px 2px rgba(253, 252, 255, 0.96),
+          0 8px 0 4px rgba(253, 252, 255, 0.96);
         margin-top: 4px;
         border: 0;
         border-radius: 999px;
