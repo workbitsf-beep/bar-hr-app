@@ -37,6 +37,7 @@ export function DashboardNavMenu({
   logoutAction,
   brandHref,
   headerAction,
+  venueSign,
 }: {
   navItems: DashboardNavItem[];
   menuLabel: string;
@@ -44,6 +45,8 @@ export function DashboardNavMenu({
   logoutAction?: ReactNode;
   brandHref?: string;
   headerAction?: ReactNode;
+  /** The venue's name, kept in the middle of the menu's header as in the app's. */
+  venueSign?: ReactNode;
 }) {
   const pathname = usePathname();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -263,7 +266,11 @@ export function DashboardNavMenu({
                       background: isCompact ? "#efebfa" : undefined,
                     }}
                   >
-                    <div className="workbit-menu-header-card">
+                    <div
+                      className="workbit-menu-header-card"
+                      data-signed={venueSign ? "true" : undefined}
+                      style={{ position: "relative" }}
+                    >
                       <BrandLogo
                         href={brandHref ?? "/dashboard"}
                         size={34}
@@ -271,6 +278,8 @@ export function DashboardNavMenu({
                         label="Workbit"
                         style={{ gap: 10 }}
                       />
+
+                      {venueSign}
 
                       <div className="workbit-menu-header-actions">
                         {headerAction ? (

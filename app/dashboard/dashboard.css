@@ -1707,6 +1707,12 @@
           letter-spacing: -0.025em !important;
         }
 
+        /* With the venue's name in the middle, the logo goes without its word,
+           as in the app's own header. */
+        .workbit-menu-header-card[data-signed] .brand-logo-label {
+          display: none !important;
+        }
+
         .workbit-menu-header-actions {
           display: flex;
           align-items: center;

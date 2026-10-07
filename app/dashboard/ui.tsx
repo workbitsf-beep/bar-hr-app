@@ -211,6 +211,7 @@ export function DashboardShell({
             logoutAction={menuFooter}
             brandHref={navItems[0]?.href ?? "/dashboard"}
             headerAction={headerAction}
+            venueSign={venueSign}
           />
         </div>
       </div>
