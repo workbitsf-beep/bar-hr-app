@@ -913,6 +913,8 @@ model ShoppingListItem {
   barId       String   @db.Uuid
   name        String
   quantity    String?
+  /// Pro: the department the item is for; null on Base, or for the whole venue.
+  department  Department?
   createdById String   @db.Uuid
   bar         Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
   createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)

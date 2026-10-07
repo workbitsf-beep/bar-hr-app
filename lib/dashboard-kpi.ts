@@ -43,6 +43,8 @@ export type DashboardKpiData = {
       date: string;
       label: string;
       count: number;
+      /** Shifts of the day per department (Pro); "NONE" for those without one. */
+      departments: Record<string, number>;
     }>;
   };
   board: {
@@ -231,6 +233,7 @@ export async function getDashboardKpiData(
         id: true,
         startTime: true,
         confirmedAt: true,
+        department: true,
       },
     }),
     prisma.request.findMany({
@@ -429,7 +432,10 @@ export async function getDashboardKpiData(
     }
   }
 
-  const shiftsByDay = createDayBuckets(weekStart, 7);
+  const shiftsByDay = createDayBuckets(weekStart, 7).map((entry) => ({
+    ...entry,
+    departments: {} as Record<string, number>,
+  }));
   const shiftDayMap = new Map(shiftsByDay.map((entry) => [entry.date, entry]));
   let scheduledShifts = 0;
   let confirmedShifts = 0;
@@ -440,6 +446,8 @@ export async function getDashboardKpiData(
     const shiftBucket = shiftDayMap.get(key);
     if (shiftBucket) {
       shiftBucket.count += 1;
+      const departmentKey = shift.department ?? "NONE";
+      shiftBucket.departments[departmentKey] = (shiftBucket.departments[departmentKey] ?? 0) + 1;
     }
 
     if (shift.startTime >= todayStart && shift.startTime <= todayEnd) {

@@ -3888,6 +3888,12 @@ export async function createShoppingListItemAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const quantity = String(formData.get("quantity") ?? "").trim();
+  // Pro: the department the item is for. Nothing on a Base venue.
+  const requestedDepartment = parseDepartment(formData.get("department"));
+  const department =
+    requestedDepartment && (await getVenueDepartments(activeBarId, session.user.id)).enabled
+      ? requestedDepartment
+      : null;
 
   if (!name) {
     throw new Error("Missing item name");
@@ -3898,6 +3904,7 @@ export async function createShoppingListItemAction(formData: FormData) {
       barId: activeBarId,
       name,
       quantity: quantity || null,
+      department,
       createdById: session.user.id,
     },
   });

@@ -8,6 +8,9 @@ import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
 import { getDashboardContext } from "./context";
 import { reviewRequestAction } from "./actions";
 import { KpiDashboard } from "./kpi-dashboard";
+import { CrewBoard } from "./crew-board";
+import { DepartmentDot } from "./department-forms";
+import { getVenueDepartments } from "@/lib/departments";
 import { DesktopToday } from "./desktop-today";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
@@ -69,6 +72,8 @@ function initialsOf(firstName: string, lastName: string) {
 export default async function DashboardPage() {
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
+  // Pro: the departments, for the tiles over the crew and the week's bars.
+  const departments = await getVenueDepartments(activeBarId, session.user.id);
 
   if (String(role) === "SUPER_ADMIN") {
     redirect("/dashboard/super-admin");
@@ -298,6 +303,7 @@ export default async function DashboardPage() {
             id: true,
             startTime: true,
             endTime: true,
+            department: true,
             isOnCall: true,
             assignments: {
               select: {
@@ -341,6 +347,7 @@ export default async function DashboardPage() {
             id: true,
             name: true,
             quantity: true,
+            department: true,
             createdBy: { select: { firstName: true } },
           },
         })
@@ -356,7 +363,7 @@ export default async function DashboardPage() {
             },
           },
           orderBy: { startTime: "asc" },
-          select: { id: true, startTime: true, endTime: true, isOnCall: true },
+          select: { id: true, startTime: true, endTime: true, isOnCall: true, department: true },
         })
       : Promise.resolve([]),
     // An unread notice of a reviewed request is exactly "an answer you have
@@ -469,7 +476,16 @@ export default async function DashboardPage() {
 
   const crewToday = new Map<
     string,
-    { id: string; name: string; initials: string; from: string; to: string; startTime: Date; endTime: Date }
+    {
+      id: string;
+      name: string;
+      initials: string;
+      from: string;
+      to: string;
+      startTime: Date;
+      endTime: Date;
+      department: (typeof crewShiftsToday)[number]["department"];
+    }
   >();
 
   // With lunch and dinner on the same day, the shift that matters is the one
@@ -503,6 +519,7 @@ export default async function DashboardPage() {
         to: toTimeInputValueInTimeZone(shift.endTime),
         startTime: shift.startTime,
         endTime: shift.endTime,
+        department: shift.department,
       });
     }
   }
@@ -516,17 +533,6 @@ export default async function DashboardPage() {
     )
   );
 
-  function crewStateOf(userId: string): "in" | "out" | "waiting" {
-    if (ownerIds.has(userId)) {
-      return "in";
-    }
-
-    const stamp = lastStampByUser.get(userId);
-
-    return stamp === "IN" ? "in" : stamp === "OUT" ? "out" : "waiting";
-  }
-
-  const crewInside = crew.filter((person) => crewStateOf(person.id) === "in").length;
 
   function minutesLabel(ms: number) {
     const minutes = Math.max(0, Math.round(ms / 60_000));
@@ -576,6 +582,10 @@ export default async function DashboardPage() {
     return { tone: "out", label: "Non ha timbrato" };
   }
 
+  // Counted from the same status the rows show: the owner was counted in all
+  // day long, so "1 su 2 dentro" sat over an owner already gone home.
+  const crewInside = crew.filter((person) => crewStatusOf(person).tone === "in").length;
+
   // One cell per day of this week. A day with more than one shift shows the
   // span from the first start to the last end, which is what someone planning
   // their day actually needs to know.
@@ -598,9 +608,21 @@ export default async function DashboardPage() {
         id: shift.id,
         from: toTimeInputValueInTimeZone(shift.startTime),
         to: toTimeInputValueInTimeZone(shift.endTime),
+        // Pro: where the shift is, so the week says which department too.
+        department: departments.enabled && shift.department
+          ? departments.list.find((entry) => entry.id === shift.department) ?? null
+          : null,
       })),
     };
   });
+
+  // Pro: the departments of today's shifts, said once under the week.
+  const todayDepartments = Array.from(
+    new Map(
+      (myWeek.find((day) => day.isToday)?.slots ?? [])
+        .flatMap((slot) => (slot.department ? [[slot.department.id, slot.department] as const] : []))
+    ).values()
+  );
 
   const myWeekMinutes = myWeekShifts.reduce(
     (total, shift) => total + (shift.endTime.getTime() - shift.startTime.getTime()) / 60000,
@@ -639,8 +661,28 @@ export default async function DashboardPage() {
   ).size;
   const uncoveredNextWeekDays = 7 - coveredNextWeekDays;
 
+  const departmentInfo = (id: (typeof crew)[number]["department"]) =>
+    departments.enabled && id ? departments.list.find((entry) => entry.id === id) ?? null : null;
+
   const crewBlock =
-    canManagePeople && features.shifts ? (
+    canManagePeople && features.shifts && departments.enabled ? (
+      <CrewBoard
+        departments={departments.list}
+        rows={crew.map((person) => {
+          const status = crewStatusOf(person);
+          return {
+            id: person.id,
+            initials: person.initials,
+            name: person.name,
+            from: person.from,
+            to: person.to,
+            tone: status.tone,
+            label: status.label,
+            department: departmentInfo(person.department),
+          };
+        })}
+      />
+    ) : canManagePeople && features.shifts ? (
       <section className="workbit-crew">
         <div className="workbit-crew-head">
           <strong>In servizio oggi</strong>
@@ -684,7 +726,17 @@ export default async function DashboardPage() {
         name: item.name,
         quantity: item.quantity,
         createdByName: item.createdBy.firstName,
+        department: departmentInfo(item.department),
       }))}
+      departments={
+        departments.enabled
+          ? {
+              list: departments.list,
+              // Staff open the list on their own department; the owner on all of it.
+              initial: canManagePeople ? null : departments.mine.department,
+            }
+          : null
+      }
     />
   ) : null;
 
@@ -769,6 +821,11 @@ export default async function DashboardPage() {
                         ? "—"
                         : day.slots.map((slot) => (
                             <span className="workbit-week-slot" key={slot.id}>
+                              {slot.department ? (
+                                <span style={{ display: "flex", justifyContent: "center", marginBottom: 3 }}>
+                                  <DepartmentDot department={slot.department} size={16} />
+                                </span>
+                              ) : null}
                               {slot.from}
                               <br />
                               {slot.to}
@@ -778,6 +835,19 @@ export default async function DashboardPage() {
                   </div>
                 ))}
               </div>
+
+              {todayDepartments.length > 0 ? (
+                <small className="workbit-week-mates" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  Oggi lavori in
+                  {todayDepartments.map((department, index) => (
+                    <span key={department.id} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 800, color: department.ink }}>
+                      {index > 0 ? <span style={{ color: "#8a84a8", fontWeight: 500 }}>e</span> : null}
+                      <DepartmentDot department={department} size={14} />
+                      {department.name.toLowerCase()}
+                    </span>
+                  ))}
+                </small>
+              ) : null}
 
               {todayColleagues.length > 0 ? (
                 <small className="workbit-week-mates">Oggi con te: {todayColleagues.join(", ")}</small>
@@ -946,6 +1016,7 @@ export default async function DashboardPage() {
           activityType={activeBarActivityType}
           features={features}
           initialData={kpiData}
+          departments={departments.enabled ? departments.list : null}
         />
       ) : null}
 

@@ -123,7 +123,17 @@ const venueSignStyles = `
 
   .wb-sign[data-size="m"] .wb-sign-name b { font-size: 13px; letter-spacing: 0.08em; }
   .wb-sign[data-size="m"] .wb-sign-name i { flex-basis: 8px; }
-  .wb-sign[data-size="s"] .wb-sign-name b { font-size: 12px; letter-spacing: 0.04em; }
+  /* Long names go on two short lines rather than losing their end. */
+  .wb-sign[data-size="s"] .wb-sign-name b {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
   .wb-sign[data-size="s"] .wb-sign-name i { display: none; }
 
   .wb-sign-line {

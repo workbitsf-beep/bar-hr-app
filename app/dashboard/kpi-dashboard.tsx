@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ActivityType, Role } from "@prisma/client";
 import type { DashboardKpiData } from "@/lib/dashboard-kpi";
+import type { DepartmentInfo } from "@/lib/departments";
 import type { FeatureFlags } from "@/lib/features";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { EmptyState, Panel, StatusPill } from "./ui";
@@ -24,6 +25,8 @@ type KpiDashboardProps = {
   activityType: ActivityType | null;
   features: FeatureFlags;
   initialData?: DashboardKpiData | null;
+  /** Pro: the venue's departments, to split the week's bars by colour. */
+  departments?: DepartmentInfo[] | null;
 };
 
 const CACHE_TTL_MS = 45_000;
@@ -70,6 +73,7 @@ export function KpiDashboard({
   role,
   features,
   initialData,
+  departments,
 }: KpiDashboardProps) {
   const cached = kpiCache.get(activeBarId);
   const [data, setData] = useState<DashboardKpiData | null>(() => {
@@ -334,6 +338,23 @@ export function KpiDashboard({
   const weekDays = data.shifts.byDay;
   const busiestDay = weekDays.reduce((max, day) => Math.max(max, day.count), 0);
   const emptyDays = weekDays.filter((day) => day.count === 0);
+  // Pro: a department that works most days of the week but has nobody on a
+  // given day is a gap worth naming, even when the day as a whole is covered.
+  const stacked = Boolean(departments?.length) && weekDays.some((day) => Object.keys(day.departments ?? {}).some((key) => key !== "NONE"));
+  // From today on only: a gap already behind us is nothing to act on.
+  const todayDateKey = new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(new Date());
+  const departmentGaps = stacked
+    ? weekDays
+        .filter((day) => day.date >= todayDateKey)
+        .map((day) => ({
+          day,
+          missing: (departments ?? []).filter((department) => {
+            const daysWorked = weekDays.filter((entry) => (entry.departments?.[department.id] ?? 0) > 0).length;
+            return daysWorked >= 4 && !(day.departments?.[department.id] ?? 0);
+          }),
+        }))
+        .filter((gap) => gap.missing.length > 0)
+    : [];
   // en-CA gives YYYY-MM-DD, which is the shape the day entries already carry.
   const todayKey = new Intl.DateTimeFormat("en-CA", {
     timeZone: APP_TIME_ZONE,
@@ -371,7 +392,33 @@ export function KpiDashboard({
                       className={`dashboard-team-bar${day.count === 0 ? " dashboard-team-bar--zero" : ""}${isToday ? " dashboard-team-bar--today" : ""}`}
                     >
                       <u>{day.count}</u>
-                      <span style={{ height }} />
+                      {stacked && day.count > 0 ? (
+                        <span
+                          style={{
+                            height,
+                            display: "flex",
+                            flexDirection: "column",
+                            overflow: "hidden",
+                            background: "none",
+                            boxShadow: "none",
+                          }}
+                        >
+                          {[...(departments ?? [])].reverse().map((department) =>
+                            day.departments?.[department.id] ? (
+                              <i
+                                key={department.id}
+                                title={`${department.name}: ${day.departments[department.id]}`}
+                                style={{ flex: day.departments[department.id], background: department.ink, display: "block" }}
+                              />
+                            ) : null
+                          )}
+                          {day.departments?.NONE ? (
+                            <i style={{ flex: day.departments.NONE, background: "#c9bdf2", display: "block" }} />
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span style={{ height }} />
+                      )}
                     </div>
                   );
                 })}
@@ -388,7 +435,31 @@ export function KpiDashboard({
                 ))}
               </div>
 
-              {emptyDays.length > 0 ? (
+              {stacked ? (
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11.5, fontWeight: 700, color: "#4c4670" }}>
+                  {(departments ?? []).map((department) => (
+                    <span key={department.id} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: 3, background: department.ink }} />
+                      {department.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              {departmentGaps.length > 0 ? (
+                <p className="dashboard-team-foot">
+                  {departmentGaps.slice(0, 2).map(({ day, missing }, index) => (
+                    <span key={day.date}>
+                      {index > 0 ? " · " : ""}
+                      <b>{day.label}</b> nessuno in{" "}
+                      {missing.map((department) => department.name.toLowerCase()).join(" e ")}
+                    </span>
+                  ))}
+                  {departmentGaps.length > 2
+                    ? ` · e altri ${departmentGaps.length - 2} ${departmentGaps.length - 2 === 1 ? "giorno" : "giorni"}`
+                    : ""}
+                </p>
+              ) : emptyDays.length > 0 ? (
                 <p className="dashboard-team-foot">
                   {emptyDays.length === 1 ? (
                     <>
