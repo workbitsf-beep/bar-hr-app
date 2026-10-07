@@ -684,7 +684,7 @@ export default async function DashboardPage() {
   const crewBlock =
     canManagePeople && features.shifts && departments.enabled ? (
       <CrewBoard
-        departments={departments.list}
+        departments={staffDepartments(departments.list)}
         rows={crew.map((person) => {
           const status = crewStatusOf(person);
           return {

@@ -678,9 +678,14 @@ function NewShiftDialog({
   const [title, setTitle] = useState(presets[0]?.label ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  // On "Tutti" the shift asks for its department; otherwise it takes the one in view.
+  // The department in view, or the one picked on "Tutti"; Jolly puts the
+  // shift on every department's calendar.
   const [picked, setPicked] = useState<Department | null>(departmentPick?.active ?? departmentPick?.list[0]?.id ?? null);
-  const department = departmentPick ? departmentPick.active ?? picked : null;
+  const department = departmentPick
+    ? departmentPick.list.some((entry) => entry.id === picked)
+      ? picked
+      : departmentPick.active ?? departmentPick.list[0]?.id ?? null
+    : null;
 
   const dayLabel = new Intl.DateTimeFormat(locale, {
     weekday: "long",
@@ -724,7 +729,7 @@ function NewShiftDialog({
             <small>
               {dayLabel}
               {departmentPick?.active
-                ? ` · ${departmentPick.list.find((entry) => entry.id === departmentPick.active)?.name ?? ""}`
+                ? ` · ${departmentPick.list.find((entry) => entry.id === department)?.name ?? ""}`
                 : ""}
             </small>
           </div>
@@ -733,10 +738,10 @@ function NewShiftDialog({
           </button>
         </div>
 
-        {departmentPick && !departmentPick.active ? (
+        {departmentPick && departmentPick.list.length > 1 ? (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }} aria-label="Reparto">
             {departmentPick.list.map((entry) => {
-              const on = picked === entry.id;
+              const on = department === entry.id;
               return (
                 <button
                   key={entry.id}

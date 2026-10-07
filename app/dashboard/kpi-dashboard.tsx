@@ -372,7 +372,9 @@ export function KpiDashboard({
         .filter((day) => day.date >= todayDateKey)
         .map((day) => ({
           day,
+          // A Jolly on the day covers any department; Jolly itself is never "missing".
           missing: (departments ?? []).filter((department) => {
+            if (department.id === "JOLLY" || (day.departments?.JOLLY ?? 0) > 0) return false;
             const daysWorked = weekDays.filter((entry) => (entry.departments?.[department.id] ?? 0) > 0).length;
             return daysWorked >= 4 && !(day.departments?.[department.id] ?? 0);
           }),

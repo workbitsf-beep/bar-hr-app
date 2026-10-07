@@ -1,5 +1,5 @@
 import { ActivityType, type Department, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
-import { getVenueDepartments } from "@/lib/departments";
+import { getVenueDepartments, showsInDepartment, staffDepartments } from "@/lib/departments";
 import { prisma } from "@/lib/prisma";
 import { visibleOnBoard } from "@/lib/note-visibility";
 import { buildNoteMeta } from "@/lib/note-list-format";
@@ -310,7 +310,8 @@ export default async function DashboardCalendarPage({
   // calendar per department, staff and leads only ever see their own.
   const departments = await getVenueDepartments(activeBarId, session.user.id);
   const managesVenue = role === Role.OWNER || role === Role.MANAGER;
-  const departmentIds = departments.list.map((entry) => entry.id);
+  // Jolly has no tab: its shifts and notes show in every department.
+  const departmentIds = staffDepartments(departments.list).map((entry) => entry.id);
   const rawDepartment = Array.isArray(params?.rep) ? params.rep[0] : params?.rep;
   const requestedDepartment = departmentIds.find((id) => id === rawDepartment) ?? null;
   const ownDepartment = departmentIds.find((id) => id === departments.mine.department) ?? null;
@@ -784,7 +785,7 @@ export default async function DashboardCalendarPage({
     shift.department ?? memberDepartment.get(shift.assignments[0]?.user.id ?? "") ?? null;
 
   for (const shift of shifts) {
-    if (activeDepartment && effectiveDepartment(shift) !== activeDepartment) {
+    if (!showsInDepartment(effectiveDepartment(shift), activeDepartment)) {
       continue;
     }
 
@@ -866,7 +867,7 @@ export default async function DashboardCalendarPage({
   for (const task of tasks) {
     // A note for one department shows on its calendar and on "Tutti", not on
     // the other departments' calendars. Notes for everyone show everywhere.
-    if (activeDepartment && task.department && task.department !== activeDepartment) {
+    if (task.department && !showsInDepartment(task.department, activeDepartment)) {
       continue;
     }
 
@@ -1061,14 +1062,15 @@ export default async function DashboardCalendarPage({
   // anyone already on one of its shifts.
   const onDepartmentShift = new Set(
     activeDepartment
-      ? shifts.filter((shift) => effectiveDepartment(shift) === activeDepartment).flatMap((shift) => shift.assignments.map((entry) => entry.user.id))
+      ? shifts
+          .filter((shift) => showsInDepartment(effectiveDepartment(shift), activeDepartment))
+          .flatMap((shift) => shift.assignments.map((entry) => entry.user.id))
       : []
   );
   const plannerMembers = activeDepartment
     ? memberOptions.filter((option, index) => {
         const member = calendarMembers[index];
         return (
-          activeDepartment === "JOLLY" ||
           member.department === activeDepartment ||
           (member.helpsIn ?? []).includes(activeDepartment) ||
           onDepartmentShift.has(option.id)
@@ -1107,7 +1109,7 @@ export default async function DashboardCalendarPage({
   const departmentBar =
     departments.enabled && features.shifts ? (
       <DepartmentBar
-        departments={departments.list}
+        departments={staffDepartments(departments.list)}
         active={activeDepartment}
         separate={separateCalendars}
         locked={lockedToOwnDepartment}
@@ -1126,9 +1128,21 @@ export default async function DashboardCalendarPage({
         )}
       />
     ) : null;
-  // What a new shift is filed under: the department in view, or - on "Tutti" -
-  // the one picked while adding it.
-  const departmentPick = departments.enabled ? { list: departments.list, active: activeDepartment } : null;
+  // What a new shift is filed under: on "Tutti" any department or Jolly; in a
+  // department its own, or Jolly to put it on every calendar. A lead only
+  // ever files shifts under their own department.
+  const jolly = departments.list.find((entry) => entry.id === "JOLLY") ?? null;
+  const activeInfo = departmentInfo(activeDepartment);
+  const departmentPick = departments.enabled
+    ? {
+        list: activeInfo
+          ? leadsDepartment || !jolly
+            ? [activeInfo]
+            : [activeInfo, jolly]
+          : departments.list,
+        active: activeDepartment,
+      }
+    : null;
   // What the lead's calendar leaves out: notes, tasks, requests and publishing
   // the week stay with the owner and the managers.
   const leadFeatures = { ...features, tasks: false, noticeBoard: false, requests: false, availability: false };

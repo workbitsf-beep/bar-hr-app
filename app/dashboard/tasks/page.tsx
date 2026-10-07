@@ -26,7 +26,7 @@ import { SwipeRevealAction } from "../swipe-reveal-action";
 import { TaskComposeForm } from "./task-compose-form";
 import { ConfirmationArchive } from "./confirmation-archive";
 import { confirmedTaskArchived } from "@/lib/note-visibility";
-import { getVenueDepartments } from "@/lib/departments";
+import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DepartmentDot } from "../department-forms";
 import { Fragment } from "react";
 
@@ -159,8 +159,14 @@ export default async function DashboardTasksPage({
   const groupedTasks = groupSharedTasks(tasks);
   const noteSections = departments.enabled
     ? [
-        { key: "ALL", title: "Per tutti", department: null, groups: groupedTasks.filter((group) => !group.lead.department) },
-        ...departments.list.map((department) => ({
+        // Jolly has no section of its own: a Jolly note is for everyone.
+        {
+          key: "ALL",
+          title: "Per tutti",
+          department: null,
+          groups: groupedTasks.filter((group) => !group.lead.department || group.lead.department === "JOLLY"),
+        },
+        ...staffDepartments(departments.list).map((department) => ({
           key: department.id,
           title: department.name,
           department,

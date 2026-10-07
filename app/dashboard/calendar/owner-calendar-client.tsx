@@ -1487,16 +1487,20 @@ export function OwnerCalendarClient({
   features: FeatureFlags;
   todayAction?: ReactNode;
   publishAction?: ReactNode;
-  /** Pro: the departments, and the one in view (null on "Tutti"). */
+  /** Pro: what a new shift can be filed under, and the department in view (null on "Tutti"). */
   departmentPick?: { list: DepartmentInfo[]; active: Department | null } | null;
 }) {
   const router = useRouter();
-  // On "Tutti" a new shift asks for its department; otherwise it takes the
-  // one in view and asks nothing.
+  // A new shift takes the department in view, or - on "Tutti" - the one
+  // picked; Jolly is offered too, and puts it on every department's calendar.
   const [pickedDepartment, setPickedDepartment] = useState<Department | null>(
     departmentPick?.active ?? departmentPick?.list[0]?.id ?? null
   );
-  const shiftDepartment = departmentPick ? departmentPick.active ?? pickedDepartment : null;
+  const shiftDepartment = departmentPick
+    ? departmentPick.list.some((entry) => entry.id === pickedDepartment)
+      ? pickedDepartment
+      : departmentPick.active ?? departmentPick.list[0]?.id ?? null
+    : null;
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [calendarView, setCalendarView] = useState<"week" | "day">(initialCalendarView ?? "week");
@@ -4000,11 +4004,11 @@ export function OwnerCalendarClient({
                       dayLabel={
                         formatDayLabel(selectedDay.date, locale) +
                         (departmentPick?.active
-                          ? ` · ${departmentPick.list.find((entry) => entry.id === departmentPick.active)?.name ?? ""}`
+                          ? ` · ${departmentPick.list.find((entry) => entry.id === shiftDepartment)?.name ?? ""}`
                           : "")
                       }
                       topSlot={
-                        departmentPick && !departmentPick.active ? (
+                        departmentPick && departmentPick.list.length > 1 ? (
                           <div style={{ display: "grid", gap: 7 }}>
                             <span
                               style={{
@@ -4019,7 +4023,7 @@ export function OwnerCalendarClient({
                             </span>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                               {departmentPick.list.map((entry) => {
-                                const on = pickedDepartment === entry.id;
+                                const on = shiftDepartment === entry.id;
                                 return (
                                   <button
                                     key={entry.id}

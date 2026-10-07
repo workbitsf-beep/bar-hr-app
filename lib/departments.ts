@@ -64,14 +64,23 @@ export function venueDepartments(customName: string | null | undefined): Departm
   if (name) {
     list.push({ id: Department.CUSTOM, name, initials: departmentInitials(Department.CUSTOM, name), ...DEPARTMENT_COLORS.CUSTOM });
   }
-  // Jolly last: a section of shifts anyone can work, not a place people belong to.
+  // Jolly last: not a department of its own but a mark on a shift or a note,
+  // which then shows in every department.
   list.push({ id: Department.JOLLY, name: FIXED_NAMES.JOLLY, initials: "J", ...DEPARTMENT_COLORS.JOLLY });
   return list;
 }
 
-/** The departments people work in: Jolly is for shifts, not for people. */
+/**
+ * The real departments: the ones people work in and the calendar has a tab
+ * for. Jolly is left out - it has no calendar, page or section of its own.
+ */
 export function staffDepartments(list: DepartmentInfo[]) {
   return list.filter((entry) => entry.id !== Department.JOLLY);
+}
+
+/** Whether something filed under `department` shows in the view of `active`: its own, or Jolly, which is in all of them. */
+export function showsInDepartment(department: Department | null | undefined, active: Department | null) {
+  return !active || department === active || department === Department.JOLLY;
 }
 
 export function parseDepartment(value: FormDataEntryValue | string | null | undefined): Department | null {

@@ -22,9 +22,11 @@ export type CrewRow = {
  */
 export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments: DepartmentInfo[] }) {
   const [picked, setPicked] = useState<Department | null>(null);
+  // Jolly has no tile: whoever is on a Jolly shift counts in every department.
+  const inDepartment = (row: CrewRow, id: Department) => row.department?.id === id || row.department?.id === "JOLLY";
   const tiles = departments
     .map((department) => {
-      const mine = rows.filter((row) => row.department?.id === department.id);
+      const mine = rows.filter((row) => inDepartment(row, department.id));
       return {
         department,
         total: mine.length,
@@ -32,7 +34,7 @@ export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments:
         late: mine.filter((row) => row.tone === "late").length,
       };
     });
-  const shown = picked ? rows.filter((row) => row.department?.id === picked) : rows;
+  const shown = picked ? rows.filter((row) => inDepartment(row, picked)) : rows;
   const inside = shown.filter((row) => row.tone === "in").length;
   const pickedName = departments.find((department) => department.id === picked)?.name;
 

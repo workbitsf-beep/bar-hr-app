@@ -1066,7 +1066,7 @@ export default async function DashboardSettingsPage({
                 dot="#d6338a"
                 title="Reparti"
                 lead={departments.mode === "SEPARATE" ? "Un calendario per reparto" : "Calendario unico"}
-                status={String(departments.list.length)}
+                status={String(staffDepartments(departments.list).length)}
               />
             }
           >
