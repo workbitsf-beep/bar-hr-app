@@ -1,4 +1,4 @@
-﻿import { ClockType, Role } from "@prisma/client";
+﻿import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { isWithinRadius } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
@@ -41,34 +41,62 @@ export const POST = withBar(
       },
     });
 
-    if (!lastClockIn) {
-      return Response.json(
-        { ok: false, message: "No active clock-in" },
-        { status: 400 }
-      );
-    }
+    const existingClockOut = lastClockIn
+      ? await prisma.timeLog.findFirst({
+          where: {
+            userId: session.user.id,
+            barId: session.activeBarId,
+            type: ClockType.OUT,
+            timestamp: {
+              gte: lastClockIn.timestamp,
+            },
+          },
+          select: {
+            id: true,
+            autoClockOut: true,
+          },
+        })
+      : null;
+    const entryOpen = Boolean(lastClockIn) && !(existingClockOut && !existingClockOut.autoClockOut);
 
-    const existingClockOut = await prisma.timeLog.findFirst({
-      where: {
-        userId: session.user.id,
-        barId: session.activeBarId,
-        type: ClockType.OUT,
-        timestamp: {
-          gte: lastClockIn.timestamp,
+    // No entry stamped, but one declared as forgotten and waiting for
+    // approval: the exit is stamped as usual, and the approved entry will
+    // slot in before it.
+    const declaredEntry = entryOpen
+      ? null
+      : await prisma.clockFix.findFirst({
+          where: {
+            userId: session.user.id,
+            barId: session.activeBarId,
+            kind: ClockFixKind.MISSED_IN,
+            status: ClockFixStatus.PENDING,
+            requestedOutAt: null,
+            ...(lastClockIn ? { requestedInAt: { gt: lastClockIn.timestamp } } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          select: { requestedInAt: true, shiftId: true },
+        });
+    const declaredStillOpen =
+      declaredEntry?.requestedInAt &&
+      (await prisma.timeLog.count({
+        where: {
+          userId: session.user.id,
+          barId: session.activeBarId,
+          type: ClockType.OUT,
+          timestamp: { gt: declaredEntry.requestedInAt },
         },
-      },
-      select: {
-        id: true,
-        autoClockOut: true,
-      },
-    });
+      })) === 0;
 
-    if (existingClockOut && !existingClockOut.autoClockOut) {
+    if (!entryOpen && !declaredStillOpen) {
       return Response.json(
         { ok: false, message: "No active clock-in" },
         { status: 400 }
       );
     }
+
+    const sessionStart = entryOpen ? lastClockIn!.timestamp : declaredEntry!.requestedInAt!;
+    const sessionShiftId = entryOpen ? lastClockIn!.shiftId : declaredEntry!.shiftId;
+    const staleAutoClockOut = entryOpen ? existingClockOut : null;
 
     const settings = await prisma.barSettings.findUnique({
       where: {
@@ -117,15 +145,15 @@ export const POST = withBar(
     // exit - out of range, no coordinates - reopened a closed shift, and its
     // hours kept counting until someone noticed.
     await prisma.$transaction([
-      ...(existingClockOut
-        ? [prisma.timeLog.delete({ where: { id: existingClockOut.id } })]
+      ...(staleAutoClockOut
+        ? [prisma.timeLog.delete({ where: { id: staleAutoClockOut.id } })]
         : []),
       prisma.timeLog.create({
         data: {
           type: ClockType.OUT,
           userId: session.user.id,
           barId: session.activeBarId,
-          shiftId: lastClockIn.shiftId,
+          shiftId: sessionShiftId,
           latitude,
           longitude,
           timestamp: outTimestamp,
@@ -138,10 +166,10 @@ export const POST = withBar(
     await closeClockOutReminders({
       userId: session.user.id,
       barId: session.activeBarId,
-      shiftId: lastClockIn.shiftId,
+      shiftId: sessionShiftId,
     });
 
-    const duration = outTimestamp.getTime() - lastClockIn.timestamp.getTime();
+    const duration = outTimestamp.getTime() - sessionStart.getTime();
 
     return Response.json({ ok: true, duration });
   }

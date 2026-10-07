@@ -81,7 +81,7 @@ export async function getVenueStatus({
     prisma.timeLog.findFirst({
       where: { barId, userId, timestamp: { gte: since, lte: now } },
       orderBy: { timestamp: "desc" },
-      select: { type: true },
+      select: { id: true, type: true, timestamp: true },
     }),
     shiftsEnabled
       ? prisma.shift.findMany({
@@ -104,7 +104,23 @@ export async function getVenueStatus({
       : Promise.resolve([]),
   ]);
 
-  if (lastLog?.type === "IN") {
+  // A forgotten exit or entry waiting for approval counts as what was
+  // declared: out after the exit, in from the entry.
+  const pendingFixes = await prisma.clockFix.findMany({
+    where: { barId, userId, status: "PENDING" },
+    select: { kind: true, clockInId: true, requestedInAt: true, requestedOutAt: true },
+  });
+  const exitDeclared =
+    lastLog?.type === "IN" && pendingFixes.some((fix) => fix.kind === "MISSED_OUT" && fix.clockInId === lastLog.id);
+  const entryDeclared = pendingFixes.some(
+    (fix) =>
+      fix.kind === "MISSED_IN" &&
+      !fix.requestedOutAt &&
+      fix.requestedInAt &&
+      !(lastLog && lastLog.timestamp > fix.requestedInAt)
+  );
+
+  if ((lastLog?.type === "IN" && !exitDeclared) || entryDeclared) {
     return { tone: "in", label: "Sei in turno" };
   }
 

@@ -1,4 +1,4 @@
-﻿import { ClockType, Role } from "@prisma/client";
+﻿import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 import { isWithinRadius } from "@/lib/gps";
 import { prisma } from "@/lib/prisma";
@@ -84,9 +84,42 @@ export const POST = withBar(
         timestamp: "desc",
       },
       select: {
+        id: true,
         timestamp: true,
       },
     });
+
+    // A forgotten entry already declared and waiting for approval: the person
+    // is at work, and a second entry would cut the first one out.
+    const declaredEntry = await prisma.clockFix.findFirst({
+      where: {
+        userId: session.user.id,
+        barId: session.activeBarId,
+        kind: ClockFixKind.MISSED_IN,
+        status: ClockFixStatus.PENDING,
+        requestedOutAt: null,
+        ...(lastClockIn ? { requestedInAt: { gt: lastClockIn.timestamp } } : {}),
+      },
+      select: { requestedInAt: true },
+    });
+
+    if (declaredEntry?.requestedInAt) {
+      const exitAfter = await prisma.timeLog.count({
+        where: {
+          userId: session.user.id,
+          barId: session.activeBarId,
+          type: ClockType.OUT,
+          timestamp: { gt: declaredEntry.requestedInAt },
+        },
+      });
+
+      if (exitAfter === 0) {
+        return Response.json(
+          { ok: false, message: "Hai già segnalato l'entrata: timbra l'uscita." },
+          { status: 400 }
+        );
+      }
+    }
 
     if (lastClockIn) {
       const closingClockOut = await prisma.timeLog.findFirst({
@@ -103,7 +136,18 @@ export const POST = withBar(
         },
       });
 
-      if (!closingClockOut) {
+      // A forgotten exit sent for approval no longer holds the next entry back.
+      const exitAwaitingApproval = closingClockOut
+        ? 0
+        : await prisma.clockFix.count({
+            where: {
+              clockInId: lastClockIn.id,
+              kind: ClockFixKind.MISSED_OUT,
+              status: ClockFixStatus.PENDING,
+            },
+          });
+
+      if (!closingClockOut && exitAwaitingApproval === 0) {
         return Response.json(
           { ok: false, message: "Prima registra l'uscita." },
           { status: 400 }

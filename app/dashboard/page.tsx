@@ -14,6 +14,8 @@ import { getTodayChecklists } from "@/lib/checklists";
 import { DepartmentDot } from "./department-forms";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DesktopToday } from "./desktop-today";
+import { ClockFixEmployee, ClockFixReview } from "./clock-fix";
+import { getClockFixesForReview, getEmployeeClockFixState } from "@/lib/clock-fixes";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
 import { ClockActionsPanel, type ClockActionStatus } from "./timelogs/timelogs-client";
@@ -432,6 +434,21 @@ export default async function DashboardPage() {
       : Promise.resolve(null),
   ]);
 
+  // Forgotten entries and exits: what the person can report, what waits for
+  // approval, and - for the owner and managers - what is theirs to approve.
+  const [clockFix, clockFixesToReview, venueOwner] = await Promise.all([
+    isOperationalProfile && features.timeTracking && activeBarId
+      ? getEmployeeClockFixState(activeBarId, session.user.id, now)
+      : Promise.resolve(null),
+    canManagePeople && features.timeTracking && activeBarId
+      ? getClockFixesForReview(activeBarId)
+      : Promise.resolve([]),
+    isOperationalProfile && features.timeTracking && activeBarId
+      ? prisma.bar.findUnique({ where: { id: activeBarId }, select: { owner: { select: { firstName: true } } } })
+      : Promise.resolve(null),
+  ]);
+  const reviewBlock = clockFixesToReview.length > 0 ? <ClockFixReview items={clockFixesToReview} /> : null;
+
   const todayKey = toDateInputValueInTimeZone(now);
   const todayShift = shifts.find((shift) => toDateInputValueInTimeZone(shift.startTime) === todayKey);
   const nextShift =
@@ -447,13 +464,18 @@ export default async function DashboardPage() {
     todayShift?.assignments
       .filter((entry) => entry.user.id !== session.user.id)
       .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`) ?? [];
+  // A forgotten exit sent for approval closes the entry for the clock; a
+  // forgotten entry sent for approval opens it, from the time declared.
+  const entryOpen = latestTimeLog?.type === "IN" && !clockFix?.openEntryHandedOver;
+  const declaredInAt = !entryOpen ? clockFix?.declaredInAt ?? null : null;
   const clockStatus: ClockActionStatus =
-    latestTimeLog?.type === "IN"
+    entryOpen || declaredInAt
       ? "CAN_CLOCK_OUT"
       : "CAN_CLOCK_IN";
-  const activeClockInAt =
-    latestTimeLog?.type === "IN" ? latestTimeLog.timestamp.toISOString() : null;
-  const timerShift = latestTimeLog?.type === "IN" && latestTimeLog.shift
+  const activeClockInAt = entryOpen
+    ? latestTimeLog.timestamp.toISOString()
+    : declaredInAt?.toISOString() ?? null;
+  const timerShift = entryOpen && latestTimeLog.shift
     ? latestTimeLog.shift
     : todayShift;
 
@@ -476,6 +498,18 @@ export default async function DashboardPage() {
       lastInAtByUser.set(log.userId, log.timestamp);
     } else {
       lastStampByUser.delete(log.userId);
+    }
+  }
+
+  // A forgotten exit or entry waiting for approval: the crew shows what was
+  // declared, not an entry left open for hours.
+  for (const fix of clockFixesToReview) {
+    if (fix.kind === "MISSED_OUT" && fix.requestedOutAt && lastStampByUser.get(fix.userId) === "IN") {
+      lastStampByUser.set(fix.userId, "OUT");
+      lastOutAtByUser.set(fix.userId, new Date(fix.requestedOutAt));
+    } else if (fix.kind === "MISSED_IN" && fix.requestedInAt && !fix.requestedOutAt && !lastStampByUser.has(fix.userId)) {
+      lastStampByUser.set(fix.userId, "IN");
+      lastInAtByUser.set(fix.userId, new Date(fix.requestedInAt));
     }
   }
 
@@ -788,6 +822,8 @@ export default async function DashboardPage() {
             {cartBlock}
           </div>
 
+          {reviewBlock}
+
           {features.timeTracking ? (
             <ClockActionsPanel
               role={role}
@@ -801,6 +837,14 @@ export default async function DashboardPage() {
                   : null
               }
               compact
+            />
+          ) : null}
+
+          {clockFix && (clockFix.offer || clockFix.pending) ? (
+            <ClockFixEmployee
+              offer={clockFix.offer}
+              pending={clockFix.pending}
+              reviewerName={venueOwner?.owner.firstName ?? "il titolare"}
             />
           ) : null}
 
@@ -965,6 +1009,7 @@ export default async function DashboardPage() {
             {cartBlock}
           </div>
 
+          {reviewBlock}
           {crewBlock}
           {checklistBlock}
           {weekLine}
@@ -1049,6 +1094,18 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="wb-desk-only">
+        {reviewBlock || (clockFix && (clockFix.offer || clockFix.pending)) ? (
+          <div style={{ display: "grid", gap: 10, maxWidth: 560, marginBottom: 16 }}>
+            {reviewBlock}
+            {clockFix && (clockFix.offer || clockFix.pending) ? (
+              <ClockFixEmployee
+                offer={clockFix.offer}
+                pending={clockFix.pending}
+                reviewerName={venueOwner?.owner.firstName ?? "il titolare"}
+              />
+            ) : null}
+          </div>
+        ) : null}
         <DesktopToday
           barId={activeBarId}
           userId={session.user.id}

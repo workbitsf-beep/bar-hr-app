@@ -103,6 +103,17 @@ enum ClockType {
   OUT
 }
 
+enum ClockFixKind {
+  MISSED_IN
+  MISSED_OUT
+}
+
+enum ClockFixStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
@@ -187,6 +198,8 @@ model User {
   shiftAssignments         ShiftAssignment[]
   timeLogs                 TimeLog[]
   createdTimeLogs          TimeLog[]               @relation("TimeLogCreatedBy")
+  clockFixes               ClockFix[]              @relation("ClockFixRequester")
+  reviewedClockFixes       ClockFix[]              @relation("ClockFixReviewer")
   tasksAssigned            Task[]                  @relation("TaskAssigned")
   tasksCreated             Task[]                  @relation("TaskCreated")
   tasksCompleted           Task[]                  @relation("TaskCompleted")
@@ -306,6 +319,7 @@ model Bar {
   invoices               Invoice[]
   shifts                 Shift[]
   timeLogs               TimeLog[]
+  clockFixes             ClockFix[]
   tasks                  Task[]
   notes                  Note[]
   requests               Request[]
@@ -555,6 +569,7 @@ model Shift {
   confirmedBy            User?                   @relation("ShiftConfirmed", fields: [confirmedById], references: [id], onDelete: SetNull)
   assignments            ShiftAssignment[]
   timeLogs               TimeLog[]
+  clockFixes             ClockFix[]
   requests               Request[]               @relation("RequestShift")
   swapRequests           Request[]               @relation("RequestSwapShift")
   scheduledNotifications ScheduledNotification[]
@@ -605,6 +620,35 @@ model TimeLog {
   @@index([barId, userId, type, timestamp])
   @@index([shiftId])
   @@index([userId, timestamp])
+}
+
+/// A clock-in or clock-out someone forgot. The person says when they really
+/// came in or left; nothing is stamped until the owner or a manager approves
+/// it, at that time or at one they choose.
+model ClockFix {
+  id             String         @id @default(uuid()) @db.Uuid
+  barId          String         @db.Uuid
+  bar            Bar            @relation(fields: [barId], references: [id], onDelete: Cascade)
+  userId         String         @db.Uuid
+  user           User           @relation("ClockFixRequester", fields: [userId], references: [id], onDelete: Cascade)
+  shiftId        String?        @db.Uuid
+  shift          Shift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  /// The entry left open, for a forgotten exit.
+  clockInId      String?        @db.Uuid
+  kind           ClockFixKind
+  status         ClockFixStatus @default(PENDING)
+  requestedInAt  DateTime?
+  requestedOutAt DateTime?
+  resolvedInAt   DateTime?
+  resolvedOutAt  DateTime?
+  reviewedById   String?        @db.Uuid
+  reviewedBy     User?          @relation("ClockFixReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
+  createdAt      DateTime       @default(now())
+
+  @@index([barId, status])
+  @@index([userId, status])
+  @@index([shiftId])
 }
 
 model Task {

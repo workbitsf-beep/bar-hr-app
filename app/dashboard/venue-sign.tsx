@@ -27,6 +27,14 @@ export function VenueSign({
   const [status, setStatus] = useState(initialStatus);
   const live = initialStatus !== null;
 
+  // A refresh of the page brings a fresh line from the server: take it at
+  // once, rather than at the next minute's check.
+  const [served, setServed] = useState(initialStatus);
+  if (initialStatus?.label !== served?.label || initialStatus?.tone !== served?.tone) {
+    setServed(initialStatus);
+    setStatus(initialStatus);
+  }
+
   useEffect(() => {
     if (!live) return;
 
