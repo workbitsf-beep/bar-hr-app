@@ -1,6 +1,8 @@
 "use client";
 
 import { ActivityType, RequestType, Role } from "@prisma/client";
+import type { DepartmentInfo } from "@/lib/departments";
+import { DepartmentDot } from "../department-forms";
 import type { NoteMeta } from "@/lib/note-list-format";
 import { NoteRow } from "../note-row";
 import { createPortal } from "react-dom";
@@ -97,6 +99,8 @@ type ShiftItem = {
   endTime: string;
   confirmedAt: string | null;
   isOnCall: boolean;
+  /** Pro: the department the shift belongs to, ready to draw. */
+  department?: DepartmentInfo | null;
   assignments: ShiftAssignment[];
 };
 
@@ -983,6 +987,7 @@ function renderDayShiftRow(
         style={{ background: clashing ? "#f0a742" : mine ? "#6d5ce7" : "#eae7f6" }}
       />
       <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, padding: "10px 11px" }}>
+        {shift.department ? <DepartmentDot department={shift.department} size={20} /> : null}
         <span
           style={{
             flex: "0 0 auto",
@@ -1092,6 +1097,7 @@ function renderWeekShiftLine(
         touchAction: "manipulation",
       }}
     >
+      {shift.department ? <DepartmentDot department={shift.department} size={20} /> : null}
       <span
         style={{
           flex: "0 0 auto",
@@ -1219,6 +1225,7 @@ function renderShiftCard(
           lineHeight: 1.5,
         }}
       >
+        {shift.department ? <DepartmentDot department={shift.department} size={20} /> : null}
         {isOwnShift(shift) ? (
           <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
             {formatTime(shift.startTime, locale)}–{formatTime(shift.endTime, locale)}

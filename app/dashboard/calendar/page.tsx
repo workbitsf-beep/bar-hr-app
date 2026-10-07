@@ -1,4 +1,5 @@
-import { ActivityType, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
+import { ActivityType, type Department, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
+import { getVenueDepartments } from "@/lib/departments";
 import { prisma } from "@/lib/prisma";
 import { visibleOnBoard } from "@/lib/note-visibility";
 import { buildNoteMeta } from "@/lib/note-list-format";
@@ -16,6 +17,7 @@ import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
 import { ClassicViewBack, DesktopWeekPlanner } from "./desktop-planner";
 import { ScrollToTodayButton } from "./scroll-to-today-button";
+import { DepartmentBar } from "./department-bar";
 
 type CalendarPageSettings = {
   gpsLatitude?: number | null;
@@ -303,6 +305,33 @@ export default async function DashboardCalendarPage({
     );
   }
 
+  // Departments (Pro): which one the week below is showing. On one calendar
+  // the owner starts from everyone and staff from their own department; with a
+  // calendar per department, staff and leads only ever see their own.
+  const departments = await getVenueDepartments(activeBarId, session.user.id);
+  const managesVenue = role === Role.OWNER || role === Role.MANAGER;
+  const departmentIds = departments.list.map((entry) => entry.id);
+  const rawDepartment = Array.isArray(params?.rep) ? params.rep[0] : params?.rep;
+  const requestedDepartment = departmentIds.find((id) => id === rawDepartment) ?? null;
+  const ownDepartment = departmentIds.find((id) => id === departments.mine.department) ?? null;
+  const separateCalendars = departments.enabled && departments.mode === "SEPARATE";
+  // A department lead manages the shifts of their department and sees that
+  // department only, on either kind of calendar.
+  const leadsDepartment = departments.enabled && !managesVenue && departments.mine.isLead && Boolean(ownDepartment);
+  const lockedToOwnDepartment = (separateCalendars && !managesVenue && Boolean(ownDepartment)) || leadsDepartment;
+  let activeDepartment: Department | null = null;
+  if (departments.enabled) {
+    activeDepartment = separateCalendars || leadsDepartment
+      ? lockedToOwnDepartment
+        ? ownDepartment
+        : requestedDepartment ?? ownDepartment ?? departmentIds[0] ?? null
+      : rawDepartment === "TUTTI"
+        ? null
+        : requestedDepartment ?? (managesVenue ? null : ownDepartment);
+  }
+  const departmentInfo = (id: Department | null | undefined) =>
+    departments.enabled && id ? departments.list.find((entry) => entry.id === id) ?? null : null;
+
   const locale = getLocale(language);
   const dayFilter = parseDayFilter(params);
   const anchorDate = parseAnchorDate(params);
@@ -339,6 +368,7 @@ export default async function DashboardCalendarPage({
           endTime: true,
           confirmedAt: true,
           isOnCall: true,
+          department: true,
           assignments: {
             select: {
               user: {
@@ -399,6 +429,7 @@ export default async function DashboardCalendarPage({
       ).map((shift) => ({
         ...shift,
         isOnCall: false,
+        department: null,
       }));
     }
   };
@@ -588,6 +619,8 @@ export default async function DashboardCalendarPage({
             orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
             select: {
               role: true,
+              department: true,
+              helpsIn: true,
               user: {
                 select: {
                   id: true,
@@ -742,6 +775,10 @@ export default async function DashboardCalendarPage({
   const notesByDay = new Map<string, typeof notes>();
 
   for (const shift of shifts) {
+    if (activeDepartment && shift.department !== activeDepartment) {
+      continue;
+    }
+
     const start = shift.startTime > calendarStart ? shift.startTime : calendarStart;
     const end = shift.endTime < calendarEnd ? shift.endTime : calendarEnd;
 
@@ -866,6 +903,7 @@ export default async function DashboardCalendarPage({
       endTime: shift.endTime.toISOString(),
       confirmedAt: shift.confirmedAt?.toISOString() ?? null,
       isOnCall: shift.isOnCall,
+      department: departmentInfo(shift.department),
       assignments: shift.assignments.map((assignment) => ({
         id: assignment.user.id,
         firstName: assignment.user.firstName,
@@ -883,6 +921,7 @@ export default async function DashboardCalendarPage({
           endTime: shift.endTime.toISOString(),
           confirmedAt: shift.confirmedAt?.toISOString() ?? null,
           isOnCall: shift.isOnCall,
+          department: departmentInfo(shift.department),
           assignments: shift.assignments.map((assignment) => ({
             id: assignment.user.id,
             firstName: assignment.user.firstName,
@@ -1002,6 +1041,24 @@ export default async function DashboardCalendarPage({
     lastName: member.user.lastName,
     role: member.role,
   }));
+  // On a computer the week is a row per person: with a department in view,
+  // the rows are the people who work in it or can lend a hand there, plus
+  // anyone already on one of its shifts.
+  const onDepartmentShift = new Set(
+    activeDepartment
+      ? shifts.filter((shift) => shift.department === activeDepartment).flatMap((shift) => shift.assignments.map((entry) => entry.user.id))
+      : []
+  );
+  const plannerMembers = activeDepartment
+    ? memberOptions.filter((option, index) => {
+        const member = calendarMembers[index];
+        return (
+          member.department === activeDepartment ||
+          (member.helpsIn ?? []).includes(activeDepartment) ||
+          onDepartmentShift.has(option.id)
+        );
+      })
+    : memberOptions;
   const shiftPresets = buildShiftPresets(settings);
   const initialFocusedDay = toDayKey(anchorDate);
   const initialCalendarView = parseCalendarView(params);
@@ -1022,9 +1079,48 @@ export default async function DashboardCalendarPage({
   ) : null;
   const todayAction = <ScrollToTodayButton fallbackHref="/dashboard/calendar" variant="segment" />;
 
+  const activeLead =
+    separateCalendars && activeDepartment
+      ? await prisma.employeeBar.findFirst({
+          where: { barId: activeBarId, isActive: true, department: activeDepartment, isDepartmentLead: true },
+          select: { user: { select: { firstName: true, lastName: true } } },
+        })
+      : null;
+  const viewParam = Array.isArray(params?.view) ? params.view[0] : params?.view;
+  const activeDepartmentInfo = departmentInfo(activeDepartment);
+  const departmentBar =
+    departments.enabled && features.shifts ? (
+      <DepartmentBar
+        departments={departments.list}
+        active={activeDepartment}
+        separate={separateCalendars}
+        locked={lockedToOwnDepartment}
+        lead={
+          separateCalendars && activeDepartmentInfo
+            ? activeLead
+              ? { name: `${activeLead.user.firstName} ${activeLead.user.lastName}`, department: activeDepartmentInfo }
+              : "none"
+            : null
+        }
+        hrefs={Object.fromEntries(
+          [null, ...departmentIds].map((id) => [
+            id ?? "TUTTI",
+            `/dashboard/calendar?rep=${id ?? "TUTTI"}${viewParam ? `&view=${viewParam}` : ""}`,
+          ])
+        )}
+      />
+    ) : null;
+  // What a new shift is filed under: the department in view, or - on "Tutti" -
+  // the one picked while adding it.
+  const departmentPick = departments.enabled ? { list: departments.list, active: activeDepartment } : null;
+  // What the lead's calendar leaves out: notes, tasks, requests and publishing
+  // the week stay with the owner and the managers.
+  const leadFeatures = { ...features, tasks: false, noticeBoard: false, requests: false, availability: false };
+
   return (
     <Stack className="dashboard-calendar-page" columns="minmax(0, 1fr)">
       <Panel title={features.shifts ? "Turni" : "Calendario"}>
+        {departmentBar}
         {canManageRestaurantShifts ? (
           <>
           {/* On a computer the week is a grid of people and days; the phone
@@ -1034,11 +1130,12 @@ export default async function DashboardCalendarPage({
           <div className="wbp-desktop-only">
             <DesktopWeekPlanner
               days={serializedDays}
-              members={memberOptions}
+              members={plannerMembers}
               presets={shiftPresets}
               locale={locale}
               currentUserId={session.user.id}
               initialDayKey={initialFocusedDay}
+              departmentPick={departmentPick}
             />
           </div>
           <div className="wbp-phone-only">
@@ -1056,6 +1153,40 @@ export default async function DashboardCalendarPage({
             features={features}
             todayAction={todayAction}
             publishAction={publishWeekAction}
+            departmentPick={departmentPick}
+          />
+          </div>
+          </>
+        ) : leadsDepartment && features.shifts && isRestaurant ? (
+          <>
+          <ClassicViewBack />
+          <div className="wbp-desktop-only">
+            <DesktopWeekPlanner
+              days={serializedDays}
+              members={plannerMembers}
+              presets={shiftPresets}
+              locale={locale}
+              currentUserId={session.user.id}
+              initialDayKey={initialFocusedDay}
+              mode="view"
+            />
+          </div>
+          <div className="wbp-phone-only">
+          <OwnerCalendarClient
+            locale={locale}
+            weekdayLabels={weekdayLabels}
+            days={serializedDays}
+            members={memberOptions}
+            presets={shiftPresets}
+            filteredDay={dayFilter}
+            initialFocusedDay={initialFocusedDay}
+            initialCalendarView={initialCalendarView}
+            role={String(role)}
+            currentUserId={session.user.id}
+            features={leadFeatures}
+            todayAction={todayAction}
+            publishAction={null}
+            departmentPick={departmentPick}
           />
           </div>
           </>
@@ -1065,7 +1196,7 @@ export default async function DashboardCalendarPage({
           <div className="wbp-desktop-only">
             <DesktopWeekPlanner
               days={serializedDays}
-              members={memberOptions}
+              members={plannerMembers}
               presets={shiftPresets}
               locale={locale}
               currentUserId={session.user.id}

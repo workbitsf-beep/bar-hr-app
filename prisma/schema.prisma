@@ -15,6 +15,28 @@ enum Role {
   EMPLOYEE
 }
 
+/// The plan a venue is on. Pro adds departments; prices and account limits
+/// are still being decided, so for now the super admin sets it by hand.
+enum VenuePlan {
+  BASE
+  PRO
+}
+
+/// The three fixed departments of a venue, plus one the owner names.
+enum Department {
+  BANCO
+  CUCINA
+  SALA
+  CUSTOM
+}
+
+/// One weekly calendar split by department, or one calendar per department
+/// run by its lead. The shifts are the same either way.
+enum DepartmentMode {
+  UNIFIED
+  SEPARATE
+}
+
 enum SubscriptionStatus {
   ACTIVE
   TRIALING
@@ -258,6 +280,10 @@ model Bar {
   roundingStepMin        Int                     @default(15)
   exitToleranceMin       Int                     @default(13)
   activityType           ActivityType            @default(RESTAURANT)
+  plan                   VenuePlan               @default(BASE)
+  departmentMode         DepartmentMode          @default(UNIFIED)
+  /// The name of the fourth department; null while the owner has not added it.
+  customDepartmentName   String?
   /// When and from where the owner declared, at public signup, to run a real
   /// business with this VAT number. Null for venues opened by hand.
   businessDeclaredAt     DateTime?
@@ -484,6 +510,11 @@ model EmployeeBar {
   isActive   Boolean   @default(true)
   hiredAt    DateTime  @default(now())
   endedAt    DateTime?
+  /// Pro only: where this person works, and where they can lend a hand.
+  department       Department?
+  helpsIn          Department[] @default([])
+  /// Runs the shifts, leave and swaps of their department.
+  isDepartmentLead Boolean      @default(false)
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bar        Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
 
@@ -501,6 +532,8 @@ model Shift {
   startTime              DateTime
   endTime                DateTime
   isOnCall               Boolean                 @default(false)
+  /// Pro only: the department the shift belongs to.
+  department             Department?
   barId                  String                  @db.Uuid
   bar                    Bar                     @relation(fields: [barId], references: [id], onDelete: Cascade)
   assignedToId           String?                 @db.Uuid
@@ -521,6 +554,7 @@ model Shift {
   @@index([barId, assignedToId])
   @@index([barId, startTime])
   @@index([barId, endTime])
+  @@index([barId, department, startTime])
   @@index([barId, confirmedAt])
   @@index([startTime])
   @@index([createdById])

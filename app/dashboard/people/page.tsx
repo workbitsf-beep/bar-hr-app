@@ -20,6 +20,8 @@ import { NewPersonForm } from "./new-person-form";
 import { ClassicBack, ClassicToggle } from "../classic-toggle";
 import { Avatar } from "../desk-helpers";
 import "../desk.css";
+import { getVenueDepartments } from "@/lib/departments";
+import { DepartmentDot, MemberDepartmentForm } from "../department-forms";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -97,7 +99,7 @@ export default async function DashboardPeoplePage({
 }) {
   const params = searchParams ? await searchParams : {};
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
-  const { role, activeBarId, activeBarActivityType, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, activeBarActivityType, billingStatus } = await getDashboardContext();
 
   if (role !== Role.OWNER) {
     return (
@@ -122,6 +124,9 @@ export default async function DashboardPeoplePage({
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  const departments = await getVenueDepartments(activeBarId, session.user.id);
+  const departmentOf = (id: string | null) => departments.list.find((entry) => entry.id === id) ?? null;
+
   const [members, monthLogs, documents, courses] = await Promise.all([
     prisma.employeeBar.findMany({
       where: {
@@ -133,6 +138,9 @@ export default async function DashboardPeoplePage({
         id: true,
         role: true,
         hourlyRate: true,
+        department: true,
+        helpsIn: true,
+        isDepartmentLead: true,
         user: {
           select: {
             id: true,
@@ -160,6 +168,12 @@ export default async function DashboardPeoplePage({
   ]);
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
+  const leadNames: Partial<Record<NonNullable<(typeof members)[number]["department"]>, string>> = {};
+  for (const member of members) {
+    if (member.isDepartmentLead && member.department) {
+      leadNames[member.department] = `${member.user.firstName} ${member.user.lastName}`;
+    }
+  }
 
   // How the month is going for each person, and who is in right now: a shift
   // is open when the last stamp of the month is an entrata.
@@ -251,7 +265,10 @@ export default async function DashboardPeoplePage({
   function renderPerson(row: (typeof rows)[number], live: boolean) {
     const { member } = row;
     const name = `${member.user.firstName} ${member.user.lastName}`;
-    const roleLabel = formatRoleLabel(member.role);
+    const memberDepartment = departments.enabled ? departmentOf(member.department) : null;
+    const roleLabel =
+      formatRoleLabel(member.role) +
+      (memberDepartment ? ` · ${memberDepartment.name}${member.isDepartmentLead ? " (capo)" : ""}` : "");
     const line = live
       ? `dalle ${row.since?.toLocaleTimeString("it-IT", {
           hour: "2-digit",
@@ -289,8 +306,9 @@ export default async function DashboardPeoplePage({
             </span>
 
             <span style={{ display: "grid", gap: 3, minWidth: 0, flex: "1 1 auto" }}>
-              <strong style={{ fontSize: 15, letterSpacing: "-0.015em", color: "#0f172a" }}>
+              <strong style={{ fontSize: 15, letterSpacing: "-0.015em", color: "#0f172a", display: "flex", alignItems: "center", gap: 7 }}>
                 {name}
+                {memberDepartment ? <DepartmentDot department={memberDepartment} size={18} /> : null}
               </strong>
               <span
                 style={{
@@ -348,6 +366,20 @@ export default async function DashboardPeoplePage({
               value={member.hourlyRate ? `${Number(member.hourlyRate).toFixed(2)}` : "—"}
             />
           </div>
+
+          {departments.enabled ? (
+            <MemberDepartmentForm
+              membershipId={member.id}
+              isOwner={member.role === Role.OWNER}
+              department={member.department}
+              helpsIn={member.helpsIn}
+              isLead={member.isDepartmentLead}
+              currentLeadName={Object.fromEntries(
+                Object.entries(leadNames).filter(([, leadName]) => leadName !== name)
+              )}
+              departments={departments.list}
+            />
+          ) : null}
 
           {row.warning ? (
             <div
@@ -553,7 +585,16 @@ export default async function DashboardPeoplePage({
                             <b>
                               {row.member.user.firstName} {row.member.user.lastName}
                             </b>
-                            <small style={{ color: "#847ea3", fontSize: 12 }}>{formatRoleLabel(row.member.role)}</small>
+                            <small style={{ color: "#847ea3", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                              {formatRoleLabel(row.member.role)}
+                              {departments.enabled && departmentOf(row.member.department) ? (
+                                <>
+                                  · <DepartmentDot department={departmentOf(row.member.department)!} size={16} />
+                                  {departmentOf(row.member.department)!.name}
+                                  {row.member.isDepartmentLead ? " (capo)" : ""}
+                                </>
+                              ) : null}
+                            </small>
                           </span>
                         </Link>
                       </td>

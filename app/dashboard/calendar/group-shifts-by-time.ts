@@ -10,6 +10,8 @@ type ShiftLike = {
   endTime: string;
   confirmedAt: string | null;
   isOnCall: boolean;
+  /** Pro: shifts at the same hours in different departments stay apart. */
+  department?: { id: string } | null;
   assignments: ShiftAssignmentLike[];
 };
 
@@ -31,7 +33,7 @@ export function groupShiftsByTime<T extends ShiftLike>(shifts: T[]): T[] {
   const grouped = new Map<string, T>();
 
   for (const shift of shifts) {
-    const key = `${toMinuteKey(shift.startTime)}|${toMinuteKey(shift.endTime)}|${shift.isOnCall ? "on-call" : "shift"}`;
+    const key = `${toMinuteKey(shift.startTime)}|${toMinuteKey(shift.endTime)}|${shift.isOnCall ? "on-call" : "shift"}|${shift.department?.id ?? ""}`;
     const current = grouped.get(key);
 
     if (!current) {

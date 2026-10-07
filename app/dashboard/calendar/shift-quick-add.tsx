@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { ShiftPreset } from "@/lib/shift-presets";
 
 export type QuickAddMember = {
@@ -61,6 +61,7 @@ export function ShiftQuickAdd({
   onCancel,
   onSave,
   onSavePreset,
+  topSlot,
 }: {
   dayKey: string;
   dayLabel: string;
@@ -77,6 +78,8 @@ export function ShiftQuickAdd({
   onSave: (drafts: QuickAddDraft[]) => void;
   /** Absent when the venue's standard slots cannot be edited from here. */
   onSavePreset?: (slot: { startTime: string; endTime: string }) => void;
+  /** Pro, on "Tutti": the department picker, above the first step. */
+  topSlot?: ReactNode;
 }) {
   const [door, setDoor] = useState<Door>("time");
   const [screen, setScreen] = useState(0);
@@ -402,6 +405,7 @@ export function ShiftQuickAdd({
     return (
       <div style={{ display: "grid", gap: 12 }}>
         <Head title="Orario" detail={dayLabel} onBack={onCancel} backLabel="✕" />
+        {topSlot}
         {doorSwitch}
         {keypad}
         <button
@@ -626,6 +630,7 @@ export function ShiftQuickAdd({
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <Head title="A chi dai il turno?" detail={dayLabel} onBack={onCancel} backLabel="✕" />
+      {topSlot}
       {doorSwitch}
 
       <div style={{ display: "grid", gap: 6 }}>

@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition, type DragEvent } from "react";
+import type { Department } from "@prisma/client";
+import type { DepartmentInfo } from "@/lib/departments";
+import { DepartmentDot } from "../department-forms";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ShiftPreset } from "@/lib/shift-presets";
@@ -36,6 +39,8 @@ type PlannerShift = {
   endTime: string;
   confirmedAt: string | null;
   isOnCall: boolean;
+  /** Pro: the department the shift belongs to, ready to draw. */
+  department?: DepartmentInfo | null;
   assignments: Array<{ id: string; firstName: string; lastName: string; role: string; isCurrentUser: boolean }>;
 };
 
@@ -114,6 +119,7 @@ export function DesktopWeekPlanner({
   currentUserId,
   initialDayKey,
   mode = "manage",
+  departmentPick,
 }: {
   days: PlannerDay[];
   members: Member[];
@@ -124,6 +130,8 @@ export function DesktopWeekPlanner({
   /** "manage" for the owner and the manager; "view" for everyone else: only
    * published shifts, nothing to drag or add, their own row on top. */
   mode?: "manage" | "view";
+  /** Pro: the departments, and the one in view (null on "Tutti"). */
+  departmentPick?: { list: DepartmentInfo[]; active: Department | null } | null;
 }) {
   const router = useRouter();
   const manage = mode === "manage";
@@ -415,7 +423,8 @@ export function DesktopWeekPlanner({
                           }${Number(hm(shift.startTime).slice(0, 2)) < 16 ? " wbp-shift--day" : " wbp-shift--evening"}`}
                           title={draft ? "Bozza: non ancora pubblicato" : undefined}
                         >
-                          <b>
+                          <b style={shift.department ? { display: "flex", alignItems: "center", gap: 5 } : undefined}>
+                            {shift.department ? <DepartmentDot department={shift.department} size={16} /> : null}
                             {shift.isOnCall ? (
                               "Reperibile"
                             ) : (
@@ -616,6 +625,7 @@ export function DesktopWeekPlanner({
           member={creating.member}
           presets={presets}
           locale={locale}
+          departmentPick={departmentPick ?? null}
           onClose={() => setCreating(null)}
           onDone={(text) => {
             setCreating(null);
@@ -651,6 +661,7 @@ function NewShiftDialog({
   member,
   presets,
   locale,
+  departmentPick,
   onClose,
   onDone,
 }: {
@@ -658,6 +669,7 @@ function NewShiftDialog({
   member: Member;
   presets: ShiftPreset[];
   locale: string;
+  departmentPick: { list: DepartmentInfo[]; active: Department | null } | null;
   onClose: () => void;
   onDone: (text: string) => void;
 }) {
@@ -666,6 +678,9 @@ function NewShiftDialog({
   const [title, setTitle] = useState(presets[0]?.label ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  // On "Tutti" the shift asks for its department; otherwise it takes the one in view.
+  const [picked, setPicked] = useState<Department | null>(departmentPick?.active ?? departmentPick?.list[0]?.id ?? null);
+  const department = departmentPick ? departmentPick.active ?? picked : null;
 
   const dayLabel = new Intl.DateTimeFormat(locale, {
     weekday: "long",
@@ -682,6 +697,7 @@ function NewShiftDialog({
     form.set("startTime", `${dayKey}T${start}`);
     form.set("endTime", `${endDay}T${end}`);
     form.append("employeeIds", member.id);
+    if (department) form.set("department", department);
     startTransition(async () => {
       try {
         const result = await createShiftAction(form);
@@ -705,12 +721,46 @@ function NewShiftDialog({
             <h3>
               {member.firstName} {member.lastName}
             </h3>
-            <small>{dayLabel}</small>
+            <small>
+              {dayLabel}
+              {departmentPick?.active
+                ? ` · ${departmentPick.list.find((entry) => entry.id === departmentPick.active)?.name ?? ""}`
+                : ""}
+            </small>
           </div>
           <button type="button" className="wbp-close" aria-label="Chiudi" onClick={onClose}>
             ×
           </button>
         </div>
+
+        {departmentPick && !departmentPick.active ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }} aria-label="Reparto">
+            {departmentPick.list.map((entry) => {
+              const on = picked === entry.id;
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setPicked(entry.id)}
+                  style={{
+                    minHeight: 34,
+                    padding: "0 13px",
+                    borderRadius: 999,
+                    border: on ? "1px solid transparent" : "1px solid #e2e8f0",
+                    background: on ? entry.ink : "#ffffff",
+                    color: on ? "#ffffff" : "#475569",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  {entry.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         {presets.length ? (
           <div className="wbp-presets">

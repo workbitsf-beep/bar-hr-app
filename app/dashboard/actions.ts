@@ -8,6 +8,7 @@ import {
   CalendarClosureType,
   ClockType,
   CourseKind,
+  type Department,
   PlanType,
   Prisma,
   RequestStatus,
@@ -82,6 +83,7 @@ import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { createTemporaryPassword } from "@/lib/temporary-password";
 import { SUPER_ADMIN_OVERVIEW_CACHE_TAG } from "@/lib/super-admin-overview";
 import { parseFeatureFlags } from "@/lib/features";
+import { getVenueDepartments, parseDepartment } from "@/lib/departments";
 
 type PlanTypeValue = "FREE" | "TRIAL" | "PAID" | "LIFETIME";
 type BillingIntervalValue = "MONTHLY" | "YEARLY";
@@ -803,6 +805,29 @@ function ensureOperationRole(role: Role) {
   if (!canManageOperations(role)) {
     throw new Error("Unauthorized");
   }
+}
+
+/**
+ * Shifts: the owner and managers manage them all. On a Pro venue a
+ * department lead manages the shifts of their own department, and only those.
+ */
+async function ensureShiftManager(
+  role: Role,
+  barId: string,
+  userId: string,
+  department: Department | null | undefined
+) {
+  if (canManageOperations(role)) {
+    return;
+  }
+
+  const departments = await getVenueDepartments(barId, userId);
+
+  if (departments.enabled && departments.mine.isLead && department && departments.mine.department === department) {
+    return;
+  }
+
+  throw new Error("Unauthorized");
 }
 
 function ensureTrainingRole(role: Role) {
@@ -2612,7 +2637,6 @@ export async function deleteAllCompletedTasksAction() {
 export async function createShiftAction(formData: FormData) {
   try {
     const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-    ensureOperationRole(role);
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -2625,6 +2649,15 @@ export async function createShiftAction(formData: FormData) {
     const endTime = parseRequiredDate(formData.get("endTime"));
     const employeeIds = normalizeIds(formData.getAll("employeeIds"));
     const isOnCall = formData.get("isOnCall") === "on";
+    // Pro: the department the shift is filed under. Ignored on a Base venue,
+    // where nothing about departments exists.
+    const requestedDepartment = parseDepartment(formData.get("department"));
+    const department =
+      requestedDepartment &&
+      (await prisma.bar.findUnique({ where: { id: activeBarId }, select: { plan: true } }))?.plan === "PRO"
+        ? requestedDepartment
+        : null;
+    await ensureShiftManager(role, activeBarId, session.user.id, department);
 
     if (employeeIds.length === 0) {
       throw new RuleError("Scegli almeno una persona per questo turno");
@@ -2649,6 +2682,7 @@ export async function createShiftAction(formData: FormData) {
         startTime,
         endTime,
         isOnCall,
+        department,
         confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
         confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
         assignedToId: employeeIds[0],
@@ -2681,7 +2715,6 @@ export async function createShiftAction(formData: FormData) {
 export async function updateShiftAction(formData: FormData) {
   try {
     const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-    ensureOperationRole(role);
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -2723,6 +2756,7 @@ export async function updateShiftAction(formData: FormData) {
         startTime: true,
         endTime: true,
         isOnCall: true,
+        department: true,
         assignments: {
           select: {
             userId: true,
@@ -2734,6 +2768,8 @@ export async function updateShiftAction(formData: FormData) {
     if (!existingShift) {
       throw new RuleError("Questo turno non esiste più");
     }
+
+    await ensureShiftManager(role, activeBarId, session.user.id, existingShift.department);
 
     ensureShiftCanStillBeChanged(existingShift.startTime);
 
@@ -2857,7 +2893,6 @@ export async function confirmShiftAction(formData: FormData) {
 export async function deleteShiftAction(formData: FormData) {
   try {
     const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-    ensureOperationRole(role);
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -2881,6 +2916,7 @@ export async function deleteShiftAction(formData: FormData) {
         startTime: true,
         endTime: true,
         isOnCall: true,
+        department: true,
         assignments: {
           select: {
             userId: true,
@@ -2888,6 +2924,8 @@ export async function deleteShiftAction(formData: FormData) {
         },
       },
     });
+
+    await ensureShiftManager(role, activeBarId, session.user.id, existingShift?.department);
 
     if (!existingShift) {
       throw new RuleError("Questo turno non esiste più");

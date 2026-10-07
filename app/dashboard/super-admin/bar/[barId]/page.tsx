@@ -20,6 +20,7 @@ import {
 } from "../../console-data";
 import { OwnersFieldset, PlanFieldset } from "./edit-fieldsets";
 import { DangerZone } from "./danger-zone";
+import { setVenuePlanAction } from "../../../department-actions";
 
 const FEEDBACK: Record<string, string> = {
   "employee-created": "Persona aggiunta al locale.",
@@ -59,6 +60,7 @@ export default async function ConsoleBarPage({
         city: true,
         postalCode: true,
         activityType: true,
+        plan: true,
         createdAt: true,
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         memberships: {
@@ -166,6 +168,26 @@ export default async function ConsoleBarPage({
 
           <button type="submit" className="wbc-btn wbc-btn-primary">
             Salva abbonamento
+          </button>
+        </form>
+      </Section>
+
+      {/* Until plans are priced, Pro is switched on by hand: it turns on
+          departments (banco, cucina, sala) for this venue and nothing else. */}
+      <Section title="Piano">
+        <form action={setVenuePlanAction} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <input type="hidden" name="barId" value={bar.id} />
+          <input type="hidden" name="plan" value={bar.plan === "PRO" ? "BASE" : "PRO"} />
+          <span style={{ flex: "1 1 220px", display: "grid", gap: 2 }}>
+            <strong>{bar.plan === "PRO" ? "Pro · reparti accesi" : "Base"}</strong>
+            <span className="wbc-row-meta">
+              {bar.plan === "PRO"
+                ? "Banco, cucina, sala e capi reparto sono attivi per questo locale."
+                : "Il Pro accende i reparti: banco, cucina, sala e capi reparto."}
+            </span>
+          </span>
+          <button type="submit" className={`wbc-btn ${bar.plan === "PRO" ? "wbc-btn-ghost" : "wbc-btn-primary"}`}>
+            {bar.plan === "PRO" ? "Torna al Base" : "Passa a Pro"}
           </button>
         </form>
       </Section>

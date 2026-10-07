@@ -34,6 +34,8 @@ import { PasswordChangePanel } from "./password-change-panel";
 import { SupportPanel } from "./support-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 import { ExternalLink } from "@/app/components/external-link";
+import { getVenueDepartments } from "@/lib/departments";
+import { DepartmentSettingsForm } from "../department-forms";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -713,7 +715,20 @@ export default async function DashboardSettingsPage({
     billingStatus,
     language: sessionLanguage,
   } = await getDashboardContext();
-  const passkeyCount = await getPasskeyCount(session.user.id);
+  const [passkeyCount, departments] = await Promise.all([
+    getPasskeyCount(session.user.id),
+    getVenueDepartments(activeBarId, session.user.id),
+  ]);
+  // Pro only: how many people work in each department, for the settings row.
+  const departmentCounts: Record<string, number> = {};
+  if (departments.enabled && activeBarId) {
+    const grouped = await prisma.employeeBar.groupBy({
+      by: ["department"],
+      where: { barId: activeBarId, isActive: true, department: { not: null } },
+      _count: { _all: true },
+    });
+    for (const entry of grouped) if (entry.department) departmentCounts[entry.department] = entry._count._all;
+  }
   const languageLabel =
     sessionLanguage === "en" ? "English" : sessionLanguage === "es" ? "Español" : "Italiano";
 
@@ -1025,6 +1040,28 @@ export default async function DashboardSettingsPage({
             </div>
           </form>
         </PopupAction>
+
+        {departments.enabled && role === Role.OWNER ? (
+          <PopupAction
+            title="Reparti"
+            ariaLabel="Apri i reparti"
+            triggerRow={
+              <SettingsRow
+                dot="#d6338a"
+                title="Reparti"
+                lead={departments.mode === "SEPARATE" ? "Un calendario per reparto" : "Calendario unico"}
+                status={String(departments.list.length)}
+              />
+            }
+          >
+            <DepartmentSettingsForm
+              mode={departments.mode}
+              customName={departments.customName}
+              departments={departments.list}
+              counts={departmentCounts}
+            />
+          </PopupAction>
+        ) : null}
 
         {isRestaurant && timeTrackingOn ? (
           <PopupAction

@@ -1,6 +1,9 @@
 "use client";
 
 import { RequestType } from "@prisma/client";
+import type { Department } from "@prisma/client";
+import type { DepartmentInfo } from "@/lib/departments";
+import { DepartmentDot } from "../department-forms";
 import type { NoteMeta } from "@/lib/note-list-format";
 import { NoteRow } from "../note-row";
 import {
@@ -96,6 +99,8 @@ type ShiftItem = {
   endTime: string;
   confirmedAt: string | null;
   isOnCall: boolean;
+  /** Pro: the department the shift belongs to, ready to draw. */
+  department?: DepartmentInfo | null;
   assignments: ShiftAssignment[];
 };
 
@@ -979,6 +984,7 @@ function renderDayShiftRow(
         style={{ background: clashing ? "#f0a742" : mine ? "#6d5ce7" : "#eae7f6" }}
       />
       <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, padding: "10px 11px" }}>
+        {shift.department ? <DepartmentDot department={shift.department} size={20} /> : null}
         <span
           style={{
             flex: "0 0 auto",
@@ -1088,6 +1094,7 @@ function renderWeekShiftLine(
         touchAction: "manipulation",
       }}
     >
+      {shift.department ? <DepartmentDot department={shift.department} size={20} /> : null}
       <span
         style={{
           flex: "0 0 auto",
@@ -1173,6 +1180,7 @@ function renderCompactShiftCard(
           lineHeight: 1.5,
         }}
         >
+        {shift.department ? <DepartmentDot department={shift.department} size={20} /> : null}
         {isOwnShift(shift) ? (
           <strong style={{ color: "#0f172a", fontSize: mobile ? 12 : 12 }}>
             {formatDayTime(shift.startTime, locale)}–{formatDayTime(shift.endTime, locale)}
@@ -1464,6 +1472,7 @@ export function OwnerCalendarClient({
   features,
   todayAction,
   publishAction,
+  departmentPick,
 }: {
   locale: string;
   weekdayLabels: string[];
@@ -1478,8 +1487,16 @@ export function OwnerCalendarClient({
   features: FeatureFlags;
   todayAction?: ReactNode;
   publishAction?: ReactNode;
+  /** Pro: the departments, and the one in view (null on "Tutti"). */
+  departmentPick?: { list: DepartmentInfo[]; active: Department | null } | null;
 }) {
   const router = useRouter();
+  // On "Tutti" a new shift asks for its department; otherwise it takes the
+  // one in view and asks nothing.
+  const [pickedDepartment, setPickedDepartment] = useState<Department | null>(
+    departmentPick?.active ?? departmentPick?.list[0]?.id ?? null
+  );
+  const shiftDepartment = departmentPick ? departmentPick.active ?? pickedDepartment : null;
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
   const [calendarView, setCalendarView] = useState<"week" | "day">(initialCalendarView ?? "week");
@@ -2515,6 +2532,10 @@ export function OwnerCalendarClient({
         formData.set("endTime", combineDateAndTime(draft.date, draft.endTime));
         if (draft.isOnCall) {
           formData.set("isOnCall", "on");
+        }
+
+        if (shiftDepartment) {
+          formData.set("department", shiftDepartment);
         }
 
         for (const memberId of draft.memberIds) {
@@ -3976,7 +3997,55 @@ export function OwnerCalendarClient({
                       // clears the keypad for the next one.
                       key={`${selectedDay.date}-${savedShiftDrafts.length}`}
                       dayKey={selectedDay.date.slice(0, 10)}
-                      dayLabel={formatDayLabel(selectedDay.date, locale)}
+                      dayLabel={
+                        formatDayLabel(selectedDay.date, locale) +
+                        (departmentPick?.active
+                          ? ` · ${departmentPick.list.find((entry) => entry.id === departmentPick.active)?.name ?? ""}`
+                          : "")
+                      }
+                      topSlot={
+                        departmentPick && !departmentPick.active ? (
+                          <div style={{ display: "grid", gap: 7 }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 900,
+                                letterSpacing: "0.14em",
+                                textTransform: "uppercase",
+                                color: "#a39fb8",
+                              }}
+                            >
+                              Reparto
+                            </span>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                              {departmentPick.list.map((entry) => {
+                                const on = pickedDepartment === entry.id;
+                                return (
+                                  <button
+                                    key={entry.id}
+                                    type="button"
+                                    aria-pressed={on}
+                                    onClick={() => setPickedDepartment(entry.id)}
+                                    style={{
+                                      minHeight: 38,
+                                      padding: "0 14px",
+                                      borderRadius: 999,
+                                      border: on ? "1px solid transparent" : "1px solid #e2e8f0",
+                                      background: on ? entry.ink : "#ffffff",
+                                      color: on ? "#ffffff" : "#475569",
+                                      fontSize: 13,
+                                      fontWeight: 800,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    {entry.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null
+                      }
                       members={members.map((member) => ({
                         id: member.id,
                         name: `${member.firstName} ${member.lastName}`.trim(),
