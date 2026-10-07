@@ -74,8 +74,14 @@ export function ConsoleShell({
   --k-shadow: 0 18px 44px rgba(80, 40, 160, 0.08);
   --k-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
+  /* Pinned to what is on screen, not to the page: when the iPhone keyboard
+     opens, Safari pushes the visible area down and a plain inset: 0 left the
+     console above it, with a blank strip below. */
   position: fixed;
-  inset: 0;
+  top: var(--workbit-viewport-top, 0px);
+  left: 0;
+  right: 0;
+  height: var(--workbit-vh, 100dvh);
   z-index: 40;
   display: flex;
   flex-direction: column;

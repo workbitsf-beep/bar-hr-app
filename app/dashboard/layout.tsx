@@ -16,6 +16,7 @@ import {
 } from "./actions";
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
 import { ConsoleShell } from "./super-admin/console-shell";
+import { ConsoleMark } from "./console-mark";
 import { DashboardShell } from "./ui";
 
 export default async function DashboardLayout({
@@ -201,44 +202,15 @@ export default async function DashboardLayout({
             )}
           </div>
         }
-        headerAction={
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            {String(session.user.role) === "SUPER_ADMIN" ? (
-              <form action={returnToSuperAdminConsoleAction} style={{ display: "inline-flex" }}>
-                {/* Dressed like the console's own header, so the control looks
-                    like the place it leads to. */}
-                <button
-                  type="submit"
-                  className="workbit-console-pill"
-                  title="Torna alla console Super Admin"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 7,
-                    height: 36,
-                    padding: "0 14px",
-                    borderRadius: 999,
-                    border: 0,
-                    background: "#15161c",
-                    color: "#ffffff",
-                    fontSize: 12.5,
-                    fontWeight: 650,
-                    letterSpacing: "-0.01em",
-                    whiteSpace: "nowrap",
-                    cursor: "pointer",
-                    touchAction: "manipulation",
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{ width: 6, height: 6, borderRadius: 999, background: "#a855f7", flex: "0 0 auto" }}
-                  />
-                  Console
-                </button>
-              </form>
-            ) : null}
-
-          </div>
+        consoleSlot={
+          String(session.user.role) === "SUPER_ADMIN" ? (
+            <form action={returnToSuperAdminConsoleAction} className="wb-console-form">
+              <button type="submit" className="wb-console-tab" title="Torna alla console Super Admin">
+                <ConsoleMark />
+                <span>Console</span>
+              </button>
+            </form>
+          ) : undefined
         }
         menuFooter={
           <LogoutForm action={logoutAction} style={{ display: "block" }}>

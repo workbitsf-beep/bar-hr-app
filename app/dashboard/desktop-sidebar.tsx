@@ -23,12 +23,14 @@ export function DesktopSidebar({
   brandHref,
   accountContent,
   footer,
+  consoleSlot,
 }: {
   navItems: DashboardNavItem[];
   appName: string;
   brandHref: string;
   accountContent?: ReactNode;
   footer?: ReactNode;
+  consoleSlot?: ReactNode;
 }) {
   const pathname = usePathname() ?? "/dashboard";
 
@@ -59,6 +61,7 @@ export function DesktopSidebar({
             </Link>
           );
         })}
+        {consoleSlot}
       </nav>
 
       {footer ? <div className="wb-desk-foot">{footer}</div> : null}

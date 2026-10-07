@@ -84,7 +84,7 @@ function getTodayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
-function getBottomNavItems(navItems: DashboardNavItem[]) {
+function getBottomNavItems(navItems: DashboardNavItem[], slots = 5) {
   const preferredHrefs = [
     "/dashboard",
     "/dashboard/calendar",
@@ -98,7 +98,7 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
     .filter((item): item is DashboardNavItem => Boolean(item));
   const fill = navItems.filter((item) => !preferred.some((selected) => selected.href === item.href));
 
-  return [...preferred, ...fill].slice(0, 5);
+  return [...preferred, ...fill].slice(0, slots);
 }
 
 export function DashboardShell({
@@ -114,6 +114,7 @@ export function DashboardShell({
   belowHeader,
   brandContent,
   headerSwitch,
+  consoleSlot,
   children,
 }: {
   userName: string;
@@ -132,9 +133,12 @@ export function DashboardShell({
     activeBarId: string | null;
     bars: Array<{ id: string; name: string }>;
   };
+  /** For a super admin inside a venue: the way back to the console, at the
+   * right end of the bottom bar and at the foot of the side menu. */
+  consoleSlot?: ReactNode;
   children: ReactNode;
 }) {
-  const bottomNavItems = getBottomNavItems(navItems);
+  const bottomNavItems = getBottomNavItems(navItems, consoleSlot ? 4 : 5);
   const menuNavItems =
     bottomNavItems.length > 1
       ? navItems.filter(
@@ -243,6 +247,7 @@ export function DashboardShell({
         brandHref={navItems[0]?.href ?? "/dashboard"}
         accountContent={menuContent}
         footer={menuFooter}
+        consoleSlot={consoleSlot}
       />
 
       <div
@@ -299,7 +304,7 @@ export function DashboardShell({
         </div>
       </div>
 
-      <ActiveBottomNav navItems={navItems} />
+      <ActiveBottomNav navItems={navItems} consoleSlot={consoleSlot} />
       <DashboardAppShellStyles />
     </main>
   );
@@ -358,6 +363,51 @@ function DashboardAppShellStyles() {
              (DesktopSidebar), the bar at the bottom and the menu button go,
              and the page gets the room a screen has. Below 1100px none of
              this applies: the phone layout is untouched. */
+          .wb-console-form { display: contents; }
+
+          .wb-console-tab {
+            width: 100%;
+            min-width: 0;
+            min-height: 58px;
+            display: grid;
+            grid-template-rows: 26px 14px;
+            align-content: center;
+            justify-items: center;
+            gap: 4px;
+            padding: 6px 0 4px;
+            border: 0;
+            background: transparent;
+            color: #6d3df0;
+            font: inherit;
+            font-size: clamp(8.8px, 2.55vw, 10.5px);
+            font-weight: 800;
+            letter-spacing: -0.035em;
+            cursor: pointer;
+            touch-action: manipulation;
+          }
+
+          .wb-console-tab span { align-self: end; white-space: nowrap; }
+
+          .wb-desk-nav .wb-console-tab {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            min-height: 42px;
+            margin-top: 8px;
+            padding: 0 12px 0 9px;
+            border-radius: 13px;
+            background: #ffffff;
+            box-shadow: inset 0 0 0 1px #e3dcf7;
+            color: #15132b;
+            font-size: 14.5px;
+            font-weight: 800;
+            letter-spacing: 0;
+          }
+
+          .wb-desk-nav .wb-console-tab:hover { box-shadow: inset 0 0 0 1px #b79cff; }
+          .wb-desk-nav .wb-console-tab span { align-self: center; }
+
           .wb-desk-side { display: none; }
           .wb-desk-only { display: none; }
 

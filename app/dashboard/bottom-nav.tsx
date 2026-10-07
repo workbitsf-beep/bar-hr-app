@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import type { DashboardNavItem } from "./context";
 
-function getBottomNavItems(navItems: DashboardNavItem[]) {
+function getBottomNavItems(navItems: DashboardNavItem[], slots = 5) {
   const preferredHrefs = [
     "/dashboard",
     "/dashboard/calendar",
@@ -19,7 +19,7 @@ function getBottomNavItems(navItems: DashboardNavItem[]) {
     .filter((item): item is DashboardNavItem => Boolean(item));
   const fill = navItems.filter((item) => !preferred.some((selected) => selected.href === item.href));
 
-  return [...preferred, ...fill].slice(0, 5);
+  return [...preferred, ...fill].slice(0, slots);
 }
 
 export function BottomNavIcon({ href }: { href: string }) {
@@ -119,9 +119,15 @@ export function isNavItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) {
+export function ActiveBottomNav({
+  navItems,
+  consoleSlot,
+}: {
+  navItems: DashboardNavItem[];
+  consoleSlot?: ReactNode;
+}) {
   const pathname = usePathname();
-  const bottomNavItems = getBottomNavItems(navItems);
+  const bottomNavItems = getBottomNavItems(navItems, consoleSlot ? 4 : 5);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -216,6 +222,7 @@ export function ActiveBottomNav({ navItems }: { navItems: DashboardNavItem[] }) 
           </Link>
         );
       })}
+      {consoleSlot}
     </nav>
   );
 }
