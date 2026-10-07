@@ -17,6 +17,8 @@ import {
 import { AutoSubmitSelectForm } from "./auto-submit-select-form";
 import { ConsoleShell } from "./super-admin/console-shell";
 import { ConsoleMark } from "./console-mark";
+import { VenueSign } from "./venue-sign";
+import { getVenueStatus } from "@/lib/venue-status";
 import { DashboardShell } from "./ui";
 
 export default async function DashboardLayout({
@@ -34,6 +36,7 @@ export default async function DashboardLayout({
     ownerNeedsSubscriptionActivation,
     navItems,
     accessibleBars,
+    features,
   } = await getDashboardContext();
   const languageOptions = getLanguageOptions();
   const userName = `${session.user.firstName} ${session.user.lastName}`;
@@ -84,6 +87,18 @@ export default async function DashboardLayout({
       </>
     );
   }
+
+  // The live line under the venue's name; without time tracking there is
+  // nothing to say, and the sign is the name alone.
+  const venueStatus =
+    activeBarId && features.timeTracking
+      ? await getVenueStatus({
+          barId: activeBarId,
+          userId: session.user.id,
+          role,
+          shiftsEnabled: features.shifts,
+        }).catch(() => null)
+      : null;
 
   return (
     <>
@@ -201,6 +216,15 @@ export default async function DashboardLayout({
               </div>
             )}
           </div>
+        }
+        venueSign={
+          activeBarName ? (
+            <VenueSign
+              name={activeBarName}
+              initialStatus={venueStatus}
+              shiftsEnabled={features.shifts}
+            />
+          ) : undefined
         }
         consoleSlot={
           String(session.user.role) === "SUPER_ADMIN" ? (

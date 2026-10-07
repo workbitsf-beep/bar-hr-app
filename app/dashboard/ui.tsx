@@ -99,6 +99,7 @@ export function DashboardShell({
   brandContent,
   headerSwitch,
   consoleSlot,
+  venueSign,
   children,
 }: {
   userName: string;
@@ -120,6 +121,8 @@ export function DashboardShell({
   /** For a super admin inside a venue: the way back to the console, at the
    * right end of the bottom bar and at the foot of the side menu. */
   consoleSlot?: ReactNode;
+  /** The venue's name in the middle of the phone header. */
+  venueSign?: ReactNode;
   children: ReactNode;
 }) {
   const bottomNavItems = getBottomNavItems(navItems, consoleSlot ? 4 : 5);
@@ -187,6 +190,8 @@ export function DashboardShell({
             </div>
           </div>
         </div>
+
+        {venueSign}
 
         <div
           className="dashboard-top-nav"
