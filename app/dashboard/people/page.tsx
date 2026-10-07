@@ -20,7 +20,7 @@ import { NewPersonForm } from "./new-person-form";
 import { ClassicBack, ClassicToggle } from "../classic-toggle";
 import { Avatar } from "../desk-helpers";
 import "../desk.css";
-import { getVenueDepartments } from "@/lib/departments";
+import { getVenueDepartments, JOLLY_LOOK } from "@/lib/departments";
 import { DepartmentDot, MemberDepartmentForm } from "../department-forms";
 
 function formatRoleLabel(role: Role) {
@@ -141,6 +141,7 @@ export default async function DashboardPeoplePage({
         department: true,
         helpsIn: true,
         isDepartmentLead: true,
+        isJolly: true,
         user: {
           select: {
             id: true,
@@ -265,7 +266,11 @@ export default async function DashboardPeoplePage({
   function renderPerson(row: (typeof rows)[number], live: boolean) {
     const { member } = row;
     const name = `${member.user.firstName} ${member.user.lastName}`;
-    const memberDepartment = departments.enabled ? departmentOf(member.department) : null;
+    const memberDepartment = departments.enabled
+      ? member.isJolly
+        ? JOLLY_LOOK
+        : departmentOf(member.department)
+      : null;
     const roleLabel =
       formatRoleLabel(member.role) +
       (memberDepartment ? ` · ${memberDepartment.name}${member.isDepartmentLead ? " (capo)" : ""}` : "");
@@ -374,6 +379,7 @@ export default async function DashboardPeoplePage({
               department={member.department}
               helpsIn={member.helpsIn}
               isLead={member.isDepartmentLead}
+              isJolly={member.isJolly}
               currentLeadName={Object.fromEntries(
                 Object.entries(leadNames).filter(([, leadName]) => leadName !== name)
               )}
@@ -587,7 +593,12 @@ export default async function DashboardPeoplePage({
                             </b>
                             <small style={{ color: "#847ea3", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
                               {formatRoleLabel(row.member.role)}
-                              {departments.enabled && departmentOf(row.member.department) ? (
+                              {departments.enabled && row.member.isJolly ? (
+                                <>
+                                  · <DepartmentDot department={JOLLY_LOOK} size={16} />
+                                  Jolly
+                                </>
+                              ) : departments.enabled && departmentOf(row.member.department) ? (
                                 <>
                                   · <DepartmentDot department={departmentOf(row.member.department)!} size={16} />
                                   {departmentOf(row.member.department)!.name}

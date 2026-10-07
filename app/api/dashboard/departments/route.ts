@@ -16,13 +16,13 @@ export const GET = withBar(async (_req, session): Promise<Response> => {
 
   const memberships = await prisma.employeeBar.findMany({
     where: { barId: session.activeBarId, isActive: true },
-    select: { userId: true, department: true, helpsIn: true },
+    select: { userId: true, department: true, helpsIn: true, isJolly: true },
   });
   const members: Record<string, string[]> = {};
 
   for (const department of departments.list) {
     members[department.id] = memberships
-      .filter((entry) => entry.department === department.id || entry.helpsIn.includes(department.id))
+      .filter((entry) => entry.isJolly || entry.department === department.id || entry.helpsIn.includes(department.id))
       .map((entry) => entry.userId);
   }
 

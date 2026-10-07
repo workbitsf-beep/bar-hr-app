@@ -63,6 +63,9 @@ export function venueDepartments(customName: string | null | undefined): Departm
   return list;
 }
 
+/** How a jolly - someone who works in every department - is drawn: J, in Workbit violet. */
+export const JOLLY_LOOK = { name: "Jolly", initials: "J", ink: "#7c3aed", soft: "#f1ebff", light: "#b892ff" } as const;
+
 export function parseDepartment(value: FormDataEntryValue | string | null | undefined): Department | null {
   const raw = String(value ?? "").trim().toUpperCase();
   return (Object.values(Department) as string[]).includes(raw) ? (raw as Department) : null;
@@ -74,8 +77,8 @@ export type VenueDepartments = {
   mode: DepartmentMode;
   list: DepartmentInfo[];
   customName: string | null;
-  /** The person looking: where they work and whether they lead it. */
-  mine: { department: Department | null; helpsIn: Department[]; isLead: boolean };
+  /** The person looking: where they work and whether they lead it. A jolly helps in every department. */
+  mine: { department: Department | null; helpsIn: Department[]; isLead: boolean; isJolly: boolean };
 };
 
 /** Departments of a venue as seen by one person. Cached per request. */
@@ -88,7 +91,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     mode: DepartmentMode.UNIFIED,
     list: [],
     customName: null,
-    mine: { department: null, helpsIn: [], isLead: false },
+    mine: { department: null, helpsIn: [], isLead: false, isJolly: false },
   };
 
   if (!barId) return off;
@@ -100,21 +103,25 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     }),
     prisma.employeeBar.findFirst({
       where: { barId, userId, isActive: true },
-      select: { department: true, helpsIn: true, isDepartmentLead: true },
+      select: { department: true, helpsIn: true, isDepartmentLead: true, isJolly: true },
     }),
   ]);
 
   if (!bar || bar.plan !== VenuePlan.PRO) return off;
 
+  const list = venueDepartments(bar.customDepartmentName);
+  const isJolly = Boolean(membership?.isJolly);
+
   return {
     enabled: true,
     mode: bar.departmentMode,
-    list: venueDepartments(bar.customDepartmentName),
+    list,
     customName: bar.customDepartmentName,
     mine: {
-      department: membership?.department ?? null,
-      helpsIn: membership?.helpsIn ?? [],
-      isLead: Boolean(membership?.isDepartmentLead && membership.department),
+      department: isJolly ? null : membership?.department ?? null,
+      helpsIn: isJolly ? list.map((entry) => entry.id) : membership?.helpsIn ?? [],
+      isLead: Boolean(!isJolly && membership?.isDepartmentLead && membership.department),
+      isJolly,
     },
   };
 });

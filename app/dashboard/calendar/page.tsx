@@ -621,6 +621,7 @@ export default async function DashboardCalendarPage({
               role: true,
               department: true,
               helpsIn: true,
+              isJolly: true,
               user: {
                 select: {
                   id: true,
@@ -1061,6 +1062,7 @@ export default async function DashboardCalendarPage({
     ? memberOptions.filter((option, index) => {
         const member = calendarMembers[index];
         return (
+          member.isJolly ||
           member.department === activeDepartment ||
           (member.helpsIn ?? []).includes(activeDepartment) ||
           onDepartmentShift.has(option.id)
