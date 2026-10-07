@@ -19,11 +19,9 @@ export async function GET(request: Request): Promise<Response> {
 
   return Response.json({
     ok: true,
-    checkedReminderShiftCount: "checkedShiftCount" in result ? result.checkedShiftCount : 0,
     createdClockReminderCount: result.createdReminderCount,
     backfilledReminderShiftCount: "backfilledReminderShiftCount" in result ? result.backfilledReminderShiftCount : 0,
     backfilledClockReminderCount: "backfilledReminderCount" in result ? result.backfilledReminderCount : 0,
-    autoClockOutCount: "autoClockOutCount" in result ? result.autoClockOutCount : 0,
     checkedScheduledNotificationCount: result.checkedScheduledNotificationCount,
     sentScheduledNotificationCount: result.sentScheduledNotificationCount,
     skippedScheduledNotificationCount: result.skippedScheduledNotificationCount,
