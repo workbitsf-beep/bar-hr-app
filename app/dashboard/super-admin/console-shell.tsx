@@ -74,17 +74,11 @@ export function ConsoleShell({
   --k-shadow: 0 18px 44px rgba(80, 40, 160, 0.08);
   --k-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Pinned to what is on screen, not to the page: when the iPhone keyboard
-     opens, Safari pushes the visible area down and a plain inset: 0 left the
-     console above it, with a blank strip below. */
-  position: fixed;
-  top: var(--workbit-viewport-top, 0px);
-  left: 0;
-  right: 0;
-  height: var(--workbit-vh, 100dvh);
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
+  /* An ordinary page that scrolls the document. It used to be a fixed layer
+     scrolling inside itself, and with the iPhone keyboard open the web view
+     cut it off halfway, leaving a blank strip down to the keyboard. */
+  position: relative;
+  min-height: 100dvh;
   background:
     radial-gradient(60% 40% at 85% 0%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 70%),
     linear-gradient(180deg, #f1ebff 0%, #e2d6fc 70%, #d6c6f8 100%);
@@ -103,7 +97,12 @@ export function ConsoleShell({
    every fixed element inside it, and the venue list opened from the header
    was clipped to the header's 60px. */
 .wbc-head {
-  flex: 0 0 auto;
+  /* Held at the top of what is on screen, also while the keyboard is open. */
+  position: fixed;
+  top: var(--workbit-viewport-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 30;
   background: #f3eeff;
   border-bottom: 1px solid rgba(109, 61, 240, 0.08);
   padding-top: max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px));
@@ -211,12 +210,10 @@ export function ConsoleShell({
 }
 
 .wbc-scroll {
-  flex: 1 1 auto;
+  /* Room for the fixed header above and the floating rail below. */
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--wb-inset-top, 0px)) + 61px);
   padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px)) + 92px);
-  overflow-y: auto;
   overflow-x: hidden;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
 }
 
 .wbc-page { padding: 26px 16px 40px; max-width: 920px; margin: 0 auto; }
