@@ -451,13 +451,17 @@ export default async function DashboardPage() {
   // still open: whoever came in before midnight is in, not expected, and an
   // exit from last night says nothing about today's shift.
   const lastStampByUser = new Map<string, "IN" | "OUT">();
+  const lastInAtByUser = new Map<string, Date>();
+  const lastOutAtByUser = new Map<string, Date>();
   const todayStart = startOfDay(now);
 
   for (const log of crewTimeLogsToday) {
     if (log.timestamp >= todayStart) {
       lastStampByUser.set(log.userId, log.type);
+      (log.type === "IN" ? lastInAtByUser : lastOutAtByUser).set(log.userId, log.timestamp);
     } else if (log.type === "IN") {
       lastStampByUser.set(log.userId, "IN");
+      lastInAtByUser.set(log.userId, log.timestamp);
     } else {
       lastStampByUser.delete(log.userId);
     }
@@ -465,17 +469,29 @@ export default async function DashboardPage() {
 
   const crewToday = new Map<
     string,
-    { id: string; name: string; initials: string; from: string; to: string }
+    { id: string; name: string; initials: string; from: string; to: string; startTime: Date; endTime: Date }
   >();
+
+  // With lunch and dinner on the same day, the shift that matters is the one
+  // running now, otherwise the next one, otherwise the last of the day.
+  const relevance = (shift: { startTime: Date; endTime: Date }) =>
+    shift.startTime <= now && shift.endTime > now ? 0 : shift.startTime > now ? 1 : 2;
 
   for (const shift of crewShiftsToday) {
     for (const assignment of shift.assignments) {
-      if (crewToday.has(assignment.user.id)) {
+      // Someone on call is not expected: they join the roster once called in.
+      if (shift.isOnCall && lastStampByUser.get(assignment.user.id) !== "IN") {
         continue;
       }
 
-      // Someone on call is not expected: they join the roster once called in.
-      if (shift.isOnCall && lastStampByUser.get(assignment.user.id) !== "IN") {
+      const current = crewToday.get(assignment.user.id);
+
+      if (
+        current &&
+        (relevance(current) < relevance(shift) ||
+          (relevance(current) === relevance(shift) &&
+            (relevance(shift) === 2 ? current.startTime > shift.startTime : current.startTime <= shift.startTime)))
+      ) {
         continue;
       }
 
@@ -485,6 +501,8 @@ export default async function DashboardPage() {
         initials: initialsOf(assignment.user.firstName, assignment.user.lastName),
         from: toTimeInputValueInTimeZone(shift.startTime),
         to: toTimeInputValueInTimeZone(shift.endTime),
+        startTime: shift.startTime,
+        endTime: shift.endTime,
       });
     }
   }
@@ -509,6 +527,54 @@ export default async function DashboardPage() {
   }
 
   const crewInside = crew.filter((person) => crewStateOf(person.id) === "in").length;
+
+  function minutesLabel(ms: number) {
+    const minutes = Math.max(0, Math.round(ms / 60_000));
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return hours ? `${hours} h${rest ? ` ${String(rest).padStart(2, "0")}` : ""}` : `${rest} min`;
+  }
+
+  // What the line says about each person, as on the computer's Oggi. The
+  // owner never clocks in: during their shift they are simply "in turno",
+  // never late.
+  function crewStatusOf(person: (typeof crew)[number]): {
+    tone: "in" | "out" | "waiting" | "late" | "next";
+    label: string;
+  } {
+    const running = person.startTime <= now && person.endTime > now;
+    const ahead = person.startTime > now;
+
+    if (ownerIds.has(person.id)) {
+      return running
+        ? { tone: "in", label: "In turno" }
+        : ahead
+          ? { tone: "next", label: `Arriva alle ${person.from}` }
+          : { tone: "out", label: "Finito" };
+    }
+
+    const stamp = lastStampByUser.get(person.id);
+
+    if (stamp === "IN") {
+      const since = lastInAtByUser.get(person.id);
+      return { tone: "in", label: since ? `Dentro · ${minutesLabel(now.getTime() - since.getTime())}` : "Dentro" };
+    }
+
+    if (ahead) {
+      return { tone: "next", label: `Arriva alle ${person.from}` };
+    }
+
+    if (stamp === "OUT") {
+      const outAt = lastOutAtByUser.get(person.id);
+      return { tone: "out", label: outAt ? `Uscito alle ${toTimeInputValueInTimeZone(outAt)}` : "Uscito" };
+    }
+
+    if (running) {
+      return { tone: "late", label: `In ritardo · ${minutesLabel(now.getTime() - person.startTime.getTime())}` };
+    }
+
+    return { tone: "out", label: "Non ha timbrato" };
+  }
 
   // One cell per day of this week. A day with more than one shift shows the
   // span from the first start to the last end, which is what someone planning
@@ -589,8 +655,7 @@ export default async function DashboardPage() {
           <span style={{ color: "#667085", fontSize: 13.5 }}>Nessun turno programmato per oggi.</span>
         ) : (
           crew.map((person) => {
-            const state = crewStateOf(person.id);
-            const label = state === "in" ? "Dentro" : state === "out" ? "Uscito" : "Attesa";
+            const { tone: state, label } = crewStatusOf(person);
 
             return (
               <div className="workbit-crew-person" key={person.id}>

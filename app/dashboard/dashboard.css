@@ -416,6 +416,16 @@
         color: #475569;
       }
 
+      .workbit-crew-state--late {
+        background: #fde8ec;
+        color: #b42a44;
+      }
+
+      .workbit-crew-state--next {
+        background: #f1ebff;
+        color: #6d3df0;
+      }
+
       .workbit-crew-state--waiting {
         background: #fef3c7;
         color: #92400e;

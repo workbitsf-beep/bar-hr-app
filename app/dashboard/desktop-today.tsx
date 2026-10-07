@@ -214,6 +214,8 @@ export async function DesktopToday({
     const last = lastMark.get(id);
     return last && last.type === "IN" ? last.timestamp : null;
   };
+  // The owner never clocks in: during their own shift they count as in.
+  const ownerIds = new Set(members.filter((m) => m.role === Role.OWNER).map((m) => m.user.id));
 
   const visible = (shift: (typeof weekShifts)[number]) => manage || Boolean(shift.confirmedAt) || shift.isOnCall;
   const todayShifts = weekShifts.filter(
@@ -225,8 +227,8 @@ export async function DesktopToday({
     shift.assignments.map((assignment) => ({ key: `${shift.id}-${assignment.user.id}`, user: assignment.user, shift }))
   );
   const started = rows.filter((row) => row.shift.startTime <= now && row.shift.endTime > now);
-  const insideNow = started.filter((row) => insideSince(row.user.id));
-  const lateNow = started.filter((row) => !lastMark.get(row.user.id));
+  const insideNow = started.filter((row) => ownerIds.has(row.user.id) || insideSince(row.user.id));
+  const lateNow = started.filter((row) => !ownerIds.has(row.user.id) && !lastMark.get(row.user.id));
   const ringShare = started.length ? Math.round((insideNow.length / started.length) * 100) : 0;
 
   const weekdayFmt = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" });
@@ -555,6 +557,8 @@ export async function DesktopToday({
                     let progress: number | null = null;
                     if (future) {
                       tag = <span className="wbt-tag wbt-tag--next">Arriva alle {hm(row.shift.startTime)}</span>;
+                    } else if (isNow && ownerIds.has(row.user.id)) {
+                      tag = <span className="wbt-tag wbt-tag--in">In turno</span>;
                     } else if (isNow && since) {
                       tag = <span className="wbt-tag wbt-tag--in">Dentro · {duration(now.getTime() - since.getTime())}</span>;
                       sub = `${span} · dentro dalle ${hm(since)}`;
@@ -565,7 +569,10 @@ export async function DesktopToday({
                     } else if (isNow && !last) {
                       tag = (
                         <span className="wbt-tag wbt-tag--late">
-                          In ritardo · {Math.round((now.getTime() - row.shift.startTime.getTime()) / 60_000)} min
+                          In ritardo ·{" "}
+                          {now.getTime() - row.shift.startTime.getTime() < 3_600_000
+                            ? `${Math.round((now.getTime() - row.shift.startTime.getTime()) / 60_000)} min`
+                            : duration(now.getTime() - row.shift.startTime.getTime())}
                         </span>
                       );
                       sub = `${span} · non ha ancora timbrato`;
@@ -664,7 +671,8 @@ export async function DesktopToday({
                       {todayShifts
                         .filter((shift) => shift.assignments.some((a) => a.user.id === user.id))
                         .map((shift) => {
-                          const live = insideSince(user.id) && shift.startTime <= now && shift.endTime > now;
+                          const live =
+                            (ownerIds.has(user.id) || insideSince(user.id)) && shift.startTime <= now && shift.endTime > now;
                           return (
                             <span
                               key={shift.id}
