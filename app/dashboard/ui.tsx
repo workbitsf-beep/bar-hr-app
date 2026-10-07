@@ -388,6 +388,14 @@ function DashboardAppShellStyles() {
 
           .wb-console-tab span { align-self: end; white-space: nowrap; }
 
+          /* The global theme paints every bottom-bar button as a pill; this
+             one is a tab like its neighbours, so it stays bare. */
+          .dashboard-bottom-nav .wb-console-tab {
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+          }
+
           .wb-desk-nav .wb-console-tab {
             display: flex;
             align-items: center;
