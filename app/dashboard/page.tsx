@@ -609,8 +609,8 @@ export default async function DashboardPage() {
         from: toTimeInputValueInTimeZone(shift.startTime),
         to: toTimeInputValueInTimeZone(shift.endTime),
         // Pro: where the shift is, so the week says which department too.
-        department: departments.enabled && shift.department
-          ? departments.list.find((entry) => entry.id === shift.department) ?? null
+        department: departments.enabled
+          ? departments.list.find((entry) => entry.id === (shift.department ?? departments.mine.department)) ?? null
           : null,
       })),
     };
@@ -663,6 +663,18 @@ export default async function DashboardPage() {
 
   const departmentInfo = (id: (typeof crew)[number]["department"]) =>
     departments.enabled && id ? departments.list.find((entry) => entry.id === id) ?? null : null;
+  // A shift with no department of its own (made before departments, or on
+  // "Tutti") counts in the department of the person working it.
+  const memberDepartments = departments.enabled && activeBarId
+    ? new Map(
+        (
+          await prisma.employeeBar.findMany({
+            where: { barId: activeBarId, isActive: true, department: { not: null } },
+            select: { userId: true, department: true },
+          })
+        ).map((member) => [member.userId, member.department])
+      )
+    : new Map<string, (typeof crew)[number]["department"]>();
 
   const crewBlock =
     canManagePeople && features.shifts && departments.enabled ? (
@@ -678,7 +690,7 @@ export default async function DashboardPage() {
             to: person.to,
             tone: status.tone,
             label: status.label,
-            department: departmentInfo(person.department),
+            department: departmentInfo(person.department ?? memberDepartments.get(person.id) ?? null),
           };
         })}
       />

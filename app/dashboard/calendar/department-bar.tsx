@@ -24,30 +24,38 @@ export function DepartmentBar({
   /** Where each chip leads, keyed by department or "TUTTI". */
   hrefs: Record<string, string>;
 }) {
-  const chip = (key: string, label: string, href: string, on: boolean, colors: { ink: string; soft: string } | null, disabled: boolean) => {
+  const chip = (
+    key: string,
+    label: string,
+    href: string,
+    on: boolean,
+    colors: { ink: string; soft: string; light: string } | null,
+    disabled: boolean
+  ) => {
+    const ink = colors?.ink ?? "#17161f";
     const style = {
-      flex: "0 0 auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      height: 32,
-      padding: "0 13px",
-      borderRadius: 999,
-      fontSize: 13,
+      minWidth: 0,
+      height: 38,
+      display: "grid",
+      placeItems: "center",
+      padding: "0 6px",
+      borderRadius: 14,
+      fontSize: 14,
       fontWeight: 800,
+      whiteSpace: "nowrap" as const,
       textDecoration: "none",
-      background: on ? colors?.ink ?? "#17161f" : colors?.soft ?? "#ffffff",
-      color: on ? "#ffffff" : colors?.ink ?? "#4c4670",
-      boxShadow: on ? "none" : "0 0 0 1px #ebe6f7",
+      background: on
+        ? `linear-gradient(160deg, ${colors?.light ?? "#2a2540"}, ${ink})`
+        : colors?.soft ?? "#ffffff",
+      color: on ? "#ffffff" : colors ? ink : "#4c4670",
+      boxShadow: on
+        ? `0 6px 14px color-mix(in srgb, ${ink} 35%, transparent)`
+        : "0 0 0 1px rgba(23, 22, 31, 0.06)",
       opacity: disabled ? 0.35 : 1,
       pointerEvents: disabled ? ("none" as const) : undefined,
     };
-    const dot = colors ? (
-      <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: on ? "#ffffff" : colors.ink }} />
-    ) : null;
     return (
       <Link key={key} href={href} scroll={false} aria-current={on ? "page" : undefined} aria-disabled={disabled || undefined} style={style}>
-        {dot}
         {label}
       </Link>
     );
@@ -55,7 +63,7 @@ export function DepartmentBar({
 
   return (
     <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "2px 2px 4px", scrollbarWidth: "none" }}>
+      <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: "minmax(0, 1fr)", gap: 6, padding: "2px 2px 4px" }}>
         {separate ? null : chip("all", "Tutti", hrefs.TUTTI, active === null, null, locked)}
         {departments.map((department) =>
           chip(

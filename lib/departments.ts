@@ -12,11 +12,16 @@ import { prisma } from "@/lib/prisma";
 
 export const FIXED_DEPARTMENTS = [Department.BANCO, Department.CUCINA, Department.SALA] as const;
 
-export const DEPARTMENT_COLORS: Record<Department, { ink: string; soft: string }> = {
-  BANCO: { ink: "#6d3df0", soft: "#efe8ff" },
-  CUCINA: { ink: "#d9720f", soft: "#fff1e0" },
-  SALA: { ink: "#11998e", soft: "#dff6f3" },
-  CUSTOM: { ink: "#d6338a", soft: "#fde6f2" },
+/**
+ * Banco is blue, not violet: violet is Workbit's own colour, and it stays on
+ * the shifts that belong to no department. Each colour has a light end and a
+ * deep one, for the gradients of the chips and the week's bars.
+ */
+export const DEPARTMENT_COLORS: Record<Department, { ink: string; soft: string; light: string }> = {
+  BANCO: { ink: "#3b5bdb", soft: "#e7edff", light: "#5b7cfa" },
+  CUCINA: { ink: "#e8700c", soft: "#fff1e3", light: "#ffa04a" },
+  SALA: { ink: "#0f9784", soft: "#ddf7f2", light: "#2fc4ae" },
+  CUSTOM: { ink: "#c2257a", soft: "#fde6f2", light: "#f06bb0" },
 };
 
 const FIXED_NAMES: Record<Exclude<Department, "CUSTOM">, string> = {
@@ -32,6 +37,7 @@ export type DepartmentInfo = {
   initials: string;
   ink: string;
   soft: string;
+  light: string;
 };
 
 export function departmentInitials(id: Department, name: string) {

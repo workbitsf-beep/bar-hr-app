@@ -31,8 +31,7 @@ export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments:
         inside: mine.filter((row) => row.tone === "in").length,
         late: mine.filter((row) => row.tone === "late").length,
       };
-    })
-    .filter((tile) => tile.total > 0);
+    });
   const shown = picked ? rows.filter((row) => row.department?.id === picked) : rows;
   const inside = shown.filter((row) => row.tone === "in").length;
   const pickedName = departments.find((department) => department.id === picked)?.name;
@@ -44,6 +43,7 @@ export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments:
           {tiles.map(({ department, total, inside: tileInside, late }) => {
             const on = picked === department.id;
             const share = total ? Math.round((tileInside / total) * 100) : 0;
+            const note = total === 0 ? "nessuno oggi" : late ? (late === 1 ? "1 in ritardo" : `${late} in ritardo`) : "tutti puntuali";
             return (
               <button
                 key={department.id}
@@ -93,7 +93,7 @@ export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments:
                 </span>
                 <b style={{ fontSize: 13, color: department.ink }}>{department.name}</b>
                 <small style={{ fontSize: 10.5, fontWeight: 700, color: late ? "#be123c" : "#8a84a8" }}>
-                  {late ? (late === 1 ? "1 in ritardo" : `${late} in ritardo`) : "tutti puntuali"}
+                  {note}
                 </small>
               </button>
             );

@@ -830,6 +830,23 @@ async function ensureShiftManager(
   throw new Error("Unauthorized");
 }
 
+/** A shift's department, or - for one made without - its first person's. */
+async function shiftDepartmentOf(
+  barId: string,
+  shift: { department: Department | null; assignments: Array<{ userId: string }> }
+) {
+  if (shift.department || !shift.assignments[0]) {
+    return shift.department;
+  }
+
+  const member = await prisma.employeeBar.findFirst({
+    where: { barId, userId: shift.assignments[0].userId, isActive: true },
+    select: { department: true },
+  });
+
+  return member?.department ?? null;
+}
+
 function ensureTrainingRole(role: Role) {
   if (!canManageTraining(role)) {
     throw new Error("Unauthorized");
@@ -2769,7 +2786,9 @@ export async function updateShiftAction(formData: FormData) {
       throw new RuleError("Questo turno non esiste più");
     }
 
-    await ensureShiftManager(role, activeBarId, session.user.id, existingShift.department);
+    if (!canManageOperations(role)) {
+      await ensureShiftManager(role, activeBarId, session.user.id, await shiftDepartmentOf(activeBarId, existingShift));
+    }
 
     ensureShiftCanStillBeChanged(existingShift.startTime);
 
@@ -2925,7 +2944,14 @@ export async function deleteShiftAction(formData: FormData) {
       },
     });
 
-    await ensureShiftManager(role, activeBarId, session.user.id, existingShift?.department);
+    if (!canManageOperations(role)) {
+      await ensureShiftManager(
+        role,
+        activeBarId,
+        session.user.id,
+        existingShift ? await shiftDepartmentOf(activeBarId, existingShift) : null
+      );
+    }
 
     if (!existingShift) {
       throw new RuleError("Questo turno non esiste più");

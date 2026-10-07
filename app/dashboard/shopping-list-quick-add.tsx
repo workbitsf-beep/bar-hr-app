@@ -54,22 +54,26 @@ export function ShoppingListQuickAdd({
   );
 }
 
-const chipStyle = (on: boolean, ink?: string, soft?: string) => ({
-  flex: "0 0 auto",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  height: 32,
-  padding: "0 12px",
-  borderRadius: 999,
+// Same width each, the name centred, no dot: the colour is the department.
+const chipStyle = (on: boolean, ink?: string, soft?: string, light?: string) => ({
+  minWidth: 0,
+  height: 38,
+  display: "grid",
+  placeItems: "center",
+  padding: "0 6px",
+  borderRadius: 14,
   border: "none",
-  fontSize: 12.5,
+  fontSize: 13.5,
   fontWeight: 800,
+  whiteSpace: "nowrap" as const,
   cursor: "pointer",
-  background: on ? ink ?? "#17161f" : soft ?? "#ffffff",
+  background: on ? `linear-gradient(160deg, ${light ?? "#2a2540"}, ${ink ?? "#17161f"})` : soft ?? "#ffffff",
   color: on ? "#ffffff" : ink ?? "#4c4670",
-  boxShadow: on ? "none" : "0 0 0 1px #ebe6f7",
+  boxShadow: on
+    ? `0 6px 14px color-mix(in srgb, ${ink ?? "#17161f"} 35%, transparent)`
+    : "0 0 0 1px rgba(23, 22, 31, 0.06)",
 });
+const chipRow = { display: "grid", gridAutoFlow: "column" as const, gridAutoColumns: "minmax(0, 1fr)", gap: 6 };
 
 function ShoppingListPanel({
   items,
@@ -123,9 +127,11 @@ function ShoppingListPanel({
   return (
     <div className="workbit-cart-panel">
       {departments ? (
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+        <div style={{ ...chipRow, paddingBottom: 4 }}>
           <button type="button" aria-pressed={view === null} onClick={() => setView(null)} style={chipStyle(view === null)}>
-            Tutti {items.length ? <b>{items.length}</b> : null}
+            <span>
+              Tutti {items.length ? <b style={{ opacity: 0.75 }}>{items.length}</b> : null}
+            </span>
           </button>
           {departments.list.map((department) => {
             const count = items.filter((item) => item.department?.id === department.id).length;
@@ -139,11 +145,12 @@ function ShoppingListPanel({
                   setView(department.id);
                   setSelected([]);
                 }}
-                style={chipStyle(on, department.ink, department.soft)}
+                style={chipStyle(on, department.ink, department.soft, department.light)}
               >
-                <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: on ? "#ffffff" : department.ink }} />
-                {department.name}
-                {count ? <b>{count}</b> : null}
+                <span>
+                  {department.name}
+                  {count ? <b style={{ opacity: 0.75 }}> {count}</b> : null}
+                </span>
               </button>
             );
           })}
@@ -182,27 +189,29 @@ function ShoppingListPanel({
       </form>
 
       {departments && !view ? (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#8a84a8" }}>Per</span>
-          {departments.list.map((department) => (
+        <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#8a84a8" }}>Per</span>
+          <div style={chipRow}>
+            {departments.list.map((department) => (
+              <button
+                key={department.id}
+                type="button"
+                aria-pressed={addTo === department.id}
+                onClick={() => setAddTo(addTo === department.id ? null : department.id)}
+                style={{ ...chipStyle(addTo === department.id, department.ink, department.soft, department.light), height: 32, fontSize: 12.5 }}
+              >
+                {department.name}
+              </button>
+            ))}
             <button
-              key={department.id}
               type="button"
-              aria-pressed={addTo === department.id}
-              onClick={() => setAddTo(addTo === department.id ? null : department.id)}
-              style={{ ...chipStyle(addTo === department.id, department.ink, department.soft), height: 28 }}
+              aria-pressed={addTo === null}
+              onClick={() => setAddTo(null)}
+              style={{ ...chipStyle(addTo === null), height: 32, fontSize: 12.5 }}
             >
-              {department.name}
+              Tutti
             </button>
-          ))}
-          <button
-            type="button"
-            aria-pressed={addTo === null}
-            onClick={() => setAddTo(null)}
-            style={{ ...chipStyle(addTo === null), height: 28 }}
-          >
-            Tutto il locale
-          </button>
+          </div>
         </div>
       ) : null}
 

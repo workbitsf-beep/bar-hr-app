@@ -234,6 +234,7 @@ export async function getDashboardKpiData(
         startTime: true,
         confirmedAt: true,
         department: true,
+        assignedToId: true,
       },
     }),
     prisma.request.findMany({
@@ -432,6 +433,17 @@ export async function getDashboardKpiData(
     }
   }
 
+  // A shift made before departments existed has none: it counts in the
+  // department of the person on it, so a venue that just turned Pro on sees
+  // its week split at once.
+  const memberDepartments = new Map(
+    (
+      await prisma.employeeBar.findMany({
+        where: { barId, isActive: true, department: { not: null } },
+        select: { userId: true, department: true },
+      })
+    ).map((member) => [member.userId, member.department])
+  );
   const shiftsByDay = createDayBuckets(weekStart, 7).map((entry) => ({
     ...entry,
     departments: {} as Record<string, number>,
@@ -446,7 +458,8 @@ export async function getDashboardKpiData(
     const shiftBucket = shiftDayMap.get(key);
     if (shiftBucket) {
       shiftBucket.count += 1;
-      const departmentKey = shift.department ?? "NONE";
+      const departmentKey =
+        shift.department ?? (shift.assignedToId ? memberDepartments.get(shift.assignedToId) : null) ?? "NONE";
       shiftBucket.departments[departmentKey] = (shiftBucket.departments[departmentKey] ?? 0) + 1;
     }
 

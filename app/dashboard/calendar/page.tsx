@@ -774,8 +774,16 @@ export default async function DashboardCalendarPage({
   const tasksByDay = new Map<string, typeof tasks>();
   const notesByDay = new Map<string, typeof notes>();
 
+  // A shift without a department of its own (made before departments, or on
+  // "Tutti") belongs to the department of the first person on it.
+  const memberDepartment = new Map(
+    calendarMembers.map((member) => [member.user.id, member.department ?? null] as const)
+  );
+  const effectiveDepartment = (shift: (typeof shifts)[number]) =>
+    shift.department ?? memberDepartment.get(shift.assignments[0]?.user.id ?? "") ?? null;
+
   for (const shift of shifts) {
-    if (activeDepartment && shift.department !== activeDepartment) {
+    if (activeDepartment && effectiveDepartment(shift) !== activeDepartment) {
       continue;
     }
 
@@ -903,7 +911,7 @@ export default async function DashboardCalendarPage({
       endTime: shift.endTime.toISOString(),
       confirmedAt: shift.confirmedAt?.toISOString() ?? null,
       isOnCall: shift.isOnCall,
-      department: departmentInfo(shift.department),
+      department: departmentInfo(effectiveDepartment(shift)),
       assignments: shift.assignments.map((assignment) => ({
         id: assignment.user.id,
         firstName: assignment.user.firstName,
@@ -921,7 +929,7 @@ export default async function DashboardCalendarPage({
           endTime: shift.endTime.toISOString(),
           confirmedAt: shift.confirmedAt?.toISOString() ?? null,
           isOnCall: shift.isOnCall,
-          department: departmentInfo(shift.department),
+          department: departmentInfo(effectiveDepartment(shift)),
           assignments: shift.assignments.map((assignment) => ({
             id: assignment.user.id,
             firstName: assignment.user.firstName,
@@ -1046,7 +1054,7 @@ export default async function DashboardCalendarPage({
   // anyone already on one of its shifts.
   const onDepartmentShift = new Set(
     activeDepartment
-      ? shifts.filter((shift) => shift.department === activeDepartment).flatMap((shift) => shift.assignments.map((entry) => entry.user.id))
+      ? shifts.filter((shift) => effectiveDepartment(shift) === activeDepartment).flatMap((shift) => shift.assignments.map((entry) => entry.user.id))
       : []
   );
   const plannerMembers = activeDepartment
