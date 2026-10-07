@@ -712,6 +712,7 @@ type ParsedTaskDraft = {
   isUrgent: boolean;
   requiresConfirmation: boolean;
   repeat: TaskRepeat | null;
+  department?: Department | null;
 };
 
 function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
@@ -748,6 +749,7 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
         formData.get(`repeatEvery_${entryId}`),
         formData.get(`repeatUnit_${entryId}`)
       );
+      const department = parseDepartment(formData.get(`department_${entryId}`));
 
       return {
         title,
@@ -756,6 +758,7 @@ function parseTaskDrafts(formData: FormData): ParsedTaskDraft[] {
         isUrgent,
         requiresConfirmation,
         repeat,
+        department,
       };
     })
     .filter((entry) => entry.title.length > 0);
@@ -2351,10 +2354,15 @@ export async function createTaskAction(formData: FormData) {
     await ensureUsersBelongToBar(activeBarId, assignedUserIds);
   }
 
+  // Pro: a note sent to a department remembers it, for the Note page's
+  // sections and the department's calendar. Ignored on a Base venue.
+  const departmentsOn = (await getVenueDepartments(activeBarId, session.user.id)).enabled;
+
   await prisma.task.createMany({
     data: taskDrafts.map((taskDraft) => ({
       title: taskDraft.title,
       description: description || null,
+      department: departmentsOn ? taskDraft.department ?? null : null,
       dueDate,
       assignedToAll: taskDraft.assignedToAll,
       assignedToId: taskDraft.assignedToAll ? null : taskDraft.assignedToId || null,

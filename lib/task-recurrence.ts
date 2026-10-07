@@ -1,4 +1,4 @@
-import { TaskRepeatUnit, TaskStatus } from "@prisma/client";
+import { TaskRepeatUnit, TaskStatus, type Department } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -163,6 +163,7 @@ type RecurringTask = {
   requiresConfirmation: boolean;
   repeatEvery: number | null;
   repeatUnit: TaskRepeatUnit | null;
+  department: Department | null;
 };
 
 export const RECURRING_TASK_FIELDS = {
@@ -177,6 +178,7 @@ export const RECURRING_TASK_FIELDS = {
   requiresConfirmation: true,
   repeatEvery: true,
   repeatUnit: true,
+  department: true,
 } satisfies Prisma.TaskSelect;
 
 /**
@@ -211,6 +213,7 @@ export async function spawnNextTaskOccurrence(task: RecurringTask): Promise<Date
         isUrgent: false,
         repeatEvery: task.repeatEvery,
         repeatUnit: task.repeatUnit,
+        department: task.department,
       },
     }),
     prisma.task.update({

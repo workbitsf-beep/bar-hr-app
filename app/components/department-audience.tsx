@@ -28,10 +28,13 @@ function loadDepartments() {
  */
 export function DepartmentAudience({
   selectedIds,
+  picked,
   onChange,
 }: {
   selectedIds: string[];
-  onChange: (ids: string[]) => void;
+  /** The department chosen, when the caller keeps one: one at a time then. */
+  picked?: string;
+  onChange: (ids: string[], department: string | null) => void;
 }) {
   const [departments, setDepartments] = useState<AudienceDepartments | null>(null);
 
@@ -53,7 +56,7 @@ export function DepartmentAudience({
       <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: "minmax(0, 1fr)", gap: 6 }}>
         {departments.list.map((department) => {
           const ids = departments.members[department.id] ?? [];
-          const on = ids.length > 0 && ids.every((id) => selectedIds.includes(id));
+          const on = picked !== undefined ? picked === department.id : ids.length > 0 && ids.every((id) => selectedIds.includes(id));
           return (
             <button
               key={department.id}
@@ -62,11 +65,15 @@ export function DepartmentAudience({
               disabled={ids.length === 0}
               title={ids.length === 0 ? `Nessuno in ${department.name.toLowerCase()}` : undefined}
               onClick={() =>
-                onChange(
-                  on
-                    ? selectedIds.filter((id) => !ids.includes(id))
-                    : Array.from(new Set([...selectedIds, ...ids]))
-                )
+                picked !== undefined
+                  ? // Notes: one department, its people, and the note filed under it.
+                    on
+                    ? onChange([], null)
+                    : onChange(ids, department.id)
+                  : onChange(
+                      on ? selectedIds.filter((id) => !ids.includes(id)) : Array.from(new Set([...selectedIds, ...ids])),
+                      null
+                    )
               }
               style={{
                 minWidth: 0,

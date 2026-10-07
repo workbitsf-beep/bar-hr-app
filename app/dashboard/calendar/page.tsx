@@ -621,7 +621,6 @@ export default async function DashboardCalendarPage({
               role: true,
               department: true,
               helpsIn: true,
-              isJolly: true,
               user: {
                 select: {
                   id: true,
@@ -660,6 +659,7 @@ export default async function DashboardCalendarPage({
                   requiresConfirmation: true,
                   repeatEvery: true,
                   repeatUnit: true,
+                  department: true,
                   completedAt: true,
                   createdAt: true,
                   assignedToAll: true,
@@ -864,6 +864,12 @@ export default async function DashboardCalendarPage({
   }
 
   for (const task of tasks) {
+    // A note for one department shows on its calendar and on "Tutti", not on
+    // the other departments' calendars. Notes for everyone show everywhere.
+    if (activeDepartment && task.department && task.department !== activeDepartment) {
+      continue;
+    }
+
     const dayKey = toDayKey(task.dueDate);
     const dayTasks = tasksByDay.get(dayKey) ?? [];
     dayTasks.push(task);
@@ -1062,7 +1068,7 @@ export default async function DashboardCalendarPage({
     ? memberOptions.filter((option, index) => {
         const member = calendarMembers[index];
         return (
-          member.isJolly ||
+          activeDepartment === "JOLLY" ||
           member.department === activeDepartment ||
           (member.helpsIn ?? []).includes(activeDepartment) ||
           onDepartmentShift.has(option.id)

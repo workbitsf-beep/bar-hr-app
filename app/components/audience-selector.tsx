@@ -15,11 +15,17 @@ export function AudienceSelector({
   teamLabel = "Team",
   peopleLabel = "Dipendenti",
   multiple = true,
+  department,
 }: {
   members: AudienceMember[];
   assignedToAll: boolean;
   assignedToId: string;
-  onChange: (value: { assignedToAll: boolean; assignedToId: string }) => void;
+  /**
+   * The department picked, when the caller keeps it (notes do, to file the note
+   * under that department). Changing the people by hand clears it.
+   */
+  onChange: (value: { assignedToAll: boolean; assignedToId: string; department?: string }) => void;
+  department?: string;
   teamLabel?: string;
   peopleLabel?: string;
   multiple?: boolean;
@@ -52,7 +58,7 @@ export function AudienceSelector({
         <button
           className="dashboard-select-pill"
           type="button"
-          onClick={() => onChange({ assignedToAll: true, assignedToId: "" })}
+          onClick={() => onChange({ assignedToAll: true, assignedToId: "", department: "" })}
           aria-pressed={assignedToAll}
           style={{
             ...basePillStyle,
@@ -69,7 +75,7 @@ export function AudienceSelector({
         <button
           className="dashboard-select-pill"
           type="button"
-          onClick={() => onChange({ assignedToAll: false, assignedToId })}
+          onClick={() => onChange({ assignedToAll: false, assignedToId, department: "" })}
           aria-pressed={!assignedToAll}
           style={{
             ...basePillStyle,
@@ -88,11 +94,16 @@ export function AudienceSelector({
       {multiple ? (
         <DepartmentAudience
           selectedIds={assignedToAll ? [] : selectedIds}
-          onChange={(ids) => {
+          picked={department}
+          onChange={(ids, pickedDepartment) => {
             // Only people this list can address: the department may include
             // someone the picker leaves out, such as the owner.
             const known = new Set(members.map((member) => member.id));
-            onChange({ assignedToAll: false, assignedToId: ids.filter((id) => known.has(id)).join(",") });
+            onChange({
+              assignedToAll: false,
+              assignedToId: ids.filter((id) => known.has(id)).join(","),
+              department: pickedDepartment ?? "",
+            });
           }}
         />
       ) : null}
@@ -116,7 +127,7 @@ export function AudienceSelector({
                 type="button"
                 onClick={() => {
                   if (!multiple) {
-                    onChange({ assignedToAll: false, assignedToId: selected ? "" : member.id });
+                    onChange({ assignedToAll: false, assignedToId: selected ? "" : member.id, department: "" });
                     return;
                   }
 
@@ -124,7 +135,7 @@ export function AudienceSelector({
                     ? selectedIds.filter((id) => id !== member.id)
                     : selectedIds.concat(member.id);
 
-                  onChange({ assignedToAll: false, assignedToId: nextIds.join(",") });
+                  onChange({ assignedToAll: false, assignedToId: nextIds.join(","), department: "" });
                 }}
                 aria-pressed={selected}
                 style={{

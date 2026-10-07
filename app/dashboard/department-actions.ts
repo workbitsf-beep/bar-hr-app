@@ -43,7 +43,7 @@ export async function updateDepartmentSettingsAction(formData: FormData) {
     const mode = String(formData.get("mode")) === DepartmentMode.SEPARATE ? DepartmentMode.SEPARATE : DepartmentMode.UNIFIED;
     const customName = String(formData.get("customName") ?? "").trim().slice(0, 18) || null;
 
-    if (customName && ["banco", "cucina", "sala"].includes(customName.toLowerCase())) {
+    if (customName && ["banco", "cucina", "sala", "jolly"].includes(customName.toLowerCase())) {
       throw new RuleError(`${customName} c'è già.`);
     }
 
@@ -88,8 +88,6 @@ export async function updateMemberDepartmentAction(formData: FormData) {
       .map((value) => parseDepartment(value))
       .filter((value): value is Department => Boolean(value) && value !== department);
     const isLead = Boolean(department) && formData.get("isLead") === "on";
-    // A jolly works everywhere: no department of their own, and no lead role.
-    const isJolly = formData.get("jolly") === "on";
 
     const membership = await prisma.employeeBar.findFirst({
       where: { id: membershipId, barId, isActive: true },
@@ -99,7 +97,7 @@ export async function updateMemberDepartmentAction(formData: FormData) {
 
     await prisma.$transaction(async (tx) => {
       // One lead per department: naming a new one hands the role over.
-      if (isLead && department && !isJolly) {
+      if (isLead && department) {
         await tx.employeeBar.updateMany({
           where: { barId, department, isDepartmentLead: true, id: { not: membership.id } },
           data: { isDepartmentLead: false },
@@ -107,14 +105,11 @@ export async function updateMemberDepartmentAction(formData: FormData) {
       }
       await tx.employeeBar.update({
         where: { id: membership.id },
-        data: isJolly
-          ? { department: null, helpsIn: [], isDepartmentLead: false, isJolly: true }
-          : {
-              department,
-              helpsIn: Array.from(new Set(helpsIn)),
-              isDepartmentLead: membership.role === Role.OWNER ? false : isLead,
-              isJolly: false,
-            },
+        data: {
+          department,
+          helpsIn: Array.from(new Set(helpsIn)),
+          isDepartmentLead: membership.role === Role.OWNER ? false : isLead,
+        },
       });
     });
 

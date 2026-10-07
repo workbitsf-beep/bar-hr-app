@@ -29,6 +29,8 @@ export type NoteDraft = {
   isUrgent: boolean;
   requiresConfirmation: boolean;
   repeat: TaskRepeatDraft;
+  /** Pro: the department the note is for, or "" for everyone / for people picked by hand. */
+  department?: string;
 };
 
 export function createNoteDraft(kind: NoteKind): NoteDraft {
@@ -228,6 +230,7 @@ export function NoteKindFields({
             }))}
             assignedToAll={draft.assignedToAll}
             assignedToId={draft.assignedToId}
+            department={draft.department ?? ""}
             onChange={(value) => onChange({ ...draft, ...value })}
           />
         </FormField>
@@ -297,6 +300,7 @@ export function NoteDraftFields({ draft }: { draft: NoteDraft }) {
         <input type="hidden" name={`assignedToId_${draft.id}`} value={draft.assignedToId} />
       ) : null}
       {draft.isUrgent ? <input type="hidden" name={`isUrgent_${draft.id}`} value="on" /> : null}
+      {draft.department ? <input type="hidden" name={`department_${draft.id}`} value={draft.department} /> : null}
       <input
         type="hidden"
         name={`requiresConfirmation_${draft.id}`}
@@ -325,6 +329,10 @@ export function appendNoteDraft(formData: FormData, draft: NoteDraft) {
 
   if (draft.isUrgent) {
     formData.set(`isUrgent_${draft.id}`, "on");
+  }
+
+  if (draft.department) {
+    formData.set(`department_${draft.id}`, draft.department);
   }
 
   formData.set(`requiresConfirmation_${draft.id}`, draft.requiresConfirmation ? "on" : "off");

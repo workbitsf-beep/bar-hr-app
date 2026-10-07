@@ -34,9 +34,10 @@ import { PasswordChangePanel } from "./password-change-panel";
 import { SupportPanel } from "./support-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 import { ExternalLink } from "@/app/components/external-link";
-import { getVenueDepartments } from "@/lib/departments";
+import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DepartmentSettingsForm } from "../department-forms";
 import { ChecklistEditor } from "../checklists";
+import { SavingForm } from "../saving-form";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -256,7 +257,7 @@ function VenueDetailsPanel({
   email: string | null;
 }) {
   return (
-    <form action={updateBarDetailsAction} style={{ display: "grid", gap: 13 }}>
+    <SavingForm action={updateBarDetailsAction} style={{ display: "grid", gap: 13 }} message="Dati del locale salvati.">
       <FormField label="Nome">
         <TextInput name="name" defaultValue={name} required />
       </FormField>
@@ -306,7 +307,7 @@ function VenueDetailsPanel({
         </PrimaryButton>
         <PrimaryButton type="submit">Salva</PrimaryButton>
       </div>
-    </form>
+    </SavingForm>
   );
 }
 
@@ -1091,7 +1092,7 @@ export default async function DashboardSettingsPage({
               />
             }
           >
-            <ChecklistEditor departments={departments.list} saved={savedChecklists} />
+            <ChecklistEditor departments={staffDepartments(departments.list)} saved={savedChecklists} />
           </PopupAction>
         ) : null}
 

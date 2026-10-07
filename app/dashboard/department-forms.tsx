@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Department, DepartmentMode } from "@prisma/client";
-import { JOLLY_LOOK, type DepartmentInfo } from "@/lib/departments";
+import type { DepartmentInfo } from "@/lib/departments";
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { updateDepartmentSettingsAction, updateMemberDepartmentAction } from "./department-actions";
 import { PrimaryButton } from "./ui";
@@ -186,7 +186,7 @@ export function DepartmentSettingsForm({
       <div style={{ display: "grid", gap: 4 }}>
         <span style={labelStyle}>I reparti</span>
         {departments
-          .filter((department) => department.id !== "CUSTOM")
+          .filter((department) => department.id !== "CUSTOM" && department.id !== "JOLLY")
           .map((department) => (
             <span
               key={department.id}
@@ -232,7 +232,6 @@ export function MemberDepartmentForm({
   department,
   helpsIn,
   isLead,
-  isJolly,
   currentLeadName,
   departments,
 }: {
@@ -241,8 +240,6 @@ export function MemberDepartmentForm({
   department: Department | null;
   helpsIn: Department[];
   isLead: boolean;
-  /** Works in every department. */
-  isJolly: boolean;
   /** Who leads the chosen department today, if somebody else does. */
   currentLeadName: Partial<Record<Department, string>>;
   departments: DepartmentInfo[];
@@ -250,7 +247,6 @@ export function MemberDepartmentForm({
   const [main, setMain] = useState<Department | null>(department);
   const [help, setHelp] = useState<Department[]>(helpsIn);
   const [lead, setLead] = useState(isLead);
-  const [jolly, setJolly] = useState(isJolly);
   const { pending, message, submit } = useSave(updateMemberDepartmentAction);
   const other = main ? currentLeadName[main] : undefined;
   const mainName = departments.find((entry) => entry.id === main)?.name.toLowerCase();
@@ -263,7 +259,6 @@ export function MemberDepartmentForm({
         <input key={entry} type="hidden" name="helpsIn" value={entry} />
       ))}
       {lead ? <input type="hidden" name="isLead" value="on" /> : null}
-      {jolly ? <input type="hidden" name="jolly" value="on" /> : null}
 
       <div style={{ display: "grid", gap: 8 }}>
         <span style={labelStyle}>Reparto</span>
@@ -272,44 +267,19 @@ export function MemberDepartmentForm({
             <DepartmentChip
               key={entry.id}
               department={entry}
-              active={!jolly && main === entry.id}
+              active={main === entry.id}
               onClick={() => {
-                const next = main === entry.id && !jolly ? null : entry.id;
-                setJolly(false);
+                const next = main === entry.id ? null : entry.id;
                 setMain(next);
                 setHelp((list) => list.filter((value) => value !== next));
                 setLead(false);
               }}
             />
           ))}
-          <button
-            type="button"
-            aria-pressed={jolly}
-            onClick={() => {
-              setJolly((value) => !value);
-              setLead(false);
-            }}
-            style={{
-              minHeight: 38,
-              padding: "0 14px",
-              borderRadius: 999,
-              border: jolly ? "1px solid transparent" : "1px solid #e2e8f0",
-              background: jolly ? `linear-gradient(160deg, ${JOLLY_LOOK.light}, ${JOLLY_LOOK.ink})` : "#ffffff",
-              color: jolly ? "#ffffff" : "#475569",
-              fontSize: 13,
-              fontWeight: 800,
-              cursor: "pointer",
-            }}
-          >
-            Jolly
-          </button>
         </div>
-        {jolly ? (
-          <span style={{ fontSize: 12, color: "#8a84a8" }}>Lavora in tutti i reparti e compare in ognuno.</span>
-        ) : null}
       </div>
 
-      {main && !jolly ? (
+      {main ? (
         <div style={{ display: "grid", gap: 8 }}>
           <span style={labelStyle}>Può dare una mano in</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
@@ -331,7 +301,7 @@ export function MemberDepartmentForm({
         </div>
       ) : null}
 
-      {main && !jolly && !isOwner ? (
+      {main && !isOwner ? (
         <div style={{ display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid #f0ebfb", paddingTop: 12 }}>
           <span style={{ flex: 1, display: "grid", gap: 2 }}>
             <strong style={{ fontSize: 14 }}>Capo reparto</strong>

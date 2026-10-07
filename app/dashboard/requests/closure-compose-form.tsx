@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarClosureType } from "@prisma/client";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FormField, PrimaryButton, Select, TextArea, TextInput } from "../ui";
 
@@ -40,6 +41,9 @@ export function ClosureComposeForm({
 }) {
   const [draft, setDraft] = useState<ClosureDraft>(createDraft());
   const [queued, setQueued] = useState<ClosureDraft[]>([]);
+  // Stays open after saving, like every list with "aggiungi un altro".
+  const [saved, setSaved] = useState("");
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const draftValid = Boolean(draft.startsAt && !(draft.endsAt && draft.endsAt < draft.startsAt));
 
@@ -71,12 +75,13 @@ export function ClosureComposeForm({
         formData.set("startsAt", item.startsAt);
         formData.set("endsAt", item.endsAt || item.startsAt);
         formData.set("notes", item.notes);
-        formData.set("notifySuccess", "1");
         await action(formData);
       }
 
       setQueued([]);
       setDraft(createDraft());
+      setSaved(items.length === 1 ? "Chiusura salvata." : `${items.length} chiusure salvate.`);
+      router.refresh();
     });
   }
 
@@ -86,6 +91,21 @@ export function ClosureComposeForm({
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
+      {saved ? (
+        <div
+          role="status"
+          style={{
+            padding: "10px 12px",
+            borderRadius: 16,
+            background: "#ecfdf5",
+            border: "1px solid #bbf7d0",
+            color: "#166534",
+            fontWeight: 800,
+          }}
+        >
+          ✓ {saved}
+        </div>
+      ) : null}
       {queued.length > 0 ? (
         <div style={{ display: "grid", gap: 8 }}>
           {queued.map((item) => (

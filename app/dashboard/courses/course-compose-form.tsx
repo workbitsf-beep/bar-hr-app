@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CourseKind } from "@prisma/client";
 import { AudienceSelector } from "@/app/components/audience-selector";
@@ -108,6 +109,11 @@ export function CourseComposeForm({
   const [multiDay, setMultiDay] = useState(false);
   const [exactHours, setExactHours] = useState(false);
   const [error, setError] = useState("");
+  // The popup stays open after saving: there may be more to add, and the
+  // person closes it when they are done. It used to ask the server to reload
+  // the page, which closed it after the first course and dropped the rest.
+  const [saved, setSaved] = useState("");
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const kind = draft ? getCourseKind(draft.kind) : null;
@@ -172,7 +178,6 @@ export function CourseComposeForm({
         formData.set("endsAt", `${endDate}T${item.endTime}`);
         formData.set("expiresAt", item.expiresAt);
         formData.set("location", item.location);
-        formData.set("notifySuccess", "1");
 
         if (item.assignedToAll) {
           formData.set("assignedToAll", "on");
@@ -186,11 +191,28 @@ export function CourseComposeForm({
       setQueued([]);
       setDraft(null);
       setError("");
+      setSaved(items.length === 1 ? "Corso salvato. Puoi aggiungerne un altro." : `${items.length} corsi salvati. Puoi aggiungerne altri.`);
+      router.refresh();
     });
   }
 
   return (
     <div style={{ display: "grid", gap: 14, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+      {saved ? (
+        <div
+          role="status"
+          style={{
+            padding: "10px 12px",
+            borderRadius: 16,
+            background: "#ecfdf5",
+            border: "1px solid #bbf7d0",
+            color: "#166534",
+            fontWeight: 800,
+          }}
+        >
+          ✓ {saved}
+        </div>
+      ) : null}
       {error ? (
         <div
           style={{

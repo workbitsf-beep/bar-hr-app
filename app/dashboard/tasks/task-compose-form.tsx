@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getNoteKind, todayDateInputValue, type NoteKind } from "../note-kinds";
 import {
@@ -18,16 +19,18 @@ export function TaskComposeForm({
   action,
   members,
   canChooseAudience = true,
-  notifySuccess = false,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   members: NoteMember[];
   canChooseAudience?: boolean;
-  notifySuccess?: boolean;
 }) {
   const [entries, setEntries] = useState<NoteDraft[]>([]);
   const [draft, setDraft] = useState<NoteDraft | null>(null);
   const [dueDate, setDueDate] = useState("");
+  // After saving the popup stays open with the list emptied, ready for more;
+  // the person closes it. A reload after saving used to close it.
+  const [saved, setSaved] = useState("");
+  const router = useRouter();
 
   const kind = draft ? getNoteKind(draft.kindId) : null;
   const allEntries = entries.concat(draft && draft.value.trim() ? [draft] : []);
@@ -69,9 +72,33 @@ export function TaskComposeForm({
   }
 
   return (
-    <form action={action} style={{ display: "grid", gap: 16 }}>
-      {notifySuccess ? <input type="hidden" name="notifySuccess" value="1" /> : null}
+    <form
+      action={async (formData) => {
+        const count = allEntries.length;
+        await action(formData);
+        setEntries([]);
+        setDraft(null);
+        setSaved(count === 1 ? "Nota salvata. Puoi aggiungerne un'altra." : `${count} note salvate. Puoi aggiungerne altre.`);
+        router.refresh();
+      }}
+      style={{ display: "grid", gap: 16 }}
+    >
       <input type="hidden" name="dueDate" value={dueDate} />
+      {saved ? (
+        <div
+          role="status"
+          style={{
+            padding: "10px 12px",
+            borderRadius: 16,
+            background: "#ecfdf5",
+            border: "1px solid #bbf7d0",
+            color: "#166534",
+            fontWeight: 800,
+          }}
+        >
+          ✓ {saved}
+        </div>
+      ) : null}
 
       {entries.length > 0 ? (
         <div style={{ display: "grid", gap: 8 }}>

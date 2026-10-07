@@ -1,4 +1,4 @@
-import { getVenueDepartments } from "@/lib/departments";
+import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { prisma } from "@/lib/prisma";
 import { withBar } from "@/lib/withBar";
 
@@ -16,18 +16,20 @@ export const GET = withBar(async (_req, session): Promise<Response> => {
 
   const memberships = await prisma.employeeBar.findMany({
     where: { barId: session.activeBarId, isActive: true },
-    select: { userId: true, department: true, helpsIn: true, isJolly: true },
+    select: { userId: true, department: true, helpsIn: true },
   });
   const members: Record<string, string[]> = {};
 
-  for (const department of departments.list) {
+  const list = staffDepartments(departments.list);
+
+  for (const department of list) {
     members[department.id] = memberships
-      .filter((entry) => entry.isJolly || entry.department === department.id || entry.helpsIn.includes(department.id))
+      .filter((entry) => entry.department === department.id || entry.helpsIn.includes(department.id))
       .map((entry) => entry.userId);
   }
 
   return Response.json(
-    { ok: true, enabled: true, list: departments.list, members },
+    { ok: true, enabled: true, list, members },
     { headers: { "Cache-Control": "no-store" } }
   );
 });

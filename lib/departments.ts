@@ -22,12 +22,16 @@ export const DEPARTMENT_COLORS: Record<Department, { ink: string; soft: string; 
   CUCINA: { ink: "#e8700c", soft: "#fff1e3", light: "#ffa04a" },
   SALA: { ink: "#0f9784", soft: "#ddf7f2", light: "#2fc4ae" },
   CUSTOM: { ink: "#c2257a", soft: "#fde6f2", light: "#f06bb0" },
+  // Jolly: graphite, apart from every department and from the violet of
+  // shifts with no department.
+  JOLLY: { ink: "#2a2540", soft: "#ecebf3", light: "#6b6488" },
 };
 
 const FIXED_NAMES: Record<Exclude<Department, "CUSTOM">, string> = {
   BANCO: "Banco",
   CUCINA: "Cucina",
   SALA: "Sala",
+  JOLLY: "Jolly",
 };
 
 export type DepartmentInfo = {
@@ -60,11 +64,15 @@ export function venueDepartments(customName: string | null | undefined): Departm
   if (name) {
     list.push({ id: Department.CUSTOM, name, initials: departmentInitials(Department.CUSTOM, name), ...DEPARTMENT_COLORS.CUSTOM });
   }
+  // Jolly last: a section of shifts anyone can work, not a place people belong to.
+  list.push({ id: Department.JOLLY, name: FIXED_NAMES.JOLLY, initials: "J", ...DEPARTMENT_COLORS.JOLLY });
   return list;
 }
 
-/** How a jolly - someone who works in every department - is drawn: J, in Workbit violet. */
-export const JOLLY_LOOK = { name: "Jolly", initials: "J", ink: "#7c3aed", soft: "#f1ebff", light: "#b892ff" } as const;
+/** The departments people work in: Jolly is for shifts, not for people. */
+export function staffDepartments(list: DepartmentInfo[]) {
+  return list.filter((entry) => entry.id !== Department.JOLLY);
+}
 
 export function parseDepartment(value: FormDataEntryValue | string | null | undefined): Department | null {
   const raw = String(value ?? "").trim().toUpperCase();
@@ -77,8 +85,8 @@ export type VenueDepartments = {
   mode: DepartmentMode;
   list: DepartmentInfo[];
   customName: string | null;
-  /** The person looking: where they work and whether they lead it. A jolly helps in every department. */
-  mine: { department: Department | null; helpsIn: Department[]; isLead: boolean; isJolly: boolean };
+  /** The person looking: where they work and whether they lead it. */
+  mine: { department: Department | null; helpsIn: Department[]; isLead: boolean };
 };
 
 /** Departments of a venue as seen by one person. Cached per request. */
@@ -91,7 +99,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     mode: DepartmentMode.UNIFIED,
     list: [],
     customName: null,
-    mine: { department: null, helpsIn: [], isLead: false, isJolly: false },
+    mine: { department: null, helpsIn: [], isLead: false },
   };
 
   if (!barId) return off;
@@ -103,25 +111,21 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     }),
     prisma.employeeBar.findFirst({
       where: { barId, userId, isActive: true },
-      select: { department: true, helpsIn: true, isDepartmentLead: true, isJolly: true },
+      select: { department: true, helpsIn: true, isDepartmentLead: true },
     }),
   ]);
 
   if (!bar || bar.plan !== VenuePlan.PRO) return off;
 
-  const list = venueDepartments(bar.customDepartmentName);
-  const isJolly = Boolean(membership?.isJolly);
-
   return {
     enabled: true,
     mode: bar.departmentMode,
-    list,
+    list: venueDepartments(bar.customDepartmentName),
     customName: bar.customDepartmentName,
     mine: {
-      department: isJolly ? null : membership?.department ?? null,
-      helpsIn: isJolly ? list.map((entry) => entry.id) : membership?.helpsIn ?? [],
-      isLead: Boolean(!isJolly && membership?.isDepartmentLead && membership.department),
-      isJolly,
+      department: membership?.department ?? null,
+      helpsIn: membership?.helpsIn ?? [],
+      isLead: Boolean(membership?.isDepartmentLead && membership.department),
     },
   };
 });

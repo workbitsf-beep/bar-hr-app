@@ -12,7 +12,7 @@ import { CrewBoard } from "./crew-board";
 import { ChecklistsCard } from "./checklists";
 import { getTodayChecklists } from "@/lib/checklists";
 import { DepartmentDot } from "./department-forms";
-import { getVenueDepartments } from "@/lib/departments";
+import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DesktopToday } from "./desktop-today";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
@@ -748,7 +748,7 @@ export default async function DashboardPage() {
       departments={
         departments.enabled
           ? {
-              list: departments.list,
+              list: staffDepartments(departments.list),
               // Staff open the list on their own department; the owner on all of it.
               initial: canManagePeople ? null : departments.mine.department,
             }

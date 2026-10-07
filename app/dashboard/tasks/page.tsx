@@ -26,6 +26,9 @@ import { SwipeRevealAction } from "../swipe-reveal-action";
 import { TaskComposeForm } from "./task-compose-form";
 import { ConfirmationArchive } from "./confirmation-archive";
 import { confirmedTaskArchived } from "@/lib/note-visibility";
+import { getVenueDepartments } from "@/lib/departments";
+import { DepartmentDot } from "../department-forms";
+import { Fragment } from "react";
 
 export default async function DashboardTasksPage({
   searchParams,
@@ -65,6 +68,7 @@ export default async function DashboardTasksPage({
         : success === "task-completed"
           ? "Nota completata correttamente."
           : null;
+  const departments = await getVenueDepartments(activeBarId, session.user.id);
   const [tasks, members] = await Promise.all([
     prisma.task.findMany({
           where: {
@@ -88,6 +92,7 @@ export default async function DashboardTasksPage({
             requiresConfirmation: true,
             repeatEvery: true,
             repeatUnit: true,
+            department: true,
             createdAt: true,
             assignedToAll: true,
             assignedToId: true,
@@ -148,6 +153,21 @@ export default async function DashboardTasksPage({
           },
         }),
   ]);
+
+  // Pro: notes sent to a department sit in its own section; the rest are
+  // "Per tutti". A Base venue keeps the single list it has always had.
+  const groupedTasks = groupSharedTasks(tasks);
+  const noteSections = departments.enabled
+    ? [
+        { key: "ALL", title: "Per tutti", department: null, groups: groupedTasks.filter((group) => !group.lead.department) },
+        ...departments.list.map((department) => ({
+          key: department.id,
+          title: department.name,
+          department,
+          groups: groupedTasks.filter((group) => group.lead.department === department.id),
+        })),
+      ].filter((section) => section.groups.length > 0)
+    : [{ key: "ALL", title: "", department: null, groups: groupedTasks }];
 
   return (
     <div className="wb-desk-split">
@@ -213,7 +233,6 @@ export default async function DashboardTasksPage({
                       : member.id === session.user.id
                   )}
                 canChooseAudience={canManage}
-                notifySuccess
               />
             </PopupAction>
           </div>
@@ -223,7 +242,27 @@ export default async function DashboardTasksPage({
           <EmptyState message="Nessuna nota disponibile." />
         ) : (
           <ItemList>
-            {groupSharedTasks(tasks).map((group) => {
+            {noteSections.map((section) => (
+            <Fragment key={section.key}>
+            {section.title ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  margin: "8px 2px 2px",
+                  fontSize: 11.5,
+                  fontWeight: 900,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: section.department?.ink ?? "#8a84a8",
+                }}
+              >
+                {section.department ? <DepartmentDot department={section.department} size={18} /> : null}
+                {section.title} · {section.groups.length}
+              </div>
+            ) : null}
+            {section.groups.map((group) => {
               // A note given to several people comes back as one row here,
               // with everyone's name; each of them still confirms their own.
               const task = group.lead;
@@ -332,6 +371,8 @@ export default async function DashboardTasksPage({
                 </SwipeRevealAction>
               );
             })}
+            </Fragment>
+            ))}
           </ItemList>
         )}
       </Panel>

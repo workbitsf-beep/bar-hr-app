@@ -57,7 +57,7 @@ export function VenueSign({
     };
   }, [live, shiftsEnabled]);
 
-  const size = name.length <= 12 ? "l" : name.length <= 17 ? "m" : "s";
+  const size = name.length <= 12 ? "l" : name.length <= 22 ? "m" : "s";
 
   return (
     <div className="wb-sign wb-phone-only" data-size={size} data-no-runtime-translate="">
@@ -121,9 +121,9 @@ const venueSignStyles = `
     letter-spacing: 0.12em;
   }
 
-  .wb-sign[data-size="m"] .wb-sign-name b { font-size: 13px; letter-spacing: 0.08em; }
-  .wb-sign[data-size="m"] .wb-sign-name i { flex-basis: 8px; }
+  .wb-sign[data-size="m"] .wb-sign-name i { display: none; }
   /* Long names go on two short lines rather than losing their end. */
+  .wb-sign[data-size="m"] .wb-sign-name b,
   .wb-sign[data-size="s"] .wb-sign-name b {
     font-size: 11px;
     letter-spacing: 0.04em;
@@ -134,6 +134,7 @@ const venueSignStyles = `
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
+  .wb-sign[data-size="m"] .wb-sign-name b { font-size: 13px; letter-spacing: 0.06em; }
   .wb-sign[data-size="s"] .wb-sign-name i { display: none; }
 
   .wb-sign-line {

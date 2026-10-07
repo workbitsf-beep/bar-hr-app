@@ -1,5 +1,5 @@
 import { ChecklistMoment, Role, type Department } from "@prisma/client";
-import { getVenueDepartments, type DepartmentInfo } from "@/lib/departments";
+import { getVenueDepartments, staffDepartments, type DepartmentInfo } from "@/lib/departments";
 import { prisma } from "@/lib/prisma";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
 
@@ -53,7 +53,7 @@ export async function getTodayChecklists(barId: string, userId: string, role: Ro
   const mine = new Set<Department>(
     [departments.mine.department, ...departments.mine.helpsIn].filter((value): value is Department => Boolean(value))
   );
-  const visible = departments.list.filter((department) => runsAll || mine.has(department.id));
+  const visible = staffDepartments(departments.list).filter((department) => runsAll || mine.has(department.id));
   if (visible.length === 0) return [];
 
   const checklists = await prisma.checklist.findMany({

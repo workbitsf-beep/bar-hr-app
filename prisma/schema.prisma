@@ -22,12 +22,14 @@ enum VenuePlan {
   PRO
 }
 
-/// The three fixed departments of a venue, plus one the owner names.
+/// The three fixed departments of a venue, plus one the owner names, plus
+/// Jolly: shifts anyone can work, wherever they are needed.
 enum Department {
   BANCO
   CUCINA
   SALA
   CUSTOM
+  JOLLY
 }
 
 /// One weekly calendar split by department, or one calendar per department
@@ -523,8 +525,6 @@ model EmployeeBar {
   helpsIn          Department[] @default([])
   /// Runs the shifts, leave and swaps of their department.
   isDepartmentLead Boolean      @default(false)
-  /// Jolly: works in every department, and is marked in all of them.
-  isJolly          Boolean      @default(false)
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   bar              Bar          @relation(fields: [barId], references: [id], onDelete: Cascade)
 
@@ -620,6 +620,8 @@ model Task {
   // produce two pending notes for the same check.
   repeatEvery          Int?
   repeatUnit           TaskRepeatUnit?
+  /// Pro: the department the note is for; null when it is for everyone.
+  department           Department?
   assignedToAll        Boolean          @default(false)
   barId                String           @db.Uuid
   bar                  Bar              @relation(fields: [barId], references: [id], onDelete: Cascade)
