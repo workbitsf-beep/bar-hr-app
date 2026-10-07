@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { DepartmentAudience } from "@/app/components/department-audience";
 import { useRouter } from "next/navigation";
 import { formatDocumentSize } from "@/lib/documents";
 import { IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
@@ -609,6 +610,14 @@ export function DocumentComposeForm({ recipients }: { recipients: RecipientOptio
                 </button>
               ))}
             </div>
+
+            <DepartmentAudience
+              selectedIds={draft.assignedToAll ? [] : draft.assignedToIds}
+              onChange={(ids) => {
+                const known = new Set(recipients.map((recipient) => recipient.id));
+                setDraft({ ...draft, assignedToAll: false, assignedToIds: ids.filter((id) => known.has(id)) });
+              }}
+            />
 
             {!draft.assignedToAll ? (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>

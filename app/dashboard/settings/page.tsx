@@ -36,6 +36,7 @@ import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form
 import { ExternalLink } from "@/app/components/external-link";
 import { getVenueDepartments } from "@/lib/departments";
 import { DepartmentSettingsForm } from "../department-forms";
+import { ChecklistEditor } from "../checklists";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -729,6 +730,20 @@ export default async function DashboardSettingsPage({
     });
     for (const entry of grouped) if (entry.department) departmentCounts[entry.department] = entry._count._all;
   }
+  // Pro: the opening and closing lists already written, by department.
+  const savedChecklists: Record<string, Record<string, string[]>> = {};
+  if (departments.enabled && activeBarId) {
+    for (const checklist of await prisma.checklist.findMany({
+      where: { barId: activeBarId },
+      select: { department: true, moment: true, items: true },
+    })) {
+      savedChecklists[checklist.department] = { ...savedChecklists[checklist.department], [checklist.moment]: checklist.items };
+    }
+  }
+  const checklistCount = Object.values(savedChecklists).reduce(
+    (total, moments) => total + Object.values(moments).filter((items) => items.length > 0).length,
+    0
+  );
   const languageLabel =
     sessionLanguage === "en" ? "English" : sessionLanguage === "es" ? "Español" : "Italiano";
 
@@ -1060,6 +1075,23 @@ export default async function DashboardSettingsPage({
               departments={departments.list}
               counts={departmentCounts}
             />
+          </PopupAction>
+        ) : null}
+
+        {departments.enabled && role === Role.OWNER ? (
+          <PopupAction
+            title="Apertura e chiusura"
+            ariaLabel="Apri le checklist dei reparti"
+            triggerRow={
+              <SettingsRow
+                dot="#0f9784"
+                title="Apertura e chiusura"
+                lead="Le checklist di ogni reparto"
+                status={checklistCount ? String(checklistCount) : "Nessuna"}
+              />
+            }
+          >
+            <ChecklistEditor departments={departments.list} saved={savedChecklists} />
           </PopupAction>
         ) : null}
 

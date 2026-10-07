@@ -1,5 +1,7 @@
 "use client";
 
+import { DepartmentAudience } from "./department-audience";
+
 type AudienceMember = {
   id: string;
   label: string;
@@ -82,6 +84,18 @@ export function AudienceSelector({
           <span>{peopleLabel}</span>
         </button>
       </div>
+
+      {multiple ? (
+        <DepartmentAudience
+          selectedIds={assignedToAll ? [] : selectedIds}
+          onChange={(ids) => {
+            // Only people this list can address: the department may include
+            // someone the picker leaves out, such as the owner.
+            const known = new Set(members.map((member) => member.id));
+            onChange({ assignedToAll: false, assignedToId: ids.filter((id) => known.has(id)).join(",") });
+          }}
+        />
+      ) : null}
 
       {!assignedToAll ? (
         <div

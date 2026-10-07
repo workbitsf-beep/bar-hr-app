@@ -9,6 +9,8 @@ import { getDashboardContext } from "./context";
 import { reviewRequestAction } from "./actions";
 import { KpiDashboard } from "./kpi-dashboard";
 import { CrewBoard } from "./crew-board";
+import { ChecklistsCard } from "./checklists";
+import { getTodayChecklists } from "@/lib/checklists";
 import { DepartmentDot } from "./department-forms";
 import { getVenueDepartments } from "@/lib/departments";
 import { DesktopToday } from "./desktop-today";
@@ -74,6 +76,9 @@ export default async function DashboardPage() {
     await getDashboardContext();
   // Pro: the departments, for the tiles over the crew and the week's bars.
   const departments = await getVenueDepartments(activeBarId, session.user.id);
+  // Pro: today's opening and closing checklists this person can see.
+  const todayChecklists =
+    departments.enabled && activeBarId ? await getTodayChecklists(activeBarId, session.user.id, role) : [];
 
   if (String(role) === "SUPER_ADMIN") {
     redirect("/dashboard/super-admin");
@@ -769,6 +774,8 @@ export default async function DashboardPage() {
       </div>
     ) : null;
 
+  const checklistBlock = todayChecklists.length > 0 ? <ChecklistsCard checklists={todayChecklists} /> : null;
+
   const phoneHome = (
     <Stack>
       {isOperationalProfile ? (
@@ -946,6 +953,7 @@ export default async function DashboardPage() {
           </section>
 
           {crewBlock}
+          {checklistBlock}
         </div>
       ) : (
         <div className="workbit-home">
@@ -958,6 +966,7 @@ export default async function DashboardPage() {
           </div>
 
           {crewBlock}
+          {checklistBlock}
           {weekLine}
         </div>
       )}

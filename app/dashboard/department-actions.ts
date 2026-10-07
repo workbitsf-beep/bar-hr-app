@@ -1,9 +1,10 @@
 "use server";
 
-import { Department, DepartmentMode, Role, VenuePlan } from "@prisma/client";
+import { ChecklistMoment, Department, DepartmentMode, Role, VenuePlan } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
-import { parseDepartment } from "@/lib/departments";
+import { checklistDay, parseChecklistItems } from "@/lib/checklists";
+import { getVenueDepartments, parseDepartment } from "@/lib/departments";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
@@ -130,4 +131,90 @@ export async function setVenuePlanAction(formData: FormData) {
   await prisma.bar.update({ where: { id: barId }, data: { plan } });
   revalidatePath(`/dashboard/super-admin/bar/${barId}`);
   refresh();
+}
+
+/** Owner: the opening and closing lines of one department, one per line. */
+export async function saveChecklistAction(formData: FormData) {
+  try {
+    const { barId, role } = await ownerOfProVenue();
+    if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") throw new RuleError("Solo il titolare scrive le checklist.");
+
+    const department = parseDepartment(formData.get("department"));
+    if (!department) throw new RuleError("Scegli il reparto.");
+
+    for (const moment of [ChecklistMoment.OPENING, ChecklistMoment.CLOSING]) {
+      const items = parseChecklistItems(String(formData.get(moment) ?? ""));
+      await prisma.checklist.upsert({
+        where: { barId_department_moment: { barId, department, moment } },
+        update: { items },
+        create: { barId, department, moment, items },
+      });
+    }
+
+    refresh();
+    return { ok: true as const };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/**
+ * Ticks or unticks one line of today's checklist. Anyone who works in the
+ * department, or helps there, can; the owner and managers too. The last tick
+ * records who closed the list and when.
+ */
+export async function toggleChecklistItemAction(formData: FormData) {
+  try {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+    const { activeBar, role } = await getActiveBarAccess(session);
+    if (!activeBar?.id) throw new Error("No active bar selected");
+
+    const checklistId = String(formData.get("checklistId") ?? "");
+    const item = String(formData.get("item") ?? "");
+    const checked = formData.get("checked") === "on";
+
+    const checklist = await prisma.checklist.findFirst({
+      where: { id: checklistId, barId: activeBar.id },
+      select: { id: true, department: true, items: true },
+    });
+    if (!checklist || !checklist.items.includes(item)) throw new RuleError("Questa voce non c'è più.");
+
+    const departments = await getVenueDepartments(activeBar.id, session.user.id);
+    const runsAll = role === Role.OWNER || role === Role.MANAGER || String(role) === "SUPER_ADMIN";
+    const worksThere =
+      departments.mine.department === checklist.department || departments.mine.helpsIn.includes(checklist.department);
+    if (!departments.enabled || (!runsAll && !worksThere)) throw new RuleError("Non lavori in questo reparto.");
+
+    const day = checklistDay();
+    const run = await prisma.checklistRun.findUnique({
+      where: { checklistId_day: { checklistId, day } },
+      select: { doneItems: true },
+    });
+    const done = new Set((run?.doneItems ?? []).filter((entry) => checklist.items.includes(entry)));
+    if (checked) done.add(item);
+    else done.delete(item);
+    const complete = checklist.items.every((entry) => done.has(entry));
+
+    await prisma.checklistRun.upsert({
+      where: { checklistId_day: { checklistId, day } },
+      update: {
+        doneItems: Array.from(done),
+        completedById: complete ? session.user.id : null,
+        completedAt: complete ? new Date() : null,
+      },
+      create: {
+        checklistId,
+        day,
+        doneItems: Array.from(done),
+        completedById: complete ? session.user.id : null,
+        completedAt: complete ? new Date() : null,
+      },
+    });
+
+    revalidatePath("/dashboard");
+    return { ok: true as const, complete };
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }

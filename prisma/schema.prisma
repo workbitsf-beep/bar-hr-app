@@ -37,6 +37,12 @@ enum DepartmentMode {
   SEPARATE
 }
 
+/// When a department's checklist is done: opening the day or closing it.
+enum ChecklistMoment {
+  OPENING
+  CLOSING
+}
+
 enum SubscriptionStatus {
   ACTIVE
   TRIALING
@@ -207,6 +213,7 @@ model User {
   webAuthnChallenges       WebAuthnChallenge[]
   documentAccessTokens     DocumentAccessToken[]
   downloadTickets          DownloadTicket[]
+  checklistRunsCompleted   ChecklistRun[]          @relation("ChecklistCompletedBy")
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @updatedAt
 
@@ -305,6 +312,7 @@ model Bar {
   calendarClosures       CalendarClosure[]
   documents              Document[]
   shoppingListItems      ShoppingListItem[]
+  checklists             Checklist[]
   legalAcceptances       LegalAcceptance[]
   notifications          Notification[]
   scheduledNotifications ScheduledNotification[]
@@ -502,21 +510,21 @@ model PushToken {
 }
 
 model EmployeeBar {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @db.Uuid
-  barId      String    @db.Uuid
-  role       Role      @default(EMPLOYEE)
-  hourlyRate Decimal?  @db.Decimal(10, 2)
-  isActive   Boolean   @default(true)
-  hiredAt    DateTime  @default(now())
-  endedAt    DateTime?
+  id               String       @id @default(uuid()) @db.Uuid
+  userId           String       @db.Uuid
+  barId            String       @db.Uuid
+  role             Role         @default(EMPLOYEE)
+  hourlyRate       Decimal?     @db.Decimal(10, 2)
+  isActive         Boolean      @default(true)
+  hiredAt          DateTime     @default(now())
+  endedAt          DateTime?
   /// Pro only: where this person works, and where they can lend a hand.
   department       Department?
   helpsIn          Department[] @default([])
   /// Runs the shifts, leave and swaps of their department.
   isDepartmentLead Boolean      @default(false)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bar        Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bar              Bar          @relation(fields: [barId], references: [id], onDelete: Cascade)
 
   @@unique([userId, barId])
   @@index([userId])
@@ -748,14 +756,14 @@ model Course {
   startsAt      DateTime
   endsAt        DateTime
   location      String?
-  assignedToAll Boolean  @default(false)
-  assignedToId  String?  @db.Uuid
-  createdById   String   @db.Uuid
-  bar           Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
-  assignedTo    User?    @relation("CourseAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy     User     @relation("CourseCreated", fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  assignedToAll Boolean    @default(false)
+  assignedToId  String?    @db.Uuid
+  createdById   String     @db.Uuid
+  bar           Bar        @relation(fields: [barId], references: [id], onDelete: Cascade)
+  assignedTo    User?      @relation("CourseAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy     User       @relation("CourseCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([barId, startsAt])
   @@index([barId, assignedToId, startsAt])
@@ -909,16 +917,48 @@ model DownloadTicket {
 }
 
 model ShoppingListItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  barId       String   @db.Uuid
+  id          String      @id @default(uuid()) @db.Uuid
+  barId       String      @db.Uuid
   name        String
   quantity    String?
   /// Pro: the department the item is for; null on Base, or for the whole venue.
   department  Department?
-  createdById String   @db.Uuid
-  bar         Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
-  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
+  createdById String      @db.Uuid
+  bar         Bar         @relation(fields: [barId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
 
   @@index([barId, createdAt])
+}
+
+/// Pro: what a department checks when it opens or closes - "frigo controllato",
+/// "cassa contata". One list per department and moment, written by the owner.
+model Checklist {
+  id         String          @id @default(uuid()) @db.Uuid
+  barId      String          @db.Uuid
+  department Department
+  moment     ChecklistMoment
+  items      String[]
+  bar        Bar             @relation(fields: [barId], references: [id], onDelete: Cascade)
+  runs       ChecklistRun[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@unique([barId, department, moment])
+}
+
+/// One day of a checklist: which items are ticked, and who finished it when.
+model ChecklistRun {
+  id            String    @id @default(uuid()) @db.Uuid
+  checklistId   String    @db.Uuid
+  /// The venue's calendar day, at UTC midnight (see lib/day-key.ts).
+  day           DateTime
+  doneItems     String[]
+  completedById String?   @db.Uuid
+  completedAt   DateTime?
+  checklist     Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  completedBy   User?     @relation("ChecklistCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([checklistId, day])
 }
