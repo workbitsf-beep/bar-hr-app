@@ -340,30 +340,10 @@ export function KpiDashboard({
   const emptyDays = weekDays.filter((day) => day.count === 0);
   // Pro: a department that works most days of the week but has nobody on a
   // given day is a gap worth naming, even when the day as a whole is covered.
+  // The bars stay violet on Pro too: the tiles above already say which
+  // department works, and colours melting into each other in a bar only
+  // muddied it. The departments still name the gaps below the chart.
   const stacked = Boolean(departments?.length) && weekDays.some((day) => Object.keys(day.departments ?? {}).some((key) => key !== "NONE"));
-  // One piece per bar: each department sits at its own middle in its colour
-  // and melts into the next, top to bottom; shifts with no department keep
-  // the violet the bars always had. A day of shifts with no department at
-  // all is drawn by the stylesheet, exactly as before.
-  const barGradient = (day: (typeof weekDays)[number]) => {
-    const parts = [
-      ...[...(departments ?? [])].reverse().flatMap((department) =>
-        day.departments?.[department.id] ? [{ light: department.light, deep: department.ink, count: day.departments[department.id] }] : []
-      ),
-      ...(day.departments?.NONE ? [{ light: "#b892ff", deep: "#7c3aed", count: day.departments.NONE }] : []),
-    ];
-    const onlyWithoutDepartment = parts.length === 1 && Boolean(day.departments?.NONE);
-    if (parts.length === 0 || onlyWithoutDepartment) return null;
-    if (parts.length === 1) return `linear-gradient(180deg, ${parts[0].light}, ${parts[0].deep})`;
-    const total = parts.reduce((sum, part) => sum + part.count, 0);
-    let before = 0;
-    const stops = parts.map((part) => {
-      const middle = ((before + part.count / 2) / total) * 100;
-      before += part.count;
-      return `${part.deep} ${middle.toFixed(0)}%`;
-    });
-    return `linear-gradient(180deg, ${parts[0].deep} 0%, ${stops.join(", ")}, ${parts[parts.length - 1].deep} 100%)`;
-  };
 
   // From today on only: a gap already behind us is nothing to act on.
   const todayDateKey = new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(new Date());
@@ -418,11 +398,7 @@ export function KpiDashboard({
                       className={`dashboard-team-bar${day.count === 0 ? " dashboard-team-bar--zero" : ""}${isToday ? " dashboard-team-bar--today" : ""}`}
                     >
                       <u>{day.count}</u>
-                      {stacked && day.count > 0 && barGradient(day) ? (
-                        <span style={{ height, background: barGradient(day) ?? undefined }} />
-                      ) : (
-                        <span style={{ height }} />
-                      )}
+                      <span style={{ height }} />
                     </div>
                   );
                 })}
@@ -438,23 +414,6 @@ export function KpiDashboard({
                   </span>
                 ))}
               </div>
-
-              {stacked ? (
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11.5, fontWeight: 700, color: "#4c4670", marginTop: 6 }}>
-                  {(departments ?? []).map((department) => (
-                    <span key={department.id} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                      <i aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 4, background: `linear-gradient(180deg, ${department.light}, ${department.ink})` }} />
-                      {department.name}
-                    </span>
-                  ))}
-                  {weekDays.some((day) => day.departments?.NONE) ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                      <i aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 4, background: "linear-gradient(180deg, #b892ff, #7c3aed)" }} />
-                      Senza reparto
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
 
               {departmentGaps.length > 0 ? (
                 <p className="dashboard-team-foot">
