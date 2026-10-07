@@ -285,6 +285,36 @@ export function DashboardNavMenu({
                         {headerAction ? (
                           <div className="workbit-menu-header-logout">{headerAction}</div>
                         ) : null}
+                        {/* Where the menu button sits in the app's header: the
+                            way home, one touch from anywhere in the menu. */}
+                        <Link
+                          href={brandHref ?? "/dashboard"}
+                          onClick={closeMenu}
+                          aria-label="Home"
+                          title="Home"
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 999,
+                            background: "#f8fafc",
+                            color: "#4c1d95",
+                            border: "1px solid rgba(124, 58, 237, 0.12)",
+                            boxShadow: "0 8px 18px rgba(88, 28, 135, 0.07)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                              d="M4 11.2 12 4.5l8 6.7M6.5 9.3V19a1 1 0 0 0 1 1H10v-5.2h4V20h2.5a1 1 0 0 0 1-1V9.3"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </Link>
                       </div>
                     </div>
                   </div>
