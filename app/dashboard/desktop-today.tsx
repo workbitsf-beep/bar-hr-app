@@ -705,7 +705,7 @@ export async function DesktopToday({
                 <small>approvati</small>
               </div>
               <div className="wbt-fig">
-                <span>Persone</span>
+                <span>Personale</span>
                 <b>{members.length}</b>
                 <small>nel locale</small>
               </div>

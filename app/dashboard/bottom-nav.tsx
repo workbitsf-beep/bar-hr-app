@@ -3,24 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { getBottomNavItems } from "./bottom-nav-items";
 import type { DashboardNavItem } from "./context";
-
-function getBottomNavItems(navItems: DashboardNavItem[], slots = 5) {
-  const preferredHrefs = [
-    "/dashboard",
-    "/dashboard/calendar",
-    "/dashboard/tasks",
-    "/dashboard/documents",
-    "/dashboard/timelogs",
-    "/dashboard/requests",
-  ];
-  const preferred = preferredHrefs
-    .map((href) => navItems.find((item) => item.href === href))
-    .filter((item): item is DashboardNavItem => Boolean(item));
-  const fill = navItems.filter((item) => !preferred.some((selected) => selected.href === item.href));
-
-  return [...preferred, ...fill].slice(0, slots);
-}
 
 export function BottomNavIcon({ href }: { href: string }) {
   const common = {

@@ -516,7 +516,7 @@ export default async function DashboardPeoplePage({
           ) : null}
           {success === "employee-removed" ? <SuccessCallout>Persona rimossa da questo locale.</SuccessCallout> : null}
           <div className="wbd-top">
-            <h1>Persone</h1>
+            <h1>Personale</h1>
             <span className="wbd-tag wbd-tag--violet">
               {members.length === 1 ? "1 persona" : `${members.length} persone`}
               {onShift.length ? ` · ${onShift.length} in servizio` : ""}

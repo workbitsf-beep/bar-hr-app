@@ -129,7 +129,10 @@ export default async function DashboardTimeLogsPage({
   // Handed to the team panel rather than living in a card of its own: it
   // is one subject, and a whole panel to explain one button left two
   // thirds of the screen empty.
-  const manualEntry =
+  // A function, not one element: the phone page and the computer table each
+  // get their own copy. One element shown in both places made React warn about
+  // a list without keys.
+  const manualEntry = () =>
     isOwner && members.length > 0 ? (
       <div className="workbit-manual-timelog" style={{ display: "grid", gap: 8 }}>
         <PopupAction
@@ -192,7 +195,7 @@ export default async function DashboardTimeLogsPage({
     <Stack>
       {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
       <TimeLogsClient
-        manualEntry={manualEntry}
+        manualEntry={manualEntry()}
         role={role}
         initialLogs={initialLogs.map((log) => ({
           id: log.id,
@@ -244,7 +247,7 @@ export default async function DashboardTimeLogsPage({
         <DesktopTimeLogs
           barId={activeBarId}
           logs={logs}
-          manualEntry={manualEntry}
+          manualEntry={manualEntry()}
           filter={filter}
           personId={personId}
         />

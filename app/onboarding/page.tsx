@@ -1268,7 +1268,7 @@ export default async function OnboardingPage({
               color: "#a3a0b8",
             }}
           >
-            {teamMembers.length > 0 ? `Persone · ${teamMembers.length}` : "Persone"}
+            {teamMembers.length > 0 ? `Personale · ${teamMembers.length}` : "Personale"}
           </span>
 
           {teamMembers.length > 0 ? (

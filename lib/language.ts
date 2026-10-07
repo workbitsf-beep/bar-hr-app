@@ -1057,12 +1057,21 @@ function applyWordReplacements(language: SupportedLanguage, value: string) {
 
 function matchesRuntimeEntry(
   entry: RuntimeEntry,
-  value: string
+  value: string,
+  language: SupportedLanguage
 ) {
   const [source, translations] = entry;
 
   if (source === value) {
     return true;
+  }
+
+  // The pages are written in Italian, so in Italian there is nothing foreign
+  // to bring back. Matching other languages there turned the Italian "Note"
+  // into "Nota", because "Note" is the English for "Nota" - a wrong label,
+  // and text React no longer recognised when hydrating.
+  if (language === "it") {
+    return translations.it === value;
   }
 
   return Object.values(translations).some((translation) => translation === value);
@@ -1076,7 +1085,7 @@ export function translateRuntimeValue(language: string, value: string): string {
     return value;
   }
 
-  const directEntry = runtimeEntries.find((entry) => matchesRuntimeEntry(entry, trimmed));
+  const directEntry = runtimeEntries.find((entry) => matchesRuntimeEntry(entry, trimmed, normalizedLanguage));
   const translatedDirect = directEntry ? directEntry[1][normalizedLanguage] : trimmed;
   const translatedPattern = applyPatternReplacements(normalizedLanguage, translatedDirect);
   const translatedWords = applyWordReplacements(normalizedLanguage, translatedPattern);

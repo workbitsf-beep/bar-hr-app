@@ -16,6 +16,7 @@ import {
   formatDateTimeLocalInTimeZone,
 } from "@/lib/time-zone";
 import type { DashboardNavItem } from "./context";
+import { getBottomNavItems } from "./bottom-nav-items";
 import { BarHeaderSwitcher } from "./bar-logo-switcher";
 import { DashboardNavMenu } from "./dashboard-nav-menu";
 
@@ -82,23 +83,6 @@ function getTodayInputValue() {
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function getBottomNavItems(navItems: DashboardNavItem[], slots = 5) {
-  const preferredHrefs = [
-    "/dashboard",
-    "/dashboard/calendar",
-    "/dashboard/tasks",
-    "/dashboard/documents",
-    "/dashboard/timelogs",
-    "/dashboard/requests",
-  ];
-  const preferred = preferredHrefs
-    .map((href) => navItems.find((item) => item.href === href))
-    .filter((item): item is DashboardNavItem => Boolean(item));
-  const fill = navItems.filter((item) => !preferred.some((selected) => selected.href === item.href));
-
-  return [...preferred, ...fill].slice(0, slots);
 }
 
 export function DashboardShell({
