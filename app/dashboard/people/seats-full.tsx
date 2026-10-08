@@ -49,7 +49,7 @@ export function SeatsFull({
         Gli extra si sommano al tuo abbonamento, con un solo pagamento. Scrivi all&apos;assistenza per aggiungerli.
       </span>
       <Link
-        href="/dashboard/settings?piano=1"
+        href="/dashboard/settings?billing=1"
         style={{ justifySelf: "start", fontSize: 14, fontWeight: 800, color: "#6d3df0", textDecoration: "none" }}
       >
         Vedi il tuo piano ›

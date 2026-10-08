@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Department } from "@prisma/client";
 import type { DepartmentInfo } from "@/lib/departments";
+import { CrewSwipe } from "./today-crew";
 
 export type CrewRow = {
   id: string;
+  shiftId: string;
   initials: string;
   name: string;
   from: string;
@@ -20,7 +22,16 @@ export type CrewRow = {
  * is in and a word when someone is late, above the list of always. Touching a
  * tile narrows the list to that department; touching it again shows everyone.
  */
-export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments: DepartmentInfo[] }) {
+export function CrewBoard({
+  rows,
+  departments,
+  addShift,
+}: {
+  rows: CrewRow[];
+  departments: DepartmentInfo[];
+  /** "Turno al volo", next to the count. */
+  addShift?: ReactNode;
+}) {
   const [picked, setPicked] = useState<Department | null>(null);
   // Jolly has no tile: whoever is on a Jolly shift counts in every department.
   const inDepartment = (row: CrewRow, id: Department) => row.department?.id === id || row.department?.id === "JOLLY";
@@ -106,18 +117,22 @@ export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments:
       <section className="workbit-crew">
         <div className="workbit-crew-head">
           <strong>{pickedName ?? "In servizio oggi"}</strong>
-          {shown.length > 0 ? (
-            <span>
-              {inside} su {shown.length} dentro
-            </span>
-          ) : null}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {shown.length > 0 ? (
+              <span>
+                {inside} su {shown.length} dentro
+              </span>
+            ) : null}
+            {addShift}
+          </span>
         </div>
 
         {shown.length === 0 ? (
           <span style={{ color: "#667085", fontSize: 13.5 }}>Nessun turno programmato per oggi.</span>
         ) : (
           shown.map((person) => (
-            <div className="workbit-crew-person" key={person.id}>
+            <CrewSwipe key={person.id} shiftId={person.shiftId} userId={person.id} name={person.name} from={person.from} to={person.to}>
+            <div className="workbit-crew-person">
               <span className="workbit-crew-avatar" aria-hidden="true" style={{ position: "relative" }}>
                 {person.initials}
                 {person.department ? (
@@ -150,6 +165,7 @@ export function CrewBoard({ rows, departments }: { rows: CrewRow[]; departments:
               </span>
               <span className={`workbit-crew-state workbit-crew-state--${person.tone}`}>{person.label}</span>
             </div>
+            </CrewSwipe>
           ))
         )}
       </section>

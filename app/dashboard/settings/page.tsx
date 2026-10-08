@@ -1132,25 +1132,6 @@ export default async function DashboardSettingsPage({
       {accountGroup}
 
       <SettingsGroup label="Abbonamento e assistenza">
-        {role === Role.OWNER && seats ? (
-          <PopupAction
-            title="Il tuo piano"
-            ariaLabel="Apri il tuo piano"
-            initialOpen={openPlanPopup}
-            triggerRow={
-              <SettingsRow
-                dot="#6d3df0"
-                title="Il tuo piano"
-                lead={seats.limit === null ? `${seats.used} persone` : `${seats.used} persone su ${seats.limit}`}
-                status={describePlan(entitlements)}
-                statusTone={seats.full ? "warn" : "plain"}
-              />
-            }
-          >
-            <PlanPanel entitlements={entitlements} seats={seats} />
-          </PopupAction>
-        ) : null}
-
         {role === Role.OWNER && entitlements.branding && activeBarName ? (
           <PopupAction
             title="Stile del locale"
@@ -1171,17 +1152,24 @@ export default async function DashboardSettingsPage({
         <PopupAction
           title="Abbonamento"
           ariaLabel="Apri abbonamento"
-          initialOpen={openBillingPopup}
+          initialOpen={openBillingPopup || openPlanPopup}
           triggerRow={
             <SettingsRow
               dot="#0284c7"
               title="Abbonamento"
-              lead="Piano e pagamento"
+              lead={
+                seats
+                  ? `${describePlan(entitlements)} · ${seats.limit === null ? `${seats.used} persone` : `${seats.used} su ${seats.limit} persone`}`
+                  : "Piano e pagamento"
+              }
               status={billingRowStatus}
-              statusTone={resolvedBillingStatus.canAccess ? "plain" : "warn"}
+              statusTone={resolvedBillingStatus.canAccess && !seats?.full ? "plain" : "warn"}
             />
           }
         >
+          {/* One place for what the venue has and how it pays: the plan with
+              its extras was a second row saying half of the same thing. */}
+          {role === Role.OWNER && seats ? <PlanPanel entitlements={entitlements} seats={seats} /> : null}
           <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
         </PopupAction>
 

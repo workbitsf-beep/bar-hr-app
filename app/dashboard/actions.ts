@@ -5802,3 +5802,253 @@ export async function coverRequestShiftsAction(formData: FormData) {
   revalidatePath("/dashboard/requests");
   redirect(`/dashboard/requests?r=${encodeURIComponent(requestId)}&cover=${created}`);
 }
+
+/*
+ * The day itself. Someone rings to say they will be late, or cannot come:
+ * from the Oggi page the owner moves that person's shift, takes them off it,
+ * or puts someone else on straight away. A shift shared with others is never
+ * moved for all of them: the person leaves it and gets a shift of their own.
+ */
+
+/** "19:30" on the shift's own day; an end before the start runs past midnight. */
+function todayRange(dayKey: string, from: string, to: string) {
+  const pattern = /^\d{2}:\d{2}$/;
+  if (!pattern.test(from) || !pattern.test(to)) {
+    throw new RuleError("Scegli l'orario di inizio e di fine");
+  }
+  const startTime = parseDateTimeLocal(`${dayKey}T${from}:00`);
+  let endTime = parseDateTimeLocal(`${dayKey}T${to}:00`);
+  if (endTime <= startTime) {
+    endTime = new Date(endTime.getTime() + 24 * 60 * 60 * 1000);
+  }
+  ensureValidDateRange(startTime, endTime, "Orario non valido");
+  return { startTime, endTime };
+}
+
+async function loadShiftForToday(input: {
+  barId: string;
+  shiftId: string;
+  userId: string;
+  role: Role;
+  actorId: string;
+}) {
+  const shift = await prisma.shift.findFirst({
+    where: { id: input.shiftId, barId: input.barId },
+    select: {
+      id: true,
+      title: true,
+      startTime: true,
+      endTime: true,
+      isOnCall: true,
+      department: true,
+      assignedToId: true,
+      confirmedAt: true,
+      confirmedById: true,
+      assignments: { select: { userId: true } },
+    },
+  });
+
+  if (!shift) {
+    throw new RuleError("Questo turno non esiste più");
+  }
+  if (!shift.assignments.some((assignment) => assignment.userId === input.userId)) {
+    throw new RuleError("Questa persona non è più in questo turno");
+  }
+  if (!canManageOperations(input.role)) {
+    await ensureShiftManager(input.role, input.barId, input.actorId, await shiftDepartmentOf(input.barId, shift));
+  }
+  ensureShiftCanStillBeChanged(shift.startTime);
+  return shift;
+}
+
+async function tellAboutToday(barId: string, actorId: string, userId: string, title: string, message: string) {
+  if (userId === actorId) return;
+  await notifyUsers([userId], {
+    barId,
+    title,
+    message,
+    type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
+    actionUrl: "/dashboard",
+  });
+}
+
+/** Late, or leaving early: the person's shift today at another time. */
+export async function changeTodayShiftAction(formData: FormData) {
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    if (!activeBarId) throw new Error("No active bar selected");
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+
+    const userId = String(formData.get("userId") ?? "").trim();
+    const shift = await loadShiftForToday({
+      barId: activeBarId,
+      shiftId: String(formData.get("shiftId") ?? "").trim(),
+      userId,
+      role,
+      actorId: session.user.id,
+    });
+    const { startTime, endTime } = todayRange(
+      toDateInputValueInTimeZone(shift.startTime),
+      String(formData.get("from") ?? "").trim(),
+      String(formData.get("to") ?? "").trim()
+    );
+
+    await assertNoShiftAssignmentConflicts({
+      barId: activeBarId,
+      employeeIds: [userId],
+      startTime,
+      endTime,
+      isOnCall: shift.isOnCall,
+      excludeShiftId: shift.id,
+    });
+
+    await cancelShiftClockReminders([shift.id]);
+
+    if (shift.assignments.length === 1) {
+      await prisma.shift.update({ where: { id: shift.id }, data: { startTime, endTime } });
+      if (shift.confirmedAt && !shift.isOnCall) await scheduleShiftClockReminders([shift.id]);
+    } else {
+      const others = shift.assignments.map((assignment) => assignment.userId).filter((id) => id !== userId);
+      const own = await prisma.$transaction(async (tx) => {
+        await tx.shiftAssignment.deleteMany({ where: { shiftId: shift.id, userId } });
+        if (shift.assignedToId === userId) {
+          await tx.shift.update({ where: { id: shift.id }, data: { assignedToId: others[0] } });
+        }
+        return tx.shift.create({
+          data: {
+            title: shift.title,
+            startTime,
+            endTime,
+            isOnCall: shift.isOnCall,
+            department: shift.department,
+            confirmedAt: shift.confirmedAt,
+            confirmedById: shift.confirmedById,
+            assignedToId: userId,
+            barId: activeBarId,
+            createdById: session.user.id,
+            assignments: { create: { userId } },
+          },
+          select: { id: true },
+        });
+      });
+      if (shift.confirmedAt && !shift.isOnCall) await scheduleShiftClockReminders([shift.id, own.id]);
+    }
+
+    await tellAboutToday(
+      activeBarId,
+      session.user.id,
+      userId,
+      "Turno di oggi cambiato",
+      `Il tuo turno di oggi ora è dalle ${toTimeInputValueInTimeZone(startTime)} alle ${toTimeInputValueInTimeZone(endTime)}.`
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    return { ok: true as const };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** Cannot come: the person is taken off today's shift (and the shift goes if they were alone on it). */
+export async function removeFromTodayShiftAction(formData: FormData) {
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    if (!activeBarId) throw new Error("No active bar selected");
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+
+    const userId = String(formData.get("userId") ?? "").trim();
+    const shift = await loadShiftForToday({
+      barId: activeBarId,
+      shiftId: String(formData.get("shiftId") ?? "").trim(),
+      userId,
+      role,
+      actorId: session.user.id,
+    });
+
+    await cancelShiftClockReminders([shift.id]);
+
+    if (shift.assignments.length === 1) {
+      const result = await deleteShiftWithCleanup(shift.id, { barId: activeBarId });
+      if (!result.deleted) throw new RuleError("Questo turno non esiste più");
+    } else {
+      const others = shift.assignments.map((assignment) => assignment.userId).filter((id) => id !== userId);
+      await prisma.$transaction(async (tx) => {
+        await tx.shiftAssignment.deleteMany({ where: { shiftId: shift.id, userId } });
+        if (shift.assignedToId === userId) {
+          await tx.shift.update({ where: { id: shift.id }, data: { assignedToId: others[0] } });
+        }
+      });
+      if (shift.confirmedAt && !shift.isOnCall) await scheduleShiftClockReminders([shift.id]);
+    }
+
+    await tellAboutToday(
+      activeBarId,
+      session.user.id,
+      userId,
+      "Turno di oggi tolto",
+      `Il tuo turno di oggi dalle ${toTimeInputValueInTimeZone(shift.startTime)} alle ${toTimeInputValueInTimeZone(shift.endTime)} è stato tolto.`
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    return { ok: true as const };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** Someone to cover, now: a shift for today, published straight away. */
+export async function addTodayShiftAction(formData: FormData) {
+  try {
+    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    if (!activeBarId) throw new Error("No active bar selected");
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+
+    const userId = String(formData.get("userId") ?? "").trim();
+    if (!userId) throw new RuleError("Scegli chi fa il turno");
+    const requestedDepartment = parseDepartment(formData.get("department"));
+    const department =
+      requestedDepartment && (await getVenueEntitlements(activeBarId)).departments ? requestedDepartment : null;
+    await ensureShiftManager(role, activeBarId, session.user.id, department);
+
+    const { startTime, endTime } = todayRange(
+      toDateInputValueInTimeZone(new Date()),
+      String(formData.get("from") ?? "").trim(),
+      String(formData.get("to") ?? "").trim()
+    );
+
+    await ensureUsersBelongToBar(activeBarId, [userId]);
+    await assertNoShiftAssignmentConflicts({ barId: activeBarId, employeeIds: [userId], startTime, endTime });
+
+    const shift = await prisma.shift.create({
+      data: {
+        startTime,
+        endTime,
+        department,
+        confirmedAt: new Date(),
+        confirmedById: session.user.id,
+        assignedToId: userId,
+        barId: activeBarId,
+        createdById: session.user.id,
+        assignments: { create: { userId } },
+      },
+      select: { id: true },
+    });
+    await scheduleShiftClockReminders([shift.id]);
+
+    await tellAboutToday(
+      activeBarId,
+      session.user.id,
+      userId,
+      "Nuovo turno oggi",
+      `Oggi sei in turno dalle ${toTimeInputValueInTimeZone(startTime)} alle ${toTimeInputValueInTimeZone(endTime)}.`
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/calendar");
+    return { ok: true as const };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}

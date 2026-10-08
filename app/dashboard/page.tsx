@@ -15,6 +15,7 @@ import { DepartmentDot } from "./department-forms";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DesktopToday } from "./desktop-today";
 import { ClockFixEmployee, ClockFixReview } from "./clock-fix";
+import { CrewSwipe, TodayShiftAdd } from "./today-crew";
 import { getClockFixesForReview, getEmployeeClockFixState } from "@/lib/clock-fixes";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
@@ -517,6 +518,7 @@ export default async function DashboardPage() {
     string,
     {
       id: string;
+      shiftId: string;
       name: string;
       initials: string;
       from: string;
@@ -552,6 +554,7 @@ export default async function DashboardPage() {
 
       crewToday.set(assignment.user.id, {
         id: assignment.user.id,
+        shiftId: shift.id,
         name: `${assignment.user.firstName} ${assignment.user.lastName}`,
         initials: initialsOf(assignment.user.firstName, assignment.user.lastName),
         from: toTimeInputValueInTimeZone(shift.startTime),
@@ -715,14 +718,35 @@ export default async function DashboardPage() {
       )
     : new Map<string, (typeof crew)[number]["department"]>();
 
+  // Who can be put on a shift today, for "Turno al volo".
+  const rosterMembers =
+    canManagePeople && features.shifts && activeBarId
+      ? (
+          await prisma.employeeBar.findMany({
+            where: { barId: activeBarId, isActive: true },
+            orderBy: { hiredAt: "asc" },
+            select: { department: true, user: { select: { id: true, firstName: true, lastName: true } } },
+          })
+        ).map((member) => ({
+          id: member.user.id,
+          name: `${member.user.firstName} ${member.user.lastName}`.trim(),
+          department: member.department,
+        }))
+      : [];
+  const addTodayShift = (
+    <TodayShiftAdd members={rosterMembers} departments={departments.enabled ? staffDepartments(departments.list) : null} />
+  );
+
   const crewBlock =
     canManagePeople && features.shifts && departments.enabled ? (
       <CrewBoard
         departments={staffDepartments(departments.list)}
+        addShift={addTodayShift}
         rows={crew.map((person) => {
           const status = crewStatusOf(person);
           return {
             id: person.id,
+            shiftId: person.shiftId,
             initials: person.initials,
             name: person.name,
             from: person.from,
@@ -737,11 +761,14 @@ export default async function DashboardPage() {
       <section className="workbit-crew">
         <div className="workbit-crew-head">
           <strong>In servizio oggi</strong>
-          {crew.length > 0 ? (
-            <span>
-              {crewInside} su {crew.length} {crewInside === 1 ? "dentro" : "dentro"}
-            </span>
-          ) : null}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {crew.length > 0 ? (
+              <span>
+                {crewInside} su {crew.length} dentro
+              </span>
+            ) : null}
+            {addTodayShift}
+          </span>
         </div>
 
         {crew.length === 0 ? (
@@ -750,19 +777,29 @@ export default async function DashboardPage() {
           crew.map((person) => {
             const { tone: state, label } = crewStatusOf(person);
 
+            // Slide right to change the hours, left to take the person off today.
             return (
-              <div className="workbit-crew-person" key={person.id}>
-                <span className="workbit-crew-avatar" aria-hidden="true">
-                  {person.initials}
-                </span>
-                <span className="workbit-crew-who">
-                  <b>{person.name}</b>
-                  <span>
-                    {person.from} – {person.to}
+              <CrewSwipe
+                key={person.id}
+                shiftId={person.shiftId}
+                userId={person.id}
+                name={person.name}
+                from={person.from}
+                to={person.to}
+              >
+                <div className="workbit-crew-person">
+                  <span className="workbit-crew-avatar" aria-hidden="true">
+                    {person.initials}
                   </span>
-                </span>
-                <span className={`workbit-crew-state workbit-crew-state--${state}`}>{label}</span>
-              </div>
+                  <span className="workbit-crew-who">
+                    <b>{person.name}</b>
+                    <span>
+                      {person.from} – {person.to}
+                    </span>
+                  </span>
+                  <span className={`workbit-crew-state workbit-crew-state--${state}`}>{label}</span>
+                </div>
+              </CrewSwipe>
             );
           })
         )}
