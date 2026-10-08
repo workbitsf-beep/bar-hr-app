@@ -194,7 +194,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
       ? {
           ...rawFeatures,
           shifts: featureSettings?.companyShiftsEnabled === false ? false : rawFeatures.shifts,
-          timeTracking: false,
+          // Companies clock in too since 8 October 2026, when the owner turns it on.
         }
       : rawFeatures;
   const ownerNeedsSubscriptionActivation =

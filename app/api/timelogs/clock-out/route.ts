@@ -1,5 +1,5 @@
 ﻿import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
-import { isWithinRadius } from "@/lib/gps";
+import { clockPlaceFor, isAtClockPlace } from "@/lib/clock-points";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
@@ -98,40 +98,36 @@ export const POST = withBar(
     const sessionShiftId = entryOpen ? lastClockIn!.shiftId : declaredEntry!.shiftId;
     const staleAutoClockOut = entryOpen ? existingClockOut : null;
 
-    const settings = await prisma.barSettings.findUnique({
-      where: {
-        barId: session.activeBarId,
-      },
-    });
-
     const body = (await req.json()) as ClockOutBody;
     const latitude =
       typeof body.latitude === "number" ? body.latitude : null;
     const longitude =
       typeof body.longitude === "number" ? body.longitude : null;
-    if (
-      latitude === null ||
-      longitude === null ||
-      !settings ||
-      settings.gpsLatitude === null ||
-      settings.gpsLongitude === null ||
-      settings.gpsRadius === null
-    ) {
+    if (latitude === null || longitude === null) {
       return Response.json(
         { ok: false, message: "Missing coordinates" },
         { status: 400 }
       );
     }
 
-    const allowed = isWithinRadius(
-      latitude,
-      longitude,
-      settings.gpsLatitude,
-      settings.gpsLongitude,
-      settings.gpsRadius
-    );
+    const sessionShift = sessionShiftId
+      ? await prisma.shift.findUnique({ where: { id: sessionShiftId }, select: { department: true } })
+      : null;
+    // Out where you went in: the venue's point, or the company site's.
+    const place = await clockPlaceFor({
+      barId: session.activeBarId,
+      userId: session.user.id,
+      shiftDepartment: sessionShift?.department ?? null,
+    });
 
-    if (!allowed) {
+    if (place.points.length === 0 || place.radius === null) {
+      return Response.json(
+        { ok: false, message: "Missing coordinates" },
+        { status: 400 }
+      );
+    }
+
+    if (!isAtClockPlace(place, latitude, longitude)) {
       return Response.json(
         { ok: false, message: "Outside allowed radius" },
         { status: 403 }

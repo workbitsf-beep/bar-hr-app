@@ -15,6 +15,9 @@ import { prisma } from "@/lib/prisma";
  */
 
 export const BASE_SEATS = 12;
+/** A company's sites: three with the Sedi extra, six on Pro. */
+export const SITES_WITH_EXTRA = 3;
+export const SITES_ON_PRO = 6;
 export const SEAT_PACK_SIZE = 5;
 export const MAX_SEAT_PACKS = 2;
 
@@ -56,6 +59,12 @@ export function entitlementsOf(bar: {
   };
 }
 
+/** How many sites a company may have; 0 without the extra. */
+export function siteLimitOf(entitlements: VenueEntitlements) {
+  if (entitlements.pro) return SITES_ON_PRO;
+  return entitlements.departments ? SITES_WITH_EXTRA : 0;
+}
+
 const NONE: VenueEntitlements = {
   plan: VenuePlan.BASE,
   pro: false,
@@ -94,10 +103,10 @@ export async function getSeatUsage(barId: string): Promise<SeatUsage> {
 }
 
 /** The plan in a few words, for the console and the settings. */
-export function describePlan(entitlements: VenueEntitlements) {
+export function describePlan(entitlements: VenueEntitlements, company = false) {
   if (entitlements.pro) return "Pro";
   const extras = [
-    entitlements.departments ? "Reparti" : null,
+    entitlements.departments ? (company ? "Sedi" : "Reparti") : null,
     entitlements.seatPacks ? `+${entitlements.seatPacks * SEAT_PACK_SIZE} persone` : null,
     entitlements.branding ? "Stile" : null,
   ].filter(Boolean);

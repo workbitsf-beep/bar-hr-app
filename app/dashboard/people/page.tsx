@@ -174,7 +174,7 @@ export default async function DashboardPeoplePage({
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
   // Full: the form gives way to what the venue can do about it.
   const addPerson = seats.full ? (
-    <SeatsFull seats={seats} entitlements={entitlements} />
+    <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} />
   ) : (
     <NewPersonForm action={createEmployeeAction} isCompany={isCompany} />
   );
@@ -380,6 +380,7 @@ export default async function DashboardPeoplePage({
 
           {departments.enabled ? (
             <MemberDepartmentForm
+              words={departments.words}
               membershipId={member.id}
               isOwner={member.role === Role.OWNER}
               department={member.department}
@@ -455,7 +456,7 @@ export default async function DashboardPeoplePage({
         {success === "employee-removed" ? (
           <SuccessCallout>Utente rimosso da questo locale.</SuccessCallout>
         ) : null}
-        {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} callout /> : null}
+        {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
 
         <Panel
           title="Team"
@@ -559,7 +560,7 @@ export default async function DashboardPeoplePage({
             <SuccessCallout>Account creato. La password temporanea è stata inviata via email.</SuccessCallout>
           ) : null}
           {success === "employee-removed" ? <SuccessCallout>Persona rimossa da questo locale.</SuccessCallout> : null}
-          {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} callout /> : null}
+          {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
           <div className="wbd-top">
             <h1>Personale</h1>
             <span className="wbd-tag wbd-tag--violet">

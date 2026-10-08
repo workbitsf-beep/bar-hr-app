@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Department, DepartmentMode } from "@prisma/client";
 import type { DepartmentInfo } from "@/lib/departments";
+import { DEPARTMENT_WORDS, type DepartmentWords } from "@/lib/department-words";
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { updateDepartmentSettingsAction, updateMemberDepartmentAction } from "./department-actions";
 import { PrimaryButton } from "./ui";
@@ -234,6 +235,7 @@ export function MemberDepartmentForm({
   isLead,
   currentLeadName,
   departments,
+  words = DEPARTMENT_WORDS,
 }: {
   membershipId: string;
   isOwner: boolean;
@@ -243,6 +245,8 @@ export function MemberDepartmentForm({
   /** Who leads the chosen department today, if somebody else does. */
   currentLeadName: Partial<Record<Department, string>>;
   departments: DepartmentInfo[];
+  /** "reparto" for a venue, "sede" for a company. */
+  words?: DepartmentWords;
 }) {
   const [main, setMain] = useState<Department | null>(department);
   const [help, setHelp] = useState<Department[]>(helpsIn);
@@ -261,7 +265,7 @@ export function MemberDepartmentForm({
       {lead ? <input type="hidden" name="isLead" value="on" /> : null}
 
       <div style={{ display: "grid", gap: 8 }}>
-        <span style={labelStyle}>Reparto</span>
+        <span style={labelStyle}>{words.One}</span>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
           {departments.map((entry) => (
             <DepartmentChip
@@ -281,7 +285,7 @@ export function MemberDepartmentForm({
 
       {main ? (
         <div style={{ display: "grid", gap: 8 }}>
-          <span style={labelStyle}>Può dare una mano in</span>
+          <span style={labelStyle}>{words === DEPARTMENT_WORDS ? "Può dare una mano in" : "Lavora anche in"}</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
             {departments
               .filter((entry) => entry.id !== main)
@@ -304,7 +308,7 @@ export function MemberDepartmentForm({
       {main && !isOwner ? (
         <div style={{ display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid #f0ebfb", paddingTop: 12 }}>
           <span style={{ flex: 1, display: "grid", gap: 2 }}>
-            <strong style={{ fontSize: 14 }}>Capo reparto</strong>
+            <strong style={{ fontSize: 14 }}>{words.Lead}</strong>
             <span style={{ fontSize: 12, color: "#8a84a8" }}>
               {other && !lead
                 ? `Oggi è ${other}: lo sostituisce.`
@@ -315,7 +319,7 @@ export function MemberDepartmentForm({
             type="button"
             role="switch"
             aria-checked={lead}
-            aria-label="Capo reparto"
+            aria-label={words.Lead}
             onClick={() => setLead((value) => !value)}
             style={{
               width: 48,
@@ -348,7 +352,7 @@ export function MemberDepartmentForm({
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Salvo..." : "Salva reparto"}
+          {pending ? "Salvo..." : `Salva ${words.one}`}
         </PrimaryButton>
         <Message value={message} />
       </div>

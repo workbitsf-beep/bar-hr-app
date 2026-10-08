@@ -1113,6 +1113,7 @@ export default async function DashboardCalendarPage({
         active={activeDepartment}
         separate={separateCalendars}
         locked={lockedToOwnDepartment}
+        leadWord={departments.words.lead}
         lead={
           separateCalendars && activeDepartmentInfo
             ? activeLead
@@ -1141,6 +1142,7 @@ export default async function DashboardCalendarPage({
             : [activeInfo, jolly]
           : departments.list,
         active: activeDepartment,
+        label: departments.words.One,
       }
     : null;
   // What the lead's calendar leaves out: notes, tasks, requests and publishing

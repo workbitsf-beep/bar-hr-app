@@ -112,7 +112,6 @@ export function LocaleSettingsPopupContent({
   contactLabel,
   settings,
   globalGpsRadius,
-  isRestaurant,
   section = "all",
 }: LocaleSettingsPopupContentProps & { section?: "all" | "info" | "features" | "tracking" }) {
   const savedFeatures = useMemo(() => getFeatureFlags(settings), [settings]);
@@ -158,10 +157,8 @@ export function LocaleSettingsPopupContent({
   const [roundingAcknowledged, setRoundingAcknowledged] = useState(Boolean(settings?.roundingEnabled));
   const [roundingConsent, setRoundingConsent] = useState(false);
   const [showRoundingInfo, setShowRoundingInfo] = useState(false);
-  const visibleFeatureDefinitions = useMemo(
-    () => featureToggleDefinitions.filter((feature) => isRestaurant || feature.key !== "timeTracking"),
-    [isRestaurant]
-  );
+  // Companies clock in too (since 8 October 2026).
+  const visibleFeatureDefinitions = featureToggleDefinitions;
   const timeTrackingActive = features.timeTracking;
 
   useEffect(() => {
@@ -278,7 +275,7 @@ export function LocaleSettingsPopupContent({
       </form>
       ) : null}
 
-      {showTracking && isRestaurant && timeTrackingActive ? (
+      {showTracking && timeTrackingActive ? (
         <form
           ref={trackingFormRef}
           action={updateSettingsAction}

@@ -21,6 +21,17 @@ Si sommano allo stesso abbonamento: il cliente paga una volta sola.
 
 Il Pro comprende reparti, stile e persone senza limite.
 
+### Per le aziende: Sedi invece di Reparti
+
+Stesso prezzo dell'extra Reparti (7,99 € al mese, 79 € l'anno):
+
+- **fino a 3 sedi** con l'extra, **fino a 6** con il Pro;
+- ogni sede ha nome, indirizzo e punto GPS: si timbra solo nella sede del proprio turno, o in quella della persona;
+- turni, persone, note, carrello, checklist e tessere della pagina Oggi sono divisi per sede;
+- c'è un responsabile per ogni sede.
+
+Dall'8 ottobre 2026 anche le aziende possono timbrare. La timbratura si accende dalle impostazioni e parte spenta per le aziende nuove. Un'azienda che non usa i turni timbra anche senza turno, e quando timbra il report del mese si basa sulle timbrature.
+
 ## Quale fa per chi
 
 | Locale | Piano | Al mese |

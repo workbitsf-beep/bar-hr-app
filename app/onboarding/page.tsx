@@ -389,6 +389,8 @@ async function createBarAction(formData: FormData) {
       settings: {
         create: {
           gpsRadius: globalGpsRadius,
+          // A company starts without clock-ins: turned on in the settings.
+          timeTrackingEnabled: activityType !== ActivityType.COMPANY,
         },
       },
       memberships: {

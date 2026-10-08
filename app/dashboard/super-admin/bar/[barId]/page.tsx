@@ -178,7 +178,7 @@ export default async function ConsoleBarPage({
 
       {/* Until checkout sells the extras, the plan and its extras are set by
           hand here. Pro includes everything; Base adds only what is ticked. */}
-      <Section title={`Piano · ${describePlan(entitlementsOf(bar))}`}>
+      <Section title={`Piano · ${describePlan(entitlementsOf(bar), bar.activityType === "COMPANY")}`}>
         <form action={setVenuePlanAction} style={{ display: "grid", gap: 14 }}>
           <input type="hidden" name="barId" value={bar.id} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -195,7 +195,7 @@ export default async function ConsoleBarPage({
             <span className="wbc-row-meta">Extra del Base (con il Pro sono già compresi)</span>
             <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
-              Reparti · {PLAN_PRICES.departments.monthly}
+              {bar.activityType === "COMPANY" ? "Sedi (fino a 3; 6 nel Pro)" : "Reparti"} · {PLAN_PRICES.departments.monthly}
             </label>
             <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               Pacchetti da +{SEAT_PACK_SIZE} persone · {PLAN_PRICES.seatPack.monthly} l&apos;uno

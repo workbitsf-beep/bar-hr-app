@@ -1488,7 +1488,7 @@ export function OwnerCalendarClient({
   todayAction?: ReactNode;
   publishAction?: ReactNode;
   /** Pro: what a new shift can be filed under, and the department in view (null on "Tutti"). */
-  departmentPick?: { list: DepartmentInfo[]; active: Department | null } | null;
+  departmentPick?: { list: DepartmentInfo[]; active: Department | null; label?: string } | null;
 }) {
   const router = useRouter();
   // A new shift takes the department in view, or - on "Tutti" - the one
@@ -4019,7 +4019,7 @@ export function OwnerCalendarClient({
                                 color: "#a39fb8",
                               }}
                             >
-                              Reparto
+                              {departmentPick.label ?? "Reparto"}
                             </span>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                               {departmentPick.list.map((entry) => {

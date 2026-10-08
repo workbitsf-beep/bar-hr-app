@@ -5,17 +5,34 @@ import { BASE_SEATS, describePlan, MAX_SEAT_PACKS, SEAT_PACK_SIZE, type SeatUsag
  * can hold, and what each extra is for. No prices and no buy buttons - plans
  * are bought outside the app; this only says where the venue stands.
  */
-export function PlanPanel({ entitlements, seats }: { entitlements: VenueEntitlements; seats: SeatUsage }) {
+export function PlanPanel({
+  entitlements,
+  seats,
+  company = false,
+}: {
+  entitlements: VenueEntitlements;
+  seats: SeatUsage;
+  /** A company has sites where a venue has departments. */
+  company?: boolean;
+}) {
   const share = seats.limit ? Math.min(100, Math.round((seats.used / seats.limit) * 100)) : 100;
 
   const extras = [
-    {
-      key: "departments",
-      title: "Reparti",
-      on: entitlements.departments,
-      text: "Turni, note, checklist e carrello divisi tra banco, cucina e sala, più un reparto col nome che scegli tu. Il Jolly copre tutti i reparti e il capo reparto gestisce i turni del suo.",
-      who: "Per la pizzeria con forno e sala, o il ristorante con cucina e sala.",
-    },
+    company
+      ? {
+          key: "departments",
+          title: "Sedi",
+          on: entitlements.departments,
+          text: "Fino a 3 sedi, ognuna con nome, indirizzo e punto di timbratura: si timbra solo nella propria sede. Turni, note, checklist e carrello divisi per sede, e un responsabile per ogni sede.",
+          who: "Per l'azienda con più uffici, negozi o magazzini.",
+        }
+      : {
+          key: "departments",
+          title: "Reparti",
+          on: entitlements.departments,
+          text: "Turni, note, checklist e carrello divisi tra banco, cucina e sala, più un reparto col nome che scegli tu. Il Jolly copre tutti i reparti e il capo reparto gestisce i turni del suo.",
+          who: "Per la pizzeria con forno e sala, o il ristorante con cucina e sala.",
+        },
     {
       key: "seats",
       title: `Persone in più`,
@@ -38,7 +55,7 @@ export function PlanPanel({ entitlements, seats }: { entitlements: VenueEntitlem
         <span style={{ fontSize: 10.5, fontWeight: 900, letterSpacing: ".14em", textTransform: "uppercase", color: "#7c6bd6" }}>
           Il tuo piano
         </span>
-        <strong style={{ fontSize: 22, color: "#17161f" }}>{describePlan(entitlements)}</strong>
+        <strong style={{ fontSize: 22, color: "#17161f" }}>{describePlan(entitlements, company)}</strong>
         <div style={{ display: "grid", gap: 5 }}>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: "#4c4670" }}>
             {seats.limit === null ? `${seats.used} persone · senza limite` : `${seats.used} persone su ${seats.limit}`}
@@ -94,9 +111,13 @@ export function PlanPanel({ entitlements, seats }: { entitlements: VenueEntitlem
             ) : null}
           </div>
           <span style={{ fontSize: 13.5, color: "#4c4670", lineHeight: 1.45 }}>
-            Tutto compreso: reparti, stile del locale e persone senza limite.
+            {company
+              ? "Tutto compreso: fino a 6 sedi, lo stile dell'azienda e persone senza limite."
+              : "Tutto compreso: reparti, stile del locale e persone senza limite."}
           </span>
-          <span style={{ fontSize: 12.5, color: "#8b88a3" }}>Per il ristorante con tanta gente.</span>
+          <span style={{ fontSize: 12.5, color: "#8b88a3" }}>
+            {company ? "Per l'azienda con molte sedi e tanta gente." : "Per il ristorante con tanta gente."}
+          </span>
         </div>
       </div>
 

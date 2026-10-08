@@ -64,6 +64,7 @@ export async function findAssignedShiftForClockIn({
       startTime: true,
       endTime: true,
       isOnCall: true,
+      department: true,
     },
   });
 

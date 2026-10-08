@@ -219,9 +219,12 @@ export function CrewSwipe({
 export function TodayShiftAdd({
   members,
   departments,
+  label = "Reparto",
 }: {
   members: Array<{ id: string; name: string; department: Department | null }>;
   departments: DepartmentInfo[] | null;
+  /** "Reparto", or "Sede" for a company. */
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -286,7 +289,7 @@ export function TodayShiftAdd({
         <TimeFields from={from} to={to} onFrom={setFrom} onTo={setTo} />
         {departments && departments.length ? (
           <>
-            <span className="wbtc-label">Reparto</span>
+            <span className="wbtc-label">{label}</span>
             <div className="wbtc-people">
               {departments.map((entry) => (
                 <button

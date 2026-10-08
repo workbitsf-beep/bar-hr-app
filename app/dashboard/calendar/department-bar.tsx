@@ -14,6 +14,7 @@ export function DepartmentBar({
   locked,
   lead,
   hrefs,
+  leadWord = "capo reparto",
 }: {
   departments: DepartmentInfo[];
   active: Department | null;
@@ -23,6 +24,8 @@ export function DepartmentBar({
   lead: { name: string; department: DepartmentInfo } | null | "none";
   /** Where each chip leads, keyed by department or "TUTTI". */
   hrefs: Record<string, string>;
+  /** "capo reparto", or "responsabile di sede" for a company. */
+  leadWord?: string;
 }) {
   const chip = (
     key: string,
@@ -91,7 +94,7 @@ export function DepartmentBar({
         >
           {lead === "none" ? (
             <span style={{ display: "grid", gap: 1 }}>
-              <strong>Nessun capo reparto</strong>
+              <strong>Nessun {leadWord}</strong>
               <span style={{ color: "#8a84a8", fontSize: 11.5 }}>Lo scegli dal Team. Intanto gestisce il titolare.</span>
             </span>
           ) : (

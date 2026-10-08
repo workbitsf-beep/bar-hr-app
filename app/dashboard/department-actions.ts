@@ -1,11 +1,11 @@
 "use server";
 
 import { ChecklistMoment, Department, DepartmentMode, Role, VenuePlan } from "@prisma/client";
-import { getVenueEntitlements, MAX_SEAT_PACKS } from "@/lib/plans";
+import { getVenueEntitlements, MAX_SEAT_PACKS, siteLimitOf } from "@/lib/plans";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { checklistDay, parseChecklistItems } from "@/lib/checklists";
-import { getVenueDepartments, parseDepartment } from "@/lib/departments";
+import { getVenueDepartments, isSiteSlot, parseDepartment, SITE_SLOTS } from "@/lib/departments";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
@@ -24,9 +24,9 @@ async function ownerOfProVenue() {
   if (role !== Role.OWNER && role !== Role.MANAGER && String(role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
 
   const entitlements = await getVenueEntitlements(activeBar.id);
-  if (!entitlements.departments) throw new RuleError("I reparti sono un extra del Base, e sono compresi nel Pro.");
+  if (!entitlements.departments) throw new RuleError("Reparti e sedi sono un extra del Base, e sono compresi nel Pro.");
 
-  return { barId: activeBar.id, role };
+  return { barId: activeBar.id, role, entitlements, activityType: activeBar.activityType };
 }
 
 function refresh() {
@@ -228,6 +228,90 @@ export async function toggleChecklistItemAction(formData: FormData) {
 
     revalidatePath("/dashboard");
     return { ok: true as const, complete };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/**
+ * A company's site: its name, address and the point where its people clock
+ * in. New sites take the first free slot, up to the plan's limit (three
+ * with the Sedi extra, six on Pro). Owner only.
+ */
+export async function saveSiteAction(formData: FormData) {
+  try {
+    const { barId, role, entitlements, activityType } = await ownerOfProVenue();
+    if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") throw new RuleError("Solo il titolare cambia le sedi.");
+    if (activityType !== "COMPANY") throw new RuleError("Le sedi sono delle aziende.");
+
+    const name = String(formData.get("name") ?? "").trim().slice(0, 28);
+    if (!name) throw new RuleError("Scrivi il nome della sede.");
+    const address = String(formData.get("address") ?? "").trim().slice(0, 160) || null;
+    const latitude = Number(formData.get("latitude"));
+    const longitude = Number(formData.get("longitude"));
+    const point =
+      Number.isFinite(latitude) && Number.isFinite(longitude) && String(formData.get("latitude") ?? "").trim() !== ""
+        ? { latitude, longitude }
+        : { latitude: null, longitude: null };
+
+    const existing = await prisma.site.findMany({ where: { barId }, select: { slot: true, name: true } });
+    const requested = parseDepartment(formData.get("slot"));
+    const limit = siteLimitOf(entitlements);
+
+    if (existing.some((site) => site.slot !== requested && site.name.trim().toLowerCase() === name.toLowerCase())) {
+      throw new RuleError(`C'è già una sede che si chiama ${name}.`);
+    }
+
+    let slot = requested && isSiteSlot(requested) && existing.some((site) => site.slot === requested) ? requested : null;
+    if (!slot) {
+      if (existing.length >= limit) {
+        throw new RuleError(
+          limit >= SITE_SLOTS.length
+            ? `Il Pro arriva a ${limit} sedi.`
+            : `Con l'extra Sedi arrivi a ${limit} sedi; il Pro ne comprende fino a ${SITE_SLOTS.length}.`
+        );
+      }
+      slot = SITE_SLOTS.find((candidate) => !existing.some((site) => site.slot === candidate)) ?? null;
+      if (!slot) throw new RuleError("Non ci sono altri posti per le sedi.");
+    }
+
+    await prisma.site.upsert({
+      where: { barId_slot: { barId, slot } },
+      update: { name, address, ...point },
+      create: { barId, slot, name, address, ...point },
+    });
+
+    refresh();
+    return { ok: true as const };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** A site closed: nobody works there any more, and no shift from today on is filed under it. */
+export async function deleteSiteAction(formData: FormData) {
+  try {
+    const { barId, role } = await ownerOfProVenue();
+    if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") throw new RuleError("Solo il titolare cambia le sedi.");
+    const slot = parseDepartment(formData.get("slot"));
+    if (!slot || !isSiteSlot(slot)) throw new RuleError("Sede non trovata.");
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.site.deleteMany({ where: { barId, slot } });
+      await tx.employeeBar.updateMany({ where: { barId, department: slot }, data: { department: null, isDepartmentLead: false } });
+      const helping = await tx.employeeBar.findMany({ where: { barId, helpsIn: { has: slot } }, select: { id: true, helpsIn: true } });
+      for (const member of helping) {
+        await tx.employeeBar.update({ where: { id: member.id }, data: { helpsIn: member.helpsIn.filter((entry) => entry !== slot) } });
+      }
+      await tx.shift.updateMany({ where: { barId, department: slot, startTime: { gte: startOfToday } }, data: { department: null } });
+      await tx.checklist.deleteMany({ where: { barId, department: slot } });
+    });
+
+    refresh();
+    return { ok: true as const };
   } catch (error) {
     return ruleFailure(error);
   }

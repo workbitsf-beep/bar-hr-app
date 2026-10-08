@@ -97,7 +97,7 @@ export function ChecklistEditor({
           />
         </label>
       ))}
-      <span style={{ fontSize: 12, color: "#8a84a8" }}>Ogni giorno riparte da zero. Lascia vuoto se un reparto non ne ha bisogno.</span>
+      <span style={{ fontSize: 12, color: "#8a84a8" }}>Ogni giorno riparte da zero. Lascia vuoto quello che non serve.</span>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <PrimaryButton type="submit" disabled={pending}>

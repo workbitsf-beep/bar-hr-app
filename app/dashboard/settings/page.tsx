@@ -36,6 +36,7 @@ import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form
 import { ExternalLink } from "@/app/components/external-link";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DepartmentSettingsForm } from "../department-forms";
+import { SitesForm } from "../sites-form";
 import { ChecklistEditor } from "../checklists";
 import { SavingForm } from "../saving-form";
 import { describePlan, getSeatUsage, getVenueEntitlements, parseSignFont, SIGN_FONTS } from "@/lib/plans";
@@ -949,14 +950,12 @@ export default async function DashboardSettingsPage({
       ? {
           ...settings,
           shiftsEnabled: settings?.companyShiftsEnabled === false ? false : settings?.shiftsEnabled,
-          timeTrackingEnabled: false,
         }
       : settings;
   const standardHours = parseStandardHoursFromSettings(settings);
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
-  const visibleFeatureDefinitions = featureToggleDefinitions.filter(
-    (feature) => isRestaurant || feature.key !== "timeTracking"
-  );
+  // Companies clock in too (since 8 October 2026), each at its own site.
+  const visibleFeatureDefinitions = featureToggleDefinitions;
   const activeFeatureCount = visibleFeatureDefinitions.filter(
     (feature) => getFeatureFlags(featureSettings)[feature.key]
   ).length;
@@ -1071,7 +1070,30 @@ export default async function DashboardSettingsPage({
           </form>
         </PopupAction>
 
-        {departments.enabled && role === Role.OWNER ? (
+        {departments.enabled && role === Role.OWNER && departments.kind === "sites" ? (
+          <PopupAction
+            title="Sedi"
+            ariaLabel="Apri le sedi"
+            triggerRow={
+              <SettingsRow
+                dot="#d6338a"
+                title="Sedi"
+                lead={departments.mode === "SEPARATE" ? "Un calendario per sede" : "Calendario unico"}
+                status={`${departments.sites.length} su ${departments.siteLimit}`}
+                statusTone={departments.sites.length === 0 ? "warn" : "plain"}
+              />
+            }
+          >
+            <SitesForm
+              sites={departments.sites}
+              limit={departments.siteLimit}
+              mode={departments.mode}
+              counts={departmentCounts}
+            />
+          </PopupAction>
+        ) : null}
+
+        {departments.enabled && role === Role.OWNER && departments.kind === "departments" ? (
           <PopupAction
             title="Reparti"
             ariaLabel="Apri i reparti"
@@ -1096,12 +1118,12 @@ export default async function DashboardSettingsPage({
         {departments.enabled && role === Role.OWNER ? (
           <PopupAction
             title="Apertura e chiusura"
-            ariaLabel="Apri le checklist dei reparti"
+            ariaLabel={`Apri le checklist ${departments.kind === "sites" ? "delle sedi" : "dei reparti"}`}
             triggerRow={
               <SettingsRow
                 dot="#0f9784"
                 title="Apertura e chiusura"
-                lead="Le checklist di ogni reparto"
+                lead={`Le checklist di ogni ${departments.words.one}`}
                 status={checklistCount ? String(checklistCount) : "Nessuna"}
               />
             }
@@ -1110,7 +1132,7 @@ export default async function DashboardSettingsPage({
           </PopupAction>
         ) : null}
 
-        {isRestaurant && timeTrackingOn ? (
+        {timeTrackingOn ? (
           <PopupAction
             title="Dove si timbra"
             ariaLabel="Apri la posizione di timbratura"
@@ -1159,7 +1181,7 @@ export default async function DashboardSettingsPage({
               title="Abbonamento"
               lead={
                 seats
-                  ? `${describePlan(entitlements)} · ${seats.limit === null ? `${seats.used} persone` : `${seats.used} su ${seats.limit} persone`}`
+                  ? `${describePlan(entitlements, activeBarActivityType === ActivityType.COMPANY)} · ${seats.limit === null ? `${seats.used} persone` : `${seats.used} su ${seats.limit} persone`}`
                   : "Piano e pagamento"
               }
               status={billingRowStatus}
@@ -1169,7 +1191,7 @@ export default async function DashboardSettingsPage({
         >
           {/* One place for what the venue has and how it pays: the plan with
               its extras was a second row saying half of the same thing. */}
-          {role === Role.OWNER && seats ? <PlanPanel entitlements={entitlements} seats={seats} /> : null}
+          {role === Role.OWNER && seats ? <PlanPanel entitlements={entitlements} seats={seats} company={activeBarActivityType === ActivityType.COMPANY} /> : null}
           <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
         </PopupAction>
 

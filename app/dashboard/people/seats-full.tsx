@@ -9,10 +9,12 @@ export function SeatsFull({
   seats,
   entitlements,
   callout = false,
+  company = false,
 }: {
   seats: SeatUsage;
   entitlements: VenueEntitlements;
   callout?: boolean;
+  company?: boolean;
 }) {
   const packsLeft = MAX_SEAT_PACKS - entitlements.seatPacks;
 
@@ -42,7 +44,7 @@ export function SeatsFull({
           </li>
         ) : null}
         <li>
-          il <b>Pro</b>: persone senza limite, reparti e lo stile del tuo locale
+          il <b>Pro</b>: persone senza limite, {company ? "fino a 6 sedi" : "reparti"} e lo stile {company ? "della tua azienda" : "del tuo locale"}
         </li>
       </ul>
       <span style={{ fontSize: 13, color: "#8b88a3" }}>

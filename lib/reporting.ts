@@ -912,8 +912,13 @@ export async function buildMonthlyDataset(
       const monthStart = new Date(year, month - 1, 1);
       const monthEnd = new Date(year, month, 1);
 
+      // A company that clocks in (since 8 October 2026) is reported from its
+      // clock-ins, like a venue; one that does not keeps its own report.
       if (activityType === ActivityType.COMPANY) {
-        return buildCompanyMonthlyDataset(barId, userId, monthStart, monthEnd, options);
+        const settings = await prisma.barSettings.findUnique({ where: { barId }, select: { timeTrackingEnabled: true } });
+        if (!settings?.timeTrackingEnabled) {
+          return buildCompanyMonthlyDataset(barId, userId, monthStart, monthEnd, options);
+        }
       }
 
       return buildRestaurantMonthlyDataset(barId, userId, monthStart, monthEnd, options);

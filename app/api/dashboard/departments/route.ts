@@ -29,7 +29,7 @@ export const GET = withBar(async (_req, session): Promise<Response> => {
   }
 
   return Response.json(
-    { ok: true, enabled: true, list, members },
+    { ok: true, enabled: true, list, members, label: departments.words.One },
     { headers: { "Cache-Control": "no-store" } }
   );
 });

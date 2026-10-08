@@ -1647,6 +1647,9 @@ export async function createBarBySuperAdminAction(formData: FormData) {
         gpsLongitude: null,
         gpsRadius: globalGpsRadius,
         roundingEnabled: false,
+        // A company starts without clock-ins: the owner turns them on once
+        // the clock-in point is set.
+        timeTrackingEnabled: activityType !== ActivityType.COMPANY,
       },
     });
 
@@ -1773,6 +1776,9 @@ export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
         gpsLongitude: null,
         gpsRadius: globalGpsRadius,
         roundingEnabled: false,
+        // A company starts without clock-ins: the owner turns them on once
+        // the clock-in point is set.
+        timeTrackingEnabled: activityType !== ActivityType.COMPANY,
       },
     });
 

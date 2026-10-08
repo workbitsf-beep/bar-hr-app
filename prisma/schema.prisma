@@ -30,6 +30,14 @@ enum Department {
   SALA
   CUSTOM
   JOLLY
+  /// A company's sites: the same separation as a restaurant's departments,
+  /// each with its own name, address and clock-in point (see Site).
+  SEDE_1
+  SEDE_2
+  SEDE_3
+  SEDE_4
+  SEDE_5
+  SEDE_6
 }
 
 /// One weekly calendar split by department, or one calendar per department
@@ -339,6 +347,7 @@ model Bar {
   documents              Document[]
   shoppingListItems      ShoppingListItem[]
   checklists             Checklist[]
+  sites                  Site[]
   legalAcceptances       LegalAcceptance[]
   notifications          Notification[]
   scheduledNotifications ScheduledNotification[]
@@ -630,6 +639,24 @@ model TimeLog {
   @@index([barId, userId, type, timestamp])
   @@index([shiftId])
   @@index([userId, timestamp])
+}
+
+/// One of a company's sites (Pro or the Sedi extra). Its slot is the value
+/// the shifts, people, notes and lists carry, as departments do for a
+/// restaurant; the name, address and clock-in point live here.
+model Site {
+  id        String     @id @default(uuid()) @db.Uuid
+  barId     String     @db.Uuid
+  bar       Bar        @relation(fields: [barId], references: [id], onDelete: Cascade)
+  slot      Department
+  name      String
+  address   String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([barId, slot])
 }
 
 /// A clock-in or clock-out someone forgot. The person says when they really

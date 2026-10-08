@@ -16,6 +16,7 @@ import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DesktopToday } from "./desktop-today";
 import { ClockFixEmployee, ClockFixReview } from "./clock-fix";
 import { CrewSwipe, TodayShiftAdd } from "./today-crew";
+import { clockPlaceFor } from "@/lib/clock-points";
 import { getClockFixesForReview, getEmployeeClockFixState } from "@/lib/clock-fixes";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
@@ -437,6 +438,20 @@ export default async function DashboardPage() {
 
   // Forgotten entries and exits: what the person can report, what waits for
   // approval, and - for the owner and managers - what is theirs to approve.
+  // Where this person clocks in: the venue's point, or their company site's.
+  const clockPlace =
+    isOperationalProfile && features.timeTracking && activeBarId
+      ? await clockPlaceFor({
+          barId: activeBarId,
+          userId: session.user.id,
+          shiftDepartment: assignedShiftForClockIn?.department ?? null,
+        })
+      : null;
+  const clockSettings =
+    settings && clockPlace?.points.length
+      ? { ...settings, gpsLatitude: clockPlace.points[0].latitude, gpsLongitude: clockPlace.points[0].longitude }
+      : settings;
+
   const [clockFix, clockFixesToReview, venueOwner] = await Promise.all([
     isOperationalProfile && features.timeTracking && activeBarId
       ? getEmployeeClockFixState(activeBarId, session.user.id, now)
@@ -734,7 +749,11 @@ export default async function DashboardPage() {
         }))
       : [];
   const addTodayShift = (
-    <TodayShiftAdd members={rosterMembers} departments={departments.enabled ? staffDepartments(departments.list) : null} />
+    <TodayShiftAdd
+      members={rosterMembers}
+      departments={departments.enabled ? staffDepartments(departments.list) : null}
+      label={departments.words.One}
+    />
   );
 
   const crewBlock =
@@ -864,9 +883,10 @@ export default async function DashboardPage() {
           {features.timeTracking ? (
             <ClockActionsPanel
               role={role}
-              settings={settings}
+              settings={clockSettings}
+              clockPoints={clockPlace?.points ?? null}
               clockStatus={clockStatus}
-              hasScheduledShiftToday={Boolean(assignedShiftForClockIn)}
+              hasScheduledShiftToday={Boolean(assignedShiftForClockIn) || Boolean(clockPlace?.shiftOptional)}
               activeClockInAt={activeClockInAt}
               shiftLabel={
                 timerShift

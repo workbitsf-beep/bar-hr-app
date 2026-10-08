@@ -75,6 +75,17 @@ type CachedClockLocation = GeolocationSample & {
   barRadius: number;
 };
 
+/** How far from the clock-in point - the nearest one, for a company with sites. */
+function nearestDistance(
+  latitude: number,
+  longitude: number,
+  settings: { gpsLatitude: number; gpsLongitude: number },
+  points: Array<{ latitude: number; longitude: number }> | null
+) {
+  const candidates = points?.length ? points : [{ latitude: settings.gpsLatitude, longitude: settings.gpsLongitude }];
+  return Math.min(...candidates.map((point) => calculateDistance(latitude, longitude, point.latitude, point.longitude)));
+}
+
 function hasConfiguredGps(settings: BarSettingsSummary): settings is NonNullable<BarSettingsSummary> & {
   gpsLatitude: number;
   gpsLongitude: number;
@@ -797,9 +808,12 @@ export function ClockActionsPanel({
   hasScheduledShiftToday = false,
   activeClockInAt = null,
   shiftLabel = null,
+  clockPoints = null,
 }: {
   role: Role | string;
   settings: BarSettingsSummary;
+  /** A company's site points: the nearest one counts instead of the venue's. */
+  clockPoints?: Array<{ latitude: number; longitude: number }> | null;
   compact?: boolean;
   clockStatus?: ClockActionStatus;
   hasScheduledShiftToday?: boolean;
@@ -920,12 +934,7 @@ export function ClockActionsPanel({
       return;
     }
 
-    const nextDistance = calculateDistance(
-      sample.latitude,
-      sample.longitude,
-      settings.gpsLatitude,
-      settings.gpsLongitude
-    );
+    const nextDistance = nearestDistance(sample.latitude, sample.longitude, settings, clockPoints);
 
     setLatitude(String(sample.latitude));
     setLongitude(String(sample.longitude));
@@ -939,7 +948,7 @@ export function ClockActionsPanel({
     if (persist) {
       writeCachedClockLocation(settings, sample);
     }
-  }, [settings]);
+  }, [settings, clockPoints]);
 
   const startGeolocationWatch = useCallback((manual = false) => {
     if (
@@ -1114,12 +1123,7 @@ export function ClockActionsPanel({
         return;
       }
 
-      const nextDistance = calculateDistance(
-        sample.latitude,
-        sample.longitude,
-        settings.gpsLatitude,
-        settings.gpsLongitude
-      );
+      const nextDistance = nearestDistance(sample.latitude, sample.longitude, settings, clockPoints);
 
       if (nextDistance > settings.gpsRadius) {
         setLocationError("");

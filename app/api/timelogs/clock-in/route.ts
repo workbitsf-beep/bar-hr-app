@@ -1,6 +1,6 @@
 ﻿import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
-import { isWithinRadius } from "@/lib/gps";
+import { clockPlaceFor, isAtClockPlace } from "@/lib/clock-points";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
@@ -40,40 +40,35 @@ export const POST = withBar(
       );
     }
 
-    const settings = await prisma.barSettings.findUnique({
-      where: {
-        barId: session.activeBarId,
-      },
+    const now = new Date();
+    const activeShift = await findAssignedShiftForClockIn({
+      barId: session.activeBarId,
+      userId: session.user.id,
+      now,
     });
 
-    if (
-      !settings ||
-      settings.gpsLatitude === null ||
-      settings.gpsLongitude === null ||
-      settings.gpsRadius === null
-    ) {
+    // The venue's point, or - for a company with sites - the site of the
+    // shift, else of the person, else any of them.
+    const place = await clockPlaceFor({
+      barId: session.activeBarId,
+      userId: session.user.id,
+      shiftDepartment: activeShift?.department ?? null,
+    });
+
+    if (place.points.length === 0 || place.radius === null) {
       return Response.json(
         { ok: false, message: "Bar GPS settings not configured" },
         { status: 400 }
       );
     }
 
-    const allowed = isWithinRadius(
-      latitude,
-      longitude,
-      settings.gpsLatitude,
-      settings.gpsLongitude,
-      settings.gpsRadius
-    );
-
-    if (!allowed) {
+    if (!isAtClockPlace(place, latitude, longitude)) {
       return Response.json(
         { ok: false, message: "Outside allowed radius" },
         { status: 403 }
       );
     }
 
-    const now = new Date();
     const lastClockIn = await prisma.timeLog.findFirst({
       where: {
         userId: session.user.id,
@@ -155,13 +150,8 @@ export const POST = withBar(
       }
     }
 
-    const activeShift = await findAssignedShiftForClockIn({
-      barId: session.activeBarId,
-      userId: session.user.id,
-      now,
-    });
-
-    if (!activeShift) {
+    // A company that does not plan shifts clocks in without one.
+    if (!activeShift && !place.shiftOptional) {
       return Response.json(
         {
           ok: false,
@@ -177,10 +167,10 @@ export const POST = withBar(
         type: ClockType.IN,
         userId: session.user.id,
         barId: session.activeBarId,
-        shiftId: activeShift.id,
+        shiftId: activeShift?.id ?? null,
         latitude,
         longitude,
-        note: `Turno previsto fino alle ${activeShift.endTime.toISOString()}`,
+        note: activeShift ? `Turno previsto fino alle ${activeShift.endTime.toISOString()}` : null,
       },
     });
 
@@ -188,7 +178,7 @@ export const POST = withBar(
     await closeClockInReminders({
       userId: session.user.id,
       barId: session.activeBarId,
-      shiftId: activeShift.id,
+      shiftId: activeShift?.id ?? null,
     });
 
     return Response.json({ ok: true, log });

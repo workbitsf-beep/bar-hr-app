@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react";
 import type { DepartmentInfo } from "@/lib/departments";
 
-type AudienceDepartments = { list: DepartmentInfo[]; members: Record<string, string[]> };
+type AudienceDepartments = { list: DepartmentInfo[]; members: Record<string, string[]>; label: string };
 
 let cached: Promise<AudienceDepartments | null> | null = null;
 
 function loadDepartments() {
   cached ??= fetch("/api/dashboard/departments", { cache: "no-store" })
     .then((response) => (response.ok ? response.json() : null))
-    .then((body: { ok?: boolean; enabled?: boolean; list?: DepartmentInfo[]; members?: Record<string, string[]> } | null) =>
-      body?.ok && body.enabled && body.list?.length ? { list: body.list, members: body.members ?? {} } : null
+    .then((body: { ok?: boolean; enabled?: boolean; list?: DepartmentInfo[]; members?: Record<string, string[]>; label?: string } | null) =>
+      body?.ok && body.enabled && body.list?.length
+        ? { list: body.list, members: body.members ?? {}, label: body.label ?? "Reparto" }
+        : null
     )
     .catch(() => {
       cached = null;
@@ -52,7 +54,7 @@ export function DepartmentAudience({
 
   return (
     <div style={{ display: "grid", gap: 7 }}>
-      <span style={{ fontSize: 12, fontWeight: 820, color: "#334155" }}>Reparto</span>
+      <span style={{ fontSize: 12, fontWeight: 820, color: "#334155" }}>{departments.label}</span>
       <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: "minmax(0, 1fr)", gap: 6 }}>
         {departments.list.map((department) => {
           const ids = departments.members[department.id] ?? [];

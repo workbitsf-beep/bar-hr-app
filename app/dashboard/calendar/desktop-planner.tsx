@@ -131,7 +131,7 @@ export function DesktopWeekPlanner({
    * published shifts, nothing to drag or add, their own row on top. */
   mode?: "manage" | "view";
   /** Pro: the departments, and the one in view (null on "Tutti"). */
-  departmentPick?: { list: DepartmentInfo[]; active: Department | null } | null;
+  departmentPick?: { list: DepartmentInfo[]; active: Department | null; label?: string } | null;
 }) {
   const router = useRouter();
   const manage = mode === "manage";
@@ -669,7 +669,7 @@ function NewShiftDialog({
   member: Member;
   presets: ShiftPreset[];
   locale: string;
-  departmentPick: { list: DepartmentInfo[]; active: Department | null } | null;
+  departmentPick: { list: DepartmentInfo[]; active: Department | null; label?: string } | null;
   onClose: () => void;
   onDone: (text: string) => void;
 }) {
@@ -739,7 +739,7 @@ function NewShiftDialog({
         </div>
 
         {departmentPick && departmentPick.list.length > 1 ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }} aria-label="Reparto">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }} aria-label={departmentPick.label ?? "Reparto"}>
             {departmentPick.list.map((entry) => {
               const on = department === entry.id;
               return (
