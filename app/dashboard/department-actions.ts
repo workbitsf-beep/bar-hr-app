@@ -1,6 +1,7 @@
 "use server";
 
 import { ChecklistMoment, Department, DepartmentMode, Role, VenuePlan } from "@prisma/client";
+import { getVenueEntitlements, MAX_SEAT_PACKS } from "@/lib/plans";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { checklistDay, parseChecklistItems } from "@/lib/checklists";
@@ -22,8 +23,8 @@ async function ownerOfProVenue() {
   if (!activeBar?.id) throw new Error("No active bar selected");
   if (role !== Role.OWNER && role !== Role.MANAGER && String(role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
 
-  const bar = await prisma.bar.findUnique({ where: { id: activeBar.id }, select: { plan: true } });
-  if (bar?.plan !== VenuePlan.PRO) throw new RuleError("I reparti sono del piano Pro.");
+  const entitlements = await getVenueEntitlements(activeBar.id);
+  if (!entitlements.departments) throw new RuleError("I reparti sono un extra del Base, e sono compresi nel Pro.");
 
   return { barId: activeBar.id, role };
 }
@@ -120,15 +121,28 @@ export async function updateMemberDepartmentAction(formData: FormData) {
   }
 }
 
-/** Puts a venue on Pro or back on Base. Super admin only, until plans are priced. */
+/**
+ * The venue's plan and extras. Super admin only, until checkout sells them:
+ * Base or Pro, and on Base the departments, the packs of five more people
+ * and the venue's own style.
+ */
 export async function setVenuePlanAction(formData: FormData) {
   const session = await getSession();
   if (!session || String(session.user.role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
 
   const barId = String(formData.get("barId") ?? "");
   const plan = String(formData.get("plan")) === VenuePlan.PRO ? VenuePlan.PRO : VenuePlan.BASE;
+  const packs = Math.max(0, Math.min(MAX_SEAT_PACKS, Math.round(Number(formData.get("extraSeatPacks") ?? 0) || 0)));
 
-  await prisma.bar.update({ where: { id: barId }, data: { plan } });
+  await prisma.bar.update({
+    where: { id: barId },
+    data: {
+      plan,
+      departmentsAddon: formData.get("departmentsAddon") === "on",
+      extraSeatPacks: packs,
+      brandingAddon: formData.get("brandingAddon") === "on",
+    },
+  });
   revalidatePath(`/dashboard/super-admin/bar/${barId}`);
   refresh();
 }

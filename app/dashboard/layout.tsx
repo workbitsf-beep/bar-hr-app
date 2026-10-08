@@ -20,6 +20,9 @@ import { ConsoleMark } from "./console-mark";
 import { VenueSign } from "./venue-sign";
 import { getVenueStatus } from "@/lib/venue-status";
 import { DashboardShell } from "./ui";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { entitlementsOf, parseSignFont } from "@/lib/plans";
 
 export default async function DashboardLayout({
   children,
@@ -100,6 +103,29 @@ export default async function DashboardLayout({
         }).catch(() => null)
       : null;
 
+  // The Stile extra (in Pro too): the venue's logo replaces Workbit's in the
+  // header, and the sign takes the venue's font.
+  const styleBar = activeBarId
+    ? await prisma.bar.findUnique({
+        where: { id: activeBarId },
+        select: {
+          plan: true,
+          departmentsAddon: true,
+          extraSeatPacks: true,
+          brandingAddon: true,
+          signFont: true,
+          logoType: true,
+          logoUpdatedAt: true,
+        },
+      })
+    : null;
+  const branded = styleBar ? entitlementsOf(styleBar).branding : false;
+  const signFont = branded ? parseSignFont(styleBar?.signFont) : null;
+  const logoUrl =
+    branded && activeBarId && styleBar?.logoType
+      ? `/api/venue-logo/${activeBarId}?v=${styleBar.logoUpdatedAt?.getTime() ?? 0}`
+      : null;
+
   return (
     <>
       <SessionKeepAlive />
@@ -118,6 +144,20 @@ export default async function DashboardLayout({
         appName={t.appName}
         menuLabel={t.menu}
         navItems={navItems}
+        brandContent={
+          logoUrl ? (
+            <Link href={navItems[0]?.href ?? "/dashboard"} aria-label={activeBarName ?? "Home"} style={{ display: "block", lineHeight: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt=""
+                width={42}
+                height={42}
+                style={{ width: 42, height: 42, borderRadius: 13, objectFit: "cover", display: "block" }}
+              />
+            </Link>
+          ) : undefined
+        }
         headerSwitch={
           accessibleBars.length > 0
             ? {
@@ -223,6 +263,7 @@ export default async function DashboardLayout({
               name={activeBarName}
               initialStatus={venueStatus}
               shiftsEnabled={features.shifts}
+              font={signFont}
             />
           ) : undefined
         }

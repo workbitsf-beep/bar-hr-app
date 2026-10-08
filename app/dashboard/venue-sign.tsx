@@ -2,7 +2,9 @@
 
 import { Playfair_Display } from "next/font/google";
 import { useEffect, useState } from "react";
+import type { SignFontId } from "@/lib/plans";
 import type { VenueStatus } from "@/lib/venue-status";
+import { SIGN_FONT_CLASS, SIGN_FONT_KEEPS_CASE } from "./sign-fonts";
 
 const signFont = Playfair_Display({ subsets: ["latin"], weight: "800", display: "swap" });
 
@@ -18,8 +20,11 @@ export function VenueSign({
   name,
   initialStatus,
   shiftsEnabled,
+  font = null,
 }: {
   name: string;
+  /** The venue's own sign font (the Stile extra); Playfair otherwise. */
+  font?: SignFontId | null;
   /** Null when the venue does not track time: then the sign is the name alone. */
   initialStatus: VenueStatus | null;
   shiftsEnabled: boolean;
@@ -71,7 +76,20 @@ export function VenueSign({
     <div className="wb-sign wb-phone-only" data-size={size} data-no-runtime-translate="">
       <span className="wb-sign-name">
         <i aria-hidden="true" />
-        <b className={signFont.className}>{name}</b>
+        <b
+          className={font ? SIGN_FONT_CLASS[font] : signFont.className}
+          style={
+            font
+              ? {
+                  // Faces cut in one weight only: no fake bold on top.
+                  fontWeight: font === "classico" || font === "elegante" || font === "liberty" ? undefined : 400,
+                  ...(SIGN_FONT_KEEPS_CASE[font] ? { textTransform: "none", letterSpacing: "0.01em" } : {}),
+                }
+              : undefined
+          }
+        >
+          {name}
+        </b>
         <i aria-hidden="true" />
       </span>
       {status ? (

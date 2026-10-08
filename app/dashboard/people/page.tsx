@@ -21,6 +21,8 @@ import { ClassicBack, ClassicToggle } from "../classic-toggle";
 import { Avatar } from "../desk-helpers";
 import "../desk.css";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
+import { getSeatUsage, getVenueEntitlements } from "@/lib/plans";
+import { SeatsFull } from "./seats-full";
 import { DepartmentDot, MemberDepartmentForm } from "../department-forms";
 
 function formatRoleLabel(role: Role) {
@@ -99,6 +101,7 @@ export default async function DashboardPeoplePage({
 }) {
   const params = searchParams ? await searchParams : {};
   const success = Array.isArray(params.success) ? params.success[0] : params.success;
+  const errorParam = Array.isArray(params.error) ? params.error[0] : params.error;
   const { session, role, activeBarId, activeBarActivityType, billingStatus } = await getDashboardContext();
 
   if (role !== Role.OWNER) {
@@ -125,6 +128,7 @@ export default async function DashboardPeoplePage({
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const departments = await getVenueDepartments(activeBarId, session.user.id);
+  const [seats, entitlements] = await Promise.all([getSeatUsage(activeBarId), getVenueEntitlements(activeBarId)]);
   const departmentOf = (id: string | null) => departments.list.find((entry) => entry.id === id) ?? null;
 
   const [members, monthLogs, documents, courses] = await Promise.all([
@@ -168,6 +172,13 @@ export default async function DashboardPeoplePage({
   ]);
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
+  // Full: the form gives way to what the venue can do about it.
+  const addPerson = seats.full ? (
+    <SeatsFull seats={seats} entitlements={entitlements} />
+  ) : (
+    <NewPersonForm action={createEmployeeAction} isCompany={isCompany} />
+  );
+  const seatLabel = seats.limit === null ? null : `${seats.used} su ${seats.limit}`;
   const leadNames: Partial<Record<NonNullable<(typeof members)[number]["department"]>, string>> = {};
   for (const member of members) {
     if (member.isDepartmentLead && member.department) {
@@ -444,6 +455,7 @@ export default async function DashboardPeoplePage({
         {success === "employee-removed" ? (
           <SuccessCallout>Utente rimosso da questo locale.</SuccessCallout>
         ) : null}
+        {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} callout /> : null}
 
         <Panel
           title="Team"
@@ -451,11 +463,11 @@ export default async function DashboardPeoplePage({
           action={
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <span>
-                {members.length === 1 ? "1 persona" : `${members.length} persone`}
+                {seatLabel ? `${seatLabel} persone` : members.length === 1 ? "1 persona" : `${members.length} persone`}
                 {onShift.length > 0 ? ` · ${onShift.length} in servizio` : ""}
               </span>
               <PopupAction title="Nuova persona" ariaLabel="Aggiungi persona">
-                <NewPersonForm action={createEmployeeAction} isCompany={isCompany} />
+                {addPerson}
               </PopupAction>
             </div>
           }
@@ -547,16 +559,17 @@ export default async function DashboardPeoplePage({
             <SuccessCallout>Account creato. La password temporanea è stata inviata via email.</SuccessCallout>
           ) : null}
           {success === "employee-removed" ? <SuccessCallout>Persona rimossa da questo locale.</SuccessCallout> : null}
+          {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} callout /> : null}
           <div className="wbd-top">
             <h1>Personale</h1>
             <span className="wbd-tag wbd-tag--violet">
-              {members.length === 1 ? "1 persona" : `${members.length} persone`}
+              {seatLabel ? `${seatLabel} persone` : members.length === 1 ? "1 persona" : `${members.length} persone`}
               {onShift.length ? ` · ${onShift.length} in servizio` : ""}
             </span>
             <span className="wbd-spacer" />
             <ClassicToggle />
             <PopupAction title="Nuova persona" ariaLabel="Aggiungi persona" triggerContent="+ Nuova persona">
-              <NewPersonForm action={createEmployeeAction} isCompany={isCompany} />
+              {addPerson}
             </PopupAction>
           </div>
 

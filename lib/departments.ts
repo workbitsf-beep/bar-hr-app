@@ -1,5 +1,6 @@
-import { Department, DepartmentMode, Role, VenuePlan } from "@prisma/client";
+import { Department, DepartmentMode, Role } from "@prisma/client";
 import { cache } from "react";
+import { entitlementsOf } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -116,7 +117,14 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
   const [bar, membership] = await Promise.all([
     prisma.bar.findUnique({
       where: { id: barId },
-      select: { plan: true, departmentMode: true, customDepartmentName: true },
+      select: {
+        plan: true,
+        departmentsAddon: true,
+        extraSeatPacks: true,
+        brandingAddon: true,
+        departmentMode: true,
+        customDepartmentName: true,
+      },
     }),
     prisma.employeeBar.findFirst({
       where: { barId, userId, isActive: true },
@@ -124,7 +132,8 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     }),
   ]);
 
-  if (!bar || bar.plan !== VenuePlan.PRO) return off;
+  // Departments come with Pro, or as an extra on Base.
+  if (!bar || !entitlementsOf(bar).departments) return off;
 
   return {
     enabled: true,

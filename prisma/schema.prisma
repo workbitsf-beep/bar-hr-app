@@ -303,6 +303,16 @@ model Bar {
   exitToleranceMin       Int                     @default(13)
   activityType           ActivityType            @default(RESTAURANT)
   plan                   VenuePlan               @default(BASE)
+  /// Base extras (Pro includes them all): departments, packs of five more
+  /// people (at most two), and the venue's own logo and sign font.
+  departmentsAddon       Boolean                 @default(false)
+  extraSeatPacks         Int                     @default(0)
+  brandingAddon          Boolean                 @default(false)
+  /// The venue's logo, already cropped square and small, and its sign font.
+  logo                   Bytes?
+  logoType               String?
+  logoUpdatedAt          DateTime?
+  signFont               String?
   departmentMode         DepartmentMode          @default(UNIFIED)
   /// The name of the fourth department; null while the owner has not added it.
   customDepartmentName   String?

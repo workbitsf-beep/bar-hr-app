@@ -84,6 +84,7 @@ import { createTemporaryPassword } from "@/lib/temporary-password";
 import { SUPER_ADMIN_OVERVIEW_CACHE_TAG } from "@/lib/super-admin-overview";
 import { parseFeatureFlags } from "@/lib/features";
 import { getVenueDepartments, parseDepartment } from "@/lib/departments";
+import { getSeatUsage, getVenueEntitlements } from "@/lib/plans";
 
 type PlanTypeValue = "FREE" | "TRIAL" | "PAID" | "LIFETIME";
 type BillingIntervalValue = "MONTHLY" | "YEARLY";
@@ -2678,10 +2679,7 @@ export async function createShiftAction(formData: FormData) {
     // where nothing about departments exists.
     const requestedDepartment = parseDepartment(formData.get("department"));
     const department =
-      requestedDepartment &&
-      (await prisma.bar.findUnique({ where: { id: activeBarId }, select: { plan: true } }))?.plan === "PRO"
-        ? requestedDepartment
-        : null;
+      requestedDepartment && (await getVenueEntitlements(activeBarId)).departments ? requestedDepartment : null;
     await ensureShiftManager(role, activeBarId, session.user.id, department);
 
     if (employeeIds.length === 0) {
@@ -4111,6 +4109,15 @@ export async function createEmployeeAction(formData: FormData) {
 
   if (bar.activityType !== ActivityType.COMPANY && userRole === Role.AMMINISTRAZIONE) {
     throw new Error("Role not allowed for this activity");
+  }
+
+  // Up to the plan's limit of people, the owner included. Someone already in
+  // the venue, linked again, takes no new place.
+  const alreadyIn = existingUser
+    ? await prisma.employeeBar.count({ where: { userId: existingUser.id, barId: activeBarId, isActive: true } })
+    : 0;
+  if (!alreadyIn && (await getSeatUsage(activeBarId)).full) {
+    redirect(appendStatusToPath(returnPath, { error: "posti-finiti" }));
   }
 
   const temporaryPassword = createTemporaryPassword();

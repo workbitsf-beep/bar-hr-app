@@ -21,6 +21,7 @@ import {
 import { OwnersFieldset, PlanFieldset } from "./edit-fieldsets";
 import { DangerZone } from "./danger-zone";
 import { setVenuePlanAction } from "../../../department-actions";
+import { BASE_SEATS, describePlan, entitlementsOf, MAX_SEAT_PACKS, PLAN_PRICES, SEAT_PACK_SIZE } from "@/lib/plans";
 
 const FEEDBACK: Record<string, string> = {
   "employee-created": "Persona aggiunta al locale.",
@@ -61,6 +62,9 @@ export default async function ConsoleBarPage({
         postalCode: true,
         activityType: true,
         plan: true,
+        departmentsAddon: true,
+        extraSeatPacks: true,
+        brandingAddon: true,
         createdAt: true,
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         memberships: {
@@ -172,22 +176,48 @@ export default async function ConsoleBarPage({
         </form>
       </Section>
 
-      {/* Until plans are priced, Pro is switched on by hand: it turns on
-          departments (banco, cucina, sala) for this venue and nothing else. */}
-      <Section title="Piano">
-        <form action={setVenuePlanAction} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      {/* Until checkout sells the extras, the plan and its extras are set by
+          hand here. Pro includes everything; Base adds only what is ticked. */}
+      <Section title={`Piano · ${describePlan(entitlementsOf(bar))}`}>
+        <form action={setVenuePlanAction} style={{ display: "grid", gap: 14 }}>
           <input type="hidden" name="barId" value={bar.id} />
-          <input type="hidden" name="plan" value={bar.plan === "PRO" ? "BASE" : "PRO"} />
-          <span style={{ flex: "1 1 220px", display: "grid", gap: 2 }}>
-            <strong>{bar.plan === "PRO" ? "Pro · reparti accesi" : "Base"}</strong>
-            <span className="wbc-row-meta">
-              {bar.plan === "PRO"
-                ? "Banco, cucina, sala e capi reparto sono attivi per questo locale."
-                : "Il Pro accende i reparti: banco, cucina, sala e capi reparto."}
-            </span>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {(["BASE", "PRO"] as const).map((plan) => (
+              <label key={plan} className="wbc-row-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700 }}>
+                <input type="radio" name="plan" value={plan} defaultChecked={bar.plan === plan} />
+                {plan === "PRO"
+                  ? `Pro · ${PLAN_PRICES.pro.monthly} · tutto incluso, persone senza limite`
+                  : `Base · ${PLAN_PRICES.base.monthly} · ${BASE_SEATS} persone`}
+              </label>
+            ))}
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            <span className="wbc-row-meta">Extra del Base (con il Pro sono già compresi)</span>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
+              Reparti · {PLAN_PRICES.departments.monthly}
+            </label>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              Pacchetti da +{SEAT_PACK_SIZE} persone · {PLAN_PRICES.seatPack.monthly} l&apos;uno
+              <select name="extraSeatPacks" defaultValue={String(bar.extraSeatPacks)}>
+                {Array.from({ length: MAX_SEAT_PACKS + 1 }, (_, count) => (
+                  <option key={count} value={count}>
+                    {count} · fino a {BASE_SEATS + count * SEAT_PACK_SIZE} persone
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" name="brandingAddon" defaultChecked={bar.brandingAddon} />
+              Stile del locale (logo e font) · {PLAN_PRICES.branding.monthly}
+            </label>
+          </div>
+          <span className="wbc-row-meta">
+            Persone attive: {bar.memberships.length}
+            {entitlementsOf(bar).seatLimit !== null ? ` su ${entitlementsOf(bar).seatLimit}` : " · senza limite"}
           </span>
-          <button type="submit" className={`wbc-btn ${bar.plan === "PRO" ? "wbc-btn-ghost" : "wbc-btn-primary"}`}>
-            {bar.plan === "PRO" ? "Torna al Base" : "Passa a Pro"}
+          <button type="submit" className="wbc-btn wbc-btn-primary" style={{ justifySelf: "start" }}>
+            Salva piano
           </button>
         </form>
       </Section>

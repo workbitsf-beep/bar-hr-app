@@ -38,6 +38,9 @@ import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DepartmentSettingsForm } from "../department-forms";
 import { ChecklistEditor } from "../checklists";
 import { SavingForm } from "../saving-form";
+import { describePlan, getSeatUsage, getVenueEntitlements, parseSignFont, SIGN_FONTS } from "@/lib/plans";
+import { PlanPanel } from "./plan-panel";
+import { VenueStyleForm } from "./venue-style-form";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -717,10 +720,21 @@ export default async function DashboardSettingsPage({
     billingStatus,
     language: sessionLanguage,
   } = await getDashboardContext();
-  const [passkeyCount, departments] = await Promise.all([
+  const [passkeyCount, departments, entitlements, seats, venueStyle] = await Promise.all([
     getPasskeyCount(session.user.id),
     getVenueDepartments(activeBarId, session.user.id),
+    getVenueEntitlements(activeBarId),
+    activeBarId ? getSeatUsage(activeBarId) : Promise.resolve(null),
+    activeBarId
+      ? prisma.bar.findUnique({ where: { id: activeBarId }, select: { signFont: true, logoType: true, logoUpdatedAt: true } })
+      : Promise.resolve(null),
   ]);
+  const openPlanPopup = normalizeParam(params.piano) === "1";
+  const signFont = parseSignFont(venueStyle?.signFont);
+  const logoUrl =
+    activeBarId && venueStyle?.logoType
+      ? `/api/venue-logo/${activeBarId}?v=${venueStyle.logoUpdatedAt?.getTime() ?? 0}`
+      : null;
   // Pro only: how many people work in each department, for the settings row.
   const departmentCounts: Record<string, number> = {};
   if (departments.enabled && activeBarId) {
@@ -1118,6 +1132,42 @@ export default async function DashboardSettingsPage({
       {accountGroup}
 
       <SettingsGroup label="Abbonamento e assistenza">
+        {role === Role.OWNER && seats ? (
+          <PopupAction
+            title="Il tuo piano"
+            ariaLabel="Apri il tuo piano"
+            initialOpen={openPlanPopup}
+            triggerRow={
+              <SettingsRow
+                dot="#6d3df0"
+                title="Il tuo piano"
+                lead={seats.limit === null ? `${seats.used} persone` : `${seats.used} persone su ${seats.limit}`}
+                status={describePlan(entitlements)}
+                statusTone={seats.full ? "warn" : "plain"}
+              />
+            }
+          >
+            <PlanPanel entitlements={entitlements} seats={seats} />
+          </PopupAction>
+        ) : null}
+
+        {role === Role.OWNER && entitlements.branding && activeBarName ? (
+          <PopupAction
+            title="Stile del locale"
+            ariaLabel="Apri lo stile del locale"
+            triggerRow={
+              <SettingsRow
+                dot="#c2257a"
+                title="Stile del locale"
+                lead="Logo e font dell'insegna"
+                status={SIGN_FONTS.find((font) => font.id === (signFont ?? "classico"))?.name ?? "Classico"}
+              />
+            }
+          >
+            <VenueStyleForm barName={activeBarName} currentFont={signFont} logoUrl={logoUrl} />
+          </PopupAction>
+        ) : null}
+
         <PopupAction
           title="Abbonamento"
           ariaLabel="Apri abbonamento"
