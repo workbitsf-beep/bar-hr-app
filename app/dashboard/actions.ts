@@ -3856,8 +3856,8 @@ export async function createDocumentAction(formData: FormData) {
     if (recipients.length > 0) {
       await notifyUsers(recipients, {
         barId: activeBarId,
-        title: "Nuovo documento",
-        message: `${document.title} è disponibile nei documenti di ${notificationContext.barName}.`,
+        title: "Nuovo documento disponibile",
+        message: "",
         type: INTERNAL_NOTIFICATION_TYPES.DOCUMENT_CREATED,
         actionUrl: "/dashboard/documents",
       });
