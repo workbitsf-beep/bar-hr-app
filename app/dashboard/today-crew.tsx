@@ -241,6 +241,8 @@ export function TodayShiftAdd({
       <button
         type="button"
         className="wbtc-add"
+        aria-label="Turno al volo"
+        title="Turno al volo"
         onClick={() => {
           const start = nowRounded();
           setFrom(start);
@@ -251,7 +253,9 @@ export function TodayShiftAdd({
           setOpen(true);
         }}
       >
-        + Turno
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
       </button>
 
       <ModalShell
@@ -344,6 +348,6 @@ const styles = `
 .wbtc-ghost { height: 44px; border: 1px solid #e9e6f5; border-radius: 16px; background: #fff; color: #4c1d95; font-weight: 800; font-size: 14.5px; cursor: pointer; font-family: inherit; }
 .wbtc-sub { text-align: center; font-size: 12px; font-weight: 650; color: #8b88a3; }
 .wbtc-error { padding: 10px 12px; border-radius: 14px; background: #fff1f2; border: 1px solid #fecdd3; color: #b3202f; font-weight: 800; font-size: 13.5px; }
-.wbtc-add { height: 34px; padding: 0 12px; border-radius: 999px; border: 0; background: #f1ecff; color: #4c1d95; font-size: 13px; font-weight: 850;
-  cursor: pointer; font-family: inherit; white-space: nowrap; }
+.wbtc-add { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; padding: 0;
+  background: linear-gradient(160deg,#9b5cff,#6d3df0); color: #fff; box-shadow: 0 6px 14px rgba(109,61,240,.28); cursor: pointer; }
 `;
