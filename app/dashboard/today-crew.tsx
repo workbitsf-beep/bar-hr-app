@@ -336,9 +336,15 @@ const styles = `
 .wbtc-people button[aria-pressed="true"] { background: #6d3df0; border-color: #6d3df0; color: #fff; }
 .wbtc-times { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
 .wbtc-times > span { color: #a39fb8; font-weight: 800; }
-.wbtc-times label { display: grid; gap: 4px; padding: 10px 12px; border-radius: 18px; border: 1.5px solid #8b5cf6; background: #f6f3ff; }
+.wbtc-times label { display: grid; justify-items: center; gap: 2px; padding: 10px 8px; border-radius: 18px; border: 1.5px solid #8b5cf6; background: #f6f3ff; min-width: 0; }
 .wbtc-times small { font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: #7c6bd6; }
-.wbtc-times input { border: 0 !important; background: transparent !important; box-shadow: none !important; font-size: 24px; font-weight: 900; color: #17161f; font-family: inherit; width: 100%; padding: 0; }
+/* iPhone draws a time field with its own white box and left-aligned value:
+   both go, so the time sits in the middle of the lilac card. */
+.wbtc-times input { -webkit-appearance: none !important; appearance: none !important; display: block; width: 100%; min-width: 0; height: 40px;
+  margin: 0; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important;
+  font-size: 26px; font-weight: 900; color: #17161f; font-family: inherit; text-align: center; font-variant-numeric: tabular-nums; }
+.wbtc-times input::-webkit-date-and-time-value { text-align: center; margin: 0; }
+.wbtc-times input::-webkit-calendar-picker-indicator { display: none; }
 .wbtc-label { font-size: 12px; font-weight: 850; color: #334155; margin-bottom: -6px; }
 .wbtc-text { margin: 0; font-size: 14.5px; line-height: 1.45; color: #4c4670; }
 .wbtc-go { height: 52px; border: 0; border-radius: 18px; background: linear-gradient(160deg,#9b5cff,#6d3df0); color: #fff; font-size: 15.5px;

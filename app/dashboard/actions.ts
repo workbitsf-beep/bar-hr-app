@@ -42,6 +42,7 @@ import { buildShiftPresets } from "@/lib/shift-presets";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
 import {
   APP_TIME_ZONE,
+  formatDateInTimeZone,
   formatDateTimeInTimeZone,
   toDateInputValueInTimeZone,
   toTimeInputValueInTimeZone,
@@ -2780,6 +2781,8 @@ export async function updateShiftAction(formData: FormData) {
         endTime: true,
         isOnCall: true,
         department: true,
+        confirmedAt: true,
+        confirmedById: true,
         assignments: {
           select: {
             userId: true,
@@ -2800,6 +2803,12 @@ export async function updateShiftAction(formData: FormData) {
 
     await cancelShiftClockReminders([shiftId]);
 
+    // A shift already published stays published when it is edited: the people
+    // on it hear about the change now, instead of finding it back in draft.
+    const wasPublished = Boolean(existingShift.confirmedAt) && !existingShift.isOnCall && !isOnCall;
+    const publishedAt = wasPublished ? existingShift.confirmedAt : autoConfirm && !isOnCall ? new Date() : null;
+    const publishedBy = wasPublished ? existingShift.confirmedById : autoConfirm && !isOnCall ? session.user.id : null;
+
     await prisma.shift.update({
       where: {
         id: shiftId,
@@ -2810,8 +2819,8 @@ export async function updateShiftAction(formData: FormData) {
         startTime,
         endTime,
         isOnCall,
-        confirmedAt: autoConfirm && !isOnCall ? new Date() : null,
-        confirmedById: autoConfirm && !isOnCall ? session.user.id : null,
+        confirmedAt: publishedAt,
+        confirmedById: publishedBy,
         assignments: {
           deleteMany: {},
           createMany: {
@@ -2821,8 +2830,47 @@ export async function updateShiftAction(formData: FormData) {
       },
     });
 
-    if (autoConfirm && !isOnCall) {
+    if (publishedAt) {
       await scheduleShiftClockReminders([shiftId]);
+    }
+
+    if (wasPublished) {
+      const before = new Set(existingShift.assignments.map((assignment) => assignment.userId));
+      const after = new Set(employeeIds);
+      const timeChanged =
+        existingShift.startTime.getTime() !== startTime.getTime() || existingShift.endTime.getTime() !== endTime.getTime();
+      const when = `${formatDateInTimeZone(startTime)} dalle ${toTimeInputValueInTimeZone(startTime)} alle ${toTimeInputValueInTimeZone(endTime)}`;
+      const kept = [...after].filter((id) => before.has(id) && id !== session.user.id);
+      const added = [...after].filter((id) => !before.has(id) && id !== session.user.id);
+      const removed = [...before].filter((id) => !after.has(id) && id !== session.user.id);
+
+      if (timeChanged && kept.length) {
+        await notifyUsers(kept, {
+          barId: activeBarId,
+          title: "Turno cambiato",
+          message: `Il tuo turno ora è ${when}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
+          actionUrl: "/dashboard/calendar",
+        });
+      }
+      if (added.length) {
+        await notifyUsers(added, {
+          barId: activeBarId,
+          title: "Nuovo turno",
+          message: `Sei in turno ${when}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
+          actionUrl: "/dashboard/calendar",
+        });
+      }
+      if (removed.length) {
+        await notifyUsers(removed, {
+          barId: activeBarId,
+          title: "Turno tolto",
+          message: `Non sei più nel turno ${formatDateInTimeZone(existingShift.startTime)} dalle ${toTimeInputValueInTimeZone(existingShift.startTime)} alle ${toTimeInputValueInTimeZone(existingShift.endTime)}.`,
+          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
+          actionUrl: "/dashboard/calendar",
+        });
+      }
     }
 
     revalidatePath("/dashboard");

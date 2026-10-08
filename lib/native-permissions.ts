@@ -1,7 +1,7 @@
 "use client";
 
 import { isNativeApp } from "./native-app";
-import { registerNativePush } from "./native-push";
+import { askNativePushPermission, registerNativePush } from "./native-push";
 
 /**
  * Asks the phone for what Workbit needs, once someone is actually inside.
@@ -20,11 +20,14 @@ export async function requestNativePermissionsAfterLogin() {
     return;
   }
 
-  // Notifications first: this also refreshes the device token, so it runs on
-  // every sign-in rather than only the first.
-  await registerNativePush().catch(() => undefined);
-
+  // The two questions back to back, as soon as someone is inside: the
+  // location question used to wait for the notification token, which on an
+  // iPhone can take a long while, and so it came late or not at all.
+  await askNativePushPermission().catch(() => false);
   await requestLocationIfStillUndecided();
+
+  // Then the token, quietly: it refreshes on every sign-in, not only the first.
+  await registerNativePush().catch(() => undefined);
 }
 
 /**

@@ -24,6 +24,40 @@ export type NativePushOutcome =
   | { status: "registered"; token: string }
   | { status: "failed"; reason: string };
 
+/**
+ * Only the question, without waiting for the token. The token can take many
+ * seconds on an iPhone (it waits for Apple first), and the location question
+ * that follows used to wait behind it: by then the person had moved on and
+ * never saw it. Ask both, one after the other, then fetch the token.
+ */
+export async function askNativePushPermission(): Promise<boolean> {
+  if (!isNativeApp()) {
+    return false;
+  }
+
+  try {
+    const { Capacitor, registerPlugin } = await import("@capacitor/core");
+
+    if (Capacitor.isPluginAvailable("FirebaseMessaging")) {
+      const { FirebaseMessaging } = await import("@capacitor-firebase/messaging");
+      const current = await FirebaseMessaging.checkPermissions();
+      const decision = current.receive === "granted" ? current : await FirebaseMessaging.requestPermissions();
+      return decision.receive === "granted";
+    }
+
+    if (Capacitor.isPluginAvailable("PushNotifications")) {
+      const PushNotifications = registerPlugin<LegacyPushPlugin>("PushNotifications");
+      const current = await PushNotifications.checkPermissions();
+      const decision = current.receive === "granted" ? current : await PushNotifications.requestPermissions();
+      return decision.receive === "granted";
+    }
+  } catch (error) {
+    console.error("[permissions] notification request failed", error);
+  }
+
+  return false;
+}
+
 export async function registerNativePush(): Promise<NativePushOutcome> {
   if (!isNativeApp()) {
     return { status: "not-native" };
