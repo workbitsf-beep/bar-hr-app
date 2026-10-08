@@ -1067,7 +1067,13 @@ export default async function DashboardCalendarPage({
           .flatMap((shift) => shift.assignments.map((entry) => entry.user.id))
       : []
   );
-  const plannerMembers = activeDepartment
+  // A company's people can be moved to any of its sites: one account each,
+  // offered in every site's calendar, the site's own people first.
+  const departmentById = new Map(memberOptions.map((option, index) => [option.id, calendarMembers[index]?.department ?? null]));
+  const outsideSite = (id: string) => Number(departmentById.get(id) !== activeDepartment);
+  const plannerMembers = activeDepartment && departments.kind === "sites"
+    ? [...memberOptions].sort((a, b) => outsideSite(a.id) - outsideSite(b.id))
+    : activeDepartment
     ? memberOptions.filter((option, index) => {
         const member = calendarMembers[index];
         return (
