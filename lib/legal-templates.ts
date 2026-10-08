@@ -209,6 +209,7 @@ function buildTerms(profile: CompanyProfile) {
 
     "4. ACCOUNT E UTENTI",
     "Il Cliente fornisce dati veritieri e li mantiene aggiornati. È responsabile della custodia delle credenziali e delle attività svolte dagli Utenti che abilita, e informa senza ritardo il Fornitore di qualsiasi uso non autorizzato.",
+    "Ogni abbonamento vale per un solo Cliente, identificato dalla sua partita IVA. Le sedi, i reparti e le persone gestiti con lo stesso abbonamento devono appartenere al Cliente: non è consentito usarlo per attività o imprese di soggetti diversi. Il Fornitore può chiedere la visura camerale o un documento equivalente e, se le sedi appartengono a soggetti diversi, può sospendere il Servizio dopo un avviso, finché ciascun soggetto non attiva il proprio abbonamento.",
     "",
 
     "5. PROVA GRATUITA",

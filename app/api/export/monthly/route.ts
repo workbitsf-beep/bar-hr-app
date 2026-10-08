@@ -180,6 +180,8 @@ async function createMonthlyPdfBuffer(input: {
   employeeEmail?: string;
   employeeCode?: string;
   activityName?: string;
+  /** Who employs the person: the owner's company and VAT number, the same for every site. */
+  employerLabel?: string;
   month: number;
   year: number;
   dataset: Awaited<ReturnType<typeof buildMonthlyDataset>>;
@@ -381,6 +383,13 @@ async function createMonthlyPdfBuffer(input: {
         color: navy,
         align: "right",
       });
+      if (input.employerLabel) {
+        drawText(input.employerLabel, doc.page.width - marginX - 260, marginTop + 42, 260, {
+          size: 6.8,
+          color: muted,
+          align: "right",
+        });
+      }
 
       doc.moveTo(marginX, 74).lineTo(doc.page.width - marginX, 74).strokeColor(border).stroke();
     };
@@ -702,6 +711,13 @@ export const POST = withBar(
       const format = body.format === "pdf" ? "pdf" : "json";
       const access = await getActiveBarAccess(session as never);
       const activityType = access.activeBar?.activityType ?? ActivityType.RESTAURANT;
+      // The employer on every page: one company and VAT number for all its sites.
+      const employer = access.activeBar?.id
+        ? await prisma.bar.findUnique({ where: { id: access.activeBar.id }, select: { legalName: true, vatNumber: true } })
+        : null;
+      const employerLabel = employer?.legalName
+        ? `Datore di lavoro: ${employer.legalName}${employer.vatNumber ? ` · P.IVA ${employer.vatNumber}` : ""}`
+        : undefined;
       const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
       const canExportAll =
         access.role === Role.OWNER ||
@@ -774,8 +790,10 @@ export const POST = withBar(
         // A venue's team report used to go through the company merge, which
         // skips every dataset that is not a company's: a bar's whole-team PDF
         // came out empty - no hours, no shifts, no holidays.
+        // A company that clocks in is reported from its clock-ins, like a venue:
+        // the merge follows the datasets, not the kind of business.
         const dataset =
-          activityType === ActivityType.COMPANY
+          activityType === ActivityType.COMPANY && datasets.every((entry) => entry.dataset.mode === "company")
             ? mergeCompanyDatasets(datasets)
             : mergeRestaurantDatasets(datasets);
 
@@ -785,6 +803,7 @@ export const POST = withBar(
             employeeName: "Report generale",
             employeeCode: "-",
             activityName: access.activeBar?.name ?? "Attivita",
+            employerLabel,
             month,
             year,
             dataset,
@@ -847,6 +866,7 @@ export const POST = withBar(
           employeeEmail: membership.user.email,
           employeeCode: membership.id.slice(0, 8).toUpperCase(),
           activityName: access.activeBar?.name ?? "Attivita",
+          employerLabel,
           month,
           year,
           dataset,

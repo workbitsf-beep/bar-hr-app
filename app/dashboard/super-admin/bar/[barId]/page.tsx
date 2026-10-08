@@ -21,6 +21,7 @@ import {
 import { OwnersFieldset, PlanFieldset } from "./edit-fieldsets";
 import { DangerZone } from "./danger-zone";
 import { setVenuePlanAction } from "../../../department-actions";
+import { checkSiteIndependence } from "@/lib/site-check";
 import { BASE_SEATS, describePlan, entitlementsOf, MAX_SEAT_PACKS, PLAN_PRICES, SEAT_PACK_SIZE } from "@/lib/plans";
 
 const FEEDBACK: Record<string, string> = {
@@ -65,6 +66,7 @@ export default async function ConsoleBarPage({
         departmentsAddon: true,
         extraSeatPacks: true,
         brandingAddon: true,
+        sites: { select: { slot: true, name: true, latitude: true, longitude: true } },
         createdAt: true,
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         memberships: {
@@ -73,6 +75,9 @@ export default async function ConsoleBarPage({
           select: {
             id: true,
             role: true,
+            department: true,
+            helpsIn: true,
+            isDepartmentLead: true,
             user: { select: { id: true, firstName: true, lastName: true, email: true, mustChangePwd: true } },
           },
         },
@@ -179,6 +184,16 @@ export default async function ConsoleBarPage({
       {/* Until checkout sells the extras, the plan and its extras are set by
           hand here. Pro includes everything; Base adds only what is ticked. */}
       <Section title={`Piano · ${describePlan(entitlementsOf(bar), bar.activityType === "COMPANY")}`}>
+        {(() => {
+          // A company whose sites look like separate businesses on one subscription.
+          const check = checkSiteIndependence({ sites: bar.sites, members: bar.memberships });
+          return check.suspicious ? (
+            <Note tone="warning">
+              Da controllare: {check.reasons.join(", ")}. Potrebbero essere aziende diverse sullo stesso
+              abbonamento: chiedi la visura camerale (Termini, punto 4).
+            </Note>
+          ) : null;
+        })()}
         <form action={setVenuePlanAction} style={{ display: "grid", gap: 14 }}>
           <input type="hidden" name="barId" value={bar.id} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
