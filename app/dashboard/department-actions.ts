@@ -141,6 +141,10 @@ export async function setVenuePlanAction(formData: FormData) {
       departmentsAddon: formData.get("departmentsAddon") === "on",
       extraSeatPacks: packs,
       brandingAddon: formData.get("brandingAddon") === "on",
+      // A company's paid sites: 0 to 3 (on Pro, on top of the 3 it includes).
+      ...(formData.has("extraSites")
+        ? { extraSites: Math.max(0, Math.min(3, Math.round(Number(formData.get("extraSites")) || 0))) }
+        : {}),
     },
   });
   revalidatePath(`/dashboard/super-admin/bar/${barId}`);
@@ -268,7 +272,7 @@ export async function saveSiteAction(formData: FormData) {
         throw new RuleError(
           limit >= SITE_SLOTS.length
             ? `Il Pro arriva a ${limit} sedi.`
-            : `Con l'extra Sedi arrivi a ${limit} sedi; il Pro ne comprende fino a ${SITE_SLOTS.length}.`
+            : `Hai ${limit} ${limit === 1 ? "sede" : "sedi"} nel tuo piano: per aggiungerne una scrivi all'assistenza (7,99 € al mese l'una).`
         );
       }
       slot = SITE_SLOTS.find((candidate) => !existing.some((site) => site.slot === candidate)) ?? null;

@@ -22,7 +22,7 @@ import { OwnersFieldset, PlanFieldset } from "./edit-fieldsets";
 import { DangerZone } from "./danger-zone";
 import { setVenuePlanAction } from "../../../department-actions";
 import { checkSiteIndependence } from "@/lib/site-check";
-import { BASE_SEATS, describePlan, entitlementsOf, MAX_SEAT_PACKS, PLAN_PRICES, SEAT_PACK_SIZE } from "@/lib/plans";
+import { BASE_SEATS, COMPANY_PRO_SEATS, describePlan, entitlementsOf, MAX_SEAT_PACKS, PLAN_PRICES, SEAT_PACK_SIZE } from "@/lib/plans";
 
 const FEEDBACK: Record<string, string> = {
   "employee-created": "Persona aggiunta al locale.",
@@ -66,6 +66,7 @@ export default async function ConsoleBarPage({
         departmentsAddon: true,
         extraSeatPacks: true,
         brandingAddon: true,
+        extraSites: true,
         sites: { select: { slot: true, name: true, latitude: true, longitude: true } },
         createdAt: true,
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -201,23 +202,43 @@ export default async function ConsoleBarPage({
               <label key={plan} className="wbc-row-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700 }}>
                 <input type="radio" name="plan" value={plan} defaultChecked={bar.plan === plan} />
                 {plan === "PRO"
-                  ? `Pro · ${PLAN_PRICES.pro.monthly} · tutto incluso, persone senza limite`
+                  ? bar.activityType === "COMPANY"
+                    ? `Pro · ${PLAN_PRICES.pro.monthly} · 3 sedi e fino a 45 persone`
+                    : `Pro · ${PLAN_PRICES.pro.monthly} · tutto incluso, persone senza limite`
                   : `Base · ${PLAN_PRICES.base.monthly} · ${BASE_SEATS} persone`}
               </label>
             ))}
           </div>
           <div style={{ display: "grid", gap: 8 }}>
-            <span className="wbc-row-meta">Extra del Base (con il Pro sono già compresi)</span>
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
-              {bar.activityType === "COMPANY" ? "Sedi (fino a 3; 6 nel Pro)" : "Reparti"} · {PLAN_PRICES.departments.monthly}
-            </label>
+            <span className="wbc-row-meta">
+              {bar.activityType === "COMPANY"
+                ? "Extra: sedi e pacchetti si aggiungono anche al Pro (lo stile è compreso nel Pro)"
+                : "Extra del Base (con il Pro sono già compresi)"}
+            </span>
+            {bar.activityType === "COMPANY" ? (
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                Sedi pagate · {PLAN_PRICES.site.monthly} l&apos;una
+                <select name="extraSites" defaultValue={String(bar.extraSites)}>
+                  {[0, 1, 2, 3].map((count) => (
+                    <option key={count} value={count}>
+                      {count} · Base {count} {count === 1 ? "sede" : "sedi"} · Pro {3 + count} sedi
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
+                Reparti · {PLAN_PRICES.departments.monthly}
+              </label>
+            )}
             <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               Pacchetti da +{SEAT_PACK_SIZE} persone · {PLAN_PRICES.seatPack.monthly} l&apos;uno
               <select name="extraSeatPacks" defaultValue={String(bar.extraSeatPacks)}>
                 {Array.from({ length: MAX_SEAT_PACKS + 1 }, (_, count) => (
                   <option key={count} value={count}>
-                    {count} · fino a {BASE_SEATS + count * SEAT_PACK_SIZE} persone
+                    {count} · Base fino a {BASE_SEATS + count * SEAT_PACK_SIZE}
+                    {bar.activityType === "COMPANY" ? ` · Pro fino a ${COMPANY_PRO_SEATS + count * SEAT_PACK_SIZE}` : ""} persone
                   </option>
                 ))}
               </select>

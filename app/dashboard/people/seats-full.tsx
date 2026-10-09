@@ -33,6 +33,12 @@ export function SeatsFull({
       <strong style={{ fontSize: 16, color: "#17161f" }}>
         Hai {seats.used} persone su {seats.limit}: il locale è al completo
       </strong>
+      {entitlements.pro && packsLeft === 0 ? (
+        <span style={{ fontSize: 14, color: "#5b5873", lineHeight: 1.45 }}>
+          Il titolare conta tra le persone e hai già tutti i pacchetti: per andare oltre scrivi all&apos;assistenza.
+        </span>
+      ) : (
+      <>
       <span style={{ fontSize: 14, color: "#5b5873", lineHeight: 1.45 }}>
         Il titolare conta tra le persone. Per aggiungerne altre:
       </span>
@@ -43,10 +49,14 @@ export function SeatsFull({
             {entitlements.seatPacks ? ` (ne hai già ${entitlements.seatPacks})` : ""}
           </li>
         ) : null}
+        {entitlements.pro ? null : (
         <li>
-          il <b>Pro</b>: persone senza limite, {company ? "fino a 6 sedi" : "reparti"} e lo stile {company ? "della tua azienda" : "del tuo locale"}
+          il <b>Pro</b>: {company ? "fino a 45 persone, 3 sedi comprese" : "persone senza limite, reparti"} e lo stile {company ? "della tua azienda" : "del tuo locale"}
         </li>
+        )}
       </ul>
+      </>
+      )}
       <span style={{ fontSize: 13, color: "#8b88a3" }}>
         Gli extra si sommano al tuo abbonamento, con un solo pagamento. Scrivi all&apos;assistenza per aggiungerli.
       </span>

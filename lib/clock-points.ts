@@ -28,6 +28,7 @@ export async function clockPlaceFor(input: { barId: string; userId: string; shif
       where: { id: input.barId },
       select: {
         activityType: true,
+        extraSites: true,
         plan: true,
         departmentsAddon: true,
         extraSeatPacks: true,

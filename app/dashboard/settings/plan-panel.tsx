@@ -1,4 +1,4 @@
-import { BASE_SEATS, describePlan, MAX_SEAT_PACKS, SEAT_PACK_SIZE, type SeatUsage, type VenueEntitlements } from "@/lib/plans";
+import { BASE_SEATS, COMPANY_PRO_SEATS, describePlan, MAX_SEAT_PACKS, SEAT_PACK_SIZE, type SeatUsage, type VenueEntitlements } from "@/lib/plans";
 
 /**
  * The owner's plan, in plain words: what the venue has, how many people it
@@ -17,13 +17,15 @@ export function PlanPanel({
 }) {
   const share = seats.limit ? Math.min(100, Math.round((seats.used / seats.limit) * 100)) : 100;
 
+  // A company's Pro starts from 45 people; everything else from 12.
+  const seatBase = company && entitlements.pro ? COMPANY_PRO_SEATS : BASE_SEATS;
   const extras = [
     company
       ? {
           key: "departments",
           title: "Sedi",
           on: entitlements.departments,
-          text: "Fino a 3 sedi, ognuna con nome, indirizzo e punto di timbratura: si timbra solo nella propria sede. Turni, note, checklist e carrello divisi per sede, e un responsabile per ogni sede.",
+          text: `Ogni sede ha nome, indirizzo e punto di timbratura: si timbra solo nella propria sede. Turni, note, checklist e carrello divisi per sede, e un responsabile per ogni sede. Si aggiungono una per una: fino a 3 sul Base; il Pro ne comprende 3 e arriva a 6.${entitlements.siteLimit ? ` Ne hai ${entitlements.siteLimit}.` : ""}`,
           who: "Per l'azienda con più uffici, negozi o magazzini.",
         }
       : {
@@ -37,7 +39,7 @@ export function PlanPanel({
       key: "seats",
       title: `Persone in più`,
       on: entitlements.seatPacks > 0,
-      text: `Pacchetti da ${SEAT_PACK_SIZE} persone, fino a ${MAX_SEAT_PACKS}: il locale passa da ${BASE_SEATS} a ${BASE_SEATS + MAX_SEAT_PACKS * SEAT_PACK_SIZE} persone.${entitlements.seatPacks ? ` Ne hai ${entitlements.seatPacks}.` : ""}`,
+      text: `Pacchetti da ${SEAT_PACK_SIZE} persone, fino a ${MAX_SEAT_PACKS}: ${company ? "l'azienda" : "il locale"} passa da ${seatBase} a ${seatBase + MAX_SEAT_PACKS * SEAT_PACK_SIZE} persone.${entitlements.seatPacks ? ` Ne hai ${entitlements.seatPacks}.` : ""}`,
       who: "Per il bar che cresce ma lavora tutto insieme.",
     },
     {
@@ -93,7 +95,7 @@ export function PlanPanel({
                     : { background: "#f4f2fb", color: "#8b88a3" }),
                 }}
               >
-                {extra.on ? (entitlements.pro ? "Nel Pro" : "Attivo") : "Non attivo"}
+                {extra.on ? (entitlements.pro && extra.key === "branding" ? "Nel Pro" : entitlements.pro && extra.key === "departments" && !company ? "Nel Pro" : "Attivo") : "Non attivo"}
               </span>
             </div>
             <span style={{ fontSize: 13.5, color: "#4c4670", lineHeight: 1.45 }}>{extra.text}</span>
@@ -112,7 +114,7 @@ export function PlanPanel({
           </div>
           <span style={{ fontSize: 13.5, color: "#4c4670", lineHeight: 1.45 }}>
             {company
-              ? "Tutto compreso: fino a 6 sedi, lo stile dell'azienda e persone senza limite."
+              ? "Tutto compreso: 3 sedi (fino a 6), lo stile dell'azienda e fino a 45 persone."
               : "Tutto compreso: reparti, stile del locale e persone senza limite."}
           </span>
           <span style={{ fontSize: 12.5, color: "#8b88a3" }}>

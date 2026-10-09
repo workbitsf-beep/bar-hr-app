@@ -316,6 +316,9 @@ model Bar {
   departmentsAddon       Boolean                 @default(false)
   extraSeatPacks         Int                     @default(0)
   brandingAddon          Boolean                 @default(false)
+  /// A company's paid sites at 7,99 each: up to 3 on Base, and on Pro on top
+  /// of the 3 it includes, up to 6 in all.
+  extraSites             Int                     @default(0)
   /// The venue's logo, already cropped square and small, and its sign font.
   logo                   Bytes?
   logoType               String?

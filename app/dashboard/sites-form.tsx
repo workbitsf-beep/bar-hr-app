@@ -230,7 +230,9 @@ export function SitesForm({
           )
         ) : (
           <span style={{ fontSize: 12.5, color: "#8a84a8" }}>
-            {limit >= 6 ? "Il Pro arriva a 6 sedi." : "Con l'extra Sedi arrivi a 3 sedi; il Pro ne comprende fino a 6."}
+            {limit >= 6
+              ? "Il Pro arriva a 6 sedi."
+              : `Hai ${limit} ${limit === 1 ? "sede" : "sedi"} nel tuo piano. Le sedi si aggiungono una per una (fino a 3 sul Base, fino a 6 con il Pro): scrivi all'assistenza.`}
           </span>
         )}
       </div>

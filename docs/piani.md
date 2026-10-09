@@ -21,14 +21,16 @@ Si sommano allo stesso abbonamento: il cliente paga una volta sola.
 
 Il Pro comprende reparti, stile e persone senza limite.
 
-### Per le aziende: Sedi invece di Reparti
+### Per le aziende: Sedi invece di Reparti (aggiornato il 9 ottobre 2026)
 
-Stesso prezzo dell'extra Reparti (7,99 € al mese, 79 € l'anno):
-
-- **fino a 3 sedi** con l'extra, **fino a 6** con il Pro;
-- ogni sede ha nome, indirizzo e punto GPS: si timbra solo nella sede del proprio turno, o in quella della persona;
-- turni, persone, note, carrello, checklist e tessere della pagina Oggi sono divisi per sede;
-- c'è un responsabile per ogni sede.
+- **Ogni sede costa 7,99 € al mese** (79 € l'anno). Sul Base si arriva al massimo a 3 sedi.
+- **Il Pro per le aziende costa 59,99 €** e comprende 3 sedi e fino a **45 persone**:
+  - dalla quarta sede si paga 7,99 € l'una, fino a 6 sedi;
+  - si aggiungono pacchetti da +5 persone a 6,99 €, fino a 55 persone.
+- Ogni sede ha nome, indirizzo e punto GPS: si timbra solo nella sede del proprio turno, o in quella della persona.
+- Turni, persone, note, carrello, checklist e tessere della pagina Oggi sono divisi per sede, con un responsabile per ogni sede.
+- Ogni persona ha un solo account e può essere messa in turno in qualsiasi sede.
+- Il Pro della ristorazione resta senza limite di persone.
 
 Dall'8 ottobre 2026 anche le aziende possono timbrare. La timbratura si accende dalle impostazioni e parte spenta per le aziende nuove. Un'azienda che non usa i turni timbra anche senza turno, e quando timbra il report del mese si basa sulle timbrature.
 

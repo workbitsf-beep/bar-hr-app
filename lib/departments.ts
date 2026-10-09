@@ -196,6 +196,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
         departmentMode: true,
         customDepartmentName: true,
         activityType: true,
+        extraSites: true,
         sites: { select: { slot: true, name: true, address: true, latitude: true, longitude: true } },
       },
     }),
