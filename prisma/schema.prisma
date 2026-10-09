@@ -20,6 +20,8 @@ enum Role {
 enum VenuePlan {
   BASE
   PRO
+  /// Agreed with the customer: price, sites and people set by the super admin.
+  CUSTOM
 }
 
 /// The three fixed departments of a venue, plus one the owner names, plus
@@ -38,6 +40,12 @@ enum Department {
   SEDE_4
   SEDE_5
   SEDE_6
+  SEDE_7
+  SEDE_8
+  SEDE_9
+  SEDE_10
+  SEDE_11
+  SEDE_12
 }
 
 /// One weekly calendar split by department, or one calendar per department
@@ -319,6 +327,11 @@ model Bar {
   /// A company's paid sites at 7,99 each: up to 3 on Base, and on Pro on top
   /// of the 3 it includes, up to 6 in all.
   extraSites             Int                     @default(0)
+  /// The Su misura plan: what was agreed with the customer.
+  customPriceCents       Int?
+  customSeatLimit        Int?
+  customSiteLimit        Int?
+  customPlanNote         String?
   /// The venue's logo, already cropped square and small, and its sign font.
   logo                   Bytes?
   logoType               String?

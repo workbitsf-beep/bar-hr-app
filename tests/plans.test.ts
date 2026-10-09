@@ -36,3 +36,15 @@ test("a company's Pro includes 3 sites and 45 people, with sites and packs on to
   assert.equal(entitlementsOf({ ...pro, extraSites: 3 }).paidSites, 3);
   assert.equal(entitlementsOf({ ...pro, extraSeatPacks: 2 }).seatLimit, 55);
 });
+
+test("a Su misura plan has every feature with the limits agreed", () => {
+  const custom = entitlementsOf({ ...base, plan: "CUSTOM", activityType: "COMPANY", customSeatLimit: 120, customSiteLimit: 9 });
+  assert.equal(custom.custom, true);
+  assert.equal(custom.pro, true);
+  assert.equal(custom.seatLimit, 120);
+  assert.equal(custom.siteLimit, 9);
+  assert.equal(custom.branding, true);
+  const venue = entitlementsOf({ ...base, plan: "CUSTOM", customSeatLimit: null });
+  assert.equal(venue.seatLimit, null);
+  assert.equal(venue.departments, true);
+});

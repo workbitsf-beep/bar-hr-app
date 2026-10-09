@@ -67,6 +67,10 @@ export default async function ConsoleBarPage({
         extraSeatPacks: true,
         brandingAddon: true,
         extraSites: true,
+        customPriceCents: true,
+        customSeatLimit: true,
+        customSiteLimit: true,
+        customPlanNote: true,
         sites: { select: { slot: true, name: true, latitude: true, longitude: true } },
         createdAt: true,
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -198,16 +202,48 @@ export default async function ConsoleBarPage({
         <form action={setVenuePlanAction} style={{ display: "grid", gap: 14 }}>
           <input type="hidden" name="barId" value={bar.id} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {(["BASE", "PRO"] as const).map((plan) => (
+            {(["BASE", "PRO", "CUSTOM"] as const).map((plan) => (
               <label key={plan} className="wbc-row-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700 }}>
                 <input type="radio" name="plan" value={plan} defaultChecked={bar.plan === plan} />
-                {plan === "PRO"
+                {plan === "CUSTOM"
+                  ? "Su misura · prezzo, sedi e persone decisi con il cliente"
+                  : plan === "PRO"
                   ? bar.activityType === "COMPANY"
                     ? `Pro · ${PLAN_PRICES.pro.monthly} · 3 sedi e fino a 45 persone`
                     : `Pro · ${PLAN_PRICES.pro.monthly} · tutto incluso, persone senza limite`
                   : `Base · ${PLAN_PRICES.base.monthly} · ${BASE_SEATS} persone`}
               </label>
             ))}
+          </div>
+          {/* Su misura: used only when that plan is chosen above. */}
+          <div style={{ display: "grid", gap: 8, padding: 12, borderRadius: 14, border: "1px dashed #c4b5fd" }}>
+            <span className="wbc-row-meta">Su misura (vale solo se scegli &quot;Su misura&quot;)</span>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <label style={{ display: "grid", gap: 4 }}>
+                <span className="wbc-row-meta">Prezzo al mese (€)</span>
+                <input
+                  name="customPrice"
+                  inputMode="decimal"
+                  defaultValue={bar.customPriceCents != null ? (bar.customPriceCents / 100).toFixed(2).replace(".", ",") : ""}
+                  placeholder="es. 149,00"
+                  style={{ width: 120 }}
+                />
+              </label>
+              <label style={{ display: "grid", gap: 4 }}>
+                <span className="wbc-row-meta">Persone</span>
+                <input name="customSeatLimit" inputMode="numeric" defaultValue={bar.customSeatLimit ?? ""} placeholder="vuoto = senza limite" style={{ width: 140 }} />
+              </label>
+              {bar.activityType === "COMPANY" ? (
+                <label style={{ display: "grid", gap: 4 }}>
+                  <span className="wbc-row-meta">Sedi (max 12)</span>
+                  <input name="customSiteLimit" inputMode="numeric" defaultValue={bar.customSiteLimit ?? ""} placeholder="es. 8" style={{ width: 100 }} />
+                </label>
+              ) : null}
+            </div>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span className="wbc-row-meta">Nota sull&apos;accordo</span>
+              <input name="customPlanNote" defaultValue={bar.customPlanNote ?? ""} placeholder="es. annuale, firmato il 10/10, rinnovo a ottobre" />
+            </label>
           </div>
           <div style={{ display: "grid", gap: 8 }}>
             <span className="wbc-row-meta">

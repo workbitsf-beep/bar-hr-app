@@ -131,7 +131,27 @@ export async function setVenuePlanAction(formData: FormData) {
   if (!session || String(session.user.role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
 
   const barId = String(formData.get("barId") ?? "");
-  const plan = String(formData.get("plan")) === VenuePlan.PRO ? VenuePlan.PRO : VenuePlan.BASE;
+  const requestedPlan = String(formData.get("plan"));
+  const plan =
+    requestedPlan === VenuePlan.PRO ? VenuePlan.PRO : requestedPlan === VenuePlan.CUSTOM ? VenuePlan.CUSTOM : VenuePlan.BASE;
+  const whole = (name: string, max: number) => {
+    const raw = String(formData.get(name) ?? "").trim();
+    if (!raw) return null;
+    const value = Math.round(Number(raw.replace(",", ".")));
+    return Number.isFinite(value) ? Math.max(0, Math.min(max, value)) : null;
+  };
+  const price = String(formData.get("customPrice") ?? "").trim().replace(",", ".");
+  // Su misura: what was agreed with the customer. Kept when the venue moves
+  // to another plan, so going back restores it.
+  const custom =
+    plan === VenuePlan.CUSTOM
+      ? {
+          customPriceCents: price && Number.isFinite(Number(price)) ? Math.round(Number(price) * 100) : null,
+          customSeatLimit: whole("customSeatLimit", 10000),
+          customSiteLimit: whole("customSiteLimit", 12),
+          customPlanNote: String(formData.get("customPlanNote") ?? "").trim().slice(0, 300) || null,
+        }
+      : {};
   const packs = Math.max(0, Math.min(MAX_SEAT_PACKS, Math.round(Number(formData.get("extraSeatPacks") ?? 0) || 0)));
 
   await prisma.bar.update({
@@ -141,6 +161,7 @@ export async function setVenuePlanAction(formData: FormData) {
       departmentsAddon: formData.get("departmentsAddon") === "on",
       extraSeatPacks: packs,
       brandingAddon: formData.get("brandingAddon") === "on",
+      ...custom,
       // A company's paid sites: 0 to 3 (on Pro, on top of the 3 it includes).
       ...(formData.has("extraSites")
         ? { extraSites: Math.max(0, Math.min(3, Math.round(Number(formData.get("extraSites")) || 0))) }
@@ -270,9 +291,7 @@ export async function saveSiteAction(formData: FormData) {
     if (!slot) {
       if (existing.length >= limit) {
         throw new RuleError(
-          limit >= SITE_SLOTS.length
-            ? `Il Pro arriva a ${limit} sedi.`
-            : `Hai ${limit} ${limit === 1 ? "sede" : "sedi"} nel tuo piano: per aggiungerne una scrivi all'assistenza (7,99 € al mese l'una).`
+          `Hai ${limit} ${limit === 1 ? "sede" : "sedi"} nel tuo piano: per aggiungerne una scrivi all'assistenza.`
         );
       }
       slot = SITE_SLOTS.find((candidate) => !existing.some((site) => site.slot === candidate)) ?? null;

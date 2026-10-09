@@ -34,6 +34,12 @@ export const DEPARTMENT_COLORS: Record<Department, { ink: string; soft: string; 
   SEDE_4: { ink: "#c2257a", soft: "#fde6f2", light: "#f06bb0" },
   SEDE_5: { ink: "#a16207", soft: "#fdf3d7", light: "#d4a017" },
   SEDE_6: { ink: "#0e7490", soft: "#dcf3f9", light: "#22a6c6" },
+  SEDE_7: { ink: "#4d7c0f", soft: "#ecf7d8", light: "#7cb518" },
+  SEDE_8: { ink: "#be123c", soft: "#fde4ea", light: "#f04f74" },
+  SEDE_9: { ink: "#6d28d9", soft: "#efe7ff", light: "#9b6cf5" },
+  SEDE_10: { ink: "#9a3412", soft: "#fbe7dd", light: "#d4602c" },
+  SEDE_11: { ink: "#1e40af", soft: "#e2e9fc", light: "#4a6fdc" },
+  SEDE_12: { ink: "#0f766e", soft: "#d9f2ef", light: "#2aa497" },
 };
 
 export const SITE_SLOTS = [
@@ -43,6 +49,12 @@ export const SITE_SLOTS = [
   Department.SEDE_4,
   Department.SEDE_5,
   Department.SEDE_6,
+  Department.SEDE_7,
+  Department.SEDE_8,
+  Department.SEDE_9,
+  Department.SEDE_10,
+  Department.SEDE_11,
+  Department.SEDE_12,
 ] as const;
 
 export function isSiteSlot(value: Department | null | undefined) {
@@ -197,6 +209,8 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
         customDepartmentName: true,
         activityType: true,
         extraSites: true,
+        customSeatLimit: true,
+        customSiteLimit: true,
         sites: { select: { slot: true, name: true, address: true, latitude: true, longitude: true } },
       },
     }),

@@ -106,7 +106,7 @@ export function PlanPanel({
         <div style={{ display: "grid", gap: 5, padding: "13px 14px", borderRadius: 18, border: "1.5px solid #c4b5fd", background: "#fff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
             <strong style={{ fontSize: 15.5, color: "#17161f" }}>Pro</strong>
-            {entitlements.pro ? (
+            {entitlements.pro && !entitlements.custom ? (
               <span style={{ fontSize: 11.5, fontWeight: 850, padding: "3px 9px", borderRadius: 999, background: "#dcf5e8", color: "#148a55" }}>
                 Il tuo piano
               </span>
@@ -120,6 +120,25 @@ export function PlanPanel({
           <span style={{ fontSize: 12.5, color: "#8b88a3" }}>
             {company ? "Per l'azienda con molte sedi e tanta gente." : "Per il ristorante con tanta gente."}
           </span>
+        </div>
+
+        <div style={{ display: "grid", gap: 5, padding: "13px 14px", borderRadius: 18, border: entitlements.custom ? "1.5px solid #6d3df0" : "1px dashed #c4b5fd", background: "#fff" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <strong style={{ fontSize: 15.5, color: "#17161f" }}>Su misura</strong>
+            {entitlements.custom ? (
+              <span style={{ fontSize: 11.5, fontWeight: 850, padding: "3px 9px", borderRadius: 999, background: "#dcf5e8", color: "#148a55" }}>
+                Il tuo piano
+              </span>
+            ) : null}
+          </div>
+          <span style={{ fontSize: 13.5, color: "#4c4670", lineHeight: 1.45 }}>
+            {entitlements.custom
+              ? `Il piano studiato con voi: ${company ? `${entitlements.siteLimit} sedi, ` : ""}${entitlements.seatLimit === null ? "persone senza limite" : `fino a ${entitlements.seatLimit} persone`}, tutto compreso.`
+              : `Tante ${company ? "sedi" : "persone"}? Prezzo, ${company ? "sedi e " : ""}persone li decidiamo insieme.`}
+          </span>
+          {entitlements.custom ? null : (
+            <span style={{ fontSize: 12.5, color: "#8b88a3" }}>Scrivi all&apos;assistenza per parlarne.</span>
+          )}
         </div>
       </div>
 

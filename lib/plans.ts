@@ -14,6 +14,10 @@ import { prisma } from "@/lib/prisma";
  * up to 3 on Base). Its Pro includes 3 sites, adds more up to 6, and holds up
  * to 45 people (9 October 2026).
  *
+ * A Su misura plan (CUSTOM) is agreed with a customer with many sites and
+ * people: everything Pro has, with the price, sites and people the super
+ * admin sets.
+ *
  * Plans are bought outside the app. Until checkout sells the extras, the
  * super admin switches them on from the console.
  */
@@ -40,7 +44,10 @@ export const PLAN_PRICES = {
 
 export type VenueEntitlements = {
   plan: VenuePlan;
+  /** Pro or Su misura: every feature. */
   pro: boolean;
+  /** Su misura: limits agreed with the customer. */
+  custom: boolean;
   departments: boolean;
   branding: boolean;
   /** Packs bought on Base; always 0 on Pro. */
@@ -61,20 +68,40 @@ export function entitlementsOf(bar: {
   brandingAddon: boolean;
   activityType?: ActivityType | string | null;
   extraSites?: number | null;
+  customSeatLimit?: number | null;
+  customSiteLimit?: number | null;
 }): VenueEntitlements {
-  const pro = bar.plan === VenuePlan.PRO;
+  const custom = bar.plan === VenuePlan.CUSTOM;
+  const pro = bar.plan === VenuePlan.PRO || custom;
   const company = bar.activityType === ActivityType.COMPANY;
   // Packs of five more people: on Base, and on a company's Pro on top of its 45.
   const seatPacks = pro && !company ? 0 : Math.max(0, Math.min(MAX_SEAT_PACKS, bar.extraSeatPacks));
   const paid = Math.max(0, Math.round(bar.extraSites ?? 0));
   const siteLimit = !company
     ? 0
-    : pro
+    : custom
+      ? Math.max(0, bar.customSiteLimit ?? SITES_INCLUDED_IN_PRO)
+      : pro
       ? Math.min(SITES_ON_PRO, SITES_INCLUDED_IN_PRO + paid)
       : Math.min(SITES_WITH_EXTRA, paid);
+  if (custom) {
+    return {
+      plan: bar.plan,
+      pro,
+      custom,
+      departments: company ? siteLimit > 0 : true,
+      branding: true,
+      seatPacks: 0,
+      seatLimit: bar.customSeatLimit ?? null,
+      company,
+      paidSites: 0,
+      siteLimit,
+    };
+  }
   return {
     plan: bar.plan,
     pro,
+    custom,
     departments: company ? siteLimit > 0 : pro || bar.departmentsAddon,
     branding: pro || bar.brandingAddon,
     seatPacks,
@@ -97,6 +124,7 @@ export function siteLimitOf(entitlements: VenueEntitlements) {
 const NONE: VenueEntitlements = {
   plan: VenuePlan.BASE,
   pro: false,
+  custom: false,
   departments: false,
   branding: false,
   seatPacks: 0,
@@ -113,7 +141,7 @@ export const getVenueEntitlements = cache(async function getVenueEntitlements(
   if (!barId) return NONE;
   const bar = await prisma.bar.findUnique({
     where: { id: barId },
-    select: { plan: true, departmentsAddon: true, extraSeatPacks: true, brandingAddon: true, activityType: true, extraSites: true },
+    select: { plan: true, departmentsAddon: true, extraSeatPacks: true, brandingAddon: true, activityType: true, extraSites: true, customSeatLimit: true, customSiteLimit: true },
   });
   return bar ? entitlementsOf(bar) : NONE;
 });
@@ -136,6 +164,7 @@ export async function getSeatUsage(barId: string): Promise<SeatUsage> {
 
 /** The plan in a few words, for the console and the settings. */
 export function describePlan(entitlements: VenueEntitlements, company = false) {
+  if (entitlements.custom) return "Su misura";
   if (entitlements.pro) {
     const extras = [
       entitlements.company && entitlements.paidSites > 0

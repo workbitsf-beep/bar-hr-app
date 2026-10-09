@@ -29,6 +29,8 @@ export async function clockPlaceFor(input: { barId: string; userId: string; shif
       select: {
         activityType: true,
         extraSites: true,
+        customSeatLimit: true,
+        customSiteLimit: true,
         plan: true,
         departmentsAddon: true,
         extraSeatPacks: true,

@@ -34,6 +34,17 @@ Il Pro comprende reparti, stile e persone senza limite.
 
 Dall'8 ottobre 2026 anche le aziende possono timbrare. La timbratura si accende dalle impostazioni e parte spenta per le aziende nuove. Un'azienda che non usa i turni timbra anche senza turno, e quando timbra il report del mese si basa sulle timbrature.
 
+### Su misura
+
+Per chi ha tante sedi o tante persone, il piano si studia con il cliente. Dalla **console → scheda del locale → Piano → Su misura** si impostano:
+
+- il prezzo al mese;
+- il numero di persone (vuoto vuol dire senza limite);
+- il numero di sedi, per le aziende fino a 12;
+- una nota sull'accordo.
+
+Tutto il resto è come il Pro: reparti o sedi, stile e ogni funzione. Su Stripe va creato un prezzo apposta per quel cliente.
+
 ## Quale fa per chi
 
 | Locale | Piano | Al mese |

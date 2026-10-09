@@ -33,7 +33,7 @@ export function SeatsFull({
       <strong style={{ fontSize: 16, color: "#17161f" }}>
         Hai {seats.used} persone su {seats.limit}: il locale è al completo
       </strong>
-      {entitlements.pro && packsLeft === 0 ? (
+      {(entitlements.pro && packsLeft === 0) || entitlements.custom ? (
         <span style={{ fontSize: 14, color: "#5b5873", lineHeight: 1.45 }}>
           Il titolare conta tra le persone e hai già tutti i pacchetti: per andare oltre scrivi all&apos;assistenza.
         </span>
