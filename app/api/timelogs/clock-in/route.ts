@@ -143,8 +143,28 @@ export const POST = withBar(
           });
 
       if (!closingClockOut && exitAwaitingApproval === 0) {
+        // Already asked and refused: only the owner can close it now.
+        const refused = await prisma.clockFix.count({
+          where: { clockInId: lastClockIn.id, kind: ClockFixKind.MISSED_OUT, status: ClockFixStatus.REJECTED },
+        });
+        if (refused > 0) {
+          return Response.json(
+            {
+              ok: false,
+              code: "MISSED_OUT_REFUSED",
+              message:
+                "L'uscita del turno precedente non è stata approvata: chiedi al titolare di registrarla, poi puoi entrare.",
+            },
+            { status: 400 }
+          );
+        }
         return Response.json(
-          { ok: false, message: "Prima registra l'uscita." },
+          {
+            ok: false,
+            code: "MISSED_OUT",
+            message:
+              "Non hai timbrato l'uscita del turno precedente: indica a che ora sei uscito nella pagina Oggi (riga \"Uscita dimenticata\"), poi puoi entrare.",
+          },
           { status: 400 }
         );
       }

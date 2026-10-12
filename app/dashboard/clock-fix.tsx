@@ -192,7 +192,7 @@ export function ClockFixEmployee({
   reviewerName,
 }: {
   offer: ClockFixOffer | null;
-  pending: PendingClockFixView | null;
+  pending: PendingClockFixView[];
   reviewerName: string;
 }) {
   const router = useRouter();
@@ -242,21 +242,29 @@ export function ClockFixEmployee({
     Object.fromEntries(fields.map((field) => [field.key, field.initial.replace(":", "")]))
   );
 
-  if (pending) {
+  // Every request still waiting, one line each: a new forgotten stamp is
+  // offered below them, never hidden behind an older one.
+  const waiting = pending.map((item) => {
+    const when = item.requestedOutAt ?? item.requestedInAt;
+    const day = when
+      ? new Intl.DateTimeFormat("it-IT", { weekday: "long", day: "numeric", timeZone: "Europe/Rome" }).format(new Date(when))
+      : "";
     const what =
-      pending.kind === "MISSED_OUT"
-        ? `Uscita alle ${hhmm(pending.requestedOutAt)}`
-        : `Entrata alle ${hhmm(pending.requestedInAt)}` +
-          (pending.requestedOutAt ? ` · uscita ${hhmm(pending.requestedOutAt)}` : "");
-    return (
+      item.kind === "MISSED_OUT"
+        ? `Uscita alle ${hhmm(item.requestedOutAt)}`
+        : `Entrata alle ${hhmm(item.requestedInAt)}` + (item.requestedOutAt ? ` · uscita ${hhmm(item.requestedOutAt)}` : "");
+    return <Row key={item.id} tone="violet" title={what} detail={`${day ? `${day} · ` : ""}in attesa di ${reviewerName}`} />;
+  });
+
+  if (!offer) {
+    return waiting.length ? (
       <>
         <style dangerouslySetInnerHTML={{ __html: styles }} />
-        <Row tone="violet" title={what} detail={`in attesa di ${reviewerName}`} />
+        {waiting}
       </>
-    );
+    ) : null;
   }
 
-  if (!offer) return null;
 
   const close = () => {
     setOpen(false);
@@ -268,15 +276,16 @@ export function ClockFixEmployee({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
+      {waiting}
       <Row
         tone="orange"
         title={missedOut ? "Uscita dimenticata?" : "Entrata dimenticata?"}
         detail={
           missedOut
             ? endTime
-              ? `il turno è finito alle ${endTime}`
-              : `sei dentro dalle ${hhmm(offer.inAt)}`
-            : `il turno è iniziato alle ${startTime}`
+              ? `${offer.dayLabel} · il turno è finito alle ${endTime}`
+              : `${offer.dayLabel} · entrata alle ${hhmm(offer.inAt)}`
+            : `${offer.dayLabel} · il turno è iniziato alle ${startTime}`
         }
         action="Segnala"
         onClick={() => setOpen(true)}

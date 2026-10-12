@@ -483,7 +483,9 @@ export default async function DashboardPage() {
       .map((entry) => `${entry.user.firstName} ${entry.user.lastName}`) ?? [];
   // A forgotten exit sent for approval closes the entry for the clock; a
   // forgotten entry sent for approval opens it, from the time declared.
-  const entryOpen = latestTimeLog?.type === "IN" && !clockFix?.openEntryHandedOver;
+  // An entry left open since yesterday is not closed with Esci: the person
+  // reports when they left, and the button offers today's entry.
+  const entryOpen = latestTimeLog?.type === "IN" && !clockFix?.openEntryHandedOver && !clockFix?.staleEntry;
   const declaredInAt = !entryOpen ? clockFix?.declaredInAt ?? null : null;
   const clockStatus: ClockActionStatus =
     entryOpen || declaredInAt
@@ -898,7 +900,7 @@ export default async function DashboardPage() {
             />
           ) : null}
 
-          {clockFix && (clockFix.offer || clockFix.pending) ? (
+          {clockFix && (clockFix.offer || clockFix.pending.length > 0) ? (
             <ClockFixEmployee
               offer={clockFix.offer}
               pending={clockFix.pending}
@@ -1152,10 +1154,10 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="wb-desk-only">
-        {reviewBlock || (clockFix && (clockFix.offer || clockFix.pending)) ? (
+        {reviewBlock || (clockFix && (clockFix.offer || clockFix.pending.length > 0)) ? (
           <div style={{ display: "grid", gap: 10, maxWidth: 560, marginBottom: 16 }}>
             {reviewBlock}
-            {clockFix && (clockFix.offer || clockFix.pending) ? (
+            {clockFix && (clockFix.offer || clockFix.pending.length > 0) ? (
               <ClockFixEmployee
                 offer={clockFix.offer}
                 pending={clockFix.pending}

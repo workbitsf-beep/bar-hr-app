@@ -19,6 +19,22 @@ export const MISSED_OUT_AFTER_MS = 5 * 60 * 1000;
 const MISSED_OUT_UNPLANNED_AFTER_MS = 12 * 60 * 60 * 1000;
 /** The entry can be reported five minutes into the shift. */
 export const MISSED_IN_AFTER_MS = 5 * 60 * 1000;
+/**
+ * An entry left open this long after its shift (or, with no shift, after it
+ * was stamped) can no longer be closed by pressing Esci: that would stamp the
+ * exit now, a day late, and count every hour in between. The person says when
+ * they really left instead, and the owner approves it.
+ */
+export const STALE_ENTRY_AFTER_SHIFT_MS = 3 * 60 * 60 * 1000;
+export const STALE_ENTRY_UNPLANNED_MS = 16 * 60 * 60 * 1000;
+
+export function isStaleEntry(entry: { timestamp: Date; shift?: { endTime: Date } | null }, now = new Date()) {
+  const limit = entry.shift
+    ? entry.shift.endTime.getTime() + STALE_ENTRY_AFTER_SHIFT_MS
+    : entry.timestamp.getTime() + STALE_ENTRY_UNPLANNED_MS;
+  return now.getTime() >= limit;
+}
+
 /** How far back a forgotten entry is still offered. */
 const MISSED_IN_LOOKBACK_MS = 36 * 60 * 60 * 1000;
 
@@ -45,7 +61,10 @@ export type PendingClockFixView = {
 
 export type EmployeeClockFixState = {
   offer: ClockFixOffer | null;
-  pending: PendingClockFixView | null;
+  /** Every request still waiting, newest first: one forgotten exit a day can pile up. */
+  pending: PendingClockFixView[];
+  /** The last stamp is an entry too old to close with Esci: it has to be reported. */
+  staleEntry: boolean;
   /** A forgotten exit is waiting for approval: the entry no longer counts as open. */
   openEntryHandedOver: boolean;
   /** A forgotten entry is waiting for approval and the person is still at work. */
@@ -128,23 +147,25 @@ export async function getEmployeeClockFixState(
         !(latestLog && latestLog.timestamp > fix.requestedInAt)
     ) ?? null;
 
-  const latestPending = pendingFixes[0] ?? null;
-  const pending: PendingClockFixView | null = latestPending
-    ? {
-        id: latestPending.id,
-        kind: latestPending.kind,
-        requestedInAt: latestPending.requestedInAt?.toISOString() ?? null,
-        requestedOutAt: latestPending.requestedOutAt?.toISOString() ?? null,
-        inAt:
-          latestPending.kind === ClockFixKind.MISSED_OUT && latestLog?.id === latestPending.clockInId
-            ? latestLog.timestamp.toISOString()
-            : null,
-      }
-    : null;
+  const entryIds = pendingFixes
+    .filter((fix) => fix.kind === ClockFixKind.MISSED_OUT && fix.clockInId)
+    .map((fix) => fix.clockInId as string);
+  const entries = entryIds.length
+    ? await prisma.timeLog.findMany({ where: { id: { in: entryIds } }, select: { id: true, timestamp: true } })
+    : [];
+  const entryAt = new Map(entries.map((entry) => [entry.id, entry.timestamp.toISOString()]));
+  const pending: PendingClockFixView[] = pendingFixes.map((fix) => ({
+    id: fix.id,
+    kind: fix.kind,
+    requestedInAt: fix.requestedInAt?.toISOString() ?? null,
+    requestedOutAt: fix.requestedOutAt?.toISOString() ?? null,
+    inAt: fix.kind === ClockFixKind.MISSED_OUT && fix.clockInId ? entryAt.get(fix.clockInId) ?? null : null,
+  }));
 
   const state: EmployeeClockFixState = {
     offer: null,
     pending,
+    staleEntry: Boolean(latestLog?.type === ClockType.IN && !pendingOut && isStaleEntry(latestLog, now)),
     openEntryHandedOver: Boolean(pendingOut),
     declaredInAt: pendingInAtWork?.requestedInAt ?? null,
   };

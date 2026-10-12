@@ -1,5 +1,6 @@
 ﻿import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { clockPlaceFor, isAtClockPlace } from "@/lib/clock-points";
+import { isStaleEntry } from "@/lib/clock-fixes";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
@@ -58,6 +59,25 @@ export const POST = withBar(
         })
       : null;
     const entryOpen = Boolean(lastClockIn) && !(existingClockOut && !existingClockOut.autoClockOut);
+
+    // An entry left open since a shift long over is not closed now: that
+    // would count every hour since. The person reports when they really left
+    // (the "Uscita dimenticata" line on the Oggi page) and the owner approves.
+    if (entryOpen && lastClockIn && !existingClockOut) {
+      const entryShift = lastClockIn.shiftId
+        ? await prisma.shift.findUnique({ where: { id: lastClockIn.shiftId }, select: { endTime: true } })
+        : null;
+      if (isStaleEntry({ timestamp: lastClockIn.timestamp, shift: entryShift })) {
+        return Response.json(
+          {
+            ok: false,
+            code: "STALE_ENTRY",
+            message: "L'uscita del turno precedente non è stata timbrata: indica a che ora sei uscito nella pagina Oggi.",
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     // No entry stamped, but one declared as forgotten and waiting for
     // approval: the exit is stamped as usual, and the approved entry will
