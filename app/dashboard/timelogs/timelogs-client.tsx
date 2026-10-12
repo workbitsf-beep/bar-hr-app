@@ -894,7 +894,7 @@ export function ClockActionsPanel({
 
   const locationSummary = useMemo(() => {
     if (!gpsConfigured) {
-      return "Il punto del locale non e ancora impostato dal titolare.";
+      return "Il punto del locale non è ancora impostato dal titolare.";
     }
 
     if (locating && !geoReady) {
@@ -1655,7 +1655,7 @@ function OwnerTimeLogsPanel({
     }
 
     const confirmed = window.confirm(
-      "Annullare questa timbratura? Il dipendente riceve un avviso, cosi nessuno si trova le ore cambiate senza saperlo."
+      "Annullare questa timbratura? Il dipendente riceve un avviso, così nessuno si trova le ore cambiate senza saperlo."
     );
 
     if (!confirmed) {

@@ -196,7 +196,7 @@ export function DepartmentSettingsForm({
               <DepartmentDot department={department} />
               <strong style={{ flex: 1, fontSize: 14, fontWeight: 650 }}>{department.name}</strong>
               <span style={{ fontSize: 12, color: "#8a84a8" }}>
-                {counts[department.id] ?? 0} persone
+                {counts[department.id] ?? 0} {(counts[department.id] ?? 0) === 1 ? "persona" : "persone"}
               </span>
             </span>
           ))}

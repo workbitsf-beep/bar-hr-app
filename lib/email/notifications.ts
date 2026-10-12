@@ -94,7 +94,7 @@ function buildWelcomeCredentialsMessage(input: {
     `Password temporanea: ${input.temporaryPassword}`,
     input.loginLinkLine,
     "",
-    "Al primo accesso ti verra richiesto di cambiare la password.",
+    "Al primo accesso ti verrà richiesto di cambiare la password.",
     "",
     "Guida rapida:",
     ...input.guideSteps,
@@ -145,7 +145,7 @@ export async function sendShiftSwapResultEmail(
     to: toEmail,
     subject: `${approved ? "Cambio turno approvato" : "Cambio turno rifiutato"} - ${barName}`,
     title: approved ? "Cambio turno approvato" : "Cambio turno rifiutato",
-    message: `Ciao ${toName},\nLa richiesta di cambio turno per ${barName} e stata ${approved ? "approvata" : "rifiutata"}.`,
+    message: `Ciao ${toName},\nLa richiesta di cambio turno per ${barName} è stata ${approved ? "approvata" : "rifiutata"}.`,
     ctaLabel: "Apri richieste",
     ctaUrl: getEmailAppUrl("/dashboard/requests"),
   });
@@ -176,8 +176,8 @@ export async function sendLeaveRequestResultEmail(
   return sendTemplatedEmail({
     to: employeeEmail,
     subject: `Richiesta ${type} ${approved ? "approvata" : "rifiutata"} - ${barName}`,
-    title: approved ? `${type} approvati` : `${type} rifiutati`,
-    message: `La tua richiesta di ${type} per ${barName} e stata ${approved ? "approvata" : "rifiutata"}.`,
+    title: `Richiesta di ${type} ${approved ? "approvata" : "rifiutata"}`,
+    message: `La tua richiesta di ${type} per ${barName} è stata ${approved ? "approvata" : "rifiutata"}.`,
     ctaLabel: "Apri richieste",
     ctaUrl: getEmailAppUrl("/dashboard/requests"),
   });
@@ -224,9 +224,9 @@ export async function sendUnavailabilityEmail(
 ) {
   return sendTemplatedEmail({
     to: toEmail,
-    subject: `Nuova indisponibilita - ${barName}`,
-    title: "Nuova indisponibilita",
-    message: `${employeeName} ha registrato un'indisponibilita per ${dateLabel} in ${barName}.`,
+    subject: `Nuova indisponibilità - ${barName}`,
+    title: "Nuova indisponibilità",
+    message: `${employeeName} ha registrato un'indisponibilità per ${dateLabel} in ${barName}.`,
     ctaLabel: "Apri calendario",
     ctaUrl: getEmailAppUrl("/dashboard/calendar"),
   });
@@ -242,7 +242,7 @@ export async function sendTaskAssignedEmail(
     to: toEmail,
     subject: `Nuova mansione assegnata - ${barName}`,
     title: "Nuova mansione",
-    message: `Ciao ${toName},\nTi e stata assegnata una nuova mansione: ${taskTitle}.\nLocale: ${barName}.`,
+    message: `Ciao ${toName},\nTi è stata assegnata una nuova mansione: ${taskTitle}.\nLocale: ${barName}.`,
     ctaLabel: "Apri mansioni",
     ctaUrl: getEmailAppUrl("/dashboard/tasks"),
   });
@@ -292,7 +292,7 @@ export async function sendSubscriptionCanceledEmail(
     to: ownerEmail,
     subject: `Abbonamento cancellato - ${barName}`,
     title: "Abbonamento cancellato",
-    message: `Ciao ${ownerName},\nL'abbonamento del locale ${barName} e stato cancellato o disattivato.`,
+    message: `Ciao ${ownerName},\nL'abbonamento del locale ${barName} è stato cancellato o disattivato.`,
     ctaLabel: "Gestisci billing",
     ctaUrl: getEmailAppUrl("/dashboard/settings"),
   });
@@ -307,7 +307,7 @@ export async function sendPaymentFailedEmail(
     to: ownerEmail,
     subject: `Pagamento fallito - ${barName}`,
     title: "Pagamento non riuscito",
-    message: `Ciao ${ownerName},\nIl pagamento dell'abbonamento per ${barName} non e andato a buon fine. Aggiorna il metodo di pagamento o rinnova l'abbonamento.`,
+    message: `Ciao ${ownerName},\nIl pagamento dell'abbonamento per ${barName} non è andato a buon fine. Aggiorna il metodo di pagamento o rinnova l'abbonamento.`,
     ctaLabel: "Vai al billing",
     ctaUrl: getEmailAppUrl("/dashboard/settings"),
   });

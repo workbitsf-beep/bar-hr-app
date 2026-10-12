@@ -70,7 +70,7 @@ export async function POST(req: Request): Promise<Response> {
           {
             ok: false,
             message:
-              "Nessuna biometria e ancora registrata. Accedi con email e password, poi attivala da Impostazioni.",
+              "Nessuna biometria è ancora registrata. Accedi con email e password, poi attivala da Impostazioni.",
           },
           { status: 409 }
         );
@@ -104,7 +104,7 @@ export async function POST(req: Request): Promise<Response> {
         {
           ok: false,
           message:
-            "La biometria non e ancora pronta sul database. Esegui le migration e riprova.",
+            "La biometria non è ancora pronta sul database. Esegui le migration e riprova.",
         },
         { status: 503 }
       );

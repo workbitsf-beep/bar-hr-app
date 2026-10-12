@@ -25,6 +25,7 @@ function barNeedsSetup(input: {
     gpsLatitude: number | null;
     gpsLongitude: number | null;
     gpsRadius: number | null;
+    gpsPostponedAt: Date | null;
     companyShiftsEnabled: boolean | null;
     roundingMinutes: number | null;
     roundingMode: string | null;
@@ -43,6 +44,7 @@ function barNeedsSetup(input: {
 
   const needsGps =
     input.activityType === ActivityType.RESTAURANT &&
+    !input.settings.gpsPostponedAt &&
     (input.settings.gpsLatitude === null ||
       input.settings.gpsLongitude === null ||
       input.settings.gpsRadius === null);
@@ -242,6 +244,7 @@ const ownerBarSelection = {
       gpsLatitude: true,
       gpsLongitude: true,
       gpsRadius: true,
+      gpsPostponedAt: true,
       companyShiftsEnabled: true,
       roundingMinutes: true,
       roundingMode: true,

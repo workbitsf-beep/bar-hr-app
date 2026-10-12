@@ -55,8 +55,8 @@ export function BottomNavIcon({ href }: { href: string }) {
   if (href === "/dashboard") {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M16 19v-1.2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4V19" {...common} />
-        <path d="M10.5 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...common} />
+        {/* A house: the tab opens "Oggi", the day at a glance, not a profile. */}
+        <path d="M4.5 10.5 12 4.5l7.5 6V18a1.5 1.5 0 0 1-1.5 1.5h-3.5V14h-5v5.5H6A1.5 1.5 0 0 1 4.5 18v-7.5Z" {...common} />
       </svg>
     );
   }
@@ -88,7 +88,7 @@ export function BottomNavIcon({ href }: { href: string }) {
 
 function getBottomNavLabel(item: DashboardNavItem, index: number) {
   if (index === 4) return "Altro";
-  if (item.href === "/dashboard") return "Profilo";
+  if (item.href === "/dashboard") return "Oggi";
   if (item.href.includes("/calendar")) return item.label;
   if (item.href.includes("/tasks") || item.href.includes("/board")) return "Note";
   if (item.href.includes("/timelogs") || item.href.includes("/export")) return "Ore";

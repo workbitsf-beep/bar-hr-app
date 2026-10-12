@@ -74,6 +74,8 @@ export function GpsLocationField({
       setLatitude(sample.latitude);
       setLongitude(sample.longitude);
       setMessage("Posizione aggiornata.");
+      // Anything on the page still saying the position is missing can go.
+      window.dispatchEvent(new CustomEvent("workbit:gps-located"));
 
       if (submitOnLocate) {
         pendingSubmitRef.current = true;

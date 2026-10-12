@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sendPushNotification, type PushTokenRecord } from "@/lib/push";
+import { prisma } from "@/lib/prisma";
 
 export const INTERNAL_NOTIFICATION_TYPES = {
   SHIFT_PUBLISHED: "shift.published",
@@ -84,6 +85,26 @@ export async function notifyUsers(
       createdCount: 0,
       pushResult: null as Awaited<ReturnType<typeof sendPushNotification>> | null,
     };
+  }
+
+  // Kept as well as pushed, so the bell in the menu can show them again to
+  // someone who missed the push or has it switched off. One insert for all.
+  try {
+    await prisma.notification.createMany({
+      data: recipients.map((recipient) => ({
+        userId: recipient.id,
+        barId: payload.barId ?? null,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type,
+        actionUrl: payload.actionUrl ?? null,
+      })),
+    });
+  } catch (error) {
+    console.error("[notifications] Failed to store notifications.", {
+      type: payload.type,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   const pushResult = await sendPushNotification(

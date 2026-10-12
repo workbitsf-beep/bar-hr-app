@@ -91,7 +91,7 @@ async function ensureUserBelongsToBar(barId: string, userId: string) {
   });
 
   if (!membership) {
-    throw new Error("Destinatario non associato a questa attivita.");
+    throw new Error("Destinatario non associato a questa attività.");
   }
 }
 
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
   const { activeBar, role } = await getActiveBarAccess(session);
 
   if (!activeBar?.id) {
-    return jsonError("Nessuna attivita selezionata.", 400);
+    return jsonError("Nessuna attività selezionata.", 400);
   }
 
   if (!canManageDocuments(role)) {

@@ -3273,7 +3273,7 @@ export function DayActionCalendarClient({
                                 formatRange(availability.startsAt, availability.endsAt, locale),
                                 "availability"
                               ),
-                              "Elimina indisponibilita",
+                              "Elimina indisponibilità",
                               () => handleDeleteAvailability(availability.id)
                             )
                           )}
@@ -3653,7 +3653,7 @@ export function DayActionCalendarClient({
                                 renderDeleteSwipeCard(
                                   `availability-${availability.id}`,
                                   renderAvailabilityCard(availability, true),
-                                  "Elimina indisponibilita",
+                                  "Elimina indisponibilità",
                                   () => handleDeleteAvailability(availability.id)
                                 )
                               ),
@@ -3820,7 +3820,7 @@ export function DayActionCalendarClient({
                             renderDeleteSwipeCard(
                               `availability-${availability.id}`,
                               renderAvailabilityCard(availability, true),
-                              "Elimina indisponibilita",
+                              "Elimina indisponibilità",
                               () => handleDeleteAvailability(availability.id)
                             )
                           );

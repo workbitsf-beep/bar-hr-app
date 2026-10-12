@@ -111,7 +111,7 @@ async function notifyOwnersForLegalDocument(input: {
     message:
       input.action === "created"
         ? `E disponibile un nuovo documento legale da accettare: ${input.title}.`
-        : `E stato aggiornato un documento legale da accettare: ${input.title}.`,
+        : `È stato aggiornato un documento legale da accettare: ${input.title}.`,
     type: INTERNAL_NOTIFICATION_TYPES.LEGAL_DOCUMENT_REQUIRED,
     actionUrl: "/legal/accept",
   });

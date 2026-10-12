@@ -57,7 +57,7 @@ export const POST = withBar(
 
     if (place.points.length === 0 || place.radius === null) {
       return Response.json(
-        { ok: false, message: "Bar GPS settings not configured" },
+        { ok: false, code: "NO_CLOCK_POINT", message: "Il titolare non ha ancora impostato dove si timbra: avvisalo." },
         { status: 400 }
       );
     }
@@ -163,7 +163,7 @@ export const POST = withBar(
             ok: false,
             code: "MISSED_OUT",
             message:
-              "Non hai timbrato l'uscita del turno precedente: indica a che ora sei uscito nella pagina Oggi (riga \"Uscita dimenticata\"), poi puoi entrare.",
+              "Non hai timbrato l'uscita del turno precedente: indica l'ora di uscita nella pagina Oggi (riga \"Uscita dimenticata\"), poi puoi entrare.",
           },
           { status: 400 }
         );

@@ -7,6 +7,7 @@ import { getLanguageOptions, getRoleLabel } from "@/lib/i18n";
 import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
 import { NotificationBarSync } from "./notification-bar-sync";
+import { NotificationsBell } from "./notifications-bell";
 import { PushRegistration } from "./push-registration";
 import { NativePermissions } from "./native-permissions";
 import {
@@ -172,6 +173,7 @@ export default async function DashboardLayout({
         }
         menuContent={
           <div className="workbit-menu-details" style={{ display: "grid", gap: 9 }}>
+            {activeBarId ? <NotificationsBell activeBarId={activeBarId} variant="row" /> : null}
             {/* Who you are, with a face and a role. The card above it used to
                 print the venue's name and then yours underneath, and when a
                 venue is named after its owner - which is common - nothing

@@ -409,8 +409,10 @@ export function KpiDashboard({
                   <span
                     key={day.date}
                     className={day.date === todayKey ? "dashboard-team-axis--today" : undefined}
+                    title={day.label}
                   >
-                    {day.label}
+                    {/* The weekday alone: "lun 12" did not fit a seventh of a phone and showed as "LUN ...". */}
+                    {day.label.split(" ")[0]}
                   </span>
                 ))}
               </div>

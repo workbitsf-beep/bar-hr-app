@@ -1479,7 +1479,7 @@ export function BillingRequiredState({
         >
           {canManageBilling
             ? "Attiva o rinnova l’abbonamento per sbloccare turni, timbrature, mansioni, bacheca e report."
-            : "Contatta il titolare del locale per riattivare l’abbonamento e sbloccare le funzionalita operative."}
+            : "Contatta il titolare del locale per riattivare l’abbonamento e sbloccare le funzionalità operative."}
         </p>
         {canManageBilling ? (
           <p className="wb-native-only" style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>

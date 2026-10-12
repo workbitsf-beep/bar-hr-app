@@ -79,7 +79,7 @@ export async function POST(req: Request): Promise<Response> {
         {
           ok: false,
           message:
-            "La biometria non e ancora pronta sul database. Esegui le migration e riprova.",
+            "La biometria non è ancora pronta sul database. Esegui le migration e riprova.",
         },
         { status: 503 }
       );

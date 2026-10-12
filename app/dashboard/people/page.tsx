@@ -227,7 +227,7 @@ export default async function DashboardPeoplePage({
   // their documents and their courses in order says nothing beyond their role.
   function warningFor(member: (typeof members)[number]) {
     if (member.user.mustChangePwd) {
-      return "Non è mai entrato nell'app";
+      return "Non ha ancora aperto l'app";
     }
 
     const expired = expiredCourses.get(member.user.id) ?? 0;

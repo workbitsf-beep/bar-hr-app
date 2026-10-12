@@ -875,6 +875,23 @@ export default async function DashboardPage() {
     />
   ) : null;
 
+  // Set up with "Imposto dopo", or never set: nobody can clock in until the
+  // owner stands in the venue and saves the point.
+  const clockPointMissing =
+    isOwner && features.timeTracking && activeBarId
+      ? (await clockPlaceFor({ barId: activeBarId, userId: session.user.id })).points.length === 0
+      : false;
+  const clockPointLine = clockPointMissing ? (
+    <div className="workbit-week-line workbit-week-line--warn">
+      <i aria-hidden="true" />
+      <span>
+        <b>Dove si timbra</b>
+        {" · da impostare: finché manca nessuno può timbrare"}
+      </span>
+      <Link href="/dashboard/settings?posizione=1">Imposta</Link>
+    </div>
+  ) : null;
+
   const weekLine =
     isOwner && features.shifts ? (
       <div
@@ -1097,6 +1114,7 @@ export default async function DashboardPage() {
           {reviewBlock}
           {crewBlock}
           {checklistBlock}
+          {clockPointLine}
           {weekLine}
         </div>
       )}

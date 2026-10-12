@@ -98,6 +98,19 @@ function getBillingDisplay(status: BillingStatusResult) {
     };
   }
 
+  // A new venue's trial starts once a card is on Stripe (wanted, see the
+  // dashboard's route guard). It is a trial waiting for its card, not a
+  // switched-off service: "Disattivato" read as if the venue were blocked.
+  if (status.planType === PlanType.TRIAL && status.requiresActivation && status.trialEndsAt) {
+    const until = formatNullableDate(status.trialEndsAt);
+    return {
+      label: "Prova da avviare",
+      tone: "warning" as const,
+      message: `30 giorni gratis: inserisci la carta per iniziare. Non paghi niente fino al ${until}, e puoi disdire prima.`,
+      messageColor: "#92400e",
+    };
+  }
+
   return {
     label: "Disattivato",
     tone: "neutral" as const,
@@ -155,7 +168,8 @@ export function BillingSettingsPanel({
         : status.planType === PlanType.FREE
           ? "Gratuito"
           : null;
-  const people = seats ? (seats.limit === null ? `${seats.used} persone` : `${seats.used} persone su ${seats.limit}`) : null;
+  const noun = seats?.used === 1 ? "persona" : "persone";
+  const people = seats ? (seats.limit === null ? `${seats.used} ${noun}` : `${seats.used} ${noun} su ${seats.limit}`) : null;
   const planStatus: PlanStatus = {
     tone: TONE[display.tone] ?? "off",
     label: display.label,

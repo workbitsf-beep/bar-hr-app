@@ -87,7 +87,14 @@ function getNotificationActionUrl(notification: NotificationItem) {
   return notification.actionUrl;
 }
 
-export function NotificationsBell({ activeBarId }: { activeBarId: string | null }) {
+export function NotificationsBell({
+  activeBarId,
+  variant = "icon",
+}: {
+  activeBarId: string | null;
+  /** "row": a full-width row for the menu. */
+  variant?: "icon" | "row";
+}) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -108,6 +115,12 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
     setMounted(true);
     setPushDisabled(isWorkbitPushDisabled());
   }, []);
+
+  // The menu button's dot follows the count, once it has been loaded.
+  useEffect(() => {
+    if (lastLoadedAtRef.current === 0) return;
+    window.dispatchEvent(new CustomEvent("workbit:notifications-unread", { detail: unreadCount }));
+  }, [unreadCount]);
 
   useEffect(() => {
     if (!mounted) {
@@ -294,8 +307,52 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
     Notification.permission === "granted" &&
     !pushDisabled;
 
+  // In the menu, as one of its rows: the header had no room for a bell
+  // beside the menu button without cutting the venue's name.
+  const trigger =
+    variant === "row" ? (
+      <button
+        type="button"
+        aria-label={unreadCount > 0 ? `Notifiche, ${unreadCount} da leggere` : "Notifiche"}
+        onClick={() => setOpen(true)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          width: "100%",
+          minHeight: 52,
+          padding: "0 14px",
+          borderRadius: 16,
+          border: "1px solid #ebe6f7",
+          background: "#ffffff",
+          color: "#17161f",
+          font: "inherit",
+          textAlign: "left",
+          cursor: "pointer",
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ color: "#5e4ae3", flex: "0 0 auto" }}>
+          <path d="M15 17H9m10-4V11a7 7 0 1 0-14 0v2l-2 3h18l-2-3Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span style={{ flex: 1, fontSize: 15, fontWeight: 700 }}>Notifiche</span>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            padding: "3px 9px",
+            borderRadius: 999,
+            ...(unreadCount > 0 ? { background: "#ef4444", color: "#ffffff" } : { background: "#f4f2fb", color: "#8b88a3" }),
+          }}
+        >
+          {unreadCount > 0 ? `${unreadCount > 99 ? "99+" : unreadCount} da leggere` : "Lette"}
+        </span>
+      </button>
+    ) : null;
+
   return (
     <>
+      {trigger ?? (
       <div style={{ position: "relative", display: "inline-flex" }}>
         <button
           type="button"
@@ -360,6 +417,7 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
           </span>
         ) : null}
       </div>
+      )}
 
       {mounted && open
         ? createPortal(
@@ -367,7 +425,8 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
               style={{
                 position: "fixed",
                 inset: 0,
-                zIndex: 2147483646,
+                // Above the menu it opens from.
+                zIndex: 2147483647,
                 display: "grid",
                 placeItems: "center",
                 padding: 16,

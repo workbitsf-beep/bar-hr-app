@@ -71,18 +71,18 @@ export async function requestClockFixAction(formData: FormData) {
       const reference = shiftEnd ?? new Date((inAt ?? now).getTime() + 8 * HOUR);
       const raw = readTime(formData, "out");
       requestedOutAt = raw ? timeNear(reference, raw) : null;
-      if (!requestedOutAt) throw new RuleError("Scegli a che ora sei uscito.");
+      if (!requestedOutAt) throw new RuleError("Scegli l'ora di uscita.");
       if (inAt && requestedOutAt <= inAt) {
         throw new RuleError(`L'uscita deve essere dopo l'entrata delle ${clockTime(inAt)}.`);
       }
     } else {
       const rawIn = readTime(formData, "in");
       requestedInAt = rawIn && shiftStart ? timeNear(shiftStart, rawIn) : null;
-      if (!requestedInAt) throw new RuleError("Scegli a che ora sei entrato.");
+      if (!requestedInAt) throw new RuleError("Scegli l'ora di entrata.");
       if (offer.needsOut) {
         const rawOut = readTime(formData, "out");
         requestedOutAt = rawOut && shiftEnd ? timeNear(shiftEnd, rawOut) : null;
-        if (!requestedOutAt) throw new RuleError("Scegli a che ora sei uscito.");
+        if (!requestedOutAt) throw new RuleError("Scegli l'ora di uscita.");
         if (requestedOutAt <= requestedInAt) throw new RuleError("L'uscita deve essere dopo l'entrata.");
       }
     }

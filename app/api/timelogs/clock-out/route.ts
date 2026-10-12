@@ -72,7 +72,7 @@ export const POST = withBar(
           {
             ok: false,
             code: "STALE_ENTRY",
-            message: "L'uscita del turno precedente non è stata timbrata: indica a che ora sei uscito nella pagina Oggi.",
+            message: "L'uscita del turno precedente non è stata timbrata: indica l'ora di uscita nella pagina Oggi.",
           },
           { status: 409 }
         );

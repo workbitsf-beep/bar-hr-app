@@ -476,6 +476,9 @@ model BarSettings {
   gpsLatitude          Float?
   gpsLongitude         Float?
   gpsRadius            Int?
+  /// The owner chose "Imposto dopo" for the clock-in point during setup:
+  /// setup is complete without it, and the home page reminds them until set.
+  gpsPostponedAt       DateTime?
   companyShiftsEnabled Boolean?
   timeTrackingEnabled  Boolean       @default(true)
   shiftsEnabled        Boolean       @default(true)

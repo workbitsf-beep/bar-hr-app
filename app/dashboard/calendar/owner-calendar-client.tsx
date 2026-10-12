@@ -40,6 +40,7 @@ import { isActionFailure, describeActionError } from "@/lib/rule-error";
 import {
   addStandardShiftPresetAction,
   completeTaskAction,
+  copyPreviousWeekShiftsAction,
   createBoardNoteAction,
   createShiftAction,
   createTaskAction,
@@ -2607,6 +2608,31 @@ export function OwnerCalendarClient({
     });
   }
 
+  /**
+   * The week before, copied as drafts into an empty week: on the phone a week
+   * was rebuilt shift by shift, about two hundred taps, while the computer
+   * had this all along.
+   */
+  function copyPreviousWeek(weekStart: string) {
+    const formData = new FormData();
+    formData.set("weekStart", weekStart);
+    startTransition(async () => {
+      try {
+        const result = await copyPreviousWeekShiftsAction(formData);
+        throwIfRefused(result);
+        const created = (result as { created?: number } | undefined)?.created ?? 0;
+        setFeedback(
+          created > 0
+            ? { tone: "success", message: `${created} turni copiati come bozza: controllali e pubblica la settimana.` }
+            : { tone: "danger", message: "Niente da copiare: la settimana prima è vuota." }
+        );
+        router.refresh();
+      } catch (error) {
+        setFeedback({ tone: "danger", message: getErrorMessage(error) });
+      }
+    });
+  }
+
   function handleCompleteTask(taskId: string) {
     const formData = new FormData();
     formData.set("taskId", taskId);
@@ -3006,7 +3032,7 @@ export function OwnerCalendarClient({
                                 formatRange(availability.startsAt, availability.endsAt, locale),
                                 "availability"
                               ),
-                              "Elimina indisponibilita",
+                              "Elimina indisponibilità",
                               () => handleDeleteAvailability(availability.id)
                             )
                           )}
@@ -3056,6 +3082,9 @@ export function OwnerCalendarClient({
         {visibleWeeks.map((week, weekIndex) => {
           const weekIsCurrent = week.some((day) => day.isToday);
           const weekIsFocused = week.some((day) => day.date === focusedDayDate);
+          const weekKey = week[0]?.date.slice(0, 10) ?? "";
+          const weekIsEmpty = features.shifts && week.every((day) => day.shifts.length === 0);
+          const weekIsAhead = Boolean(weekKey) && week.some((day) => day.date.slice(0, 10) >= todayKey);
 
           return (
             <section
@@ -3080,6 +3109,25 @@ export function OwnerCalendarClient({
                   : undefined,
               }}
             >
+              {weekIsEmpty && weekIsAhead ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => copyPreviousWeek(weekKey)}
+                  style={{
+                    minHeight: 46,
+                    borderRadius: 16,
+                    border: "1.5px dashed #c4b5fd",
+                    background: "#faf8ff",
+                    color: "#4c1d95",
+                    fontWeight: 800,
+                    fontSize: 14.5,
+                    cursor: isPending ? "default" : "pointer",
+                  }}
+                >
+                  {isPending ? "Copio…" : "Copia la settimana scorsa"}
+                </button>
+              ) : null}
 
               <div style={{ display: "grid", gap: 12 }}>
                 {week.map((day) => {
@@ -3368,7 +3416,7 @@ export function OwnerCalendarClient({
                                 renderDeleteSwipeCard(
                                   `availability-${availability.id}`,
                                   renderAvailabilityCard(availability, true),
-                                  "Elimina indisponibilita",
+                                  "Elimina indisponibilità",
                                   () => handleDeleteAvailability(availability.id)
                                 )
                               ),
@@ -4459,7 +4507,7 @@ export function OwnerCalendarClient({
                               formatRange(availability.startsAt, availability.endsAt, locale),
                               "availability"
                             ),
-                            "Elimina indisponibilita",
+                            "Elimina indisponibilità",
                             () => handleDeleteAvailability(availability.id)
                           )
                         )}

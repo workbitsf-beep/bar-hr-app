@@ -291,7 +291,7 @@ export async function DesktopToday({
     ...todayLogs.map((log) => ({
       at: log.timestamp,
       user: log.user,
-      text: log.type === "IN" ? "è entrato" : "è uscito",
+      text: log.type === "IN" ? "ha timbrato l'entrata" : "ha timbrato l'uscita",
     })),
     ...pending
       .filter((request) => request.createdAt >= dayStart)

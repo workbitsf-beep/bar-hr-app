@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { AppToastHost } from "@/app/components/app-toast";
+import { HideOnEvent } from "@/app/components/hide-on-event";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ActivityType, RoundingMode, Role } from "@prisma/client";
@@ -122,6 +123,7 @@ type OnboardingBar = {
     gpsLatitude: number | null;
     gpsLongitude: number | null;
     gpsRadius: number | null;
+    gpsPostponedAt?: Date | null;
     companyShiftsEnabled: boolean | null;
     timeTrackingEnabled?: boolean | null;
     shiftsEnabled?: boolean | null;
@@ -152,6 +154,7 @@ function barNeedsSetup(bar: OnboardingBar) {
   const needsGps =
     timeTrackingEnabled &&
     bar.activityType === ActivityType.RESTAURANT &&
+    !bar.settings?.gpsPostponedAt &&
     (!bar.settings ||
       bar.settings.gpsLatitude === null ||
       bar.settings.gpsLongitude === null ||
@@ -230,6 +233,7 @@ async function getOwnerContext() {
                   gpsLatitude: true,
                   gpsLongitude: true,
                   gpsRadius: true,
+                  gpsPostponedAt: true,
                   companyShiftsEnabled: true,
                   roundingMinutes: true,
                   roundingMode: true,
@@ -283,6 +287,7 @@ async function getOwnerContext() {
                 gpsLatitude: true,
                 gpsLongitude: true,
                 gpsRadius: true,
+                gpsPostponedAt: true,
                 companyShiftsEnabled: true,
                 roundingMinutes: true,
                 roundingMode: true,
@@ -331,6 +336,7 @@ function getCurrentStep(activeBar: Awaited<ReturnType<typeof getOwnerContext>>["
   if (
     timeTrackingEnabled &&
     activeBar.activityType === ActivityType.RESTAURANT &&
+    !activeBar.settings?.gpsPostponedAt &&
     (!activeBar.settings ||
       activeBar.settings.gpsLatitude === null ||
       activeBar.settings.gpsLongitude === null ||
@@ -452,6 +458,7 @@ async function switchBarAction(formData: FormData) {
                 gpsLatitude: true,
                 gpsLongitude: true,
                 gpsRadius: true,
+                gpsPostponedAt: true,
                 companyShiftsEnabled: true,
                 timeTrackingEnabled: true,
                 shiftsEnabled: true,
@@ -543,6 +550,31 @@ async function saveGpsAction(formData: FormData) {
       data: { activeBarId: activeBar.id },
     }),
   ]);
+
+  revalidatePath("/onboarding");
+  redirect("/onboarding?step=3");
+}
+
+/**
+ * "Imposto dopo": an owner signing up from home finishes setup without the
+ * clock-in point. Nobody can clock in until it is set; the home page says so
+ * and leads to it.
+ */
+async function postponeGpsAction() {
+  "use server";
+
+  const { activeBar } = await getOwnerContext();
+
+  if (!activeBar) {
+    redirect("/onboarding");
+  }
+
+  const gpsRadius = await getGlobalGpsRadius();
+  await prisma.barSettings.upsert({
+    where: { barId: activeBar.id },
+    update: { gpsPostponedAt: new Date() },
+    create: { barId: activeBar.id, gpsRadius, gpsPostponedAt: new Date() },
+  });
 
   revalidatePath("/onboarding");
   redirect("/onboarding?step=3");
@@ -1093,6 +1125,7 @@ export default async function OnboardingPage({
         <AppToastHost />
       </Suspense>
       {errorText ? (
+        <HideOnEvent event={errorCode === "invalid-gps" ? "workbit:gps-located" : "workbit:never"}>
         <div
           role="alert"
           style={{
@@ -1107,6 +1140,7 @@ export default async function OnboardingPage({
         >
           {errorText}
         </div>
+      </HideOnEvent>
       ) : null}
       {currentStep === 1 ? (
         <Card>
@@ -1214,7 +1248,27 @@ export default async function OnboardingPage({
             />
 
             <input type="hidden" name="gpsRadius" value={String(globalGpsRadius)} />
+            <span style={{ fontSize: 13, color: "#6b6880", lineHeight: 1.5 }}>
+              Premi il tasto stando nel locale. Non ci sei adesso? Puoi farlo dopo dalle Impostazioni: fino ad allora
+              nessuno può timbrare.
+            </span>
             <SubmitButton label="Continua" />
+          </form>
+          <form action={postponeGpsAction} style={{ display: "grid", marginTop: 10 }}>
+            <button
+              type="submit"
+              style={{
+                minHeight: 44,
+                border: 0,
+                background: "transparent",
+                color: "#4c1d95",
+                fontWeight: 800,
+                fontSize: 14.5,
+                cursor: "pointer",
+              }}
+            >
+              Imposto dopo
+            </button>
           </form>
         </Card>
       ) : null}

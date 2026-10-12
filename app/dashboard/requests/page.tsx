@@ -725,6 +725,19 @@ export default async function DashboardRequestsPage({
   const ownAvailabilities = availabilities.filter(
     (availability) => availability.user.id === session.user.id
   );
+  // Approved time off still to come belongs here too: with two days of
+  // holiday approved, "Quando non ci sei" said "Niente in programma".
+  const awayFrom = new Date();
+  const ownApprovedAway = standardRequests.filter(
+    (request) =>
+      request.employee.id === session.user.id &&
+      request.status === RequestStatus.APPROVED &&
+      (request.type === RequestType.VACATION ||
+        request.type === RequestType.PERMISSION ||
+        request.type === RequestType.SICKNESS) &&
+      request.endsAt &&
+      request.endsAt >= awayFrom
+  );
 
   const phonePage = (
     <div className="workbit-requests-page">
@@ -1058,8 +1071,17 @@ export default async function DashboardRequestsPage({
 
         {!canManageClosures && features.availability && !isCompany ? (
           <>
-            <RequestGroup label="Quando non ci sei" count={ownAvailabilities.length} />
-            {ownAvailabilities.length === 0 ? (
+            <RequestGroup label="Quando non ci sei" count={ownAvailabilities.length + ownApprovedAway.length} />
+            {ownApprovedAway.map((request) => (
+              <RequestRow
+                key={request.id}
+                emoji={requestEmoji(request.type)}
+                title={requestLabel(request.type)}
+                detail={describeSpan(request.startsAt, request.endsAt)}
+                trailing={<StatusPill label="Approvata" tone="success" />}
+              />
+            ))}
+            {ownAvailabilities.length === 0 && ownApprovedAway.length === 0 ? (
               <div
                 style={{
                   padding: 16,
@@ -1189,7 +1211,7 @@ export default async function DashboardRequestsPage({
                             <TextInput name="title" defaultValue={closure.title} />
                           </FormField>
 
-                          <FormField label="Tipo attivita">
+                          <FormField label="Tipo attività">
                             <Select name="type" defaultValue={closure.type}>
                               <option value={CalendarClosureType.CLOSURE}>Chiusura</option>
                               <option value={CalendarClosureType.HOLIDAY}>Festivita</option>

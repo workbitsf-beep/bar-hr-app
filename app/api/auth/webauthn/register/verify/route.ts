@@ -75,7 +75,7 @@ export async function POST(req: Request): Promise<Response> {
 
     if (existingCredential) {
       return NextResponse.json(
-        { ok: false, message: "Questa passkey e gia registrata." },
+        { ok: false, message: "Questa passkey è già registrata." },
         { status: 409 }
       );
     }

@@ -40,8 +40,8 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "Profilo",
-        short_name: "Profilo",
+        name: "Oggi",
+        short_name: "Oggi",
         url: "/dashboard",
         icons: [{ src: "/app-icon-192.png", sizes: "192x192", type: "image/png" }],
       },

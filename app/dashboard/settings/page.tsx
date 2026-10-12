@@ -733,6 +733,8 @@ export default async function DashboardSettingsPage({
   // The owner's plan picker (web only): what the venue has now and its VAT number.
   const purchase = role === Role.OWNER && activeBarId ? await getPurchaseContext(activeBarId) : null;
   const openPlanPopup = normalizeParam(params.piano) === "1";
+  // From the home's "Dove si timbra · Imposta".
+  const openPositionPopup = normalizeParam(params.posizione) === "1";
   const signFont = parseSignFont(venueStyle?.signFont);
   const logoUrl =
     activeBarId && venueStyle?.logoType
@@ -1138,6 +1140,7 @@ export default async function DashboardSettingsPage({
           <PopupAction
             title="Dove si timbra"
             ariaLabel="Apri la posizione di timbratura"
+            initialOpen={openPositionPopup}
             triggerRow={
               <SettingsRow
                 dot="#10b981"

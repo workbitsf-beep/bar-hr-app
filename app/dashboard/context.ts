@@ -223,7 +223,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
           { label: "Sistema", href: "/dashboard/super-admin/system" },
         ]
       : [
-          { label: "Profilo", href: "/dashboard" },
+          { label: "Oggi", href: "/dashboard" },
           ...(hasCalendarModules ? [{ label: calendarNavLabel, href: "/dashboard/calendar" }] : []),
           ...(notesEnabled
             ? [{ label: "Note", href: "/dashboard/tasks" }]

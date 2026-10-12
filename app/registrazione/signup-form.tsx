@@ -10,8 +10,26 @@ import { useState } from "react";
  * persone, orari e GPS si chiedono dopo, nell'onboarding.
  */
 export function SignupForm() {
-  const [state, setState] = useState<"idle" | "sending" | "done">("idle");
+  const [state, setState] = useState<"idle" | "sending" | "done" | "no-email">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState("");
+  const [resend, setResend] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+
+  async function resendEmail() {
+    setResend("sending");
+    try {
+      // The password reset makes a fresh password and mails it: the first one
+      // was never seen by anyone.
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: sentTo }),
+      });
+      setResend(response.ok ? "sent" : "failed");
+    } catch {
+      setResend("failed");
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,7 +45,16 @@ export function SignupForm() {
         body: JSON.stringify(Object.fromEntries(form.entries())),
       });
 
-      const payload = (await response.json()) as { ok: boolean; message?: string };
+      const payload = (await response.json()) as { ok: boolean; message?: string; code?: string };
+
+      // The venue exists but the password email did not leave: offer to send
+      // it again, instead of a form the person would fill in a second time.
+      if (payload.code === "EMAIL_NOT_SENT") {
+        setSentTo(String(form.get("email") ?? ""));
+        setError(payload.message ?? null);
+        setState("no-email");
+        return;
+      }
 
       if (!response.ok || !payload.ok) {
         setError(payload.message ?? "Non ha funzionato. Riprova.");
@@ -40,6 +67,32 @@ export function SignupForm() {
       setError("Connessione non riuscita. Controlla la rete e riprova.");
       setState("idle");
     }
+  }
+
+  if (state === "no-email") {
+    return (
+      <div className="wb-signup__done">
+        <h2>Il tuo locale è pronto.</h2>
+        <p>{error}</p>
+        <button
+          type="button"
+          className="wb-signup__go"
+          onClick={resendEmail}
+          disabled={resend === "sending" || resend === "sent"}
+          style={{ border: 0, cursor: "pointer", font: "inherit" }}
+        >
+          {resend === "sending" ? "Invio…" : resend === "sent" ? "Email rimandata" : "Rimanda l'email"}
+        </button>
+        {resend === "sent" ? (
+          <p>
+            Controlla {sentTo}, anche nella posta indesiderata. Poi <a href="/login">entra da qui</a>.
+          </p>
+        ) : null}
+        {resend === "failed" ? (
+          <p role="alert">Non è partita nemmeno adesso: scrivi a support@workbit.it e te la mandiamo noi.</p>
+        ) : null}
+      </div>
+    );
   }
 
   if (state === "done") {

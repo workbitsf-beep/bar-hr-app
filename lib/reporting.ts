@@ -443,8 +443,8 @@ async function buildRestaurantMonthlyDataset(
       id: availability.id,
       type: "Indisponibilita",
       title: options.includePrivateAbsenceDetails
-        ? availability.reason?.trim() || "Indisponibilita registrata"
-        : "Indisponibilita registrata",
+        ? availability.reason?.trim() || "Indisponibilità registrata"
+        : "Indisponibilità registrata",
       startsAt: availability.startsAt.toISOString(),
       endsAt: availability.endsAt.toISOString(),
     });
@@ -679,8 +679,8 @@ async function buildCompanyMonthlyDataset(
       id: availability.id,
       type: "Indisponibilita",
       title: options.includePrivateAbsenceDetails
-        ? availability.reason?.trim() || "Indisponibilita registrata"
-        : "Indisponibilita registrata",
+        ? availability.reason?.trim() || "Indisponibilità registrata"
+        : "Indisponibilità registrata",
       startsAt: availability.startsAt.toISOString(),
       endsAt: availability.endsAt.toISOString(),
     });

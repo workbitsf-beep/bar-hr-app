@@ -5786,9 +5786,7 @@ async function runReviewRequest(formData: FormData) {
   if (leaveNotification) {
     await notifyUsers([leaveNotification.employee], {
       barId: activeBarId,
-      title: leaveNotification.approved
-        ? `${leaveNotification.type} approvati`
-        : `${leaveNotification.type} rifiutati`,
+      title: `Richiesta di ${leaveNotification.type} ${leaveNotification.approved ? "approvata" : "rifiutata"}`,
       message: `La tua richiesta di ${leaveNotification.type} per ${leaveNotification.barName} è stata ${leaveNotification.approved ? "approvata" : "rifiutata"}.`,
       type: INTERNAL_NOTIFICATION_TYPES.REQUEST_REVIEWED,
       actionUrl: "/dashboard/requests",
