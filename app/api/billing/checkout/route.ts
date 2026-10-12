@@ -5,9 +5,24 @@ import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { requireStripe } from "@/lib/stripe";
+import { normalizeSelection, type PlanSelection } from "@/lib/stripe-catalog";
+import {
+  LIVE_STATUSES,
+  MissingPriceError,
+  SAME_VAT_DISCOUNT_PERCENT,
+  applyPlanFromSubscription,
+  ensureCustomerVat,
+  ensureSameVatCoupon,
+  hasPayingVatSibling,
+  lineItemsFor,
+} from "@/lib/stripe-plan-billing";
+import { isValidItalianVat, normalizeItalianVat } from "@/lib/vat-number";
 
 type CheckoutBody = {
   interval?: "MONTHLY" | "YEARLY";
+  /** Base or Pro and the extras; checked against what the venue may buy. */
+  selection?: Partial<Record<keyof PlanSelection, unknown>>;
+  vatNumber?: string;
 };
 
 function getRequiredAppUrl() {
@@ -18,26 +33,6 @@ function getRequiredAppUrl() {
   }
 
   return appUrl;
-}
-
-function getPriceId(interval: BillingInterval) {
-  if (interval === BillingInterval.MONTHLY) {
-    const priceId = process.env.STRIPE_PRICE_MONTHLY?.trim();
-
-    if (!priceId) {
-      throw new Error("Missing STRIPE_PRICE_MONTHLY environment variable.");
-    }
-
-    return priceId;
-  }
-
-  const priceId = process.env.STRIPE_PRICE_YEARLY?.trim();
-
-  if (!priceId) {
-    throw new Error("Missing STRIPE_PRICE_YEARLY environment variable.");
-  }
-
-  return priceId;
 }
 
 function normalizeDiscountPercent(value: number | null | undefined) {
@@ -87,48 +82,6 @@ async function ensureMonthlyDiscountCoupon(input: {
   return coupon.id;
 }
 
-/**
- * Dal secondo locale lo stesso titolare paga il 10% in meno, sul mensile come
- * sull'annuale: e quello che promette il sito (workbit.it/prezzi). Il primo
- * locale aperto paga pieno; ogni locale aperto dopo ha lo sconto, da solo,
- * senza che il super admin lo imposti a mano.
- *
- * Il buono e uno solo per tutti, con un id fisso: si crea la prima volta che
- * serve e poi si riusa.
- */
-const ADDITIONAL_VENUE_DISCOUNT_PERCENT = 10;
-const ADDITIONAL_VENUE_COUPON_ID = "workbit-secondo-locale-10";
-
-async function ownerHasEarlierVenue(bar: { id: string; ownerId: string; createdAt: Date }) {
-  const earlier = await prisma.bar.count({
-    where: {
-      ownerId: bar.ownerId,
-      id: { not: bar.id },
-      createdAt: { lt: bar.createdAt },
-    },
-  });
-
-  return earlier > 0;
-}
-
-async function ensureAdditionalVenueCoupon(stripe: Stripe) {
-  try {
-    const existing = await stripe.coupons.retrieve(ADDITIONAL_VENUE_COUPON_ID);
-    return existing.id;
-  } catch {
-    const coupon = await stripe.coupons.create({
-      id: ADDITIONAL_VENUE_COUPON_ID,
-      percent_off: ADDITIONAL_VENUE_DISCOUNT_PERCENT,
-      duration: "forever",
-      name: `Workbit dal secondo locale ${ADDITIONAL_VENUE_DISCOUNT_PERCENT}%`,
-      metadata: {
-        kind: "ADDITIONAL_VENUE_DISCOUNT",
-      },
-    });
-    return coupon.id;
-  }
-}
-
 export async function POST(req: Request) {
   const session = await getSession();
 
@@ -171,23 +124,6 @@ export async function POST(req: Request) {
     );
   }
 
-  let priceId: string;
-
-  try {
-    priceId = getPriceId(interval);
-  } catch (error) {
-    return Response.json(
-      {
-        ok: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Missing Stripe price configuration.",
-      },
-      { status: 500 }
-    );
-  }
-
   let baseUrl: string;
 
   try {
@@ -215,6 +151,9 @@ export async function POST(req: Request) {
         legalName: true,
         ownerId: true,
         createdAt: true,
+        activityType: true,
+        plan: true,
+        vatNumber: true,
         owner: {
           select: {
             id: true,
@@ -243,6 +182,47 @@ export async function POST(req: Request) {
   if (!bar) {
     return Response.json({ ok: false, message: "Locale non trovato." }, { status: 404 });
   }
+
+  if (bar.plan === "CUSTOM") {
+    return Response.json(
+      { ok: false, message: "Il piano su misura si gestisce con Workbit: scrivici per cambiarlo." },
+      { status: 400 }
+    );
+  }
+
+  const selection = normalizeSelection(body?.selection ?? {}, bar.activityType === "COMPANY");
+
+  // The VAT number decides the invoice and the discount: asked here when the
+  // venue does not have one yet, and kept on the venue.
+  const vat = normalizeItalianVat(body?.vatNumber ?? bar.vatNumber);
+  if (!vat || !isValidItalianVat(vat)) {
+    return Response.json(
+      { ok: false, message: "Scrivi la partita IVA dell'attività: 11 cifre, senza IT davanti." },
+      { status: 400 }
+    );
+  }
+  if (bar.vatNumber?.replace(/^IT/, "") !== vat) {
+    await prisma.bar.update({ where: { id: bar.id }, data: { vatNumber: vat } });
+  }
+
+  let lineItems: Awaited<ReturnType<typeof lineItemsFor>>;
+  try {
+    lineItems = await lineItemsFor(stripe, selection, interval);
+  } catch (error) {
+    console.error("[billing] prices not found on Stripe", error);
+    return Response.json(
+      {
+        ok: false,
+        message:
+          error instanceof MissingPriceError
+            ? "Il pagamento non è ancora pronto: alcuni prezzi non sono su Stripe. Riprova più tardi o scrivici."
+            : "Stripe non risponde in questo momento. Riprova tra poco.",
+      },
+      { status: 503 }
+    );
+  }
+
+  const sameVatDiscount = await hasPayingVatSibling(bar.id, vat);
 
   const pendingTrialSetup = Boolean(
     subscription?.planType === PlanType.TRIAL &&
@@ -293,7 +273,46 @@ export async function POST(req: Request) {
     invalidateBillingStatusCache(bar.id);
   }
 
+  await ensureCustomerVat(stripe, stripeCustomerId, vat);
+
   const monthlyDiscountPercent = normalizeDiscountPercent(subscription?.monthlyDiscountPercent);
+
+  // Already paying: the subscription changes in place, with Stripe working
+  // out the difference, instead of a second one being bought.
+  if (subscription?.stripeSubscriptionId && LIVE_STATUSES.includes(subscription.status)) {
+    const current = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+    const remaining = new Map(lineItems.map((item) => [item.kind, item]));
+    const items: Stripe.SubscriptionUpdateParams.Item[] = [];
+    for (const existing of current.items.data) {
+      const kind = existing.price.lookup_key?.replace(/^workbit_/, "").replace(/_(monthly|yearly)$/, "");
+      const wanted = kind ? remaining.get(kind as (typeof lineItems)[number]["kind"]) : undefined;
+      if (wanted) {
+        items.push({ id: existing.id, price: wanted.price, quantity: wanted.quantity });
+        remaining.delete(wanted.kind);
+      } else {
+        items.push({ id: existing.id, deleted: true });
+      }
+    }
+    for (const item of remaining.values()) items.push({ price: item.price, quantity: item.quantity });
+
+    const couponForUpdate =
+      sameVatDiscount && !current.discounts?.length && monthlyDiscountPercent <= 0 ? await ensureSameVatCoupon(stripe) : null;
+    const updated = await stripe.subscriptions.update(current.id, {
+      items,
+      proration_behavior: "create_prorations",
+      ...(couponForUpdate ? { discounts: [{ coupon: couponForUpdate }] } : {}),
+      metadata: { ...current.metadata, barId: bar.id, interval },
+    });
+    await prisma.subscription.updateMany({ where: { barId: bar.id }, data: { billingInterval: interval } });
+    await applyPlanFromSubscription(bar.id, updated);
+    invalidateBillingStatusCache(bar.id);
+
+    return Response.json({
+      ok: true,
+      updated: true,
+      message: "Abbonamento aggiornato. La differenza la trovi nella prossima fattura.",
+    });
+  }
   const monthlyCouponId =
     interval === BillingInterval.MONTHLY
       ? await ensureMonthlyDiscountCoupon({
@@ -303,13 +322,10 @@ export async function POST(req: Request) {
           monthlyDiscountPercent,
         })
       : null;
-  // A discount set by hand in the console wins; otherwise a venue after the
-  // owner's first gets the additional-venue discount.
-  const additionalVenueCouponId =
-    !monthlyCouponId && (await ownerHasEarlierVenue(bar))
-      ? await ensureAdditionalVenueCoupon(stripe)
-      : null;
-  const couponId = monthlyCouponId ?? additionalVenueCouponId;
+  // A discount set by hand in the console wins; otherwise a second business
+  // on the same VAT number gets its 10%.
+  const sameVatCouponId = !monthlyCouponId && sameVatDiscount ? await ensureSameVatCoupon(stripe) : null;
+  const couponId = monthlyCouponId ?? sameVatCouponId;
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: stripeCustomerId,
@@ -331,12 +347,7 @@ export async function POST(req: Request) {
       address: "auto",
     },
     payment_method_types: ["card", "sepa_debit"],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
+    line_items: lineItems.map((item) => ({ price: item.price, quantity: item.quantity })),
     ...(couponId
       ? {
           discounts: [
@@ -351,7 +362,8 @@ export async function POST(req: Request) {
       ownerId: bar.owner.id,
       interval,
       monthlyDiscountPercent: String(monthlyDiscountPercent),
-      additionalVenueDiscount: additionalVenueCouponId ? String(ADDITIONAL_VENUE_DISCOUNT_PERCENT) : "0",
+      sameVatDiscount: sameVatCouponId ? String(SAME_VAT_DISCOUNT_PERCENT) : "0",
+      selection: JSON.stringify(selection),
       checkoutKind: pendingTrialSetup ? "TRIAL_SETUP" : "PAID_START",
     },
     subscription_data: {

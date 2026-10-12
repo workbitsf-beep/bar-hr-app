@@ -142,9 +142,15 @@ export function PlanPanel({
         </div>
       </div>
 
-      <span style={{ fontSize: 13, color: "#8b88a3", lineHeight: 1.45 }}>
-        Gli extra si sommano al tuo abbonamento: un solo pagamento. Per aggiungerne uno o passare al Pro, scrivi
-        all&apos;assistenza.
+      {/* On the web the owner changes it right below; the installed app only
+          shows the plan, as the stores require. */}
+      <span className="wb-web-only" style={{ fontSize: 13, color: "#8b88a3", lineHeight: 1.45 }}>
+        Gli extra si sommano al tuo abbonamento: un solo pagamento. Per aggiungerne uno o passare al Pro, sceglilo
+        in Abbonamento qui sotto.
+      </span>
+      <span className="wb-native-only" style={{ fontSize: 13, color: "#8b88a3", lineHeight: 1.45 }}>
+        Gli extra si sommano al tuo abbonamento: un solo pagamento. Il piano si gestisce dall&apos;area titolare di
+        Workbit sul web.
       </span>
     </div>
   );

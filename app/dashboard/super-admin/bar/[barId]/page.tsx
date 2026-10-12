@@ -199,6 +199,12 @@ export default async function ConsoleBarPage({
             </Note>
           ) : null;
         })()}
+        {subscription?.stripeSubscriptionId && bar.plan !== "CUSTOM" ? (
+          <Note tone="warning">
+            Questo locale paga con Stripe: piano ed extra li decide il suo abbonamento. Una modifica fatta qui viene
+            sostituita al prossimo aggiornamento da Stripe; per cambiarli, il titolare li sceglie in Abbonamento.
+          </Note>
+        ) : null}
         <ConsoleForm action={setVenuePlanAction} label="Salva piano" style={{ gap: 14 }}>
           <input type="hidden" name="barId" value={bar.id} />
           <div className="wbc-choice" role="radiogroup" aria-label="Piano">

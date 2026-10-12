@@ -13,6 +13,7 @@ import {
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { requireStripe } from "@/lib/stripe";
+import { applyPlanFromSubscription } from "@/lib/stripe-plan-billing";
 
 function mapStripeStatus(status: string | null | undefined) {
   switch (status) {
@@ -350,6 +351,8 @@ export async function POST(req: Request) {
           currentPeriodEnd: getSubscriptionPeriodEnd(subscriptionDetails),
           trialEndsAt: toDateFromUnix(subscriptionDetails?.trial_end),
         });
+        // What was bought becomes the venue's plan.
+        await applyPlanFromSubscription(metadataBarId, subscriptionDetails);
 
         if (previous?.status !== SubscriptionStatus.ACTIVE) {
           await sendOwnerBillingEmail({
@@ -415,6 +418,8 @@ export async function POST(req: Request) {
           currentPeriodEnd: getSubscriptionPeriodEnd(subscription),
           trialEndsAt: toDateFromUnix(subscription.trial_end),
         });
+        // A plan changed from Stripe's dashboard reaches the venue too.
+        await applyPlanFromSubscription(barId, subscription);
         if (
           event.type === "customer.subscription.created" &&
           previous?.status !== SubscriptionStatus.ACTIVE &&
@@ -545,6 +550,8 @@ export async function POST(req: Request) {
           currentPeriodEnd: getSubscriptionPeriodEnd(stripeSubscription),
           trialEndsAt: toDateFromUnix(stripeSubscription?.trial_end),
         });
+
+        await applyPlanFromSubscription(barId, stripeSubscription);
 
         // Paid: the month is settled and the seven-day window closes.
         await prisma.subscription.updateMany({

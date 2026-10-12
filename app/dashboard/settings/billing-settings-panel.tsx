@@ -1,6 +1,6 @@
 import { BillingInterval, PlanType, SubscriptionStatus } from "@prisma/client";
 import type { BillingStatusResult } from "@/lib/billing";
-import { BillingCheckoutClient } from "@/app/billing/billing-checkout-client";
+import { BillingCheckoutClient, type PurchaseProps } from "@/app/billing/billing-checkout-client";
 import { Panel, StatusPill } from "../ui";
 
 function formatPlan(planType: PlanType) {
@@ -135,9 +135,12 @@ function getBillingDisplay(status: BillingStatusResult) {
 export function BillingSettingsPanel({
   activeBarName,
   status,
+  purchase = null,
 }: {
   activeBarName: string | null;
   status: BillingStatusResult;
+  /** The plan picker's starting point; only the owner gets one. */
+  purchase?: PurchaseProps | null;
 }) {
   const isManagedOutsideStripe =
     status.planType === PlanType.FREE || status.planType === PlanType.LIFETIME;
@@ -261,6 +264,7 @@ export function BillingSettingsPanel({
             canCancel={canCancelSubscription}
             trialSetupRequired={requiresTrialCardSetup}
             monthlyDiscountPercent={status.monthlyDiscountPercent}
+            purchase={purchase}
           />
         </div>
 

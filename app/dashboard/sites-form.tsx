@@ -348,7 +348,7 @@ export function SitesForm({
           <span style={{ fontSize: 12.5, color: "#8a84a8" }}>
             {limit >= 6
               ? `Hai ${limit} sedi, la principale inclusa.`
-              : `Hai ${limit} sedi nel tuo piano, la principale inclusa. Le altre si aggiungono una per una (fino a 3 sul Base, fino a 6 in tutto con il Pro): scrivi all'assistenza.`}
+              : `Hai ${limit} sedi nel tuo piano, la principale inclusa. Le altre si aggiungono una per una (fino a 3 sul Base, fino a 6 in tutto con il Pro), dall'abbonamento del locale.`}
           </span>
         )}
       </div>

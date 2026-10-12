@@ -41,6 +41,7 @@ import { ChecklistEditor } from "../checklists";
 import { SavingForm } from "../saving-form";
 import { describePlan, getSeatUsage, getVenueEntitlements, parseSignFont, SIGN_FONTS } from "@/lib/plans";
 import { PlanPanel } from "./plan-panel";
+import { getPurchaseContext } from "@/lib/stripe-plan-billing";
 import { VenueStyleForm } from "./venue-style-form";
 
 function normalizeParam(value: string | string[] | undefined) {
@@ -730,6 +731,8 @@ export default async function DashboardSettingsPage({
       ? prisma.bar.findUnique({ where: { id: activeBarId }, select: { signFont: true, logoType: true, logoUpdatedAt: true } })
       : Promise.resolve(null),
   ]);
+  // The owner's plan picker (web only): what the venue has now and its VAT number.
+  const purchase = role === Role.OWNER && activeBarId ? await getPurchaseContext(activeBarId) : null;
   const openPlanPopup = normalizeParam(params.piano) === "1";
   const signFont = parseSignFont(venueStyle?.signFont);
   const logoUrl =
@@ -1192,7 +1195,7 @@ export default async function DashboardSettingsPage({
           {/* One place for what the venue has and how it pays: the plan with
               its extras was a second row saying half of the same thing. */}
           {role === Role.OWNER && seats ? <PlanPanel entitlements={entitlements} seats={seats} company={activeBarActivityType === ActivityType.COMPANY} /> : null}
-          <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} />
+          <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} purchase={purchase} />
         </PopupAction>
 
         <PopupAction
