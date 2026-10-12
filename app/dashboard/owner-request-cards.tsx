@@ -10,7 +10,7 @@ import { EmptyState, PrimaryButton, StatusPill } from "./ui";
 import { useOverlayLock } from "./use-overlay-lock";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { showAppToast } from "@/app/components/app-toast";
-import { isActionFailure } from "@/lib/rule-error";
+import { describeActionError, isActionFailure } from "@/lib/rule-error";
 
 type RequestCardItem = {
   id: string;
@@ -167,14 +167,18 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
     formData.set("decision", decision);
 
     startTransition(async () => {
-      const result = await reviewRequestAction(formData);
-      if (isActionFailure(result)) {
-        showAppToast(result.ruleError, "error");
-        return;
+      try {
+        const result = await reviewRequestAction(formData);
+        if (isActionFailure(result)) {
+          showAppToast(result.ruleError, "error");
+          return;
+        }
+        showAppToast(decision === "APPROVED" ? "Richiesta approvata." : "Richiesta rifiutata.");
+        setSelectedRequestId(null);
+        router.refresh();
+      } catch (error) {
+        showAppToast(describeActionError(error), "error");
       }
-      showAppToast("Richiesta gestita.");
-      setSelectedRequestId(null);
-      router.refresh();
     });
   }
 
@@ -183,7 +187,12 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
     formData.set("requestId", requestId);
 
     startTransition(async () => {
-      await deleteRequestAction(formData);
+      try {
+        await deleteRequestAction(formData);
+      } catch (error) {
+        showAppToast(describeActionError(error), "error");
+        return;
+      }
       showAppToast("Richiesta eliminata.");
 
       if (selectedRequestId === requestId) {

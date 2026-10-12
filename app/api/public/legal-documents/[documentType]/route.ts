@@ -11,13 +11,13 @@ export async function GET(
   const { documentType } = await params;
 
   if (!isPublicLegalDocumentType(documentType)) {
-    return NextResponse.json({ ok: false, error: "Document not found" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "Documento non trovato." }, { status: 404 });
   }
 
   const document = await getLatestPublicLegalDocument(documentType);
 
   if (!document?.fileContent) {
-    return NextResponse.json({ ok: false, error: "Document not found" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "Documento non trovato." }, { status: 404 });
   }
 
   const bytes =

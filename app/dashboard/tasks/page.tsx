@@ -338,7 +338,7 @@ export default async function DashboardTasksPage() {
                   footnote={extraCompletions ? `anche ${extraCompletions}` : null}
                   action={
                     canComplete ? (
-                      <form action={completeTaskAction}>
+                      <ActionForm action={completeTaskAction} success="Nota fatta.">
                         <input type="hidden" name="taskId" value={pendingIds} />
                         <input type="hidden" name="notifySuccess" value="1" />
                         <IconButton
@@ -357,7 +357,7 @@ export default async function DashboardTasksPage() {
                         >
                           ✓
                         </IconButton>
-                      </form>
+                      </ActionForm>
                     ) : null
                   }
                 />

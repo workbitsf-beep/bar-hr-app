@@ -754,7 +754,7 @@ export default async function DashboardRequestsPage({
                         label: "Straordinario",
                         hint: "Ore già fatte da registrare",
                         form: (
-                <ActionForm action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
                   <input type="hidden" name="type" value="OVERTIME" />
 
                   <div
@@ -846,7 +846,7 @@ export default async function DashboardRequestsPage({
                   label: "Ferie",
                   hint: "Uno o più giorni · da approvare",
                   form: (
-                    <ActionForm action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
                       <RequestDateFields type={RequestType.VACATION} />
                       <FormField label="Motivo">
                         <TextArea name="reason" placeholder="Facoltativo" />
@@ -864,7 +864,7 @@ export default async function DashboardRequestsPage({
                   label: "Permesso",
                   hint: "Qualche ora in un giorno",
                   form: (
-                    <ActionForm action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
                       <RequestDateFields type={RequestType.PERMISSION} />
                       <FormField label="Motivo">
                         <TextArea name="reason" placeholder="Facoltativo" />
@@ -882,7 +882,7 @@ export default async function DashboardRequestsPage({
                   label: "Malattia",
                   hint: "Serve il codice del certificato",
                   form: (
-                    <ActionForm action={createTimeOffRequestAction} style={{ display: "grid", gap: 16 }}>
+                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
                       <RequestDateFields type={RequestType.SICKNESS} />
                       <FormField label="Codice certificato">
                         <TextInput name="certificateCode" placeholder="Il numero sul certificato" />
@@ -938,7 +938,7 @@ export default async function DashboardRequestsPage({
                         label: "Non posso esserci",
                         hint: "Avvisi senza chiedere permesso",
                         form: (
-                          <ActionForm action={createAvailabilityAction} style={{ display: "grid", gap: 16 }}>
+                          <ActionForm action={createAvailabilityAction} success="Indisponibilità salvata." style={{ display: "grid", gap: 16 }}>
                             <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
                             <FormField label="Motivo">
                               <TextArea
@@ -1000,7 +1000,7 @@ export default async function DashboardRequestsPage({
                   trailing={
                     canPeerReview || canOwnerReview ? (
                       <span style={{ display: "flex", gap: 7, flex: "0 0 auto" }}>
-                        <ActionForm action={reviewRequestAction}>
+                        <ActionForm action={reviewRequestAction} success="Richiesta rifiutata.">
                           <input type="hidden" name="requestId" value={request.id} />
                           <input type="hidden" name="decision" value="REJECTED" />
                           <input type="hidden" name="notifySuccess" value="1" />
@@ -1008,7 +1008,7 @@ export default async function DashboardRequestsPage({
                             ✕
                           </button>
                         </ActionForm>
-                        <ActionForm action={reviewRequestAction}>
+                        <ActionForm action={reviewRequestAction} success="Richiesta approvata.">
                           <input type="hidden" name="requestId" value={request.id} />
                           <input type="hidden" name="decision" value="APPROVED" />
                           <input type="hidden" name="notifySuccess" value="1" />
@@ -1122,10 +1122,10 @@ export default async function DashboardRequestsPage({
                         key={request.id}
                         enabled={canDeleteRequest}
                         action={
-                          <form action={deleteRequestAction}>
+                          <ActionForm action={deleteRequestAction} success="Richiesta eliminata.">
                             <input type="hidden" name="requestId" value={request.id} />
                             <DeleteSwipeButton label="Elimina straordinario" />
-                          </form>
+                          </ActionForm>
                         }
                       >
                         <RequestRow
@@ -1181,7 +1181,7 @@ export default async function DashboardRequestsPage({
                           </svg>
                         }
                       >
-                        <ActionForm action={updateCalendarClosureAction} style={{ display: "grid", gap: 16 }}>
+                        <ActionForm action={updateCalendarClosureAction} success="Chiusura aggiornata." style={{ display: "grid", gap: 16 }}>
                           <input type="hidden" name="closureId" value={closure.id} />
                           <input type="hidden" name="notifySuccess" value="1" />
 
@@ -1212,7 +1212,7 @@ export default async function DashboardRequestsPage({
                       </PopupAction>
                     }
                     action={
-                      <ActionForm action={deleteCalendarClosureAction}>
+                      <ActionForm action={deleteCalendarClosureAction} success="Chiusura eliminata.">
                         <input type="hidden" name="closureId" value={closure.id} />
                         <input type="hidden" name="notifySuccess" value="1" />
                         <DeleteSwipeButton label="Elimina chiusura" />
@@ -1325,10 +1325,10 @@ export default async function DashboardRequestsPage({
                       key={request.id}
                       enabled={canDeleteRequest}
                       action={
-                        <form action={deleteRequestAction}>
+                        <ActionForm action={deleteRequestAction} success="Richiesta eliminata.">
                           <input type="hidden" name="requestId" value={request.id} />
                           <DeleteSwipeButton label="Elimina richiesta" />
-                        </form>
+                        </ActionForm>
                       }
                     >
                       <RequestRow

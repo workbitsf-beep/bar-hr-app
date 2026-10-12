@@ -55,7 +55,7 @@ export const POST = withBar(
     const access = await getActiveBarAccess(session as never);
 
     if (!canManageOperations(access.role)) {
-      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+      return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
     const body = (await req.json()) as {
@@ -69,7 +69,7 @@ export const POST = withBar(
 
     if (!body.title || !body.dueDate) {
       return Response.json(
-        { ok: false, message: "Missing required fields" },
+        { ok: false, message: "Mancano dei dati: compila tutti i campi." },
         { status: 400 }
       );
     }
@@ -78,7 +78,7 @@ export const POST = withBar(
 
     if (taskTitles.length === 0) {
       return Response.json(
-        { ok: false, message: "Missing required fields" },
+        { ok: false, message: "Mancano dei dati: compila tutti i campi." },
         { status: 400 }
       );
     }
@@ -86,7 +86,7 @@ export const POST = withBar(
     const dueDate = parseTaskDueDate(body.dueDate);
 
     if (!dueDate) {
-      return Response.json({ ok: false, message: "Invalid due date" }, { status: 400 });
+      return Response.json({ ok: false, message: "Data non valida." }, { status: 400 });
     }
 
     await prisma.task.createMany({

@@ -45,7 +45,7 @@ export const POST = withBar(
     const access = await getActiveBarAccess(session as never);
 
     if (!canManageOperations(access.role)) {
-      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+      return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
     const body = (await req.json()) as {
@@ -58,7 +58,7 @@ export const POST = withBar(
 
     if (!body.startTime || !body.endTime || employeeIds.length === 0) {
       return Response.json(
-        { ok: false, message: "Missing required fields" },
+        { ok: false, message: "Mancano dei dati: compila tutti i campi." },
         { status: 400 }
       );
     }
@@ -69,7 +69,7 @@ export const POST = withBar(
     });
 
     if (activeMembers !== employeeIds.length) {
-      return Response.json({ ok: false, message: "Unknown employee" }, { status: 400 });
+      return Response.json({ ok: false, message: "Persona non trovata." }, { status: 400 });
     }
 
     let startTime: Date;
@@ -79,11 +79,11 @@ export const POST = withBar(
       startTime = parseDateTimeLocal(body.startTime);
       endTime = parseDateTimeLocal(body.endTime);
     } catch {
-      return Response.json({ ok: false, message: "Invalid shift range" }, { status: 400 });
+      return Response.json({ ok: false, message: "Orario del turno non valido." }, { status: 400 });
     }
 
     if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime()) || endTime <= startTime) {
-      return Response.json({ ok: false, message: "Invalid shift range" }, { status: 400 });
+      return Response.json({ ok: false, message: "Orario del turno non valido." }, { status: 400 });
     }
 
     if (toDateInputValueInTimeZone(startTime) < toDateInputValueInTimeZone(new Date())) {

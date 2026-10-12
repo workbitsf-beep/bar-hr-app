@@ -138,7 +138,7 @@ export default async function DashboardTimeLogsPage({
           ariaLabel="Aggiungi singola timbratura"
           triggerContent="Aggiungi timbratura"
         >
-          <ActionForm action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
+          <ActionForm action={createManualTimeLogAction} success="Timbratura manuale salvata." style={{ display: "grid", gap: 16 }}>
             <div
               className="dashboard-inline-grid"
               style={{

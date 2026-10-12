@@ -28,6 +28,7 @@ import { useOverlayLock } from "../use-overlay-lock";
 import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-format";
 import { calculateRoundedWorkDuration } from "@/lib/rounding";
 import { showAppToast } from "@/app/components/app-toast";
+import { describeActionError } from "@/lib/rule-error";
 
 type LogItem = {
   id: string;
@@ -1667,6 +1668,8 @@ function OwnerTimeLogsPanel({
       await deleteTimeLogPairAction(formData);
       showAppToast("Timbratura annullata.");
       router.refresh();
+    } catch (error) {
+      showAppToast(describeActionError(error), "error");
     } finally {
       setCancelling(false);
     }

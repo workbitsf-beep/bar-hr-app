@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   const session = await getSession();
 
   if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   const body = (await req.json().catch(() => null)) as {
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const platform = String(body?.platform ?? "web").trim().toLowerCase();
 
   if (!token) {
-    return Response.json({ ok: false, message: "Missing token" }, { status: 400 });
+    return Response.json({ ok: false, message: "Collegamento non valido o scaduto." }, { status: 400 });
   }
 
   const registered = await prisma.pushToken.upsert({
@@ -60,7 +60,7 @@ export async function DELETE() {
   const session = await getSession();
 
   if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   await prisma.pushToken.deleteMany({

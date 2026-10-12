@@ -133,13 +133,13 @@ export async function POST(req: Request) {
   const session = await getSession();
 
   if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   const { activeBar, role } = await getActiveBarAccess(session);
 
   if (role !== Role.OWNER || !activeBar?.id) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
   }
 
   const body = (await req.json().catch(() => null)) as CheckoutBody | null;
@@ -151,7 +151,7 @@ export async function POST(req: Request) {
         : null;
 
   if (!interval) {
-    return Response.json({ ok: false, message: "Invalid interval" }, { status: 400 });
+    return Response.json({ ok: false, message: "Periodo non valido." }, { status: 400 });
   }
 
   let stripe;
@@ -241,7 +241,7 @@ export async function POST(req: Request) {
   ]);
 
   if (!bar) {
-    return Response.json({ ok: false, message: "Bar not found" }, { status: 404 });
+    return Response.json({ ok: false, message: "Locale non trovato." }, { status: 404 });
   }
 
   const pendingTrialSetup = Boolean(

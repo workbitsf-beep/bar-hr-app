@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { AppToastHost } from "@/app/components/app-toast";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ActivityType, RoundingMode, Role } from "@prisma/client";
@@ -644,7 +645,7 @@ async function inviteEmployeeAction(formData: FormData) {
     });
 
     revalidatePath("/onboarding");
-    redirect("/onboarding?step=4");
+    redirect("/onboarding?step=4&success=employee-linked");
   }
 
   const temporaryPassword = createTemporaryPassword();
@@ -712,7 +713,7 @@ async function inviteEmployeeAction(formData: FormData) {
   }
 
   revalidatePath("/onboarding");
-  redirect("/onboarding?step=4");
+  redirect("/onboarding?step=4&success=employee-created");
 }
 
 async function finishOnboardingAction() {
@@ -1076,8 +1077,37 @@ export default async function OnboardingPage({
     redirect("/dashboard");
   }
 
+  const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
+  const errorText =
+    errorCode === "missing-bar-name"
+      ? "Scrivi il nome del locale per continuare."
+      : errorCode === "invalid-gps"
+        ? "La posizione non è valida: premi di nuovo il tasto stando nel locale."
+        : errorCode === "missing-employee"
+          ? "Scrivi nome, cognome ed email della persona da invitare."
+          : null;
+
   return (
     <StepShell currentStep={currentStep} steps={[...onboardingSteps]}>
+      <Suspense fallback={null}>
+        <AppToastHost />
+      </Suspense>
+      {errorText ? (
+        <div
+          role="alert"
+          style={{
+            padding: "11px 14px",
+            borderRadius: 16,
+            background: "#fff1f2",
+            border: "1px solid #fecdd3",
+            color: "#b3202f",
+            fontWeight: 750,
+            fontSize: 14,
+          }}
+        >
+          {errorText}
+        </div>
+      ) : null}
       {currentStep === 1 ? (
         <Card>
           <form action={createBarAction} style={{ display: "grid", gap: 14 }}>

@@ -28,7 +28,7 @@ export const PATCH = withBar(
     const access = await getActiveBarAccess(session as never);
 
     if (!taskId) {
-      return Response.json({ ok: false, message: "Missing task id" }, { status: 400 });
+      return Response.json({ ok: false, message: "Nota non indicata." }, { status: 400 });
     }
 
     const task = await prisma.task.findFirst({
@@ -44,7 +44,7 @@ export const PATCH = withBar(
     });
 
     if (!task) {
-      return Response.json({ ok: false, message: "Task not found" }, { status: 404 });
+      return Response.json({ ok: false, message: "Nota non trovata." }, { status: 404 });
     }
 
     if (
@@ -52,7 +52,7 @@ export const PATCH = withBar(
       !task.assignedToAll &&
       task.assignedToId !== session.user.id
     ) {
-      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+      return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
     const [, updatedTask] = await prisma.$transaction([

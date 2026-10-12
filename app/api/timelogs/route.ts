@@ -44,7 +44,7 @@ function serializeTimeLog(log: {
 export const GET = withBar(
   async (request: Request, session: SessionWithBar): Promise<Response> => {
     if (session.user.role === Role.OWNER) {
-      return Response.json({ ok: false, message: "Unsupported" }, { status: 403 });
+      return Response.json({ ok: false, message: "Operazione non disponibile." }, { status: 403 });
     }
 
     const url = new URL(request.url);
@@ -58,7 +58,7 @@ export const GET = withBar(
     const beforeDate = before ? new Date(before) : null;
 
     if (before && (!beforeDate || Number.isNaN(beforeDate.getTime()))) {
-      return Response.json({ ok: false, message: "Invalid cursor" }, { status: 400 });
+      return Response.json({ ok: false, message: "Richiesta non valida." }, { status: 400 });
     }
 
     const logs = await prisma.timeLog.findMany({

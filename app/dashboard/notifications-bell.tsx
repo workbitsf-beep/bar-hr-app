@@ -10,6 +10,7 @@ import {
 } from "@/lib/push-client";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
 import { useOverlayLock } from "./use-overlay-lock";
+import { showAppToast } from "@/app/components/app-toast";
 
 const NOTIFICATION_CACHE_TTL_MS = 30_000;
 
@@ -250,7 +251,7 @@ export function NotificationsBell({ activeBarId }: { activeBarId: string | null 
         setUnreadCount(0);
         await loadNotifications(true);
       } catch {
-        // Silenzioso per non interrompere l'esperienza.
+        showAppToast("Non è stato possibile segnare le notifiche come lette. Riprova.", "error");
       }
     });
   }

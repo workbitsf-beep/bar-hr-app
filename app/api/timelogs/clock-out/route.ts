@@ -25,7 +25,7 @@ export const POST = withBar(
 
     if (access.role === Role.OWNER) {
       return Response.json(
-        { ok: false, message: "Owner accounts cannot clock out" },
+        { ok: false, message: "Il titolare non timbra l'uscita." },
         { status: 403 }
       );
     }
@@ -89,7 +89,7 @@ export const POST = withBar(
 
     if (!entryOpen && !declaredStillOpen) {
       return Response.json(
-        { ok: false, message: "No active clock-in" },
+        { ok: false, message: "Non c'è un'entrata da chiudere: timbra prima l'entrata." },
         { status: 400 }
       );
     }
@@ -105,7 +105,7 @@ export const POST = withBar(
       typeof body.longitude === "number" ? body.longitude : null;
     if (latitude === null || longitude === null) {
       return Response.json(
-        { ok: false, message: "Missing coordinates" },
+        { ok: false, message: "Posizione non disponibile: attiva la localizzazione e riprova." },
         { status: 400 }
       );
     }
@@ -122,7 +122,7 @@ export const POST = withBar(
 
     if (place.points.length === 0 || place.radius === null) {
       return Response.json(
-        { ok: false, message: "Missing coordinates" },
+        { ok: false, message: "Posizione non disponibile: attiva la localizzazione e riprova." },
         { status: 400 }
       );
     }

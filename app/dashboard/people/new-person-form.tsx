@@ -30,7 +30,7 @@ export function NewPersonForm({
   ];
 
   return (
-    <ActionForm action={action} style={{ display: "grid", gap: 14 }}>
+    <ActionForm action={action} success="Persona aggiunta." style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
         <FormField label="Nome">
           <TextInput name="firstName" required />

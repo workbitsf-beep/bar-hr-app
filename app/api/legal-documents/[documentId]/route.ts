@@ -10,13 +10,13 @@ export async function GET(
   const session = await getSession();
 
   if (!session) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   const { documentId } = await params;
 
   if (!documentId) {
-    return NextResponse.json({ ok: false, error: "Missing document id" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Documento non indicato." }, { status: 400 });
   }
 
   const document = await prisma.legalDocument.findUnique({
@@ -31,11 +31,11 @@ export async function GET(
   });
 
   if (!document?.fileContent) {
-    return NextResponse.json({ ok: false, error: "Document not found" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "Documento non trovato." }, { status: 404 });
   }
 
   if (session.user.role !== Role.SUPER_ADMIN && (session.user.role !== Role.OWNER || !document.isActive)) {
-    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "Non hai i permessi per farlo." }, { status: 403 });
   }
 
   const bytes =

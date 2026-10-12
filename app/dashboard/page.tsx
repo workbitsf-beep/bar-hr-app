@@ -1110,7 +1110,7 @@ export default async function DashboardPage() {
                 ) : null}
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <ActionForm action={reviewRequestAction}>
+                  <ActionForm action={reviewRequestAction} success="Richiesta approvata.">
                     <input type="hidden" name="requestId" value={request.id} />
                     <input type="hidden" name="decision" value="APPROVED" />
                     <input type="hidden" name="notifySuccess" value="1" />
@@ -1118,7 +1118,7 @@ export default async function DashboardPage() {
                       Approva
                     </PrimaryButton>
                   </ActionForm>
-                  <ActionForm action={reviewRequestAction}>
+                  <ActionForm action={reviewRequestAction} success="Richiesta rifiutata.">
                     <input type="hidden" name="requestId" value={request.id} />
                     <input type="hidden" name="decision" value="REJECTED" />
                     <input type="hidden" name="notifySuccess" value="1" />

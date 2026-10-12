@@ -20,14 +20,14 @@ export const POST = withAuth(
 
     if (!barId) {
       return Response.json(
-        { ok: false, message: "Missing barId" },
+        { ok: false, message: "Locale non indicato." },
         { status: 400 }
       );
     }
 
     if (!(await userCanAccessBar(session.user.id, barId))) {
       return Response.json(
-        { ok: false, message: "Bar not allowed" },
+        { ok: false, message: "Non hai accesso a questo locale." },
         { status: 403 }
       );
     }

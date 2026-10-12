@@ -4334,7 +4334,7 @@ export function OwnerCalendarClient({
                             ) &&
                             (!note.employeeId || note.employeeId === currentUserId) ? (
                               <ActionForm
-                                action={confirmBoardNoteReadAction}
+                                action={confirmBoardNoteReadAction} success="Segnato come letto."
                                 onClick={(event) => event.stopPropagation()}
                                 style={{ flex: "0 0 auto" }}
                               >
@@ -4551,7 +4551,7 @@ export function OwnerCalendarClient({
                           !selectedNote.confirmations.some((confirmation) => confirmation.userId === currentUserId) &&
                           (!selectedNote.employeeId || selectedNote.employeeId === currentUserId) ? (
                             <ActionForm
-                              action={confirmBoardNoteReadAction}
+                              action={confirmBoardNoteReadAction} success="Segnato come letto."
                               onClick={(event) => event.stopPropagation()}
                               style={{ flex: "0 0 auto" }}
                             >

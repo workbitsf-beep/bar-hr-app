@@ -10,14 +10,14 @@ export async function GET(
   const session = await getSession();
 
   if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   const { activeBar, role } = await getActiveBarAccess(session);
   const { noteId } = await params;
 
   if (!activeBar?.id || !noteId) {
-    return Response.json({ ok: false, message: "Not found" }, { status: 404 });
+    return Response.json({ ok: false, message: "Non trovato." }, { status: 404 });
   }
 
   const note = await prisma.note.findFirst({
@@ -51,7 +51,7 @@ export async function GET(
   });
 
   if (!note) {
-    return Response.json({ ok: false, message: "Not found" }, { status: 404 });
+    return Response.json({ ok: false, message: "Non trovato." }, { status: 404 });
   }
 
   return Response.json({

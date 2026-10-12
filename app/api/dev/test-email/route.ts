@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
 
   if (!isAuthorized(url)) {
-    return Response.json({ ok: false, error: "Not authorized" }, { status: 403 });
+    return Response.json({ ok: false, error: "Non hai i permessi per farlo." }, { status: 403 });
   }
 
   const to = url.searchParams.get("to")?.trim().toLowerCase() ?? "";

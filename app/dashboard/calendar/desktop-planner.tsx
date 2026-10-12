@@ -564,14 +564,14 @@ export function DesktopWeekPlanner({
                     </Link>
                   ) : (
                     <span className="wbp-decide">
-                      <ActionForm action={reviewRequestAction}>
+                      <ActionForm action={reviewRequestAction} success="Richiesta approvata.">
                         <input type="hidden" name="requestId" value={request.id} />
                         <input type="hidden" name="decision" value="APPROVED" />
                         <button type="submit" className="wbp-yes">
                           Approva
                         </button>
                       </ActionForm>
-                      <ActionForm action={reviewRequestAction}>
+                      <ActionForm action={reviewRequestAction} success="Richiesta rifiutata.">
                         <input type="hidden" name="requestId" value={request.id} />
                         <input type="hidden" name="decision" value="REJECTED" />
                         <button type="submit" className="wbp-no">

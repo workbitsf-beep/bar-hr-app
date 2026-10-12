@@ -21,14 +21,14 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
 
   if (!isAuthorized(url)) {
-    return Response.json({ ok: false, error: "Unauthorized" }, { status: 403 });
+    return Response.json({ ok: false, error: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
   }
 
   const to = url.searchParams.get("to")?.trim().toLowerCase() ?? "";
   const type = url.searchParams.get("type")?.trim().toLowerCase() ?? "owner";
 
   if (!to) {
-    return Response.json({ ok: false, error: "Missing recipient" }, { status: 400 });
+    return Response.json({ ok: false, error: "Destinatario mancante." }, { status: 400 });
   }
 
   if (type !== "owner" && type !== "employee") {

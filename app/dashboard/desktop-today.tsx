@@ -799,14 +799,14 @@ export async function DesktopToday({
                       </Link>
                     ) : (
                       <span className="wbt-acts">
-                        <ActionForm action={reviewRequestAction}>
+                        <ActionForm action={reviewRequestAction} success="Richiesta approvata.">
                           <input type="hidden" name="requestId" value={request.id} />
                           <input type="hidden" name="decision" value="APPROVED" />
                           <button type="submit" className="wbt-mini wbt-mini--yes">
                             Approva
                           </button>
                         </ActionForm>
-                        <ActionForm action={reviewRequestAction}>
+                        <ActionForm action={reviewRequestAction} success="Richiesta rifiutata.">
                           <input type="hidden" name="requestId" value={request.id} />
                           <input type="hidden" name="decision" value="REJECTED" />
                           <button type="submit" className="wbt-mini wbt-mini--no">

@@ -1604,7 +1604,7 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
           </div>
           {canConfirm ? (
             <ActionForm
-              action={confirmBoardNoteReadAction}
+              action={confirmBoardNoteReadAction} success="Segnato come letto."
               onClick={(event) => event.stopPropagation()}
               style={{ flex: "0 0 auto" }}
             >

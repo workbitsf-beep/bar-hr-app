@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SwipeRevealAction } from "./swipe-reveal-action";
+import { showAppToast } from "@/app/components/app-toast";
 
 const WELCOME_STORAGE_KEY = "workbit:last-bar-welcome";
 
@@ -91,6 +92,7 @@ export function BarHeaderSwitcher({
       });
 
       if (!response.ok) {
+        showAppToast(`Non è stato possibile passare a ${targetBar.name}. Riprova.`, "error");
         return;
       }
 

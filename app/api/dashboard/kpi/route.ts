@@ -17,7 +17,7 @@ export const GET = withBar(
 
     if (access.role !== Role.OWNER && access.role !== Role.MANAGER) {
       return Response.json(
-        { ok: false, message: "Forbidden" },
+        { ok: false, message: "Non hai i permessi per farlo." },
         { status: 403 }
       );
     }

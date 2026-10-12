@@ -43,7 +43,7 @@ export const POST = withBar(
     const access = await getActiveBarAccess(session as never);
 
     if (!canManageOperations(access.role)) {
-      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+      return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
     const body = (await req.json().catch(() => null)) as {
@@ -64,7 +64,7 @@ export const POST = withBar(
         : null;
 
     if (!rangeStart || !rangeEnd || rangeEnd < rangeStart) {
-      return Response.json({ ok: false, message: "Invalid date range" }, { status: 400 });
+      return Response.json({ ok: false, message: "Intervallo di date non valido." }, { status: 400 });
     }
     const shifts = await prisma.shift.findMany({
       where: {

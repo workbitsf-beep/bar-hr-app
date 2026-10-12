@@ -383,6 +383,7 @@ function ReviewItem({ item, onDone }: { item: ClockFixForReview; onDone: () => v
           setError(result.ruleError);
           return;
         }
+        showAppToast(action === approveClockFixAction ? "Correzione approvata: timbratura registrata." : "Correzione rifiutata.");
         onDone();
       } catch (caught) {
         setError(describeActionError(caught));

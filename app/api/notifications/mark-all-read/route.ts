@@ -5,7 +5,7 @@ export async function POST() {
   const session = await getSession();
 
   if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   const result = await prisma.notification.updateMany({

@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   const session = await getSession();
 
   if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   const body = (await req.json().catch(() => null)) as {
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const notificationId = String(body?.notificationId ?? "").trim();
 
   if (!notificationId) {
-    return Response.json({ ok: false, message: "Missing notification id" }, { status: 400 });
+    return Response.json({ ok: false, message: "Notifica non indicata." }, { status: 400 });
   }
 
   const result = await prisma.notification.updateMany({

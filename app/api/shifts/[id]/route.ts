@@ -31,11 +31,11 @@ export const PATCH = withBar(
     const access = await getActiveBarAccess(session as never);
 
     if (!canManageOperations(access.role)) {
-      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+      return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
     if (!shiftId) {
-      return Response.json({ ok: false, message: "Missing shift id" }, { status: 400 });
+      return Response.json({ ok: false, message: "Turno non indicato." }, { status: 400 });
     }
 
     const body = (await req.json()) as {
@@ -53,7 +53,7 @@ export const PATCH = withBar(
     });
 
     if (!shift) {
-      return Response.json({ ok: false, message: "Shift not found" }, { status: 404 });
+      return Response.json({ ok: false, message: "Turno non trovato." }, { status: 404 });
     }
 
     const nextStartTime = body.startTime ? parseDateTimeLocal(body.startTime) : shift.startTime;
@@ -69,7 +69,7 @@ export const PATCH = withBar(
       nextEndTime <= nextStartTime ||
       employeeIds.length === 0
     ) {
-      return Response.json({ ok: false, message: "Invalid shift update" }, { status: 400 });
+      return Response.json({ ok: false, message: "Modifica del turno non valida." }, { status: 400 });
     }
 
     // Only people who work here can be put on this bar's shifts.
@@ -78,7 +78,7 @@ export const PATCH = withBar(
     });
 
     if (activeMembers !== employeeIds.length) {
-      return Response.json({ ok: false, message: "Unknown employee" }, { status: 400 });
+      return Response.json({ ok: false, message: "Persona non trovata." }, { status: 400 });
     }
 
     await cancelShiftClockReminders([shiftId]);
@@ -117,11 +117,11 @@ export const DELETE = withBar(
     const access = await getActiveBarAccess(session as never);
 
     if (!canManageOperations(access.role)) {
-      return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+      return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
     if (!shiftId) {
-      return Response.json({ ok: false, message: "Missing shift id" }, { status: 400 });
+      return Response.json({ ok: false, message: "Turno non indicato." }, { status: 400 });
     }
 
     await cancelShiftClockReminders([shiftId]);
@@ -130,7 +130,7 @@ export const DELETE = withBar(
     });
 
     if (!result.deleted) {
-      return Response.json({ ok: false, message: "Shift not found" }, { status: 404 });
+      return Response.json({ ok: false, message: "Turno non trovato." }, { status: 404 });
     }
 
     return Response.json({

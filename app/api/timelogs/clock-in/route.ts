@@ -26,7 +26,7 @@ export const POST = withBar(
 
     if (access.role === Role.OWNER) {
       return Response.json(
-        { ok: false, message: "Owner accounts cannot clock in" },
+        { ok: false, message: "Il titolare non timbra l'entrata." },
         { status: 403 }
       );
     }
@@ -35,7 +35,7 @@ export const POST = withBar(
     const { latitude, longitude } = body;
     if (typeof latitude !== "number" || typeof longitude !== "number") {
       return Response.json(
-        { ok: false, message: "Missing coordinates" },
+        { ok: false, message: "Posizione non disponibile: attiva la localizzazione e riprova." },
         { status: 400 }
       );
     }

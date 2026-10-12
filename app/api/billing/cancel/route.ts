@@ -9,13 +9,13 @@ export async function POST() {
   const session = await getSession();
 
   if (!session) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 401 });
   }
 
   const { activeBar, role } = await getActiveBarAccess(session);
 
   if (role !== Role.OWNER || !activeBar?.id) {
-    return Response.json({ ok: false, message: "Unauthorized" }, { status: 403 });
+    return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
   }
 
   const subscription = await prisma.subscription.findUnique({

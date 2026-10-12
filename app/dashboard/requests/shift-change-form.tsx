@@ -56,7 +56,7 @@ export function ShiftChangeForm({
   );
 
   return (
-    <ActionForm action={action} style={{ display: "grid", gap: 16 }}>
+    <ActionForm action={action} success="Cambio turno richiesto." style={{ display: "grid", gap: 16 }}>
       <FormField label="Il tuo turno">
         <Select name="shiftId" required defaultValue="">
           <option value="" disabled>

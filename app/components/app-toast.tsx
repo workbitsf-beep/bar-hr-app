@@ -13,8 +13,8 @@ import { FLASH_MESSAGES } from "@/lib/flash-messages";
 
 const EVENT = "workbit-toast";
 
-export function showAppToast(text: string, tone: "ok" | "error" = "ok") {
-  window.dispatchEvent(new CustomEvent(EVENT, { detail: { text, tone } }));
+export function showAppToast(text: string, tone: "ok" | "error" = "ok", soft = false) {
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: { text, tone, soft } }));
 }
 
 export function AppToastHost() {
@@ -24,8 +24,11 @@ export function AppToastHost() {
 
   useEffect(() => {
     const show = (event: Event) => {
-      const detail = (event as CustomEvent<{ text: string; tone: "ok" | "error" }>).detail;
-      setToast({ ...detail, key: Date.now() });
+      const { text, tone, soft } = (event as CustomEvent<{ text: string; tone: "ok" | "error"; soft: boolean }>).detail;
+      // A form and the page it lands on may both say it: the first word stays.
+      setToast((current) =>
+        current && Date.now() - current.key < 2500 && (soft || current.text === text) ? current : { text, tone, key: Date.now() }
+      );
     };
     window.addEventListener(EVENT, show);
     return () => window.removeEventListener(EVENT, show);
@@ -35,7 +38,7 @@ export function AppToastHost() {
   useEffect(() => {
     if (!code) return;
     const text = FLASH_MESSAGES[code];
-    if (text) showAppToast(text);
+    if (text) showAppToast(text, "ok", true);
     const params = new URLSearchParams(window.location.search);
     params.delete("success");
     const query = params.toString();

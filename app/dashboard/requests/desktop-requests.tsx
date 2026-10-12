@@ -268,12 +268,12 @@ export async function DesktopRequests({
 
             {canDecide(selected) ? (
               <div className="wbd-acts">
-                <ActionForm action={reviewRequestAction}>
+                <ActionForm action={reviewRequestAction} success="Richiesta approvata.">
                   <input type="hidden" name="requestId" value={selected.id} />
                   <input type="hidden" name="decision" value="APPROVED" />
                   <button type="submit" className="wbd-btn wbd-btn--primary">Approva</button>
                 </ActionForm>
-                <ActionForm action={reviewRequestAction}>
+                <ActionForm action={reviewRequestAction} success="Richiesta rifiutata.">
                   <input type="hidden" name="requestId" value={selected.id} />
                   <input type="hidden" name="decision" value="REJECTED" />
                   <button type="submit" className="wbd-btn wbd-btn--danger">Rifiuta</button>
@@ -300,7 +300,7 @@ export async function DesktopRequests({
                 ) : (
                   <div className="wbd-free">
                     {free.map((user) => (
-                      <ActionForm key={user.id} action={coverRequestShiftsAction}>
+                      <ActionForm key={user.id} action={coverRequestShiftsAction} success="Turni preparati per la copertura.">
                         <input type="hidden" name="requestId" value={selected.id} />
                         <input type="hidden" name="coverUserId" value={user.id} />
                         <button type="submit" title={`Copia i turni di ${selected.employee.firstName} a ${user.firstName}, come bozza`}>
