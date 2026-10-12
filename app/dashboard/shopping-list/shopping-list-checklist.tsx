@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { markShoppingListItemsOrderedAction } from "../actions";
 import { PrimaryButton } from "../ui";
+import { ActionForm } from "@/app/components/action-form";
 
 type ShoppingListItemView = {
   id: string;
@@ -15,8 +16,8 @@ export function ShoppingListChecklist({ items }: { items: ShoppingListItemView[]
   const [selectedCount, setSelectedCount] = useState(0);
 
   return (
-    <form
-      action={markShoppingListItemsOrderedAction}
+    <ActionForm
+      action={markShoppingListItemsOrderedAction} success="Segnati come ordinati."
       onSubmit={() => setSelectedCount(0)}
       style={{ display: "grid", gap: 14 }}
     >
@@ -61,6 +62,6 @@ export function ShoppingListChecklist({ items }: { items: ShoppingListItemView[]
           {`Segna come ordinati${selectedCount > 0 ? ` (${selectedCount})` : ""}`}
         </PrimaryButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

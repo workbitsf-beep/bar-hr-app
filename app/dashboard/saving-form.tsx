@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
+import { showAppToast } from "@/app/components/app-toast";
 
 /**
  * A form in a popup that says it saved. Pressing Salva used to store the
@@ -42,6 +43,8 @@ export function SavingForm({
               return;
             }
             setStatus({ tone: "ok", text: message });
+            // The popup closes a moment later; the toast stays to say so.
+            showAppToast(message);
             router.refresh();
             if (close) window.setTimeout(() => closer.current?.click(), 900);
           } catch (error) {

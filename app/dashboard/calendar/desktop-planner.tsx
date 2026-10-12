@@ -17,6 +17,7 @@ import {
 } from "../actions";
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { PublishWeekPanel } from "./publish-week-panel";
+import { ActionForm } from "@/app/components/action-form";
 
 /**
  * The week on a computer: people down the side, days across the top, every
@@ -563,20 +564,20 @@ export function DesktopWeekPlanner({
                     </Link>
                   ) : (
                     <span className="wbp-decide">
-                      <form action={reviewRequestAction}>
+                      <ActionForm action={reviewRequestAction}>
                         <input type="hidden" name="requestId" value={request.id} />
                         <input type="hidden" name="decision" value="APPROVED" />
                         <button type="submit" className="wbp-yes">
                           Approva
                         </button>
-                      </form>
-                      <form action={reviewRequestAction}>
+                      </ActionForm>
+                      <ActionForm action={reviewRequestAction}>
                         <input type="hidden" name="requestId" value={request.id} />
                         <input type="hidden" name="decision" value="REJECTED" />
                         <button type="submit" className="wbp-no">
                           Rifiuta
                         </button>
-                      </form>
+                      </ActionForm>
                     </span>
                   )}
                 </div>

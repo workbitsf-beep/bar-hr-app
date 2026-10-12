@@ -36,7 +36,7 @@ import {
   collectSharedFirstNames,
   shortNameFor,
 } from "@/lib/calendar-rules";
-import { isActionFailure } from "@/lib/rule-error";
+import { isActionFailure, describeActionError } from "@/lib/rule-error";
 import {
   addStandardShiftPresetAction,
   completeTaskAction,
@@ -76,6 +76,8 @@ import {
   isShiftPastDay,
   truncateCalendarText,
 } from "./calendar-client-utils";
+import { showAppToast } from "@/app/components/app-toast";
+import { ActionForm } from "@/app/components/action-form";
 
 type MemberOption = {
   id: string;
@@ -2264,6 +2266,7 @@ export function OwnerCalendarClient({
     startTransition(async () => {
       try {
         throwIfRefused(await deleteShiftAction(formData));
+        showAppToast("Turno eliminato.");
         setFeedback(null);
 
         if (editingShiftId === shiftId) {
@@ -2280,7 +2283,7 @@ export function OwnerCalendarClient({
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare il turno.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2293,13 +2296,14 @@ export function OwnerCalendarClient({
     startTransition(async () => {
       try {
         await deleteTaskAction(formData);
+        showAppToast("Nota eliminata.");
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare la nota.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2311,7 +2315,8 @@ export function OwnerCalendarClient({
 
     startTransition(async () => {
       try {
-        await deleteBoardNoteAction(formData);
+        throwIfRefused(await deleteBoardNoteAction(formData));
+        showAppToast("Avviso eliminato.");
         setSelectedNoteId(null);
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
@@ -2319,7 +2324,7 @@ export function OwnerCalendarClient({
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare la nota.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2332,13 +2337,14 @@ export function OwnerCalendarClient({
     startTransition(async () => {
       try {
         await deleteAvailabilityAction(formData);
+        showAppToast("Indisponibilità eliminata.");
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare l'indisponibilita.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2351,13 +2357,14 @@ export function OwnerCalendarClient({
     startTransition(async () => {
       try {
         await deleteRequestAction(formData);
+        showAppToast("Richiesta eliminata.");
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare la richiesta.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2620,13 +2627,13 @@ export function OwnerCalendarClient({
 
   function handleQuickTaskCreate(formData: FormData) {
     runAction(async () => {
-      await createTaskAction(formData);
+      throwIfRefused(await createTaskAction(formData));
     }, "Nota aggiunta.");
   }
 
   function handleQuickBoardCreate(formData: FormData) {
     runAction(async () => {
-      await createBoardNoteAction(formData);
+      throwIfRefused(await createBoardNoteAction(formData));
     }, "Nota pubblicata.");
   }
 
@@ -4326,7 +4333,7 @@ export function OwnerCalendarClient({
                               (confirmation) => confirmation.userId === currentUserId
                             ) &&
                             (!note.employeeId || note.employeeId === currentUserId) ? (
-                              <form
+                              <ActionForm
                                 action={confirmBoardNoteReadAction}
                                 onClick={(event) => event.stopPropagation()}
                                 style={{ flex: "0 0 auto" }}
@@ -4344,7 +4351,7 @@ export function OwnerCalendarClient({
                                 >
                                   ✓
                                 </IconButton>
-                              </form>
+                              </ActionForm>
                             ) : null}
                           </div>
                           </div>,
@@ -4543,7 +4550,7 @@ export function OwnerCalendarClient({
                           {selectedNote.requiresConfirmation &&
                           !selectedNote.confirmations.some((confirmation) => confirmation.userId === currentUserId) &&
                           (!selectedNote.employeeId || selectedNote.employeeId === currentUserId) ? (
-                            <form
+                            <ActionForm
                               action={confirmBoardNoteReadAction}
                               onClick={(event) => event.stopPropagation()}
                               style={{ flex: "0 0 auto" }}
@@ -4552,7 +4559,7 @@ export function OwnerCalendarClient({
                               <IconButton type="submit" aria-label="Conferma lettura" title="Conferma lettura" style={{ background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0" }}>
                                 ✓
                               </IconButton>
-                            </form>
+                            </ActionForm>
                           ) : null}
                         </div>
                       </div>

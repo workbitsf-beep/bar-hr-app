@@ -32,6 +32,7 @@ import { toTimeInputValueInTimeZone, toDateInputValueInTimeZone } from "@/lib/ti
 import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
 import { formatDateInTimeZone } from "@/lib/time-zone";
+import { ActionForm } from "@/app/components/action-form";
 
 function requestTypeLabel(type: RequestType) {
   if (type === RequestType.VACATION) return "Ferie";
@@ -1109,22 +1110,22 @@ export default async function DashboardPage() {
                 ) : null}
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <form action={reviewRequestAction}>
+                  <ActionForm action={reviewRequestAction}>
                     <input type="hidden" name="requestId" value={request.id} />
                     <input type="hidden" name="decision" value="APPROVED" />
                     <input type="hidden" name="notifySuccess" value="1" />
                     <PrimaryButton type="submit" tone="green" style={{ minHeight: 34, paddingInline: 12 }}>
                       Approva
                     </PrimaryButton>
-                  </form>
-                  <form action={reviewRequestAction}>
+                  </ActionForm>
+                  <ActionForm action={reviewRequestAction}>
                     <input type="hidden" name="requestId" value={request.id} />
                     <input type="hidden" name="decision" value="REJECTED" />
                     <input type="hidden" name="notifySuccess" value="1" />
                     <PrimaryButton type="submit" tone="red" style={{ minHeight: 34, paddingInline: 12 }}>
                       Rifiuta
                     </PrimaryButton>
-                  </form>
+                  </ActionForm>
                 </div>
               </div>
             ))}

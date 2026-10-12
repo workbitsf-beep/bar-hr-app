@@ -3,6 +3,7 @@ import { toggleDocumentActiveAction } from "../actions";
 import { PopupAction } from "../popup-action";
 import { DocumentFileLink } from "./document-file-link";
 import { formatDateTime } from "../ui";
+import { ActionForm } from "@/app/components/action-form";
 
 export type DocumentRowItem = {
   id: string;
@@ -187,13 +188,13 @@ export function DocumentRow({
             ) : null}
 
             {canManage ? (
-              <form action={toggleDocumentActiveAction}>
+              <ActionForm action={toggleDocumentActiveAction} success={document.isActive ? "Documento nascosto al team." : "Documento di nuovo visibile al team."}>
                 <input type="hidden" name="documentId" value={document.id} />
                 <input type="hidden" name="nextActive" value={document.isActive ? "0" : "1"} />
                 <button type="submit" className="workbit-doc-sheet-action" style={{ width: "100%" }}>
                   {document.isActive ? "Nascondi al team" : "Rendi di nuovo visibile"}
                 </button>
-              </form>
+              </ActionForm>
             ) : null}
           </div>
         </PopupAction>

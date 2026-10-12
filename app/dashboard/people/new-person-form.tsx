@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Role } from "@prisma/client";
 import { FormField, PrimaryButton, TextInput } from "../ui";
+import { ActionForm } from "@/app/components/action-form";
 
 /**
  * Who they are, and what they do here.
@@ -15,7 +16,7 @@ export function NewPersonForm({
   action,
   isCompany,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
   isCompany: boolean;
 }) {
   const [role, setRole] = useState<string>(Role.EMPLOYEE);
@@ -29,7 +30,7 @@ export function NewPersonForm({
   ];
 
   return (
-    <form action={action} style={{ display: "grid", gap: 14 }}>
+    <ActionForm action={action} style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
         <FormField label="Nome">
           <TextInput name="firstName" required />
@@ -113,6 +114,6 @@ export function NewPersonForm({
       >
         Riceverà una mail con la password per il primo accesso.
       </span>
-    </form>
+    </ActionForm>
   );
 }

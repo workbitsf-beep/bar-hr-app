@@ -7,6 +7,7 @@ import { coverRequestShiftsAction, reviewRequestAction } from "../actions";
 import { ClassicToggle } from "../classic-toggle";
 import { addDaysKey, Avatar, hm, mondayKey, REQUEST_LABEL, REQUEST_TONE } from "../desk-helpers";
 import "../desk.css";
+import { ActionForm } from "@/app/components/action-form";
 
 /**
  * Requests on a computer, for whoever decides them: the list on the left, the
@@ -267,16 +268,16 @@ export async function DesktopRequests({
 
             {canDecide(selected) ? (
               <div className="wbd-acts">
-                <form action={reviewRequestAction}>
+                <ActionForm action={reviewRequestAction}>
                   <input type="hidden" name="requestId" value={selected.id} />
                   <input type="hidden" name="decision" value="APPROVED" />
                   <button type="submit" className="wbd-btn wbd-btn--primary">Approva</button>
-                </form>
-                <form action={reviewRequestAction}>
+                </ActionForm>
+                <ActionForm action={reviewRequestAction}>
                   <input type="hidden" name="requestId" value={selected.id} />
                   <input type="hidden" name="decision" value="REJECTED" />
                   <button type="submit" className="wbd-btn wbd-btn--danger">Rifiuta</button>
-                </form>
+                </ActionForm>
               </div>
             ) : selected.status === RequestStatus.PENDING ? (
               <p className="wbd-note wbd-note--warn">
@@ -299,14 +300,14 @@ export async function DesktopRequests({
                 ) : (
                   <div className="wbd-free">
                     {free.map((user) => (
-                      <form key={user.id} action={coverRequestShiftsAction}>
+                      <ActionForm key={user.id} action={coverRequestShiftsAction}>
                         <input type="hidden" name="requestId" value={selected.id} />
                         <input type="hidden" name="coverUserId" value={user.id} />
                         <button type="submit" title={`Copia i turni di ${selected.employee.firstName} a ${user.firstName}, come bozza`}>
                           <Avatar user={user} small />
                           Copri con {user.firstName}
                         </button>
-                      </form>
+                      </ActionForm>
                     ))}
                   </div>
                 )}

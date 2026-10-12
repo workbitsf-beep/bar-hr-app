@@ -19,7 +19,6 @@ import {
   ItemList,
   Panel,
   Stack,
-  SuccessCallout,
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { SwipeRevealAction } from "../swipe-reveal-action";
@@ -29,14 +28,9 @@ import { confirmedTaskArchived } from "@/lib/note-visibility";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DepartmentDot } from "../department-forms";
 import { Fragment } from "react";
+import { ActionForm } from "@/app/components/action-form";
 
-export default async function DashboardTasksPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = searchParams ? await searchParams : {};
-  const success = Array.isArray(params.success) ? params.success[0] : params.success;
+export default async function DashboardTasksPage() {
   const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
@@ -62,12 +56,6 @@ export default async function DashboardTasksPage({
   }
 
   const canManage = role === Role.OWNER || role === Role.MANAGER;
-  const successMessage =
-    success === "task-created"
-      ? "Nota salvata correttamente."
-        : success === "task-completed"
-          ? "Nota completata correttamente."
-          : null;
   const departments = await getVenueDepartments(activeBarId, session.user.id);
   const [tasks, members] = await Promise.all([
     prisma.task.findMany({
@@ -178,7 +166,6 @@ export default async function DashboardTasksPage({
   return (
     <div className="wb-desk-split">
     <Stack columns="1fr" className="workbit-notes-page">
-      {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
       <Panel
         title="Note"
@@ -186,7 +173,7 @@ export default async function DashboardTasksPage({
         action={
           <div className="workbit-notes-actions">
             {canManage && tasks.some((task) => task.status === "DONE") ? (
-              <form action={deleteAllCompletedTasksAction} style={{ display: "contents" }}>
+              <ActionForm action={deleteAllCompletedTasksAction} success="Note completate eliminate." style={{ display: "contents" }}>
                 <button
                   type="submit"
                   className="workbit-notes-icon workbit-notes-icon--danger"
@@ -203,7 +190,7 @@ export default async function DashboardTasksPage({
                     />
                   </svg>
                 </button>
-              </form>
+              </ActionForm>
             ) : null}
             {canManage ? (
               <PopupAction
@@ -316,7 +303,7 @@ export default async function DashboardTasksPage({
                   key={group.ids}
                   enabled={canDeleteTask}
                   action={
-                    <form action={deleteTaskAction}>
+                    <ActionForm action={deleteTaskAction} success="Nota eliminata.">
                       <input type="hidden" name="taskId" value={group.ids} />
                       <button
                         type="submit"
@@ -342,7 +329,7 @@ export default async function DashboardTasksPage({
                           />
                         </svg>
                       </button>
-                    </form>
+                    </ActionForm>
                   }
                 >
                 <NoteRow

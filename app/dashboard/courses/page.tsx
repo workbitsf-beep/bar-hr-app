@@ -9,17 +9,12 @@ import {
   getCourseUrgency,
   type CourseUrgency,
 } from "@/lib/course-kinds";
-import { BillingRequiredState, EmptyState, Panel, Stack, SuccessCallout } from "../ui";
+import { BillingRequiredState, EmptyState, Panel, Stack, } from "../ui";
 import { PopupAction } from "../popup-action";
 import { SwipeRevealAction } from "../swipe-reveal-action";
+import { ActionForm } from "@/app/components/action-form";
 
-export default async function DashboardCoursesPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = searchParams ? await searchParams : {};
-  const success = Array.isArray(params.success) ? params.success[0] : params.success;
+export default async function DashboardCoursesPage() {
   const { session, role, activeBarId, billingStatus, features } =
     await getDashboardContext();
 
@@ -44,7 +39,6 @@ export default async function DashboardCoursesPage({
   }
 
   const canManage = canManageTraining(role as Role);
-  const successMessage = success === "course-created" ? "Corso salvato correttamente." : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const [courses, members] = await Promise.all([
@@ -182,7 +176,6 @@ export default async function DashboardCoursesPage({
 
   return (
     <Stack className="workbit-courses-page">
-      {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
 
       <Panel
         title="Corsi"
@@ -263,7 +256,7 @@ export default async function DashboardCoursesPage({
                         key={course.id}
                         enabled={canManage}
                         action={
-                          <form action={deleteCourseAction}>
+                          <ActionForm action={deleteCourseAction} success="Corso eliminato.">
                             <input type="hidden" name="courseId" value={course.id} />
                             <button
                               type="submit"
@@ -289,7 +282,7 @@ export default async function DashboardCoursesPage({
                                 />
                               </svg>
                             </button>
-                          </form>
+                          </ActionForm>
                         }
                       >
                         <div

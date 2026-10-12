@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { AppToastHost } from "@/app/components/app-toast";
 import { LogoutForm } from "@/app/components/logout-form";
 import { SessionKeepAlive } from "@/app/components/session-keepalive";
 import { EdgeSwipeNavigation } from "@/app/components/edge-swipe-navigation";
@@ -129,6 +130,9 @@ export default async function DashboardLayout({
   return (
     <>
       <SessionKeepAlive />
+      <Suspense fallback={null}>
+        <AppToastHost />
+      </Suspense>
       <EdgeSwipeNavigation />
       <NotificationBarSync activeBarId={activeBarId} />
       <PushRegistration />

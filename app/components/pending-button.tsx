@@ -1,7 +1,8 @@
 "use client";
 
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import { useContext, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { ActionFormPending } from "./action-form";
 
 type PendingButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   pendingLabel?: ReactNode;
@@ -18,7 +19,10 @@ export function PendingButton({
   pendingStyle,
   ...props
 }: PendingButtonProps) {
-  const { pending } = useFormStatus();
+  const status = useFormStatus();
+  // Busy too inside an ActionForm, which submits on its own.
+  const actionFormPending = useContext(ActionFormPending);
+  const pending = status.pending || actionFormPending;
   const isDisabled = Boolean(disabled || pending);
 
   return (

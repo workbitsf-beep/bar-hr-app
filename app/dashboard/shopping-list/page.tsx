@@ -11,6 +11,7 @@ import {
   TextInput,
 } from "../ui";
 import { ShoppingListChecklist } from "./shopping-list-checklist";
+import { ActionForm } from "@/app/components/action-form";
 
 export default async function DashboardShoppingListPage() {
   const { role, activeBarId, billingStatus, features } = await getDashboardContext();
@@ -51,7 +52,7 @@ export default async function DashboardShoppingListPage() {
   return (
     <Stack className="workbit-shopping-list-page">
       <Panel title="Aggiungi articolo">
-        <form action={createShoppingListItemAction} style={{ display: "grid", gap: 12 }}>
+        <ActionForm action={createShoppingListItemAction} success="Aggiunto alla lista della spesa." style={{ display: "grid", gap: 12 }}>
           <div
             className="dashboard-inline-grid"
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}
@@ -66,7 +67,7 @@ export default async function DashboardShoppingListPage() {
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <PrimaryButton type="submit">Aggiungi</PrimaryButton>
           </div>
-        </form>
+        </ActionForm>
       </Panel>
 
       <Panel title="Lista ordini" className="workbit-shopping-list-panel">

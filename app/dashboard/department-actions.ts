@@ -1,7 +1,7 @@
 "use server";
 
 import { ChecklistMoment, Department, DepartmentMode, Role, VenuePlan } from "@prisma/client";
-import { getVenueEntitlements, MAX_SEAT_PACKS, siteLimitOf } from "@/lib/plans";
+import { describePlan, entitlementsOf, getVenueEntitlements, MAX_SEAT_PACKS, siteLimitOf } from "@/lib/plans";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { checklistDay, parseChecklistItems } from "@/lib/checklists";
@@ -127,8 +127,16 @@ export async function updateMemberDepartmentAction(formData: FormData) {
  * and the venue's own style.
  */
 export async function setVenuePlanAction(formData: FormData) {
+  try {
+    return { ok: true as const, message: await setVenuePlan(formData) };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function setVenuePlan(formData: FormData) {
   const session = await getSession();
-  if (!session || String(session.user.role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
+  if (!session || String(session.user.role) !== "SUPER_ADMIN") throw new RuleError("Solo il super admin cambia il piano.");
 
   const barId = String(formData.get("barId") ?? "");
   const requestedPlan = String(formData.get("plan"));
@@ -154,8 +162,23 @@ export async function setVenuePlanAction(formData: FormData) {
       : {};
   const packs = Math.max(0, Math.min(MAX_SEAT_PACKS, Math.round(Number(formData.get("extraSeatPacks") ?? 0) || 0)));
 
-  await prisma.bar.update({
+  if (plan === VenuePlan.CUSTOM && "customSiteLimit" in custom && custom.customSiteLimit === 0) {
+    throw new RuleError("Il Su misura ha almeno una sede: la principale.");
+  }
+
+  const updated = await prisma.bar.update({
     where: { id: barId },
+    select: {
+      activityType: true,
+      plan: true,
+      departmentsAddon: true,
+      extraSeatPacks: true,
+      brandingAddon: true,
+      extraSites: true,
+      customSeatLimit: true,
+      customSiteLimit: true,
+      _count: { select: { memberships: { where: { isActive: true } } } },
+    },
     data: {
       plan,
       departmentsAddon: formData.get("departmentsAddon") === "on",
@@ -170,6 +193,14 @@ export async function setVenuePlanAction(formData: FormData) {
   });
   revalidatePath(`/dashboard/super-admin/bar/${barId}`);
   refresh();
+
+  const entitlements = entitlementsOf(updated);
+  const people = updated._count.memberships;
+  const saved = `Piano salvato: ${describePlan(entitlements, updated.activityType === "COMPANY")}.`;
+  // Saved anyway: the console may set a plan below what the venue already has.
+  return entitlements.seatLimit !== null && people > entitlements.seatLimit
+    ? `${saved} Attenzione: ha ${people} persone su ${entitlements.seatLimit}, non potrà aggiungerne altre.`
+    : saved;
 }
 
 /** Owner: the opening and closing lines of one department, one per line. */

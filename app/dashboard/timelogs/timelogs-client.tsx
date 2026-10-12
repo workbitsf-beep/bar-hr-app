@@ -27,6 +27,7 @@ import { deleteTimeLogPairAction } from "../actions";
 import { useOverlayLock } from "../use-overlay-lock";
 import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-format";
 import { calculateRoundedWorkDuration } from "@/lib/rounding";
+import { showAppToast } from "@/app/components/app-toast";
 
 type LogItem = {
   id: string;
@@ -1664,6 +1665,7 @@ function OwnerTimeLogsPanel({
       formData.set("userId", selectedGroup.id);
       formData.set("logIds", logIds.join(","));
       await deleteTimeLogPairAction(formData);
+      showAppToast("Timbratura annullata.");
       router.refresh();
     } finally {
       setCancelling(false);

@@ -6,6 +6,7 @@ import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
 import { groupSharedTasks } from "@/lib/task-groups";
 import { completeTaskAction, reviewRequestAction } from "./actions";
+import { ActionForm } from "@/app/components/action-form";
 
 /**
  * "Oggi" on a computer: the venue right now, then the day, then the week, with
@@ -382,10 +383,10 @@ export async function DesktopToday({
             {done || !task.requiresConfirmation ? (
               <span className="wbt-box" aria-hidden="true">{done ? "✓" : ""}</span>
             ) : (
-              <form action={completeTaskAction}>
+              <ActionForm action={completeTaskAction} success="Nota fatta.">
                 <input type="hidden" name="taskId" value={pendingIds} />
                 <button type="submit" className="wbt-box" aria-label={`Segna fatta: ${task.title}`} />
-              </form>
+              </ActionForm>
             )}
             <span className="wbt-todo-t">{task.title}</span>
             <small className={task.isUrgent && !done ? "wbt-urgent" : undefined}>
@@ -798,20 +799,20 @@ export async function DesktopToday({
                       </Link>
                     ) : (
                       <span className="wbt-acts">
-                        <form action={reviewRequestAction}>
+                        <ActionForm action={reviewRequestAction}>
                           <input type="hidden" name="requestId" value={request.id} />
                           <input type="hidden" name="decision" value="APPROVED" />
                           <button type="submit" className="wbt-mini wbt-mini--yes">
                             Approva
                           </button>
-                        </form>
-                        <form action={reviewRequestAction}>
+                        </ActionForm>
+                        <ActionForm action={reviewRequestAction}>
                           <input type="hidden" name="requestId" value={request.id} />
                           <input type="hidden" name="decision" value="REJECTED" />
                           <button type="submit" className="wbt-mini wbt-mini--no">
                             Rifiuta
                           </button>
-                        </form>
+                        </ActionForm>
                       </span>
                     )}
                   </div>

@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDocumentSize } from "@/lib/documents";
 import { IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
+import { describeActionError } from "@/lib/rule-error";
 
 type RecipientOption = {
   id: string;
@@ -244,7 +245,7 @@ export function DocumentComposeForm({ recipients }: { recipients: RecipientOptio
         setMessage(items.length === 1 ? "Documento caricato." : "Documenti caricati.");
         router.refresh();
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Impossibile caricare il documento.");
+        setError(describeActionError(caught));
       }
     });
   }

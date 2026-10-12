@@ -12,13 +12,13 @@ import {
   PrimaryButton,
   Select,
   Stack,
-  SuccessCallout,
   TextInput,
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { TimeLogsClient } from "./timelogs-client";
 import { ClassicBack } from "../classic-toggle";
 import { DesktopTimeLogs } from "./desktop-timelogs";
+import { ActionForm } from "@/app/components/action-form";
 
 export default async function DashboardTimeLogsPage({
   searchParams,
@@ -26,7 +26,6 @@ export default async function DashboardTimeLogsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
-  const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
@@ -50,7 +49,6 @@ export default async function DashboardTimeLogsPage({
   }
 
   const isOwner = role === Role.OWNER;
-  const successMessage = success === "timelog-created" ? "Timbratura manuale salvata correttamente." : null;
   const now = new Date();
   const personalLogStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
   const ownerLogStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -140,7 +138,7 @@ export default async function DashboardTimeLogsPage({
           ariaLabel="Aggiungi singola timbratura"
           triggerContent="Aggiungi timbratura"
         >
-          <form action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
+          <ActionForm action={createManualTimeLogAction} style={{ display: "grid", gap: 16 }}>
             <div
               className="dashboard-inline-grid"
               style={{
@@ -183,7 +181,7 @@ export default async function DashboardTimeLogsPage({
             <div className="dashboard-form-actions">
               <PrimaryButton type="submit">Salva timbratura manuale</PrimaryButton>
             </div>
-          </form>
+          </ActionForm>
         </PopupAction>
         <span style={{ color: "#94a3b8", fontSize: 12, fontWeight: 700, lineHeight: 1.5 }}>
           Serve quando qualcuno ha dimenticato di timbrare.
@@ -193,7 +191,6 @@ export default async function DashboardTimeLogsPage({
 
   const phonePage = (
     <Stack>
-      {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
       <TimeLogsClient
         manualEntry={manualEntry()}
         role={role}
@@ -243,7 +240,6 @@ export default async function DashboardTimeLogsPage({
   return (
     <>
       <div className="wb-desk-only">
-        {successMessage ? <SuccessCallout>{successMessage}</SuccessCallout> : null}
         <DesktopTimeLogs
           barId={activeBarId}
           logs={logs}

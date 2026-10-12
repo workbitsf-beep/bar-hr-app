@@ -8,7 +8,8 @@ import {
   CalendarClosureType,
   ClockType,
   CourseKind,
-  type Department,
+  Department,
+  DepartmentMode,
   PlanType,
   Prisma,
   RequestStatus,
@@ -1676,9 +1677,8 @@ export async function createBarBySuperAdminAction(formData: FormData) {
   redirect(appendStatusToPath(returnPath, { success: "bar-created" }));
 }
 
-export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
+async function createOwnerAndBar(formData: FormData) {
   await getSuperAdminContext();
-  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin");
 
   const ownerMode = String(formData.get("ownerMode") ?? "new").trim();
   const barName = String(formData.get("name") ?? "").trim();
@@ -1691,7 +1691,7 @@ export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
   const additionalOwnerIds = normalizeIds(formData.getAll("additionalOwnerIds"));
 
   if (!barName) {
-    throw new Error("Missing bar data");
+    throw new RuleError("Scrivi il nome del locale.");
   }
 
   let primaryOwnerId: string;
@@ -1703,7 +1703,7 @@ export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
     primaryOwnerId = String(formData.get("existingOwnerId") ?? "").trim();
 
     if (!primaryOwnerId) {
-      throw new Error("Missing owner data");
+      throw new RuleError("Scegli il titolare.");
     }
 
     await ensureOwnerUsersExist([primaryOwnerId]);
@@ -1714,7 +1714,7 @@ export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
     const language = parseLanguage(formData.get("language"));
 
     if (!firstName || !lastName || !email) {
-      throw new Error("Missing owner data");
+      throw new RuleError("Scrivi nome, cognome ed email del nuovo titolare.");
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -1723,7 +1723,7 @@ export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
     });
 
     if (existingUser) {
-      redirect(appendStatusToPath(returnPath, { error: "owner-exists" }));
+      throw new RuleError(`Esiste già un account con ${email}: scegli «Titolare esistente».`);
     }
 
     temporaryPassword = createTemporaryPassword();
@@ -1827,19 +1827,29 @@ export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
   revalidatePath("/dashboard/super-admin/people");
   revalidatePath("/dashboard/super-admin/money");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
-  redirect(
-    appendStatusToPath(returnPath, {
-      success:
-        ownerMode === "existing"
-          ? "bar-created"
-          : welcomeEmailSent
-            ? "owner-created"
-            : "owner-created-email-failed",
-    })
-  );
+  const kind = activityType === ActivityType.COMPANY ? "Azienda creata" : "Locale creato";
+  return {
+    barId: bar.id,
+    message:
+      ownerMode === "existing"
+        ? `${kind}: ${bar.name}.`
+        : welcomeEmailSent
+          ? `${kind}: ${bar.name}. Credenziali inviate a ${newOwnerEmail}.`
+          : `${kind}: ${bar.name}. L'email con le credenziali non è partita.`,
+  };
 }
 
-export async function updateBarSubscriptionAction(formData: FormData) {
+/** The console's new venue: creates it, then opens its page. */
+export async function createOwnerAndBarBySuperAdminAction(formData: FormData) {
+  try {
+    const { barId, message } = await createOwnerAndBar(formData);
+    return { ok: true as const, message, redirectTo: `/dashboard/super-admin/bar/${barId}` };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function updateBarSubscription(formData: FormData) {
   await getSuperAdminContext();
 
   const barId = String(formData.get("barId") ?? "").trim();
@@ -1856,7 +1866,7 @@ export async function updateBarSubscriptionAction(formData: FormData) {
   const trialEndsAtRaw = String(formData.get("trialEndsAt") ?? "").trim();
 
   if (!barId || !ownerId) {
-    throw new Error("Missing billing data");
+    throw new RuleError("Scegli il titolare principale.");
   }
 
   await ensureOwnerUsersExist(ownerIds);
@@ -1937,6 +1947,122 @@ export async function updateBarSubscriptionAction(formData: FormData) {
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/money");
   revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
+}
+
+export async function updateBarSubscriptionAction(formData: FormData) {
+  try {
+    await updateBarSubscription(formData);
+    return { ok: true as const, message: "Abbonamento e titolari salvati." };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/**
+ * The venue's own details and its category, from the console.
+ *
+ * Moving between Ristorazione and Azienda changes what a "department" means:
+ * banco, cucina and sala for a restaurant, sites for a company. What belongs
+ * to the old kind is let go from today on - people's department, future
+ * shifts, notes, shopping items and checklists - and the past is left as it
+ * was. A company's sites are kept, so going back brings them back. People in
+ * Amministrazione, which only a company has, become Responsabili.
+ */
+async function updateVenueDetailsBySuperAdmin(formData: FormData) {
+  await getSuperAdminContext();
+
+  const barId = String(formData.get("barId") ?? "").trim();
+  const text = (name: string, max: number) => String(formData.get(name) ?? "").trim().slice(0, max) || null;
+  const name = text("name", 80);
+  const activityType = parseActivityType(formData.get("activityType"));
+
+  if (!name) {
+    throw new RuleError("Il nome del locale non può restare vuoto.");
+  }
+
+  const bar = await prisma.bar.findUnique({ where: { id: barId }, select: { id: true, activityType: true } });
+  if (!bar) {
+    throw new RuleError("Locale non trovato.");
+  }
+
+  const switching = bar.activityType !== activityType;
+  const toCompany = activityType === ActivityType.COMPANY;
+  const stale = Object.values(Department).filter((value) => (toCompany ? !value.startsWith("SEDE_") : value.startsWith("SEDE_")));
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  let promoted = 0;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.bar.update({
+      where: { id: barId },
+      data: {
+        name,
+        legalName: text("legalName", 120),
+        email: text("email", 120),
+        phone: text("phone", 40),
+        addressLine1: text("addressLine1", 160),
+        city: text("city", 80),
+        postalCode: text("postalCode", 12),
+        activityType,
+        ...(switching ? { departmentMode: DepartmentMode.UNIFIED } : {}),
+      },
+    });
+
+    if (!switching) return;
+
+    await tx.employeeBar.updateMany({
+      where: { barId, department: { in: stale } },
+      data: { department: null, isDepartmentLead: false },
+    });
+    const helping = await tx.employeeBar.findMany({
+      where: { barId, helpsIn: { hasSome: stale } },
+      select: { id: true, helpsIn: true },
+    });
+    for (const member of helping) {
+      await tx.employeeBar.update({
+        where: { id: member.id },
+        data: { helpsIn: member.helpsIn.filter((entry) => !stale.includes(entry)) },
+      });
+    }
+    await tx.shift.updateMany({
+      where: { barId, department: { in: stale }, startTime: { gte: startOfToday } },
+      data: { department: null },
+    });
+    await tx.task.updateMany({ where: { barId, department: { in: stale }, status: { not: TaskStatus.DONE } }, data: { department: null } });
+    await tx.shoppingListItem.updateMany({ where: { barId, department: { in: stale } }, data: { department: null } });
+    await tx.checklist.deleteMany({ where: { barId, department: { in: stale } } });
+
+    if (!toCompany) {
+      const admins = await tx.employeeBar.findMany({
+        where: { barId, role: Role.AMMINISTRAZIONE },
+        select: { id: true, userId: true },
+      });
+      for (const admin of admins) {
+        await tx.employeeBar.update({ where: { id: admin.id }, data: { role: Role.MANAGER } });
+        await syncUserRole(tx, admin.userId);
+      }
+      promoted = admins.length;
+    }
+  });
+
+  invalidateBillingStatusCache(barId);
+  revalidatePath("/dashboard", "layout");
+  revalidatePath(`/dashboard/super-admin/bar/${barId}`);
+  revalidateTag(SUPER_ADMIN_OVERVIEW_CACHE_TAG, "max");
+
+  if (!switching) return "Dati del locale salvati.";
+  const label = toCompany ? "Azienda" : "Ristorazione";
+  return promoted
+    ? `Categoria cambiata in ${label}. ${promoted} ${promoted === 1 ? "persona in Amministrazione è ora Responsabile" : "persone in Amministrazione sono ora Responsabili"}.`
+    : `Categoria cambiata in ${label}.`;
+}
+
+export async function updateVenueDetailsBySuperAdminAction(formData: FormData) {
+  try {
+    return { ok: true as const, message: await updateVenueDetailsBySuperAdmin(formData) };
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }
 
 export async function deleteBarBySuperAdminAction(formData: FormData) {
@@ -2320,7 +2446,7 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function createTaskAction(formData: FormData) {
+async function runCreateTask(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
@@ -2442,6 +2568,15 @@ export async function createTaskAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/tasks");
+}
+
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createTaskAction(formData: FormData) {
+  try {
+    return await runCreateTask(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }
 
 /**
@@ -3058,7 +3193,7 @@ export async function deleteShiftAction(formData: FormData) {
   }
 }
 
-export async function createBoardNoteAction(formData: FormData) {
+async function runCreateBoardNote(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
@@ -3156,7 +3291,16 @@ export async function createBoardNoteAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function updateBoardNoteAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createBoardNoteAction(formData: FormData) {
+  try {
+    return await runCreateBoardNote(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runUpdateBoardNote(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
@@ -3253,6 +3397,15 @@ export async function updateBoardNoteAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function updateBoardNoteAction(formData: FormData) {
+  try {
+    return await runUpdateBoardNote(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
 export async function deleteAllBoardNotesAction() {
   const { role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
@@ -3273,7 +3426,7 @@ export async function deleteAllBoardNotesAction() {
   revalidatePath("/dashboard/board");
 }
 
-export async function deleteBoardNoteAction(formData: FormData) {
+async function runDeleteBoardNote(formData: FormData) {
   const { activeBarId } = await getActionContext();
 
   if (!activeBarId) {
@@ -3309,7 +3462,16 @@ export async function deleteBoardNoteAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function confirmBoardNoteReadAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function deleteBoardNoteAction(formData: FormData) {
+  try {
+    return await runDeleteBoardNote(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runConfirmBoardNoteRead(formData: FormData) {
   const { session, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
@@ -3368,7 +3530,16 @@ export async function confirmBoardNoteReadAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function createAvailabilityAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function confirmBoardNoteReadAction(formData: FormData) {
+  try {
+    return await runConfirmBoardNoteRead(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runCreateAvailability(formData: FormData) {
   const { session, activeBarId, activeBarActivityType } = await getActionContext();
 
   if (!activeBarId) {
@@ -3437,7 +3608,16 @@ export async function createAvailabilityAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function createCalendarClosureAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createAvailabilityAction(formData: FormData) {
+  try {
+    return await runCreateAvailability(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runCreateCalendarClosure(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
 
@@ -3504,7 +3684,16 @@ export async function createCalendarClosureAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function updateCalendarClosureAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createCalendarClosureAction(formData: FormData) {
+  try {
+    return await runCreateCalendarClosure(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runUpdateCalendarClosure(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
 
@@ -3581,7 +3770,16 @@ export async function updateCalendarClosureAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function deleteCalendarClosureAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function updateCalendarClosureAction(formData: FormData) {
+  try {
+    return await runUpdateCalendarClosure(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runDeleteCalendarClosure(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
 
@@ -3634,7 +3832,16 @@ export async function deleteCalendarClosureAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function createCourseAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function deleteCalendarClosureAction(formData: FormData) {
+  try {
+    return await runDeleteCalendarClosure(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runCreateCourse(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureTrainingRole(role);
 
@@ -3720,6 +3927,15 @@ export async function createCourseAction(formData: FormData) {
   revalidatePath("/dashboard/courses");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/export");
+}
+
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createCourseAction(formData: FormData) {
+  try {
+    return await runCreateCourse(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }
 
 export async function deleteCourseAction(formData: FormData) {
@@ -4121,7 +4337,7 @@ export async function deleteAvailabilityAction(formData: FormData) {
   revalidatePath("/dashboard/requests");
 }
 
-export async function createEmployeeAction(formData: FormData) {
+async function runCreateEmployee(formData: FormData) {
   const { role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);
 
@@ -4265,6 +4481,15 @@ export async function createEmployeeAction(formData: FormData) {
   );
 }
 
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createEmployeeAction(formData: FormData) {
+  try {
+    return await runCreateEmployee(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
 export async function removeEmployeeAction(formData: FormData) {
   const { role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);
@@ -4323,16 +4548,14 @@ export async function removeEmployeeAction(formData: FormData) {
   redirect(appendStatusToPath(returnPath, { success: "employee-removed" }));
 }
 
-export async function createEmployeeBySuperAdminAction(formData: FormData) {
+async function createEmployeeBySuperAdmin(formData: FormData) {
   await getSuperAdminContext();
 
   const barId = String(formData.get("barId") ?? "").trim();
 
   if (!barId) {
-    throw new Error("Missing bar");
+    throw new RuleError("Locale non trovato.");
   }
-
-  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/people");
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const firstName = String(formData.get("firstName") ?? "").trim();
@@ -4341,7 +4564,7 @@ export async function createEmployeeBySuperAdminAction(formData: FormData) {
   const hourlyRate = parseOptionalNumber(formData.get("hourlyRate"));
 
   if (!email || !firstName || !lastName) {
-    throw new Error("Missing employee fields");
+    throw new RuleError("Scrivi nome, cognome ed email.");
   }
 
   const [bar, existingUser] = await Promise.all([
@@ -4356,11 +4579,11 @@ export async function createEmployeeBySuperAdminAction(formData: FormData) {
   ]);
 
   if (!bar) {
-    throw new Error("Bar not found");
+    throw new RuleError("Locale non trovato.");
   }
 
   if (bar.activityType !== ActivityType.COMPANY && userRole === Role.AMMINISTRAZIONE) {
-    throw new Error("Role not allowed for this activity");
+    throw new RuleError("Amministrazione c'è solo nelle aziende.");
   }
 
   const temporaryPassword = createTemporaryPassword();
@@ -4411,43 +4634,59 @@ export async function createEmployeeBySuperAdminAction(formData: FormData) {
     await syncUserRole(tx, user.id);
   });
 
+  let emailSent = true;
   if (shouldCreateUser) {
-    if (userRole === Role.OWNER) {
-      await sendOwnerWelcomeEmail(email, `${firstName} ${lastName}`.trim(), bar.name, email, temporaryPassword);
-    } else {
-      await sendEmployeeWelcomeEmail(email, `${firstName} ${lastName}`.trim(), bar.name, email, temporaryPassword);
+    try {
+      const sent =
+        userRole === Role.OWNER
+          ? await sendOwnerWelcomeEmail(email, `${firstName} ${lastName}`.trim(), bar.name, email, temporaryPassword)
+          : await sendEmployeeWelcomeEmail(email, `${firstName} ${lastName}`.trim(), bar.name, email, temporaryPassword);
+      emailSent = sent.ok;
+    } catch (error) {
+      console.error("[welcome-email] console person failed", error);
+      emailSent = false;
     }
   }
 
   revalidatePath("/dashboard/super-admin/people");
-  redirect(
-    appendStatusToPath(returnPath, {
-      success: shouldCreateUser ? "employee-created" : "employee-linked",
-    })
-  );
+  revalidatePath(`/dashboard/super-admin/bar/${barId}`);
+  const name = `${firstName} ${lastName}`.trim();
+  return !shouldCreateUser
+    ? `${name} collegato a ${bar.name}: aveva già un account.`
+    : emailSent
+      ? `${name} aggiunto a ${bar.name}. Credenziali inviate a ${email}.`
+      : `${name} aggiunto a ${bar.name}, ma l'email con le credenziali non è partita.`;
 }
 
-export async function removeEmployeeBySuperAdminAction(formData: FormData) {
+export async function createEmployeeBySuperAdminAction(formData: FormData) {
+  try {
+    return { ok: true as const, message: await createEmployeeBySuperAdmin(formData) };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+
+async function removeEmployeeBySuperAdmin(formData: FormData) {
   await getSuperAdminContext();
 
-  const returnPath = await getReturnPathFromReferer("/dashboard/super-admin/people");
   const membershipId = String(formData.get("membershipId") ?? "").trim();
 
   if (!membershipId) {
-    throw new Error("Missing membership");
+    throw new RuleError("Persona non trovata.");
   }
 
   const membership = await prisma.employeeBar.findFirst({
     where: { id: membershipId, isActive: true },
-    select: { id: true, userId: true, role: true },
+    select: { id: true, userId: true, role: true, barId: true, user: { select: { firstName: true, lastName: true } } },
   });
 
   if (!membership) {
-    throw new Error("Membership not found");
+    throw new RuleError("Questa persona non è più nel locale.");
   }
 
   if (membership.role === Role.OWNER) {
-    throw new Error("Owner cannot be removed");
+    throw new RuleError("Il titolare non si toglie da qui: cambialo in Abbonamento e titolari.");
   }
 
   await prisma.employeeBar.update({
@@ -4460,7 +4699,16 @@ export async function removeEmployeeBySuperAdminAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard/super-admin/people");
-  redirect(appendStatusToPath(returnPath, { success: "employee-removed" }));
+  revalidatePath(`/dashboard/super-admin/bar/${membership.barId}`);
+  return `${`${membership.user.firstName} ${membership.user.lastName}`.trim()} tolto dal locale.`;
+}
+
+export async function removeEmployeeBySuperAdminAction(formData: FormData) {
+  try {
+    return { ok: true as const, message: await removeEmployeeBySuperAdmin(formData) };
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }
 
 export async function promoteToSuperAdminAction(formData: FormData) {
@@ -4892,7 +5140,7 @@ export async function deleteTimeLogPairAction(formData: FormData) {
   revalidatePath("/dashboard/export");
 }
 
-export async function createManualTimeLogAction(formData: FormData) {
+async function runCreateManualTimeLog(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOwnerRole(role);
 
@@ -5019,7 +5267,16 @@ export async function createManualTimeLogAction(formData: FormData) {
   revalidatePath("/dashboard/export");
 }
 
-export async function createTimeOffRequestAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createManualTimeLogAction(formData: FormData) {
+  try {
+    return await runCreateManualTimeLog(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runCreateTimeOffRequest(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
   const typeRaw = String(formData.get("type") ?? "").trim();
@@ -5164,7 +5421,16 @@ export async function createTimeOffRequestAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
-export async function createShiftChangeRequestAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createTimeOffRequestAction(formData: FormData) {
+  try {
+    return await runCreateTimeOffRequest(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runCreateShiftChangeRequest(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
   if (!activeBarId || role === Role.OWNER) {
@@ -5284,7 +5550,16 @@ export async function createShiftChangeRequestAction(formData: FormData) {
   revalidatePath("/dashboard/requests");
 }
 
-export async function reviewRequestAction(formData: FormData) {
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function createShiftChangeRequestAction(formData: FormData) {
+  try {
+    return await runCreateShiftChangeRequest(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+async function runReviewRequest(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
@@ -5536,6 +5811,15 @@ export async function reviewRequestAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
 }
 
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function reviewRequestAction(formData: FormData) {
+  try {
+    return await runReviewRequest(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
 /* ---------- The week planner on a computer ---------- */
 
 function addDaysToDayKey(dayKey: string, days: number) {
@@ -5780,7 +6064,7 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
  * other shifts, unavailability) and are skipped when they would not fit; the
  * request itself is decided separately, with its own button.
  */
-export async function coverRequestShiftsAction(formData: FormData) {
+async function runCoverRequestShifts(formData: FormData) {
   const { session, role, activeBarId } = await getActionContext();
   ensureOperationRole(role);
 
@@ -5855,6 +6139,15 @@ export async function coverRequestShiftsAction(formData: FormData) {
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/requests");
   redirect(`/dashboard/requests?r=${encodeURIComponent(requestId)}&cover=${created}`);
+}
+
+/** Hands a refusal back in words; a redirect still goes through. */
+export async function coverRequestShiftsAction(formData: FormData) {
+  try {
+    return await runCoverRequestShifts(formData);
+  } catch (error) {
+    return ruleFailure(error);
+  }
 }
 
 /*

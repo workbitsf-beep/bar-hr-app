@@ -7,6 +7,7 @@ import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { approveClockFixAction, rejectClockFixAction, requestClockFixAction } from "./clock-fix-actions";
 import { ModalShell } from "./modal-shell";
 import { useOverlayLock } from "./use-overlay-lock";
+import { showAppToast } from "@/app/components/app-toast";
 
 /**
  * Forgotten entries and exits. The person sees a quiet row with a button; the
@@ -315,6 +316,7 @@ export function ClockFixEmployee({
                   setError(result.ruleError);
                   return;
                 }
+                showAppToast("Richiesta di correzione inviata.");
                 setOpen(false);
                 router.refresh();
               } catch (caught) {

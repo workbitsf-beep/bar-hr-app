@@ -14,13 +14,15 @@ import {
   type NoteMember,
 } from "../note-composer";
 import { IconButton, PrimaryButton } from "../ui";
+import { showAppToast } from "@/app/components/app-toast";
+import { isActionFailure } from "@/lib/rule-error";
 
 export function TaskComposeForm({
   action,
   members,
   canChooseAudience = true,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
   members: NoteMember[];
   canChooseAudience?: boolean;
 }) {
@@ -75,7 +77,11 @@ export function TaskComposeForm({
     <form
       action={async (formData) => {
         const count = allEntries.length;
-        await action(formData);
+        const result = await action(formData);
+        if (isActionFailure(result)) {
+          showAppToast(result.ruleError, "error");
+          return;
+        }
         setEntries([]);
         setDraft(null);
         setSaved(count === 1 ? "Nota salvata. Puoi aggiungerne un'altra." : `${count} note salvate. Puoi aggiungerne altre.`);

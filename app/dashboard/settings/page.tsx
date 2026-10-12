@@ -1059,7 +1059,7 @@ export default async function DashboardSettingsPage({
             />
           }
         >
-          <form action={updateSettingsAction} style={{ display: "grid", gap: 16 }}>
+          <SavingForm action={updateSettingsAction} style={{ display: "grid", gap: 16 }} message="Orari salvati.">
             <input type="hidden" name="settingsSection" value="hours" />
             <StandardHoursForm initialEntries={standardHours} />
             <div className="dashboard-form-actions">
@@ -1067,7 +1067,7 @@ export default async function DashboardSettingsPage({
                 Annulla
               </PrimaryButton>
             </div>
-          </form>
+          </SavingForm>
         </PopupAction>
 
         {departments.enabled && role === Role.OWNER && departments.kind === "sites" ? (

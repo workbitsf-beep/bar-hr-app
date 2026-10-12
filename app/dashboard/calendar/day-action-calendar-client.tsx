@@ -35,7 +35,7 @@ import {
   collectSharedFirstNames,
   shortNameFor,
 } from "@/lib/calendar-rules";
-import { isActionFailure } from "@/lib/rule-error";
+import { isActionFailure, describeActionError } from "@/lib/rule-error";
 import { TimeInput } from "@/app/components/time-input";
 import {
   completeTaskAction,
@@ -76,6 +76,8 @@ import {
   startOfWeekDateKey,
   truncateCalendarText,
 } from "./calendar-client-utils";
+import { showAppToast } from "@/app/components/app-toast";
+import { ActionForm } from "@/app/components/action-form";
 
 type MemberOption = {
   id: string;
@@ -1601,7 +1603,7 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
             )}
           </div>
           {canConfirm ? (
-            <form
+            <ActionForm
               action={confirmBoardNoteReadAction}
               onClick={(event) => event.stopPropagation()}
               style={{ flex: "0 0 auto" }}
@@ -1621,7 +1623,7 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
               >
                 ✓
               </IconButton>
-            </form>
+            </ActionForm>
           ) : null}
         </div>
       ) : null}
@@ -2413,6 +2415,7 @@ export function DayActionCalendarClient({
     startTransition(async () => {
       try {
         throwIfRefused(await deleteShiftAction(formData));
+        showAppToast("Turno eliminato.");
         setFeedback(null);
 
         if (editingShiftId === shiftId) {
@@ -2429,7 +2432,7 @@ export function DayActionCalendarClient({
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare il turno.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2442,13 +2445,14 @@ export function DayActionCalendarClient({
     startTransition(async () => {
       try {
         await deleteTaskAction(formData);
+        showAppToast("Nota eliminata.");
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare la nota.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2460,7 +2464,8 @@ export function DayActionCalendarClient({
 
     startTransition(async () => {
       try {
-        await deleteBoardNoteAction(formData);
+        throwIfRefused(await deleteBoardNoteAction(formData));
+        showAppToast("Avviso eliminato.");
         setSelectedNoteId(null);
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
@@ -2468,7 +2473,7 @@ export function DayActionCalendarClient({
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare la nota.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2481,13 +2486,14 @@ export function DayActionCalendarClient({
     startTransition(async () => {
       try {
         await deleteAvailabilityAction(formData);
+        showAppToast("Indisponibilità eliminata.");
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare l'indisponibilita.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2500,13 +2506,14 @@ export function DayActionCalendarClient({
     startTransition(async () => {
       try {
         await deleteRequestAction(formData);
+        showAppToast("Richiesta eliminata.");
         setFeedback(null);
         window.dispatchEvent(new CustomEvent("workbit:swipe-reset"));
         window.setTimeout(() => router.refresh(), 0);
       } catch (error) {
         setFeedback({
           tone: "danger",
-          message: error instanceof Error ? error.message : "Impossibile eliminare la richiesta.",
+          message: describeActionError(error),
         });
       }
     });
@@ -2894,13 +2901,13 @@ export function DayActionCalendarClient({
 
   function submitQuickTask(formData: FormData) {
     runAction(async () => {
-      await createTaskAction(formData);
+      throwIfRefused(await createTaskAction(formData));
     }, "Nota aggiunta.");
   }
 
   function submitQuickBoard(formData: FormData) {
     runAction(async () => {
-      await createBoardNoteAction(formData);
+      throwIfRefused(await createBoardNoteAction(formData));
     }, "Nota pubblicata.");
   }
 

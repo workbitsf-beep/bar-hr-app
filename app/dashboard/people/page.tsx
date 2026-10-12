@@ -11,7 +11,6 @@ import {
   Panel,
   PrimaryButton,
   Stack,
-  SuccessCallout,
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { ListRowTrigger } from "../list-row-trigger";
@@ -100,7 +99,6 @@ export default async function DashboardPeoplePage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
-  const success = Array.isArray(params.success) ? params.success[0] : params.success;
   const errorParam = Array.isArray(params.error) ? params.error[0] : params.error;
   const { session, role, activeBarId, activeBarActivityType, billingStatus } = await getDashboardContext();
 
@@ -447,15 +445,6 @@ export default async function DashboardPeoplePage({
   const phonePage = (
     <>
       <Stack className="workbit-people-page">
-        {success === "employee-created" ? (
-          <SuccessCallout>Account creato correttamente. La password temporanea automatica e stata inviata via email.</SuccessCallout>
-        ) : null}
-        {success === "employee-linked" ? (
-          <SuccessCallout>Utente collegato correttamente a questo locale.</SuccessCallout>
-        ) : null}
-        {success === "employee-removed" ? (
-          <SuccessCallout>Utente rimosso da questo locale.</SuccessCallout>
-        ) : null}
         {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
 
         <Panel
@@ -556,10 +545,6 @@ export default async function DashboardPeoplePage({
     <>
       <div className="wb-desk-only">
         <div className="wbd">
-          {success === "employee-created" ? (
-            <SuccessCallout>Account creato. La password temporanea è stata inviata via email.</SuccessCallout>
-          ) : null}
-          {success === "employee-removed" ? <SuccessCallout>Persona rimossa da questo locale.</SuccessCallout> : null}
           {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
           <div className="wbd-top">
             <h1>Personale</h1>

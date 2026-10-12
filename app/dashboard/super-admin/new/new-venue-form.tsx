@@ -1,20 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
 import { createOwnerAndBarBySuperAdminAction } from "../../actions";
+import { ConsoleForm } from "../console-form";
 import { Field, FieldGrid, Note, Section } from "../console-ui";
 import { fullName, type PersonShape } from "../console-data";
-
-function Submit() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button type="submit" className="wbc-btn wbc-btn-primary wbc-btn-block" disabled={pending}>
-      {pending ? "Creazione in corso…" : "Crea locale"}
-    </button>
-  );
-}
 
 export function NewVenueForm({
   owners,
@@ -33,7 +23,13 @@ export function NewVenueForm({
   const selectable = owners.filter((owner) => owner.id !== excluded && !extra.includes(owner.id));
 
   return (
-    <form action={createOwnerAndBarBySuperAdminAction} style={{ display: "grid", gap: 4 }}>
+    <ConsoleForm
+      action={createOwnerAndBarBySuperAdminAction}
+      label="Crea locale"
+      pendingLabel="Creazione in corso…"
+      block
+      style={{ gap: 4 }}
+    >
       <input type="hidden" name="ownerMode" value={mode} />
 
       <Section title="Titolare">
@@ -192,9 +188,6 @@ export function NewVenueForm({
         </Section>
       ) : null}
 
-      <div style={{ marginTop: 26 }}>
-        <Submit />
-      </div>
-    </form>
+    </ConsoleForm>
   );
 }

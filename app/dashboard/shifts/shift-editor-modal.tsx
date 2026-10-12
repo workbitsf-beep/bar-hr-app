@@ -15,6 +15,7 @@ import { confirmShiftAction, deleteShiftAction, updateShiftAction } from "../act
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { IconButton, PrimaryButton, Select, SuccessCallout } from "../ui";
 import { useOverlayLock } from "../use-overlay-lock";
+import { showAppToast } from "@/app/components/app-toast";
 
 type MemberOption = {
   id: string;
@@ -206,6 +207,7 @@ export function ShiftEditorModal({
     startTransition(async () => {
       try {
         throwIfRefused(await updateShiftAction(formData));
+        showAppToast("Turno salvato.");
         setFeedback(null);
         onUpdated?.(shift.id);
         onClose();
@@ -229,6 +231,7 @@ export function ShiftEditorModal({
     startTransition(async () => {
       try {
         throwIfRefused(await deleteShiftAction(formData));
+        showAppToast("Turno eliminato.");
         setFeedback(null);
         onDeleted?.(shift.id);
         onClose();
@@ -256,6 +259,7 @@ export function ShiftEditorModal({
     startTransition(async () => {
       try {
         throwIfRefused(await confirmShiftAction(formData));
+        showAppToast("Reperibilità confermata.");
         setFeedback({ tone: "success", message: "Reperibilita confermata." });
         onClose();
         window.setTimeout(() => {

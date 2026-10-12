@@ -9,6 +9,8 @@ import { SwipeRevealAction } from "./swipe-reveal-action";
 import { EmptyState, PrimaryButton, StatusPill } from "./ui";
 import { useOverlayLock } from "./use-overlay-lock";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
+import { showAppToast } from "@/app/components/app-toast";
+import { isActionFailure } from "@/lib/rule-error";
 
 type RequestCardItem = {
   id: string;
@@ -165,7 +167,12 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
     formData.set("decision", decision);
 
     startTransition(async () => {
-      await reviewRequestAction(formData);
+      const result = await reviewRequestAction(formData);
+      if (isActionFailure(result)) {
+        showAppToast(result.ruleError, "error");
+        return;
+      }
+      showAppToast("Richiesta gestita.");
       setSelectedRequestId(null);
       router.refresh();
     });
@@ -177,6 +184,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
 
     startTransition(async () => {
       await deleteRequestAction(formData);
+      showAppToast("Richiesta eliminata.");
 
       if (selectedRequestId === requestId) {
         setSelectedRequestId(null);

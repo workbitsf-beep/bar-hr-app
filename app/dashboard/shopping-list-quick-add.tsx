@@ -6,6 +6,7 @@ import type { DepartmentInfo } from "@/lib/departments";
 import { createShoppingListItemAction, markShoppingListItemsOrderedAction } from "./actions";
 import { DepartmentDot } from "./department-forms";
 import { PopupAction } from "./popup-action";
+import { showAppToast } from "@/app/components/app-toast";
 
 export type ShoppingListEntry = {
   id: string;
@@ -162,6 +163,7 @@ function ShoppingListPanel({
         ref={addFormRef}
         action={async (formData) => {
           await createShoppingListItemAction(formData);
+          showAppToast("Aggiunto alla lista della spesa.");
           addFormRef.current?.reset();
           addFormRef.current?.querySelector("input")?.focus();
         }}
@@ -221,6 +223,7 @@ function ShoppingListPanel({
         <form
           action={async (formData) => {
             await markShoppingListItemsOrderedAction(formData);
+            showAppToast("Segnati come ordinati.");
             setSelected([]);
           }}
           className="workbit-cart-list"

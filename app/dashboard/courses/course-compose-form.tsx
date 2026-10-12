@@ -12,6 +12,8 @@ import {
   type CourseKindDefinition,
 } from "@/lib/course-kinds";
 import { FormField, IconButton, PrimaryButton, TextArea, TextInput } from "../ui";
+import { showAppToast } from "@/app/components/app-toast";
+import { isActionFailure } from "@/lib/rule-error";
 
 type MemberOption = {
   id: string;
@@ -101,7 +103,7 @@ export function CourseComposeForm({
   action,
 }: {
   members: MemberOption[];
-  action: (formData: FormData) => Promise<void> | void;
+  action: (formData: FormData) => Promise<unknown>;
 }) {
   const [draft, setDraft] = useState<CourseDraft | null>(null);
   const [queued, setQueued] = useState<CourseDraft[]>([]);
@@ -185,7 +187,11 @@ export function CourseComposeForm({
           formData.set("assignedToId", item.assignedToId);
         }
 
-        await action(formData);
+        const result = await action(formData);
+        if (isActionFailure(result)) {
+          showAppToast(result.ruleError, "error");
+          return;
+        }
       }
 
       setQueued([]);

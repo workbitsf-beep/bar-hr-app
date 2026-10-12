@@ -3,6 +3,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { ConsoleAccount } from "./console-account";
 import { ConsoleRail } from "./console-rail";
 import { VenueJump } from "./console-venue-jump";
+import { ToastHost } from "./console-form";
 
 const SELECT_CHEVRON =
   "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='m1 1.5 5 5 5-5' stroke='%239a9cac' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
@@ -50,6 +51,7 @@ export function ConsoleShell({
       </header>
 
       <div className="wbc-scroll">{children}</div>
+      <ToastHost />
 
       <ConsoleRail />
 
@@ -622,6 +624,56 @@ export function ConsoleShell({
 .wbc-btn-sm { min-height: 38px; padding: 8px 16px; font-size: 13px; }
 .wbc-btn-block { width: 100%; }
 .wbc-btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- saving: every form says what happened ---------- */
+.wbc-savebar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
+.wbc-btn-saved { background: var(--k-pos); color: #ffffff; box-shadow: 0 10px 24px rgba(31, 157, 99, 0.28); }
+.wbc-save-state { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 650; color: var(--k-ink-3); }
+.wbc-save-state::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
+.wbc-save-state[data-tone="dirty"] { color: var(--k-warn); }
+.wbc-save-state[data-tone="ok"] { color: var(--k-pos); }
+.wbc-save-error { margin: 0; padding: 11px 14px; border-radius: 14px; background: #fde8ec; color: var(--k-neg); font-size: 13.5px; font-weight: 650; line-height: 1.5; }
+.wbc-spin { width: 15px; height: 15px; border-radius: 999px; border: 2px solid rgba(255, 255, 255, 0.45); border-top-color: #ffffff; animation: wbc-spin 0.7s linear infinite; }
+@keyframes wbc-spin { to { transform: rotate(360deg); } }
+
+/* Above the floating sections, so it is never hidden behind them. */
+.wbc-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px)) + 86px);
+  z-index: 60;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 13px 18px;
+  border-radius: 999px;
+  background: #15132b;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 16px 40px rgba(21, 19, 43, 0.3);
+  animation: wbc-toast-in 0.22s ease-out;
+}
+.wbc-toast b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; background: var(--k-pos); font-size: 13px; flex: 0 0 auto; }
+.wbc-toast[data-tone="error"] b { background: var(--k-neg); }
+@keyframes wbc-toast-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+
+.wbc-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.wbc-choice label {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--k-line-strong);
+  cursor: pointer;
+}
+.wbc-choice label:has(input:checked) { box-shadow: inset 0 0 0 2px #6d3df0; background: #faf7ff; }
+.wbc-choice input { position: absolute; opacity: 0; pointer-events: none; }
+.wbc-choice strong { font-size: 14.5px; color: var(--k-ink); }
+.wbc-choice span { font-size: 12.5px; line-height: 1.45; color: var(--k-ink-3); }
 
 .wbc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 

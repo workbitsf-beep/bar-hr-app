@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../../context";
 import { createEmployeeBySuperAdminAction, removeEmployeeBySuperAdminAction, updateBarSubscriptionAction } from "../../../actions";
-import { DataList, Empty, Field, FieldGrid, Figure, FigureBand, Forbidden, Note, Row, Section, Status } from "../../console-ui";
+import { Empty, Field, FieldGrid, Figure, FigureBand, Forbidden, Note, Row, Section, Status } from "../../console-ui";
+import { ConsoleButton, ConsoleForm } from "../../console-form";
+import { VenueDetailsForm } from "./venue-details-form";
 import {
   accessUnlocked,
   activityLabel,
@@ -14,7 +16,6 @@ import {
   monthlyRevenue,
   planDeadline,
   planLabel,
-  readParam,
   roleLabel,
   toDateInput,
 } from "../../console-data";
@@ -24,19 +25,10 @@ import { setVenuePlanAction } from "../../../department-actions";
 import { checkSiteIndependence } from "@/lib/site-check";
 import { BASE_SEATS, COMPANY_PRO_SEATS, describePlan, entitlementsOf, MAX_SEAT_PACKS, PLAN_PRICES, SEAT_PACK_SIZE } from "@/lib/plans";
 
-const FEEDBACK: Record<string, string> = {
-  "employee-created": "Persona aggiunta al locale.",
-  "employee-created-email-failed": "Persona aggiunta, ma l'email di benvenuto non è partita.",
-  "employee-removed": "Persona rimossa dal locale.",
-  "employee-exists": "Esiste già un account con questa email.",
-};
-
 export default async function ConsoleBarPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ barId: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { role } = await getDashboardContext();
 
@@ -45,9 +37,6 @@ export default async function ConsoleBarPage({
   }
 
   const { barId } = await params;
-  const query = searchParams ? await searchParams : {};
-  const success = readParam(query.success);
-  const error = readParam(query.error);
 
   const [bar, owners] = await Promise.all([
     prisma.bar.findUnique({
@@ -149,19 +138,33 @@ export default async function ConsoleBarPage({
         <Figure label="Persone" value={bar.memberships.length} meta="account collegati" />
       </FigureBand>
 
-      {success ? (
-        <div style={{ marginTop: 16 }}>
-          <Note tone="positive">{FEEDBACK[success] ?? "Modifiche salvate."}</Note>
-        </div>
-      ) : null}
-      {error ? (
-        <div style={{ marginTop: 16 }}>
-          <Note tone="negative">{FEEDBACK[error] ?? "Operazione non riuscita."}</Note>
-        </div>
-      ) : null}
+      <Section title="Dati e categoria">
+        <VenueDetailsForm
+          details={{
+            barId: bar.id,
+            name: bar.name,
+            legalName: bar.legalName,
+            email: bar.email,
+            phone: bar.phone,
+            addressLine1: bar.addressLine1,
+            city: bar.city,
+            postalCode: bar.postalCode,
+            activityType: bar.activityType,
+            admins: bar.memberships.filter((membership) => membership.role === Role.AMMINISTRAZIONE).length,
+          }}
+        />
+        <span className="wbc-row-meta">
+          Stripe:{" "}
+          {subscription?.stripeSubscriptionId
+            ? "collegato"
+            : subscription?.stripeCustomerId
+              ? "solo cliente"
+              : "non collegato"}
+        </span>
+      </Section>
 
       <Section title="Abbonamento e titolari">
-        <form action={updateBarSubscriptionAction} style={{ display: "grid", gap: 18 }}>
+        <ConsoleForm action={updateBarSubscriptionAction} label="Salva abbonamento" style={{ gap: 18 }}>
           <input type="hidden" name="barId" value={bar.id} />
 
           <OwnersFieldset
@@ -180,10 +183,7 @@ export default async function ConsoleBarPage({
             todayKey={todayKey}
           />
 
-          <button type="submit" className="wbc-btn wbc-btn-primary">
-            Salva abbonamento
-          </button>
-        </form>
+        </ConsoleForm>
       </Section>
 
       {/* Until checkout sells the extras, the plan and its extras are set by
@@ -199,19 +199,27 @@ export default async function ConsoleBarPage({
             </Note>
           ) : null;
         })()}
-        <form action={setVenuePlanAction} style={{ display: "grid", gap: 14 }}>
+        <ConsoleForm action={setVenuePlanAction} label="Salva piano" style={{ gap: 14 }}>
           <input type="hidden" name="barId" value={bar.id} />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="wbc-choice" role="radiogroup" aria-label="Piano">
             {(["BASE", "PRO", "CUSTOM"] as const).map((plan) => (
-              <label key={plan} className="wbc-row-meta" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700 }}>
+              <label key={plan}>
                 <input type="radio" name="plan" value={plan} defaultChecked={bar.plan === plan} />
-                {plan === "CUSTOM"
-                  ? "Su misura · prezzo, sedi e persone decisi con il cliente"
-                  : plan === "PRO"
-                  ? bar.activityType === "COMPANY"
-                    ? `Pro · ${PLAN_PRICES.pro.monthly} · 3 sedi e fino a 45 persone`
-                    : `Pro · ${PLAN_PRICES.pro.monthly} · tutto incluso, persone senza limite`
-                  : `Base · ${PLAN_PRICES.base.monthly} · ${BASE_SEATS} persone`}
+                <strong>
+                  {plan === "CUSTOM" ? "Su misura" : plan === "PRO" ? `Pro · ${PLAN_PRICES.pro.monthly}` : `Base · ${PLAN_PRICES.base.monthly}`}
+                  {bar.plan === plan ? " · attuale" : ""}
+                </strong>
+                <span>
+                  {plan === "CUSTOM"
+                    ? "Prezzo, sedi e persone decisi con il cliente"
+                    : plan === "PRO"
+                    ? bar.activityType === "COMPANY"
+                      ? "3 sedi (la principale inclusa) e fino a 45 persone"
+                      : "Tutto incluso, persone senza limite"
+                    : bar.activityType === "COMPANY"
+                    ? `Sede principale e ${BASE_SEATS} persone`
+                    : `${BASE_SEATS} persone`}
+                </span>
               </label>
             ))}
           </div>
@@ -288,14 +296,11 @@ export default async function ConsoleBarPage({
             Persone attive: {bar.memberships.length}
             {entitlementsOf(bar).seatLimit !== null ? ` su ${entitlementsOf(bar).seatLimit}` : " · senza limite"}
           </span>
-          <button type="submit" className="wbc-btn wbc-btn-primary" style={{ justifySelf: "start" }}>
-            Salva piano
-          </button>
-        </form>
+        </ConsoleForm>
       </Section>
 
       <Section title={`Persone · ${bar.memberships.length}`}>
-        <form action={createEmployeeBySuperAdminAction} style={{ display: "grid", gap: 15 }}>
+        <ConsoleForm action={createEmployeeBySuperAdminAction} label="Aggiungi persona" pendingLabel="Aggiungo…" resetOnSuccess style={{ gap: 15 }}>
           <input type="hidden" name="barId" value={bar.id} />
 
           <FieldGrid>
@@ -321,10 +326,8 @@ export default async function ConsoleBarPage({
             </Field>
           </FieldGrid>
 
-          <button type="submit" className="wbc-btn wbc-btn-ghost">
-            Crea o collega account
-          </button>
-        </form>
+          <span className="wbc-row-meta">Se l&apos;email ha già un account, la persona viene collegata al locale.</span>
+        </ConsoleForm>
 
         <div>
           {bar.memberships.length === 0 ? (
@@ -339,39 +342,19 @@ export default async function ConsoleBarPage({
                   membership.role === Role.OWNER ? (
                     <Status tone="neutral" label="Titolare" />
                   ) : (
-                    <form action={removeEmployeeBySuperAdminAction}>
-                      <input type="hidden" name="membershipId" value={membership.id} />
-                      <button type="submit" className="wbc-btn wbc-btn-danger wbc-btn-sm">
-                        Rimuovi
-                      </button>
-                    </form>
+                    <ConsoleButton
+                      action={removeEmployeeBySuperAdminAction}
+                      fields={{ membershipId: membership.id }}
+                      label="Rimuovi"
+                      pendingLabel="Tolgo…"
+                      confirm={`Togliere ${fullName(membership.user)} da ${bar.name}?`}
+                    />
                   )
                 }
               />
             ))
           )}
         </div>
-      </Section>
-
-      <Section title="Dati struttura">
-        <DataList
-          items={[
-            { label: "Ragione sociale", value: bar.legalName ?? "—" },
-            { label: "Email", value: bar.email ?? "—" },
-            { label: "Telefono", value: bar.phone ?? "—" },
-            { label: "Indirizzo", value: bar.addressLine1 ?? "—" },
-            { label: "Città", value: [bar.city, bar.postalCode].filter(Boolean).join(" ") || "—" },
-            { label: "Categoria", value: activityLabel(bar.activityType) },
-            {
-              label: "Stripe",
-              value: subscription?.stripeSubscriptionId
-                ? "Collegato"
-                : subscription?.stripeCustomerId
-                  ? "Solo cliente"
-                  : "Non collegato",
-            },
-          ]}
-        />
       </Section>
 
       <Section title="Zona pericolo">

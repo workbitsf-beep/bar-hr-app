@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { FormField, PrimaryButton, Select, TextArea } from "../ui";
+import { ActionForm } from "@/app/components/action-form";
 
 type ShiftOption = {
   id: string;
@@ -43,7 +44,7 @@ export function ShiftChangeForm({
   teammates,
   teammateShifts,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => Promise<unknown>;
   ownShifts: ShiftOption[];
   teammates: TeammateOption[];
   teammateShifts: TeammateShiftOption[];
@@ -55,7 +56,7 @@ export function ShiftChangeForm({
   );
 
   return (
-    <form action={action} style={{ display: "grid", gap: 16 }}>
+    <ActionForm action={action} style={{ display: "grid", gap: 16 }}>
       <FormField label="Il tuo turno">
         <Select name="shiftId" required defaultValue="">
           <option value="" disabled>
@@ -109,6 +110,6 @@ export function ShiftChangeForm({
       <div className="dashboard-form-actions">
         <PrimaryButton type="submit">Invia cambio turno</PrimaryButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

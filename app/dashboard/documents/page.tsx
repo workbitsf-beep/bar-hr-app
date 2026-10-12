@@ -10,6 +10,7 @@ import { DocumentComposeForm } from "./document-compose-form";
 import { DocumentRow } from "./document-row";
 import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
 import { PopupAction } from "../popup-action";
+import { ActionForm } from "@/app/components/action-form";
 
 export default async function DashboardDocumentsPage() {
   const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
@@ -161,7 +162,7 @@ export default async function DashboardDocumentsPage() {
         key={document.id}
         enabled={Boolean(canDeleteDocument)}
         action={
-          <form action={deleteDocumentAction}>
+          <ActionForm action={deleteDocumentAction} success="Documento eliminato.">
             <input type="hidden" name="documentId" value={document.id} />
             <button
               type="submit"
@@ -187,7 +188,7 @@ export default async function DashboardDocumentsPage() {
                 />
               </svg>
             </button>
-          </form>
+          </ActionForm>
         }
       >
         <DocumentRow

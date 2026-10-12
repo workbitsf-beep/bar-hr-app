@@ -4,6 +4,8 @@ import { CalendarClosureType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FormField, PrimaryButton, Select, TextArea, TextInput } from "../ui";
+import { showAppToast } from "@/app/components/app-toast";
+import { isActionFailure } from "@/lib/rule-error";
 
 type ClosureDraft = {
   id: string;
@@ -37,7 +39,7 @@ function formatDateLabel(value: string) {
 export function ClosureComposeForm({
   action,
 }: {
-  action: (formData: FormData) => Promise<void> | void;
+  action: (formData: FormData) => Promise<unknown>;
 }) {
   const [draft, setDraft] = useState<ClosureDraft>(createDraft());
   const [queued, setQueued] = useState<ClosureDraft[]>([]);
@@ -75,7 +77,11 @@ export function ClosureComposeForm({
         formData.set("startsAt", item.startsAt);
         formData.set("endsAt", item.endsAt || item.startsAt);
         formData.set("notes", item.notes);
-        await action(formData);
+        const result = await action(formData);
+        if (isActionFailure(result)) {
+          showAppToast(result.ruleError, "error");
+          return;
+        }
       }
 
       setQueued([]);
