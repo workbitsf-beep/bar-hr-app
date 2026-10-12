@@ -71,7 +71,96 @@ const fieldStyle = {
   fontFamily: "inherit",
 } as const;
 
-function SiteCard({ site, count, onDone }: { site: SiteInfo | null; count: number; onDone?: () => void }) {
+function MainTag() {
+  return (
+    <span
+      style={{
+        flexShrink: 0,
+        padding: "2px 7px",
+        borderRadius: 999,
+        background: "#f1ecff",
+        color: "#6d3df0",
+        fontSize: 10.5,
+        fontWeight: 800,
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
+      }}
+    >
+      Principale
+    </span>
+  );
+}
+
+/** A saved site on one line: name, address and people. Tapping it opens it. */
+function SiteRow({ site, count, onOpen }: { site: SiteInfo; count: number; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Modifica ${site.name}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        width: "100%",
+        padding: "11px 13px",
+        borderRadius: 16,
+        border: "1px solid #ebe6f7",
+        background: "#fff",
+        textAlign: "left",
+        font: "inherit",
+        cursor: "pointer",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          flexShrink: 0,
+          display: "grid",
+          placeItems: "center",
+          width: 30,
+          height: 30,
+          borderRadius: 999,
+          background: site.soft,
+          color: site.ink,
+          fontSize: 12.5,
+          fontWeight: 850,
+        }}
+      >
+        {site.initials}
+      </span>
+      <span style={{ display: "grid", gap: 2, minWidth: 0, flex: 1 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+          <strong style={{ fontSize: 14.5, color: "#17161f", overflowWrap: "anywhere" }}>{site.name}</strong>
+          {site.isMain ? <MainTag /> : null}
+        </span>
+        <span
+          style={{ fontSize: 12, color: "#8a84a8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          {site.address || (site.latitude !== null ? "Punto di timbratura salvato" : "Senza indirizzo")}
+        </span>
+      </span>
+      <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: "#8a84a8", fontVariantNumeric: "tabular-nums" }}>
+        {count} {count === 1 ? "persona" : "persone"}
+      </span>
+      <span aria-hidden="true" style={{ flexShrink: 0, color: "#c4b5fd", fontSize: 18, lineHeight: 1 }}>
+        ›
+      </span>
+    </button>
+  );
+}
+
+function SiteCard({
+  site,
+  count,
+  onDone,
+  onClose,
+}: {
+  site: SiteInfo | null;
+  count: number;
+  onDone?: () => void;
+  onClose?: () => void;
+}) {
   const { pending, status, run } = useRun();
   const [confirm, setConfirm] = useState(false);
 
@@ -93,8 +182,15 @@ function SiteCard({ site, count, onDone }: { site: SiteInfo | null; count: numbe
     >
       {site ? <input type="hidden" name="slot" value={site.id} /> : null}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-        <strong style={{ fontSize: 15 }}>{site ? site.name : "Nuova sede"}</strong>
-        {site ? <span style={{ fontSize: 12, color: "#8a84a8" }}>{count} persone</span> : null}
+        <span style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+          <strong style={{ fontSize: 15, overflowWrap: "anywhere" }}>{site ? site.name : "Nuova sede"}</strong>
+          {site?.isMain ? <MainTag /> : null}
+        </span>
+        {site ? (
+          <span style={{ flexShrink: 0, fontSize: 12, color: "#8a84a8" }}>
+            {count} {count === 1 ? "persona" : "persone"}
+          </span>
+        ) : null}
       </div>
       <input name="name" defaultValue={site?.name ?? ""} placeholder="Nome, per esempio Milano Centro" required maxLength={28} style={fieldStyle} />
       <input name="address" defaultValue={site?.address ?? ""} placeholder="Indirizzo" maxLength={160} style={fieldStyle} />
@@ -105,9 +201,10 @@ function SiteCard({ site, count, onDone }: { site: SiteInfo | null; count: numbe
           longitudeName="longitude"
           initialLatitude={site?.latitude ?? null}
           initialLongitude={site?.longitude ?? null}
+          submitOnLocate
         />
         <span style={{ fontSize: 12, color: "#8a84a8" }}>
-          Premi il tasto stando nella sede: le persone di questa sede timbrano solo lì.
+          Premi il tasto stando nella sede: la posizione si salva subito, e le persone di questa sede timbrano solo lì.
         </span>
       </div>
       <StatusLine status={status} />
@@ -119,7 +216,16 @@ function SiteCard({ site, count, onDone }: { site: SiteInfo | null; count: numbe
         >
           {pending ? "Salvo…" : site ? "Salva sede" : "Aggiungi sede"}
         </button>
-        {site ? (
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ height: 42, padding: "0 14px", borderRadius: 14, border: "1px solid #e9e6f5", background: "#fff", color: "#5b5675", fontWeight: 800, fontSize: 14, cursor: "pointer" }}
+          >
+            Chiudi
+          </button>
+        ) : null}
+        {site && !site.isMain ? (
           confirm ? (
             <button
               type="button"
@@ -149,6 +255,11 @@ function SiteCard({ site, count, onDone }: { site: SiteInfo | null; count: numbe
           Le persone di {site.name} restano nell&apos;azienda senza sede, e i turni da oggi in poi non hanno più sede.
         </span>
       ) : null}
+      {site?.isMain ? (
+        <span style={{ fontSize: 12.5, color: "#8a84a8" }}>
+          È l&apos;azienda stessa: è sempre compresa nel piano e non si toglie.
+        </span>
+      ) : null}
     </form>
   );
 }
@@ -165,7 +276,8 @@ export function SitesForm({
   counts: Record<string, number>;
 }) {
   const [current, setCurrent] = useState<DepartmentMode>(mode);
-  const [adding, setAdding] = useState(sites.length === 0);
+  const [adding, setAdding] = useState(sites.length <= 1);
+  const [open, setOpen] = useState<string | null>(null);
   const { pending, status, run } = useRun();
   const options: Array<{ value: DepartmentMode; title: string; lead: string }> = [
     { value: "UNIFIED", title: "Un calendario unico", lead: "La settimana di sempre, con i filtri per sede" },
@@ -213,9 +325,13 @@ export function SitesForm({
         <span style={{ fontSize: 12, fontWeight: 820, color: "#334155" }}>
           Le sedi · {sites.length} su {limit}
         </span>
-        {sites.map((site) => (
-          <SiteCard key={site.id} site={site} count={counts[site.id] ?? 0} />
-        ))}
+        {sites.map((site) =>
+          open === site.id ? (
+            <SiteCard key={site.id} site={site} count={counts[site.id] ?? 0} onClose={() => setOpen(null)} />
+          ) : (
+            <SiteRow key={site.id} site={site} count={counts[site.id] ?? 0} onOpen={() => setOpen(site.id)} />
+          )
+        )}
         {sites.length < limit ? (
           adding ? (
             <SiteCard site={null} count={0} onDone={() => setAdding(false)} />
@@ -231,8 +347,8 @@ export function SitesForm({
         ) : (
           <span style={{ fontSize: 12.5, color: "#8a84a8" }}>
             {limit >= 6
-              ? "Il Pro arriva a 6 sedi."
-              : `Hai ${limit} ${limit === 1 ? "sede" : "sedi"} nel tuo piano. Le sedi si aggiungono una per una (fino a 3 sul Base, fino a 6 con il Pro): scrivi all'assistenza.`}
+              ? `Hai ${limit} sedi, la principale inclusa.`
+              : `Hai ${limit} sedi nel tuo piano, la principale inclusa. Le altre si aggiungono una per una (fino a 3 sul Base, fino a 6 in tutto con il Pro): scrivi all'assistenza.`}
           </span>
         )}
       </div>

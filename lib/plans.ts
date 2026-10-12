@@ -10,9 +10,10 @@ import { prisma } from "@/lib/prisma";
  * (two at most, so up to 22), and its own style - logo and sign font. Pro
  * includes everything, with no limit on people for one venue.
  *
- * A company has sites instead of departments, paid one by one (7,99 each,
- * up to 3 on Base). Its Pro includes 3 sites, adds more up to 6, and holds up
- * to 45 people (9 October 2026).
+ * A company has sites instead of departments. Its main site - the company
+ * itself - is always there and never paid for; the others are paid one by
+ * one (7,99 each, up to 3 on Base). Its Pro includes 3 sites, the main one
+ * among them, adds more up to 6, and holds up to 45 people (12 October 2026).
  *
  * A Su misura plan (CUSTOM) is agreed with a customer with many sites and
  * people: everything Pro has, with the price, sites and people the super
@@ -23,8 +24,11 @@ import { prisma } from "@/lib/prisma";
  */
 
 export const BASE_SEATS = 12;
-/** A company's sites: up to 3 paid on Base; 3 included on Pro, up to 6 in all. */
-export const SITES_WITH_EXTRA = 3;
+/**
+ * A company's sites, the main one counted: on Base the main one plus up to 3
+ * paid; on Pro 3 included, up to 6 in all.
+ */
+export const PAID_SITES_ON_BASE = 3;
 export const SITES_INCLUDED_IN_PRO = 3;
 export const SITES_ON_PRO = 6;
 /** A company's Pro holds up to 45 people; a venue's Pro has no limit. */
@@ -57,7 +61,7 @@ export type VenueEntitlements = {
   company: boolean;
   /** A company's sites paid on top (each 7,99). */
   paidSites: number;
-  /** How many sites a company may have; 0 for a venue. */
+  /** How many sites a company may have, the main one counted; 0 for a venue. */
   siteLimit: number;
 };
 
@@ -77,19 +81,20 @@ export function entitlementsOf(bar: {
   // Packs of five more people: on Base, and on a company's Pro on top of its 45.
   const seatPacks = pro && !company ? 0 : Math.max(0, Math.min(MAX_SEAT_PACKS, bar.extraSeatPacks));
   const paid = Math.max(0, Math.round(bar.extraSites ?? 0));
+  // The main site always counts; sites show only once there is another.
   const siteLimit = !company
     ? 0
     : custom
-      ? Math.max(0, bar.customSiteLimit ?? SITES_INCLUDED_IN_PRO)
+      ? Math.max(1, bar.customSiteLimit ?? SITES_INCLUDED_IN_PRO)
       : pro
       ? Math.min(SITES_ON_PRO, SITES_INCLUDED_IN_PRO + paid)
-      : Math.min(SITES_WITH_EXTRA, paid);
+      : 1 + Math.min(PAID_SITES_ON_BASE, paid);
   if (custom) {
     return {
       plan: bar.plan,
       pro,
       custom,
-      departments: company ? siteLimit > 0 : true,
+      departments: company ? siteLimit > 1 : true,
       branding: true,
       seatPacks: 0,
       seatLimit: bar.customSeatLimit ?? null,
@@ -102,7 +107,7 @@ export function entitlementsOf(bar: {
     plan: bar.plan,
     pro,
     custom,
-    departments: company ? siteLimit > 0 : pro || bar.departmentsAddon,
+    departments: company ? siteLimit > 1 : pro || bar.departmentsAddon,
     branding: pro || bar.brandingAddon,
     seatPacks,
     seatLimit: pro
@@ -111,7 +116,7 @@ export function entitlementsOf(bar: {
         : null
       : BASE_SEATS + seatPacks * SEAT_PACK_SIZE,
     company,
-    paidSites: pro ? siteLimit - SITES_INCLUDED_IN_PRO : siteLimit,
+    paidSites: !company ? 0 : pro ? siteLimit - SITES_INCLUDED_IN_PRO : siteLimit - 1,
     siteLimit,
   };
 }
@@ -177,7 +182,7 @@ export function describePlan(entitlements: VenueEntitlements, company = false) {
   const extras = [
     entitlements.departments
       ? company || entitlements.company
-        ? `${entitlements.siteLimit} ${entitlements.siteLimit === 1 ? "sede" : "sedi"}`
+        ? `${entitlements.paidSites} ${entitlements.paidSites === 1 ? "sede" : "sedi"}`
         : "Reparti"
       : null,
     entitlements.seatPacks ? `+${entitlements.seatPacks * SEAT_PACK_SIZE} persone` : null,

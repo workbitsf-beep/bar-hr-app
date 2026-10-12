@@ -665,6 +665,8 @@ model Site {
   barId     String     @db.Uuid
   bar       Bar        @relation(fields: [barId], references: [id], onDelete: Cascade)
   slot      Department
+  /// The company's own place: always there, never paid for, never removed.
+  isMain    Boolean    @default(false)
   name      String
   address   String?
   latitude  Float?

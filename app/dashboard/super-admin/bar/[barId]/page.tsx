@@ -257,7 +257,7 @@ export default async function ConsoleBarPage({
                 <select name="extraSites" defaultValue={String(bar.extraSites)}>
                   {[0, 1, 2, 3].map((count) => (
                     <option key={count} value={count}>
-                      {count} · Base {count} {count === 1 ? "sede" : "sedi"} · Pro {3 + count} sedi
+                      {count} · Base principale + {count} · Pro {3 + count} sedi in tutto
                     </option>
                   ))}
                 </select>

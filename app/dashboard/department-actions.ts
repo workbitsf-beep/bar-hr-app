@@ -260,8 +260,8 @@ export async function toggleChecklistItemAction(formData: FormData) {
 
 /**
  * A company's site: its name, address and the point where its people clock
- * in. New sites take the first free slot, up to the plan's limit (three
- * with the Sedi extra, six on Pro). Owner only.
+ * in. New sites take the first free slot, up to the plan's limit, the main
+ * site counted (four on Base with three paid, six on Pro). Owner only.
  */
 export async function saveSiteAction(formData: FormData) {
   try {
@@ -318,6 +318,8 @@ export async function deleteSiteAction(formData: FormData) {
     if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") throw new RuleError("Solo il titolare cambia le sedi.");
     const slot = parseDepartment(formData.get("slot"));
     if (!slot || !isSiteSlot(slot)) throw new RuleError("Sede non trovata.");
+    const site = await prisma.site.findUnique({ where: { barId_slot: { barId, slot } }, select: { isMain: true } });
+    if (site?.isMain) throw new RuleError("La sede principale è l'azienda stessa: non si toglie.");
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);

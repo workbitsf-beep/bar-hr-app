@@ -25,7 +25,7 @@ export function PlanPanel({
           key: "departments",
           title: "Sedi",
           on: entitlements.departments,
-          text: `Ogni sede ha nome, indirizzo e punto di timbratura: si timbra solo nella propria sede. Turni, note, checklist e carrello divisi per sede, e un responsabile per ogni sede. Si aggiungono una per una: fino a 3 sul Base; il Pro ne comprende 3 e arriva a 6.${entitlements.siteLimit ? ` Ne hai ${entitlements.siteLimit}.` : ""}`,
+          text: `Ogni sede ha nome, indirizzo e punto di timbratura: si timbra solo nella propria sede. Turni, note, checklist e carrello divisi per sede, e un responsabile per ogni sede. La sede principale è l'azienda stessa ed è sempre compresa; le altre si aggiungono una per una: fino a 3 sul Base; il Pro ne comprende 3, la principale inclusa, e arriva a 6.${entitlements.departments ? ` Ne hai ${entitlements.siteLimit}, la principale inclusa.` : ""}`,
           who: "Per l'azienda con più uffici, negozi o magazzini.",
         }
       : {

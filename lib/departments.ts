@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Departments: banco, cucina, sala, and one the owner names. For a company
- * the same separation is by site: up to three with the Sedi extra, six on
- * Pro, each named by the owner and with its own clock-in point.
+ * the same separation is by site: its main site plus up to three paid on
+ * Base, up to six in all on Pro, each with its own name and clock-in point.
  *
  * Pro, or the Reparti / Sedi extra on Base. The shifts are the same whichever way the owner looks at
  * them: one weekly calendar split by department, or one calendar per
@@ -97,17 +97,28 @@ export type SiteInfo = DepartmentInfo & {
   address: string | null;
   latitude: number | null;
   longitude: number | null;
+  /** The company's own place: always first, never removed. */
+  isMain: boolean;
 };
 
 /**
- * A company's sites, in slot order. Two sites starting with the same letter
- * get two letters each in their dot.
+ * A company's sites: the main one first, then the others in slot order. Two
+ * sites starting with the same letter get two letters each in their dot.
  */
 export function venueSites(
-  sites: Array<{ slot: Department; name: string; address: string | null; latitude: number | null; longitude: number | null }>
+  sites: Array<{
+    slot: Department;
+    name: string;
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    isMain?: boolean;
+  }>
 ): SiteInfo[] {
   const ordered = [...sites].sort(
-    (a, b) => (SITE_SLOTS as readonly Department[]).indexOf(a.slot) - (SITE_SLOTS as readonly Department[]).indexOf(b.slot)
+    (a, b) =>
+      Number(Boolean(b.isMain)) - Number(Boolean(a.isMain)) ||
+      (SITE_SLOTS as readonly Department[]).indexOf(a.slot) - (SITE_SLOTS as readonly Department[]).indexOf(b.slot)
   );
   return ordered.map((site) => {
     const clean = site.name.trim();
@@ -120,9 +131,59 @@ export function venueSites(
       address: site.address,
       latitude: site.latitude,
       longitude: site.longitude,
+      isMain: Boolean(site.isMain),
       ...DEPARTMENT_COLORS[site.slot],
     };
   });
+}
+
+/**
+ * The company's main site: the company itself, with its name, address and
+ * clock-in point. Made the first time the sites are read, in the first free
+ * slot; with none free, the first site becomes the main one.
+ */
+async function ensureMainSite(barId: string, sites: Array<{ slot: Department; isMain: boolean }>) {
+  if (sites.some((site) => site.isMain)) return false;
+
+  const free = SITE_SLOTS.find((slot) => !sites.some((site) => site.slot === slot));
+  if (!free) {
+    const first = venueSites(sites.map((site) => ({ ...site, name: "", address: null, latitude: null, longitude: null })))[0];
+    await prisma.site.updateMany({ where: { barId, slot: first.id }, data: { isMain: true } });
+    return true;
+  }
+
+  const bar = await prisma.bar.findUnique({
+    where: { id: barId },
+    select: {
+      name: true,
+      addressLine1: true,
+      city: true,
+      latitude: true,
+      longitude: true,
+      settings: { select: { gpsLatitude: true, gpsLongitude: true } },
+    },
+  });
+  if (!bar) return false;
+
+  const point =
+    bar.settings?.gpsLatitude != null && bar.settings.gpsLongitude != null
+      ? { latitude: bar.settings.gpsLatitude, longitude: bar.settings.gpsLongitude }
+      : { latitude: bar.latitude, longitude: bar.longitude };
+
+  // Two pages loading at once may both try: the unique slot keeps one.
+  await prisma.site
+    .create({
+      data: {
+        barId,
+        slot: free,
+        isMain: true,
+        name: bar.name.trim().slice(0, 28) || "Sede principale",
+        address: [bar.addressLine1, bar.city].filter(Boolean).join(", ").slice(0, 160) || null,
+        ...point,
+      },
+    })
+    .catch(() => null);
+  return true;
 }
 
 /** The departments a venue shows: the three fixed ones, plus its own once named. */
@@ -211,7 +272,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
         extraSites: true,
         customSeatLimit: true,
         customSiteLimit: true,
-        sites: { select: { slot: true, name: true, address: true, latitude: true, longitude: true } },
+        sites: { select: { slot: true, name: true, address: true, latitude: true, longitude: true, isMain: true } },
       },
     }),
     prisma.employeeBar.findFirst({
@@ -227,8 +288,15 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
 
   const company = bar.activityType === ActivityType.COMPANY;
   const siteLimit = company ? siteLimitOf(entitlements) : 0;
-  // A plan that went down keeps the first sites it allows.
-  const sites = company ? venueSites(bar.sites).slice(0, siteLimit) : [];
+  const stored =
+    company && (await ensureMainSite(barId, bar.sites))
+      ? await prisma.site.findMany({
+          where: { barId },
+          select: { slot: true, name: true, address: true, latitude: true, longitude: true, isMain: true },
+        })
+      : bar.sites;
+  // A plan that went down keeps the main site and the first others it allows.
+  const sites = company ? venueSites(stored).slice(0, siteLimit) : [];
 
   return {
     enabled: true,

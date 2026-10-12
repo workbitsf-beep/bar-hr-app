@@ -18,19 +18,23 @@ test("a venue's Pro has every extra and no limit on people", () => {
   assert.equal(pro.siteLimit, 0);
 });
 
-test("a company pays its sites one by one, up to 3 on Base", () => {
+test("a company's main site is free; on Base it pays up to 3 more one by one", () => {
   const company = { ...base, activityType: "COMPANY" };
   assert.equal(entitlementsOf(company).departments, false);
-  assert.equal(entitlementsOf({ ...company, extraSites: 2 }).siteLimit, 2);
+  assert.equal(entitlementsOf(company).siteLimit, 1);
+  assert.equal(entitlementsOf(company).paidSites, 0);
+  assert.equal(entitlementsOf({ ...company, extraSites: 2 }).siteLimit, 3);
+  assert.equal(entitlementsOf({ ...company, extraSites: 2 }).paidSites, 2);
   assert.equal(entitlementsOf({ ...company, extraSites: 2 }).departments, true);
-  assert.equal(entitlementsOf({ ...company, extraSites: 5 }).siteLimit, 3);
+  assert.equal(entitlementsOf({ ...company, extraSites: 5 }).siteLimit, 4);
   // The venue's Reparti switch does not give a company sites.
-  assert.equal(entitlementsOf({ ...company, departmentsAddon: true }).siteLimit, 0);
+  assert.equal(entitlementsOf({ ...company, departmentsAddon: true }).departments, false);
 });
 
-test("a company's Pro includes 3 sites and 45 people, with sites and packs on top", () => {
+test("a company's Pro includes 3 sites, the main one among them, and 45 people", () => {
   const pro = { ...base, plan: "PRO" as const, activityType: "COMPANY" };
   assert.equal(entitlementsOf(pro).siteLimit, 3);
+  assert.equal(entitlementsOf(pro).paidSites, 0);
   assert.equal(entitlementsOf(pro).seatLimit, 45);
   assert.equal(entitlementsOf({ ...pro, extraSites: 3 }).siteLimit, 6);
   assert.equal(entitlementsOf({ ...pro, extraSites: 3 }).paidSites, 3);
