@@ -188,7 +188,31 @@ export function PlanBilling({
   const net = Math.round(total * (1 - discount / 100));
   const unchanged = Boolean(purchase?.live) && interval === purchase?.interval && JSON.stringify(selection) === JSON.stringify(initial);
 
+  // What a save would change, said in words next to the total: a switch
+  // flipped by a stray tap must not slip through as "Salva modifiche".
+  const changes: string[] = [];
+  const removed: string[] = [];
+  if (purchase?.live) {
+    if (selection.plan !== initial.plan) changes.push(selection.plan === "PRO" ? "passa a Pro" : "torna a Base");
+    const toggle = (name: string, before: boolean, after: boolean) => {
+      if (before === after) return;
+      changes.push(after ? `aggiungi ${name}` : `togli ${name}`);
+      if (!after) removed.push(name);
+    };
+    toggle("Reparti", initial.departments, selection.departments);
+    toggle("Il tuo stile", initial.branding, selection.branding);
+    const count = (name: string, before: number, after: number) => {
+      if (before === after) return;
+      changes.push(`${name}: ${before} → ${after}`);
+      if (after < before) removed.push(name);
+    };
+    count("pacchetti +5 persone", initial.seatPacks, selection.seatPacks);
+    count("sedi in più", initial.extraSites, selection.extraSites);
+    if (interval !== purchase.interval) changes.push(interval === "YEARLY" ? "passa all'annuale" : "passa al mensile");
+  }
+
   function submit() {
+    if (removed.length && !window.confirm(`Togli ${removed.join(", ")} dall'abbonamento? Da subito non li avrai più.`)) return;
     setError(null);
     start(async () => {
       try {
@@ -499,6 +523,9 @@ export function PlanBilling({
               {unit}
             </strong>
             <span style={{ fontSize: 11.5, color: "#8b88a3" }}>
+              {changes.length ? (
+                <span style={{ display: "block", color: "#b45309", fontWeight: 700 }}>{changes.join(" · ")}</span>
+              ) : null}
               {discount ? `−${discount}% ${monthlyDiscountPercent > 0 && interval === "MONTHLY" ? "concordato" : "stessa partita IVA"} · ` : ""}
               Senza IVA
             </span>
