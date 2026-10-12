@@ -146,13 +146,17 @@ export async function getPurchaseContext(barId: string) {
       brandingAddon: true,
       extraSites: true,
       vatNumber: true,
-      subscription: { select: { stripeSubscriptionId: true, status: true, billingInterval: true } },
+      subscription: { select: { stripeSubscriptionId: true, status: true, billingInterval: true, planType: true } },
     },
   });
   if (!bar) return null;
 
   const vat = bar.vatNumber?.replace(/^IT/, "") ?? null;
+  // Free or lifetime: Workbit set it, so nothing is sold here - even when an
+  // old Stripe subscription is still attached to the venue.
+  const managed = bar.subscription?.planType === "FREE" || bar.subscription?.planType === "LIFETIME";
   return {
+    managed,
     company: bar.activityType === "COMPANY",
     custom: bar.plan === VenuePlan.CUSTOM,
     current: {
@@ -163,7 +167,7 @@ export async function getPurchaseContext(barId: string) {
       extraSites: bar.extraSites,
     },
     interval: (bar.subscription?.billingInterval ?? "MONTHLY") as CatalogInterval,
-    live: Boolean(bar.subscription?.stripeSubscriptionId && LIVE_STATUSES.includes(bar.subscription.status)),
+    live: !managed && Boolean(bar.subscription?.stripeSubscriptionId && LIVE_STATUSES.includes(bar.subscription.status)),
     vatNumber: vat,
     sameVatDiscount: await hasPayingVatSibling(barId, vat),
   };

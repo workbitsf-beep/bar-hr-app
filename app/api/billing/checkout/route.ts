@@ -183,6 +183,13 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, message: "Locale non trovato." }, { status: 404 });
   }
 
+  if (subscription?.planType === PlanType.FREE || subscription?.planType === PlanType.LIFETIME) {
+    return Response.json(
+      { ok: false, message: "Il piano di questo locale è gestito da Workbit: non c'è niente da pagare." },
+      { status: 400 }
+    );
+  }
+
   if (bar.plan === "CUSTOM") {
     return Response.json(
       { ok: false, message: "Il piano su misura si gestisce con Workbit: scrivici per cambiarlo." },

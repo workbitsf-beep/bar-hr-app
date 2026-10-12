@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { showAppToast } from "@/app/components/app-toast";
+import { InfoButton } from "@/app/components/info-button";
+import { planInfo, type PlanInfoKey } from "@/lib/plan-info";
 import { PrimaryButton } from "@/app/dashboard/ui";
 import {
   CATALOG_LIMITS,
@@ -29,6 +31,8 @@ export type PurchaseProps = {
   current: PlanSelection;
   interval: CatalogInterval;
   live: boolean;
+  /** Free or lifetime: set by Workbit, nothing to buy. */
+  managed: boolean;
   vatNumber: string | null;
   sameVatDiscount: boolean;
 };
@@ -45,21 +49,59 @@ const card = {
   font: "inherit",
 } as const;
 
-function Choice({ active, title, lead, onClick }: { active: boolean; title: string; lead: string; onClick: () => void }) {
+function Info({ id, company }: { id: PlanInfoKey; company: boolean }) {
+  const info = planInfo(id, company);
+  return <InfoButton title={info.title} text={info.text} who={info.who} />;
+}
+
+function Choice({
+  active,
+  title,
+  lead,
+  info,
+  company,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  lead: string;
+  info: PlanInfoKey;
+  company: boolean;
+  onClick: () => void;
+}) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      style={{ ...card, ...(active ? { border: "2px solid #6d3df0", background: "#faf7ff" } : {}) }}
-    >
-      <strong style={{ fontSize: 14.5, color: "#17161f" }}>{title}</strong>
-      <span style={{ fontSize: 12.5, color: "#8a84a8", lineHeight: 1.4 }}>{lead}</span>
-    </button>
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        aria-pressed={active}
+        onClick={onClick}
+        style={{ ...card, width: "100%", paddingRight: 44, ...(active ? { border: "2px solid #6d3df0", background: "#faf7ff" } : {}) }}
+      >
+        <strong style={{ fontSize: 14.5, color: "#17161f" }}>{title}</strong>
+        <span style={{ fontSize: 12.5, color: "#8a84a8", lineHeight: 1.4 }}>{lead}</span>
+      </button>
+      <span style={{ position: "absolute", top: 12, right: 12 }}>
+        <Info id={info} company={company} />
+      </span>
+    </div>
   );
 }
 
-function Stepper({ label, lead, value, max, onChange }: { label: string; lead: string; value: number; max: number; onChange: (next: number) => void }) {
+function Stepper({
+  label,
+  info,
+  company,
+  value,
+  max,
+  onChange,
+}: {
+  label: string;
+  info: PlanInfoKey;
+  company: boolean;
+  value: number;
+  max: number;
+  onChange: (next: number) => void;
+}) {
   const button = {
     width: 36,
     height: 36,
@@ -73,9 +115,9 @@ function Stepper({ label, lead, value, max, onChange }: { label: string; lead: s
   } as const;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f4f2fb" }}>
-      <span style={{ flex: 1, display: "grid", gap: 2 }}>
+      <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
         <strong style={{ fontSize: 13.5, color: "#17161f" }}>{label}</strong>
-        <span style={{ fontSize: 11.5, color: "#a3a0b8" }}>{lead}</span>
+        <Info id={info} company={company} />
       </span>
       <button type="button" style={button} aria-label={`Meno ${label}`} disabled={value <= 0} onClick={() => onChange(value - 1)}>
         −
@@ -88,12 +130,24 @@ function Stepper({ label, lead, value, max, onChange }: { label: string; lead: s
   );
 }
 
-function Toggle({ label, lead, checked, onChange }: { label: string; lead: string; checked: boolean; onChange: (next: boolean) => void }) {
+function Toggle({
+  label,
+  info,
+  company,
+  checked,
+  onChange,
+}: {
+  label: string;
+  info: PlanInfoKey;
+  company: boolean;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
   return (
     <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f4f2fb", cursor: "pointer" }}>
-      <span style={{ flex: 1, display: "grid", gap: 2 }}>
+      <span style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
         <strong style={{ fontSize: 13.5, color: "#17161f" }}>{label}</strong>
-        <span style={{ fontSize: 11.5, color: "#a3a0b8" }}>{lead}</span>
+        <Info id={info} company={company} />
       </span>
       <span className="workbit-switch">
         <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
@@ -127,7 +181,7 @@ export function BillingCheckoutClient({
 
   const company = Boolean(purchase?.company);
   const update = (patch: Partial<PlanSelection>) => setSelection((current) => normalizeSelection({ ...current, ...patch }, company));
-  const canBuy = Boolean(purchase && !purchase.custom && (canActivate || purchase.live));
+  const canBuy = Boolean(purchase && !purchase.custom && !purchase.managed && (canActivate || purchase.live));
 
   const total = selectionTotalCents(selection, interval);
   const discount = monthlyDiscountPercent > 0 && interval === "MONTHLY" ? monthlyDiscountPercent : purchase?.sameVatDiscount ? 10 : 0;
@@ -204,13 +258,17 @@ export function BillingCheckoutClient({
             <Choice
               active={selection.plan === "BASE"}
               title={`Base · ${formatEuro(PRICE_CENTS.base[interval])}${unit}`}
-              lead={company ? "Sede principale e 12 persone, il titolare compreso" : "Fino a 12 persone, il titolare compreso"}
+              lead={company ? "Sede principale, 12 persone" : "Fino a 12 persone"}
+              info="base"
+              company={company}
               onClick={() => update({ plan: "BASE" })}
             />
             <Choice
               active={selection.plan === "PRO"}
               title={`Pro · ${formatEuro(PRICE_CENTS.pro[interval])}${unit}`}
-              lead={company ? "3 sedi (la principale inclusa) e 45 persone, tutto compreso" : "Tutto compreso, persone senza limite"}
+              lead={company ? "3 sedi, 45 persone, tutto compreso" : "Tutto compreso, senza limite"}
+              info="pro"
+              company={company}
               onClick={() => update({ plan: "PRO" })}
             />
           </div>
@@ -219,15 +277,17 @@ export function BillingCheckoutClient({
             {!company && selection.plan === "BASE" ? (
               <Toggle
                 label={`Reparti · ${formatEuro(PRICE_CENTS.reparti[interval])}`}
-                lead="Banco, cucina, sala: turni e calendario per reparto"
+                info="reparti"
+                company={company}
                 checked={selection.departments}
                 onChange={(departments) => update({ departments })}
               />
             ) : null}
             {company ? (
               <Stepper
-                label={`Sedi in più · ${formatEuro(PRICE_CENTS.sede[interval])} l'una`}
-                lead={selection.plan === "PRO" ? "Oltre alle 3 comprese, fino a 6 in tutto" : "Oltre alla principale, fino a 3"}
+                label={`Sedi in più · ${formatEuro(PRICE_CENTS.sede[interval])}`}
+                info="sedi"
+                company={company}
                 value={selection.extraSites}
                 max={selection.plan === "PRO" ? CATALOG_LIMITS.sitesOnPro - CATALOG_LIMITS.sitesIncludedInPro : CATALOG_LIMITS.paidSitesOnBase}
                 onChange={(extraSites) => update({ extraSites })}
@@ -235,8 +295,9 @@ export function BillingCheckoutClient({
             ) : null}
             {company || selection.plan === "BASE" ? (
               <Stepper
-                label={`+5 persone · ${formatEuro(PRICE_CENTS.persone5[interval])} a pacchetto`}
-                lead={`Fino a ${CATALOG_LIMITS.maxSeatPacks} pacchetti`}
+                label={`+5 persone · ${formatEuro(PRICE_CENTS.persone5[interval])}`}
+                info="persone5"
+                company={company}
                 value={selection.seatPacks}
                 max={CATALOG_LIMITS.maxSeatPacks}
                 onChange={(seatPacks) => update({ seatPacks })}
@@ -245,7 +306,8 @@ export function BillingCheckoutClient({
             {selection.plan === "BASE" ? (
               <Toggle
                 label={`Il tuo stile · ${formatEuro(PRICE_CENTS.stile[interval])}`}
-                lead="Il logo e l'insegna del locale nell'app"
+                info="stile"
+                company={company}
                 checked={selection.branding}
                 onChange={(branding) => update({ branding })}
               />
