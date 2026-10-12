@@ -1,34 +1,10 @@
-import { BillingInterval, PlanType, SubscriptionStatus } from "@prisma/client";
+import { PlanType, SubscriptionStatus } from "@prisma/client";
 import type { BillingStatusResult } from "@/lib/billing";
-import { BillingCheckoutClient, type PurchaseProps } from "@/app/billing/billing-checkout-client";
-import { Panel, StatusPill } from "../ui";
+import type { SeatUsage, VenueEntitlements } from "@/lib/plans";
+import { PlanBilling, type PlanStatus, type PurchaseProps } from "./plan-billing";
 
-function formatPlan(planType: PlanType) {
-  if (planType === PlanType.FREE) {
-    return "Free";
-  }
-
-  if (planType === PlanType.TRIAL) {
-    return "In prova";
-  }
-
-  if (planType === PlanType.LIFETIME) {
-    return "Lifetime";
-  }
-
-  return "Paid";
-}
-
-function formatInterval(interval: BillingInterval | null) {
-  if (interval === BillingInterval.MONTHLY) {
-    return "Mensile";
-  }
-
-  if (interval === BillingInterval.YEARLY) {
-    return "Annuale";
-  }
-
-  return "Non impostato";
+function formatShortDate(value: Date) {
+  return new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short" }).format(value);
 }
 
 function formatNullableDate(value: Date | null) {
@@ -132,152 +108,78 @@ function getBillingDisplay(status: BillingStatusResult) {
   };
 }
 
+const TONE: Record<string, PlanStatus["tone"]> = { success: "ok", warning: "warn", danger: "bad", neutral: "off" };
+
+/**
+ * The venue's plan and subscription, one screen (Impostazioni → Abbonamento):
+ * the state in one line, then the plan with its extras, changed in place on
+ * the web. Replaces the plan summary, the extras list and the subscription
+ * card that each said part of the same thing.
+ */
 export function BillingSettingsPanel({
-  activeBarName,
   status,
   purchase = null,
+  entitlements,
+  seats,
+  company,
 }: {
-  activeBarName: string | null;
   status: BillingStatusResult;
   /** The plan picker's starting point; only the owner gets one. */
   purchase?: PurchaseProps | null;
+  entitlements: VenueEntitlements;
+  seats: SeatUsage | null;
+  company: boolean;
 }) {
-  const isManagedOutsideStripe =
-    status.planType === PlanType.FREE || status.planType === PlanType.LIFETIME;
-  const requiresTrialCardSetup =
-    status.planType === PlanType.TRIAL &&
-    Boolean(status.trialEndsAt) &&
-    !status.stripeSubscriptionId;
+  const isManagedOutsideStripe = status.planType === PlanType.FREE || status.planType === PlanType.LIFETIME;
+  const requiresTrialCardSetup = status.planType === PlanType.TRIAL && Boolean(status.trialEndsAt) && !status.stripeSubscriptionId;
   const isTrialReady =
-    status.planType === PlanType.TRIAL &&
-    status.status === SubscriptionStatus.TRIALING &&
-    Boolean(status.stripeSubscriptionId);
+    status.planType === PlanType.TRIAL && status.status === SubscriptionStatus.TRIALING && Boolean(status.stripeSubscriptionId);
   const isPaidActive =
     status.planType === PlanType.PAID &&
-    (status.status === SubscriptionStatus.ACTIVE ||
-      status.status === SubscriptionStatus.TRIALING);
-  const canActivateCheckout =
-    !isManagedOutsideStripe && !isPaidActive && !isTrialReady;
+    (status.status === SubscriptionStatus.ACTIVE || status.status === SubscriptionStatus.TRIALING);
+  const canActivateCheckout = !isManagedOutsideStripe && !isPaidActive && !isTrialReady;
   const canCancelSubscription =
+    !isManagedOutsideStripe &&
     (status.planType === PlanType.PAID || isTrialReady) &&
     status.status !== SubscriptionStatus.CANCELED &&
     // Something to cancel: a live status, or at least a Stripe subscription.
-    // A customer record left by a checkout that was never completed showed
-    // "Disattiva abbonamento" on a subscription already shown as off.
     (status.status !== SubscriptionStatus.INACTIVE || Boolean(status.stripeSubscriptionId));
-  const billingDisplay = getBillingDisplay(status);
+  const display = getBillingDisplay(status);
+
+  const when = status.currentPeriodEnd
+    ? `Rinnova il ${formatShortDate(status.currentPeriodEnd)}`
+    : status.planType === PlanType.TRIAL && status.trialEndsAt
+      ? `Prova fino al ${formatShortDate(status.trialEndsAt)}`
+      : status.planType === PlanType.LIFETIME
+        ? "A vita"
+        : status.planType === PlanType.FREE
+          ? "Gratuito"
+          : null;
+  const people = seats ? (seats.limit === null ? `${seats.used} persone` : `${seats.used} persone su ${seats.limit}`) : null;
+  const planStatus: PlanStatus = {
+    tone: TONE[display.tone] ?? "off",
+    label: display.label,
+    detail: [when, people].filter(Boolean).join(" · "),
+    notice: display.tone === "success" ? null : display.message,
+  };
 
   return (
-    <Panel
-      title="Abbonamento"
-      action={
-        <StatusPill
-          label={billingDisplay.label}
-          tone={billingDisplay.tone}
-        />
-      }
-    >
-      <div style={{ display: "grid", gap: 12 }}>
-        {/* Six lines of "label: value" separated by <br>, with the one date
-            that matters buried in the middle. It leads now. */}
-        <div
-          style={{
-            display: "grid",
-            gap: 2,
-            padding: "13px 14px",
-            borderRadius: 16,
-            background: "#f6f3ff",
-            border: "1px solid #ddd6fe",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 830,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "#7c6bd6",
-            }}
-          >
-            {status.currentPeriodEnd
-              ? "Prossimo rinnovo"
-              : status.trialEndsAt
-                ? "La prova finisce"
-                : "Abbonamento"}
-          </span>
-          <strong
-            style={{
-              fontSize: 21,
-              fontWeight: 850,
-              letterSpacing: "-0.03em",
-              color: "#4c1d95",
-            }}
-          >
-            {status.currentPeriodEnd
-              ? formatNullableDate(status.currentPeriodEnd)
-              : status.trialEndsAt
-                ? formatNullableDate(status.trialEndsAt)
-                : billingDisplay.label}
-          </strong>
-        </div>
-
-        <div style={{ display: "grid" }}>
-          {[
-            { label: "Locale", value: activeBarName ?? "Locale attivo" },
-            { label: "Piano", value: formatPlan(status.planType) },
-            { label: "Fatturazione", value: formatInterval(status.billingInterval) },
-            {
-              label: "Sconto",
-              value:
-                status.monthlyDiscountPercent > 0
-                  ? `${status.monthlyDiscountPercent}%`
-                  : "Nessuno",
-            },
-          ].map((row, index) => (
-            <span
-              key={row.label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "9px 0",
-                borderTop: index === 0 ? undefined : "1px solid #f4f2fb",
-                fontSize: 13,
-              }}
-            >
-              <span style={{ flex: 1, color: "#6b6880", fontWeight: 550 }}>{row.label}</span>
-              <strong style={{ fontWeight: 760, color: "#17161f" }}>{row.value}</strong>
-            </span>
-          ))}
-        </div>
-
-        <div
-          className="wb-web-only"
-          style={{ color: billingDisplay.messageColor, lineHeight: 1.6, fontSize: 13 }}
-        >
-          {billingDisplay.message}
-        </div>
-
-        <div className="wb-web-only">
-          <BillingCheckoutClient
-            canActivate={canActivateCheckout}
-            canCancel={canCancelSubscription}
-            trialSetupRequired={requiresTrialCardSetup}
-            monthlyDiscountPercent={status.monthlyDiscountPercent}
-            purchase={purchase}
-          />
-        </div>
-
-        {/* In the installed app the subscription is shown, not sold: it is a
-            service bought by the business, managed from the owner's account
-            on the web. No link and no price, which is what the stores allow. */}
-        <p
-          className="wb-native-only"
-          style={{ margin: 0, color: "#6b6880", lineHeight: 1.6, fontSize: 13 }}
-        >
-          L&apos;abbonamento del locale si gestisce dall&apos;area titolare di Workbit sul web.
-        </p>
-      </div>
-    </Panel>
+    <PlanBilling
+      status={planStatus}
+      company={company}
+      owned={{
+        plan: entitlements.custom ? "CUSTOM" : entitlements.pro ? "PRO" : "BASE",
+        departments: entitlements.departments,
+        seatPacks: entitlements.seatPacks,
+        branding: entitlements.branding,
+        extraSites: entitlements.paidSites,
+        siteLimit: entitlements.siteLimit,
+      }}
+      purchase={purchase}
+      canActivate={canActivateCheckout}
+      canCancel={canCancelSubscription}
+      trialSetupRequired={requiresTrialCardSetup}
+      monthlyDiscountPercent={status.monthlyDiscountPercent}
+    />
   );
 }

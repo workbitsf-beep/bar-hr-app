@@ -40,7 +40,6 @@ import { SitesForm } from "../sites-form";
 import { ChecklistEditor } from "../checklists";
 import { SavingForm } from "../saving-form";
 import { describePlan, getSeatUsage, getVenueEntitlements, parseSignFont, SIGN_FONTS } from "@/lib/plans";
-import { PlanPanel } from "./plan-panel";
 import { getPurchaseContext } from "@/lib/stripe-plan-billing";
 import { VenueStyleForm } from "./venue-style-form";
 
@@ -1194,8 +1193,13 @@ export default async function DashboardSettingsPage({
         >
           {/* One place for what the venue has and how it pays: the plan with
               its extras was a second row saying half of the same thing. */}
-          {role === Role.OWNER && seats ? <PlanPanel entitlements={entitlements} seats={seats} company={activeBarActivityType === ActivityType.COMPANY} /> : null}
-          <BillingSettingsPanel activeBarName={activeBarName} status={resolvedBillingStatus} purchase={purchase} />
+          <BillingSettingsPanel
+            status={resolvedBillingStatus}
+            purchase={purchase}
+            entitlements={entitlements}
+            seats={seats}
+            company={activeBarActivityType === ActivityType.COMPANY}
+          />
         </PopupAction>
 
         <PopupAction
