@@ -66,8 +66,10 @@ export function InfoButton({ title, text, who }: { title: string; text: string; 
               style={{
                 position: "fixed",
                 inset: 0,
-                // Above the bottom nav (200) and the settings popups.
-                zIndex: 1300,
+                // The settings popups sit at the very top (2147483647); this
+                // opens from inside one, so it takes the same level and, added
+                // to the page after it, is drawn above it.
+                zIndex: 2147483647,
                 display: "grid",
                 alignItems: "end",
                 justifyItems: "center",

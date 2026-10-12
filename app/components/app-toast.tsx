@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { FLASH_MESSAGES } from "@/lib/flash-messages";
 
 /**
@@ -53,7 +54,8 @@ export function AppToastHost() {
 
   if (!toast || pathname.startsWith("/dashboard/super-admin")) return null;
 
-  return (
+  // At the end of the page, so it is drawn over a popup that opened before it.
+  return createPortal(
     <div
       key={toast.key}
       role="status"
@@ -63,8 +65,9 @@ export function AppToastHost() {
         position: "fixed",
         left: "50%",
         bottom: "calc(max(env(safe-area-inset-bottom, 0px), var(--wb-inset-bottom, 0px)) + 96px)",
-        // Above the floating bottom nav (200) and the popups.
-        zIndex: 1200,
+        // Above the floating bottom nav (200) and the settings popups, which
+        // sit at the very top: a save inside a popup must still be seen.
+        zIndex: 2147483647,
         transform: "translateX(-50%)",
         display: "flex",
         alignItems: "center",
@@ -98,6 +101,7 @@ export function AppToastHost() {
         {toast.tone === "ok" ? "✓" : "!"}
       </span>
       <span>{toast.text}</span>
-    </div>
+    </div>,
+    document.body
   );
 }
