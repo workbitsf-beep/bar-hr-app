@@ -17,8 +17,12 @@ import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone, APP_TIME_ZONE }
 export const MISSED_OUT_AFTER_MS = 5 * 60 * 1000;
 /** An entry without a planned shift is asked about after twelve hours. */
 const MISSED_OUT_UNPLANNED_AFTER_MS = 12 * 60 * 60 * 1000;
-/** The entry can be reported five minutes into the shift. */
-export const MISSED_IN_AFTER_MS = 5 * 60 * 1000;
+/**
+ * The entry can be reported half an hour into the shift. At five minutes it
+ * sat next to "Timbra entrata" for anyone simply running late, who then
+ * wondered which of the two to press.
+ */
+export const MISSED_IN_AFTER_MS = 30 * 60 * 1000;
 /**
  * An entry left open this long after its shift (or, with no shift, after it
  * was stamped) can no longer be closed by pressing Esci: that would stamp the

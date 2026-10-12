@@ -76,6 +76,31 @@ function initialsOf(firstName: string, lastName: string) {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 }
 
+/**
+ * When a request is for, as the owner reads it: "lun 20 ott · 09:00–13:00"
+ * for a few hours, "20–21 ott · 2 giorni" for whole days. It showed
+ * "2026-10-20 · 00:00-23:59", and a two-day holiday as its first day only.
+ */
+function describeRequestWhen(startsAt: Date | null, endsAt: Date | null) {
+  if (!startsAt) return "Data non indicata";
+  const day = (value: Date, withWeekday = true) =>
+    new Intl.DateTimeFormat("it-IT", {
+      ...(withWeekday ? { weekday: "short" as const } : {}),
+      day: "numeric",
+      month: "short",
+      timeZone: "Europe/Rome",
+    }).format(value);
+  if (!endsAt) return day(startsAt);
+  const startDay = toDateInputValueInTimeZone(startsAt);
+  const endDay = toDateInputValueInTimeZone(endsAt);
+  const startTime = toTimeInputValueInTimeZone(startsAt);
+  const endTime = toTimeInputValueInTimeZone(endsAt);
+  const wholeDays = startTime === "00:00" && (endTime === "23:59" || endTime === "00:00");
+  if (startDay === endDay) return wholeDays ? `${day(startsAt)} · tutto il giorno` : `${day(startsAt)} · ${startTime}–${endTime}`;
+  const days = Math.round((Date.parse(`${endDay}T00:00:00Z`) - Date.parse(`${startDay}T00:00:00Z`)) / 86400000) + 1;
+  return `${day(startsAt, false)} – ${day(endsAt, false)} · ${days} giorni`;
+}
+
 export default async function DashboardPage() {
   const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
@@ -1100,10 +1125,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <div style={{ color: "#475569", fontSize: 13, fontWeight: 700 }}>
-                    {request.startsAt ? toDateInputValueInTimeZone(request.startsAt) : "Data non indicata"}
-                    {request.startsAt && request.endsAt
-                      ? ` · ${toTimeInputValueInTimeZone(request.startsAt)}-${toTimeInputValueInTimeZone(request.endsAt)}`
-                      : ""}
+                    {describeRequestWhen(request.startsAt, request.endsAt)}
                   </div>
                 </div>
 

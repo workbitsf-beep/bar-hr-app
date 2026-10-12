@@ -28,7 +28,10 @@ export function AppToastHost() {
       const { text, tone, soft } = (event as CustomEvent<{ text: string; tone: "ok" | "error"; soft: boolean }>).detail;
       // A form and the page it lands on may both say it: the first word stays.
       setToast((current) =>
-        current && Date.now() - current.key < 2500 && (soft || current.text === text) ? current : { text, tone, key: Date.now() }
+        // A "done" from the address never hides behind an older refusal.
+        current && Date.now() - current.key < 2500 && ((soft && current.tone === "ok") || current.text === text)
+          ? current
+          : { text, tone, key: Date.now() }
       );
     };
     window.addEventListener(EVENT, show);

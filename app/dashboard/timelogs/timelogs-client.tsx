@@ -853,12 +853,15 @@ export function ClockActionsPanel({
     }
 
     const startedAt = new Date(activeClockInAt).getTime();
+    // "dentro da 00:00" read as "in since midnight": the time of the entry and
+    // how long ago say it without doubt.
+    const since = new Date(startedAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
     function tick() {
       const minutes = Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
-      setElapsedLabel(
-        `dentro da ${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`
-      );
+      const length =
+        minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
+      setElapsedLabel(`dentro dalle ${since} · ${length}`);
     }
 
     tick();

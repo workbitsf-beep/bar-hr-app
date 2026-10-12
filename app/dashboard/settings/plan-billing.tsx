@@ -133,7 +133,10 @@ function ExtraRow({
       </span>
       {control ? (
         <>
-          <span className="wb-web-only">{control}</span>
+          {/* A flex box, so the switch keeps its width: inline, it shrank to its knob. */}
+          <span className="wb-web-only" style={{ display: "inline-flex", alignItems: "center" }}>
+            {control}
+          </span>
           <span className="wb-native-only" style={pill}>
             {state.text}
           </span>
@@ -258,7 +261,9 @@ export function PlanBilling({
             opacity: 1,
           }}
         >
-          <span style={{ ...smallCaps, fontSize: 10, color: yours ? "#6d3df0" : "transparent" }}>Il tuo piano</span>
+          <span aria-hidden={!yours} style={{ ...smallCaps, fontSize: 10, color: "#6d3df0", visibility: yours ? "visible" : "hidden" }}>
+            Il tuo piano
+          </span>
           <strong style={{ fontSize: 17, color: "#17161f" }}>{plan === "PRO" ? "Pro" : "Base"}</strong>
           <span className="wb-web-only" style={{ fontSize: 13, color: "#4c4670" }}>
             {formatEuro(PRICE_CENTS[kind][interval])}

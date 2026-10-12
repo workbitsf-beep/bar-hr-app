@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, useTransition, type ComponentProps } from "react";
+import { createContext, useRef, useTransition, type ComponentProps } from "react";
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { showAppToast } from "./app-toast";
 
@@ -23,15 +23,28 @@ export const ActionFormPending = createContext(false);
 export function ActionForm({
   action,
   success,
+  keepOpen = false,
   onSubmit,
+  children,
   ...props
 }: Omit<ComponentProps<"form">, "action"> & {
   action: (formData: FormData) => Promise<unknown>;
   /** Left out when the action itself moves on with a ?success= code. */
   success?: string;
+  /** Inside a popup, stay open after saving (for adding several in a row). */
+  keepOpen?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const closer = useRef<HTMLButtonElement>(null);
+  // Done: a popup around the form closes, as a finished form should. Only
+  // inside one: elsewhere the click would bubble to a row that opens on tap.
+  const finish = () => {
+    if (keepOpen) return;
+    window.setTimeout(() => {
+      if (closer.current?.closest('[role="dialog"]')) closer.current.click();
+    }, 250);
+  };
 
   return (
     <ActionFormPending.Provider value={pending}>
@@ -67,16 +80,23 @@ export function ActionForm({
                 form.reset();
                 router.refresh();
               }
+              finish();
             } catch (error) {
               // A redirect or notFound from the action is a page change the
               // router is already making, not a failure to report.
               const digest = (error as { digest?: unknown } | null)?.digest;
-              if (typeof digest === "string" && digest.startsWith("NEXT_")) return;
+              if (typeof digest === "string" && digest.startsWith("NEXT_")) {
+                finish();
+                return;
+              }
               showAppToast(describeActionError(error), "error");
             }
           });
         }}
-      />
+      >
+        {children}
+        <button ref={closer} type="button" data-popup-close hidden aria-hidden="true" tabIndex={-1} />
+      </form>
     </ActionFormPending.Provider>
   );
 }

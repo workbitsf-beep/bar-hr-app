@@ -2469,11 +2469,11 @@ async function runCreateTask(formData: FormData) {
   );
 
   if (taskDrafts.length === 0) {
-    throw new Error("Missing title");
+    throw new RuleError("Scrivi il titolo della nota.");
   }
 
   if (!dueDate) {
-    throw new Error("Invalid due date");
+    throw new RuleError("Scegli il giorno della nota.");
   }
 
   ensureDateIsNotBeforeToday(dueDate, "Non puoi inserire note prima del giorno corrente");
@@ -2828,7 +2828,7 @@ export async function createShiftAction(formData: FormData) {
       throw new RuleError("Scegli almeno una persona per questo turno");
     }
 
-    ensureValidDateRange(startTime, endTime, "Invalid shift range");
+    ensureValidDateRange(startTime, endTime, "La fine del turno deve essere dopo l'inizio.");
     ensureShiftIsNotBeforeToday(startTime);
 
     await ensureUsersBelongToBar(activeBarId, employeeIds);
@@ -2898,7 +2898,7 @@ export async function updateShiftAction(formData: FormData) {
       throw new RuleError("Dati del turno mancanti");
     }
 
-    ensureValidDateRange(startTime, endTime, "Invalid shift range");
+    ensureValidDateRange(startTime, endTime, "La fine del turno deve essere dopo l'inizio.");
     ensureShiftIsNotBeforeToday(startTime);
 
     await ensureUsersBelongToBar(activeBarId, employeeIds);
@@ -3560,9 +3560,9 @@ async function runCreateAvailability(formData: FormData) {
   const endsAt = parseRequiredDate(formData.get("endsAt"));
   const reason = String(formData.get("reason") ?? "").trim();
 
-  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
-  ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire indisponibilita prima del giorno corrente");
-  ensureSameLocalDay(startsAt, endsAt, "L'indisponibilita deve essere nella stessa giornata");
+  ensureValidDateRange(startsAt, endsAt, "La data di fine deve essere uguale o dopo quella di inizio.");
+  ensureDateIsNotBeforeToday(startsAt, "Non puoi segnare un'indisponibilità in un giorno già passato.");
+  ensureSameLocalDay(startsAt, endsAt, "L'indisponibilità deve stare nella stessa giornata.");
 
   await prisma.availability.create({
     data: {
@@ -3630,7 +3630,7 @@ async function runCreateCalendarClosure(formData: FormData) {
   const startsAt = parseRequiredDate(formData.get("startsAt"));
   const endsAt = parseRequiredDate(formData.get("endsAt"));
 
-  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
+  ensureValidDateRange(startsAt, endsAt, "La data di fine deve essere uguale o dopo quella di inizio.");
   ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire chiusure prima del giorno corrente");
 
   const fallbackTitle =
@@ -3711,7 +3711,7 @@ async function runUpdateCalendarClosure(formData: FormData) {
     throw new Error("Missing closure id");
   }
 
-  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
+  ensureValidDateRange(startsAt, endsAt, "La data di fine deve essere uguale o dopo quella di inizio.");
 
   const fallbackTitle =
     type === CalendarClosureType.HOLIDAY
@@ -4761,7 +4761,7 @@ export async function addStandardShiftPresetAction(formData: FormData) {
   const endTime = parseOptionalTime(formData.get("endTime"));
 
   if (!startTime || !endTime) {
-    throw new Error("Orario non valido");
+    throw new RuleError("Scrivi l'orario di inizio e di fine.");
   }
 
   const settings = await prisma.barSettings.findUnique({
@@ -5318,7 +5318,7 @@ async function runCreateTimeOffRequest(formData: FormData) {
     await ensureUsersBelongToBar(activeBarId, [employeeId]);
   }
 
-  ensureValidDateRange(startsAt, endsAt, "Invalid date range");
+  ensureValidDateRange(startsAt, endsAt, "La data di fine deve essere uguale o dopo quella di inizio.");
   ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire richieste prima del giorno corrente");
 
   if (type === RequestType.OVERTIME) {

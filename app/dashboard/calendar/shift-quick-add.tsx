@@ -119,28 +119,28 @@ export function ShiftQuickAdd({
   }
 
   function press(value: string) {
-    let filled = false;
+    // Worked out here, not inside the state updater: React may run an updater
+    // later, after this function has returned, so a flag set in it was still
+    // false below and the keypad never moved on to Fine - the end's digits
+    // were dropped until the owner tapped Fine by hand.
+    const current = field === "start" ? startDigits : endDigits;
+    if (current.length >= 4) {
+      return;
+    }
 
-    editField((current) => {
-      if (current.length >= 4) {
-        return current;
-      }
+    // A first digit that cannot begin an hour is the hour: 9 means 09, not
+    // the start of 9x:xx.
+    const next = current.length === 0 && Number(value) > 2 ? `0${value}` : current + value;
 
-      // A first digit that cannot begin an hour is the hour: 9 means 09, not
-      // the start of 9x:xx.
-      const next = current.length === 0 && Number(value) > 2 ? `0${value}` : current + value;
+    // Nor can the tens of a minute go past 5.
+    if (next.length === 3 && Number(value) > 5) {
+      return;
+    }
 
-      // Nor can the tens of a minute go past 5.
-      if (next.length === 3 && Number(value) > 5) {
-        return current;
-      }
-
-      filled = next.length === 4;
-      return next;
-    });
+    editField(() => next);
 
     // Four digits mean the hour is finished; the minutes are already there.
-    if (filled && field === "start") {
+    if (next.length === 4 && field === "start") {
       setField("end");
     }
   }
