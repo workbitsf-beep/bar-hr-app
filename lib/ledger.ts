@@ -73,11 +73,15 @@ export function debtEndsKey(entry: LedgerEntryInput, fromKey: string) {
   return shiftMonth(fromKey, Math.ceil(remaining / entry.installmentCents) - 1);
 }
 
+/** Money out that comes from elsewhere, already dated: a Railway invoice. */
+export type ExternalOut = { name: string; cents: number; at: Date };
+
 /** What actually moves in one month: money in and money out. */
 export function cashForMonth(
   entries: LedgerEntryInput[],
   invoicesPaid: Array<{ paidAmount: number; paidAt: Date }>,
-  key: string
+  key: string,
+  externalOut: ExternalOut[] = []
 ) {
   let income = 0;
   let out = 0;
@@ -118,6 +122,12 @@ export function cashForMonth(
     lines.push({ name: entry.name, cents, direction: entry.kind === "INCOME" ? "in" : "out" });
   }
 
+  for (const external of externalOut) {
+    if (monthKey(external.at) !== key || !external.cents) continue;
+    out += external.cents;
+    lines.push({ name: external.name, cents: external.cents, direction: "out" });
+  }
+
   return { income, out, balance: income - out, lines };
 }
 
@@ -126,12 +136,13 @@ export function monthlyReport(
   entries: LedgerEntryInput[],
   invoicesPaid: Array<{ paidAmount: number; paidAt: Date }>,
   currentKey: string,
-  months = 6
+  months = 6,
+  externalOut: ExternalOut[] = []
 ) {
   const keys = Array.from({ length: months }, (_, index) => shiftMonth(currentKey, index - (months - 1)));
   let running = 0;
   const rows = keys.map((key) => {
-    const cash = cashForMonth(entries, invoicesPaid, key);
+    const cash = cashForMonth(entries, invoicesPaid, key, externalOut);
     running += cash.balance;
     return { key, ...cash, running };
   });
@@ -139,7 +150,13 @@ export function monthlyReport(
 }
 
 /** The month at a glance: running costs and income spread per month, and the installments due. */
-export function monthSummary(entries: LedgerEntryInput[], expectedSubscriptionCents: number, key: string) {
+export function monthSummary(
+  entries: LedgerEntryInput[],
+  expectedSubscriptionCents: number,
+  key: string,
+  /** A cost measured elsewhere for this month, such as Railway's projection. */
+  externalMonthlyCents = 0
+) {
   const running = entries.filter((entry) => (entry.kind === "COST" || entry.kind === "INCOME") && activeIn(entry, key));
   const costs = running.filter((entry) => entry.kind === "COST").reduce((sum, entry) => sum + monthlyEquivalentCents(entry), 0);
   const extraIncome = running.filter((entry) => entry.kind === "INCOME").reduce((sum, entry) => sum + monthlyEquivalentCents(entry), 0);
@@ -151,7 +168,7 @@ export function monthSummary(entries: LedgerEntryInput[], expectedSubscriptionCe
   const owed = debts.reduce((sum, entry) => sum + debtRemainingCents(entry), 0);
   const income = expectedSubscriptionCents + extraIncome;
   const fees = expectedSubscriptionCents ? stripeFeeCents(expectedSubscriptionCents) : 0;
-  const out = costs + expenses + fees;
+  const out = costs + expenses + fees + externalMonthlyCents;
   return {
     income,
     out,

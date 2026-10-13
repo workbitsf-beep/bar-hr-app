@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
+import { getRailwayBilling, usdToEuroCents } from "@/lib/railway-billing";
 import {
   breakEvenVenues,
   debtEndsKey,
@@ -81,7 +82,7 @@ export default async function ConsoleCostsPage() {
   const currentKey = monthKey(now);
   const since = new Date(now.getFullYear(), now.getMonth() - 6, 1);
 
-  const [rawEntries, invoices, subscriptions] = await Promise.all([
+  const [rawEntries, invoices, subscriptions, railway] = await Promise.all([
     prisma.ledgerEntry.findMany({
       orderBy: [{ kind: "asc" }, { startsOn: "desc" }],
       include: { payments: { orderBy: { paidOn: "desc" } } },
@@ -100,13 +101,22 @@ export default async function ConsoleCostsPage() {
         trialEndsAt: true,
       },
     }),
+    getRailwayBilling(now),
   ]);
 
   const entries = rawEntries.map((entry) => ({ ...entry, kind: entry.kind as LedgerEntryInput["kind"], period: entry.period as LedgerEntryInput["period"] }));
   const paidInvoices = invoices.filter((invoice): invoice is { paidAmount: number; paidAt: Date } => Boolean(invoice.paidAt));
   const expectedCents = Math.round(subscriptions.reduce((sum, subscription) => sum + monthlyRevenue(subscription), 0) * 100);
-  const summary = monthSummary(entries, expectedCents, currentKey);
-  const report = monthlyReport(entries, paidInvoices, currentKey, 6);
+  // Railway connected: its real figures replace a "Railway" cost typed by hand,
+  // so the server is not counted twice.
+  const isManualRailway = (entry: { kind: string; name: string }) => entry.kind === "COST" && /railway/i.test(entry.name);
+  const counted = railway.ok ? entries.filter((entry) => !isManualRailway(entry)) : entries;
+  const railwayMonthCents = railway.ok ? usdToEuroCents(railway.projectedUsd) : 0;
+  const railwayOut = railway.ok
+    ? railway.invoices.map((invoice) => ({ name: "Railway (fattura, in euro ≈)", cents: usdToEuroCents(invoice.totalUsd), at: invoice.paidOn }))
+    : [];
+  const summary = monthSummary(counted, expectedCents, currentKey, railwayMonthCents);
+  const report = monthlyReport(counted, paidInvoices, currentKey, 6, railwayOut);
   const need = summary.out + summary.installments - (summary.income - expectedCents);
   const todayKey = toDateInput(now);
 
@@ -165,15 +175,43 @@ export default async function ConsoleCostsPage() {
         </details>
       </Section>
 
-      <Section title={`Costi fissi · ${formatCents(costs.reduce((sum, entry) => sum + monthlyEquivalentCents(entry), 0))} al mese`}>
+      <Section
+        title={`Costi fissi · ${formatCents(
+          counted.filter((entry) => entry.kind === "COST").reduce((sum, entry) => sum + monthlyEquivalentCents(entry), 0) + railwayMonthCents
+        )} al mese`}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 2px" }}>
+          <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
+            <strong style={{ fontSize: 15, fontWeight: 650 }}>
+              Railway{" "}
+              <span className="wbc-status" style={{ fontSize: 12, marginLeft: 6 }}>
+                <span className={`wbc-dot wbc-bg-${railway.ok ? "positive" : "warning"}`} aria-hidden="true" />
+                <span className={`wbc-t-${railway.ok ? "positive" : "warning"}`}>{railway.ok ? "collegato" : "non collegato"}</span>
+              </span>
+            </strong>
+            <span className="wbc-row-meta">
+              {railway.ok
+                ? `questo mese finora $${railway.currentUsd.toFixed(2)} · a fine mese circa $${railway.projectedUsd.toFixed(2)}`
+                : railway.message}
+            </span>
+          </span>
+          {railway.ok ? (
+            <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>≈ {formatCents(railwayMonthCents)}</span>
+          ) : null}
+        </div>
         {costs.length === 0 ? <Empty>Nessun costo ancora: aggiungi server, commercialista, abbonamenti agli strumenti.</Empty> : null}
         <div>
           {costs.map((entry) => (
             <EntryRow
               key={entry.id}
               title={entry.name}
-              meta={`${periodMeta(entry)}${entry.endsOn ? ` · fino a ${entry.endsOn.toLocaleDateString("it-IT")}` : ""}`}
+              meta={
+                railway.ok && isManualRailway(entry)
+                  ? "sostituita dai dati di Railway: non viene contata"
+                  : `${periodMeta(entry)}${entry.endsOn ? ` · fino a ${entry.endsOn.toLocaleDateString("it-IT")}` : ""}`
+              }
               value={formatCents(monthlyEquivalentCents(entry))}
+              valueTone={railway.ok && isManualRailway(entry) ? "#b3afc8" : undefined}
             >
               <LedgerEntryForm entry={toFormEntry(entry)} todayKey={todayKey} />
             </EntryRow>
