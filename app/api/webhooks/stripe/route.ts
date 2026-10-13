@@ -1,12 +1,15 @@
 import {
   BillingInterval,
+  InvoiceProvider,
   InvoiceStatus,
   PlanType,
   SubscriptionStatus,
 } from "@prisma/client";
 import type Stripe from "stripe";
 import { invalidateBillingStatusCache } from "@/lib/billing";
+import { fiscalLinesOf, prepareFiscalInvoice } from "@/lib/invoicing/issue";
 import {
+  saveRecipientFromCheckout,
   syncStripeBillingProfile,
   syncStripeInvoice,
 } from "@/lib/invoicing/stripe-sync";
@@ -308,6 +311,9 @@ export async function POST(req: Request) {
           break;
         }
 
+        // The SDI code or PEC asked at checkout, for the e-invoice.
+        await saveRecipientFromCheckout(metadataBarId, session);
+
         let subscriptionDetails = null;
 
         if (stripeSubscriptionId) {
@@ -559,6 +565,18 @@ export async function POST(req: Request) {
           data: { paymentDueSince: null },
         });
         invalidateBillingStatusCache(barId);
+
+        // The electronic invoice for this payment. A failure here is kept on
+        // the invoice and shown in the console; it never undoes the payment.
+        try {
+          const paidRow = await prisma.invoice.findUnique({
+            where: { provider_externalId: { provider: InvoiceProvider.STRIPE, externalId: invoice.id } },
+            select: { id: true },
+          });
+          if (paidRow) await prepareFiscalInvoice(paidRow.id, fiscalLinesOf(invoice));
+        } catch (error) {
+          console.error("[stripe-webhook] E-invoice not prepared.", { barId, invoiceId: invoice.id, error });
+        }
 
         if (previous?.status !== SubscriptionStatus.ACTIVE) {
           await sendOwnerBillingEmail({

@@ -43,6 +43,13 @@ export type CompanyProfile = {
   invoicingActive: boolean;
   documentVersion: string;
   effectiveFrom: string;
+  /** Electronic invoices: the issuer as the SDI wants it (lib/invoicing/fattura-pa). */
+  issuerFirstName: string;
+  issuerLastName: string;
+  issuerStreet: string;
+  issuerPostalCode: string;
+  issuerCity: string;
+  issuerProvince: string;
 };
 
 export const COMPANY_PROFILE_DEFAULTS: CompanyProfile = {
@@ -92,6 +99,12 @@ export const COMPANY_PROFILE_DEFAULTS: CompanyProfile = {
   invoicingActive: false,
   documentVersion: "1.0",
   effectiveFrom: "",
+  issuerFirstName: "",
+  issuerLastName: "",
+  issuerStreet: "",
+  issuerPostalCode: "",
+  issuerCity: "",
+  issuerProvince: "",
 };
 
 /** Labels used both by the form and by the gaps left in the generated text. */
@@ -129,6 +142,12 @@ export const COMPANY_PROFILE_LABELS: Record<keyof CompanyProfile, string> = {
   invoicingActive: "Fatturazione elettronica attiva",
   documentVersion: "Versione",
   effectiveFrom: "In vigore dal",
+  issuerFirstName: "Nome",
+  issuerLastName: "Cognome",
+  issuerStreet: "Indirizzo",
+  issuerPostalCode: "CAP",
+  issuerCity: "Comune",
+  issuerProvince: "Provincia",
 };
 
 /** Fields the documents can do without. */
@@ -136,6 +155,13 @@ const OPTIONAL_FIELDS: Array<keyof CompanyProfile> = [
   "taxCode",
   "reaAndCapital",
   "dpoContact",
+  // Invoicing has its own check (missingIssuerFields).
+  "issuerFirstName",
+  "issuerLastName",
+  "issuerStreet",
+  "issuerPostalCode",
+  "issuerCity",
+  "issuerProvince",
 ];
 
 export function getMissingProfileFields(profile: CompanyProfile) {
@@ -178,4 +204,19 @@ export function readCompanyProfileFromForm(formData: FormData): CompanyProfile {
   }
 
   return next;
+}
+
+/** The issuer of the e-invoices, from the company profile. */
+export function fiscalIssuerOf(profile: CompanyProfile) {
+  return {
+    firstName: profile.issuerFirstName || undefined,
+    lastName: profile.issuerLastName || undefined,
+    legalName: profile.legalName,
+    vatNumber: profile.vatNumber,
+    taxCode: profile.taxCode || profile.vatNumber,
+    street: profile.issuerStreet,
+    postalCode: profile.issuerPostalCode,
+    city: profile.issuerCity,
+    province: profile.issuerProvince,
+  };
 }

@@ -29,6 +29,8 @@ import {
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
+import { BillingProfileForm, type BillingProfileValues } from "./billing-profile-form";
+import { missingRecipientFields } from "@/lib/invoicing/fattura-pa";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
 import { SupportPanel } from "./support-panel";
@@ -985,6 +987,35 @@ export default async function DashboardSettingsPage({
   };
 
   // What the row says on the right: the date that actually matters, not "Ok".
+  // Who Workbit invoices, for the electronic invoice.
+  const billingProfile =
+    role === Role.OWNER && activeBarId
+      ? await prisma.billingProfile.findUnique({ where: { barId: activeBarId } })
+      : null;
+  const billingProfileValues: BillingProfileValues | null =
+    role === Role.OWNER && activeBarId
+      ? {
+          businessName: billingProfile?.businessName ?? "",
+          vatNumber: billingProfile?.vatNumber ?? "",
+          taxCode: billingProfile?.taxCode ?? "",
+          recipientCode: billingProfile?.recipientCode ?? "",
+          certifiedEmail: billingProfile?.certifiedEmail ?? "",
+          billingEmail: billingProfile?.billingEmail ?? "",
+          addressLine1: billingProfile?.addressLine1 ?? "",
+          postalCode: billingProfile?.postalCode ?? "",
+          city: billingProfile?.city ?? "",
+          province: billingProfile?.province ?? "",
+          countryCode: billingProfile?.countryCode ?? "IT",
+        }
+      : null;
+  const billingProfileMissing = billingProfileValues
+    ? missingRecipientFields({
+        ...billingProfileValues,
+        street: billingProfileValues.addressLine1,
+        vatNumber: billingProfileValues.vatNumber || null,
+        taxCode: billingProfileValues.taxCode || null,
+      })
+    : [];
   const billingRowStatus = resolvedBillingStatus.currentPeriodEnd
     ? `Rinnova il ${new Intl.DateTimeFormat("it-IT", {
         day: "numeric",
@@ -1204,6 +1235,26 @@ export default async function DashboardSettingsPage({
             company={activeBarActivityType === ActivityType.COMPANY}
           />
         </PopupAction>
+
+        {role === Role.OWNER && billingProfileValues ? (
+          <div className="wb-web-only">
+            <PopupAction
+              title="Dati per la fattura"
+              ariaLabel="Apri i dati per la fattura"
+              triggerRow={
+                <SettingsRow
+                  dot="#0f766e"
+                  title="Dati per la fattura"
+                  lead="Partita IVA, indirizzo, codice SDI o PEC"
+                  status={billingProfileMissing.length ? "Da completare" : "Completi"}
+                  statusTone={billingProfileMissing.length ? "warn" : "plain"}
+                />
+              }
+            >
+              <BillingProfileForm values={billingProfileValues} missing={billingProfileMissing} />
+            </PopupAction>
+          </div>
+        ) : null}
 
         <PopupAction
           title="Documenti legali"

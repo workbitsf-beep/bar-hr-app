@@ -87,6 +87,17 @@ enum InvoiceProvider {
   EXTERNAL
 }
 
+/// Where a payment's e-invoice stands: data missing, made and waiting to be
+/// sent, sent to the SDI, delivered, or turned down by the SDI.
+enum FiscalState {
+  NONE
+  MISSING_DATA
+  READY
+  SENT
+  DELIVERED
+  REJECTED
+}
+
 enum InvoiceStatus {
   DRAFT
   OPEN
@@ -458,12 +469,23 @@ model Invoice {
   pdfUrl           String?
   fiscalDocumentId String?
   fiscalError      String?
+  /// The Italian e-invoice (FatturaPA) made from this payment: numbered
+  /// 2026/1, 2026/2... per year, kept as the XML the SDI receives.
+  fiscalState      FiscalState     @default(NONE)
+  fiscalYear       Int?
+  fiscalSequence   Int?
+  fiscalNumber     String?
+  fiscalFileName   String?
+  fiscalXml        String?
+  /// The lines as Stripe billed them, kept to make the invoice later.
+  fiscalLines      Json?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   bar              Bar             @relation(fields: [barId], references: [id], onDelete: Cascade)
   subscription     Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 
   @@unique([provider, externalId])
+  @@unique([fiscalYear, fiscalSequence])
   @@index([barId, issuedAt])
   @@index([subscriptionId])
   @@index([status, dueAt])

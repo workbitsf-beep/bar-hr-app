@@ -353,6 +353,16 @@ export async function POST(req: Request) {
       name: "auto",
       address: "auto",
     },
+    // For the electronic invoice: where the SDI delivers it.
+    custom_fields: [
+      {
+        key: "sdi",
+        label: { type: "custom", custom: "Codice destinatario SDI o PEC" },
+        type: "text",
+        optional: true,
+        text: { minimum_length: 7, maximum_length: 120 },
+      },
+    ],
     payment_method_types: ["card", "sepa_debit"],
     line_items: lineItems.map((item) => ({ price: item.price, quantity: item.quantity })),
     ...(couponId

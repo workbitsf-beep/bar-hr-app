@@ -105,6 +105,9 @@ export default async function ConsoleMoneyPage({
         <Link className="wbc-chip" data-on="0" href="/dashboard/super-admin/money/costs">
           Costi e debiti
         </Link>
+        <Link className="wbc-chip" data-on="0" href="/dashboard/super-admin/money/invoices">
+          Fatture
+        </Link>
       </nav>
       <div className="wbc-page-head">
         <h1 className="wbc-title">Denaro</h1>

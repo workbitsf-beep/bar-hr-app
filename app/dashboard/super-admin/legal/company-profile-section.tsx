@@ -60,6 +60,17 @@ const GROUPS: Array<{ legend: string; fields: Field[] }> = [
     ],
   },
   {
+    legend: "Fattura elettronica · sede e titolare",
+    fields: [
+      { key: "issuerFirstName", hint: "ditta individuale" },
+      { key: "issuerLastName", hint: "ditta individuale" },
+      { key: "issuerStreet", wide: true, hint: "via e numero" },
+      { key: "issuerPostalCode" },
+      { key: "issuerCity" },
+      { key: "issuerProvince", hint: "sigla, es. MI" },
+    ],
+  },
+  {
     legend: "Versione",
     fields: [{ key: "documentVersion" }, { key: "effectiveFrom", hint: "es. 1 ottobre 2026" }],
   },
