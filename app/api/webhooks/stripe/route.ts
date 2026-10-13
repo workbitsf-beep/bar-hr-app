@@ -7,7 +7,7 @@ import {
 } from "@prisma/client";
 import type Stripe from "stripe";
 import { invalidateBillingStatusCache } from "@/lib/billing";
-import { fiscalLinesOf, prepareFiscalInvoice } from "@/lib/invoicing/issue";
+import { fiscalLinesOf, prepareFiscalInvoice, prepareWaitingFiscalInvoices } from "@/lib/invoicing/issue";
 import {
   saveRecipientFromCheckout,
   syncStripeBillingProfile,
@@ -311,8 +311,13 @@ export async function POST(req: Request) {
           break;
         }
 
-        // The SDI code or PEC asked at checkout, for the e-invoice.
+        // The SDI code or PEC asked at checkout, for the e-invoice. Stripe may
+        // have told of the payment first: an invoice left waiting for it is
+        // made now.
         await saveRecipientFromCheckout(metadataBarId, session);
+        await prepareWaitingFiscalInvoices(metadataBarId).catch((error) =>
+          console.error("[stripe-webhook] Waiting e-invoices not prepared.", { barId: metadataBarId, error })
+        );
 
         let subscriptionDetails = null;
 
