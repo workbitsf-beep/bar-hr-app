@@ -17,7 +17,7 @@ const FAR_APART_METERS = 100_000;
 
 export function checkSiteIndependence(input: {
   sites: Array<{ slot: Department; name: string; latitude: number | null; longitude: number | null }>;
-  members: Array<{ role: string; department: Department | null; helpsIn: Department[]; isDepartmentLead: boolean }>;
+  members: Array<{ role: string; department: Department | null; helpsIn: Department[]; managesDepartments: Department[] }>;
 }) {
   const { sites, members } = input;
   if (sites.length < 2) return { suspicious: false, reasons: [] as string[] };
@@ -29,7 +29,10 @@ export function checkSiteIndependence(input: {
       member.department && slots.has(member.department) && member.helpsIn.some((slot) => slot !== member.department && slots.has(slot))
   );
   const staffed = sites.filter((site) => members.some((member) => member.department === site.slot));
-  const ledEverywhere = sites.every((site) => members.some((member) => member.department === site.slot && member.isDepartmentLead));
+  // Someone in charge of that site alone, and of no other.
+  const ledEverywhere = sites.every((site) =>
+    members.some((member) => member.managesDepartments.length === 1 && member.managesDepartments[0] === site.slot)
+  );
 
   let farthest = 0;
   for (const a of sites) {

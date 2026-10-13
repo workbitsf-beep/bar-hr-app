@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { getSession } from "@/lib/auth";
-import { getActiveBarAccess, canManageDocuments } from "@/lib/permissions";
+import { getActiveBarAccess } from "@/lib/permissions";
+import { can } from "@/lib/staff-permissions";
+import { memberDepartmentOf } from "@/lib/staff-scope";
 import { prisma } from "@/lib/prisma";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { getDocumentMimeType } from "@/lib/documents";
@@ -161,13 +163,13 @@ export async function POST(request: Request) {
     return jsonError("Non autenticato.", 401);
   }
 
-  const { activeBar, role } = await getActiveBarAccess(session);
+  const { activeBar, staff } = await getActiveBarAccess(session);
 
   if (!activeBar?.id) {
     return jsonError("Nessuna attività selezionata.", 400);
   }
 
-  if (!canManageDocuments(role)) {
+  if (!can(staff, "documents")) {
     return jsonError("Permesso non sufficiente.", 403);
   }
 
@@ -206,6 +208,11 @@ export async function POST(request: Request) {
 
   if (!assignedToAll && !assignedToId) {
     return jsonError("Seleziona almeno un destinatario.");
+  }
+
+  // Staff over some sites send to their own people, never to everyone.
+  if (assignedToAll ? !can(staff, "documents", null) : !can(staff, "documents", await memberDepartmentOf(activeBar.id, assignedToId))) {
+    return jsonError("Puoi mandare documenti solo alle persone che segui.", 403);
   }
 
   try {

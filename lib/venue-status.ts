@@ -1,6 +1,8 @@
 import { Role } from "@prisma/client";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
+import { can, type StaffAccess } from "@/lib/staff-permissions";
+import { shiftScopeWhere, userScopeWhere } from "@/lib/staff-scope";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
 
 /**
@@ -24,24 +26,25 @@ function startOfRomeDay(now: Date) {
 export async function getVenueStatus({
   barId,
   userId,
-  role,
+  staff,
   shiftsEnabled,
 }: {
   barId: string;
   userId: string;
-  role: Role | string;
+  staff: StaffAccess;
   shiftsEnabled: boolean;
 }): Promise<VenueStatus> {
   const now = new Date();
   const dayStart = startOfRomeDay(now);
   // Last night's shift may still be running: yesterday's entries count too.
   const since = new Date(dayStart.getTime() - DAY_MS);
-  const runsTheVenue = role === Role.OWNER || role === Role.MANAGER || String(role) === "SUPER_ADMIN";
+  // Staff over some departments or sites count their own people only.
+  const runsTheVenue = can(staff, "shifts") || can(staff, "timelogs");
 
   if (runsTheVenue) {
     const [logs, bar, runningShifts] = await Promise.all([
       prisma.timeLog.findMany({
-        where: { barId, timestamp: { gte: since, lte: now } },
+        where: { barId, timestamp: { gte: since, lte: now }, user: userScopeWhere(staff, barId) },
         orderBy: { timestamp: "asc" },
         select: { userId: true, type: true },
       }),
@@ -53,7 +56,7 @@ export async function getVenueStatus({
         },
       }),
       prisma.shift.findMany({
-        where: { barId, isOnCall: false, startTime: { lte: now }, endTime: { gt: now } },
+        where: { barId, isOnCall: false, startTime: { lte: now }, endTime: { gt: now }, ...shiftScopeWhere(staff, barId) },
         select: { assignedToId: true, assignments: { select: { userId: true } } },
       }),
     ]);

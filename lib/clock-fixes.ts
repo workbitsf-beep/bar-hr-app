@@ -1,4 +1,4 @@
-import { ClockFixKind, ClockFixStatus, ClockType } from "@prisma/client";
+import { ClockFixKind, ClockFixStatus, ClockType, type Prisma } from "@prisma/client";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone, APP_TIME_ZONE } from "@/lib/time-zone";
@@ -261,9 +261,19 @@ export type ClockFixForReview = {
 };
 
 /** What waits for the owner's or a manager's approval in a venue. */
-export async function getClockFixesForReview(barId: string): Promise<ClockFixForReview[]> {
+/** `users`: limits to the people a scoped reviewer covers (lib/staff-scope). */
+export async function getClockFixesForReview(
+  barId: string,
+  users: Prisma.UserWhereInput = {},
+  exceptUserId?: string
+): Promise<ClockFixForReview[]> {
   const fixes = await prisma.clockFix.findMany({
-    where: { barId, status: ClockFixStatus.PENDING },
+    where: {
+      barId,
+      status: ClockFixStatus.PENDING,
+      user: users,
+      ...(exceptUserId ? { userId: { not: exceptUserId } } : {}),
+    },
     orderBy: { createdAt: "asc" },
     take: 30,
     select: {

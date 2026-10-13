@@ -575,8 +575,16 @@ model EmployeeBar {
   /// Pro only: where this person works, and where they can lend a hand.
   department       Department?
   helpsIn          Department[] @default([])
-  /// Runs the shifts, leave and swaps of their department.
+  /// Runs the shifts, leave and swaps of their department. Kept for history:
+  /// since 13 Oct 2026 a lead is a Responsabile of their department.
   isDepartmentLead Boolean      @default(false)
+  /// Responsabile / Amministrazione: what the owner lets them do, as keys
+  /// (shifts, requests, timelogs, notes, checklists, people, documents,
+  /// reports). Ignored for the owner and for employees.
+  permissions      String[]     @default([])
+  /// Where those permissions apply: departments (a restaurant's Sala) or
+  /// sites (a company's SEDE_2, SEDE_3); empty means the whole venue or company.
+  managesDepartments Department[] @default([])
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   bar              Bar          @relation(fields: [barId], references: [id], onDelete: Cascade)
 

@@ -1,7 +1,8 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
-import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { getActiveBarAccess } from "@/lib/permissions";
+import { can } from "@/lib/staff-permissions";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { cancelShiftClockReminders } from "@/lib/shift-clock-reminders";
 import { withBar } from "@/lib/withBar";
@@ -30,7 +31,7 @@ export const PATCH = withBar(
     const shiftId = params?.id;
     const access = await getActiveBarAccess(session as never);
 
-    if (!canManageOperations(access.role)) {
+    if (!can(access.staff, "shifts", null)) {
       return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
@@ -116,7 +117,7 @@ export const DELETE = withBar(
     const shiftId = params?.id;
     const access = await getActiveBarAccess(session as never);
 
-    if (!canManageOperations(access.role)) {
+    if (!can(access.staff, "shifts", null)) {
       return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 

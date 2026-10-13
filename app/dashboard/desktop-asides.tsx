@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { can, type StaffAccess } from "@/lib/staff-permissions";
+import { memberScopeWhere } from "@/lib/staff-scope";
 import { RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
@@ -218,13 +220,13 @@ export async function DocumentsAside({ barId, userId }: { barId: string; userId:
   );
 }
 
-export async function ReportAside({ barId, userId, role }: { barId: string; userId: string; role: Role }) {
+export async function ReportAside({ barId, userId, staff }: { barId: string; userId: string; staff: StaffAccess }) {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
-  const team = role === Role.OWNER || role === Role.AMMINISTRAZIONE;
+  const team = can(staff, "reports");
   const members = await prisma.employeeBar.findMany({
-    where: { barId, isActive: true, ...(team ? { role: { not: Role.OWNER } } : { userId }) },
+    where: { barId, isActive: true, ...(team ? { role: { not: Role.OWNER }, ...memberScopeWhere(staff) } : { userId }) },
     take: 40,
     select: { user: { select: { id: true, firstName: true, lastName: true } } },
   });

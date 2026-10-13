@@ -71,7 +71,7 @@ export default async function ConsoleBarPage({
             role: true,
             department: true,
             helpsIn: true,
-            isDepartmentLead: true,
+            managesDepartments: true,
             user: { select: { id: true, firstName: true, lastName: true, email: true, mustChangePwd: true } },
           },
         },

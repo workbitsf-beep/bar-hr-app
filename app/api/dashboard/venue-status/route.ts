@@ -8,7 +8,7 @@ export const GET = withBar(async (req, session): Promise<Response> => {
   const status = await getVenueStatus({
     barId: session.activeBarId,
     userId: session.user.id,
-    role: access.role,
+    staff: access.staff,
     shiftsEnabled: new URL(req.url).searchParams.get("shifts") === "1",
   });
 

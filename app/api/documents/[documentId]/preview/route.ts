@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { documentAssigneeDepartment } from "@/lib/staff-scope";
 import { renderSpreadsheetPreview, renderUnsupportedPreview, renderWordPreview } from "@/lib/document-preview";
 import { canViewDocument, getDocumentPreviewKind } from "@/lib/documents";
 import { getActiveBarAccess } from "@/lib/permissions";
@@ -29,7 +30,7 @@ export async function GET(
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { activeBar, role } = await getActiveBarAccess(session);
+  const { activeBar, staff } = await getActiveBarAccess(session);
   const { documentId } = await params;
 
   if (!activeBar?.id || !documentId) {
@@ -49,7 +50,10 @@ export async function GET(
     },
   });
 
-  if (!document || !canViewDocument(document, session.user.id, role)) {
+  if (
+    !document ||
+    !canViewDocument(document, session.user.id, staff, await documentAssigneeDepartment(activeBar.id, document))
+  ) {
     return new Response("Not found", { status: 404 });
   }
 

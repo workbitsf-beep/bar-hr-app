@@ -5,18 +5,25 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { ownerNeedsLegalAcceptance } from "@/lib/legal-documents";
 import type { SessionWithUser } from "@/lib/auth";
+import type { Department } from "@prisma/client";
+import type { StaffAccess } from "@/lib/staff-permissions";
 
 export type AccessibleBar = {
   id: string;
   name: string;
   role: Role;
   activityType: ActivityType;
+  /** Responsabile / Amministrazione: what they may do, and where (lib/staff-permissions). */
+  permissions: string[];
+  managesDepartments: Department[];
 };
 
 export type ActiveBarAccess = {
   activeBar: AccessibleBar | null;
   accessibleBars: AccessibleBar[];
   role: Role;
+  /** Role, permissions and scope together, for `can` in lib/staff-permissions. */
+  staff: StaffAccess;
 };
 
 function barNeedsSetup(input: {
@@ -78,6 +85,8 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
       },
       select: {
         role: true,
+        permissions: true,
+        managesDepartments: true,
         bar: {
           select: {
             id: true,
@@ -103,6 +112,8 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
       name: bar.name,
       role: Role.OWNER,
       activityType: bar.activityType,
+      permissions: [],
+      managesDepartments: [],
     });
   }
 
@@ -116,6 +127,8 @@ export const getAccessibleBarsForUser = cache(async function getAccessibleBarsFo
         name: membership.bar.name,
         role: derivedRole,
         activityType: membership.bar.activityType,
+        permissions: derivedRole === Role.OWNER ? [] : membership.permissions,
+        managesDepartments: derivedRole === Role.OWNER ? [] : membership.managesDepartments,
       });
     }
   }
@@ -134,10 +147,12 @@ export async function getActiveBarAccess(
     // unlike other roles, they never fall back to "first bar" automatically.
     const activeBar = accessibleBars.find((bar) => bar.id === session.activeBarId) ?? null;
 
+    const role = activeBar?.role ?? session.user.role;
     return {
       activeBar,
       accessibleBars,
-      role: activeBar?.role ?? session.user.role,
+      role,
+      staff: staffAccessOf(role, activeBar),
     };
   }
 
@@ -145,10 +160,20 @@ export async function getActiveBarAccess(
   const activeBar =
     accessibleBars.find((bar) => bar.id === session.activeBarId) ?? fallbackBar;
 
+  const role = activeBar?.role ?? session.user.role;
   return {
     activeBar,
     accessibleBars,
-    role: activeBar?.role ?? session.user.role,
+    role,
+    staff: staffAccessOf(role, activeBar),
+  };
+}
+
+function staffAccessOf(role: Role, bar: AccessibleBar | null): StaffAccess {
+  return {
+    role: String(role),
+    permissions: bar?.permissions ?? [],
+    managesDepartments: bar?.managesDepartments ?? [],
   };
 }
 

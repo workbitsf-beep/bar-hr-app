@@ -235,8 +235,8 @@ export type VenueDepartments = {
   /** How many sites the plan allows (3 with the extra, 6 on Pro); 0 for a venue. */
   siteLimit: number;
   customName: string | null;
-  /** The person looking: where they work and whether they lead it. */
-  mine: { department: Department | null; helpsIn: Department[]; isLead: boolean };
+  /** The person looking: where they work and where they help. */
+  mine: { department: Department | null; helpsIn: Department[] };
 };
 
 /** Departments of a venue as seen by one person. Cached per request. */
@@ -253,7 +253,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     sites: [],
     siteLimit: 0,
     customName: null,
-    mine: { department: null, helpsIn: [], isLead: false },
+    mine: { department: null, helpsIn: [] },
   };
 
   if (!barId) return off;
@@ -277,7 +277,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     }),
     prisma.employeeBar.findFirst({
       where: { barId, userId, isActive: true },
-      select: { department: true, helpsIn: true, isDepartmentLead: true },
+      select: { department: true, helpsIn: true },
     }),
   ]);
 
@@ -310,19 +310,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
     mine: {
       department: membership?.department ?? null,
       helpsIn: membership?.helpsIn ?? [],
-      isLead: Boolean(membership?.isDepartmentLead && membership.department),
     },
   };
 });
 
-/**
- * Who may manage the shifts of a department: the owner and managers always,
- * a department lead only their own.
- */
-export function canManageDepartment(
-  access: { role: Role | string; department: Department | null; isLead: boolean },
-  department: Department | null
-) {
-  if (access.role === Role.OWNER || access.role === Role.MANAGER || String(access.role) === "SUPER_ADMIN") return true;
-  return Boolean(access.isLead && access.department && access.department === department);
-}

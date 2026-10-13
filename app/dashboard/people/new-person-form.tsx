@@ -15,11 +15,17 @@ import { ActionForm } from "@/app/components/action-form";
 export function NewPersonForm({
   action,
   isCompany,
+  employeesOnly = false,
+  departments = [],
 }: {
   action: (formData: FormData) => Promise<unknown>;
   isCompany: boolean;
+  /** Staff with "Persone": they add employees, in the departments they cover. */
+  employeesOnly?: boolean;
+  departments?: Array<{ id: string; name: string }>;
 }) {
   const [role, setRole] = useState<string>(Role.EMPLOYEE);
+  const [department, setDepartment] = useState<string>(departments[0]?.id ?? "");
   const [showRate, setShowRate] = useState(false);
 
   const roles = [
@@ -44,7 +50,37 @@ export function NewPersonForm({
         <TextInput name="email" type="email" required />
       </FormField>
 
-      <div style={{ display: "grid", gap: 8 }}>
+      {employeesOnly && departments.length > 1 ? (
+        <div style={{ display: "grid", gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 820, color: "#334155" }}>{isCompany ? "Sede" : "Reparto"}</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {departments.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={department === option.id}
+                onClick={() => setDepartment(option.id)}
+                style={{
+                  minHeight: 38,
+                  padding: "0 13px",
+                  borderRadius: 999,
+                  border: department === option.id ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #e2e8f0",
+                  background: department === option.id ? "#f3e8ff" : "#ffffff",
+                  color: department === option.id ? "#4c1d95" : "#475569",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                {option.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {employeesOnly ? <input type="hidden" name="department" value={department} /> : null}
+
+      <div style={{ display: employeesOnly ? "none" : "grid", gap: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 820, color: "#334155" }}>Cosa fa qui</span>
         <input type="hidden" name="role" value={role} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
@@ -73,9 +109,14 @@ export function NewPersonForm({
             );
           })}
         </div>
+        {role === Role.MANAGER || role === Role.AMMINISTRAZIONE ? (
+          <span style={{ fontSize: 12, color: "#8a84a8" }}>
+            Parte con i permessi di base: li cambi dalla sua scheda nel Team.
+          </span>
+        ) : null}
       </div>
 
-      {showRate ? (
+      {employeesOnly ? null : showRate ? (
         <FormField label="Paga oraria">
           <TextInput name="hourlyRate" type="number" step="0.01" />
         </FormField>

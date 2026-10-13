@@ -9,6 +9,8 @@ import { getVenueDepartments, isSiteSlot, parseDepartment, SITE_SLOTS } from "@/
 import { getActiveBarAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
+import { can, isStaffRole } from "@/lib/staff-permissions";
+import { dropFromStaffScopes } from "@/lib/staff-scope";
 
 /**
  * Departments: the owner's settings, a person's department, and the switch
@@ -19,14 +21,14 @@ async function ownerOfProVenue() {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
 
-  const { activeBar, role } = await getActiveBarAccess(session);
+  const { activeBar, role, staff } = await getActiveBarAccess(session);
   if (!activeBar?.id) throw new Error("No active bar selected");
-  if (role !== Role.OWNER && role !== Role.MANAGER && String(role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
+  if (role !== Role.OWNER && !isStaffRole(String(role)) && String(role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
 
   const entitlements = await getVenueEntitlements(activeBar.id);
   if (!entitlements.departments) throw new RuleError("Reparti e sedi sono un extra del Base, e sono compresi nel Pro.");
 
-  return { barId: activeBar.id, role, entitlements, activityType: activeBar.activityType };
+  return { barId: activeBar.id, role, staff, entitlements, activityType: activeBar.activityType };
 }
 
 function refresh() {
@@ -57,6 +59,7 @@ export async function updateDepartmentSettingsAction(formData: FormData) {
           where: { barId, department: Department.CUSTOM },
           data: { department: null, isDepartmentLead: false },
         });
+        await dropFromStaffScopes(tx, barId, [Department.CUSTOM]);
         const helping = await tx.employeeBar.findMany({
           where: { barId, helpsIn: { has: Department.CUSTOM } },
           select: { id: true, helpsIn: true },
@@ -78,40 +81,37 @@ export async function updateDepartmentSettingsAction(formData: FormData) {
   }
 }
 
-/** Where a person works, where they can help, and whether they lead it. */
+/**
+ * Where a person works and where they can help. The owner, or staff with
+ * "Persone" moving their own employees between the departments they cover.
+ */
 export async function updateMemberDepartmentAction(formData: FormData) {
   try {
-    const { barId } = await ownerOfProVenue();
+    const { barId, staff } = await ownerOfProVenue();
     const membershipId = String(formData.get("membershipId") ?? "");
     const department = parseDepartment(formData.get("department"));
     const helpsIn = formData
       .getAll("helpsIn")
       .map((value) => parseDepartment(value))
       .filter((value): value is Department => Boolean(value) && value !== department);
-    const isLead = Boolean(department) && formData.get("isLead") === "on";
 
     const membership = await prisma.employeeBar.findFirst({
       where: { id: membershipId, barId, isActive: true },
-      select: { id: true, role: true },
+      select: { id: true, role: true, department: true },
     });
     if (!membership) throw new RuleError("Persona non trovata in questo locale.");
+    if (
+      isStaffRole(staff.role) &&
+      (membership.role !== Role.EMPLOYEE ||
+        !can(staff, "people", membership.department) ||
+        !can(staff, "people", department))
+    ) {
+      throw new RuleError("Puoi spostare solo i dipendenti che segui, tra i tuoi reparti.");
+    }
 
-    await prisma.$transaction(async (tx) => {
-      // One lead per department: naming a new one hands the role over.
-      if (isLead && department) {
-        await tx.employeeBar.updateMany({
-          where: { barId, department, isDepartmentLead: true, id: { not: membership.id } },
-          data: { isDepartmentLead: false },
-        });
-      }
-      await tx.employeeBar.update({
-        where: { id: membership.id },
-        data: {
-          department,
-          helpsIn: Array.from(new Set(helpsIn)),
-          isDepartmentLead: membership.role === Role.OWNER ? false : isLead,
-        },
-      });
+    await prisma.employeeBar.update({
+      where: { id: membership.id },
+      data: { department, helpsIn: Array.from(new Set(helpsIn)) },
     });
 
     refresh();
@@ -237,7 +237,7 @@ export async function toggleChecklistItemAction(formData: FormData) {
   try {
     const session = await getSession();
     if (!session) throw new Error("Unauthorized");
-    const { activeBar, role } = await getActiveBarAccess(session);
+    const { activeBar, staff } = await getActiveBarAccess(session);
     if (!activeBar?.id) throw new Error("No active bar selected");
 
     const checklistId = String(formData.get("checklistId") ?? "");
@@ -251,7 +251,7 @@ export async function toggleChecklistItemAction(formData: FormData) {
     if (!checklist || !checklist.items.includes(item)) throw new RuleError("Questa voce non c'è più.");
 
     const departments = await getVenueDepartments(activeBar.id, session.user.id);
-    const runsAll = role === Role.OWNER || role === Role.MANAGER || String(role) === "SUPER_ADMIN";
+    const runsAll = can(staff, "checklists", checklist.department);
     const worksThere =
       departments.mine.department === checklist.department || departments.mine.helpsIn.includes(checklist.department);
     if (!departments.enabled || (!runsAll && !worksThere)) throw new RuleError("Non lavori in questo reparto.");
@@ -358,6 +358,7 @@ export async function deleteSiteAction(formData: FormData) {
     await prisma.$transaction(async (tx) => {
       await tx.site.deleteMany({ where: { barId, slot } });
       await tx.employeeBar.updateMany({ where: { barId, department: slot }, data: { department: null, isDepartmentLead: false } });
+      await dropFromStaffScopes(tx, barId, [slot]);
       const helping = await tx.employeeBar.findMany({ where: { barId, helpsIn: { has: slot } }, select: { id: true, helpsIn: true } });
       for (const member of helping) {
         await tx.employeeBar.update({ where: { id: member.id }, data: { helpsIn: member.helpsIn.filter((entry) => entry !== slot) } });

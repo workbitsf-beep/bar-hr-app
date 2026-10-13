@@ -21,8 +21,8 @@ export const DEPARTMENT_WORDS: DepartmentWords = {
   many: "reparti",
   One: "Reparto",
   Many: "Reparti",
-  lead: "capo reparto",
-  Lead: "Capo reparto",
+  lead: "responsabile di reparto",
+  Lead: "Responsabile di reparto",
   inThe: "nel reparto",
   perOne: "per reparto",
 };

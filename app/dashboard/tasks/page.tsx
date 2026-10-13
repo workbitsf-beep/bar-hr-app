@@ -1,4 +1,5 @@
 import { Role } from "@prisma/client";
+import { can, hasWholeScope } from "@/lib/staff-permissions";
 import { prisma } from "@/lib/prisma";
 import { describeTaskRepeat } from "@/lib/task-recurrence";
 import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
@@ -31,7 +32,7 @@ import { Fragment } from "react";
 import { ActionForm } from "@/app/components/action-form";
 
 export default async function DashboardTasksPage() {
-  const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
+  const { session, role, staff, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
     return (
@@ -55,7 +56,8 @@ export default async function DashboardTasksPage() {
     );
   }
 
-  const canManage = role === Role.OWNER || role === Role.MANAGER;
+  // "Note e avvisi", as the owner chose (lib/staff-permissions).
+  const canManage = can(staff, "notes");
   const departments = await getVenueDepartments(activeBarId, session.user.id);
   const [tasks, members] = await Promise.all([
     prisma.task.findMany({
@@ -63,7 +65,7 @@ export default async function DashboardTasksPage() {
             barId: activeBarId,
             // Confirmed a day ago or more: in the archive, not on the page.
             NOT: confirmedTaskArchived(),
-            ...(role === Role.EMPLOYEE
+            ...(!canManage
               ? {
                   OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
                 }
@@ -172,7 +174,7 @@ export default async function DashboardTasksPage() {
         className="workbit-notes-panel"
         action={
           <div className="workbit-notes-actions">
-            {canManage && tasks.some((task) => task.status === "DONE") ? (
+            {canManage && hasWholeScope(staff) && tasks.some((task) => task.status === "DONE") ? (
               <ActionForm action={deleteAllCompletedTasksAction} success="Note completate eliminate." style={{ display: "contents" }}>
                 <button
                   type="submit"

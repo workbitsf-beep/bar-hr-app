@@ -9,6 +9,8 @@ import { getActiveBarAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
+import { can, isStaffRole } from "@/lib/staff-permissions";
+import { ensureMembersInScope, memberDepartmentOf } from "@/lib/staff-scope";
 import { closeClockInReminders, closeClockOutReminders } from "@/lib/timelog-reminders";
 
 /**
@@ -21,25 +23,33 @@ const HOUR = 60 * 60 * 1000;
 async function context() {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
-  const { activeBar, role } = await getActiveBarAccess(session);
+  const { activeBar, role, staff } = await getActiveBarAccess(session);
   if (!activeBar?.id) throw new Error("No active bar selected");
-  return { session, role, barId: activeBar.id };
+  return { session, role, staff, barId: activeBar.id };
 }
 
 function refresh() {
   for (const path of ["/dashboard", "/dashboard/timelogs", "/dashboard/export"]) revalidatePath(path);
 }
 
+/** The owner, and whoever holds "Timbrature" over this person. */
 async function reviewersOf(barId: string, exceptId: string) {
-  const bar = await prisma.bar.findUnique({
-    where: { id: barId },
-    select: {
-      ownerId: true,
-      memberships: { where: { isActive: true, role: { in: [Role.OWNER, Role.MANAGER] } }, select: { userId: true } },
-    },
-  });
+  const [bar, department] = await Promise.all([
+    prisma.bar.findUnique({
+      where: { id: barId },
+      select: {
+        ownerId: true,
+        memberships: {
+          where: { isActive: true },
+          select: { userId: true, role: true, permissions: true, managesDepartments: true },
+        },
+      },
+    }),
+    memberDepartmentOf(barId, exceptId),
+  ]);
   if (!bar) return [];
-  return Array.from(new Set([bar.ownerId, ...bar.memberships.map((member) => member.userId)])).filter(
+  const reviewers = bar.memberships.filter((member) => can(member, "timelogs", department));
+  return Array.from(new Set([bar.ownerId, ...reviewers.map((member) => member.userId)])).filter(
     (id) => id !== exceptId
   );
 }
@@ -132,13 +142,14 @@ export async function requestClockFixAction(formData: FormData) {
 
 async function reviewerContext() {
   const ctx = await context();
-  if (ctx.role !== Role.OWNER && ctx.role !== Role.MANAGER && String(ctx.role) !== "SUPER_ADMIN") {
+  if (!can(ctx.staff, "timelogs")) {
     throw new RuleError("Solo il titolare o un responsabile può approvarla.");
   }
   return ctx;
 }
 
-async function pendingFix(barId: string, id: string) {
+async function pendingFix(ctx: Awaited<ReturnType<typeof reviewerContext>>, id: string) {
+  const { barId } = ctx;
   const fix = await prisma.clockFix.findFirst({
     where: { id, barId, status: ClockFixStatus.PENDING },
     select: {
@@ -153,14 +164,19 @@ async function pendingFix(barId: string, id: string) {
     },
   });
   if (!fix) throw new RuleError("Questa richiesta è già stata gestita.");
+  if (isStaffRole(ctx.staff.role) && fix.userId === ctx.session.user.id) {
+    throw new RuleError("Le tue ore le corregge il titolare.");
+  }
+  await ensureMembersInScope(ctx.staff, "timelogs", barId, [fix.userId]);
   return fix;
 }
 
 /** The owner: stamps the entry or exit, at the time asked for or at another. */
 export async function approveClockFixAction(formData: FormData) {
   try {
-    const { session, barId } = await reviewerContext();
-    const fix = await pendingFix(barId, String(formData.get("id") ?? ""));
+    const ctx = await reviewerContext();
+    const { session, barId } = ctx;
+    const fix = await pendingFix(ctx, String(formData.get("id") ?? ""));
     const now = new Date();
     const note =
       fix.kind === ClockFixKind.MISSED_OUT ? "Uscita dimenticata, approvata" : "Entrata dimenticata, approvata";
@@ -290,8 +306,9 @@ export async function approveClockFixAction(formData: FormData) {
 /** The owner: not approved. The stamp stays to be sorted out by hand. */
 export async function rejectClockFixAction(formData: FormData) {
   try {
-    const { session, barId } = await reviewerContext();
-    const fix = await pendingFix(barId, String(formData.get("id") ?? ""));
+    const ctx = await reviewerContext();
+    const { session, barId } = ctx;
+    const fix = await pendingFix(ctx, String(formData.get("id") ?? ""));
     const { count } = await prisma.clockFix.updateMany({
       where: { id: fix.id, status: ClockFixStatus.PENDING },
       data: { status: ClockFixStatus.REJECTED, reviewedById: session.user.id, reviewedAt: new Date() },

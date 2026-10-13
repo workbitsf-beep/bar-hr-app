@@ -49,12 +49,12 @@ const documentAccept =
 const COMPRESS_ABOVE_BYTES = 1_200_000;
 const MAX_IMAGE_EDGE = 2200;
 
-function createDraft(): DocumentDraft {
+function createDraft(toAll = true): DocumentDraft {
   return {
     id: crypto.randomUUID(),
     title: "",
     description: "",
-    assignedToAll: true,
+    assignedToAll: toAll,
     assignedToIds: [],
     file: null,
     originalSize: null,
@@ -140,9 +140,16 @@ function isDocumentDraftValid(draft: DocumentDraft) {
   );
 }
 
-export function DocumentComposeForm({ recipients }: { recipients: RecipientOption[] }) {
+/** `canSendToAll`: false for staff over some sites, who send to their people only. */
+export function DocumentComposeForm({
+  recipients,
+  canSendToAll = true,
+}: {
+  recipients: RecipientOption[];
+  canSendToAll?: boolean;
+}) {
   const router = useRouter();
-  const [draft, setDraft] = useState<DocumentDraft>(createDraft());
+  const [draft, setDraft] = useState<DocumentDraft>(createDraft(canSendToAll));
   const [queued, setQueued] = useState<DocumentDraft[]>([]);
   const [isPending, startTransition] = useTransition();
   const [preparing, setPreparing] = useState(false);
@@ -193,7 +200,7 @@ export function DocumentComposeForm({ recipients }: { recipients: RecipientOptio
     }
 
     setQueued((current) => current.concat(draft));
-    setDraft(createDraft());
+    setDraft(createDraft(canSendToAll));
     setShowNote(false);
   }
 
@@ -240,7 +247,7 @@ export function DocumentComposeForm({ recipients }: { recipients: RecipientOptio
         }
 
         setQueued([]);
-        setDraft(createDraft());
+        setDraft(createDraft(canSendToAll));
         setShowNote(false);
         setMessage(items.length === 1 ? "Documento caricato." : "Documenti caricati.");
         router.refresh();
@@ -582,7 +589,9 @@ export function DocumentComposeForm({ recipients }: { recipients: RecipientOptio
               {[
                 { all: true, label: "Tutto il team" },
                 { all: false, label: "Una persona" },
-              ].map((option) => (
+              ]
+                .filter((option) => canSendToAll || !option.all)
+                .map((option) => (
                 <button
                   key={option.label}
                   type="button"

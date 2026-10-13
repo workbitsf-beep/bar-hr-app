@@ -37,6 +37,17 @@ import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { closeUserAccount } from "@/lib/account-retirement";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
+import { syncUserRole } from "@/lib/sync-user-role";
+import { can, DEFAULT_PERMISSIONS, isStaffRole, type StaffAccess } from "@/lib/staff-permissions";
+import {
+  departmentWithin,
+  dropFromStaffScopes,
+  ensureCan,
+  ensureMembersInScope,
+  ensureShiftManager,
+  memberDepartmentOf,
+  shiftScopeWhere,
+} from "@/lib/staff-scope";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { normalizeRoundingStep } from "@/lib/rounding";
 import { buildShiftPresets } from "@/lib/shift-presets";
@@ -56,10 +67,7 @@ import {
   type TaskRepeat,
 } from "@/lib/task-recurrence";
 import {
-  canManageOperations,
   canManagePeople,
-  canReviewOperationalRequests,
-  canManageDocuments,
   canManageTraining,
   getActiveBarAccess,
   getAccessibleBarsForUser,
@@ -104,6 +112,9 @@ type NotificationUser = {
   firstName: string;
   lastName: string;
   role: Role;
+  permissions?: string[];
+  managesDepartments?: Department[];
+  department?: Department | null;
 };
 
 type BarNotificationContext = {
@@ -154,6 +165,15 @@ function excludeActorFromUsers<T extends { id: string }>(users: T[], actorId: st
   return users.filter((user) => user.id !== actorId);
 }
 
+/**
+ * Who reviews this person's requests: the owner, and whoever holds
+ * "Richieste" over the whole venue or over their department or site.
+ */
+function requestReviewers(users: NotificationUser[], employeeId: string) {
+  const department = users.find((user) => user.id === employeeId)?.department ?? null;
+  return users.filter((user) => user.id !== employeeId && can(user, "requests", department));
+}
+
 async function getBarNotificationContext(
   barId: string
 ): Promise<BarNotificationContext | null> {
@@ -175,6 +195,9 @@ async function getBarNotificationContext(
         },
         select: {
           role: true,
+          permissions: true,
+          managesDepartments: true,
+          department: true,
           user: {
             select: {
               id: true,
@@ -208,6 +231,9 @@ async function getBarNotificationContext(
       firstName: membership.user.firstName,
       lastName: membership.user.lastName,
       role: membership.role,
+      permissions: membership.permissions,
+      managesDepartments: membership.managesDepartments,
+      department: membership.department,
     })),
   ]);
 
@@ -371,81 +397,9 @@ function parseRole(value: FormDataEntryValue | null): Role {
   return Role.EMPLOYEE;
 }
 
-async function syncUserRole(tx: Prisma.TransactionClient, userId: string) {
-  const currentUser = await tx.user.findUnique({
-    where: { id: userId },
-    select: {
-      role: true,
-    },
-  });
-
-  if (!currentUser || currentUser.role === Role.SUPER_ADMIN) {
-    return;
-  }
-
-  const [
-    primaryOwnedBars,
-    ownerMemberships,
-    managerMemberships,
-    administrationMemberships,
-    employeeMemberships,
-  ] =
-    await Promise.all([
-      tx.bar.count({
-        where: {
-          ownerId: userId,
-        },
-      }),
-      tx.employeeBar.count({
-        where: {
-          userId,
-          isActive: true,
-          role: Role.OWNER,
-        },
-      }),
-      tx.employeeBar.count({
-        where: {
-          userId,
-          isActive: true,
-          role: Role.MANAGER,
-        },
-      }),
-      tx.employeeBar.count({
-        where: {
-          userId,
-          isActive: true,
-          role: Role.AMMINISTRAZIONE,
-        },
-      }),
-      tx.employeeBar.count({
-        where: {
-          userId,
-          isActive: true,
-          role: Role.EMPLOYEE,
-        },
-      }),
-    ]);
-
-  let nextRole: Role = currentUser.role;
-
-  if (primaryOwnedBars > 0 || ownerMemberships > 0) {
-    nextRole = Role.OWNER;
-  } else if (managerMemberships > 0) {
-    nextRole = Role.MANAGER;
-  } else if (administrationMemberships > 0) {
-    nextRole = Role.AMMINISTRAZIONE;
-  } else if (employeeMemberships > 0) {
-    nextRole = Role.EMPLOYEE;
-  }
-
-  if (nextRole !== currentUser.role) {
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        role: nextRole,
-      },
-    });
-  }
+/** A new responsabile or amministrazione starts from the usual permissions. */
+function defaultPermissionsFor(role: Role): string[] {
+  return role === Role.MANAGER || role === Role.AMMINISTRAZIONE ? DEFAULT_PERMISSIONS[role] : [];
 }
 
 function parseRequestStatus(value: FormDataEntryValue | null): RequestStatus {
@@ -807,34 +761,6 @@ function parseBoardDrafts(formData: FormData, canPin: boolean): ParsedBoardDraft
     .filter((entry) => entry.content.length > 0);
 }
 
-function ensureOperationRole(role: Role) {
-  if (!canManageOperations(role)) {
-    throw new Error("Unauthorized");
-  }
-}
-
-/**
- * Shifts: the owner and managers manage them all. On a Pro venue a
- * department lead manages the shifts of their own department, and only those.
- */
-async function ensureShiftManager(
-  role: Role,
-  barId: string,
-  userId: string,
-  department: Department | null | undefined
-) {
-  if (canManageOperations(role)) {
-    return;
-  }
-
-  const departments = await getVenueDepartments(barId, userId);
-
-  if (departments.enabled && departments.mine.isLead && department && departments.mine.department === department) {
-    return;
-  }
-
-  throw new Error("Unauthorized");
-}
 
 /** A shift's department, or - for one made without - its first person's. */
 async function shiftDepartmentOf(
@@ -855,12 +781,6 @@ async function shiftDepartmentOf(
 
 function ensureTrainingRole(role: Role) {
   if (!canManageTraining(role)) {
-    throw new Error("Unauthorized");
-  }
-}
-
-function ensureDocumentRole(role: Role) {
-  if (!canManageDocuments(role)) {
     throw new Error("Unauthorized");
   }
 }
@@ -933,7 +853,7 @@ async function getActionContext() {
     throw new Error("Unauthorized");
   }
 
-  const { activeBar, role } = await getActiveBarAccess(session);
+  const { activeBar, role, staff } = await getActiveBarAccess(session);
 
   if (activeBar?.id && String(role) !== "SUPER_ADMIN") {
     const hasBillingAccess = await canAccessBillingBar(activeBar.id);
@@ -946,6 +866,7 @@ async function getActionContext() {
   return {
     session,
     role,
+    staff,
     activeBarId: activeBar?.id ?? null,
     activeBarActivityType: activeBar?.activityType ?? null,
   };
@@ -2024,6 +1945,7 @@ async function updateVenueDetailsBySuperAdmin(formData: FormData) {
         data: { helpsIn: member.helpsIn.filter((entry) => !stale.includes(entry)) },
       });
     }
+    await dropFromStaffScopes(tx, barId, stale);
     await tx.shift.updateMany({
       where: { barId, department: { in: stale }, startTime: { gte: startOfToday } },
       data: { department: null },
@@ -2386,8 +2308,8 @@ export async function closeOwnAccountAction(formData: FormData) {
 }
 
 export async function confirmVisibleShiftsAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "shifts");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2405,6 +2327,7 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
       barId: activeBarId,
       confirmedAt: null,
       isOnCall: false,
+      ...shiftScopeWhere(staff, activeBarId),
       startTime: {
         gte: rangeStart,
         lte: rangeEnd,
@@ -2447,7 +2370,7 @@ export async function confirmVisibleShiftsAction(formData: FormData) {
 }
 
 async function runCreateTask(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2455,7 +2378,7 @@ async function runCreateTask(formData: FormData) {
 
   const description = String(formData.get("description") ?? "").trim();
   const dueDate = parseTaskDueDate(String(formData.get("dueDate") ?? ""));
-  const canManage = canManageOperations(role);
+  const canManage = can(staff, "notes");
   const taskDrafts = expandAudienceDrafts(
     parseTaskDrafts(formData).map((taskDraft) =>
       canManage
@@ -2496,7 +2419,7 @@ async function runCreateTask(formData: FormData) {
     data: taskDrafts.map((taskDraft) => ({
       title: taskDraft.title,
       description: description || null,
-      department: departmentsOn ? taskDraft.department ?? null : null,
+      department: departmentsOn ? departmentWithin(staff, taskDraft.department) : null,
       dueDate,
       assignedToAll: taskDraft.assignedToAll,
       assignedToId: taskDraft.assignedToAll ? null : taskDraft.assignedToId || null,
@@ -2697,8 +2620,8 @@ async function completeOneTask({
 }
 
 export async function deleteCompletedTaskAction(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "notes", null);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2742,7 +2665,7 @@ export async function deleteCompletedTaskAction(formData: FormData) {
 }
 
 export async function deleteTaskAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2769,7 +2692,7 @@ export async function deleteTaskAction(formData: FormData) {
     throw new Error("Task not found");
   }
 
-  if (tasks.some((task) => task.createdById !== session.user.id) && !canManageOperations(role)) {
+  if (tasks.some((task) => task.createdById !== session.user.id) && !can(staff, "notes")) {
     throw new Error("Unauthorized");
   }
 
@@ -2783,8 +2706,8 @@ export async function deleteTaskAction(formData: FormData) {
 }
 
 export async function deleteAllCompletedTasksAction() {
-  const { role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "notes", null);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -2804,7 +2727,7 @@ export async function deleteAllCompletedTasksAction() {
 
 export async function createShiftAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -2822,7 +2745,7 @@ export async function createShiftAction(formData: FormData) {
     const requestedDepartment = parseDepartment(formData.get("department"));
     const department =
       requestedDepartment && (await getVenueEntitlements(activeBarId)).departments ? requestedDepartment : null;
-    await ensureShiftManager(role, activeBarId, session.user.id, department);
+    await ensureShiftManager(staff, activeBarId, department, employeeIds);
 
     if (employeeIds.length === 0) {
       throw new RuleError("Scegli almeno una persona per questo turno");
@@ -2879,7 +2802,7 @@ export async function createShiftAction(formData: FormData) {
 
 export async function updateShiftAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -2936,9 +2859,8 @@ export async function updateShiftAction(formData: FormData) {
       throw new RuleError("Questo turno non esiste più");
     }
 
-    if (!canManageOperations(role)) {
-      await ensureShiftManager(role, activeBarId, session.user.id, await shiftDepartmentOf(activeBarId, existingShift));
-    }
+    await ensureShiftManager(staff, activeBarId, await shiftDepartmentOf(activeBarId, existingShift));
+    await ensureMembersInScope(staff, "shifts", activeBarId, employeeIds);
 
     ensureShiftCanStillBeChanged(existingShift.startTime);
 
@@ -3082,7 +3004,7 @@ export async function confirmShiftAction(formData: FormData) {
 
     if (notificationContext) {
       const recipients = excludeActorFromUsers(
-        notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
+        requestReviewers(notificationContext.users, session.user.id),
         session.user.id
       );
 
@@ -3106,7 +3028,7 @@ export async function confirmShiftAction(formData: FormData) {
 
 export async function deleteShiftAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -3139,13 +3061,10 @@ export async function deleteShiftAction(formData: FormData) {
       },
     });
 
-    if (!canManageOperations(role)) {
-      await ensureShiftManager(
-        role,
-        activeBarId,
-        session.user.id,
-        existingShift ? await shiftDepartmentOf(activeBarId, existingShift) : null
-      );
+    if (existingShift) {
+      await ensureShiftManager(staff, activeBarId, await shiftDepartmentOf(activeBarId, existingShift));
+    } else {
+      ensureCan(staff, "shifts");
     }
 
     if (!existingShift) {
@@ -3194,13 +3113,13 @@ export async function deleteShiftAction(formData: FormData) {
 }
 
 async function runCreateBoardNote(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
   }
 
-  const noteEntries = expandAudienceDrafts(parseBoardDrafts(formData, canManageOperations(role)));
+  const noteEntries = expandAudienceDrafts(parseBoardDrafts(formData, can(staff, "notes")));
   const activityDate = parseOptionalDateOnly(formData.get("activityDate"));
 
   if (noteEntries.length === 0) {
@@ -3301,14 +3220,14 @@ export async function createBoardNoteAction(formData: FormData) {
 }
 
 async function runUpdateBoardNote(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
   }
 
   const noteId = String(formData.get("noteId") ?? "").trim();
-  const canManage = canManageOperations(role);
+  const canManage = can(staff, "notes");
   const activityDate = parseOptionalDateOnly(formData.get("activityDate"));
   const noteEntries = parseBoardDrafts(formData, canManage).map((entry) =>
     canManage
@@ -3407,8 +3326,8 @@ export async function updateBoardNoteAction(formData: FormData) {
 }
 
 export async function deleteAllBoardNotesAction() {
-  const { role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "notes", null);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3578,7 +3497,7 @@ async function runCreateAvailability(formData: FormData) {
 
   if (notificationContext) {
     const recipients = excludeActorFromUsers(
-      notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
+      requestReviewers(notificationContext.users, session.user.id),
       session.user.id
     );
 
@@ -3618,8 +3537,8 @@ export async function createAvailabilityAction(formData: FormData) {
 }
 
 async function runCreateCalendarClosure(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "shifts", null);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3694,8 +3613,8 @@ export async function createCalendarClosureAction(formData: FormData) {
 }
 
 async function runUpdateCalendarClosure(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "shifts", null);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -3780,8 +3699,8 @@ export async function updateCalendarClosureAction(formData: FormData) {
 }
 
 async function runDeleteCalendarClosure(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "shifts", null);
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4002,8 +3921,8 @@ export async function deleteCourseAction(formData: FormData) {
 }
 
 export async function createDocumentAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureDocumentRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "documents");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4085,8 +4004,8 @@ export async function createDocumentAction(formData: FormData) {
 }
 
 export async function toggleDocumentActiveAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureDocumentRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "documents");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4134,7 +4053,7 @@ export async function toggleDocumentActiveAction(formData: FormData) {
 }
 
 export async function deleteDocumentAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4161,7 +4080,7 @@ export async function deleteDocumentAction(formData: FormData) {
     throw new Error("Document not found");
   }
 
-  if (document.createdById !== session.user.id && !canManageDocuments(role)) {
+  if (document.createdById !== session.user.id && !can(staff, "documents")) {
     throw new Error("Not authorized");
   }
 
@@ -4256,7 +4175,7 @@ export async function markShoppingListItemsOrderedAction(formData: FormData) {
 }
 
 export async function deleteRequestAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4283,7 +4202,10 @@ export async function deleteRequestAction(formData: FormData) {
     throw new Error("Request not found");
   }
 
-  if (request.employeeId !== session.user.id && !canReviewOperationalRequests(role)) {
+  if (
+    request.employeeId !== session.user.id &&
+    !can(staff, "requests", await memberDepartmentOf(activeBarId, request.employeeId))
+  ) {
     throw new Error("Not authorized");
   }
 
@@ -4297,7 +4219,7 @@ export async function deleteRequestAction(formData: FormData) {
 }
 
 export async function deleteAvailabilityAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4324,7 +4246,10 @@ export async function deleteAvailabilityAction(formData: FormData) {
     throw new Error("Availability not found");
   }
 
-  if (availability.userId !== session.user.id && !canReviewOperationalRequests(role)) {
+  if (
+    availability.userId !== session.user.id &&
+    !can(staff, "requests", await memberDepartmentOf(activeBarId, availability.userId))
+  ) {
     throw new Error("Not authorized");
   }
 
@@ -4338,8 +4263,8 @@ export async function deleteAvailabilityAction(formData: FormData) {
 }
 
 async function runCreateEmployee(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
-  ensureOwnerRole(role);
+  const { staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "people");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4351,11 +4276,20 @@ async function runCreateEmployee(formData: FormData) {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const userRole = parseRole(formData.get("role"));
-  const hourlyRate = parseOptionalNumber(formData.get("hourlyRate"));
+  // Pay is the owner's to set.
+  const hourlyRate = isStaffRole(staff.role) ? null : parseOptionalNumber(formData.get("hourlyRate"));
 
   if (!email || !firstName || !lastName) {
     throw new Error("Missing employee fields");
   }
+
+  // Naming a responsabile stays with the owner; staff with "Persone" add
+  // employees, in their own department or site.
+  const isOwner = !isStaffRole(staff.role);
+  if (!isOwner && userRole !== Role.EMPLOYEE) {
+    throw new RuleError("Solo il titolare può nominare un responsabile.");
+  }
+  const staffScope = isOwner ? null : departmentWithin(staff, parseDepartment(formData.get("department")));
 
   const [bar, existingUser] = await Promise.all([
     prisma.bar.findUnique({
@@ -4437,6 +4371,9 @@ async function runCreateEmployee(formData: FormData) {
         role: userRole,
         isActive: true,
         endedAt: null,
+        permissions: defaultPermissionsFor(userRole),
+        managesDepartments: [],
+        ...(staffScope ? { department: staffScope } : {}),
         hourlyRate:
           hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
       },
@@ -4445,6 +4382,8 @@ async function runCreateEmployee(formData: FormData) {
         barId: activeBarId,
         role: userRole,
         isActive: true,
+        permissions: defaultPermissionsFor(userRole),
+        department: staffScope,
         hourlyRate:
           hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
       },
@@ -4491,8 +4430,8 @@ export async function createEmployeeAction(formData: FormData) {
 }
 
 export async function removeEmployeeAction(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
-  ensureOwnerRole(role);
+  const { staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "people");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -4516,6 +4455,7 @@ export async function removeEmployeeAction(formData: FormData) {
       id: true,
       userId: true,
       role: true,
+      department: true,
     },
   });
 
@@ -4525,6 +4465,10 @@ export async function removeEmployeeAction(formData: FormData) {
 
   if (membership.role === Role.OWNER) {
     throw new Error("Owner cannot be removed");
+  }
+
+  if (isStaffRole(staff.role) && (membership.role !== Role.EMPLOYEE || !can(staff, "people", membership.department))) {
+    throw new RuleError("Puoi togliere solo i dipendenti che segui.");
   }
 
   await prisma.employeeBar.update({
@@ -4620,6 +4564,8 @@ async function createEmployeeBySuperAdmin(formData: FormData) {
         role: userRole,
         isActive: true,
         endedAt: null,
+        permissions: defaultPermissionsFor(userRole),
+        managesDepartments: [],
         hourlyRate: hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
       },
       create: {
@@ -4627,6 +4573,7 @@ async function createEmployeeBySuperAdmin(formData: FormData) {
         barId,
         role: userRole,
         isActive: true,
+        permissions: defaultPermissionsFor(userRole),
         hourlyRate: hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
       },
     });
@@ -4750,8 +4697,8 @@ export async function promoteToSuperAdminAction(formData: FormData) {
  * the calendar the third or fourth time the same two times get typed in.
  */
 export async function addStandardShiftPresetAction(formData: FormData) {
-  const { role, activeBarId } = await getActionContext();
-  ensureOwnerRole(role);
+  const { staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "shifts");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -5079,8 +5026,8 @@ async function deleteStaleAutoClockOut(userId: string, barId: string, sessionSta
  * nobody's hours change quietly.
  */
 export async function deleteTimeLogPairAction(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureOwnerRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "timelogs");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -5088,6 +5035,11 @@ export async function deleteTimeLogPairAction(formData: FormData) {
 
   const userId = String(formData.get("userId") ?? "").trim();
   const logIds = normalizeIds(String(formData.get("logIds") ?? "").split(","));
+
+  if (isStaffRole(staff.role) && userId === session.user.id) {
+    throw new RuleError("Le tue ore le corregge il titolare.");
+  }
+  await ensureMembersInScope(staff, "timelogs", activeBarId, userId ? [userId] : []);
 
   if (!userId || logIds.length === 0) {
     throw new Error("Missing time log data");
@@ -5141,8 +5093,8 @@ export async function deleteTimeLogPairAction(formData: FormData) {
 }
 
 async function runCreateManualTimeLog(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureOwnerRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "timelogs");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -5157,6 +5109,11 @@ async function runCreateManualTimeLog(formData: FormData) {
   const longitude = parseOptionalNumber(formData.get("longitude"));
   const note = String(formData.get("note") ?? "").trim();
   const isCompleteShift = Boolean(clockInRaw || clockOutRaw);
+
+  if (isStaffRole(staff.role) && userId === session.user.id) {
+    throw new RuleError("Le tue ore le corregge il titolare.");
+  }
+  await ensureMembersInScope(staff, "timelogs", activeBarId, userId ? [userId] : []);
 
   if (!userId) {
     throw new Error("Missing time log data");
@@ -5390,7 +5347,7 @@ async function runCreateTimeOffRequest(formData: FormData) {
 
   if (notificationContext && !isOwnerOvertimeRequest) {
     const ownerRecipients = excludeActorFromUsers(
-      notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
+      requestReviewers(notificationContext.users, session.user.id),
       session.user.id
     );
 
@@ -5521,7 +5478,7 @@ async function runCreateShiftChangeRequest(formData: FormData) {
   if (notificationContext) {
     const recipients = excludeActorFromUsers(
       dedupeUsers([
-        ...notificationContext.users.filter((user) => canReviewOperationalRequests(user.role)),
+        ...requestReviewers(notificationContext.users, session.user.id),
         notificationContext.users.find((user) => user.id === swapWithUserId),
       ]),
       session.user.id
@@ -5560,7 +5517,7 @@ export async function createShiftChangeRequestAction(formData: FormData) {
 }
 
 async function runReviewRequest(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
+  const { session, staff, activeBarId } = await getActionContext();
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -5635,7 +5592,7 @@ async function runReviewRequest(formData: FormData) {
 
   if (request.type === RequestType.SHIFT_CHANGE) {
     const isPeerReviewer = request.swapWithUserId === session.user.id;
-    const isOwnerReviewer = canReviewOperationalRequests(role);
+    const isOwnerReviewer = can(staff, "requests", await memberDepartmentOf(activeBarId, request.employeeId));
 
     if (!isPeerReviewer && !isOwnerReviewer) {
       throw new Error("Unauthorized");
@@ -5741,7 +5698,7 @@ async function runReviewRequest(formData: FormData) {
       }
     }
   } else {
-    const isOwnerReviewer = canReviewOperationalRequests(role);
+    const isOwnerReviewer = can(staff, "requests", await memberDepartmentOf(activeBarId, request.employeeId));
 
     if (!isOwnerReviewer) {
       throw new Error("Unauthorized");
@@ -5842,8 +5799,8 @@ function sameTimeOnDay(source: Date, dayKey: string) {
  */
 export async function moveShiftMemberAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-    ensureOperationRole(role);
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureCan(staff, "shifts");
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -5868,6 +5825,7 @@ export async function moveShiftMemberAction(formData: FormData) {
         endTime: true,
         isOnCall: true,
         confirmedAt: true,
+        department: true,
         assignments: { select: { userId: true } },
       },
     });
@@ -5881,6 +5839,9 @@ export async function moveShiftMemberAction(formData: FormData) {
     if (!memberIds.includes(fromMemberId)) {
       throw new RuleError("Questa persona non è più in quel turno");
     }
+
+    await ensureShiftManager(staff, activeBarId, await shiftDepartmentOf(activeBarId, shift));
+    await ensureMembersInScope(staff, "shifts", activeBarId, [toMemberId]);
 
     ensureShiftCanStillBeChanged(shift.startTime);
 
@@ -5965,8 +5926,8 @@ export async function moveShiftMemberAction(formData: FormData) {
  */
 export async function copyPreviousWeekShiftsAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
-    ensureOperationRole(role);
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureCan(staff, "shifts");
 
     if (!activeBarId) {
       throw new Error("No active bar selected");
@@ -5986,7 +5947,7 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
 
     const [sources, activeMembers] = await Promise.all([
       prisma.shift.findMany({
-        where: { barId: activeBarId, startTime: { gte: sourceStart, lt: sourceEnd } },
+        where: { barId: activeBarId, startTime: { gte: sourceStart, lt: sourceEnd }, ...shiftScopeWhere(staff, activeBarId) },
         orderBy: { startTime: "asc" },
         select: {
           title: true,
@@ -6063,8 +6024,8 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
  * request itself is decided separately, with its own button.
  */
 async function runCoverRequestShifts(formData: FormData) {
-  const { session, role, activeBarId } = await getActionContext();
-  ensureOperationRole(role);
+  const { session, staff, activeBarId } = await getActionContext();
+  ensureCan(staff, "shifts");
 
   if (!activeBarId) {
     throw new Error("No active bar selected");
@@ -6083,6 +6044,7 @@ async function runCoverRequestShifts(formData: FormData) {
   }
 
   await ensureUsersBelongToBar(activeBarId, [coverUserId]);
+  await ensureMembersInScope(staff, "shifts", activeBarId, [request.employeeId, coverUserId]);
 
   const fromKey = toDateInputValueInTimeZone(request.startsAt);
   const toKey = toDateInputValueInTimeZone(request.endsAt ?? request.startsAt);
@@ -6174,7 +6136,7 @@ async function loadShiftForToday(input: {
   barId: string;
   shiftId: string;
   userId: string;
-  role: Role;
+  staff: StaffAccess;
   actorId: string;
 }) {
   const shift = await prisma.shift.findFirst({
@@ -6199,9 +6161,7 @@ async function loadShiftForToday(input: {
   if (!shift.assignments.some((assignment) => assignment.userId === input.userId)) {
     throw new RuleError("Questa persona non è più in questo turno");
   }
-  if (!canManageOperations(input.role)) {
-    await ensureShiftManager(input.role, input.barId, input.actorId, await shiftDepartmentOf(input.barId, shift));
-  }
+  await ensureShiftManager(input.staff, input.barId, await shiftDepartmentOf(input.barId, shift));
   ensureShiftCanStillBeChanged(shift.startTime);
   return shift;
 }
@@ -6220,7 +6180,7 @@ async function tellAboutToday(barId: string, actorId: string, userId: string, ti
 /** Late, or leaving early: the person's shift today at another time. */
 export async function changeTodayShiftAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
     if (!activeBarId) throw new Error("No active bar selected");
     await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
@@ -6229,7 +6189,7 @@ export async function changeTodayShiftAction(formData: FormData) {
       barId: activeBarId,
       shiftId: String(formData.get("shiftId") ?? "").trim(),
       userId,
-      role,
+      staff,
       actorId: session.user.id,
     });
     const { startTime, endTime } = todayRange(
@@ -6298,7 +6258,7 @@ export async function changeTodayShiftAction(formData: FormData) {
 /** Cannot come: the person is taken off today's shift (and the shift goes if they were alone on it). */
 export async function removeFromTodayShiftAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
     if (!activeBarId) throw new Error("No active bar selected");
     await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
@@ -6307,7 +6267,7 @@ export async function removeFromTodayShiftAction(formData: FormData) {
       barId: activeBarId,
       shiftId: String(formData.get("shiftId") ?? "").trim(),
       userId,
-      role,
+      staff,
       actorId: session.user.id,
     });
 
@@ -6346,7 +6306,7 @@ export async function removeFromTodayShiftAction(formData: FormData) {
 /** Someone to cover, now: a shift for today, published straight away. */
 export async function addTodayShiftAction(formData: FormData) {
   try {
-    const { session, role, activeBarId, activeBarActivityType } = await getActionContext();
+    const { session, staff, activeBarId, activeBarActivityType } = await getActionContext();
     if (!activeBarId) throw new Error("No active bar selected");
     await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
 
@@ -6355,7 +6315,7 @@ export async function addTodayShiftAction(formData: FormData) {
     const requestedDepartment = parseDepartment(formData.get("department"));
     const department =
       requestedDepartment && (await getVenueEntitlements(activeBarId)).departments ? requestedDepartment : null;
-    await ensureShiftManager(role, activeBarId, session.user.id, department);
+    await ensureShiftManager(staff, activeBarId, department, [userId]);
 
     const { startTime, endTime } = todayRange(
       toDateInputValueInTimeZone(new Date()),

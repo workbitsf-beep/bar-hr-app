@@ -1,6 +1,7 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { getActiveBarAccess } from "@/lib/permissions";
+import { can } from "@/lib/staff-permissions";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { withBar } from "@/lib/withBar";
@@ -44,7 +45,7 @@ export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     const access = await getActiveBarAccess(session as never);
 
-    if (!canManageOperations(access.role)) {
+    if (!can(access.staff, "shifts", null)) {
       return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 

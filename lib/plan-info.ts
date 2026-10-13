@@ -37,7 +37,7 @@ export function planInfo(key: PlanInfoKey, company: boolean): PlanInfo {
     case "reparti":
       return {
         title: "Reparti",
-        text: "Turni, note, checklist e carrello divisi tra banco, cucina e sala, più un reparto col nome che scegli tu. Il Jolly copre tutti i reparti e il capo reparto gestisce i turni del suo.",
+        text: "Turni, note, checklist e carrello divisi tra banco, cucina e sala, più un reparto col nome che scegli tu. Il Jolly copre tutti i reparti e il responsabile di reparto gestisce quello che gli affidi.",
         who: "Per la pizzeria con forno e sala, o il ristorante con cucina e sala.",
       };
     case "sedi":

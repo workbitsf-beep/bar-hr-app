@@ -1,4 +1,5 @@
-import { ChecklistMoment, Role, type Department } from "@prisma/client";
+import { ChecklistMoment, type Department } from "@prisma/client";
+import { can, type StaffAccess } from "@/lib/staff-permissions";
 import { getVenueDepartments, staffDepartments, type DepartmentInfo } from "@/lib/departments";
 import { prisma } from "@/lib/prisma";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
@@ -42,18 +43,17 @@ export type TodayChecklist = {
 };
 
 /**
- * Today's checklists for one person: the owner and managers see every
- * department; everyone else the departments they work in or help with.
+ * Today's checklists for one person: the owner and staff with "Checklist"
+ * see the departments they run; everyone the ones they work in or help with.
  */
-export async function getTodayChecklists(barId: string, userId: string, role: Role | string): Promise<TodayChecklist[]> {
+export async function getTodayChecklists(barId: string, userId: string, staff: StaffAccess): Promise<TodayChecklist[]> {
   const departments = await getVenueDepartments(barId, userId);
   if (!departments.enabled) return [];
 
-  const runsAll = role === Role.OWNER || role === Role.MANAGER || String(role) === "SUPER_ADMIN";
   const mine = new Set<Department>(
     [departments.mine.department, ...departments.mine.helpsIn].filter((value): value is Department => Boolean(value))
   );
-  const visible = staffDepartments(departments.list).filter((department) => runsAll || mine.has(department.id));
+  const visible = staffDepartments(departments.list).filter((department) => can(staff, "checklists", department.id) || mine.has(department.id));
   if (visible.length === 0) return [];
 
   const checklists = await prisma.checklist.findMany({
@@ -84,7 +84,7 @@ export async function getTodayChecklists(barId: string, userId: string, role: Ro
           done: (run?.doneItems ?? []).filter((item) => checklist.items.includes(item)),
           completedBy: run?.completedBy?.firstName ?? null,
           completedAt: run?.completedAt ? toTimeInputValueInTimeZone(run.completedAt) : null,
-          canTick: runsAll || mine.has(department.id),
+          canTick: can(staff, "checklists", department.id) || mine.has(department.id),
         },
       ];
     })

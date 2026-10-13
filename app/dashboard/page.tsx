@@ -1,4 +1,4 @@
-import { RequestStatus, RequestType, Role } from "@prisma/client";
+import { RequestStatus, RequestType, Role, type Department } from "@prisma/client";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -17,6 +17,8 @@ import { DesktopToday } from "./desktop-today";
 import { ClockFixEmployee, ClockFixReview } from "./clock-fix";
 import { CrewSwipe, TodayShiftAdd } from "./today-crew";
 import { clockPlaceFor } from "@/lib/clock-points";
+import { can, hasWholeScope, scopeOf } from "@/lib/staff-permissions";
+import { memberScopeWhere, shiftScopeWhere, userScopeWhere } from "@/lib/staff-scope";
 import { getClockFixesForReview, getEmployeeClockFixState } from "@/lib/clock-fixes";
 import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
@@ -102,13 +104,13 @@ function describeRequestWhen(startsAt: Date | null, endsAt: Date | null) {
 }
 
 export default async function DashboardPage() {
-  const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
+  const { session, role, staff, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
   // Pro: the departments, for the tiles over the crew and the week's bars.
   const departments = await getVenueDepartments(activeBarId, session.user.id);
   // Pro: today's opening and closing checklists this person can see.
   const todayChecklists =
-    departments.enabled && activeBarId ? await getTodayChecklists(activeBarId, session.user.id, role) : [];
+    departments.enabled && activeBarId ? await getTodayChecklists(activeBarId, session.user.id, staff) : [];
 
   if (String(role) === "SUPER_ADMIN") {
     redirect("/dashboard/super-admin");
@@ -127,11 +129,17 @@ export default async function DashboardPage() {
   }
 
   const now = new Date();
-  const canManagePeople = role === Role.OWNER || role === Role.MANAGER;
+  // What this person runs, as the owner chose (lib/staff-permissions); staff
+  // over some departments or sites see their own people only.
+  const canShifts = can(staff, "shifts");
+  const canRequests = can(staff, "requests");
+  const canTimelogs = can(staff, "timelogs");
+  const seesCrew = canShifts || canTimelogs;
+  const peopleInScope = userScopeWhere(staff, activeBarId);
   const isOwner = role === Role.OWNER;
   const isOperationalProfile = !isOwner;
   const showKpi =
-    canManagePeople &&
+    seesCrew &&
     (features.shifts ||
       features.requests ||
       features.availability ||
@@ -255,11 +263,12 @@ export default async function DashboardPage() {
         })
       : Promise.resolve(null),
     kpiDataPromise,
-    canManagePeople && features.requests
+    canRequests && features.requests
       ? prisma.request.findMany({
           where: {
             barId: activeBarId,
             status: RequestStatus.PENDING,
+            employee: peopleInScope,
             // Someone's own request is answered by someone else.
             employeeId: { not: session.user.id },
             type: {
@@ -318,10 +327,11 @@ export default async function DashboardPage() {
           now,
         })
       : Promise.resolve(null),
-    canManagePeople && features.shifts
+    seesCrew && features.shifts
       ? prisma.shift.findMany({
           where: {
             barId: activeBarId,
+            ...shiftScopeWhere(staff, activeBarId),
             // Last night's shift still running past midnight is part of now.
             OR: [
               {
@@ -349,7 +359,7 @@ export default async function DashboardPage() {
         })
       : Promise.resolve([]),
     // Owners do not clock: the roster must not hold them as expected to.
-    canManagePeople
+    seesCrew
       ? prisma.bar.findUnique({
           where: { id: activeBarId },
           select: {
@@ -361,10 +371,11 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve(null),
-    canManagePeople && features.timeTracking
+    seesCrew && features.timeTracking
       ? prisma.timeLog.findMany({
           where: {
             barId: activeBarId,
+            user: peopleInScope,
             timestamp: {
               gte: addDays(startOfDay(now), -1),
               lt: addDays(startOfDay(now), 1),
@@ -482,8 +493,8 @@ export default async function DashboardPage() {
     isOperationalProfile && features.timeTracking && activeBarId
       ? getEmployeeClockFixState(activeBarId, session.user.id, now)
       : Promise.resolve(null),
-    canManagePeople && features.timeTracking && activeBarId
-      ? getClockFixesForReview(activeBarId)
+    canTimelogs && features.timeTracking && activeBarId
+      ? getClockFixesForReview(activeBarId, peopleInScope, isOwner ? undefined : session.user.id)
       : Promise.resolve([]),
     isOperationalProfile && features.timeTracking && activeBarId
       ? prisma.bar.findUnique({ where: { id: activeBarId }, select: { owner: { select: { firstName: true } } } })
@@ -763,10 +774,10 @@ export default async function DashboardPage() {
 
   // Who can be put on a shift today, for "Turno al volo".
   const rosterMembers =
-    canManagePeople && features.shifts && activeBarId
+    canShifts && features.shifts && activeBarId
       ? (
           await prisma.employeeBar.findMany({
-            where: { barId: activeBarId, isActive: true },
+            where: { barId: activeBarId, isActive: true, ...memberScopeWhere(staff) },
             orderBy: { hiredAt: "asc" },
             select: { department: true, user: { select: { id: true, firstName: true, lastName: true } } },
           })
@@ -776,16 +787,16 @@ export default async function DashboardPage() {
           department: member.department,
         }))
       : [];
-  const addTodayShift = (
+  const addTodayShift = canShifts ? (
     <TodayShiftAdd
       members={rosterMembers}
       departments={departments.enabled ? staffDepartments(departments.list) : null}
       label={departments.words.One}
     />
-  );
+  ) : null;
 
   const crewBlock =
-    canManagePeople && features.shifts && departments.enabled ? (
+    seesCrew && features.shifts && departments.enabled ? (
       <CrewBoard
         departments={staffDepartments(departments.list)}
         addShift={addTodayShift}
@@ -804,7 +815,7 @@ export default async function DashboardPage() {
           };
         })}
       />
-    ) : canManagePeople && features.shifts ? (
+    ) : seesCrew && features.shifts ? (
       <section className="workbit-crew">
         <div className="workbit-crew-head">
           <strong>In servizio oggi</strong>
@@ -868,7 +879,9 @@ export default async function DashboardPage() {
           ? {
               list: staffDepartments(departments.list),
               // Staff open the list on their own department; the owner on all of it.
-              initial: canManagePeople ? null : departments.mine.department,
+              initial: hasWholeScope(staff)
+                ? null
+                : (scopeOf(staff)?.[0] as Department | undefined) ?? departments.mine.department,
             }
           : null
       }
@@ -1119,7 +1132,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {canManagePeople && pendingApprovalRequests.length > 0 ? (
+      {canRequests && pendingApprovalRequests.length > 0 ? (
         <Panel title="Richieste da approvare" action={`${pendingApprovalRequests.length} in attesa`}>
           <div style={{ display: "grid", gap: 10 }}>
             {pendingApprovalRequests.map((request) => (
@@ -1210,7 +1223,7 @@ export default async function DashboardPage() {
           barId={activeBarId}
           userId={session.user.id}
           firstName={session.user.firstName}
-          role={role as Role}
+          staff={staff}
           locale="it-IT"
         />
       </div>

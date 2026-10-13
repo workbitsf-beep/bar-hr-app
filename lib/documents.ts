@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { can, type StaffAccess } from "@/lib/staff-permissions";
 
 const documentMimeTypesByExtension: Record<string, string> = {
   pdf: "application/pdf",
@@ -26,12 +26,21 @@ export type DocumentVisibility = {
   isActive: boolean;
 };
 
+/**
+ * `assigneeDepartment`: where the person a document is for works, so staff
+ * with "Documenti" over some sites see only their people's payslips.
+ */
 export function canViewDocument(
   document: DocumentVisibility,
   userId: string,
-  role: Role | string
+  staff: StaffAccess,
+  assigneeDepartment: string | null
 ) {
-  if (role === Role.OWNER || role === Role.AMMINISTRAZIONE) {
+  if (document.assignedToId === userId && document.isActive) {
+    return true;
+  }
+
+  if (can(staff, "documents", document.assignedToAll ? undefined : assigneeDepartment)) {
     return true;
   }
 

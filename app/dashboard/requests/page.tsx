@@ -8,7 +8,8 @@ import {
 import { prisma } from "@/lib/prisma";
 import type { ReactNode } from "react";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
-import { canReviewOperationalRequests } from "@/lib/permissions";
+import { can, hasWholeScope } from "@/lib/staff-permissions";
+import { userScopeWhere } from "@/lib/staff-scope";
 import { ClosureDateRangeInput } from "@/app/components/closure-date-range-input";
 import { SingleDayTimeRangeInput } from "@/app/components/single-day-time-range-input";
 import {
@@ -411,9 +412,12 @@ export default async function DashboardRequestsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
-  const { session, role, activeBarId, activeBarActivityType, billingStatus, features } =
+  const { session, role, staff, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
-  const canManageClosures = canReviewOperationalRequests(role as Role);
+  // "Richieste": the owner and staff the owner gave it to; over some
+  // departments or sites, the requests of their people only.
+  const canManageClosures = can(staff, "requests");
+  const scopedReviewer = canManageClosures && !hasWholeScope(staff);
   const pageTitle = canManageClosures ? "Richieste e chiusure" : features.requests ? "Richieste" : "Indisponibilità";
 
   if (!activeBarId) {
@@ -447,12 +451,13 @@ export default async function DashboardRequestsPage({
       ? prisma.request.findMany({
       where: {
         barId: activeBarId,
-        ...(canManageClosures
+        ...(canManageClosures && !scopedReviewer
           ? {}
           : {
               OR: [
                 { employeeId: session.user.id },
                 { swapWithUserId: session.user.id },
+                ...(scopedReviewer ? [{ employee: userScopeWhere(staff, activeBarId) }] : []),
               ],
             }),
       },

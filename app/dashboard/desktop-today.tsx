@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { can, type StaffAccess } from "@/lib/staff-permissions";
+import { memberScopeWhere, shiftScopeWhere, userScopeWhere } from "@/lib/staff-scope";
 import { buildMonthlyTotals } from "@/lib/reporting";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
@@ -71,16 +73,19 @@ export async function DesktopToday({
   barId,
   userId,
   firstName,
-  role,
+  staff,
   locale,
 }: {
   barId: string;
   userId: string;
   firstName: string;
-  role: Role;
+  staff: StaffAccess;
   locale: string;
 }) {
-  const manage = role === Role.OWNER || role === Role.MANAGER;
+  // Runs the floor: the owner, and staff with "Turni" or "Timbrature" -
+  // over some departments or sites, their own people only.
+  const manage = can(staff, "shifts") || can(staff, "timelogs");
+  const inScope = userScopeWhere(staff, barId);
   const now = new Date();
   const todayKey = toDateInputValueInTimeZone(now);
   const dayStart = parseDateTimeLocal(`${todayKey}T00:00`);
@@ -97,7 +102,7 @@ export async function DesktopToday({
   const [weekShifts, todayLogs, pending, myRequests, tasks, courses, members, documents, overtime] =
     await Promise.all([
       prisma.shift.findMany({
-        where: { barId, startTime: { gte: weekStart, lt: weekEnd } },
+        where: { barId, startTime: { gte: weekStart, lt: weekEnd }, ...shiftScopeWhere(staff, barId) },
         orderBy: { startTime: "asc" },
         select: {
           id: true,
@@ -110,13 +115,19 @@ export async function DesktopToday({
         },
       }),
       prisma.timeLog.findMany({
-        where: { barId, timestamp: { gte: dayStart, lt: dayEnd } },
+        where: { barId, timestamp: { gte: dayStart, lt: dayEnd }, user: inScope },
         orderBy: { timestamp: "asc" },
         select: { userId: true, type: true, timestamp: true, user: userSelect },
       }),
-      manage
+      can(staff, "requests")
         ? prisma.request.findMany({
-            where: { barId, status: RequestStatus.PENDING, type: { not: RequestType.SICKNESS } },
+            where: {
+              barId,
+              status: RequestStatus.PENDING,
+              type: { not: RequestType.SICKNESS },
+              employee: inScope,
+              employeeId: { not: userId },
+            },
             orderBy: { createdAt: "asc" },
             take: 8,
             select: {
@@ -172,12 +183,12 @@ export async function DesktopToday({
         select: { id: true, title: true, expiresAt: true, assignedToAll: true, assignedTo: { select: { firstName: true } } },
       }),
       prisma.employeeBar.findMany({
-        where: { barId, isActive: true },
+        where: { barId, isActive: true, ...memberScopeWhere(staff) },
         select: { role: true, hourlyRate: true, user: userSelect },
       }),
-      manage
+      can(staff, "documents")
         ? prisma.document.findMany({
-            where: { barId, isActive: true, assignedToId: { not: null } },
+            where: { barId, isActive: true, assignedToId: { not: null }, assignedTo: inScope },
             select: { assignedToId: true, title: true, createdAt: true },
           })
         : prisma.document.findMany({
@@ -198,6 +209,7 @@ export async function DesktopToday({
               type: RequestType.OVERTIME,
               status: RequestStatus.APPROVED,
               startsAt: { gte: monthStart },
+              employee: inScope,
             },
             select: { startsAt: true, endsAt: true },
           })
@@ -300,7 +312,7 @@ export async function DesktopToday({
     .sort((a, b) => b.at.getTime() - a.at.getTime())
     .slice(0, 7);
 
-  const membersWithoutDocs = manage
+  const membersWithoutDocs = can(staff, "documents")
     ? members.filter(
         (member) => member.role !== Role.OWNER && !documents.some((doc) => doc.assignedToId === member.user.id)
       )

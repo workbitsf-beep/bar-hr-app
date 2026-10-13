@@ -1,4 +1,6 @@
 import { Role } from "@prisma/client";
+import { documentAssigneeDepartment } from "@/lib/staff-scope";
+import type { StaffAccess } from "@/lib/staff-permissions";
 import { getSession } from "@/lib/auth";
 import { DOCUMENT_ACCESS_PARAM, resolveDocumentAccessToken } from "@/lib/document-access";
 import { canViewDocument, getDocumentMimeType } from "@/lib/documents";
@@ -65,7 +67,7 @@ async function loadForSession(documentId: string) {
     };
   }
 
-  const { activeBar, role } = await getActiveBarAccess(session);
+  const { activeBar, staff } = await getActiveBarAccess(session);
 
   if (!activeBar?.id) {
     return {
@@ -82,7 +84,7 @@ async function loadForSession(documentId: string) {
     return { error: refuse(404, "Documento non presente in questo locale.") };
   }
 
-  if (!canViewDocument(document, session.user.id, role)) {
+  if (!canViewDocument(document, session.user.id, staff, await documentAssigneeDepartment(activeBar.id, document))) {
     return { error: refuse(403, "Questo documento non è assegnato al tuo account.") };
   }
 
@@ -109,16 +111,16 @@ async function loadForToken(token: string, documentId: string) {
 
   // The permission is checked again rather than trusted from when the link was
   // made, so a document withdrawn in the meantime stops opening at once.
-  const role = await getRoleInBar(userId, document.barId);
+  const staff = await getStaffInBar(userId, document.barId);
 
-  if (!role || !canViewDocument(document, userId, role)) {
+  if (!staff || !canViewDocument(document, userId, staff, await documentAssigneeDepartment(document.barId, document))) {
     return { error: refuse(403, "Questo documento non è più accessibile a questo account.") };
   }
 
   return document;
 }
 
-async function getRoleInBar(userId: string, barId: string) {
+async function getStaffInBar(userId: string, barId: string): Promise<StaffAccess | null> {
   const bar = await prisma.bar.findUnique({ where: { id: barId }, select: { ownerId: true } });
 
   if (!bar) {
@@ -126,15 +128,15 @@ async function getRoleInBar(userId: string, barId: string) {
   }
 
   if (bar.ownerId === userId) {
-    return Role.OWNER;
+    return { role: Role.OWNER };
   }
 
   const membership = await prisma.employeeBar.findUnique({
     where: { userId_barId: { userId, barId } },
-    select: { role: true, isActive: true },
+    select: { role: true, isActive: true, permissions: true, managesDepartments: true },
   });
 
-  return membership?.isActive ? membership.role : null;
+  return membership?.isActive ? membership : null;
 }
 
 /** Plain text, so the reason is readable wherever the file was opened. */

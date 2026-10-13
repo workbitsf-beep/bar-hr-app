@@ -5,7 +5,7 @@ import { visibleOnBoard } from "@/lib/note-visibility";
 import { buildNoteMeta } from "@/lib/note-list-format";
 import { describeTaskRepeat } from "@/lib/task-recurrence";
 import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
-import { canReviewOperationalRequests } from "@/lib/permissions";
+import { can, hasWholeScope, scopeOf } from "@/lib/staff-permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
@@ -274,7 +274,7 @@ export default async function DashboardCalendarPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : undefined;
-  const { session, role, language, activeBarId, activeBarActivityType, billingStatus, features } =
+  const { session, role, staff, language, activeBarId, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
 
   if (!activeBarId) {
@@ -309,26 +309,38 @@ export default async function DashboardCalendarPage({
   // the owner starts from everyone and staff from their own department; with a
   // calendar per department, staff and leads only ever see their own.
   const departments = await getVenueDepartments(activeBarId, session.user.id);
-  const managesVenue = role === Role.OWNER || role === Role.MANAGER;
+  // "Turni" over the whole venue, or over some departments or sites only.
+  const canShifts = can(staff, "shifts");
+  const managesVenue = canShifts && hasWholeScope(staff);
+  // The calendar's clients read a role: staff with "Turni" plan like a
+  // manager, staff without it see the week like an employee.
+  const calendarRole = role === Role.OWNER ? String(role) : canShifts ? Role.MANAGER : Role.EMPLOYEE;
   // Jolly has no tab: its shifts and notes show in every department.
   const departmentIds = staffDepartments(departments.list).map((entry) => entry.id);
   const rawDepartment = Array.isArray(params?.rep) ? params.rep[0] : params?.rep;
   const requestedDepartment = departmentIds.find((id) => id === rawDepartment) ?? null;
   const ownDepartment = departmentIds.find((id) => id === departments.mine.department) ?? null;
   const separateCalendars = departments.enabled && departments.mode === "SEPARATE";
-  // A department lead manages the shifts of their department and sees that
-  // department only, on either kind of calendar.
-  const leadsDepartment = departments.enabled && !managesVenue && departments.mine.isLead && Boolean(ownDepartment);
-  const lockedToOwnDepartment = (separateCalendars && !managesVenue && Boolean(ownDepartment)) || leadsDepartment;
+  // A responsabile of some departments or sites manages their shifts and
+  // sees those only, on either kind of calendar.
+  const myScope = departmentIds.filter((id) => (scopeOf(staff) ?? []).includes(id));
+  const leadsDepartment = departments.enabled && canShifts && !managesVenue && myScope.length > 0;
+  const lockedToOwnDepartment =
+    (separateCalendars && !managesVenue && !leadsDepartment && Boolean(ownDepartment)) ||
+    (leadsDepartment && myScope.length === 1);
   let activeDepartment: Department | null = null;
   if (departments.enabled) {
-    activeDepartment = separateCalendars || leadsDepartment
-      ? lockedToOwnDepartment
-        ? ownDepartment
-        : requestedDepartment ?? ownDepartment ?? departmentIds[0] ?? null
-      : rawDepartment === "TUTTI"
-        ? null
-        : requestedDepartment ?? (managesVenue ? null : ownDepartment);
+    activeDepartment = leadsDepartment
+      ? requestedDepartment && myScope.includes(requestedDepartment)
+        ? requestedDepartment
+        : myScope[0]
+      : separateCalendars
+        ? lockedToOwnDepartment
+          ? ownDepartment
+          : requestedDepartment ?? ownDepartment ?? departmentIds[0] ?? null
+        : rawDepartment === "TUTTI"
+          ? null
+          : requestedDepartment ?? (managesVenue ? null : ownDepartment);
   }
   const departmentInfo = (id: Department | null | undefined) =>
     departments.enabled && id ? departments.list.find((entry) => entry.id === id) ?? null : null;
@@ -343,9 +355,8 @@ export default async function DashboardCalendarPage({
   const calendarStart = startOfCalendarWeek(addDays(anchorDate, -7 * CALENDAR_LOOKBACK_WEEKS));
   const calendarEnd = endOfCalendarWeek(addDays(anchorDate, 7 * CALENDAR_LOOKAHEAD_WEEKS));
   const isRestaurant = activeBarActivityType === ActivityType.RESTAURANT;
-  const canManageRestaurantShifts =
-    features.shifts && isRestaurant && (role === Role.OWNER || role === Role.MANAGER);
-  const canSeePrivateRequestDetails = canReviewOperationalRequests(role as Role);
+  const canManageRestaurantShifts = features.shifts && isRestaurant && managesVenue;
+  const canSeePrivateRequestDetails = can(staff, "requests");
   const canReviewCompanyRequests =
     features.requests && !isRestaurant && canSeePrivateRequestDetails;
 
@@ -644,7 +655,7 @@ export default async function DashboardCalendarPage({
                     gte: calendarStart,
                     lte: calendarEnd,
                   },
-                  ...(role === Role.EMPLOYEE
+                  ...(!can(staff, "notes")
                     ? {
                         OR: [{ assignedToId: session.user.id }, { assignedToAll: true }],
                       }
@@ -713,7 +724,7 @@ export default async function DashboardCalendarPage({
                         },
                       ],
                     },
-                    ...(role === Role.EMPLOYEE
+                    ...(!can(staff, "requests")
                       ? [
                           {
                             OR: [{ employeeId: null }, { employeeId: session.user.id }],
@@ -1051,7 +1062,13 @@ export default async function DashboardCalendarPage({
     })),
   }));
 
-  const memberOptions = calendarMembers.map((member) => ({
+  // A scoped responsabile puts on shifts the people they cover, and the Jolly.
+  const pickableMembers = leadsDepartment
+    ? calendarMembers.filter(
+        (member) => member.department === "JOLLY" || (member.department && myScope.includes(member.department))
+      )
+    : calendarMembers;
+  const memberOptions = pickableMembers.map((member) => ({
     id: member.user.id,
     firstName: member.user.firstName,
     lastName: member.user.lastName,
@@ -1069,13 +1086,13 @@ export default async function DashboardCalendarPage({
   );
   // A company's people can be moved to any of its sites: one account each,
   // offered in every site's calendar, the site's own people first.
-  const departmentById = new Map(memberOptions.map((option, index) => [option.id, calendarMembers[index]?.department ?? null]));
+  const departmentById = new Map(memberOptions.map((option, index) => [option.id, pickableMembers[index]?.department ?? null]));
   const outsideSite = (id: string) => Number(departmentById.get(id) !== activeDepartment);
   const plannerMembers = activeDepartment && departments.kind === "sites"
     ? [...memberOptions].sort((a, b) => outsideSite(a.id) - outsideSite(b.id))
     : activeDepartment
     ? memberOptions.filter((option, index) => {
-        const member = calendarMembers[index];
+        const member = pickableMembers[index];
         return (
           member.department === activeDepartment ||
           (member.helpsIn ?? []).includes(activeDepartment) ||
@@ -1091,7 +1108,7 @@ export default async function DashboardCalendarPage({
   ).length;
   const canPublishShifts =
     features.shifts &&
-    (role === Role.OWNER || role === Role.MANAGER) &&
+    canShifts &&
     (isRestaurant || Boolean(settings?.companyShiftsEnabled));
   const publishWeekAction = canPublishShifts ? (
     <PublishWeekPanel
@@ -1106,7 +1123,13 @@ export default async function DashboardCalendarPage({
   const activeLead =
     separateCalendars && activeDepartment
       ? await prisma.employeeBar.findFirst({
-          where: { barId: activeBarId, isActive: true, department: activeDepartment, isDepartmentLead: true },
+          where: {
+            barId: activeBarId,
+            isActive: true,
+            role: Role.MANAGER,
+            managesDepartments: { has: activeDepartment },
+            permissions: { has: "shifts" },
+          },
           select: { user: { select: { firstName: true, lastName: true } } },
         })
       : null;
@@ -1119,6 +1142,7 @@ export default async function DashboardCalendarPage({
         active={activeDepartment}
         separate={separateCalendars}
         locked={lockedToOwnDepartment}
+        allowed={leadsDepartment ? myScope : null}
         leadWord={departments.words.lead}
         lead={
           separateCalendars && activeDepartmentInfo
@@ -1151,9 +1175,15 @@ export default async function DashboardCalendarPage({
         label: departments.words.One,
       }
     : null;
-  // What the lead's calendar leaves out: notes, tasks, requests and publishing
-  // the week stay with the owner and the managers.
-  const leadFeatures = { ...features, tasks: false, noticeBoard: false, requests: false, availability: false };
+  // What a scoped responsabile's calendar leaves out: what the owner did not
+  // give them, and requests, which they answer from the Richieste page.
+  const leadFeatures = {
+    ...features,
+    tasks: features.tasks && can(staff, "notes"),
+    noticeBoard: features.noticeBoard && can(staff, "notes"),
+    requests: false,
+    availability: false,
+  };
 
   return (
     <Stack className="dashboard-calendar-page" columns="minmax(0, 1fr)">
@@ -1186,7 +1216,7 @@ export default async function DashboardCalendarPage({
             filteredDay={dayFilter}
             initialFocusedDay={initialFocusedDay}
             initialCalendarView={initialCalendarView}
-            role={String(role)}
+            role={calendarRole}
             currentUserId={session.user.id}
             features={features}
             todayAction={todayAction}
@@ -1206,7 +1236,7 @@ export default async function DashboardCalendarPage({
               locale={locale}
               currentUserId={session.user.id}
               initialDayKey={initialFocusedDay}
-              mode="view"
+              departmentPick={departmentPick}
             />
           </div>
           <div className="wbp-phone-only">
@@ -1219,16 +1249,16 @@ export default async function DashboardCalendarPage({
             filteredDay={dayFilter}
             initialFocusedDay={initialFocusedDay}
             initialCalendarView={initialCalendarView}
-            role={String(role)}
+            role={calendarRole}
             currentUserId={session.user.id}
             features={leadFeatures}
             todayAction={todayAction}
-            publishAction={null}
+            publishAction={publishWeekAction}
             departmentPick={departmentPick}
           />
           </div>
           </>
-        ) : features.shifts && role === Role.EMPLOYEE ? (
+        ) : features.shifts && calendarRole === Role.EMPLOYEE ? (
           <>
           <ClassicViewBack />
           <div className="wbp-desktop-only">
@@ -1250,7 +1280,7 @@ export default async function DashboardCalendarPage({
             filteredDay={dayFilter}
             initialFocusedDay={initialFocusedDay}
             initialCalendarView={initialCalendarView}
-            role={String(role)}
+            role={calendarRole}
             activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
             companyShiftsEnabled={Boolean(settings?.companyShiftsEnabled)}
             members={memberOptions}
@@ -1270,7 +1300,7 @@ export default async function DashboardCalendarPage({
             filteredDay={dayFilter}
             initialFocusedDay={initialFocusedDay}
             initialCalendarView={initialCalendarView}
-            role={String(role)}
+            role={calendarRole}
             activityType={activeBarActivityType ?? ActivityType.RESTAURANT}
             companyShiftsEnabled={Boolean(settings?.companyShiftsEnabled)}
             members={memberOptions}

@@ -6,6 +6,8 @@ import { createDownloadTicket } from "@/lib/download-tickets";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { mergeCompanyDatasets, mergeRestaurantDatasets } from "@/lib/report-merge";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/staff-permissions";
+import { memberDepartmentOf, memberScopeWhere } from "@/lib/staff-scope";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { formatDurationClock } from "@/lib/time-format";
 import { APP_TIME_ZONE } from "@/lib/time-zone";
@@ -719,11 +721,10 @@ export const POST = withBar(
         ? `Datore di lavoro: ${employer.legalName}${employer.vatNumber ? ` · P.IVA ${employer.vatNumber}` : ""}`
         : undefined;
       const requestedUserId = String(body.userId ?? "").trim() || session.user.id;
-      const canExportAll =
-        access.role === Role.OWNER ||
-        (access.role === Role.AMMINISTRAZIONE && activityType === ActivityType.COMPANY);
-      const canViewPrivateAbsenceDetails =
-        access.role === Role.OWNER || access.role === Role.MANAGER;
+      // "Report ore": the owner, and staff the owner gave it to - over the
+      // people of the departments or sites they cover.
+      const canExportAll = can(access.staff, "reports");
+      const canViewPrivateAbsenceDetails = can(access.staff, "requests");
 
       if (
         Number.isNaN(month) ||
@@ -736,7 +737,12 @@ export const POST = withBar(
         return Response.json({ ok: false, message: "Input non valido" }, { status: 400 });
       }
 
-      if (!canExportAll && requestedUserId !== session.user.id) {
+      if (
+        requestedUserId !== session.user.id &&
+        (!canExportAll ||
+          (requestedUserId !== "__ALL__" &&
+            !can(access.staff, "reports", await memberDepartmentOf(session.activeBarId, requestedUserId))))
+      ) {
         return Response.json({ ok: false, message: "Non autorizzato" }, { status: 403 });
       }
 
@@ -756,6 +762,7 @@ export const POST = withBar(
           where: {
             barId: session.activeBarId,
             isActive: true,
+            ...memberScopeWhere(access.staff),
           },
           include: {
             user: {

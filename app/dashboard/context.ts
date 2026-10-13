@@ -8,6 +8,8 @@ import { getFeatureFlags, type FeatureFlags } from "@/lib/features";
 import { getActiveBarAccess, getPostLoginDestination } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getTranslation } from "@/lib/i18n";
+import type { Department } from "@prisma/client";
+import type { StaffAccess } from "@/lib/staff-permissions";
 
 async function logMissingSession() {
   try {
@@ -48,6 +50,8 @@ export type DashboardNavItem = {
 export type DashboardContext = {
   session: NonNullable<Awaited<ReturnType<typeof getSession>>>;
   role: Role | string;
+  /** Role, permissions and scope: pass to `can` (lib/staff-permissions). */
+  staff: StaffAccess;
   language: AppLanguage;
   t: ReturnType<typeof getTranslation>;
   activeBarId: string | null;
@@ -62,6 +66,8 @@ export type DashboardContext = {
     name: string;
     role: Role;
     activityType: ActivityType;
+    permissions: string[];
+    managesDepartments: Department[];
   }[];
 };
 
@@ -176,7 +182,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   ) {
     redirect(redirectTo);
   }
-  const { activeBar, accessibleBars, role } = await getActiveBarAccess(session);
+  const { activeBar, accessibleBars, role, staff } = await getActiveBarAccess(session);
   const language = session.user.language ?? AppLanguage.it;
   const t = getTranslation(language);
 
@@ -258,6 +264,7 @@ export const getDashboardContext = cache(async function getDashboardContext(
   return {
     session,
     role,
+    staff,
     language,
     t,
     activeBarId: activeBar?.id ?? null,

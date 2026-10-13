@@ -14,7 +14,8 @@ export function DepartmentBar({
   locked,
   lead,
   hrefs,
-  leadWord = "capo reparto",
+  allowed,
+  leadWord = "responsabile di reparto",
 }: {
   departments: DepartmentInfo[];
   active: Department | null;
@@ -24,7 +25,9 @@ export function DepartmentBar({
   lead: { name: string; department: DepartmentInfo } | null | "none";
   /** Where each chip leads, keyed by department or "TUTTI". */
   hrefs: Record<string, string>;
-  /** "capo reparto", or "responsabile di sede" for a company. */
+  /** A responsabile of some departments or sites: only those chips open. */
+  allowed?: Department[] | null;
+  /** "responsabile di reparto", or "responsabile di sede" for a company. */
   leadWord?: string;
 }) {
   const chip = (
@@ -67,7 +70,7 @@ export function DepartmentBar({
   return (
     <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
       <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: "minmax(0, 1fr)", gap: 6, padding: "2px 2px 4px" }}>
-        {separate ? null : chip("all", "Tutti", hrefs.TUTTI, active === null, null, locked)}
+        {separate ? null : chip("all", "Tutti", hrefs.TUTTI, active === null, null, locked || Boolean(allowed))}
         {departments.map((department) =>
           chip(
             department.id,
@@ -75,7 +78,7 @@ export function DepartmentBar({
             hrefs[department.id],
             active === department.id,
             department,
-            locked && active !== department.id
+            (locked && active !== department.id) || Boolean(allowed && !allowed.includes(department.id))
           )
         )}
       </div>
@@ -101,7 +104,7 @@ export function DepartmentBar({
             <span style={{ display: "grid", gap: 1 }}>
               <strong>{lead.name}</strong>
               <span style={{ color: "#8a84a8", fontSize: 11.5 }}>
-                Capo {lead.department.name.toLowerCase()} · turni, ferie e cambi
+                Responsabile · {lead.department.name}
               </span>
             </span>
           )}

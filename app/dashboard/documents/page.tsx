@@ -1,7 +1,8 @@
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canViewDocument } from "@/lib/documents";
-import { canManageDocuments } from "@/lib/permissions";
+import { can, hasWholeScope } from "@/lib/staff-permissions";
+import { memberScopeWhere, userScopeWhere } from "@/lib/staff-scope";
 import { deleteDocumentAction } from "../actions";
 import { getDashboardContext } from "../context";
 import { DocumentsAside } from "../desktop-asides";
@@ -13,7 +14,7 @@ import { PopupAction } from "../popup-action";
 import { ActionForm } from "@/app/components/action-form";
 
 export default async function DashboardDocumentsPage() {
-  const { session, role, activeBarId, billingStatus, features } = await getDashboardContext();
+  const { session, role, staff, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
     return (
@@ -35,19 +36,22 @@ export default async function DashboardDocumentsPage() {
     );
   }
 
-  const canManage = canManageDocuments(role as Role);
+  const canManage = can(staff, "documents");
+  // Staff over some sites: their people's documents, never the others'.
+  const scoped = !hasWholeScope(staff) && canManage;
 
   const [documents, recipients] = await Promise.all([
     prisma.document.findMany({
       where: {
         barId: activeBarId,
-        ...(canManage
+        ...(canManage && !scoped
           ? {}
           : {
               OR: [
                 { createdById: session.user.id },
                 { isActive: true, assignedToAll: true },
                 { isActive: true, assignedToId: session.user.id },
+                ...(scoped ? [{ assignedTo: userScopeWhere(staff, activeBarId) }] : []),
               ],
             }),
       },
@@ -90,9 +94,11 @@ export default async function DashboardDocumentsPage() {
             role: {
               not: Role.OWNER,
             },
+            ...memberScopeWhere(staff),
           },
           orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
           select: {
+            department: true,
             user: {
               select: {
                 id: true,
@@ -106,10 +112,13 @@ export default async function DashboardDocumentsPage() {
       : Promise.resolve([]),
   ]);
 
+  const departmentOf = new Map(recipients.map((recipient) => [recipient.user.id, recipient.department]));
+  const assigneeDepartment = (document: { assignedToId: string | null }) =>
+    document.assignedToId ? departmentOf.get(document.assignedToId) ?? null : null;
   const visibleDocuments = documents.filter(
     (document) =>
       document.createdBy.id === session.user.id ||
-      canViewDocument(document, session.user.id, role)
+      canViewDocument(document, session.user.id, staff, assigneeDepartment(document))
   );
 
   // A folder per person, and people with nothing in theirs are kept. Who is
@@ -193,7 +202,7 @@ export default async function DashboardDocumentsPage() {
       >
         <DocumentRow
           document={document}
-          canOpen={canViewDocument(document, session.user.id, role)}
+          canOpen={canViewDocument(document, session.user.id, staff, assigneeDepartment(document))}
           canManage={canManage}
           showAudience={showAudience}
         />
@@ -215,6 +224,7 @@ export default async function DashboardDocumentsPage() {
                   id: recipient.user.id,
                   label: `${recipient.user.firstName} ${recipient.user.lastName} - ${recipient.user.role}`,
                 }))}
+                canSendToAll={!scoped}
               />
             </PopupAction>
           ) : null

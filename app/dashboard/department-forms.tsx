@@ -88,7 +88,7 @@ export function DepartmentDot({
   );
 }
 
-function DepartmentChip({
+export function DepartmentChip({
   department,
   active,
   onClick,
@@ -135,7 +135,7 @@ export function DepartmentSettingsForm({
   const { pending, message, submit } = useSave(updateDepartmentSettingsAction);
   const options: Array<{ value: DepartmentMode; title: string; lead: string }> = [
     { value: "UNIFIED", title: "Un calendario unico", lead: "La settimana di sempre, con i filtri per reparto" },
-    { value: "SEPARATE", title: "Un calendario per reparto", lead: "Ogni capo reparto gestisce il suo" },
+    { value: "SEPARATE", title: "Un calendario per reparto", lead: "Ogni responsabile di reparto gestisce il suo" },
   ];
 
   return (
@@ -226,34 +226,24 @@ export function DepartmentSettingsForm({
   );
 }
 
-/** In a person's card: their department, where they help, and the lead switch. */
+/** In a person's card: their department and where they help. */
 export function MemberDepartmentForm({
   membershipId,
-  isOwner,
   department,
   helpsIn,
-  isLead,
-  currentLeadName,
   departments,
   words = DEPARTMENT_WORDS,
 }: {
   membershipId: string;
-  isOwner: boolean;
   department: Department | null;
   helpsIn: Department[];
-  isLead: boolean;
-  /** Who leads the chosen department today, if somebody else does. */
-  currentLeadName: Partial<Record<Department, string>>;
   departments: DepartmentInfo[];
   /** "reparto" for a venue, "sede" for a company. */
   words?: DepartmentWords;
 }) {
   const [main, setMain] = useState<Department | null>(department);
   const [help, setHelp] = useState<Department[]>(helpsIn);
-  const [lead, setLead] = useState(isLead);
   const { pending, message, submit } = useSave(updateMemberDepartmentAction);
-  const other = main ? currentLeadName[main] : undefined;
-  const mainName = departments.find((entry) => entry.id === main)?.name.toLowerCase();
 
   return (
     <form action={submit} style={{ display: "grid", gap: 14, paddingTop: 4 }}>
@@ -262,7 +252,6 @@ export function MemberDepartmentForm({
       {help.map((entry) => (
         <input key={entry} type="hidden" name="helpsIn" value={entry} />
       ))}
-      {lead ? <input type="hidden" name="isLead" value="on" /> : null}
 
       <div style={{ display: "grid", gap: 8 }}>
         <span style={labelStyle}>{words.One}</span>
@@ -276,7 +265,6 @@ export function MemberDepartmentForm({
                 const next = main === entry.id ? null : entry.id;
                 setMain(next);
                 setHelp((list) => list.filter((value) => value !== next));
-                setLead(false);
               }}
             />
           ))}
@@ -302,51 +290,6 @@ export function MemberDepartmentForm({
                 />
               ))}
           </div>
-        </div>
-      ) : null}
-
-      {main && !isOwner ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid #f0ebfb", paddingTop: 12 }}>
-          <span style={{ flex: 1, display: "grid", gap: 2 }}>
-            <strong style={{ fontSize: 14 }}>{words.Lead}</strong>
-            <span style={{ fontSize: 12, color: "#8a84a8" }}>
-              {other && !lead
-                ? `Oggi è ${other}: lo sostituisce.`
-                : `Gestisce turni, ferie e cambi di ${mainName}.`}
-            </span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={lead}
-            aria-label={words.Lead}
-            onClick={() => setLead((value) => !value)}
-            style={{
-              width: 48,
-              height: 29,
-              borderRadius: 999,
-              border: 0,
-              position: "relative",
-              background: lead ? "#6d3df0" : "#e3dcf7",
-              cursor: "pointer",
-              flex: "0 0 auto",
-            }}
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                top: 3,
-                left: lead ? 22 : 3,
-                width: 23,
-                height: 23,
-                borderRadius: 999,
-                background: "#ffffff",
-                boxShadow: "0 1px 3px rgba(0,0,0,.15)",
-                transition: "left .15s",
-              }}
-            />
-          </button>
         </div>
       ) : null}
 

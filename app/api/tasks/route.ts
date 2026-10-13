@@ -1,7 +1,8 @@
 import { Role, TaskStatus } from "@prisma/client";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { getActiveBarAccess } from "@/lib/permissions";
+import { can } from "@/lib/staff-permissions";
 import { parseTaskDueDate } from "@/lib/task-dates";
 import { withBar } from "@/lib/withBar";
 
@@ -54,7 +55,7 @@ export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     const access = await getActiveBarAccess(session as never);
 
-    if (!canManageOperations(access.role)) {
+    if (!can(access.staff, "notes", null)) {
       return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 

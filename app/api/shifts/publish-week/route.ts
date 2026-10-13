@@ -2,7 +2,9 @@ import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
-import { canManageOperations, getActiveBarAccess } from "@/lib/permissions";
+import { getActiveBarAccess } from "@/lib/permissions";
+import { can } from "@/lib/staff-permissions";
+import { shiftScopeWhere } from "@/lib/staff-scope";
 import { scheduleShiftClockReminders } from "@/lib/shift-clock-reminders";
 import { notifyPublishedShiftRecipients } from "@/lib/shift-publish-notifications";
 import { withBar } from "@/lib/withBar";
@@ -42,7 +44,7 @@ export const POST = withBar(
   async (req: Request, session: SessionWithBar): Promise<Response> => {
     const access = await getActiveBarAccess(session as never);
 
-    if (!canManageOperations(access.role)) {
+    if (!can(access.staff, "shifts")) {
       return Response.json({ ok: false, message: "Sessione scaduta. Accedi di nuovo." }, { status: 403 });
     }
 
@@ -71,6 +73,7 @@ export const POST = withBar(
         barId: session.activeBarId,
         confirmedAt: null,
         isOnCall: false,
+        ...shiftScopeWhere(access.staff, session.activeBarId),
         startTime: {
           lte: rangeEnd,
         },

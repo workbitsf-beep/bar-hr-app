@@ -23,6 +23,9 @@ import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { getSeatUsage, getVenueEntitlements } from "@/lib/plans";
 import { SeatsFull } from "./seats-full";
 import { DepartmentDot, MemberDepartmentForm } from "../department-forms";
+import { can, isStaffRole, PERMISSION_LABELS, PERMISSIONS } from "@/lib/staff-permissions";
+import { memberScopeWhere } from "@/lib/staff-scope";
+import { StaffRoleForm } from "./staff-role-form";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -100,12 +103,14 @@ export default async function DashboardPeoplePage({
 }) {
   const params = searchParams ? await searchParams : {};
   const errorParam = Array.isArray(params.error) ? params.error[0] : params.error;
-  const { session, role, activeBarId, activeBarActivityType, billingStatus } = await getDashboardContext();
+  const { session, role, staff, activeBarId, activeBarActivityType, billingStatus } = await getDashboardContext();
+  // The owner runs the whole team; staff with "Persone" their own employees.
+  const isOwner = role === Role.OWNER;
 
-  if (role !== Role.OWNER) {
+  if (!can(staff, "people")) {
     return (
       <Panel title="Personale">
-        <EmptyState message="Solo i titolari possono creare e gestire il team." />
+        <EmptyState message="Il team lo gestisce il titolare. Se ti serve, chiedigli il permesso Persone." />
       </Panel>
     );
   }
@@ -134,6 +139,7 @@ export default async function DashboardPeoplePage({
       where: {
         barId: activeBarId,
         isActive: true,
+        ...(isOwner ? {} : { role: Role.EMPLOYEE, ...memberScopeWhere(staff) }),
       },
       orderBy: [{ role: "asc" }, { hiredAt: "asc" }],
       select: {
@@ -142,7 +148,8 @@ export default async function DashboardPeoplePage({
         hourlyRate: true,
         department: true,
         helpsIn: true,
-        isDepartmentLead: true,
+        permissions: true,
+        managesDepartments: true,
         user: {
           select: {
             id: true,
@@ -174,15 +181,29 @@ export default async function DashboardPeoplePage({
   const addPerson = seats.full ? (
     <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} />
   ) : (
-    <NewPersonForm action={createEmployeeAction} isCompany={isCompany} />
+    <NewPersonForm
+      action={createEmployeeAction}
+      isCompany={isCompany}
+      employeesOnly={!isOwner}
+      departments={
+        isOwner || !departments.enabled
+          ? []
+          : staffDepartments(departments.list).filter((entry) => can(staff, "people", entry.id))
+      }
+    />
   );
   const seatLabel = seats.limit === null ? null : `${seats.used} su ${seats.limit}`;
-  const leadNames: Partial<Record<NonNullable<(typeof members)[number]["department"]>, string>> = {};
-  for (const member of members) {
-    if (member.isDepartmentLead && member.department) {
-      leadNames[member.department] = `${member.user.firstName} ${member.user.lastName}`;
-    }
-  }
+  // Responsabile / Amministrazione: where, and what the owner let them do.
+  const scopeText = (member: (typeof members)[number]) =>
+    member.managesDepartments.length
+      ? member.managesDepartments.map((id) => departmentOf(id)?.name ?? id).join(", ")
+      : isCompany && departments.enabled
+        ? "tutte le sedi"
+        : "tutto il locale";
+  const permissionText = (member: (typeof members)[number]) =>
+    PERMISSIONS.filter((permission) => member.permissions.includes(permission))
+      .map((permission) => PERMISSION_LABELS[permission].title)
+      .join(" · ") || "Nessun permesso";
 
   // How the month is going for each person, and who is in right now: a shift
   // is open when the last stamp of the month is an entrata.
@@ -257,8 +278,12 @@ export default async function DashboardPeoplePage({
     };
   });
 
-  const onShift = rows.filter((row) => row.since);
-  const offShift = rows.filter((row) => !row.since);
+  // The owner reads who runs things first, then the employees.
+  const leaders = isOwner ? rows.filter((row) => row.member.role !== Role.EMPLOYEE) : [];
+  const team = rows.filter((row) => !leaders.includes(row));
+  const onShift = team.filter((row) => row.since);
+  const offShift = team.filter((row) => !row.since);
+  const inServiceCount = rows.filter((row) => row.since).length;
 
   function groupStyle(color: string) {
     return {
@@ -275,16 +300,21 @@ export default async function DashboardPeoplePage({
     const { member } = row;
     const name = `${member.user.firstName} ${member.user.lastName}`;
     const memberDepartment = departments.enabled ? departmentOf(member.department) : null;
-    const roleLabel =
-      formatRoleLabel(member.role) +
-      (memberDepartment ? ` · ${memberDepartment.name}${member.isDepartmentLead ? " (capo)" : ""}` : "");
+    const manages = isStaffRole(member.role);
+    const roleLabel = manages
+      ? `${formatRoleLabel(member.role)} · ${scopeText(member)}`
+      : formatRoleLabel(member.role) + (memberDepartment ? ` · ${memberDepartment.name}` : "");
     const line = live
       ? `dalle ${row.since?.toLocaleTimeString("it-IT", {
           hour: "2-digit",
           minute: "2-digit",
           timeZone: "Europe/Rome",
         })} · ${roleLabel}`
-      : row.warning ?? roleLabel;
+      : manages
+        ? roleLabel
+        : row.warning ?? roleLabel;
+    // Who runs things reads their role; a warning stays in their card.
+    const warn = Boolean(row.warning) && !manages;
 
     return (
       <PopupAction
@@ -293,7 +323,7 @@ export default async function DashboardPeoplePage({
         ariaLabel={`Apri la scheda di ${name}`}
         triggerRow={(
           <ListRowTrigger
-            tone={live ? "live" : row.warning ? "warn" : "plain"}
+            tone={live ? "live" : warn ? "warn" : "plain"}
             minHeight={66}
           >
             <span
@@ -305,8 +335,8 @@ export default async function DashboardPeoplePage({
                 display: "inline-grid",
                 placeItems: "center",
                 borderRadius: 999,
-                background: live ? "#dcfce7" : row.warning ? "#ffffff" : "#f3e8ff",
-                color: live ? "#15803d" : row.warning ? "#92400e" : "#4c1d95",
+                background: live ? "#dcfce7" : warn ? "#ffffff" : "#f3e8ff",
+                color: live ? "#15803d" : warn ? "#92400e" : "#4c1d95",
                 fontSize: 13,
                 fontWeight: 850,
               }}
@@ -322,8 +352,8 @@ export default async function DashboardPeoplePage({
               <span
                 style={{
                   fontSize: 12.5,
-                  fontWeight: live || row.warning ? 790 : 690,
-                  color: live ? "#15803d" : row.warning ? "#92400e" : "#64748b",
+                  fontWeight: live || warn ? 790 : 690,
+                  color: live ? "#15803d" : warn ? "#92400e" : "#64748b",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -331,6 +361,20 @@ export default async function DashboardPeoplePage({
               >
                 {line}
               </span>
+              {manages ? (
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 650,
+                    color: "#8a84a8",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {permissionText(member)}
+                </span>
+              ) : null}
             </span>
 
             <span style={{ flex: "0 0 auto", textAlign: "right", display: "grid", gap: 1 }}>
@@ -372,22 +416,46 @@ export default async function DashboardPeoplePage({
             <PersonFigure label="Documenti" value={String(row.documents)} />
             <PersonFigure
               label="Paga"
-              value={member.hourlyRate ? `${Number(member.hourlyRate).toFixed(2)}` : "—"}
+              value={isOwner && member.hourlyRate ? `${Number(member.hourlyRate).toFixed(2)}` : "—"}
             />
           </div>
+
+          {manages ? (
+            <span style={{ fontSize: 12.5, color: "#6b6880", fontWeight: 700 }}>Può: {permissionText(member)}</span>
+          ) : null}
+
+          {isOwner && member.role !== Role.OWNER ? (
+            <details className="wb-staff-role">
+              <summary style={{ ...personLinkStyle, cursor: "pointer", listStyle: "none" }}>
+                <span>🛡️ {manages ? "Ruolo e permessi" : "Nomina responsabile"}</span>
+                <span style={{ color: "#94a3b8", fontWeight: 800 }}>&rsaquo;</span>
+              </summary>
+              <div style={{ paddingTop: 12 }}>
+              <StaffRoleForm
+                membershipId={member.id}
+                firstName={member.user.firstName}
+                isCompany={isCompany}
+                role={member.role as "EMPLOYEE" | "MANAGER" | "AMMINISTRAZIONE"}
+                permissions={member.permissions}
+                managesDepartments={member.managesDepartments}
+                departments={departments.enabled ? staffDepartments(departments.list) : null}
+                kind={departments.kind}
+              />
+              </div>
+            </details>
+          ) : null}
 
           {departments.enabled ? (
             <MemberDepartmentForm
               words={departments.words}
               membershipId={member.id}
-              isOwner={member.role === Role.OWNER}
               department={member.department}
               helpsIn={member.helpsIn}
-              isLead={member.isDepartmentLead}
-              currentLeadName={Object.fromEntries(
-                Object.entries(leadNames).filter(([, leadName]) => leadName !== name)
-              )}
-              departments={staffDepartments(departments.list)}
+              departments={
+                isOwner
+                  ? staffDepartments(departments.list)
+                  : staffDepartments(departments.list).filter((entry) => can(staff, "people", entry.id))
+              }
             />
           ) : null}
 
@@ -454,7 +522,7 @@ export default async function DashboardPeoplePage({
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <span>
                 {seatLabel ? `${seatLabel} persone` : members.length === 1 ? "1 persona" : `${members.length} persone`}
-                {onShift.length > 0 ? ` · ${onShift.length} in servizio` : ""}
+                {inServiceCount > 0 ? ` · ${inServiceCount} in servizio` : ""}
               </span>
               <PopupAction title="Nuova persona" ariaLabel="Aggiungi persona">
                 {addPerson}
@@ -466,6 +534,14 @@ export default async function DashboardPeoplePage({
             <EmptyState message="Nessuna persona collegata a questo locale." />
           ) : (
             <div style={{ display: "grid", gap: 9 }}>
+              {leaders.length > 0 ? (
+                <>
+                  <span style={groupStyle("#5b3fd6")}>Chi gestisce</span>
+                  {leaders.map((row) => renderPerson(row, Boolean(row.since)))}
+                  {team.length > 0 ? <span style={groupStyle("#94a3b8")}>Dipendenti · {team.length}</span> : null}
+                </>
+              ) : null}
+
               {onShift.length > 0 ? (
                 <span style={groupStyle("#15803d")}>
                   <span
@@ -485,7 +561,7 @@ export default async function DashboardPeoplePage({
 
               {onShift.map((row) => renderPerson(row, true))}
 
-              {onShift.length > 0 ? (
+              {onShift.length > 0 && offShift.length > 0 ? (
                 <span style={groupStyle("#94a3b8")}>Il resto del team</span>
               ) : null}
 
@@ -550,7 +626,7 @@ export default async function DashboardPeoplePage({
             <h1>Personale</h1>
             <span className="wbd-tag wbd-tag--violet">
               {seatLabel ? `${seatLabel} persone` : members.length === 1 ? "1 persona" : `${members.length} persone`}
-              {onShift.length ? ` · ${onShift.length} in servizio` : ""}
+              {inServiceCount ? ` · ${inServiceCount} in servizio` : ""}
             </span>
             <span className="wbd-spacer" />
             <ClassicToggle />
@@ -590,7 +666,6 @@ export default async function DashboardPeoplePage({
                                 <>
                                   · <DepartmentDot department={departmentOf(row.member.department)!} size={16} />
                                   {departmentOf(row.member.department)!.name}
-                                  {row.member.isDepartmentLead ? " (capo)" : ""}
                                 </>
                               ) : null}
                             </small>
@@ -644,7 +719,7 @@ export default async function DashboardPeoplePage({
                     </div>
                     <div className="wbd-box">
                       <span>Paga oraria</span>
-                      <b>{selected.member.hourlyRate ? `${Number(selected.member.hourlyRate)} €` : "—"}</b>
+                      <b>{isOwner && selected.member.hourlyRate ? `${Number(selected.member.hourlyRate)} €` : "—"}</b>
                     </div>
                   </div>
                 </section>

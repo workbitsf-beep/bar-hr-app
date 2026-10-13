@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { getDashboardKpiData } from "@/lib/dashboard-kpi";
+import { can } from "@/lib/staff-permissions";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { withBar } from "@/lib/withBar";
 
@@ -15,7 +16,7 @@ export const GET = withBar(
   async (_req: Request, session: SessionWithBar): Promise<Response> => {
     const access = await getActiveBarAccess(session as never);
 
-    if (access.role !== Role.OWNER && access.role !== Role.MANAGER) {
+    if (!can(access.staff, "shifts") && !can(access.staff, "timelogs")) {
       return Response.json(
         { ok: false, message: "Non hai i permessi per farlo." },
         { status: 403 }

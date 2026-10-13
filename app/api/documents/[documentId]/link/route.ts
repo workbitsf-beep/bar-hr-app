@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { documentAssigneeDepartment } from "@/lib/staff-scope";
 import { getSession } from "@/lib/auth";
 import {
   DOCUMENT_ACCESS_PARAM,
@@ -27,7 +28,7 @@ export async function POST(
     return NextResponse.json({ ok: false, message: "Sessione assente." }, { status: 401 });
   }
 
-  const { activeBar, role } = await getActiveBarAccess(session);
+  const { activeBar, staff } = await getActiveBarAccess(session);
   const { documentId } = await params;
 
   if (!activeBar?.id || !documentId) {
@@ -42,7 +43,10 @@ export async function POST(
     select: { id: true, assignedToAll: true, assignedToId: true, isActive: true },
   });
 
-  if (!document || !canViewDocument(document, session.user.id, role)) {
+  if (
+    !document ||
+    !canViewDocument(document, session.user.id, staff, await documentAssigneeDepartment(activeBar.id, document))
+  ) {
     return NextResponse.json(
       { ok: false, message: "Documento non disponibile." },
       { status: 404 }

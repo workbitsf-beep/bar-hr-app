@@ -34,6 +34,7 @@ export default async function DashboardLayout({
   const {
     session,
     role,
+    staff,
     language,
     t,
     activeBarId,
@@ -100,7 +101,7 @@ export default async function DashboardLayout({
       ? await getVenueStatus({
           barId: activeBarId,
           userId: session.user.id,
-          role,
+          staff,
           shiftsEnabled: features.shifts,
         }).catch(() => null)
       : null;
