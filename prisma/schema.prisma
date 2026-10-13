@@ -1068,3 +1068,58 @@ model ChecklistRun {
 
   @@unique([checklistId, day])
 }
+
+/// Workbit's own books, kept by the super admin in the console (Denaro → Costi
+/// e debiti): what the business spends, what it owes, and income from outside
+/// the subscriptions. Subscription income comes from the invoices.
+enum LedgerKind {
+  /// A running cost, every month or every year (server, accountant).
+  COST
+  /// A one-off expense on a date.
+  EXPENSE
+  /// Money owed: a loan paid in installments, or a bill due on a date.
+  DEBT
+  /// Income outside the subscriptions, every month, every year or once.
+  INCOME
+}
+
+enum LedgerPeriod {
+  MONTHLY
+  YEARLY
+  ONCE
+}
+
+model LedgerEntry {
+  id               String          @id @default(uuid()) @db.Uuid
+  kind             LedgerKind
+  name             String
+  note             String?
+  /// Cost or income: per period. Expense: the amount. Debt: the total owed.
+  amountCents      Int
+  period           LedgerPeriod    @default(MONTHLY)
+  /// When it starts; for an expense, its date.
+  startsOn         DateTime
+  /// A running cost or income that stopped.
+  endsOn           DateTime?
+  /// A loan's monthly installment.
+  installmentCents Int?
+  /// A bill due on one date.
+  dueOn            DateTime?
+  payments         LedgerPayment[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([kind])
+}
+
+model LedgerPayment {
+  id          String      @id @default(uuid()) @db.Uuid
+  entryId     String      @db.Uuid
+  entry       LedgerEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  amountCents Int
+  paidOn      DateTime
+  createdAt   DateTime    @default(now())
+
+  @@index([entryId])
+  @@index([paidOn])
+}

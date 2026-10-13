@@ -98,6 +98,14 @@ export default async function ConsoleMoneyPage({
 
   return (
     <div className="wbc-page">
+      <nav className="wbc-chips" aria-label="Denaro" style={{ marginBottom: 14 }}>
+        <Link className="wbc-chip" data-on="1" href="/dashboard/super-admin/money" aria-current="page">
+          Abbonamenti
+        </Link>
+        <Link className="wbc-chip" data-on="0" href="/dashboard/super-admin/money/costs">
+          Costi e debiti
+        </Link>
+      </nav>
       <div className="wbc-page-head">
         <h1 className="wbc-title">Denaro</h1>
         <p className="wbc-desc">Stato degli abbonamenti e ricavo stimato dell&apos;intera rete.</p>
