@@ -31,7 +31,6 @@ export async function clockPlaceFor(input: { barId: string; userId: string; shif
         extraSites: true,
         customSeatLimit: true,
         customSiteLimit: true,
-        restaurantSites: true,
         plan: true,
         departmentsAddon: true,
         extraSeatPacks: true,
@@ -56,7 +55,7 @@ export async function clockPlaceFor(input: { barId: string; userId: string; shif
       ? [{ latitude: settings.gpsLatitude, longitude: settings.gpsLongitude }]
       : [];
 
-  const sites = bar && entitlementsOf(bar).sites && entitlementsOf(bar).departments ? bar.sites : [];
+  const sites = company && bar && entitlementsOf(bar).departments ? bar.sites : [];
   if (sites.length === 0) {
     return { points: venuePoint, radius: settings?.gpsRadius ?? null, shiftOptional };
   }

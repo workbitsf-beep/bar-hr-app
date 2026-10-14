@@ -41,13 +41,6 @@ export function planInfo(key: PlanInfoKey, company: boolean): PlanInfo {
         who: "Per la pizzeria con forno e sala, o il ristorante con cucina e sala.",
       };
     case "sedi":
-      if (!company) {
-        return {
-          title: "Sedi",
-          text: "Per il locale con più sedi sotto la stessa insegna e gli stessi dati fiscali (stessa partita IVA). Ogni sede ha indirizzo e punto di timbratura, con turni, note e checklist divisi per sede. La principale è sempre compresa; le altre a 7,99 € l'una, fino a 3 in più sul Base. Con le sedi i turni si dividono per sede e non per reparto. Un locale con un altro nome è un'altra attività: si aggiunge come nuovo locale, con il 10% di sconto.",
-          who: "Per la pizzeria con due punti vendita, o il bar con un secondo locale con lo stesso nome.",
-        };
-      }
       return {
         title: "Sedi",
         text: "Ogni sede ha nome, indirizzo e punto di timbratura: si timbra solo nella propria sede. Turni, note, checklist e carrello divisi per sede, con un responsabile per ognuna. La sede principale è l'azienda stessa ed è sempre compresa; le altre si aggiungono una per una: fino a 3 sul Base, fino a 6 in tutto con il Pro.",

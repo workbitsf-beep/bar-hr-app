@@ -59,7 +59,6 @@ export default async function ConsoleBarPage({
         customPriceCents: true,
         customSeatLimit: true,
         customSiteLimit: true,
-        restaurantSites: true,
         customPlanNote: true,
         sites: { select: { slot: true, name: true, latitude: true, longitude: true } },
         createdAt: true,
@@ -279,31 +278,10 @@ export default async function ConsoleBarPage({
                 </select>
               </label>
             ) : (
-              <>
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
-                  Reparti · {PLAN_PRICES.departments.monthly}
-                </label>
-                {/* Sites: same name and tax details only; another name is another venue. */}
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  Sedi pagate (stessa insegna e P.IVA) · {PLAN_PRICES.site.monthly} l&apos;una
-                  <select name="extraSites" defaultValue={String(bar.extraSites)}>
-                    {[0, 1, 2, 3].map((count) => (
-                      <option key={count} value={count}>
-                        {count} · Base principale + {count} · Pro {3 + count} sedi in tutto
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <input type="checkbox" name="restaurantSites" defaultChecked={bar.restaurantSites} />
-                  Pro diviso per sedi invece che per reparti
-                </label>
-                <span className="wbc-row-meta">
-                  Sul Base, con almeno una sede pagata il locale è diviso per sedi e il Reparti non vale. Cambiare
-                  divisione toglie reparti o sedi a persone, turni futuri e checklist.
-                </span>
-              </>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
+                Reparti · {PLAN_PRICES.departments.monthly}
+              </label>
             )}
             <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               Pacchetti da +{SEAT_PACK_SIZE} persone · {PLAN_PRICES.seatPack.monthly} l&apos;uno

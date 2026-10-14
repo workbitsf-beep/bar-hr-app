@@ -15,12 +15,6 @@ import { prisma } from "@/lib/prisma";
  * one (7,99 each, up to 3 on Base). Its Pro includes 3 sites, the main one
  * among them, adds more up to 6, and holds up to 45 people (12 October 2026).
  *
- * A restaurant may have sites too (15 October 2026), under the same name and
- * tax details - a different name is another venue. It then divides by sites
- * instead of departments: on Base once it buys a site, on Pro when the owner
- * chooses sites over departments (restaurantSites). Same limits and prices
- * as a company's.
- *
  * A Su misura plan (CUSTOM) is agreed with a customer with many sites and
  * people: everything Pro has, with the price, sites and people the super
  * admin sets.
@@ -65,11 +59,9 @@ export type VenueEntitlements = {
   /** Null on a venue's Pro: no limit. */
   seatLimit: number | null;
   company: boolean;
-  /** Divides by sites (a company, or a restaurant with sites) rather than departments. */
-  sites: boolean;
-  /** Sites paid on top (each 7,99). */
+  /** A company's sites paid on top (each 7,99). */
   paidSites: number;
-  /** How many sites it may have, the main one counted; 0 without sites. */
+  /** How many sites a company may have, the main one counted; 0 for a venue. */
   siteLimit: number;
 };
 
@@ -82,18 +74,15 @@ export function entitlementsOf(bar: {
   extraSites?: number | null;
   customSeatLimit?: number | null;
   customSiteLimit?: number | null;
-  restaurantSites?: boolean | null;
 }): VenueEntitlements {
   const custom = bar.plan === VenuePlan.CUSTOM;
   const pro = bar.plan === VenuePlan.PRO || custom;
   const company = bar.activityType === ActivityType.COMPANY;
-  const paidExtra = Math.max(0, Math.round(bar.extraSites ?? 0));
-  const sites = company || (pro ? Boolean(bar.restaurantSites) : paidExtra > 0);
   // Packs of five more people: on Base, and on a company's Pro on top of its 45.
   const seatPacks = pro && !company ? 0 : Math.max(0, Math.min(MAX_SEAT_PACKS, bar.extraSeatPacks));
   const paid = Math.max(0, Math.round(bar.extraSites ?? 0));
   // The main site always counts; sites show only once there is another.
-  const siteLimit = !sites
+  const siteLimit = !company
     ? 0
     : custom
       ? Math.max(1, bar.customSiteLimit ?? SITES_INCLUDED_IN_PRO)
@@ -105,12 +94,11 @@ export function entitlementsOf(bar: {
       plan: bar.plan,
       pro,
       custom,
-      departments: sites ? siteLimit > 1 : true,
+      departments: company ? siteLimit > 1 : true,
       branding: true,
       seatPacks: 0,
       seatLimit: bar.customSeatLimit ?? null,
       company,
-      sites,
       paidSites: 0,
       siteLimit,
     };
@@ -119,7 +107,7 @@ export function entitlementsOf(bar: {
     plan: bar.plan,
     pro,
     custom,
-    departments: sites ? siteLimit > 1 : pro || bar.departmentsAddon,
+    departments: company ? siteLimit > 1 : pro || bar.departmentsAddon,
     branding: pro || bar.brandingAddon,
     seatPacks,
     seatLimit: pro
@@ -128,8 +116,7 @@ export function entitlementsOf(bar: {
         : null
       : BASE_SEATS + seatPacks * SEAT_PACK_SIZE,
     company,
-    sites,
-    paidSites: !sites ? 0 : pro ? siteLimit - SITES_INCLUDED_IN_PRO : siteLimit - 1,
+    paidSites: !company ? 0 : pro ? siteLimit - SITES_INCLUDED_IN_PRO : siteLimit - 1,
     siteLimit,
   };
 }
@@ -148,7 +135,6 @@ const NONE: VenueEntitlements = {
   seatPacks: 0,
   seatLimit: BASE_SEATS,
   company: false,
-  sites: false,
   paidSites: 0,
   siteLimit: 0,
 };
@@ -160,7 +146,7 @@ export const getVenueEntitlements = cache(async function getVenueEntitlements(
   if (!barId) return NONE;
   const bar = await prisma.bar.findUnique({
     where: { id: barId },
-    select: { plan: true, departmentsAddon: true, extraSeatPacks: true, brandingAddon: true, activityType: true, extraSites: true, customSeatLimit: true, customSiteLimit: true, restaurantSites: true },
+    select: { plan: true, departmentsAddon: true, extraSeatPacks: true, brandingAddon: true, activityType: true, extraSites: true, customSeatLimit: true, customSiteLimit: true },
   });
   return bar ? entitlementsOf(bar) : NONE;
 });
@@ -186,7 +172,7 @@ export function describePlan(entitlements: VenueEntitlements, company = false) {
   if (entitlements.custom) return "Su misura";
   if (entitlements.pro) {
     const extras = [
-      entitlements.sites && entitlements.paidSites > 0
+      entitlements.company && entitlements.paidSites > 0
         ? `${entitlements.paidSites} ${entitlements.paidSites === 1 ? "sede" : "sedi"}`
         : null,
       entitlements.seatPacks ? `+${entitlements.seatPacks * SEAT_PACK_SIZE} persone` : null,
@@ -195,7 +181,7 @@ export function describePlan(entitlements: VenueEntitlements, company = false) {
   }
   const extras = [
     entitlements.departments
-      ? company || entitlements.sites
+      ? company || entitlements.company
         ? `${entitlements.paidSites} ${entitlements.paidSites === 1 ? "sede" : "sedi"}`
         : "Reparti"
       : null,
