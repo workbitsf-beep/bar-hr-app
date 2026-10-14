@@ -89,6 +89,10 @@ export function ShiftQuickAdd({
   const [startDigits, setStartDigits] = useState("");
   const [endDigits, setEndDigits] = useState("");
   const [field, setField] = useState<"start" | "end">("start");
+  // A box tapped while it already holds a time: the next digit starts it
+  // afresh. A ready-made 08:30-14:15 could not be stretched by an hour for
+  // one shift - the box was full and the keypad took nothing more.
+  const [replacing, setReplacing] = useState<"start" | "end" | null>(null);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [isOnCall, setIsOnCall] = useState(false);
   const [personId, setPersonId] = useState<string | null>(null);
@@ -148,7 +152,10 @@ export function ShiftQuickAdd({
     // later, after this function has returned, so a flag set in it was still
     // false below and the keypad never moved on to Fine - the end's digits
     // were dropped until the owner tapped Fine by hand.
-    const current = field === "start" ? startDigits : endDigits;
+    const current = replacing === field ? "" : field === "start" ? startDigits : endDigits;
+    if (replacing === field) {
+      setReplacing(null);
+    }
     if (current.length >= 4) {
       return;
     }
@@ -167,6 +174,8 @@ export function ShiftQuickAdd({
     // Four digits mean the hour is finished; the minutes are already there.
     if (next.length === 4 && field === "start") {
       setField("end");
+      // The end of a ready-made time is rewritten too, not appended to.
+      setReplacing(endDigits ? "end" : null);
     }
     if (next.length === 4 && field === "end" && door === "time" && resolveTime(startDigits)) {
       setKeypadOpen(false);
@@ -174,6 +183,7 @@ export function ShiftQuickAdd({
   }
 
   function backspace() {
+    setReplacing(null);
     if (field === "end" && endDigits.length === 0) {
       setField("start");
       setStartDigits((current) => current.slice(0, -1));
@@ -267,14 +277,20 @@ export function ShiftQuickAdd({
           digits={startDigits}
           caption="inizio"
           active={field === "start"}
-          onFocus={() => setField("start")}
+          onFocus={() => {
+            setField("start");
+            setReplacing(startDigits ? "start" : null);
+          }}
         />
         <span style={{ textAlign: "center", color: "#a3a3b5", fontSize: 16, fontWeight: 800 }}>→</span>
         <TimeBox
           digits={endDigits}
           caption="fine"
           active={field === "end"}
-          onFocus={() => setField("end")}
+          onFocus={() => {
+            setField("end");
+            setReplacing(endDigits ? "end" : null);
+          }}
         />
       </div>
 
@@ -471,6 +487,7 @@ export function ShiftQuickAdd({
             active={keypadOpen && field === "start"}
             onFocus={() => {
               setField("start");
+              setReplacing(startDigits ? "start" : null);
               setKeypadOpen(true);
             }}
           />
@@ -481,10 +498,21 @@ export function ShiftQuickAdd({
             active={keypadOpen && field === "end"}
             onFocus={() => {
               setField("end");
+              setReplacing(endDigits ? "end" : null);
               setKeypadOpen(true);
             }}
           />
         </div>
+
+        {complete && !keypadOpen ? (
+          <span style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#8a84a8", marginTop: -6 }}>
+            Tocca inizio o fine per cambiarli solo per questo turno
+          </span>
+        ) : keypadOpen && replacing ? (
+          <span style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#6d5ce7", marginTop: -6 }}>
+            Scrivi il nuovo orario di {replacing === "start" ? "inizio" : "fine"}
+          </span>
+        ) : null}
 
         {keypadOpen ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 7 }}>
