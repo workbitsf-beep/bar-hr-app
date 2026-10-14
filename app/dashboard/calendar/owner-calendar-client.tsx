@@ -61,6 +61,7 @@ import { groupShiftsByTime } from "./group-shifts-by-time";
 import { QuickCalendarEntryModal } from "./quick-calendar-entry-modal";
 import { scrollToTodayCard } from "./scroll-to-today-button";
 import { ShiftQuickAdd } from "./shift-quick-add";
+import { SavedShiftsButton, SavedShiftsReview } from "./saved-shifts-review";
 import {
   addDaysToDateKey,
   chunkByWeek,
@@ -1524,6 +1525,11 @@ export function OwnerCalendarClient({
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
   const [showShiftComposer, setShowShiftComposer] = useState(false);
+  // "Rivedi i turni inseriti": the shifts just saved, in their own view.
+  const [reviewingSaved, setReviewingSaved] = useState(false);
+  useEffect(() => {
+    if (!showShiftComposer) setReviewingSaved(false);
+  }, [showShiftComposer]);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [savedShiftDrafts, setSavedShiftDrafts] = useState<ShiftDraft[]>([]);
@@ -3921,139 +3927,50 @@ export function OwnerCalendarClient({
                       which step it is and carries the one way out. Two ✕ one
                       above the other did the same thing twice. */}
 
-                  {savedShiftDrafts.length > 0 ? (
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 8,
-                        padding: 10,
-                        borderRadius: 18,
-                        background: "rgba(248,250,252,0.92)",
-                        border: "1px solid #e2e8f0",
-                      }}
-                    >
-                      <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
-                        Salvati ora · {savedShiftDrafts.length}
-                        {savedDraftsPeopleVary ? "" : ` · ${savedDraftsPeopleLabel}`}
-                      </span>
-                      {/* The list, and only the list, scrolls - the heading
-                          stays put above it. Two things were wrong here. The
-                          box was a grid with a fixed height, and a grid with a
-                          height that small squeezes its rows to fit instead of
-                          overflowing, so every card was sliced across the
-                          middle. And its one column was free to size itself to
-                          the longest name, which pushed the cards out past the
-                          right edge where the box clipped them - which is why
-                          a name stopped dead with no "..." after it. */}
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "minmax(0, 1fr)",
-                          alignContent: "start",
-                          gap: 8,
-                          maxHeight: "min(192px, 26dvh)",
-                          overflowY: "auto",
-                          overflowX: "hidden",
-                        }}
-                      >
-                      {savedShiftDrafts.map((draft) => {
-                        const draftMemberNames =
+                  {savedShiftDrafts.length > 0 && !reviewingSaved ? (
+                    <SavedShiftsButton
+                      count={savedShiftDrafts.length}
+                      summary={
+                        savedDraftsPeopleVary
+                          ? savedShiftDrafts.map((draft) => formatCompactDayLabel(draft.date, locale)).join(", ")
+                          : `${savedDraftsPeopleLabel} · ${savedShiftDrafts
+                              .map((draft) => formatCompactDayLabel(draft.date, locale))
+                              .join(", ")}`
+                      }
+                      onOpen={() => setReviewingSaved(true)}
+                    />
+                  ) : null}
+
+                  {reviewingSaved && savedShiftDrafts.length > 0 ? (
+                    <SavedShiftsReview
+                      pending={isPending}
+                      rows={savedShiftDrafts.map((draft) => ({
+                        id: draft.id,
+                        shiftId: draft.shiftId ?? null,
+                        dayLabel: formatCompactDayLabel(draft.date, locale),
+                        time: `${draft.startTime}–${draft.endTime}`,
+                        people:
                           draft.memberIds
                             .map((memberId) => members.find((member) => member.id === memberId))
                             .filter(Boolean)
                             .map((member) => `${member?.firstName} ${member?.lastName}`)
-                            .join(", ") || "Nessuna persona";
-
-                        const savedShift = shiftDraftToShiftItem(draft, members, currentUserId);
-                        const savedCard = (
-                          <div
-                            key={draft.id}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: 10,
-                              padding: "9px 11px",
-                              borderRadius: 14,
-                              background: "#ffffff",
-                              border: "1px solid #dbe3ee",
-                              minWidth: 0,
-                            }}
-                          >
-                            <div style={{ display: "grid", gap: 2, minWidth: 0, flex: 1 }}>
-                              <span style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
-                                <strong
-                                  style={{
-                                    minWidth: 0,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    color: "#0f172a",
-                                    fontSize: 13.5,
-                                    letterSpacing: "-0.015em",
-                                  }}
-                                >
-                                  {formatCompactDayLabel(draft.date, locale)}
-                                </strong>
-                                <span
-                                  style={{
-                                    marginLeft: "auto",
-                                    flex: "0 0 auto",
-                                    fontSize: 12.5,
-                                    fontWeight: 700,
-                                    color: "#3a3850",
-                                    fontVariantNumeric: "tabular-nums",
-                                  }}
-                                >
-                                  {draft.startTime}–{draft.endTime}
-                                </span>
-                              </span>
-                              {savedDraftsPeopleVary || draft.isOnCall ? (
-                              <span
-                                style={{
-                                  minWidth: 0,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  color: "#64748b",
-                                  fontSize: 12,
-                                }}
-                              >
-                                {savedDraftsPeopleVary ? draftMemberNames : ""}
-                                {savedDraftsPeopleVary && draft.isOnCall ? " · " : ""}
-                                {draft.isOnCall ? "Reperibilità" : ""}
-                              </span>
-                            ) : null}
-                            </div>
-                            <span
-                              aria-label="Salvato"
-                              title="Salvato"
-                              style={{
-                                flexShrink: 0,
-                                width: 28,
-                                height: 28,
-                                borderRadius: 999,
-                                display: "grid",
-                                placeItems: "center",
-                                background: "#dcfce7",
-                                color: "#166534",
-                                fontWeight: 900,
-                              }}
-                            >
-                              ✓
-                            </span>
-                          </div>
-                        );
-
-                        return savedShift
-                          ? renderShiftSwipeActions(savedShift, savedCard, draft.date, true)
-                          : savedCard;
-                      })}
-                      </div>
-                    </div>
+                            .join(", ") || "Nessuna persona",
+                        onCall: draft.isOnCall,
+                        editable: draft.date.slice(0, 10) >= todayKey,
+                      }))}
+                      onBack={() => setReviewingSaved(false)}
+                      onEdit={(row) => {
+                        const draft = savedShiftDrafts.find((entry) => entry.id === row.id);
+                        if (row.shiftId) openShiftEditor(row.shiftId, draft?.date);
+                      }}
+                      onDelete={(row) => {
+                        if (row.shiftId) handleDeleteShift(row.shiftId);
+                      }}
+                    />
                   ) : null}
 
                   {selectedDay ? (
+                    <div hidden={reviewingSaved && savedShiftDrafts.length > 0}>
                     <ShiftQuickAdd
                       // A saved shift lands in the list above; remounting here
                       // clears the keypad for the next one.
@@ -4141,6 +4058,7 @@ export function OwnerCalendarClient({
                         }, "Fascia salvata.")
                       }
                     />
+                    </div>
                   ) : null}
                   </section>
                 </div>,
