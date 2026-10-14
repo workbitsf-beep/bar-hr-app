@@ -55,6 +55,26 @@
       }
 
       small { font-size: 12px; color: #9a9cac; }
+
+      .stamp {
+        display: none;
+        margin-top: 6px;
+        width: min(320px, 100%);
+        padding: 16px;
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 0 0 1px #e9e6f5;
+        gap: 10px;
+        justify-items: center;
+      }
+      .stamp.on { display: grid; }
+      .stamp strong { font-size: 15px; }
+      .stamp .go { background: linear-gradient(135deg, #15803d 0%, #22c55e 100%); width: 100%; margin: 0; }
+      .stamp .go.out { background: linear-gradient(135deg, #9a3412 0%, #f97316 100%); }
+      .stamp .go:disabled { opacity: 0.6; }
+      #stamp-note { font-size: 13px; color: #5b5e70; }
+      #stamp-note.bad { color: #b3202f; }
+      #stamp-note.ok { color: #15803d; font-weight: 700; }
     </style>
   </head>
   <body>
@@ -63,5 +83,114 @@
     <p>Workbit ha bisogno della rete per mostrarti turni, timbrature e documenti.</p>
     <button type="button" onclick="window.location.href = 'https://app.workbit.it'">Riprova</button>
     <small>Controlla Wi-Fi o dati mobili</small>
+
+    <!-- Timbrare senza rete: il GPS funziona lo stesso (satelliti, non internet).
+         Il punto del locale e il raggio li ha salvati l'app l'ultima volta che
+         era online; la timbratura resta sul telefono con ora e posizione e
+         parte da sola quando la rete torna, dove il server la ricontrolla. -->
+    <section class="stamp" id="stamp" aria-live="polite">
+      <strong id="stamp-title">Puoi timbrare lo stesso</strong>
+      <button type="button" class="go" id="stamp-go">Timbra entrata</button>
+      <span id="stamp-note">Controllo la posizione col GPS, poi la timbratura parte appena torna la rete.</span>
+    </section>
+
+    <script>
+      (function () {
+        var cap = window.Capacitor;
+        var plugins = cap && cap.Plugins;
+        if (!plugins || !plugins.Preferences || !plugins.Geolocation) return;
+
+        var CONTEXT = "wb-clock-context";
+        var QUEUE = "wb-clock-queue";
+        var MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+        var box = document.getElementById("stamp");
+        var go = document.getElementById("stamp-go");
+        var note = document.getElementById("stamp-note");
+        var title = document.getElementById("stamp-title");
+        var context = null;
+
+        function read(key) {
+          return plugins.Preferences.get({ key: key }).then(function (result) {
+            return result && result.value ? JSON.parse(result.value) : null;
+          });
+        }
+        function write(key, value) {
+          return plugins.Preferences.set({ key: key, value: JSON.stringify(value) });
+        }
+        function meters(a, b) {
+          var r = 6371000, rad = Math.PI / 180;
+          var dLat = (b.latitude - a.latitude) * rad, dLon = (b.longitude - a.longitude) * rad;
+          var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          return 2 * r * Math.asin(Math.sqrt(h));
+        }
+        function say(text, tone) {
+          note.textContent = text;
+          note.className = tone || "";
+        }
+        function feel(type) {
+          try { if (plugins.Haptics) plugins.Haptics.notification({ type: type }); } catch (e) {}
+        }
+        function show() {
+          var out = context.next === "clock-out";
+          go.textContent = out ? "Timbra uscita" : "Timbra entrata";
+          go.className = out ? "go out" : "go";
+          title.textContent = (context.firstName ? context.firstName + ", puoi" : "Puoi") + " timbrare lo stesso";
+          box.className = "stamp on";
+        }
+
+        read(CONTEXT).then(function (saved) {
+          if (!saved || !saved.points || !saved.points.length || !saved.radius) return;
+          if (Date.now() - saved.savedAt > MAX_AGE) return;
+          context = saved;
+          show();
+        }).catch(function () {});
+
+        go.addEventListener("click", function () {
+          if (!context) return;
+          go.disabled = true;
+          say("Rilevo la posizione...");
+          plugins.Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 25000, maximumAge: 0 })
+            .then(function (position) {
+              var here = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+              var nearest = Math.min.apply(null, context.points.map(function (point) { return meters(here, point); }));
+              if (nearest > context.radius) {
+                feel("WARNING");
+                say("Non sei nel tuo luogo di lavoro" + (context.barName ? " (" + context.barName + ")" : "") + ": avvicinati e riprova.", "bad");
+                go.disabled = false;
+                return;
+              }
+              var stamp = {
+                endpoint: context.next,
+                latitude: here.latitude,
+                longitude: here.longitude,
+                accuracy: position.coords.accuracy || null,
+                at: Date.now()
+              };
+              return read(QUEUE).then(function (queue) {
+                queue = queue || [];
+                queue.push(stamp);
+                return write(QUEUE, queue);
+              }).then(function () {
+                var what = context.next === "clock-out" ? "Uscita" : "Entrata";
+                var time = new Date(stamp.at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+                context.next = context.next === "clock-out" ? "clock-in" : "clock-out";
+                context.savedAt = Date.now();
+                return write(CONTEXT, context).then(function () {
+                  feel("SUCCESS");
+                  say(what + " delle " + time + " salvata. Parte da sola appena torna la rete.", "ok");
+                  show();
+                  go.disabled = false;
+                });
+              });
+            })
+            .catch(function () {
+              feel("WARNING");
+              say("Non riesco a leggere la posizione: attiva il GPS e riprova.", "bad");
+              go.disabled = false;
+            });
+        });
+      })();
+    </script>
   </body>
 </html>

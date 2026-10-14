@@ -181,6 +181,7 @@ export function DocumentRow({
               <DocumentFileLink
                 documentId={document.id}
                 mode="download"
+                fileName={document.fileName}
                 className="workbit-doc-sheet-action"
               >
                 Scarica sul telefono

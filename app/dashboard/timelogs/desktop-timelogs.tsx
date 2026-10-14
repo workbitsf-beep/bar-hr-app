@@ -18,6 +18,7 @@ type Log = {
   type: "IN" | "OUT";
   timestamp: Date;
   isManual: boolean;
+  offline?: boolean;
   note: string | null;
   user: { id: string; firstName: string; lastName: string };
 };
@@ -244,6 +245,7 @@ export async function DesktopTimeLogs({
                 <td>
                   {hm(s.in.timestamp)}
                   {s.in.isManual ? <span className="wbd-tag wbd-tag--violet" style={{ marginLeft: 6 }}>manuale</span> : null}
+                  {s.in.offline ? <span className="wbd-tag wbd-tag--warn" style={{ marginLeft: 6 }} title="Timbrata senza rete: l'ora è quella del telefono">senza rete</span> : null}
                 </td>
                 <td>
                   {s.out ? hm(s.out.timestamp) : "—"}
@@ -251,6 +253,7 @@ export async function DesktopTimeLogs({
                     <small style={{ color: "#847ea3" }}> +1</small>
                   ) : null}
                   {s.out?.isManual ? <span className="wbd-tag wbd-tag--violet" style={{ marginLeft: 6 }}>manuale</span> : null}
+                  {s.out?.offline ? <span className="wbd-tag wbd-tag--warn" style={{ marginLeft: 6 }} title="Timbrata senza rete: l'ora è quella del telefono">senza rete</span> : null}
                 </td>
                 <td className="num">
                   {s.out

@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
 import { isNativeApp } from "@/lib/native-app";
+import { shareFileFromUrl } from "@/lib/native-extras";
 
 /**
  * Opens or saves a document, in a browser and in the installed app alike.
@@ -23,8 +24,11 @@ export function DocumentFileLink({
   style,
   ariaLabel,
   title,
+  fileName,
 }: {
   documentId: string;
+  /** The name the file keeps when shared from the app. */
+  fileName?: string;
   mode: "open" | "download";
   children: ReactNode;
   className?: string;
@@ -69,6 +73,11 @@ export function DocumentFileLink({
 
             if (mode === "download") {
               url.searchParams.set("download", "1");
+              // Saving a document: the phone's share sheet, where it can go
+              // to File, Mail or WhatsApp. Opening one keeps the preview.
+              if (await shareFileFromUrl(url.toString(), fileName ?? "documento.pdf", "Documento")) {
+                return;
+              }
             }
 
             const { Browser } = await import("@capacitor/browser");

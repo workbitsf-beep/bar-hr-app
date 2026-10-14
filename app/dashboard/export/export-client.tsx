@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityType } from "@prisma/client";
 import { isNativeApp } from "@/lib/native-app";
+import { shareFileFromUrl } from "@/lib/native-extras";
 import { EmptyState, Panel, PrimaryButton, Stack } from "../ui";
 import { formatDurationClock } from "@/lib/time-format";
 
@@ -224,9 +225,16 @@ export function ExportClient({
           return;
         }
 
+        const link = new URL(payload.url, window.location.origin).toString();
+        // The phone's own share sheet (WhatsApp, Mail, File...); the browser
+        // only if that fails.
+        if (await shareFileFromUrl(link, `report-${year}-${String(month).padStart(2, "0")}.pdf`, "Report ore")) {
+          return;
+        }
+
         const { Browser } = await import("@capacitor/browser");
 
-        await Browser.open({ url: new URL(payload.url, window.location.origin).toString() });
+        await Browser.open({ url: link });
         return;
       }
 

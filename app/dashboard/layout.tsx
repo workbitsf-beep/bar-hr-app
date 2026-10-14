@@ -8,6 +8,7 @@ import { DashboardRouteGuard } from "./dashboard-route-guard";
 import { getDashboardContext } from "./context";
 import { NotificationBarSync } from "./notification-bar-sync";
 import { NotificationsBell } from "./notifications-bell";
+import { NativeExtras } from "./native-extras";
 import { PushRegistration } from "./push-registration";
 import { NativePermissions } from "./native-permissions";
 import {
@@ -139,6 +140,7 @@ export default async function DashboardLayout({
       <NotificationBarSync activeBarId={activeBarId} />
       <PushRegistration />
       <NativePermissions />
+      <NativeExtras canClock={role !== "OWNER" && String(role) !== "SUPER_ADMIN" && features.timeTracking} />
       <DashboardRouteGuard
         redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings?billing=1" : null}
         allowPrefixes={["/dashboard/settings"]}

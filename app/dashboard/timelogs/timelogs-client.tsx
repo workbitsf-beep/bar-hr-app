@@ -15,6 +15,8 @@ import {
 import type { GeolocationSample } from "@/lib/browser-gps";
 import { calculateDistance } from "@/lib/gps";
 import { isNativeApp } from "@/lib/native-app";
+import { haptic } from "@/lib/native-extras";
+import { queueStamp, saveClockContext } from "@/lib/offline-clock-queue";
 import { APP_TIME_ZONE, getZonedDateParts } from "@/lib/time-zone";
 import {
   EmptyState,
@@ -35,6 +37,8 @@ type LogItem = {
   type: ClockType;
   timestamp: string;
   isManual: boolean;
+  /** Stamped on the phone without network and sent later. */
+  offline?: boolean;
   note: string | null;
   user: {
     id: string;
@@ -304,6 +308,14 @@ function ClockLogRow({ log, muted = false }: { log: LogItem; muted?: boolean }) 
           {formatClockTime(log.timestamp)}
         </strong>
       </div>
+      {log.offline ? (
+        <span
+          title="Timbrata sul telefono senza rete e arrivata dopo: l'ora è quella del telefono."
+          style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "#b45309", marginTop: 4 }}
+        >
+          senza rete
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -811,8 +823,13 @@ export function ClockActionsPanel({
   activeClockInAt = null,
   shiftLabel = null,
   clockPoints = null,
+  personName = "",
+  venueName = "",
 }: {
   role: Role | string;
+  /** For the app's offline page: who stamps, and where. */
+  personName?: string;
+  venueName?: string;
   settings: BarSettingsSummary;
   /** A company's site points: the nearest one counts instead of the venue's. */
   clockPoints?: Array<{ latitude: number; longitude: number }> | null;
@@ -872,6 +889,22 @@ export function ClockActionsPanel({
 
   const gpsConfigured = hasConfiguredGps(settings);
   const canClock = role !== "OWNER";
+
+  // What the app's offline page needs to offer a stamp when the site cannot
+  // load: where the venue is, how near counts, and what the next stamp is.
+  useEffect(() => {
+    if (!canClock || !compact || !isNativeApp() || !hasConfiguredGps(settings)) return;
+    void saveClockContext({
+      firstName: personName,
+      barName: venueName,
+      points: clockPoints?.length
+        ? clockPoints
+        : [{ latitude: settings.gpsLatitude as number, longitude: settings.gpsLongitude as number }],
+      radius: settings.gpsRadius as number,
+      next: clockStatus === "CAN_CLOCK_OUT" ? "clock-out" : "clock-in",
+      savedAt: Date.now(),
+    });
+  }, [canClock, compact, clockPoints, clockStatus, personName, settings, venueName]);
 
   // A reading carries an error of its own, often tens of metres indoors, so a
   // distance of exactly the radius means nothing: standing still, the point
@@ -1131,6 +1164,7 @@ export function ClockActionsPanel({
       const nextDistance = nearestDistance(sample.latitude, sample.longitude, settings, clockPoints);
 
       if (nextDistance > settings.gpsRadius) {
+        void haptic("warning");
         setLocationError("");
         const message = "Non sei ancora nel tuo luogo di lavoro, avvicinati.";
         setActionMessage(message);
@@ -1138,17 +1172,42 @@ export function ClockActionsPanel({
         return;
       }
 
-      const response = await fetch(`/api/timelogs/${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          latitude: sample.latitude,
-          longitude: sample.longitude,
-          accuracy: sample.accuracy,
-        }),
-      });
+      const stamp = {
+        endpoint,
+        latitude: sample.latitude,
+        longitude: sample.longitude,
+        accuracy: sample.accuracy ?? null,
+        at: Date.now(),
+      };
+      let response: Response;
+      try {
+        if (isNativeApp() && typeof navigator !== "undefined" && navigator.onLine === false) {
+          throw new Error("offline");
+        }
+        response = await fetch(`/api/timelogs/${endpoint}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            latitude: sample.latitude,
+            longitude: sample.longitude,
+            accuracy: sample.accuracy,
+          }),
+        });
+      } catch (networkError) {
+        // No network inside the app: the stamp is kept on the phone, with
+        // its time and position, and sent as soon as the network is back
+        // (app/dashboard/offline-clock.tsx). In a browser it is just an error.
+        if (!isNativeApp()) throw networkError;
+        await queueStamp(stamp);
+        void haptic("success");
+        const what = endpoint === "clock-in" ? "Entrata" : "Uscita";
+        setActionMessage(`${what} salvata senza rete: parte appena torna la connessione.`);
+        setConfirmationMessage(`${what} salvata`);
+        setConfirmationKey((current) => current + 1);
+        return;
+      }
       const payload = (await response.json().catch(() => null)) as
         | { ok?: boolean; message?: string; duration?: number }
         | null;
@@ -1159,11 +1218,14 @@ export function ClockActionsPanel({
             ? "Non sei ancora nel tuo luogo di lavoro, avvicinati."
             : payload?.message || "Operazione non riuscita";
         setActionMessage(message);
+        void haptic("warning");
         if (payload?.message === "Outside allowed radius") {
           showTemporaryWarning(message);
         }
         return;
       }
+
+      void haptic("success");
 
       if (endpoint === "clock-out") {
         setSuccessPulse("out");
@@ -1190,6 +1252,21 @@ export function ClockActionsPanel({
       setSubmitting(null);
     }
   }
+
+  // Opened from "Timbra" on the app icon (long press): the stamp starts by
+  // itself, once, and the address goes back to plain Oggi.
+  const shortcutRan = useRef(false);
+  useEffect(() => {
+    if (!compact || !canClock || shortcutRan.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("azione") !== "timbra") return;
+    shortcutRan.current = true;
+    params.delete("azione");
+    const rest = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`);
+    void runClockAction(clockStatus === "CAN_CLOCK_OUT" ? "clock-out" : "clock-in");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compact, canClock, clockStatus]);
 
   function captureGeolocation() {
     if (locating) {

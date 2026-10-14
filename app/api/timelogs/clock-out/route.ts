@@ -1,5 +1,6 @@
-﻿import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
+import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { clockPlaceFor, isAtClockPlace } from "@/lib/clock-points";
+import { clockMomentOf } from "@/lib/offline-clock";
 import { isStaleEntry } from "@/lib/clock-fixes";
 import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
@@ -154,7 +155,18 @@ export const POST = withBar(
       );
     }
 
-    const outTimestamp = new Date();
+    // Stamped on the phone without network: its own moment (lib/offline-clock.ts).
+    const moment = clockMomentOf((body as { offlineAt?: unknown }).offlineAt);
+    if ("error" in moment) {
+      return Response.json({ ok: false, code: "OFFLINE_REFUSED", message: moment.error }, { status: 400 });
+    }
+    if (moment.at <= sessionStart) {
+      return Response.json(
+        { ok: false, code: "OFFLINE_REFUSED", message: "L'uscita senza rete è prima dell'entrata: segnalala come dimenticata." },
+        { status: 400 }
+      );
+    }
+    const outTimestamp = moment.at;
 
     // The automatic exit is replaced only once the real one is sure to be
     // written. Deleting it before the position was checked meant a refused
@@ -173,6 +185,7 @@ export const POST = withBar(
           latitude,
           longitude,
           timestamp: outTimestamp,
+          offline: moment.offline,
           note: null,
         },
       }),

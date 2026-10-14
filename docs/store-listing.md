@@ -72,9 +72,16 @@ e il titolare invita le persone del suo team.
 > gets a 30-day free trial and nothing is sold or priced inside the app. Payment, if the
 > business continues, is arranged outside the app, as 3.1.3(c) allows.
 >
-> Native features: push notifications (shift published, requests approved), clock-in with
-> location at the venue, sign-in with Face ID / Touch ID (passkeys), camera to attach
-> documents, and offline handling when the network drops.
+> Native features, beyond the web version:
+> - Home-screen quick action: long-press the Workbit icon → "Timbra" clocks in or out at once.
+> - Offline clock-in: kitchens and cellars often have no signal. The app checks the position
+>   with GPS (no network needed), keeps the stamp on the device and sends it when the network
+>   returns; the owner sees it marked "senza rete".
+> - Haptic feedback when a clock-in or clock-out is recorded or refused.
+> - Monthly PDF report and documents go to the iOS share sheet (Mail, Files, WhatsApp).
+> - App icon badge with unread notifications (new requests for the owner).
+> - Pull to refresh.
+> - Push notifications, sign-in with Face ID / Touch ID (passkeys), camera to attach documents.
 
 ### Google (App content → App access)
 

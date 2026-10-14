@@ -1,4 +1,4 @@
-﻿import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
+import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 import { clockPlaceFor, isAtClockPlace } from "@/lib/clock-points";
 import { prisma } from "@/lib/prisma";
@@ -6,11 +6,14 @@ import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { closeClockInReminders } from "@/lib/timelog-reminders";
 import { withBar } from "@/lib/withBar";
+import { clockMomentOf } from "@/lib/offline-clock";
 
 type ClockInBody = {
   latitude?: number;
   longitude?: number;
   accuracy?: number;
+  /** Stamped on the phone without network: when (lib/offline-clock.ts). */
+  offlineAt?: string | number;
 };
 
 type SessionWithBar = {
@@ -40,7 +43,11 @@ export const POST = withBar(
       );
     }
 
-    const now = new Date();
+    const moment = clockMomentOf(body.offlineAt);
+    if ("error" in moment) {
+      return Response.json({ ok: false, code: "OFFLINE_REFUSED", message: moment.error }, { status: 400 });
+    }
+    const now = moment.at;
     const activeShift = await findAssignedShiftForClockIn({
       barId: session.activeBarId,
       userId: session.user.id,
@@ -190,6 +197,8 @@ export const POST = withBar(
         shiftId: activeShift?.id ?? null,
         latitude,
         longitude,
+        timestamp: now,
+        offline: moment.offline,
         note: activeShift ? `Turno previsto fino alle ${activeShift.endTime.toISOString()}` : null,
       },
     });

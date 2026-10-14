@@ -104,7 +104,7 @@ function describeRequestWhen(startsAt: Date | null, endsAt: Date | null) {
 }
 
 export default async function DashboardPage() {
-  const { session, role, staff, activeBarId, activeBarActivityType, billingStatus, features } =
+  const { session, role, staff, activeBarId, activeBarName, activeBarActivityType, billingStatus, features } =
     await getDashboardContext();
   // Pro: the departments, for the tiles over the crew and the week's bars.
   const departments = await getVenueDepartments(activeBarId, session.user.id);
@@ -943,6 +943,8 @@ export default async function DashboardPage() {
               role={role}
               settings={clockSettings}
               clockPoints={clockPlace?.points ?? null}
+              personName={session.user.firstName}
+              venueName={activeBarName ?? ""}
               clockStatus={clockStatus}
               hasScheduledShiftToday={Boolean(assignedShiftForClockIn) || Boolean(clockPlace?.shiftOptional)}
               activeClockInAt={activeClockInAt}

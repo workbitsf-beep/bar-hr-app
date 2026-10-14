@@ -682,6 +682,9 @@ model TimeLog {
   longitude    Float?
   isManual     Boolean   @default(false)
   autoClockOut Boolean   @default(false)
+  /// Stamped on the phone without network and sent when it came back: the
+  /// time is the phone's, so the owner sees it marked "senza rete".
+  offline      Boolean   @default(false)
   note         String?
 
   @@index([barId, userId, timestamp])
