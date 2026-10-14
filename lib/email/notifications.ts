@@ -375,6 +375,46 @@ export async function sendTrialEndingEmail(
   });
 }
 
+/**
+ * La carta, chiesta per email a chi ha aperto il locale dall'app installata.
+ *
+ * Nell'app non si vende niente (Apple e Google lo vietano), quindi lì la
+ * prova parte senza carta. La carta si aggiunge sul sito: lo diciamo qui,
+ * fuori dall'app, dove è permesso. `ending`: l'avviso pochi giorni prima
+ * della fine, a chi non l'ha ancora aggiunta.
+ */
+export async function sendTrialCardEmail(
+  ownerEmail: string,
+  ownerName: string,
+  barName: string,
+  endsOn: Date,
+  ending = false
+) {
+  const giorno = new Intl.DateTimeFormat("it-IT", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Rome",
+  }).format(endsOn);
+
+  return sendTemplatedEmail({
+    to: ownerEmail,
+    subject: ending ? `La prova di ${barName} finisce il ${giorno}` : `${barName}: la prova è attiva fino al ${giorno}`,
+    title: ending ? "La prova sta per finire" : "La prova è attiva",
+    message: [
+      `Ciao ${ownerName},`,
+      ending
+        ? `la prova gratuita di ${barName} finisce il ${giorno}.`
+        : `${barName} è su Workbit: hai 30 giorni gratis, fino al ${giorno}.`,
+      "",
+      "Per continuare dopo la prova aggiungi un metodo di pagamento dall'area titolare sul sito: non paghi niente fino a quel giorno, e puoi disdire quando vuoi.",
+      "",
+      "Senza metodo di pagamento, alla fine della prova il locale si ferma: turni, timbrature e report restano salvati e ripartono appena lo aggiungi.",
+    ].join("\n"),
+    ctaLabel: "Aggiungi il metodo di pagamento",
+    ctaUrl: getEmailAppUrl("/dashboard/settings?billing=1"),
+  });
+}
+
 export async function sendOwnerWelcomeEmail(
   ownerEmail: string,
   ownerName: string,

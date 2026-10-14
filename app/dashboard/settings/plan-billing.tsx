@@ -389,9 +389,12 @@ export function PlanBilling({
         <span>{status.detail}</span>
       </div>
 
+      {/* What to do about the subscription is said on the web only: inside the
+          installed app nothing may point at paying. */}
       {status.notice ? (
         <div
           role="status"
+          className="wb-web-only"
           style={{
             padding: "10px 12px",
             borderRadius: 14,
@@ -476,7 +479,7 @@ export function PlanBilling({
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
         {owned.plan !== "CUSTOM" ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#4c4670" }}>
+          <span className="wb-web-only" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#4c4670" }}>
             Tante persone o sedi? Su misura
             <Info id="custom" company={company} />
           </span>
@@ -552,10 +555,8 @@ export function PlanBilling({
         </div>
       ) : null}
 
-      {/* In the installed app the plan is shown, not sold. */}
-      <p className="wb-native-only" style={{ margin: 0, color: "#6b6880", lineHeight: 1.6, fontSize: 13 }}>
-        L&apos;abbonamento del locale si gestisce dall&apos;area titolare di Workbit sul web.
-      </p>
+      {/* In the installed app the plan is shown, not sold - and not pointed
+          at either: "manage it on the web" counts as steering (App Store 3.1.3). */}
     </div>
   );
 }

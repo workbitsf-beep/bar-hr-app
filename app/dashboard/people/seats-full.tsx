@@ -33,6 +33,9 @@ export function SeatsFull({
       <strong style={{ fontSize: 16, color: "#17161f" }}>
         Hai {seats.used} persone su {seats.limit}: il locale è al completo
       </strong>
+      {/* How to get more places is a purchase: on the web only, never inside
+          the installed app (App Store rule 3.1.1). */}
+      <div className="wb-web-only" style={{ display: "grid", gap: 10 }}>
       {(entitlements.pro && packsLeft === 0) || entitlements.custom ? (
         <span style={{ fontSize: 14, color: "#5b5873", lineHeight: 1.45 }}>
           Il titolare conta tra le persone e hai già tutti i pacchetti: per andare oltre scrivi all&apos;assistenza.
@@ -66,6 +69,7 @@ export function SeatsFull({
       >
         Vedi il tuo piano ›
       </Link>
+      </div>
     </div>
   );
 }

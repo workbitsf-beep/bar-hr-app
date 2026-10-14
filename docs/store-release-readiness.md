@@ -66,9 +66,16 @@ Decisione presa (ottobre 2026): nell'app installata non si vende nulla. Workbit 
 venduto alle attività per il loro personale (Apple 3.1.3(c), Enterprise Services), quindi non
 serve l'acquisto in-app purché l'app non mostri acquisti. All'avvio nell'app nativa la pagina
 viene marcata `data-native` (script in testa a `app/layout.tsx`, più il cookie `wb-native`) e
-tutto ciò che ha la classe `wb-web-only` sparisce: checkout, disdetta, inviti a rinnovare. Al
-loro posto un testo neutro senza link né prezzo (`wb-native-only`). Sul sito non cambia nulla.
-La registrazione di un nuovo locale, che mostra il prezzo, è raggiungibile solo dal sito.
+tutto ciò che ha la classe `wb-web-only` sparisce: checkout, disdetta, inviti a rinnovare,
+pacchetti e piano Su misura, l'avviso della prova. Al loro posto un testo neutro senza link né
+prezzo (`wb-native-only`). Sul sito non cambia nulla.
+
+Registrazione dall'app (14 ottobre 2026): un titolare può aprire il locale anche dall'app, senza
+prezzo a schermo. Sul sito la prova parte solo dopo la carta (voluto); nell'app no, perché la
+pagina della carta lì è vuota e il titolare resterebbe bloccato — motivo di rifiuto (2.1,
+3.1.1). Nell'app la prova parte subito (`context.ts`, `DashboardRouteGuard`) e la carta si chiede
+per email, sul sito: subito dopo la registrazione e tre giorni prima della fine della prova
+(`sendTrialCardEmail`, `lib/trial-reminders.ts`). Apple permette di comunicare fuori dall'app.
 
 ## Notifiche
 

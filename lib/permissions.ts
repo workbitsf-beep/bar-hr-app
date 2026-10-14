@@ -2,6 +2,7 @@ import "server-only";
 
 import { ActivityType, PlanType, Role } from "@prisma/client";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { ownerNeedsLegalAcceptance } from "@/lib/legal-documents";
 import type { SessionWithUser } from "@/lib/auth";
@@ -337,6 +338,15 @@ const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(
   return ownedBars[0] ?? null;
 });
 
+/** The request comes from the installed app (cookie set by app/layout.tsx). */
+async function isInsideInstalledApp() {
+  try {
+    return (await cookies()).get("wb-native")?.value === "1";
+  } catch {
+    return false;
+  }
+}
+
 export async function getPostLoginDestination(input: {
   userId: string;
   role: Role;
@@ -374,7 +384,8 @@ export async function getPostLoginDestination(input: {
         !ownedBar.subscription.stripeSubscriptionId
     );
 
-    if (needsBilling) {
+    // Inside the installed app the card is not asked (see dashboard/context.ts).
+    if (needsBilling && !(await isInsideInstalledApp())) {
       return "/dashboard/settings?billing=1";
     }
   }

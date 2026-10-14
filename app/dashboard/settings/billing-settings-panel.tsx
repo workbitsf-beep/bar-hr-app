@@ -104,7 +104,7 @@ function getBillingDisplay(status: BillingStatusResult) {
   if (status.planType === PlanType.TRIAL && status.requiresActivation && status.trialEndsAt) {
     const until = formatNullableDate(status.trialEndsAt);
     return {
-      label: "Prova da avviare",
+      label: "In prova",
       tone: "warning" as const,
       message: `30 giorni gratis: inserisci la carta per iniziare. Non paghi niente fino al ${until}, e puoi disdire prima.`,
       messageColor: "#92400e",

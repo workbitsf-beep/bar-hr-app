@@ -26,7 +26,7 @@ async function ownerOfProVenue() {
   if (role !== Role.OWNER && !isStaffRole(String(role)) && String(role) !== "SUPER_ADMIN") throw new Error("Unauthorized");
 
   const entitlements = await getVenueEntitlements(activeBar.id);
-  if (!entitlements.departments) throw new RuleError("Reparti e sedi sono un extra del Base, e sono compresi nel Pro.");
+  if (!entitlements.departments) throw new RuleError("Reparti e sedi non sono nel piano di questo locale.");
 
   return { barId: activeBar.id, role, staff, entitlements, activityType: activeBar.activityType };
 }

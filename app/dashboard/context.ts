@@ -203,8 +203,12 @@ export const getDashboardContext = cache(async function getDashboardContext(
           // Companies clock in too since 8 October 2026, when the owner turns it on.
         }
       : rawFeatures;
+  // On the web a new owner enters a card before the trial (wanted). Inside the
+  // installed app nothing is sold - Apple and Google forbid it - so there the
+  // trial runs without one, and the card is asked by email, on the site.
+  const insideApp = (await cookies()).get("wb-native")?.value === "1";
   const ownerNeedsSubscriptionActivation =
-    role === Role.OWNER && Boolean(billingStatus?.requiresActivation);
+    role === Role.OWNER && Boolean(billingStatus?.requiresActivation) && !insideApp;
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
   const notesEnabled = features.tasks || features.noticeBoard;
   const requestsNavLabel = features.requests ? t.requests : t.availability;

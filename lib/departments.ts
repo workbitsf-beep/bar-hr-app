@@ -1,4 +1,4 @@
-import { ActivityType, Department, DepartmentMode, Role } from "@prisma/client";
+import { ActivityType, Department, DepartmentMode } from "@prisma/client";
 import { cache } from "react";
 import { entitlementsOf, siteLimitOf } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";

@@ -67,6 +67,14 @@ e il titolare invita le persone del suo team.
 >
 > Account deletion: Settings → "Elimina il mio account" (employee) or "Elimina locale e
 > account" (owner).
+>
+> A business can also open its account from the app ("Registrati" on the login screen): it
+> gets a 30-day free trial and nothing is sold or priced inside the app. Payment, if the
+> business continues, is arranged outside the app, as 3.1.3(c) allows.
+>
+> Native features: push notifications (shift published, requests approved), clock-in with
+> location at the venue, sign-in with Face ID / Touch ID (passkeys), camera to attach
+> documents, and offline handling when the network drops.
 
 ### Google (App content → App access)
 

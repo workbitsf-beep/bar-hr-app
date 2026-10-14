@@ -36,7 +36,7 @@ export async function saveVenueStyleAction(formData: FormData) {
     if (!activeBar?.id) throw new Error("No active bar selected");
     if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") throw new RuleError("Solo il titolare cambia lo stile del locale.");
     if (!(await getVenueEntitlements(activeBar.id)).branding) {
-      throw new RuleError("Logo e font sono l'extra Stile del Base, e sono compresi nel Pro.");
+      throw new RuleError("Logo e font non sono nel piano di questo locale.");
     }
 
     const data: { signFont?: string | null; logo?: Uint8Array<ArrayBuffer> | null; logoType?: string | null; logoUpdatedAt?: Date | null } = {};

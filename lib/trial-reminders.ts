@@ -1,6 +1,6 @@
-import { SubscriptionStatus } from "@prisma/client";
+import { PlanType, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { sendTrialEndingEmail } from "@/lib/email/notifications";
+import { sendTrialCardEmail, sendTrialEndingEmail } from "@/lib/email/notifications";
 
 /**
  * L'avviso, tre giorni prima che la prova finisca.
@@ -89,5 +89,54 @@ export async function runTrialEndingReminders(now = new Date()) {
     }
   }
 
-  return { trovate: inScadenza.length, inviate, fallite };
+  // Chi ha aperto il locale dall'app e non ha ancora la carta: la prova
+  // finisce senza addebito, ma il locale si ferma. Glielo diciamo prima, con
+  // il link per aggiungerla sul sito.
+  const senzaCarta = await prisma.subscription.findMany({
+    where: {
+      planType: PlanType.TRIAL,
+      trialEndsAt: { gte: from, lt: to },
+      trialEndingNoticeAt: null,
+      stripeSubscriptionId: null,
+    },
+    select: {
+      id: true,
+      trialEndsAt: true,
+      bar: {
+        select: {
+          name: true,
+          owner: { select: { email: true, firstName: true, lastName: true } },
+        },
+      },
+    },
+  });
+
+  for (const abbonamento of senzaCarta) {
+    const titolare = abbonamento.bar?.owner;
+    if (!titolare?.email || !abbonamento.trialEndsAt) continue;
+
+    try {
+      const esito = await sendTrialCardEmail(
+        titolare.email,
+        `${titolare.firstName} ${titolare.lastName}`.trim() || titolare.email,
+        abbonamento.bar?.name ?? "il tuo locale",
+        abbonamento.trialEndsAt,
+        true
+      );
+      if (!esito.ok) throw new Error("invio non riuscito");
+      await prisma.subscription.update({
+        where: { id: abbonamento.id },
+        data: { trialEndingNoticeAt: new Date() },
+      });
+      inviate += 1;
+    } catch (error) {
+      fallite += 1;
+      console.error("[prova-senza-carta] avviso non partito", {
+        subscriptionId: abbonamento.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return { trovate: inScadenza.length + senzaCarta.length, inviate, fallite };
 }

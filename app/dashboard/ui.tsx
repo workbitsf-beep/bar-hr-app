@@ -1471,7 +1471,7 @@ export function BillingRequiredState({
     <Panel title="Abbonamento richiesto">
       <div style={{ display: "grid", gap: 14 }}>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          Questo locale e attualmente bloccato perche l&apos;abbonamento non e attivo.
+          Questo locale è fermo perché l&apos;abbonamento non è attivo.
         </p>
         <p
           className={canManageBilling ? "wb-web-only" : undefined}
@@ -1481,9 +1481,11 @@ export function BillingRequiredState({
             ? "Attiva o rinnova l’abbonamento per sbloccare turni, timbrature, mansioni, bacheca e report."
             : "Contatta il titolare del locale per riattivare l’abbonamento e sbloccare le funzionalità operative."}
         </p>
+        {/* Inside the installed app nothing points at paying, not even in
+            words: Apple counts that as steering to an outside purchase. */}
         {canManageBilling ? (
           <p className="wb-native-only" style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-            L&apos;abbonamento del locale si gestisce dall&apos;area titolare di Workbit sul web.
+            Turni, timbrature e report restano salvati e ripartono appena l&apos;abbonamento è di nuovo attivo.
           </p>
         ) : null}
         {canManageBilling ? (
