@@ -1474,7 +1474,7 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
   // account and becomes an owner when their venue is created: the new venue
   // page opens with them already chosen. An error here was a dead end.
   if (existingUser) {
-    if (String(existingUser.role) === "SUPER_ADMIN" || existingUser.retiredAt) {
+    if (existingUser.retiredAt) {
       redirect(appendStatusToPath(returnPath, { error: "owner-exists" }));
     }
     redirect(`/dashboard/super-admin/new?owner=${existingUser.id}`);
@@ -1656,7 +1656,7 @@ async function createOwnerAndBar(formData: FormData) {
     // account was refused, and the "existing owner" list showed owners only,
     // so an employee could never be made an owner at all.
     if (existingUser) {
-      if (String(existingUser.role) === "SUPER_ADMIN" || existingUser.retiredAt) {
+      if (existingUser.retiredAt) {
         throw new RuleError(`L'account ${email} non può diventare titolare.`);
       }
       primaryOwnerId = existingUser.id;
