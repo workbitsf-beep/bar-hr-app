@@ -9,12 +9,15 @@ import { fullName, type PersonShape } from "../console-data";
 export function NewVenueForm({
   owners,
   languageOptions,
+  preselectedOwnerId = null,
 }: {
   owners: PersonShape[];
   languageOptions: Array<{ value: string; label: string }>;
+  /** An account that already exists, sent here to be made the owner. */
+  preselectedOwnerId?: string | null;
 }) {
   const [mode, setMode] = useState<"new" | "existing">(owners.length > 0 ? "existing" : "new");
-  const [primary, setPrimary] = useState(owners[0]?.id ?? "");
+  const [primary, setPrimary] = useState(preselectedOwnerId ?? owners[0]?.id ?? "");
   const [extra, setExtra] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
 

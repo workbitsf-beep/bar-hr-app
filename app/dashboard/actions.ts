@@ -1467,11 +1467,17 @@ export async function createOwnerBySuperAdminAction(formData: FormData) {
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, role: true, retiredAt: true },
   });
 
+  // Someone already on Workbit - an employee somewhere, say - keeps the one
+  // account and becomes an owner when their venue is created: the new venue
+  // page opens with them already chosen. An error here was a dead end.
   if (existingUser) {
-    redirect(appendStatusToPath(returnPath, { error: "owner-exists" }));
+    if (String(existingUser.role) === "SUPER_ADMIN" || existingUser.retiredAt) {
+      redirect(appendStatusToPath(returnPath, { error: "owner-exists" }));
+    }
+    redirect(`/dashboard/super-admin/new?owner=${existingUser.id}`);
   }
 
   const temporaryPassword = createTemporaryPassword();

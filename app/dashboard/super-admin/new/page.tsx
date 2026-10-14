@@ -3,11 +3,17 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getLanguageOptions } from "@/lib/i18n";
 import { getDashboardContext } from "../../context";
-import { Forbidden } from "../console-ui";
+import { Forbidden, Note } from "../console-ui";
 import { NewVenueForm } from "./new-venue-form";
 
-export default async function ConsoleNewVenuePage() {
+export default async function ConsoleNewVenuePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { role } = await getDashboardContext();
+  const params = searchParams ? await searchParams : {};
+  const wantedOwner = Array.isArray(params.owner) ? params.owner[0] : params.owner;
 
   if (String(role) !== "SUPER_ADMIN") {
     return <Forbidden />;
@@ -19,6 +25,8 @@ export default async function ConsoleNewVenuePage() {
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     select: { id: true, firstName: true, lastName: true, email: true },
   });
+  // Sent here from "Nuovo titolare" with an email that already had an account.
+  const preselected = owners.find((owner) => owner.id === wantedOwner) ?? null;
 
   const languageOptions = getLanguageOptions().map((option) => ({
     value: String(option.value),
@@ -38,7 +46,14 @@ export default async function ConsoleNewVenuePage() {
         </p>
       </div>
 
-      <NewVenueForm owners={owners} languageOptions={languageOptions} />
+      {preselected ? (
+        <Note tone="positive">
+          {preselected.firstName} {preselected.lastName} ha già un account ({preselected.email}): crea qui il suo
+          locale e ne diventa titolare, con la password di sempre.
+        </Note>
+      ) : null}
+
+      <NewVenueForm owners={owners} languageOptions={languageOptions} preselectedOwnerId={preselected?.id ?? null} />
     </div>
   );
 }

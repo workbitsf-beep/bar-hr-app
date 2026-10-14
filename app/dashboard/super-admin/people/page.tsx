@@ -9,7 +9,7 @@ import { fullName, readParam, roleLabel } from "../console-data";
 const FEEDBACK: Record<string, string> = {
   "owner-created": "Titolare creato: ha ricevuto le credenziali via email.",
   "owner-created-email-failed": "Titolare creato, ma l'email di benvenuto non è partita.",
-  "owner-exists": "Esiste già un account con questa email.",
+  "owner-exists": "Questo account non può diventare titolare.",
 };
 
 export default async function ConsolePeoplePage({

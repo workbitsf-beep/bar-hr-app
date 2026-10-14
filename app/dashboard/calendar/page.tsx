@@ -7,7 +7,6 @@ import { describeTaskRepeat } from "@/lib/task-recurrence";
 import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
 import { can, hasWholeScope, scopeOf } from "@/lib/staff-permissions";
 import { buildShiftPresets } from "@/lib/shift-presets";
-import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { serializeDay, toDayKey } from "@/lib/day-key";
 import { getDashboardContext } from "../context";
@@ -93,14 +92,18 @@ function parseAnchorDate(searchParams?: Record<string, string | string[] | undef
   }
 
   try {
-    const parsed = parseDateTimeLocal(raw);
+    // The day as written, at the server's own midnight - the same footing as
+    // every other date on this page. Read as Rome time and then cut to the
+    // server's midnight, a server on UTC turned 16 October into the 15th: the
+    // anchor sent back after a save looked like a different day, and the
+    // calendar closed the shift popup after every save.
+    const parsed = dateKeyToLocalDate(raw);
     if (Number.isNaN(parsed.getTime())) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return today;
     }
 
-    parsed.setHours(0, 0, 0, 0);
     return parsed;
   } catch {
     const today = new Date();
