@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ShiftPreset } from "@/lib/shift-presets";
 
 export type QuickAddMember = {
@@ -62,7 +62,10 @@ export function ShiftQuickAdd({
   onSave,
   onSavePreset,
   topSlot,
+  savedCount = 0,
 }: {
+  /** Grows with each save that went through: the form starts afresh. */
+  savedCount?: number;
   dayKey: string;
   dayLabel: string;
   members: QuickAddMember[];
@@ -92,6 +95,26 @@ export function ShiftQuickAdd({
   const [dayKeys, setDayKeys] = useState<string[]>([]);
   const [weekIndex, setWeekIndex] = useState(0);
   const [presetOffered, setPresetOffered] = useState<string[]>([]);
+  // "Per orario": the days the shift goes on (the tapped one to start), and
+  // whether the keypad is out - it opens with the first time box and folds
+  // away once the hours are in or a button below is used.
+  const [timeDays, setTimeDays] = useState<string[]>([dayKey]);
+  const [keypadOpen, setKeypadOpen] = useState(presets.length === 0);
+
+  // After a save the next shift starts empty: the people of the last one
+  // stayed ticked and went silently into the next.
+  const lastSaved = useRef(savedCount);
+  useEffect(() => {
+    if (savedCount === lastSaved.current) return;
+    lastSaved.current = savedCount;
+    setStartDigits("");
+    setEndDigits("");
+    setField("start");
+    setMemberIds([]);
+    setIsOnCall(false);
+    setTimeDays([dayKey]);
+    setKeypadOpen(presets.length === 0);
+  }, [savedCount, dayKey, presets.length]);
 
   const start = resolveTime(startDigits);
   const end = resolveTime(endDigits);
@@ -111,6 +134,8 @@ export function ShiftQuickAdd({
     setPersonId(null);
     setDayKeys([]);
     setWeekIndex(0);
+    setTimeDays([dayKey]);
+    setKeypadOpen(presets.length === 0);
   }
 
   function editField(edit: (current: string) => string) {
@@ -142,6 +167,9 @@ export function ShiftQuickAdd({
     // Four digits mean the hour is finished; the minutes are already there.
     if (next.length === 4 && field === "start") {
       setField("end");
+    }
+    if (next.length === 4 && field === "end" && door === "time" && resolveTime(startDigits)) {
+      setKeypadOpen(false);
     }
   }
 
@@ -363,58 +391,264 @@ export function ShiftQuickAdd({
   // ——————————————————————————————— per orario ———————————————————————————————
 
   if (door === "time") {
-    if (screen === 1 && span) {
-      const busy = busyAt(dayKey, span.startTime, span.endTime);
-
-      return (
-        <div style={{ display: "grid", gap: 13 }}>
-          <Head
-            title="Chi ci lavora"
-            detail={`${dayLabel} · ${span.startTime}–${span.endTime}`}
-            onBack={() => setScreen(0)}
-            backLabel="‹"
-          />
-
-          <PeopleChips
-            members={members}
-            busy={busy}
-            chosen={memberIds}
-            onToggle={(id) =>
-              setMemberIds((current) =>
-                current.includes(id) ? current.filter((entry) => entry !== id) : current.concat(id)
-              )
-            }
-          />
-
-          <OnCallToggle value={isOnCall} onToggle={() => setIsOnCall((current) => !current)} />
-
-          <button
-            type="button"
-            disabled={pending || memberIds.length === 0}
-            onClick={() =>
-              onSave([{ date: dayKey, ...span, memberIds, isOnCall }])
-            }
-            style={ctaStyle(memberIds.length > 0 && !pending)}
-          >
-            {pending ? "Salvo…" : "Salva turno"}
-          </button>
-        </div>
-      );
+    // One screen (A + C, 15 Oct 2026): the venue's own hours as big buttons
+    // or typed by hand, the days - the tapped one, or several of the week -
+    // and who works. The tester found four screens and "Avanti" slow.
+    const week = weeks[0];
+    const weekDays = week?.days ?? [];
+    const days = timeDays.length ? timeDays : [dayKey];
+    const busy = new Map<string, string>();
+    if (span) {
+      for (const key of days) {
+        const day = weekDays.find((entry) => entry.key === key);
+        for (const [id, reason] of busyAt(key, span.startTime, span.endTime)) {
+          if (!busy.has(id)) busy.set(id, days.length > 1 && day ? `${day.weekday} ${day.number}: ${reason}` : reason);
+        }
+      }
     }
+    const ready = complete && minutes > 0 && memberIds.length > 0 && days.length > 0;
+    const allWeek = weekDays.length > 0 && weekDays.every((day) => days.includes(day.key));
+    const orderedDays = [
+      ...weekDays.map((day) => day.key).filter((key) => days.includes(key)),
+      ...days.filter((key) => !weekDays.some((day) => day.key === key)),
+    ];
 
     return (
-      <div style={{ display: "grid", gap: 12 }}>
-        <Head title="Orario" detail={dayLabel} onBack={onCancel} backLabel="✕" />
+      <div style={{ display: "grid", gap: 13 }}>
+        <Head title="Nuovo turno" detail={dayLabel} onBack={onCancel} backLabel="✕" />
         {topSlot}
         {doorSwitch}
-        {keypad}
+
+        <span style={sectionLabel}>Orario</span>
+        {shortcuts.length > 0 ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7 }}>
+            {shortcuts.map((shortcut) => {
+              const from = shortcut.startTime.slice(0, 5);
+              const to = shortcut.endTime.slice(0, 5);
+              const on = span?.startTime === from && span?.endTime === to;
+              return (
+                <button
+                  key={shortcut.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => {
+                    applyRange(from, to);
+                    setKeypadOpen(false);
+                  }}
+                  style={{
+                    display: "grid",
+                    gap: 1,
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    borderRadius: 16,
+                    border: on ? "2px solid #6d5ce7" : "1.5px solid #ebedf3",
+                    background: on ? "#faf7ff" : "#ffffff",
+                    cursor: "pointer",
+                    font: "inherit",
+                  }}
+                >
+                  <strong style={{ fontSize: 14, fontWeight: 820, color: "#16161d" }}>{shortcut.label}</strong>
+                  <span style={{ fontSize: 12.5, fontWeight: 720, color: "#6b6880", fontVariantNumeric: "tabular-nums" }}>
+                    {shortcut.detail}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0,1fr) 24px minmax(0,1fr)",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <TimeBox
+            digits={startDigits}
+            caption="inizio"
+            active={keypadOpen && field === "start"}
+            onFocus={() => {
+              setField("start");
+              setKeypadOpen(true);
+            }}
+          />
+          <span style={{ textAlign: "center", color: "#a3a3b5", fontSize: 16, fontWeight: 800 }}>→</span>
+          <TimeBox
+            digits={endDigits}
+            caption="fine"
+            active={keypadOpen && field === "end"}
+            onFocus={() => {
+              setField("end");
+              setKeypadOpen(true);
+            }}
+          />
+        </div>
+
+        {keypadOpen ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 7 }}>
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((key) => (
+              <button key={key} type="button" onClick={() => press(key)} style={keyStyle(false)}>
+                {key}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={!complete}
+              onClick={() => setKeypadOpen(false)}
+              style={{ ...keyStyle(true), opacity: complete ? 1 : 0.4, fontSize: 13.5 }}
+            >
+              Fatto
+            </button>
+            <button type="button" onClick={() => press("0")} style={keyStyle(false)}>
+              0
+            </button>
+            <button type="button" onClick={backspace} style={keyStyle(true)}>
+              ⌫
+            </button>
+          </div>
+        ) : null}
+
+        {complete ? (
+          offer ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 12px",
+                borderRadius: 14,
+                background: "#efecff",
+                border: "1.5px solid #ddd8f8",
+              }}
+            >
+              <span style={{ minWidth: 0, flex: 1, fontSize: 12.5, fontWeight: 760, color: "#4c1d95" }}>
+                Usi spesso {span?.startTime}–{span?.endTime}. Vuoi salvarlo fra gli orari pronti?
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (span) {
+                    onSavePreset?.(span);
+                    setPresetOffered((current) => current.concat(`${span.startTime}-${span.endTime}`));
+                  }
+                }}
+                style={{
+                  flex: "0 0 auto",
+                  padding: "7px 13px",
+                  borderRadius: 999,
+                  border: 0,
+                  background: "#4c1d95",
+                  color: "#ffffff",
+                  fontSize: 12.5,
+                  fontWeight: 820,
+                  cursor: "pointer",
+                }}
+              >
+                Salva
+              </button>
+            </div>
+          ) : (
+            <span style={{ textAlign: "center", fontSize: 12.5, fontWeight: 750, color: "#a3a3b5" }}>
+              {describeSpan(minutes)}
+            </span>
+          )
+        ) : null}
+
+        {weekDays.length > 1 ? (
+          <>
+            <span style={{ ...sectionLabel, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              Giorni
+              <button
+                type="button"
+                onClick={() => {
+                  setTimeDays(allWeek ? [dayKey] : weekDays.map((day) => day.key));
+                  setKeypadOpen(false);
+                }}
+                style={{
+                  border: 0,
+                  background: "none",
+                  padding: 0,
+                  color: "#6d5ce7",
+                  fontSize: 12,
+                  fontWeight: 820,
+                  letterSpacing: 0,
+                  textTransform: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {allWeek ? "Solo questo giorno" : "Tutta la settimana"}
+              </button>
+            </span>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${weekDays.length}, minmax(0,1fr))`, gap: 5 }}>
+              {weekDays.map((day) => {
+                const chosen = days.includes(day.key);
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    aria-pressed={chosen}
+                    onClick={() => {
+                      setKeypadOpen(false);
+                      const next = chosen ? days.filter((entry) => entry !== day.key) : days.concat(day.key);
+                      setTimeDays(next.length ? next : [day.key]);
+                    }}
+                    style={{
+                      display: "grid",
+                      gap: 1,
+                      justifyItems: "center",
+                      padding: "8px 2px",
+                      borderRadius: 13,
+                      border: chosen ? "1.5px solid #6d5ce7" : "1.5px solid #ebedf3",
+                      background: chosen ? "#6d5ce7" : "#ffffff",
+                      color: chosen ? "#ffffff" : "#16161d",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <strong style={{ fontSize: 14, fontWeight: 840, fontVariantNumeric: "tabular-nums" }}>{day.number}</strong>
+                    <span style={{ fontSize: 9.5, fontWeight: 800, color: chosen ? "rgba(255,255,255,0.85)" : "#a3a3b5" }}>
+                      {day.weekday}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+
+        <span style={sectionLabel}>Chi lavora</span>
+        <PeopleChips
+          members={members}
+          busy={busy}
+          chosen={memberIds}
+          onToggle={(id) => {
+            setKeypadOpen(false);
+            setMemberIds((current) =>
+              current.includes(id) ? current.filter((entry) => entry !== id) : current.concat(id)
+            );
+          }}
+        />
+
+        <OnCallToggle value={isOnCall} onToggle={() => setIsOnCall((current) => !current)} />
+
         <button
           type="button"
-          disabled={!complete || minutes <= 0}
-          onClick={() => setScreen(1)}
-          style={ctaStyle(complete && minutes > 0)}
+          disabled={pending || !ready}
+          onClick={() => {
+            if (span) onSave(orderedDays.map((key) => ({ date: key, ...span, memberIds, isOnCall })));
+          }}
+          style={ctaStyle(ready && !pending)}
         >
-          Avanti
+          {pending
+            ? "Salvo…"
+            : !complete
+              ? "Scrivi l'orario"
+              : memberIds.length === 0
+                ? "Scegli chi lavora"
+                : days.length > 1
+                  ? `Crea ${days.length} turni · ${span?.startTime}–${span?.endTime}`
+                  : "Salva turno"}
         </button>
       </div>
     );
@@ -886,6 +1120,14 @@ function TimeBox({
     </button>
   );
 }
+
+const sectionLabel = {
+  fontSize: 10.5,
+  fontWeight: 900,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase" as const,
+  color: "#a39fb8",
+};
 
 function weekArrowStyle(enabled: boolean) {
   return {

@@ -1527,6 +1527,8 @@ export function OwnerCalendarClient({
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [savedShiftDrafts, setSavedShiftDrafts] = useState<ShiftDraft[]>([]);
+  // Counts every save that went through, for the composer to start afresh.
+  const [savedCount, setSavedCount] = useState(0);
   const [currentShiftDraft, setCurrentShiftDraft] = useState<ShiftDraft | null>(null);
   const [requestType, setRequestType] = useState<string>(RequestType.VACATION);
   const [noteConfirmationsById, setNoteConfirmationsById] = useState<Record<string, NoteItem["confirmations"]>>({});
@@ -2567,6 +2569,7 @@ export function OwnerCalendarClient({
       }
 
       setSavedShiftDrafts((current) => sortShiftDraftsByDateTime(current.concat(savedDrafts)));
+      setSavedCount((count) => count + 1);
     }, draftsToAdd.length === 1 ? "Turno salvato." : "Turni salvati.");
   }
 
@@ -4113,6 +4116,7 @@ export function OwnerCalendarClient({
                       presets={presets}
                       recent={recentShiftTimes}
                       weeks={composerWeeks}
+                      savedCount={savedCount}
                       busyAt={busyAt}
                       pending={isPending}
                       onCancel={() => setShowShiftComposer(false)}
