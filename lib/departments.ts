@@ -272,6 +272,7 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
         extraSites: true,
         customSeatLimit: true,
         customSiteLimit: true,
+        restaurantSites: true,
         sites: { select: { slot: true, name: true, address: true, latitude: true, longitude: true, isMain: true } },
       },
     }),
@@ -286,24 +287,25 @@ export const getVenueDepartments = cache(async function getVenueDepartments(
   const entitlements = entitlementsOf(bar);
   if (!entitlements.departments) return off;
 
-  const company = bar.activityType === ActivityType.COMPANY;
-  const siteLimit = company ? siteLimitOf(entitlements) : 0;
+  // Sites: a company, or a restaurant with more than one place (lib/plans.ts).
+  const useSites = entitlements.sites;
+  const siteLimit = useSites ? siteLimitOf(entitlements) : 0;
   const stored =
-    company && (await ensureMainSite(barId, bar.sites))
+    useSites && (await ensureMainSite(barId, bar.sites))
       ? await prisma.site.findMany({
           where: { barId },
           select: { slot: true, name: true, address: true, latitude: true, longitude: true, isMain: true },
         })
       : bar.sites;
   // A plan that went down keeps the main site and the first others it allows.
-  const sites = company ? venueSites(stored).slice(0, siteLimit) : [];
+  const sites = useSites ? venueSites(stored).slice(0, siteLimit) : [];
 
   return {
     enabled: true,
-    kind: company ? "sites" : "departments",
-    words: company ? SITE_WORDS : DEPARTMENT_WORDS,
+    kind: useSites ? "sites" : "departments",
+    words: useSites ? SITE_WORDS : DEPARTMENT_WORDS,
     mode: bar.departmentMode,
-    list: company ? sites : venueDepartments(bar.customDepartmentName),
+    list: useSites ? sites : venueDepartments(bar.customDepartmentName),
     sites,
     siteLimit,
     customName: bar.customDepartmentName,

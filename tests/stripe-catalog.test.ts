@@ -47,6 +47,15 @@ test("a restaurant on Base buys only what it ticks", () => {
   assert.equal(selectionTotalCents(selection, "MONTHLY"), 2999 + 799 + 2 * 699 + 299);
 });
 
+test("a restaurant with more places buys sites instead of Reparti", () => {
+  const base = normalizeSelection({ plan: "BASE", extraSites: 2 }, false);
+  assert.deepEqual(base, { plan: "BASE", departments: false, seatPacks: 0, branding: false, extraSites: 2 });
+  assert.equal(selectionTotalCents(base, "MONTHLY"), 2999 + 2 * 799);
+  // On Pro only once it divides by sites.
+  assert.equal(normalizeSelection({ plan: "PRO", extraSites: 2 }, false).extraSites, 0);
+  assert.equal(normalizeSelection({ plan: "PRO", extraSites: 2 }, false, true).extraSites, 2);
+});
+
 test("a restaurant's Pro is the plan alone", () => {
   const selection = normalizeSelection({ plan: "PRO", departments: true, seatPacks: 2, branding: true }, false);
   assert.deepEqual(selectionItems(selection), [{ kind: "pro", quantity: 1 }]);

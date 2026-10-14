@@ -152,6 +152,7 @@ export async function POST(req: Request) {
         ownerId: true,
         createdAt: true,
         activityType: true,
+        restaurantSites: true,
         plan: true,
         vatNumber: true,
         owner: {
@@ -197,7 +198,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const selection = normalizeSelection(body?.selection ?? {}, bar.activityType === "COMPANY");
+  const selection = normalizeSelection(body?.selection ?? {}, bar.activityType === "COMPANY", bar.restaurantSites);
 
   // The VAT number decides the invoice and the discount: asked here when the
   // venue does not have one yet, and kept on the venue.

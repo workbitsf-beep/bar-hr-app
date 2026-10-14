@@ -29,6 +29,7 @@ import {
 } from "../ui";
 import { PopupAction } from "../popup-action";
 import { BillingSettingsPanel } from "./billing-settings-panel";
+import { RestaurantDivisionForm } from "./restaurant-division-form";
 import { BillingProfileForm, type BillingProfileValues } from "./billing-profile-form";
 import { missingRecipientFields } from "@/lib/invoicing/fattura-pa";
 import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
@@ -1104,6 +1105,24 @@ export default async function DashboardSettingsPage({
             </div>
           </SavingForm>
         </PopupAction>
+
+        {/* A restaurant on Pro chooses how it divides: departments or sites. */}
+        {role === Role.OWNER && activeBarActivityType !== ActivityType.COMPANY && entitlements.pro && !entitlements.custom ? (
+          <PopupAction
+            title="Reparti o sedi"
+            ariaLabel="Scegli reparti o sedi"
+            triggerRow={
+              <SettingsRow
+                dot="#7c3aed"
+                title="Reparti o sedi"
+                lead="Un locale diviso in reparti, o più sedi con la stessa insegna"
+                status={entitlements.sites ? "Sedi" : "Reparti"}
+              />
+            }
+          >
+            <RestaurantDivisionForm current={entitlements.sites ? "sites" : "departments"} />
+          </PopupAction>
+        ) : null}
 
         {departments.enabled && role === Role.OWNER && departments.kind === "sites" ? (
           <PopupAction

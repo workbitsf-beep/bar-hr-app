@@ -1,6 +1,8 @@
 import "server-only";
 
-import { SubscriptionStatus, VenuePlan } from "@prisma/client";
+import { Department, SubscriptionStatus, VenuePlan } from "@prisma/client";
+import { clearDivisions } from "@/lib/division-cleanup";
+import { entitlementsOf } from "@/lib/plans";
 import type Stripe from "stripe";
 import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
@@ -116,12 +118,24 @@ export async function applyPlanFromSubscription(barId: string, subscription: Str
   );
   if (!parsed) return null;
 
-  const bar = await prisma.bar.findUnique({ where: { id: barId }, select: { plan: true } });
+  const entitlementFields = {
+    activityType: true,
+    plan: true,
+    departmentsAddon: true,
+    extraSeatPacks: true,
+    brandingAddon: true,
+    extraSites: true,
+    customSeatLimit: true,
+    customSiteLimit: true,
+    restaurantSites: true,
+  } as const;
+  const bar = await prisma.bar.findUnique({ where: { id: barId }, select: entitlementFields });
   if (!bar || bar.plan === VenuePlan.CUSTOM) return null;
 
   const { selection } = parsed;
-  await prisma.bar.update({
+  const updated = await prisma.bar.update({
     where: { id: barId },
+    select: entitlementFields,
     data: {
       plan: selection.plan === "PRO" ? VenuePlan.PRO : VenuePlan.BASE,
       departmentsAddon: selection.departments,
@@ -130,6 +144,17 @@ export async function applyPlanFromSubscription(barId: string, subscription: Str
       extraSites: selection.extraSites,
     },
   });
+
+  // A restaurant on Base that bought or dropped its sites moves between
+  // departments and sites: the old ones leave people, shifts and checklists.
+  const wasSites = entitlementsOf(bar).sites;
+  const nowSites = entitlementsOf(updated).sites;
+  if (bar.activityType !== "COMPANY" && wasSites !== nowSites) {
+    const stale = Object.values(Department).filter((value) =>
+      nowSites ? !value.startsWith("SEDE_") : value.startsWith("SEDE_")
+    );
+    await prisma.$transaction((tx) => clearDivisions(tx, barId, stale));
+  }
   invalidateBillingStatusCache(barId);
   return parsed;
 }
@@ -145,6 +170,7 @@ export async function getPurchaseContext(barId: string) {
       extraSeatPacks: true,
       brandingAddon: true,
       extraSites: true,
+      restaurantSites: true,
       vatNumber: true,
       subscription: { select: { stripeSubscriptionId: true, status: true, billingInterval: true, planType: true } },
     },
@@ -158,6 +184,8 @@ export async function getPurchaseContext(barId: string) {
   return {
     managed,
     company: bar.activityType === "COMPANY",
+    /** A restaurant on Pro that has chosen sites over departments. */
+    restaurantSites: bar.activityType !== "COMPANY" && bar.restaurantSites,
     custom: bar.plan === VenuePlan.CUSTOM,
     current: {
       plan: bar.plan === VenuePlan.PRO ? ("PRO" as const) : ("BASE" as const),

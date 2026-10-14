@@ -60,7 +60,10 @@ export type PlanSelection = {
   seatPacks: number;
   /** Logo and sign font, on Base. */
   branding: boolean;
-  /** A company's paid sites, on top of the main one (Base) or the three included (Pro). */
+  /**
+   * Paid sites, on top of the main one (Base) or the three included (Pro): a
+   * company's, or a restaurant's under the same name and tax details.
+   */
   extraSites: number;
 };
 
@@ -69,17 +72,28 @@ const whole = (value: unknown, max: number) => {
   return Number.isFinite(number) ? Math.max(0, Math.min(max, number)) : 0;
 };
 
-/** Only what the venue's kind and plan can buy; everything else falls away. */
-export function normalizeSelection(input: Partial<Record<keyof PlanSelection, unknown>>, company: boolean): PlanSelection {
+/**
+ * Only what the venue's kind and plan can buy; everything else falls away.
+ * A restaurant divides by departments or by sites, not both: on Base the
+ * Reparti extra and paid sites exclude each other; on Pro it buys sites only
+ * once it has chosen sites (restaurantSites).
+ */
+export function normalizeSelection(
+  input: Partial<Record<keyof PlanSelection, unknown>>,
+  company: boolean,
+  restaurantSites = false
+): PlanSelection {
   const plan = input.plan === "PRO" ? "PRO" : "BASE";
   const pro = plan === "PRO";
+  const departments = !company && !pro && input.departments === true;
+  const sitesAllowed = company || (pro ? restaurantSites : !departments);
   return {
     plan,
-    departments: !company && !pro && input.departments === true,
+    departments,
     // A restaurant's Pro has no limit on people.
     seatPacks: !company && pro ? 0 : whole(input.seatPacks, MAX_SEAT_PACKS),
     branding: !pro && input.branding === true,
-    extraSites: company ? whole(input.extraSites, pro ? SITES_ON_PRO - SITES_INCLUDED_IN_PRO : PAID_SITES_ON_BASE) : 0,
+    extraSites: sitesAllowed ? whole(input.extraSites, pro ? SITES_ON_PRO - SITES_INCLUDED_IN_PRO : PAID_SITES_ON_BASE) : 0,
   };
 }
 

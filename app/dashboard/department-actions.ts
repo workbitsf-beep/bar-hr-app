@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { can, isStaffRole } from "@/lib/staff-permissions";
 import { dropFromStaffScopes } from "@/lib/staff-scope";
+import { clearDivisions } from "@/lib/division-cleanup";
 
 /**
  * Departments: the owner's settings, a person's department, and the switch
@@ -76,6 +77,55 @@ export async function updateDepartmentSettingsAction(formData: FormData) {
 
     refresh();
     return { ok: true as const };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/**
+ * A restaurant on Pro: divided by departments (banco, cucina, sala) or by
+ * sites (more places under the same name and tax details). Switching clears
+ * the old division from people, coming shifts, notes and checklists.
+ */
+export async function setRestaurantDivisionAction(formData: FormData) {
+  try {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+    const { activeBar, role } = await getActiveBarAccess(session);
+    if (!activeBar?.id) throw new Error("No active bar selected");
+    if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") throw new RuleError("Solo il titolare sceglie reparti o sedi.");
+    const bar = await prisma.bar.findUnique({
+      where: { id: activeBar.id },
+      select: { activityType: true, plan: true, restaurantSites: true },
+    });
+    if (!bar || bar.activityType === "COMPANY") throw new RuleError("Le aziende sono sempre divise per sede.");
+    if (bar.plan === VenuePlan.BASE) {
+      throw new RuleError("Sul Base le sedi si attivano dall'abbonamento, come extra.");
+    }
+
+    const toSites = String(formData.get("division")) === "sites";
+    if (toSites === bar.restaurantSites) {
+      return { ok: true as const, message: toSites ? "Il locale è già diviso per sedi." : "Il locale è già diviso per reparti." };
+    }
+    const stale = Object.values(Department).filter((value) =>
+      toSites ? !value.startsWith("SEDE_") : value.startsWith("SEDE_")
+    );
+
+    await prisma.$transaction(async (tx) => {
+      await tx.bar.update({
+        where: { id: activeBar.id },
+        data: { restaurantSites: toSites, departmentMode: DepartmentMode.UNIFIED },
+      });
+      await clearDivisions(tx, activeBar.id, stale);
+    });
+
+    refresh();
+    return {
+      ok: true as const,
+      message: toSites
+        ? "Ora il locale è diviso per sedi: aggiungile in Impostazioni › Sedi."
+        : "Ora il locale è diviso per reparti.",
+    };
   } catch (error) {
     return ruleFailure(error);
   }
@@ -166,6 +216,27 @@ async function setVenuePlan(formData: FormData) {
     throw new RuleError("Il Su misura ha almeno una sede: la principale.");
   }
 
+  const entitlementFields = {
+    activityType: true,
+    plan: true,
+    departmentsAddon: true,
+    extraSeatPacks: true,
+    brandingAddon: true,
+    extraSites: true,
+    customSeatLimit: true,
+    customSiteLimit: true,
+    restaurantSites: true,
+  } as const;
+  const before = await prisma.bar.findUnique({ where: { id: barId }, select: entitlementFields });
+  if (!before) throw new RuleError("Locale non trovato.");
+  const restaurant = before.activityType !== "COMPANY";
+  const extraSites = formData.has("extraSites")
+    ? Math.max(0, Math.min(3, Math.round(Number(formData.get("extraSites")) || 0)))
+    : before.extraSites;
+  // A restaurant: Reparti or sites, not both (lib/stripe-catalog.ts).
+  const departmentsAddon = formData.get("departmentsAddon") === "on" && !(restaurant && extraSites > 0 && plan === VenuePlan.BASE);
+  const restaurantSites = restaurant && formData.get("restaurantSites") === "on";
+
   const updated = await prisma.bar.update({
     where: { id: barId },
     select: {
@@ -177,20 +248,30 @@ async function setVenuePlan(formData: FormData) {
       extraSites: true,
       customSeatLimit: true,
       customSiteLimit: true,
+      restaurantSites: true,
       _count: { select: { memberships: { where: { isActive: true } } } },
     },
     data: {
       plan,
-      departmentsAddon: formData.get("departmentsAddon") === "on",
+      departmentsAddon,
       extraSeatPacks: packs,
       brandingAddon: formData.get("brandingAddon") === "on",
       ...custom,
-      // A company's paid sites: 0 to 3 (on Pro, on top of the 3 it includes).
-      ...(formData.has("extraSites")
-        ? { extraSites: Math.max(0, Math.min(3, Math.round(Number(formData.get("extraSites")) || 0))) }
-        : {}),
+      // Paid sites: 0 to 3 (on Pro, on top of the 3 it includes).
+      extraSites,
+      restaurantSites,
     },
   });
+
+  // A restaurant moving between departments and sites leaves the old ones.
+  const wasSites = entitlementsOf(before).sites;
+  const nowSites = entitlementsOf(updated).sites;
+  if (restaurant && wasSites !== nowSites) {
+    const stale = Object.values(Department).filter((value) =>
+      nowSites ? !value.startsWith("SEDE_") : value.startsWith("SEDE_")
+    );
+    await prisma.$transaction((tx) => clearDivisions(tx, barId, stale));
+  }
   revalidatePath(`/dashboard/super-admin/bar/${barId}`);
   refresh();
 
@@ -296,9 +377,9 @@ export async function toggleChecklistItemAction(formData: FormData) {
  */
 export async function saveSiteAction(formData: FormData) {
   try {
-    const { barId, role, entitlements, activityType } = await ownerOfProVenue();
+    const { barId, role, entitlements } = await ownerOfProVenue();
     if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN") throw new RuleError("Solo il titolare cambia le sedi.");
-    if (activityType !== "COMPANY") throw new RuleError("Le sedi sono delle aziende.");
+    if (!entitlements.sites) throw new RuleError("Questo locale è diviso per reparti, non per sedi.");
 
     const name = String(formData.get("name") ?? "").trim().slice(0, 28);
     if (!name) throw new RuleError("Scrivi il nome della sede.");
@@ -350,7 +431,7 @@ export async function deleteSiteAction(formData: FormData) {
     const slot = parseDepartment(formData.get("slot"));
     if (!slot || !isSiteSlot(slot)) throw new RuleError("Sede non trovata.");
     const site = await prisma.site.findUnique({ where: { barId_slot: { barId, slot } }, select: { isMain: true } });
-    if (site?.isMain) throw new RuleError("La sede principale è l'azienda stessa: non si toglie.");
+    if (site?.isMain) throw new RuleError("La sede principale non si toglie: è sempre compresa.");
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);

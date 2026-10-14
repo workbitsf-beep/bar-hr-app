@@ -183,11 +183,13 @@ export function BillingSettingsPanel({
       company={company}
       owned={{
         plan: entitlements.custom ? "CUSTOM" : entitlements.pro ? "PRO" : "BASE",
-        departments: entitlements.departments,
+        // A restaurant with sites has its places, not the Reparti extra.
+        departments: entitlements.departments && (company || !entitlements.sites),
         seatPacks: entitlements.seatPacks,
         branding: entitlements.branding,
         extraSites: entitlements.paidSites,
         siteLimit: entitlements.siteLimit,
+        restaurantSites: !company && entitlements.pro && entitlements.sites,
       }}
       purchase={purchase}
       canActivate={canActivateCheckout}

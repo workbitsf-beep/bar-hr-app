@@ -335,9 +335,13 @@ model Bar {
   departmentsAddon       Boolean                 @default(false)
   extraSeatPacks         Int                     @default(0)
   brandingAddon          Boolean                 @default(false)
-  /// A company's paid sites at 7,99 each: up to 3 on Base, and on Pro on top
-  /// of the 3 it includes, up to 6 in all.
+  /// Paid sites at 7,99 each: up to 3 on Base, and on Pro on top of the 3 it
+  /// includes, up to 6 in all. A company's, or a restaurant's under the same
+  /// name and tax details (a different name is another venue).
   extraSites             Int                     @default(0)
+  /// A restaurant on Pro that divides by sites instead of departments
+  /// (15 Oct 2026). On Base a restaurant uses sites once it buys one.
+  restaurantSites        Boolean                 @default(false)
   /// The Su misura plan: what was agreed with the customer.
   customPriceCents       Int?
   customSeatLimit        Int?

@@ -38,10 +38,10 @@ import { closeUserAccount } from "@/lib/account-retirement";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { syncUserRole } from "@/lib/sync-user-role";
+import { clearDivisions } from "@/lib/division-cleanup";
 import { can, DEFAULT_PERMISSIONS, isStaffRole, type StaffAccess } from "@/lib/staff-permissions";
 import {
   departmentWithin,
-  dropFromStaffScopes,
   ensureCan,
   ensureMembersInScope,
   ensureShiftManager,
@@ -1949,28 +1949,7 @@ async function updateVenueDetailsBySuperAdmin(formData: FormData) {
 
     if (!switching) return;
 
-    await tx.employeeBar.updateMany({
-      where: { barId, department: { in: stale } },
-      data: { department: null, isDepartmentLead: false },
-    });
-    const helping = await tx.employeeBar.findMany({
-      where: { barId, helpsIn: { hasSome: stale } },
-      select: { id: true, helpsIn: true },
-    });
-    for (const member of helping) {
-      await tx.employeeBar.update({
-        where: { id: member.id },
-        data: { helpsIn: member.helpsIn.filter((entry) => !stale.includes(entry)) },
-      });
-    }
-    await dropFromStaffScopes(tx, barId, stale);
-    await tx.shift.updateMany({
-      where: { barId, department: { in: stale }, startTime: { gte: startOfToday } },
-      data: { department: null },
-    });
-    await tx.task.updateMany({ where: { barId, department: { in: stale }, status: { not: TaskStatus.DONE } }, data: { department: null } });
-    await tx.shoppingListItem.updateMany({ where: { barId, department: { in: stale } }, data: { department: null } });
-    await tx.checklist.deleteMany({ where: { barId, department: { in: stale } } });
+    await clearDivisions(tx, barId, stale);
 
     if (!toCompany) {
       const admins = await tx.employeeBar.findMany({

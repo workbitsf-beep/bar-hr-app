@@ -252,12 +252,12 @@ function SiteCard({
       </div>
       {confirm && site ? (
         <span style={{ fontSize: 12.5, color: "#8a84a8" }}>
-          Le persone di {site.name} restano nell&apos;azienda senza sede, e i turni da oggi in poi non hanno più sede.
+          Le persone di {site.name} restano senza sede, e i turni da oggi in poi non hanno più sede.
         </span>
       ) : null}
       {site?.isMain ? (
         <span style={{ fontSize: 12.5, color: "#8a84a8" }}>
-          È l&apos;azienda stessa: è sempre compresa nel piano e non si toglie.
+          È la sede principale: è sempre compresa nel piano e non si toglie.
         </span>
       ) : null}
     </form>

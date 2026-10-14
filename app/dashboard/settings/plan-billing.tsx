@@ -25,6 +25,7 @@ import {
 
 export type PurchaseProps = {
   company: boolean;
+  restaurantSites?: boolean;
   custom: boolean;
   current: PlanSelection;
   interval: CatalogInterval;
@@ -52,6 +53,8 @@ export type OwnedPlan = {
   branding: boolean;
   extraSites: number;
   siteLimit: number;
+  /** A restaurant on Pro dividing by sites. */
+  restaurantSites?: boolean;
 };
 
 const TONES: Record<PlanStatus["tone"], string> = { ok: "#1f9d63", warn: "#d97706", bad: "#c2334d", off: "#94a3b8" };
@@ -170,13 +173,32 @@ export function PlanBilling({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const initial = normalizeSelection(purchase?.current ?? { ...owned, plan: owned.plan === "PRO" ? "PRO" : "BASE" }, company);
+  // A restaurant divides by departments or by sites (lib/stripe-catalog.ts).
+  const restaurantSitesPro = !company && Boolean(purchase?.restaurantSites ?? owned.restaurantSites);
+  const initial = normalizeSelection(
+    purchase?.current ?? { ...owned, plan: owned.plan === "PRO" ? "PRO" : "BASE" },
+    company,
+    restaurantSitesPro
+  );
   const [selection, setSelection] = useState<PlanSelection>(initial);
   const [interval, setBillingInterval] = useState<CatalogInterval>(purchase?.interval ?? "MONTHLY");
   const [vat, setVat] = useState(purchase?.vatNumber ?? "");
 
   const editable = Boolean(purchase && !purchase.custom && !purchase.managed && (canActivate || purchase.live));
-  const update = (patch: Partial<PlanSelection>) => setSelection((current) => normalizeSelection({ ...current, ...patch }, company));
+  const update = (patch: Partial<PlanSelection>) =>
+    setSelection((current) =>
+      normalizeSelection(
+        {
+          ...current,
+          ...patch,
+          // Reparti or sites, not both: turning one on turns the other off.
+          ...(patch.departments ? { extraSites: 0 } : {}),
+          ...(patch.extraSites ? { departments: false } : {}),
+        },
+        company,
+        restaurantSitesPro
+      )
+    );
   // The rows show and change the selection on the web, what the venue has in the app.
   const view = editable ? selection : initial;
   const pro = view.plan === "PRO";
@@ -306,19 +328,32 @@ export function PlanBilling({
 
   const rows: ReactNode[] = [];
 
-  if (company) {
-    const max = pro ? CATALOG_LIMITS.sitesOnPro - CATALOG_LIMITS.sitesIncludedInPro : CATALOG_LIMITS.paidSitesOnBase;
-    rows.push(
-      <ExtraRow
-        key="sedi"
-        info="sedi"
-        company
-        sub={`${pro ? "Oltre alle 3 del Pro" : "Oltre alla principale"} · ${formatEuro(PRICE_CENTS.sede[interval])} l'una`}
-        subOn={false}
-        state={{ on: owned.siteLimit > 1, text: `${owned.siteLimit} ${owned.siteLimit === 1 ? "sede" : "sedi"}` }}
-        control={editable ? <Stepper name="sedi" value={view.extraSites} max={max} onChange={(extraSites) => update({ extraSites })} /> : null}
-      />
-    );
+  const sitesRow = (
+    <ExtraRow
+      key="sedi"
+      info="sedi"
+      company={company}
+      sub={`${pro ? "Oltre alle 3 del Pro" : company ? "Oltre alla principale" : "Stessa insegna e P.IVA"} · ${formatEuro(PRICE_CENTS.sede[interval])} l'una`}
+      subOn={false}
+      state={{
+        on: owned.siteLimit > 1,
+        text: owned.siteLimit > 1 ? `${owned.siteLimit} sedi` : company ? "1 sede" : "Non attivo",
+      }}
+      control={
+        editable ? (
+          <Stepper
+            name="sedi"
+            value={view.extraSites}
+            max={pro ? CATALOG_LIMITS.sitesOnPro - CATALOG_LIMITS.sitesIncludedInPro : CATALOG_LIMITS.paidSitesOnBase}
+            onChange={(extraSites) => update({ extraSites })}
+          />
+        ) : null
+      }
+    />
+  );
+
+  if (company || (pro && restaurantSitesPro)) {
+    rows.push(sitesRow);
   } else {
     rows.push(
       <ExtraRow
@@ -331,6 +366,9 @@ export function PlanBilling({
         control={editable && !pro ? <Switch name="Reparti" checked={view.departments} onChange={(departments) => update({ departments })} /> : null}
       />
     );
+    // A restaurant on Base with more places under the same name: sites
+    // instead of Reparti.
+    if (!pro) rows.push(sitesRow);
   }
 
   if (company || !pro) {
