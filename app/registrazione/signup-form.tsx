@@ -14,6 +14,10 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState("");
   const [resend, setResend] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  // The email already has a Workbit account (an employee elsewhere, say): its
+  // password opens the venue with that same account.
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [linked, setLinked] = useState(false);
 
   async function resendEmail() {
     setResend("sending");
@@ -56,12 +60,20 @@ export function SignupForm() {
         return;
       }
 
+      if (payload.code === "ACCOUNT_EXISTS") {
+        setNeedsPassword(true);
+        setError(payload.message ?? null);
+        setState("idle");
+        return;
+      }
+
       if (!response.ok || !payload.ok) {
         setError(payload.message ?? "Non ha funzionato. Riprova.");
         setState("idle");
         return;
       }
 
+      setLinked(payload.code === "LINKED");
       setState("done");
     } catch {
       setError("Connessione non riuscita. Controlla la rete e riprova.");
@@ -102,10 +114,17 @@ export function SignupForm() {
           ✓
         </span>
         <h2>Il tuo locale è pronto.</h2>
-        <p>
-          Ti abbiamo mandato un&apos;email con la password per entrare la prima volta. Se non la
-          vedi entro qualche minuto, guarda nella posta indesiderata.
-        </p>
+        {linked ? (
+          <p>
+            Entra con il tuo account di sempre: in alto, dal nome del locale, passi dal locale dove
+            lavori al tuo.
+          </p>
+        ) : (
+          <p>
+            Ti abbiamo mandato un&apos;email con la password per entrare la prima volta. Se non la
+            vedi entro qualche minuto, guarda nella posta indesiderata.
+          </p>
+        )}
         <a className="wb-signup__go" href="/login">
           Vai all&apos;accesso
         </a>
@@ -131,6 +150,16 @@ export function SignupForm() {
         <input name="email" type="email" autoComplete="email" required maxLength={160} />
         <small>Qui ti arriva la password per entrare, quindi dev&apos;essere quella vera.</small>
       </label>
+
+      {needsPassword ? (
+        <label>
+          <span>La password del tuo account Workbit</span>
+          <input name="password" type="password" autoComplete="current-password" required autoFocus />
+          <small>
+            Il locale si apre con l&apos;account che hai già. <a href="/forgot-password">Password dimenticata?</a>
+          </small>
+        </label>
+      ) : null}
 
       <label>
         <span>Come si chiama il locale</span>

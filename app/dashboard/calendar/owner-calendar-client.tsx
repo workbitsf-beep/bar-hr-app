@@ -1,6 +1,7 @@
 "use client";
 
 import { RequestType } from "@prisma/client";
+import { tapOutsideProps } from "../tap-outside";
 import type { Department } from "@prisma/client";
 import type { DepartmentInfo } from "@/lib/departments";
 import { DepartmentDot } from "../department-forms";
@@ -3684,6 +3685,8 @@ export function OwnerCalendarClient({
             >
               <div
                 aria-hidden="true"
+                // A tap outside closes the day; a drag that slides off does not.
+                {...tapOutsideProps(closeModal)}
                 style={{
                   position: "absolute",
                   inset: 0,
@@ -3885,6 +3888,7 @@ export function OwnerCalendarClient({
                 {modalContentReady && features.shifts && showShiftComposer ? createPortal(
                 <div
                   className="dashboard-modal-wrap"
+                  {...tapOutsideProps(() => setShowShiftComposer(false))}
                   style={{
                     position: "fixed",
                     inset: 0,

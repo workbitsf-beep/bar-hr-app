@@ -1,6 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { tapOutsideProps } from "./tap-outside";
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useOverlayLock } from "./use-overlay-lock";
 
@@ -149,14 +150,13 @@ export function PopupAction({
                 padding: 16,
               }}
             >
-              {/* The veil is only a veil. It used to be a full-screen close
-                  button, so a thumb landing anywhere off the panel - while
-                  scrolling a long list, or reaching for a field near the edge -
-                  threw the popup away along with what had been typed into it.
-                  A popup now closes when the ✕ is pressed, when Escape is
-                  pressed, or when its form is done. */}
+              {/* The veil closes the popup on a tap, never on a drag. It used
+                  to close on any click, so a thumb scrolling a long list that
+                  slid off the panel threw the popup away with what had been
+                  typed into it (see tap-outside.ts). */}
               <div
                 aria-hidden="true"
+                {...tapOutsideProps(closePopup)}
                 style={{
                   position: "absolute",
                   inset: 0,
