@@ -1619,6 +1619,7 @@ async function createOwnerAndBar(formData: FormData) {
   let temporaryPassword: string | null = null;
   let newOwnerEmail: string | null = null;
   let newOwnerName: string | null = null;
+  let linkedOwnerName: string | null = null;
 
   if (ownerMode === "existing") {
     primaryOwnerId = String(formData.get("existingOwnerId") ?? "").trim();
@@ -1640,31 +1641,40 @@ async function createOwnerAndBar(formData: FormData) {
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
-      select: { id: true },
+      select: { id: true, role: true, retiredAt: true, firstName: true, lastName: true },
     });
 
+    // One email, one account: someone already on Workbit - an employee
+    // elsewhere, say - becomes the owner of this venue with the account they
+    // have, and switches between the two from the header. Creating a second
+    // account was refused, and the "existing owner" list showed owners only,
+    // so an employee could never be made an owner at all.
     if (existingUser) {
-      throw new RuleError(`Esiste già un account con ${email}: scegli «Titolare esistente».`);
+      if (String(existingUser.role) === "SUPER_ADMIN" || existingUser.retiredAt) {
+        throw new RuleError(`L'account ${email} non può diventare titolare.`);
+      }
+      primaryOwnerId = existingUser.id;
+      linkedOwnerName = `${existingUser.firstName} ${existingUser.lastName}`.trim();
+    } else {
+      temporaryPassword = createTemporaryPassword();
+      const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+      const createdOwner = await prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          passwordHash,
+          role: Role.OWNER,
+          language,
+          mustChangePwd: true,
+        },
+      });
+
+      primaryOwnerId = createdOwner.id;
+      newOwnerEmail = email;
+      newOwnerName = `${firstName} ${lastName}`.trim();
     }
-
-    temporaryPassword = createTemporaryPassword();
-    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
-
-    const createdOwner = await prisma.user.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        passwordHash,
-        role: Role.OWNER,
-        language,
-        mustChangePwd: true,
-      },
-    });
-
-    primaryOwnerId = createdOwner.id;
-    newOwnerEmail = email;
-    newOwnerName = `${firstName} ${lastName}`.trim();
   }
 
   const ownerIds = Array.from(new Set([primaryOwnerId, ...additionalOwnerIds]));
@@ -1754,6 +1764,8 @@ async function createOwnerAndBar(formData: FormData) {
     message:
       ownerMode === "existing"
         ? `${kind}: ${bar.name}.`
+        : linkedOwnerName
+          ? `${kind}: ${bar.name}. ${linkedOwnerName} aveva già un account: ora ne è anche titolare, con la sua password di sempre.`
         : welcomeEmailSent
           ? `${kind}: ${bar.name}. Credenziali inviate a ${newOwnerEmail}.`
           : `${kind}: ${bar.name}. L'email con le credenziali non è partita.`,

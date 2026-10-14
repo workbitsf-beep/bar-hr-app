@@ -14,7 +14,8 @@ export default async function ConsoleNewVenuePage() {
   }
 
   const owners = await prisma.user.findMany({
-    where: { role: Role.OWNER },
+    // Anyone with an account can be made the owner, an employee included.
+    where: { role: { not: Role.SUPER_ADMIN }, retiredAt: null },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     select: { id: true, firstName: true, lastName: true, email: true },
   });
