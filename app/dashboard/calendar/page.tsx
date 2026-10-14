@@ -895,8 +895,10 @@ export default async function DashboardCalendarPage({
     notesByDay.set(dayKey, dayNotes);
   }
 
-  const dayCount =
-    Math.floor((calendarEnd.getTime() - calendarStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  // Counted on the calendar, not in hours: on 25 October the clocks go back,
+  // that day lasts 25 hours, and dividing by 24 added a lone Monday after the
+  // last Sunday - with its own "Copia la settimana scorsa".
+  const dayCount = getRangeDayKeys(calendarStart, calendarEnd).length;
 
   const days = Array.from({ length: dayCount }, (_, index) => {
     const date = new Date(calendarStart);
