@@ -90,7 +90,8 @@ export default async function ConsoleBarPage({
       },
     }),
     prisma.user.findMany({
-      where: { role: Role.OWNER },
+      // Anyone with an account can be an owner here too, an employee included.
+      where: { role: { not: Role.SUPER_ADMIN }, retiredAt: null },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       select: { id: true, firstName: true, lastName: true, email: true },
     }),
