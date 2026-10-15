@@ -109,6 +109,10 @@ jobs:
           ' ios/App/App.xcodeproj/project.pbxproj
           grep -c 'PROVISIONING_PROFILE_SPECIFIER = "Workbit App Store"' ios/App/App.xcodeproj/project.pbxproj
           grep -c 'CODE_SIGN_STYLE = Manual' ios/App/App.xcodeproj/project.pbxproj
+          # TestFlight and the App Store deliver push through Apple's
+          # production servers; the file in the repo says development.
+          plutil -replace aps-environment -string production ios/App/App/App.entitlements
+          plutil -p ios/App/App/App.entitlements
 
       # Firebase reads it from the app bundle; without it the app works and
       # only push notifications stay off.
