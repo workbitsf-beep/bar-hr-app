@@ -8,6 +8,15 @@ uguale in modalità reale.
 
 ## 1. Prodotti e prezzi
 
+**Con lo script (consigliato):** crea tutti i prodotti e i prezzi qui sotto
+dal catalogo dell'app, con i codici giusti. Si può rilanciare: quello che c'è
+già resta com'è.
+
+    STRIPE_SECRET_KEY=sk_test_... npx tsx scripts/stripe-catalog-setup.ts
+    STRIPE_SECRET_KEY=sk_live_... npx tsx scripts/stripe-catalog-setup.ts --live
+
+Fatto in modalità test il 15/10/2026. **A mano**, se serve:
+
 Per ogni riga: *Prodotti → Aggiungi prodotto*, prezzo **ricorrente**, in EUR.
 Ogni prodotto ha due prezzi, mensile e annuale. Nel prezzo apri
 *Opzioni avanzate → Lookup key* e scrivi il codice esatto.
