@@ -415,6 +415,31 @@ export async function sendTrialCardEmail(
   });
 }
 
+/**
+ * Il link per riattivare, a chi apre il locale fermo dall'app installata.
+ *
+ * L'app non può indicare dove pagare, nemmeno a parole (Apple), quindi lì
+ * dice solo che è partita questa email; il link al sito sta qui, fuori
+ * dall'app, dove è permesso.
+ */
+export async function sendReactivationEmail(ownerEmail: string, ownerName: string, barName: string) {
+  return sendTemplatedEmail({
+    to: ownerEmail,
+    subject: `Riattiva ${barName} su Workbit`,
+    title: "Riattiva il locale",
+    message: [
+      `Ciao ${ownerName},`,
+      `${barName} è fermo perché l'abbonamento non è attivo.`,
+      "",
+      "Lo riattivi dall'area titolare sul sito: scegli il piano, aggiungi il metodo di pagamento e il locale riparte subito, anche nell'app.",
+      "",
+      "Turni, timbrature, ore e report sono rimasti tutti salvati.",
+    ].join("\n"),
+    ctaLabel: "Riattiva l'abbonamento",
+    ctaUrl: getEmailAppUrl("/dashboard/settings?billing=1"),
+  });
+}
+
 export async function sendOwnerWelcomeEmail(
   ownerEmail: string,
   ownerName: string,

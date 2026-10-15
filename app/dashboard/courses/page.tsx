@@ -1,3 +1,4 @@
+import { BillingRequired } from "../billing-required";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canManageTraining } from "@/lib/permissions";
@@ -9,7 +10,7 @@ import {
   getCourseUrgency,
   type CourseUrgency,
 } from "@/lib/course-kinds";
-import { BillingRequiredState, EmptyState, Panel, Stack, } from "../ui";
+import { EmptyState, Panel, Stack, } from "../ui";
 import { PopupAction } from "../popup-action";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { ActionForm } from "@/app/components/action-form";
@@ -27,7 +28,7 @@ export default async function DashboardCoursesPage() {
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   if (!features.courses) {

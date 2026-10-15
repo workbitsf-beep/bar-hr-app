@@ -418,6 +418,10 @@ model Subscription {
   // non mandarlo due volte: il lavoro notturno gira ogni giorno e senza
   // questo segno riscriverebbe alla stessa persona ogni mattina.
   trialEndingNoticeAt    DateTime?
+  /// When the owner, inside the installed app, was last emailed the link to
+  /// reactivate: the app itself cannot point at paying (Apple), so the email
+  /// does. Once a day at most.
+  reactivationEmailAt    DateTime?
   invoices               Invoice[]
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt

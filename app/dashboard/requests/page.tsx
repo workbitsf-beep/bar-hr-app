@@ -1,3 +1,4 @@
+import { BillingRequired } from "../billing-required";
 import {
   ActivityType,
   CalendarClosureType,
@@ -29,7 +30,6 @@ import { DesktopRequests } from "./desktop-requests";
 import { RequestsAside } from "../desktop-asides";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import {
-  BillingRequiredState,
   EmptyState,
   FormField,
   ItemList,
@@ -429,7 +429,7 @@ export default async function DashboardRequestsPage({
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   if (!features.requests && !features.availability && !canManageClosures) {

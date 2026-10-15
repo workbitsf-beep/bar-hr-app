@@ -1461,9 +1461,12 @@ export function StatusBanner({
 export function BillingRequiredState({
   role,
   showManageButton = true,
+  nativeNotice = null,
 }: {
   role: string;
   showManageButton?: boolean;
+  /** Inside the installed app: where the reactivation link went (billing-required.tsx). */
+  nativeNotice?: ReactNode;
 }) {
   const canManageBilling = role === "OWNER" && showManageButton;
 
@@ -1486,6 +1489,11 @@ export function BillingRequiredState({
         {canManageBilling ? (
           <p className="wb-native-only" style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
             Turni, timbrature e report restano salvati e ripartono appena l&apos;abbonamento è di nuovo attivo.
+          </p>
+        ) : null}
+        {canManageBilling && nativeNotice ? (
+          <p className="wb-native-only" style={{ margin: 0, color: "#334155", lineHeight: 1.7 }}>
+            {nativeNotice}
           </p>
         ) : null}
         {canManageBilling ? (

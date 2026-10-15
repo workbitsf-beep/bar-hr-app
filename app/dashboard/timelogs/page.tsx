@@ -1,3 +1,4 @@
+import { BillingRequired } from "../billing-required";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildDailyTotals, buildMonthlyTotals } from "@/lib/reporting";
@@ -5,7 +6,6 @@ import { DateTimeInput } from "@/app/components/date-time-input";
 import { createManualTimeLogAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
-  BillingRequiredState,
   EmptyState,
   FormField,
   Panel,
@@ -37,7 +37,7 @@ export default async function DashboardTimeLogsPage({
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   if (!features.timeTracking) {

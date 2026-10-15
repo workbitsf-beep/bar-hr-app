@@ -1,10 +1,11 @@
+import { BillingRequired } from "../billing-required";
 import { ActivityType } from "@prisma/client";
 import { can } from "@/lib/staff-permissions";
 import { memberScopeWhere } from "@/lib/staff-scope";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../context";
 import { ReportAside } from "../desktop-asides";
-import { BillingRequiredState, EmptyState, Panel } from "../ui";
+import { EmptyState, Panel } from "../ui";
 import { ExportClient } from "./export-client";
 
 export default async function DashboardExportPage() {
@@ -20,7 +21,7 @@ export default async function DashboardExportPage() {
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   if (!features.reports) {

@@ -1,3 +1,4 @@
+import { BillingRequired } from "../billing-required";
 import { Role } from "@prisma/client";
 import { can, hasWholeScope } from "@/lib/staff-permissions";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +15,6 @@ import {
 import { getDashboardContext } from "../context";
 import { NotesAside } from "../desktop-asides";
 import {
-  BillingRequiredState,
   EmptyState,
   IconButton,
   ItemList,
@@ -43,7 +43,7 @@ export default async function DashboardTasksPage() {
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   const notesEnabled = features.tasks || features.noticeBoard;

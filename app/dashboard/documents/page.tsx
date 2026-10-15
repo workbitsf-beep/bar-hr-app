@@ -1,3 +1,4 @@
+import { BillingRequired } from "../billing-required";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canViewDocument } from "@/lib/documents";
@@ -9,7 +10,7 @@ import { DocumentsAside } from "../desktop-asides";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { DocumentComposeForm } from "./document-compose-form";
 import { DocumentRow } from "./document-row";
-import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
+import { EmptyState, Panel, Stack } from "../ui";
 import { PopupAction } from "../popup-action";
 import { ActionForm } from "@/app/components/action-form";
 
@@ -25,7 +26,7 @@ export default async function DashboardDocumentsPage() {
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   if (!features.documents) {

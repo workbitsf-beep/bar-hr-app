@@ -1,8 +1,8 @@
+import { BillingRequired } from "../billing-required";
 import { prisma } from "@/lib/prisma";
 import { createShoppingListItemAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
-  BillingRequiredState,
   EmptyState,
   FormField,
   Panel,
@@ -25,7 +25,7 @@ export default async function DashboardShoppingListPage() {
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   if (!features.shoppingList) {

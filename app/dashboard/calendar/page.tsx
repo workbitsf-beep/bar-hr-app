@@ -1,3 +1,4 @@
+import { BillingRequired } from "../billing-required";
 import { ActivityType, type Department, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
 import { getVenueDepartments, showsInDepartment, staffDepartments } from "@/lib/departments";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +11,7 @@ import { buildShiftPresets } from "@/lib/shift-presets";
 import { toDateInputValueInTimeZone } from "@/lib/time-zone";
 import { serializeDay, toDayKey } from "@/lib/day-key";
 import { getDashboardContext } from "../context";
-import { BillingRequiredState, EmptyState, Panel, Stack } from "../ui";
+import { EmptyState, Panel, Stack } from "../ui";
 import { DayActionCalendarClient } from "./day-action-calendar-client";
 import { OwnerCalendarClient } from "./owner-calendar-client";
 import { PublishWeekPanel } from "./publish-week-panel";
@@ -289,7 +290,7 @@ export default async function DashboardCalendarPage({
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   const hasCalendarModules =

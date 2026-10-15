@@ -1,3 +1,4 @@
+import { BillingRequired } from "./billing-required";
 import { RequestStatus, RequestType, Role, type Department } from "@prisma/client";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -24,7 +25,6 @@ import { ShoppingListQuickAdd } from "./shopping-list-quick-add";
 import { WorkHoursRing } from "./work-hours-ring";
 import { ClockActionsPanel, type ClockActionStatus } from "./timelogs/timelogs-client";
 import {
-  BillingRequiredState,
   EmptyState,
   Panel,
   PrimaryButton,
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   const now = new Date();

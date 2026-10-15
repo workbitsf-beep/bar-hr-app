@@ -1,3 +1,4 @@
+import { BillingRequired } from "../billing-required";
 import { ActivityType, ClockType, Role } from "@prisma/client";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -6,7 +7,6 @@ import { formatDurationFromMilliseconds } from "@/lib/time-format";
 import { createEmployeeAction, removeEmployeeAction } from "../actions";
 import { getDashboardContext } from "../context";
 import {
-  BillingRequiredState,
   EmptyState,
   Panel,
   PrimaryButton,
@@ -124,7 +124,7 @@ export default async function DashboardPeoplePage({
   }
 
   if (billingStatus && !billingStatus.canAccess) {
-    return <BillingRequiredState role={String(role)} />;
+    return <BillingRequired role={String(role)} />;
   }
 
   const now = new Date();
