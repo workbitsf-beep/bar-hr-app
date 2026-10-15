@@ -23,16 +23,28 @@ L'app iPhone si compila, si firma e si carica su TestFlight dalle macchine macOS
    - `ASC_ISSUER_ID`
    - `ASC_KEY_P8`: tutto il testo del file `.p8`, righe BEGIN ed END comprese.
 
+6. **Certificato e profilo di distribuzione** (una volta l'anno): con il file `.p8` sul PC,
+
+       ASC_KEY_ID=... ASC_ISSUER_ID=... ASC_KEY_FILE=AuthKey_....p8 OUT_DIR=cartella          npx tsx scripts/ios-signing-setup.ts
+
+   crea su Apple il certificato e il profilo "Workbit App Store" e li scrive in `OUT_DIR`;
+   vanno nei segreti `IOS_DIST_P12` (base64), `IOS_DIST_P12_PASSWORD` e `IOS_PROFILE` (base64).
+   Su Windows, se openssl cerca un `openssl.cnf` che non c'è, aggiungi `OPENSSL_CONF=` a un file vuoto.
+   Fatto il 15/10/2026, scade il 15/10/2027.
+
+   La firma "gestita da Apple" sulle macchine di GitHub non accetta la chiave API
+   ("No Accounts with App Store Connect Access"): per questo il certificato è nostro.
+
 ### Notifiche push su iPhone (facoltativo, ma da fare prima del lancio)
 
-6. **Firebase** (stesso progetto di Android) › Impostazioni progetto › Aggiungi app › iOS,
+7. **Firebase** (stesso progetto di Android) › Impostazioni progetto › Aggiungi app › iOS,
    bundle ID `it.workbit.app`. Scarica `GoogleService-Info.plist` e mettine tutto il testo nel
    segreto `GOOGLE_SERVICE_INFO_PLIST`.
-7. **Chiave APNs**: developer.apple.com › Keys › "+" › Apple Push Notifications service.
+8. **Chiave APNs**: developer.apple.com › Keys › "+" › Apple Push Notifications service.
    Scarica il `.p8` e caricalo in Firebase › Impostazioni progetto › Cloud Messaging ›
    App Apple › Chiave di autenticazione APNs (con Key ID e Team ID).
 
-Senza i punti 6 e 7 l'app funziona, ma su iPhone le notifiche non arrivano.
+Senza i punti 7 e 8 l'app funziona, ma su iPhone le notifiche non arrivano.
 
 ## Ogni volta che vuoi una build
 
