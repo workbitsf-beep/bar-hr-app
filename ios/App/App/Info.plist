@@ -29,6 +29,8 @@
 	     does not get denied: it crashes. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Workbit usa la posizione solo al momento della timbratura, per verificare che tu sia nel locale.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Workbit usa la posizione solo al momento della timbratura, per verificare che tu sia nel locale. Non la legge mai in background.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Serve per scattare una foto da allegare a un documento o a una nota.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
