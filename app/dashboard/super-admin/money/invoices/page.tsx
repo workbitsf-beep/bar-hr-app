@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../../context";
 import { ConsoleButton } from "../../console-form";
 import { Empty, Figure, FigureBand, Forbidden, Note, Row, Section, Status, type Tone } from "../../console-ui";
-import { markInvoiceSentAction, prepareWaitingInvoicesAction } from "./actions";
+import { markInvoiceSentAction, refreshInvoiceStateAction, sendInvoiceToSdiAction, prepareWaitingInvoicesAction } from "./actions";
+import { sdiConfig } from "@/lib/invoicing/openapi-sdi";
 
 /**
  * Denaro → Fatture: an electronic invoice for every payment, in the regime
@@ -47,12 +48,15 @@ export default async function ConsoleInvoicesPage() {
         fiscalNumber: true,
         fiscalError: true,
         fiscalXml: true,
+        fiscalDocumentId: true,
         bar: { select: { name: true, billingProfile: { select: { businessName: true } } } },
       },
     }),
     prisma.invoice.aggregate({ where: { fiscalYear: year }, _sum: { totalAmount: true }, _count: true }),
   ]);
   const issuerMissing = missingIssuerFields(fiscalIssuerOf(profile));
+  // Openapi set up: invoices go to the SDI by themselves.
+  const sdi = sdiConfig();
   const count = (states: FiscalState[]) => invoices.filter((invoice) => states.includes(invoice.fiscalState)).length;
   const toSend = count([FiscalState.READY, FiscalState.REJECTED]);
   const waiting = count([FiscalState.NONE, FiscalState.MISSING_DATA]);
@@ -85,14 +89,17 @@ export default async function ConsoleInvoicesPage() {
           in attesa”.
         </Note>
       ) : (
-        <Note tone="positive">
-          I tuoi dati da emittente sono completi. L&apos;invio allo SDI è da collegare a un fornitore: per ora scarica
-          l&apos;XML, caricalo su Fatture e Corrispettivi e segnalo come inviato.
+        <Note tone={sdi?.sandbox ? "warning" : "positive"}>
+          {sdi
+            ? sdi.sandbox
+              ? "Invio automatico attivo in prova (Openapi sandbox): le fatture non arrivano davvero allo SDI."
+              : "Invio automatico attivo: ogni fattura pronta parte da sola verso lo SDI tramite Openapi, e lo stato si aggiorna quando lo SDI risponde."
+            : "I tuoi dati da emittente sono completi. L'invio automatico allo SDI non è ancora collegato: scarica l'XML, caricalo su Fatture e Corrispettivi e segnalo come inviato."}
         </Note>
       )}
 
       <FigureBand>
-        <Figure label="Da inviare" value={String(toSend)} meta="pronte, da caricare" tone={toSend ? "warning" : "neutral"} />
+        <Figure label="Da inviare" value={String(toSend)} meta={sdi ? "pronte o scartate" : "pronte, da caricare"} tone={toSend ? "warning" : "neutral"} />
         <Figure label="In attesa" value={String(waiting)} meta="mancano dati" tone={waiting ? "warning" : "neutral"} />
         <Figure
           label={`Fatturato ${year}`}
@@ -151,12 +158,30 @@ export default async function ConsoleInvoicesPage() {
                     >
                       Scarica XML
                     </a>
-                    {invoice.fiscalState === FiscalState.READY || invoice.fiscalState === FiscalState.REJECTED ? (
+                    {(invoice.fiscalState === FiscalState.READY || invoice.fiscalState === FiscalState.REJECTED) && sdi ? (
+                      <ConsoleButton
+                        action={sendInvoiceToSdiAction}
+                        fields={{ invoiceId: invoice.id }}
+                        label={invoice.fiscalState === FiscalState.REJECTED ? "Invia di nuovo" : "Invia allo SDI"}
+                        pendingLabel="Invio…"
+                        className="wbc-btn wbc-btn-primary wbc-btn-sm"
+                      />
+                    ) : null}
+                    {(invoice.fiscalState === FiscalState.READY || invoice.fiscalState === FiscalState.REJECTED) && !sdi ? (
                       <ConsoleButton
                         action={markInvoiceSentAction}
                         fields={{ invoiceId: invoice.id }}
                         label="Segna inviata"
                         className="wbc-btn wbc-btn-primary wbc-btn-sm"
+                      />
+                    ) : null}
+                    {invoice.fiscalState === FiscalState.SENT && sdi && invoice.fiscalDocumentId ? (
+                      <ConsoleButton
+                        action={refreshInvoiceStateAction}
+                        fields={{ invoiceId: invoice.id }}
+                        label="Aggiorna stato"
+                        pendingLabel="Chiedo…"
+                        className="wbc-btn wbc-btn-ghost wbc-btn-sm"
                       />
                     ) : null}
                   </div>

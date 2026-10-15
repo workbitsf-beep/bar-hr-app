@@ -3,6 +3,7 @@ import "server-only";
 import { FiscalState, InvoiceProvider, InvoiceStatus } from "@prisma/client";
 import { fiscalIssuerOf, getCompanyProfile } from "@/lib/company-profile";
 import { prisma } from "@/lib/prisma";
+import { randomInt } from "node:crypto";
 import { stripe } from "@/lib/stripe";
 import {
   buildFatturaXml,
@@ -14,6 +15,7 @@ import {
   type FiscalRecipient,
 } from "./fattura-pa";
 import { fiscalLinesOf } from "./stripe-sync";
+import { sendFiscalInvoice } from "@/lib/invoicing/send";
 
 export { fiscalLinesOf };
 
@@ -144,8 +146,13 @@ export async function prepareFiscalInvoice(invoiceId: string, lines?: FiscalLine
           fiscalFileName: fatturaFileName(issuer, progressive),
           fiscalXml: xml,
           fiscalError: null,
+          // Kept, so a rejected invoice can be written again without Stripe.
+          fiscalLines: fiscalLines,
         },
       });
+      // Straight to the SDI when Openapi is set up; otherwise it waits in
+      // the console to be uploaded by hand. A failed send stays READY.
+      await sendFiscalInvoice(invoice.id).catch(() => null);
       return FiscalState.READY;
     } catch (error) {
       if (attempt === 2) throw error;
@@ -174,4 +181,53 @@ export async function prepareWaitingFiscalInvoices(barId?: string) {
     }
   }
   return { waiting: waiting.length, ready };
+}
+
+/**
+ * After the SDI rejected an invoice: written again from today's data (the
+ * customer's corrected VAT number or address), keeping its number and date,
+ * as a rejected invoice is not issued and goes again under the same number.
+ * The file name changes - the SDI refuses a name it has already seen.
+ */
+export async function rebuildRejectedFiscalInvoice(invoiceId: string) {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      id: true,
+      provider: true,
+      externalId: true,
+      paidAt: true,
+      issuedAt: true,
+      fiscalState: true,
+      fiscalNumber: true,
+      fiscalLines: true,
+      bar: { select: { billingProfile: true } },
+    },
+  });
+  if (!invoice || invoice.fiscalState !== FiscalState.REJECTED || !invoice.fiscalNumber) return false;
+
+  const issuer = fiscalIssuerOf(await getCompanyProfile());
+  const recipient = recipientOf(invoice.bar.billingProfile);
+  const missing = [...missingIssuerFields(issuer), ...missingRecipientFields(recipient)];
+  if (missing.length) throw new Error(`Mancano: ${missing.join(", ")}`);
+
+  const stored = Array.isArray(invoice.fiscalLines) ? (invoice.fiscalLines as FiscalLine[]) : null;
+  const lines = stored ?? (invoice.provider === InvoiceProvider.STRIPE ? await stripeLinesFor(invoice.externalId) : []);
+  if (!lines.length) throw new Error("Righe della fattura non trovate");
+
+  // "Z" and four random characters: never one of the regular progressives.
+  const progressive = `Z${Array.from({ length: 4 }, () => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[randomInt(36)]).join("")}`;
+  const xml = buildFatturaXml({
+    issuer,
+    recipient: recipient as FiscalRecipient,
+    number: invoice.fiscalNumber,
+    progressive,
+    date: invoice.paidAt ?? invoice.issuedAt ?? new Date(),
+    lines,
+  });
+  await prisma.invoice.update({
+    where: { id: invoice.id },
+    data: { fiscalXml: xml, fiscalFileName: fatturaFileName(issuer, progressive), fiscalLines: lines },
+  });
+  return true;
 }

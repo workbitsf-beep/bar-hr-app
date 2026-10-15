@@ -493,6 +493,9 @@ model Invoice {
   fiscalXml        String?
   /// The lines as Stripe billed them, kept to make the invoice later.
   fiscalLines      Json?
+  /// When it was handed to the SDI through Openapi (fiscalDocumentId holds
+  /// Openapi's uuid for it).
+  fiscalSentAt     DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   bar              Bar             @relation(fields: [barId], references: [id], onDelete: Cascade)

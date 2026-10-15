@@ -15,6 +15,7 @@ export async function GET(request: Request): Promise<Response> {
     { runTimeLogReminders },
     { runDataRetention },
     { runTrialEndingReminders },
+    { runFiscalSending },
   ] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/task-recurrence"),
@@ -22,6 +23,7 @@ export async function GET(request: Request): Promise<Response> {
     import("@/lib/timelog-reminders"),
     import("@/lib/data-retention"),
     import("@/lib/trial-reminders"),
+    import("@/lib/invoicing/send"),
   ]);
 
   // Recurrence runs before escalation: escalation rewrites an overdue note's
@@ -29,7 +31,7 @@ export async function GET(request: Request): Promise<Response> {
   // it stayed untouched.
   const recurrenceResult = await runTaskRecurrence();
 
-  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult] =
+  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult] =
     await Promise.all([
       runTaskEscalation(),
       runShiftRetentionCleanup(),
@@ -38,12 +40,15 @@ export async function GET(request: Request): Promise<Response> {
       runDataRetention(),
       // Tre giorni prima che una prova diventi un addebito, si avvisa.
       runTrialEndingReminders(),
+      // E-invoices still to send, and the SDI's answers a callback missed.
+      runFiscalSending().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
     ]);
 
   return Response.json({
     ok: true,
     retention: retentionResult,
     trialEndingNotices: trialResult,
+    fiscalSending: fiscalResult,
     updatedCount: taskResult.count,
     renewedRecurringTaskCount: recurrenceResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,
