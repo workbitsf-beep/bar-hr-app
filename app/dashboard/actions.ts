@@ -1919,12 +1919,19 @@ async function updateVenueDetailsBySuperAdmin(formData: FormData) {
     throw new RuleError("Il nome del locale non può restare vuoto.");
   }
 
-  const bar = await prisma.bar.findUnique({ where: { id: barId }, select: { id: true, activityType: true } });
+  const bar = await prisma.bar.findUnique({
+    where: { id: barId },
+    select: { id: true, activityType: true, mainBarId: true, _count: { select: { branches: true } } },
+  });
   if (!bar) {
     throw new RuleError("Locale non trovato.");
   }
 
   const switching = bar.activityType !== activityType;
+  // A restaurant's branches (lib/venue-branches.ts) only exist for restaurants.
+  if (switching && (bar.mainBarId || bar._count.branches > 0)) {
+    throw new RuleError("Ha sedi collegate: un locale con sedi resta nella ristorazione.");
+  }
   const toCompany = activityType === ActivityType.COMPANY;
   const stale = Object.values(Department).filter((value) => (toCompany ? !value.startsWith("SEDE_") : value.startsWith("SEDE_")));
   const startOfToday = new Date();
@@ -1946,6 +1953,8 @@ async function updateVenueDetailsBySuperAdmin(formData: FormData) {
         ...(switching ? { departmentMode: DepartmentMode.UNIFIED } : {}),
       },
     });
+    // Same tax details across a restaurant's branches.
+    await tx.bar.updateMany({ where: { mainBarId: barId }, data: { legalName: text("legalName", 120) } });
 
     if (!switching) return;
 

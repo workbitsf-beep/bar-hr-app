@@ -14,7 +14,13 @@
 // The same limits as lib/plans.ts, which reads the database and so cannot
 // reach the page where the owner picks a plan; tests/stripe-catalog keeps
 // the two in step.
-export const CATALOG_LIMITS = { maxSeatPacks: 2, paidSitesOnBase: 3, sitesIncludedInPro: 3, sitesOnPro: 6 } as const;
+export const CATALOG_LIMITS = {
+  maxSeatPacks: 2,
+  paidSitesOnBase: 3,
+  sitesIncludedInPro: 3,
+  restaurantSitesIncludedInPro: 2,
+  sitesOnPro: 6,
+} as const;
 const { maxSeatPacks: MAX_SEAT_PACKS, paidSitesOnBase: PAID_SITES_ON_BASE, sitesIncludedInPro: SITES_INCLUDED_IN_PRO, sitesOnPro: SITES_ON_PRO } =
   CATALOG_LIMITS;
 
@@ -60,7 +66,7 @@ export type PlanSelection = {
   seatPacks: number;
   /** Logo and sign font, on Base. */
   branding: boolean;
-  /** A company's paid sites, on top of the main one (Base) or the three included (Pro). */
+  /** Paid sites on top of the main one (Base) or those the Pro includes: a company's, or a restaurant's branches. */
   extraSites: number;
 };
 
@@ -75,11 +81,16 @@ export function normalizeSelection(input: Partial<Record<keyof PlanSelection, un
   const pro = plan === "PRO";
   return {
     plan,
+    // A restaurant's Reparti, bought once, covers every branch.
     departments: !company && !pro && input.departments === true,
     // A restaurant's Pro has no limit on people.
     seatPacks: !company && pro ? 0 : whole(input.seatPacks, MAX_SEAT_PACKS),
     branding: !pro && input.branding === true,
-    extraSites: company ? whole(input.extraSites, pro ? SITES_ON_PRO - SITES_INCLUDED_IN_PRO : PAID_SITES_ON_BASE) : 0,
+    // Paid sites: a company's, or a restaurant's branches (2 in its Pro).
+    extraSites: whole(
+      input.extraSites,
+      pro ? SITES_ON_PRO - (company ? SITES_INCLUDED_IN_PRO : CATALOG_LIMITS.restaurantSitesIncludedInPro) : PAID_SITES_ON_BASE
+    ),
   };
 }
 

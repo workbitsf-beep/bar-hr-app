@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { mainBarIdOf } from "@/lib/venue-branches";
 import { getOrSetRuntimeCache, invalidateRuntimeCache } from "@/lib/runtime-cache";
 import {
   computeCanAccess,
@@ -64,7 +65,8 @@ export const getBillingStatus = cache(async function getBillingStatus(
     30_000,
     async () =>
       prisma.subscription.findUnique({
-        where: { barId },
+        // A restaurant's branch is paid with its main venue.
+        where: { barId: await mainBarIdOf(barId) },
         select: {
           planType: true,
           status: true,
@@ -112,6 +114,11 @@ export const getBillingStatus = cache(async function getBillingStatus(
 
 export function invalidateBillingStatusCache(barId: string) {
   invalidateRuntimeCache(`billing-status:${barId}`);
+  // A restaurant's branches read the main venue's subscription.
+  void prisma.bar
+    .findMany({ where: { mainBarId: barId }, select: { id: true } })
+    .then((branches) => branches.forEach((branch) => invalidateRuntimeCache(`billing-status:${branch.id}`)))
+    .catch(() => undefined);
 }
 
 export async function canAccessBar(barId: string) {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_SEAT_PACKS, PAID_SITES_ON_BASE, PLAN_PRICES, SITES_INCLUDED_IN_PRO, SITES_ON_PRO, entitlementsOf } from "../lib/plans";
+import { MAX_SEAT_PACKS, PAID_SITES_ON_BASE, PLAN_PRICES, RESTAURANT_SITES_IN_PRO, SITES_INCLUDED_IN_PRO, SITES_ON_PRO, entitlementsOf } from "../lib/plans";
 import {
   CATALOG_LIMITS,
   PRICE_CENTS,
@@ -17,6 +17,7 @@ test("the catalog's limits and prices match the plans", () => {
     maxSeatPacks: MAX_SEAT_PACKS,
     paidSitesOnBase: PAID_SITES_ON_BASE,
     sitesIncludedInPro: SITES_INCLUDED_IN_PRO,
+    restaurantSitesIncludedInPro: RESTAURANT_SITES_IN_PRO,
     sitesOnPro: SITES_ON_PRO,
   });
   const cents = (label: string) => Math.round(Number(label.replace(/[^\d,]/g, "").replace(",", ".")) * 100);
@@ -37,14 +38,26 @@ test("lookup keys go both ways", () => {
 
 test("a restaurant on Base buys only what it ticks", () => {
   const selection = normalizeSelection({ plan: "BASE", departments: true, seatPacks: 5, branding: true, extraSites: 2 }, false);
-  assert.deepEqual(selection, { plan: "BASE", departments: true, seatPacks: 2, branding: true, extraSites: 0 });
+  // Branches and one Reparti for all of them.
+  assert.deepEqual(selection, { plan: "BASE", departments: true, seatPacks: 2, branding: true, extraSites: 2 });
   assert.deepEqual(selectionItems(selection), [
     { kind: "base", quantity: 1 },
     { kind: "reparti", quantity: 1 },
     { kind: "persone5", quantity: 2 },
     { kind: "stile", quantity: 1 },
+    { kind: "sede", quantity: 2 },
   ]);
-  assert.equal(selectionTotalCents(selection, "MONTHLY"), 2999 + 799 + 2 * 699 + 299);
+  assert.equal(selectionTotalCents(selection, "MONTHLY"), 2999 + 799 + 2 * 699 + 299 + 2 * 799);
+});
+
+test("a restaurant's Pro includes two sites and goes up to six", () => {
+  assert.equal(normalizeSelection({ plan: "PRO", extraSites: 9 }, false).extraSites, 4);
+  const pro = entitlementsOf({ plan: "PRO", departmentsAddon: false, extraSeatPacks: 0, brandingAddon: false, activityType: "RESTAURANT", extraSites: 1 });
+  assert.equal(pro.siteLimit, 3);
+  assert.equal(pro.paidSites, 1);
+  const base = entitlementsOf({ plan: "BASE", departmentsAddon: true, extraSeatPacks: 0, brandingAddon: false, activityType: "RESTAURANT", extraSites: 2 });
+  assert.equal(base.siteLimit, 3);
+  assert.equal(base.departments, true);
 });
 
 test("a restaurant's Pro is the plan alone", () => {

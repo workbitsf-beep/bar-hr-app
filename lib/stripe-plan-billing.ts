@@ -4,6 +4,7 @@ import { SubscriptionStatus, VenuePlan } from "@prisma/client";
 import type Stripe from "stripe";
 import { invalidateBillingStatusCache } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
+import { syncBranchesFromMain } from "@/lib/venue-branches";
 import {
   lookupKey,
   selectionFromItems,
@@ -130,6 +131,7 @@ export async function applyPlanFromSubscription(barId: string, subscription: Str
       extraSites: selection.extraSites,
     },
   });
+  await syncBranchesFromMain(barId);
   invalidateBillingStatusCache(barId);
   return parsed;
 }

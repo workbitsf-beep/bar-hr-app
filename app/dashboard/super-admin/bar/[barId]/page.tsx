@@ -61,6 +61,8 @@ export default async function ConsoleBarPage({
         customSiteLimit: true,
         customPlanNote: true,
         sites: { select: { slot: true, name: true, latitude: true, longitude: true } },
+        mainBar: { select: { id: true, name: true } },
+        branches: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, city: true } },
         createdAt: true,
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         memberships: {
@@ -125,7 +127,24 @@ export default async function ConsoleBarPage({
         <p className="wbc-desc">
           {activityLabel(bar.activityType)}
           {bar.city ? ` · ${bar.city}` : ""} · attivo da {formatDate(bar.createdAt)}
+          {bar.mainBar ? (
+            <>
+              {" · sede di "}
+              <Link href={`/dashboard/super-admin/bar/${bar.mainBar.id}`}>{bar.mainBar.name}</Link>
+            </>
+          ) : null}
         </p>
+        {bar.branches.length > 0 ? (
+          <p className="wbc-desc">
+            Sedi:{" "}
+            {bar.branches.map((branch, index) => (
+              <span key={branch.id}>
+                {index > 0 ? ", " : ""}
+                <Link href={`/dashboard/super-admin/bar/${branch.id}`}>{branch.name}</Link>
+              </span>
+            ))}
+          </p>
+        ) : null}
       </div>
 
       <FigureBand>
@@ -189,6 +208,15 @@ export default async function ConsoleBarPage({
 
       {/* Until checkout sells the extras, the plan and its extras are set by
           hand here. Pro includes everything; Base adds only what is ticked. */}
+      {bar.mainBar ? (
+        <Section title="Piano">
+          <Note tone="neutral">
+            È una sede di{" "}
+            <Link href={`/dashboard/super-admin/bar/${bar.mainBar.id}`}>{bar.mainBar.name}</Link>: piano, extra e
+            abbonamento sono quelli del locale principale e si cambiano lì.
+          </Note>
+        </Section>
+      ) : (
       <Section title={`Piano · ${describePlan(entitlementsOf(bar), bar.activityType === "COMPANY")}`}>
         {(() => {
           // A company whose sites look like separate businesses on one subscription.
@@ -222,7 +250,7 @@ export default async function ConsoleBarPage({
                     : plan === "PRO"
                     ? bar.activityType === "COMPANY"
                       ? "3 sedi (la principale inclusa) e fino a 45 persone"
-                      : "Tutto incluso, persone senza limite"
+                      : "Tutto incluso, 2 sedi, persone senza limite"
                     : bar.activityType === "COMPANY"
                     ? `Sede principale e ${BASE_SEATS} persone`
                     : `${BASE_SEATS} persone`}
@@ -248,12 +276,10 @@ export default async function ConsoleBarPage({
                 <span className="wbc-row-meta">Persone</span>
                 <input name="customSeatLimit" inputMode="numeric" defaultValue={bar.customSeatLimit ?? ""} placeholder="vuoto = senza limite" style={{ width: 140 }} />
               </label>
-              {bar.activityType === "COMPANY" ? (
-                <label style={{ display: "grid", gap: 4 }}>
-                  <span className="wbc-row-meta">Sedi (max 12)</span>
-                  <input name="customSiteLimit" inputMode="numeric" defaultValue={bar.customSiteLimit ?? ""} placeholder="es. 8" style={{ width: 100 }} />
-                </label>
-              ) : null}
+              <label style={{ display: "grid", gap: 4 }}>
+                <span className="wbc-row-meta">Sedi (max 12)</span>
+                <input name="customSiteLimit" inputMode="numeric" defaultValue={bar.customSiteLimit ?? ""} placeholder="es. 8" style={{ width: 100 }} />
+              </label>
             </div>
             <label style={{ display: "grid", gap: 4 }}>
               <span className="wbc-row-meta">Nota sull&apos;accordo</span>
@@ -264,7 +290,7 @@ export default async function ConsoleBarPage({
             <span className="wbc-row-meta">
               {bar.activityType === "COMPANY"
                 ? "Extra: sedi e pacchetti si aggiungono anche al Pro (lo stile è compreso nel Pro)"
-                : "Extra del Base (con il Pro sono già compresi)"}
+                : "Extra: le sedi si aggiungono anche al Pro, il resto è compreso nel Pro"}
             </span>
             {bar.activityType === "COMPANY" ? (
               <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -278,10 +304,22 @@ export default async function ConsoleBarPage({
                 </select>
               </label>
             ) : (
-              <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
-                Reparti · {PLAN_PRICES.departments.monthly}
-              </label>
+              <>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" name="departmentsAddon" defaultChecked={bar.departmentsAddon} />
+                  Reparti · {PLAN_PRICES.departments.monthly}
+                </label>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  Sedi pagate (stessa insegna e P.IVA) · {PLAN_PRICES.site.monthly} l&apos;una
+                  <select name="extraSites" defaultValue={String(bar.extraSites)}>
+                    {[0, 1, 2, 3, 4].map((count) => (
+                      <option key={count} value={count}>
+                        {count} · Base {count > 3 ? "—" : `${1 + count} in tutto`} · Pro {2 + count} in tutto
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
             )}
             <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               Pacchetti da +{SEAT_PACK_SIZE} persone · {PLAN_PRICES.seatPack.monthly} l&apos;uno
@@ -305,6 +343,7 @@ export default async function ConsoleBarPage({
           </span>
         </ConsoleForm>
       </Section>
+      )}
 
       <Section title={`Persone · ${bar.memberships.length}`}>
         <ConsoleForm action={createEmployeeBySuperAdminAction} label="Aggiungi persona" pendingLabel="Aggiungo…" resetOnSuccess style={{ gap: 15 }}>

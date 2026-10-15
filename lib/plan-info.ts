@@ -31,7 +31,7 @@ export function planInfo(key: PlanInfoKey, company: boolean): PlanInfo {
           }
         : {
             title: "Pro",
-            text: "Tutto compreso: reparti, stile del locale e persone senza limite.",
+            text: "Tutto compreso: reparti, 2 sedi con la stessa insegna, stile del locale e persone senza limite. Altre sedi si aggiungono, fino a 6.",
             who: "Per il ristorante con tanta gente.",
           };
     case "reparti":
@@ -41,6 +41,13 @@ export function planInfo(key: PlanInfoKey, company: boolean): PlanInfo {
         who: "Per la pizzeria con forno e sala, o il ristorante con cucina e sala.",
       };
     case "sedi":
+      if (!company) {
+        return {
+          title: "Sedi",
+          text: "Un altro locale con la stessa insegna e gli stessi dati fiscali: calendario, reparti, persone e punto di timbratura suoi, e un abbonamento solo. Piano, Reparti e Stile valgono per tutte le sedi, le persone si contano insieme. Fino a 3 in più sul Base, 2 comprese e fino a 6 in tutto con il Pro. Un locale con un altro nome o un'altra partita IVA è un'attività a parte.",
+          who: "Per il ristorante o il bar con più punti vendita.",
+        };
+      }
       return {
         title: "Sedi",
         text: "Ogni sede ha nome, indirizzo e punto di timbratura: si timbra solo nella propria sede. Turni, note, checklist e carrello divisi per sede, con un responsabile per ognuna. La sede principale è l'azienda stessa ed è sempre compresa; le altre si aggiungono una per una: fino a 3 sul Base, fino a 6 in tutto con il Pro.",

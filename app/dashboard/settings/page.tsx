@@ -44,6 +44,7 @@ import { SavingForm } from "../saving-form";
 import { describePlan, getSeatUsage, getVenueEntitlements, parseSignFont, SIGN_FONTS } from "@/lib/plans";
 import { getPurchaseContext } from "@/lib/stripe-plan-billing";
 import { VenueStyleForm } from "./venue-style-form";
+import { BranchesPanel } from "./branches-panel";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -732,8 +733,37 @@ export default async function DashboardSettingsPage({
       ? prisma.bar.findUnique({ where: { id: activeBarId }, select: { signFont: true, logoType: true, logoUpdatedAt: true } })
       : Promise.resolve(null),
   ]);
+  // A restaurant's branches (lib/venue-branches.ts): the main venue lists
+  // them, a branch says whose it is and leaves the subscription to it.
+  const family =
+    activeBarId && activeBarActivityType !== ActivityType.COMPANY
+      ? await prisma.bar.findUnique({
+          where: { id: activeBarId },
+          select: {
+            name: true,
+            mainBar: { select: { name: true } },
+            branches: {
+              orderBy: { createdAt: "asc" },
+              select: {
+                id: true,
+                name: true,
+                addressLine1: true,
+                city: true,
+                _count: {
+                  select: {
+                    memberships: { where: { isActive: true, role: { not: Role.OWNER } } },
+                    shifts: true,
+                    timeLogs: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+      : null;
+  const branchOf = family?.mainBar?.name ?? null;
   // The owner's plan picker (web only): what the venue has now and its VAT number.
-  const purchase = role === Role.OWNER && activeBarId ? await getPurchaseContext(activeBarId) : null;
+  const purchase = role === Role.OWNER && activeBarId && !branchOf ? await getPurchaseContext(activeBarId) : null;
   const openPlanPopup = normalizeParam(params.piano) === "1";
   // From the home's "Dove si timbra · Imposta".
   const openPositionPopup = normalizeParam(params.posizione) === "1";
@@ -1128,6 +1158,33 @@ export default async function DashboardSettingsPage({
           </PopupAction>
         ) : null}
 
+        {role === Role.OWNER && family && !branchOf && (entitlements.siteLimit > 1 || family.branches.length > 0) ? (
+          <PopupAction
+            title="Sedi"
+            ariaLabel="Apri le sedi"
+            triggerRow={
+              <SettingsRow
+                dot="#d6338a"
+                title="Sedi"
+                lead="Stessa insegna e partita IVA, un abbonamento"
+                status={`${family.branches.length + 1} su ${Math.max(entitlements.siteLimit, family.branches.length + 1)}`}
+              />
+            }
+          >
+            <BranchesPanel
+              mainName={family.name}
+              limit={entitlements.siteLimit}
+              branches={family.branches.map((branch) => ({
+                id: branch.id,
+                name: branch.name,
+                address: [branch.addressLine1, branch.city].filter(Boolean).join(", ") || null,
+                people: branch._count.memberships,
+                empty: branch._count.memberships + branch._count.shifts + branch._count.timeLogs === 0,
+              }))}
+            />
+          </PopupAction>
+        ) : null}
+
         {departments.enabled && role === Role.OWNER && departments.kind === "departments" ? (
           <PopupAction
             title="Reparti"
@@ -1207,6 +1264,14 @@ export default async function DashboardSettingsPage({
           </PopupAction>
         ) : null}
 
+        {branchOf ? (
+          <SettingsRow
+            dot="#0284c7"
+            title="Abbonamento"
+            lead={`Sede di ${branchOf}: piano e pagamento si gestiscono lì`}
+            status={seats ? (seats.limit === null ? `${seats.used} persone` : `${seats.used} su ${seats.limit} persone`) : ""}
+          />
+        ) : (
         <PopupAction
           title="Abbonamento"
           ariaLabel="Apri abbonamento"
@@ -1235,8 +1300,9 @@ export default async function DashboardSettingsPage({
             company={activeBarActivityType === ActivityType.COMPANY}
           />
         </PopupAction>
+        )}
 
-        {role === Role.OWNER && billingProfileValues ? (
+        {role === Role.OWNER && billingProfileValues && !branchOf ? (
           <div className="wb-web-only">
             <PopupAction
               title="Dati per la fattura"

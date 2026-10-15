@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { can, isStaffRole } from "@/lib/staff-permissions";
 import { dropFromStaffScopes } from "@/lib/staff-scope";
+import { syncBranchesFromMain } from "@/lib/venue-branches";
 
 /**
  * Departments: the owner's settings, a person's department, and the switch
@@ -162,6 +163,12 @@ async function setVenuePlan(formData: FormData) {
       : {};
   const packs = Math.max(0, Math.min(MAX_SEAT_PACKS, Math.round(Number(formData.get("extraSeatPacks") ?? 0) || 0)));
 
+  const venue = await prisma.bar.findUnique({ where: { id: barId }, select: { mainBarId: true, activityType: true } });
+  if (!venue) throw new RuleError("Locale non trovato.");
+  if (venue.mainBarId) throw new RuleError("È una sede: il piano si cambia sul locale principale e vale per tutte.");
+  // Paid sites on Pro: up to 6 in all, a company has 3 included, a restaurant 2.
+  const maxExtraSites = venue.activityType === "COMPANY" ? 3 : 4;
+
   if (plan === VenuePlan.CUSTOM && "customSiteLimit" in custom && custom.customSiteLimit === 0) {
     throw new RuleError("Il Su misura ha almeno una sede: la principale.");
   }
@@ -185,12 +192,13 @@ async function setVenuePlan(formData: FormData) {
       extraSeatPacks: packs,
       brandingAddon: formData.get("brandingAddon") === "on",
       ...custom,
-      // A company's paid sites: 0 to 3 (on Pro, on top of the 3 it includes).
+      // Paid sites, on top of what the plan includes.
       ...(formData.has("extraSites")
-        ? { extraSites: Math.max(0, Math.min(3, Math.round(Number(formData.get("extraSites")) || 0))) }
+        ? { extraSites: Math.max(0, Math.min(maxExtraSites, Math.round(Number(formData.get("extraSites")) || 0))) }
         : {}),
     },
   });
+  await syncBranchesFromMain(barId);
   revalidatePath(`/dashboard/super-admin/bar/${barId}`);
   refresh();
 

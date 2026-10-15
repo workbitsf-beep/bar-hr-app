@@ -294,7 +294,7 @@ export function PlanBilling({
             {unit}
           </span>
           <span style={{ fontSize: 12, color: "#8b88a3" }}>
-            {plan === "PRO" ? (company ? "3 sedi, 45 persone" : "Tutto compreso") : company ? "Sede principale, 12 persone" : "12 persone"}
+            {plan === "PRO" ? (company ? "3 sedi, 45 persone" : "2 sedi, tutto compreso") : company ? "Sede principale, 12 persone" : "12 persone"}
           </span>
         </button>
         <span style={{ position: "absolute", top: 12, right: 12 }}>
@@ -329,6 +329,21 @@ export function PlanBilling({
         subOn={pro || (owned.departments && !ownedPro)}
         state={{ on: owned.departments || ownedPro, text: ownedPro ? "Nel Pro" : owned.departments ? "Attivo" : "Non attivo" }}
         control={editable && !pro ? <Switch name="Reparti" checked={view.departments} onChange={(departments) => update({ departments })} /> : null}
+      />
+    );
+    // A restaurant's branches: same name and tax details, one subscription.
+    const max = pro
+      ? CATALOG_LIMITS.sitesOnPro - CATALOG_LIMITS.restaurantSitesIncludedInPro
+      : CATALOG_LIMITS.paidSitesOnBase;
+    rows.push(
+      <ExtraRow
+        key="sedi"
+        info="sedi"
+        company={false}
+        sub={`Stessa insegna e P.IVA · ${pro ? "oltre alle 2 del Pro" : "oltre alla principale"} · ${formatEuro(PRICE_CENTS.sede[interval])} l'una`}
+        subOn={false}
+        state={{ on: owned.siteLimit > 1, text: `${Math.max(1, owned.siteLimit)} ${owned.siteLimit > 1 ? "sedi" : "sede"}` }}
+        control={editable ? <Stepper name="sedi" value={view.extraSites} max={max} onChange={(extraSites) => update({ extraSites })} /> : null}
       />
     );
   }

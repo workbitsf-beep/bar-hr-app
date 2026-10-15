@@ -15,7 +15,8 @@ test("a venue's Pro has every extra and no limit on people", () => {
   assert.equal(pro.seatLimit, null);
   assert.equal(pro.departments, true);
   assert.equal(pro.branding, true);
-  assert.equal(pro.siteLimit, 0);
+  // Its main venue and one branch (15 October 2026).
+  assert.equal(pro.siteLimit, 2);
 });
 
 test("a company's main site is free; on Base it pays up to 3 more one by one", () => {

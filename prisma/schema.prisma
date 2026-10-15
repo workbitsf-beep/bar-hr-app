@@ -335,8 +335,11 @@ model Bar {
   departmentsAddon       Boolean                 @default(false)
   extraSeatPacks         Int                     @default(0)
   brandingAddon          Boolean                 @default(false)
-  /// A company's paid sites at 7,99 each: up to 3 on Base, and on Pro on top
-  /// of the 3 it includes, up to 6 in all.
+  /// Paid sites at 7,99 each. A company's are Site rows inside it (up to 3 on
+  /// Base; on Pro on top of the 3 it includes, up to 6 in all). A
+  /// restaurant's are branches - venues of their own linked by mainBarId -
+  /// under the same name and tax details (up to 3 on Base; on Pro on top of
+  /// the 2 it includes, up to 6 in all).
   extraSites             Int                     @default(0)
   /// The Su misura plan: what was agreed with the customer.
   customPriceCents       Int?
@@ -375,6 +378,12 @@ model Bar {
   shoppingListItems      ShoppingListItem[]
   checklists             Checklist[]
   sites                  Site[]
+  /// A restaurant's branch (sede): a venue of its own - departments, calendar,
+  /// clock-in point, people - billed with its main venue, whose plan and
+  /// extras it shares (lib/venue-branches.ts).
+  mainBarId              String?                 @db.Uuid
+  mainBar                Bar?                    @relation("BarBranches", fields: [mainBarId], references: [id], onDelete: Cascade)
+  branches               Bar[]                   @relation("BarBranches")
   legalAcceptances       LegalAcceptance[]
   notifications          Notification[]
   scheduledNotifications ScheduledNotification[]
@@ -383,6 +392,7 @@ model Bar {
   updatedAt              DateTime                @updatedAt
 
   @@index([ownerId])
+  @@index([mainBarId])
   @@index([ownerId, createdAt])
 }
 

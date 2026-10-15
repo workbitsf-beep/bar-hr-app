@@ -1,6 +1,7 @@
 import { ActivityType, VenuePlan } from "@prisma/client";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { familyBarIds, mainBarIdOf } from "@/lib/venue-branches";
 
 /**
  * Workbit's plans, as agreed on 8 October 2026.
@@ -14,6 +15,12 @@ import { prisma } from "@/lib/prisma";
  * itself - is always there and never paid for; the others are paid one by
  * one (7,99 each, up to 3 on Base). Its Pro includes 3 sites, the main one
  * among them, adds more up to 6, and holds up to 45 people (12 October 2026).
+ *
+ * A restaurant may have sites too (15 October 2026), under the same name and
+ * tax details: branches, each a venue of its own with its departments,
+ * billed with the main one (lib/venue-branches.ts). 7,99 each, up to 3 on
+ * Base; its Pro includes 2 (the main one among them) and goes up to 6. The
+ * Reparti extra, bought once, covers every branch.
  *
  * A Su misura plan (CUSTOM) is agreed with a customer with many sites and
  * people: everything Pro has, with the price, sites and people the super
@@ -31,6 +38,8 @@ export const BASE_SEATS = 12;
 export const PAID_SITES_ON_BASE = 3;
 export const SITES_INCLUDED_IN_PRO = 3;
 export const SITES_ON_PRO = 6;
+/** A restaurant's Pro: its main venue and one branch. */
+export const RESTAURANT_SITES_IN_PRO = 2;
 /** A company's Pro holds up to 45 people; a venue's Pro has no limit. */
 export const COMPANY_PRO_SEATS = 45;
 export const SEAT_PACK_SIZE = 5;
@@ -59,9 +68,12 @@ export type VenueEntitlements = {
   /** Null on a venue's Pro: no limit. */
   seatLimit: number | null;
   company: boolean;
-  /** A company's sites paid on top (each 7,99). */
+  /** Sites paid on top (each 7,99): a company's, or a restaurant's branches. */
   paidSites: number;
-  /** How many sites a company may have, the main one counted; 0 for a venue. */
+  /**
+   * How many sites it may have, the main one counted: a company's Site rows,
+   * or a restaurant's venues (the main one and its branches).
+   */
   siteLimit: number;
 };
 
@@ -82,13 +94,12 @@ export function entitlementsOf(bar: {
   const seatPacks = pro && !company ? 0 : Math.max(0, Math.min(MAX_SEAT_PACKS, bar.extraSeatPacks));
   const paid = Math.max(0, Math.round(bar.extraSites ?? 0));
   // The main site always counts; sites show only once there is another.
-  const siteLimit = !company
-    ? 0
-    : custom
-      ? Math.max(1, bar.customSiteLimit ?? SITES_INCLUDED_IN_PRO)
-      : pro
-      ? Math.min(SITES_ON_PRO, SITES_INCLUDED_IN_PRO + paid)
-      : 1 + Math.min(PAID_SITES_ON_BASE, paid);
+  const includedInPro = company ? SITES_INCLUDED_IN_PRO : RESTAURANT_SITES_IN_PRO;
+  const siteLimit = custom
+    ? Math.max(1, bar.customSiteLimit ?? includedInPro)
+    : pro
+    ? Math.min(SITES_ON_PRO, includedInPro + paid)
+    : 1 + Math.min(PAID_SITES_ON_BASE, paid);
   if (custom) {
     return {
       plan: bar.plan,
@@ -116,7 +127,7 @@ export function entitlementsOf(bar: {
         : null
       : BASE_SEATS + seatPacks * SEAT_PACK_SIZE,
     company,
-    paidSites: !company ? 0 : pro ? siteLimit - SITES_INCLUDED_IN_PRO : siteLimit - 1,
+    paidSites: pro ? siteLimit - includedInPro : siteLimit - 1,
     siteLimit,
   };
 }
@@ -144,16 +155,28 @@ export const getVenueEntitlements = cache(async function getVenueEntitlements(
   barId: string | null | undefined
 ): Promise<VenueEntitlements> {
   if (!barId) return NONE;
+  // A restaurant's branch has its main venue's plan (lib/venue-branches.ts).
+  const mainId = await mainBarIdOf(barId);
   const bar = await prisma.bar.findUnique({
-    where: { id: barId },
+    where: { id: mainId },
     select: { plan: true, departmentsAddon: true, extraSeatPacks: true, brandingAddon: true, activityType: true, extraSites: true, customSeatLimit: true, customSiteLimit: true },
   });
   return bar ? entitlementsOf(bar) : NONE;
 });
 
-/** Everyone active in the venue, the owner included. */
+/**
+ * Everyone active in the venue, the owner included - across a restaurant's
+ * branches, each person once.
+ */
 export async function countSeats(barId: string) {
-  return prisma.employeeBar.count({ where: { barId, isActive: true } });
+  const barIds = await familyBarIds(barId);
+  if (barIds.length === 1) return prisma.employeeBar.count({ where: { barId, isActive: true } });
+  const people = await prisma.employeeBar.findMany({
+    where: { barId: { in: barIds }, isActive: true },
+    select: { userId: true },
+    distinct: ["userId"],
+  });
+  return people.length;
 }
 
 export type SeatUsage = { used: number; limit: number | null; full: boolean };
@@ -172,7 +195,7 @@ export function describePlan(entitlements: VenueEntitlements, company = false) {
   if (entitlements.custom) return "Su misura";
   if (entitlements.pro) {
     const extras = [
-      entitlements.company && entitlements.paidSites > 0
+      entitlements.paidSites > 0
         ? `${entitlements.paidSites} ${entitlements.paidSites === 1 ? "sede" : "sedi"}`
         : null,
       entitlements.seatPacks ? `+${entitlements.seatPacks * SEAT_PACK_SIZE} persone` : null,
@@ -184,6 +207,10 @@ export function describePlan(entitlements: VenueEntitlements, company = false) {
       ? company || entitlements.company
         ? `${entitlements.paidSites} ${entitlements.paidSites === 1 ? "sede" : "sedi"}`
         : "Reparti"
+      : null,
+    // A restaurant's branches.
+    !(company || entitlements.company) && entitlements.paidSites > 0
+      ? `${entitlements.paidSites} ${entitlements.paidSites === 1 ? "sede" : "sedi"}`
       : null,
     entitlements.seatPacks ? `+${entitlements.seatPacks * SEAT_PACK_SIZE} persone` : null,
     entitlements.branding ? "Stile" : null,

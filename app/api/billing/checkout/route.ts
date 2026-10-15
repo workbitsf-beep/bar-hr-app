@@ -154,6 +154,7 @@ export async function POST(req: Request) {
         activityType: true,
         plan: true,
         vatNumber: true,
+        mainBarId: true,
         owner: {
           select: {
             id: true,
@@ -183,6 +184,13 @@ export async function POST(req: Request) {
     return Response.json({ ok: false, message: "Locale non trovato." }, { status: 404 });
   }
 
+  if (bar.mainBarId) {
+    return Response.json(
+      { ok: false, message: "È una sede: l'abbonamento si sceglie dal locale principale e vale per tutte." },
+      { status: 400 }
+    );
+  }
+
   if (subscription?.planType === PlanType.FREE || subscription?.planType === PlanType.LIFETIME) {
     return Response.json(
       { ok: false, message: "Il piano di questo locale è gestito da Workbit: non c'è niente da pagare." },
@@ -210,6 +218,8 @@ export async function POST(req: Request) {
   }
   if (bar.vatNumber?.replace(/^IT/, "") !== vat) {
     await prisma.bar.update({ where: { id: bar.id }, data: { vatNumber: vat } });
+    // A restaurant's branches share the main venue's VAT number.
+    await prisma.bar.updateMany({ where: { mainBarId: bar.id }, data: { vatNumber: vat } });
   }
 
   let lineItems: Awaited<ReturnType<typeof lineItemsFor>>;

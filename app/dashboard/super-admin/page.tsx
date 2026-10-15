@@ -68,7 +68,8 @@ export default async function ConsoleNetworkPage({
     rawActivity === "COMPANY" ? ActivityType.COMPANY : rawActivity === "RESTAURANT" ? ActivityType.RESTAURANT : "ALL";
 
   const [byActivity, subscriptions, clockInsToday, bars] = await Promise.all([
-    prisma.bar.groupBy({ by: ["activityType"], _count: { _all: true } }),
+    // A restaurant's branches pay with their main venue: not counted as venues.
+    prisma.bar.groupBy({ by: ["activityType"], where: { mainBarId: null }, _count: { _all: true } }),
     prisma.subscription.findMany({ select: SUBSCRIPTION_FIELDS }),
     prisma.timeLog.count({ where: { timestamp: { gte: windowStart(1) } } }),
     prisma.bar.findMany({
@@ -82,6 +83,7 @@ export default async function ConsoleNetworkPage({
         activityType: true,
         owner: { select: { firstName: true, lastName: true } },
         subscription: { select: SUBSCRIPTION_FIELDS },
+        mainBar: { select: { name: true } },
       },
     }),
   ]);
@@ -208,7 +210,13 @@ export default async function ConsoleNetworkPage({
                   href={`/dashboard/super-admin/bar/${bar.id}`}
                   title={bar.name}
                   meta={`${fullName(bar.owner)} · ${bar.city ?? activityLabel(bar.activityType)}`}
-                  status={<Status tone={planTone(bar.subscription)} label={planLabel(bar.subscription)} />}
+                  status={
+                    bar.mainBar ? (
+                      <Status tone="neutral" label={`Sede di ${bar.mainBar.name}`} />
+                    ) : (
+                      <Status tone={planTone(bar.subscription)} label={planLabel(bar.subscription)} />
+                    )
+                  }
                   valueMeta={revenue > 0 ? `${formatCurrency(revenue)}/mese` : undefined}
                 />
               );
