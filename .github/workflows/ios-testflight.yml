@@ -9,9 +9,11 @@ name: App iOS · TestFlight
 #   ASC_KEY_ID         App Store Connect API key: its Key ID
 #   ASC_ISSUER_ID      App Store Connect API key: the Issuer ID above the list
 #   ASC_KEY_P8         the .p8 file's whole text, BEGIN and END lines included
+#   IOS_DIST_P12, IOS_DIST_P12_PASSWORD, IOS_PROFILE
+#                      the distribution certificate and App Store profile, made
+#                      by scripts/ios-signing-setup.ts (valid one year)
 # The key is created in App Store Connect > Users and Access > Integrations >
-# App Store Connect API, with the Admin role: signing creates the certificate
-# and the profile by itself through it.
+# App Store Connect API, with the Admin role.
 #
 # Optional, for push notifications on iPhone:
 #   GOOGLE_SERVICE_INFO_PLIST  the text of GoogleService-Info.plist from Firebase
@@ -34,9 +36,12 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          IOS_DIST_P12: ${{ secrets.IOS_DIST_P12 }}
+          IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          IOS_PROFILE: ${{ secrets.IOS_PROFILE }}
         run: |
           missing=""
-          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+          for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 IOS_DIST_P12 IOS_DIST_P12_PASSWORD IOS_PROFILE; do
             [ -n "${!name}" ] || missing="$missing $name"
           done
           if [ -n "$missing" ]; then
@@ -61,8 +66,49 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          mkdir -p "$RUNNER_TEMP/keys"
-          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
+          # Where altool looks for it when uploading.
+          mkdir -p ~/private_keys
+          printf '%s\n' "$ASC_KEY_P8" > ~/private_keys/"AuthKey_$ASC_KEY_ID.p8"
+
+      # Apple's cloud-managed signing refuses an API key on these machines
+      # ("No Accounts with App Store Connect Access"), so the app is signed
+      # with a distribution certificate and profile of our own.
+      - name: Certificato e profilo di distribuzione
+        env:
+          IOS_DIST_P12: ${{ secrets.IOS_DIST_P12 }}
+          IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          IOS_PROFILE: ${{ secrets.IOS_PROFILE }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$IOS_DIST_P12" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/dist.p12" -P "$IOS_DIST_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/dist.p12"
+          PROFILES="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES"
+          echo "$IOS_PROFILE" | base64 --decode > "$RUNNER_TEMP/appstore.mobileprovision"
+          UUID=$(security cms -D -i "$RUNNER_TEMP/appstore.mobileprovision" | plutil -extract UUID raw -)
+          cp "$RUNNER_TEMP/appstore.mobileprovision" "$PROFILES/$UUID.mobileprovision"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      # Manual signing for the app target's Release configuration only: set
+      # on the command line it would reach the Swift packages too, which
+      # refuse a provisioning profile.
+      - name: Firma manuale per l'app
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          perl -0pi -e '
+            s{(504EC3181FED79650016851F /\* Release \*/ = \{.*?buildSettings = \{)}{$1\n\t\t\t\tDEVELOPMENT_TEAM = $ENV{APPLE_TEAM_ID};\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "Workbit App Store";}s;
+            s{(504EC3181FED79650016851F /\* Release \*/ = \{.*?)CODE_SIGN_STYLE = Automatic;}{$1CODE_SIGN_STYLE = Manual;}s;
+          ' ios/App/App.xcodeproj/project.pbxproj
+          grep -c 'PROVISIONING_PROFILE_SPECIFIER = "Workbit App Store"' ios/App/App.xcodeproj/project.pbxproj
+          grep -c 'CODE_SIGN_STYLE = Manual' ios/App/App.xcodeproj/project.pbxproj
 
       # Firebase reads it from the app bundle; without it the app works and
       # only push notifications stay off.
@@ -77,13 +123,7 @@ jobs:
             echo "::warning::GoogleService-Info.plist non impostato: l'app funziona, ma senza notifiche push."
           fi
 
-      # Archived without signing: automatic signing at this step wants a
-      # development profile, which needs a registered iPhone. The export below
-      # signs the whole app for the App Store with Apple's cloud-managed
-      # distribution certificate, which needs no device.
-      - name: Archivia
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Archivia (firmata)
         run: |
           xcodebuild \
             -project ios/App/App.xcodeproj \
@@ -91,10 +131,6 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Workbit.xcarchive" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             archive
 
@@ -105,11 +141,9 @@ jobs:
 
       # Export re-signs the whole app for the App Store, so a file added to
       # the archive above is covered by the signature.
-      - name: Esporta e carica su TestFlight
+      - name: Esporta l'app per l'App Store
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
@@ -117,9 +151,12 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>upload</string>
-            <key>signingStyle</key><string>automatic</string>
+            <key>destination</key><string>export</string>
+            <key>signingStyle</key><string>manual</string>
             <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict><key>it.workbit.app</key><string>Workbit App Store</string></dict>
             <key>uploadSymbols</key><true/>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>
@@ -129,15 +166,24 @@ jobs:
             -exportArchive \
             -archivePath "$RUNNER_TEMP/Workbit.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -exportPath "$RUNNER_TEMP/export" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -exportPath "$RUNNER_TEMP/export"
+          ls -la "$RUNNER_TEMP/export"
+
+      - name: Carica su TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcrun altool --upload-app -t ios \
+            -f "$(ls "$RUNNER_TEMP"/export/*.ipa | head -1)" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"
 
       - name: Riepilogo
         run: echo "Build ${{ github.run_number }} caricata. Tra 10-30 minuti compare in App Store Connect > TestFlight."
 
-      - name: Pulisci la chiave
+      - name: Pulisci chiave e certificato
         if: always()
-        run: rm -rf "$RUNNER_TEMP/keys"
+        run: |
+          rm -rf ~/private_keys
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
