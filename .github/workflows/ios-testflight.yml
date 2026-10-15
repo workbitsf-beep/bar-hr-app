@@ -77,11 +77,13 @@ jobs:
             echo "::warning::GoogleService-Info.plist non impostato: l'app funziona, ma senza notifiche push."
           fi
 
-      - name: Archivia (firmata)
+      # Archived without signing: automatic signing at this step wants a
+      # development profile, which needs a registered iPhone. The export below
+      # signs the whole app for the App Store with Apple's cloud-managed
+      # distribution certificate, which needs no device.
+      - name: Archivia
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           xcodebuild \
             -project ios/App/App.xcodeproj \
@@ -89,12 +91,10 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Workbit.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             archive
 
