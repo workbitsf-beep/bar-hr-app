@@ -65,6 +65,16 @@ const config: CapacitorConfig & { errorPath?: string } = {
      * network, the error page - the splash clears by itself after eight
      * seconds instead of hanging there for good.
      */
+    /**
+     * The keyboard shrinks the web view instead of sliding the page up under
+     * it. Without this an iPhone kept the page full height and scrolled it,
+     * so the visual viewport the login frame is sized to came out wrong and
+     * the card was cut in half with the buttons out of reach.
+     */
+    Keyboard: {
+      resize: "native",
+      resizeOnFullScreen: true,
+    },
     SplashScreen: {
       launchAutoHide: true,
       launchShowDuration: 8000,
