@@ -605,7 +605,7 @@ function DangerDeleteForm({
           </strong>
           <span style={{ fontSize: 12.5, fontWeight: 560, color: "#a8535f", lineHeight: 1.5 }}>
             Turni, timbrature, richieste, note e documenti. Se non hai altri locali sparisce anche
-            il tuo account. <strong style={{ fontWeight: 830 }}>Non si torna indietro.</strong>
+            il tuo account.
           </span>
         </span>
       </div>
@@ -693,8 +693,7 @@ function CloseAccountForm({ error }: { error: string }) {
         <span style={{ fontSize: 12.5, fontWeight: 560, color: "#a8535f", lineHeight: 1.5 }}>
           Esci da tutti i locali e dai turni futuri, e non potrai più accedere. Email, password,
           sblocco col telefono e notifiche vengono cancellati. Le timbrature e le richieste già
-          fatte restano al datore di lavoro, che per legge deve conservarle.{" "}
-          <strong style={{ fontWeight: 830 }}>Non si torna indietro.</strong>
+          fatte restano al datore di lavoro, che per legge deve conservarle.
         </span>
       </div>
 
@@ -935,7 +934,7 @@ export default async function DashboardSettingsPage({
               <SettingsRow
                 dot="#e0868f"
                 title="Elimina il mio account"
-                lead="Non si torna indietro"
+                lead="Cancella l'account e i tuoi dati"
                 tone="danger"
               />
             }
@@ -1447,7 +1446,7 @@ export default async function DashboardSettingsPage({
             <SettingsRow
               dot="#e0868f"
               title="Elimina locale e account"
-              lead="Non si torna indietro"
+              lead="Cancella il locale e i suoi dati"
               tone="danger"
             />
           }
