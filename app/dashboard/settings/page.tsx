@@ -1116,7 +1116,6 @@ export default async function DashboardSettingsPage({
             <SettingsRow
               dot="#6d5ce7"
               title="Locale e attività"
-              lead={localeProps.addressLabel}
               status={localeProps.activityLabel}
             />
           }
@@ -1133,13 +1132,12 @@ export default async function DashboardSettingsPage({
         </PopupAction>
 
         <PopupAction
-          title="Cosa usi"
+          title="Funzioni"
           ariaLabel="Apri le funzioni attive"
           triggerRow={
             <SettingsRow
               dot="#0ea5e9"
-              title="Cosa usi"
-              lead="Le funzioni accese"
+              title="Funzioni"
               status={`${activeFeatureCount} di ${visibleFeatureDefinitions.length}`}
             />
           }
@@ -1148,14 +1146,13 @@ export default async function DashboardSettingsPage({
         </PopupAction>
 
         <PopupAction
-          title="Orari standard"
+          title="Orari pre-impostati"
           ariaLabel="Apri orari standard"
           closeOnSubmit
           triggerRow={
             <SettingsRow
               dot="#f59e0b"
-              title="Orari standard"
-              lead="Le fasce del calendario"
+              title="Orari pre-impostati"
               status={standardHours.length ? String(standardHours.length) : "Nessuna"}
             />
           }
@@ -1229,7 +1226,6 @@ export default async function DashboardSettingsPage({
               <SettingsRow
                 dot="#d6338a"
                 title="Reparti"
-                lead={departments.mode === "SEPARATE" ? "Un calendario per reparto" : "Calendario unico"}
                 status={String(staffDepartments(departments.list).length)}
               />
             }
@@ -1245,13 +1241,13 @@ export default async function DashboardSettingsPage({
 
         {departments.enabled && role === Role.OWNER ? (
           <PopupAction
-            title="Apertura e chiusura"
+            title="Checklist reparti"
             ariaLabel={`Apri le checklist ${departments.kind === "sites" ? "delle sedi" : "dei reparti"}`}
             triggerRow={
               <SettingsRow
                 dot="#0f9784"
-                title="Apertura e chiusura"
-                lead={`Le checklist di ogni ${departments.words.one}`}
+                title="Checklist reparti"
+                lead="Mansioni apertura e chiusura"
                 status={checklistCount ? String(checklistCount) : "Nessuna"}
               />
             }
@@ -1262,13 +1258,13 @@ export default async function DashboardSettingsPage({
 
         {timeTrackingOn ? (
           <PopupAction
-            title="Dove si timbra"
+            title="GPS timbratura"
             ariaLabel="Apri la posizione di timbratura"
             initialOpen={openPositionPopup}
             triggerRow={
               <SettingsRow
                 dot="#10b981"
-                title="Dove si timbra"
+                title="GPS timbratura"
                 lead="Posizione e raggio"
                 status={hasGpsPoint ? "Impostata" : "Da impostare"}
                 statusTone={hasGpsPoint ? "plain" : "warn"}
@@ -1342,13 +1338,12 @@ export default async function DashboardSettingsPage({
         {role === Role.OWNER && billingProfileValues && !branchOf ? (
           <div className="wb-web-only">
             <PopupAction
-              title="Dati per la fattura"
+              title="Dati fatturazione"
               ariaLabel="Apri i dati per la fattura"
               triggerRow={
                 <SettingsRow
                   dot="#0f766e"
-                  title="Dati per la fattura"
-                  lead="Partita IVA, indirizzo, codice SDI o PEC"
+                  title="Dati fatturazione"
                   status={billingProfileMissing.length ? "Da completare" : "Completi"}
                   statusTone={billingProfileMissing.length ? "warn" : "plain"}
                 />
@@ -1427,7 +1422,7 @@ export default async function DashboardSettingsPage({
         <PopupAction
           title="Assistenza"
           ariaLabel="Apri assistenza"
-          triggerRow={<SettingsRow dot="#7e22ce" title="Scrivi all&rsquo;assistenza" />}
+          triggerRow={<SettingsRow dot="#7e22ce" title="Assistenza" />}
         >
           <SupportPanel activeBarName={activeBarName} userEmail={session.user.email} />
         </PopupAction>
@@ -1446,7 +1441,6 @@ export default async function DashboardSettingsPage({
             <SettingsRow
               dot="#e0868f"
               title="Elimina locale e account"
-              lead="Cancella il locale e i suoi dati"
               tone="danger"
             />
           }
