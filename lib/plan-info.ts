@@ -37,14 +37,14 @@ export function planInfo(key: PlanInfoKey, company: boolean): PlanInfo {
     case "reparti":
       return {
         title: "Reparti",
-        text: "Turni, note, checklist e carrello divisi tra banco, cucina e sala, più un reparto col nome che scegli tu. Il Jolly copre tutti i reparti e il responsabile di reparto gestisce quello che gli affidi.",
+        text: "Divisione di note, turni, checklist e carrello nei reparti di competenza (sala, banco, cucina). Puoi aggiungere gratuitamente un reparto extra (fiera, feste, magazzino…).",
         who: "Per la pizzeria con forno e sala, o il ristorante con cucina e sala.",
       };
     case "sedi":
       if (!company) {
         return {
           title: "Sedi",
-          text: "Un altro locale con la stessa insegna e gli stessi dati fiscali: calendario, reparti, persone e punto di timbratura suoi, e un abbonamento solo. Piano, Reparti e Stile valgono per tutte le sedi, le persone si contano insieme. Fino a 3 in più sul Base, 2 comprese e fino a 6 in tutto con il Pro. Un locale con un altro nome o un'altra partita IVA è un'attività a parte.",
+          text: "Aggiungi un'altra sede con gli stessi dati fiscali. Con il piano Base hai la possibilità di gestire con un solo abbonamento fino a 3 locali.",
           who: "Per il ristorante o il bar con più punti vendita.",
         };
       }
@@ -55,10 +55,10 @@ export function planInfo(key: PlanInfoKey, company: boolean): PlanInfo {
       };
     case "persone5":
       return {
-        title: "Persone in più",
+        title: "Upgrade personale",
         text: company
-          ? "Pacchetti da 5 persone, fino a 2: sul Base da 12 a 22 persone, sul Pro da 45 a 55."
-          : "Pacchetti da 5 persone, fino a 2: il locale passa da 12 a 22 persone.",
+          ? "Selezionando questo pack aggiungi uno slot di 5 persone al tuo team. Puoi acquistare al massimo 2 pack (sul Base totale 22 persone, sul Pro 55)."
+          : "Selezionando questo pack aggiungi uno slot di 5 persone al tuo team. Puoi acquistare al massimo 2 pack (totale 22 persone).",
         who: "Per chi cresce ma non ha bisogno del Pro.",
       };
     case "stile":
