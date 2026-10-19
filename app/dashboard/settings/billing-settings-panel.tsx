@@ -2,6 +2,7 @@ import { PlanType, SubscriptionStatus } from "@prisma/client";
 import type { BillingStatusResult } from "@/lib/billing";
 import type { SeatUsage, VenueEntitlements } from "@/lib/plans";
 import { PlanBilling, type PlanStatus, type PurchaseProps } from "./plan-billing";
+import type { PlanSelection } from "@/lib/stripe-catalog";
 
 function formatShortDate(value: Date) {
   return new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short" }).format(value);
@@ -135,6 +136,7 @@ export function BillingSettingsPanel({
   entitlements,
   seats,
   company,
+  requested = null,
 }: {
   status: BillingStatusResult;
   /** The plan picker's starting point; only the owner gets one. */
@@ -142,6 +144,7 @@ export function BillingSettingsPanel({
   entitlements: VenueEntitlements;
   seats: SeatUsage | null;
   company: boolean;
+  requested?: Partial<PlanSelection> | null;
 }) {
   const isManagedOutsideStripe = status.planType === PlanType.FREE || status.planType === PlanType.LIFETIME;
   const requiresTrialCardSetup = status.planType === PlanType.TRIAL && Boolean(status.trialEndsAt) && !status.stripeSubscriptionId;
@@ -194,6 +197,7 @@ export function BillingSettingsPanel({
       canCancel={canCancelSubscription}
       trialSetupRequired={requiresTrialCardSetup}
       monthlyDiscountPercent={status.monthlyDiscountPercent}
+      requested={requested}
     />
   );
 }

@@ -48,6 +48,24 @@ function initialsFor(name: string, email: string) {
   return email.slice(0, 2).toUpperCase() || "??";
 }
 
+/**
+ * Where to go after logging in when a link asked for it: the site's
+ * "Passa al Pro" sends people through /abbonamento, which comes here with
+ * ?next=/dashboard/settings?... Only the settings page is accepted, and only
+ * when nothing comes first (password change, legal documents, setup).
+ */
+function requestedNext() {
+  if (typeof window === "undefined") return null;
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/dashboard/settings") && !next.startsWith("//") ? next : null;
+}
+
+function afterLogin(destination: string | undefined) {
+  const next = requestedNext();
+  const plain = !destination || destination === "/dashboard" || destination.startsWith("/dashboard/settings");
+  return next && plain ? next : destination || "/dashboard";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -82,7 +100,7 @@ export default function LoginPage() {
 
         if (response.ok) {
           active = false;
-          router.replace("/dashboard");
+          router.replace(requestedNext() ?? "/dashboard");
           return;
         }
 
@@ -200,7 +218,7 @@ export default function LoginPage() {
       }
 
       markPersistentSession();
-      router.push(data.redirectTo || "/dashboard");
+      router.push(afterLogin(data.redirectTo));
     } catch {
       setError("Impossibile accedere in questo momento");
     } finally {
@@ -216,7 +234,7 @@ export default function LoginPage() {
     setAutoPromptPasskey(true);
     keepIdentity(authenticatedEmail || email, firstName);
     markPersistentSession();
-    router.push(redirectTo);
+    router.push(afterLogin(redirectTo));
   }
 
   const initials = initialsFor(knownName, knownEmail);

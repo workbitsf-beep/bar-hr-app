@@ -43,6 +43,7 @@ import { ChecklistEditor } from "../checklists";
 import { SavingForm } from "../saving-form";
 import { describePlan, getSeatUsage, getVenueEntitlements, parseSignFont, SIGN_FONTS } from "@/lib/plans";
 import { getPurchaseContext } from "@/lib/stripe-plan-billing";
+import type { PlanSelection } from "@/lib/stripe-catalog";
 import { VenueStyleForm } from "./venue-style-form";
 import { BranchesPanel } from "./branches-panel";
 
@@ -52,6 +53,20 @@ function normalizeParam(value: string | string[] | undefined) {
   }
 
   return value ?? "";
+}
+
+/** "pro,reparti,sede" → the selection to show already chosen. */
+function parseRequestedPlan(raw: string, owned: { seatPacks: number; paidSites: number }) {
+  const wanted = new Set(raw.toLowerCase().split(/[\s,]+/).filter(Boolean));
+  if (!wanted.size) return null;
+  const requested: Partial<PlanSelection> = {};
+  if (wanted.has("pro")) requested.plan = "PRO";
+  if (wanted.has("base")) requested.plan = "BASE";
+  if (wanted.has("reparti")) requested.departments = true;
+  if (wanted.has("stile")) requested.branding = true;
+  if (wanted.has("persone5") || wanted.has("persone")) requested.seatPacks = owned.seatPacks + 1;
+  if (wanted.has("sede") || wanted.has("sedi")) requested.extraSites = owned.paidSites + 1;
+  return Object.keys(requested).length ? requested : null;
 }
 
 function SettingsPageHeading() {
@@ -765,6 +780,9 @@ export default async function DashboardSettingsPage({
   // The owner's plan picker (web only): what the venue has now and its VAT number.
   const purchase = role === Role.OWNER && activeBarId && !branchOf ? await getPurchaseContext(activeBarId) : null;
   const openPlanPopup = normalizeParam(params.piano) === "1";
+  // From app.workbit.it/abbonamento?scegli=pro,reparti (the site's links): the
+  // plan picker opens with that already chosen, on top of what the venue has.
+  const requestedPlan = parseRequestedPlan(normalizeParam(params.scegli), entitlements);
   // From the home's "Dove si timbra · Imposta".
   const openPositionPopup = normalizeParam(params.posizione) === "1";
   const signFont = parseSignFont(venueStyle?.signFont);
@@ -1298,6 +1316,7 @@ export default async function DashboardSettingsPage({
             entitlements={entitlements}
             seats={seats}
             company={activeBarActivityType === ActivityType.COMPANY}
+            requested={requestedPlan}
           />
         </PopupAction>
         )}

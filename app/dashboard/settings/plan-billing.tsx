@@ -157,6 +157,7 @@ export function PlanBilling({
   canCancel,
   trialSetupRequired,
   monthlyDiscountPercent,
+  requested = null,
 }: {
   status: PlanStatus;
   owned: OwnedPlan;
@@ -166,12 +167,16 @@ export function PlanBilling({
   canCancel: boolean;
   trialSetupRequired: boolean;
   monthlyDiscountPercent: number;
+  /** From the site's "Passa al Pro" / "Aggiungi…" links: shown already chosen, saved with one tap. */
+  requested?: Partial<PlanSelection> | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const initial = normalizeSelection(purchase?.current ?? { ...owned, plan: owned.plan === "PRO" ? "PRO" : "BASE" }, company);
-  const [selection, setSelection] = useState<PlanSelection>(initial);
+  const [selection, setSelection] = useState<PlanSelection>(() =>
+    requested ? normalizeSelection({ ...initial, ...requested }, company) : initial
+  );
   const [interval, setBillingInterval] = useState<CatalogInterval>(purchase?.interval ?? "MONTHLY");
   const [vat, setVat] = useState(purchase?.vatNumber ?? "");
 
