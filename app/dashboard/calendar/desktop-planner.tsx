@@ -18,6 +18,7 @@ import {
 import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { PublishWeekPanel } from "./publish-week-panel";
 import { ActionForm } from "@/app/components/action-form";
+import { CopyWeekReport, copyWeekResultOf, copyWeekSummary, type CopyWeekResult } from "./copy-week-report";
 
 /**
  * The week on a computer: people down the side, days across the top, every
@@ -142,6 +143,7 @@ export function DesktopWeekPlanner({
   const [dragging, setDragging] = useState<{ shiftId: string; memberId: string } | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const [copyReport, setCopyReport] = useState<CopyWeekResult | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const todayKey = toDateInputValueInTimeZone(new Date());
@@ -241,13 +243,9 @@ export function DesktopWeekPlanner({
           report(result, "");
           return;
         }
-        const created = (result as { created?: number })?.created ?? 0;
-        report(
-          result,
-          created > 0
-            ? `${created} turni copiati come bozza. Controllali e pubblica la settimana.`
-            : "Niente da copiare: la settimana prima è vuota o i turni ci sono già."
-        );
+        const copied = copyWeekResultOf(result);
+        report(result, copyWeekSummary(copied));
+        setCopyReport(copied.left.length ? copied : null);
       } catch (error) {
         setFeedback({ tone: "bad", text: describeActionError(error) });
       }
@@ -315,6 +313,8 @@ export function DesktopWeekPlanner({
           </button>
         </p>
       ) : null}
+
+      {copyReport ? <CopyWeekReport result={copyReport} onClose={() => setCopyReport(null)} /> : null}
 
       <div className="wbp-layout">
         <div className={`wbp-grid${isPending ? " wbp-grid--busy" : ""}`} role="grid" aria-label="Turni della settimana">

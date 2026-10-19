@@ -81,6 +81,7 @@ import {
 } from "./calendar-client-utils";
 import { showAppToast } from "@/app/components/app-toast";
 import { ActionForm } from "@/app/components/action-form";
+import { CopyWeekReport, copyWeekResultOf, copyWeekSummary, type CopyWeekResult } from "./copy-week-report";
 
 type MemberOption = {
   id: string;
@@ -1533,6 +1534,8 @@ export function OwnerCalendarClient({
   }, [showShiftComposer]);
   const [quickComposer, setQuickComposer] = useState<"task" | "board" | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  // The shifts the last "Copia la settimana scorsa" could not bring across.
+  const [copyReport, setCopyReport] = useState<{ weekKey: string; result: CopyWeekResult } | null>(null);
   const [savedShiftDrafts, setSavedShiftDrafts] = useState<ShiftDraft[]>([]);
   // Counts every save that went through, for the composer to start afresh.
   const [savedCount, setSavedCount] = useState(0);
@@ -2630,12 +2633,9 @@ export function OwnerCalendarClient({
       try {
         const result = await copyPreviousWeekShiftsAction(formData);
         throwIfRefused(result);
-        const created = (result as { created?: number } | undefined)?.created ?? 0;
-        setFeedback(
-          created > 0
-            ? { tone: "success", message: `${created} turni copiati come bozza: controllali e pubblica la settimana.` }
-            : { tone: "danger", message: "Niente da copiare: la settimana prima è vuota." }
-        );
+        const report = copyWeekResultOf(result);
+        showAppToast(copyWeekSummary(report));
+        setCopyReport(report.left.length ? { weekKey: weekStart, result: report } : null);
         router.refresh();
       } catch (error) {
         setFeedback({ tone: "danger", message: getErrorMessage(error) });
@@ -3137,6 +3137,10 @@ export function OwnerCalendarClient({
                 >
                   {isPending ? "Copio…" : "Copia la settimana scorsa"}
                 </button>
+              ) : null}
+
+              {copyReport && copyReport.weekKey === weekKey ? (
+                <CopyWeekReport result={copyReport.result} onClose={() => setCopyReport(null)} />
               ) : null}
 
               <div style={{ display: "grid", gap: 12 }}>

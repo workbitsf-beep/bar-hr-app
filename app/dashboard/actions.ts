@@ -497,7 +497,7 @@ function describeShiftSpan(startTime: Date, endTime: Date) {
   return `${day.format(startTime)} ${clock.format(startTime)}–${clock.format(endTime)}`;
 }
 
-async function assertNoShiftAssignmentConflicts(input: {
+type ShiftConflictInput = {
   barId: string;
   employeeIds: string[];
   startTime: Date;
@@ -505,7 +505,28 @@ async function assertNoShiftAssignmentConflicts(input: {
   isOnCall?: boolean;
   /** The shift being edited, which cannot clash with itself. */
   excludeShiftId?: string;
-}) {
+};
+
+async function assertNoShiftAssignmentConflicts(input: ShiftConflictInput) {
+  const conflicts = await findShiftAssignmentConflicts(input);
+
+  if (conflicts.size === 0) {
+    return;
+  }
+
+  const details = Array.from(conflicts.values()).map(
+    (entry) => `${entry.name} (${Array.from(entry.reasons).join(", ")})`
+  );
+
+  if (input.isOnCall) {
+    throw new RuleError("Impossibile assegnare alla reperibilità: il dipendente risulta assente o indisponibile.");
+  }
+
+  throw new RuleError(`Non puoi assegnare questo turno a: ${details.join("; ")}`);
+}
+
+/** Who among `employeeIds` cannot take this shift, and why: leave, unavailability, another shift. */
+async function findShiftAssignmentConflicts(input: ShiftConflictInput) {
   const [availabilityConflicts, requestConflicts, shiftConflicts] = await Promise.all([
     prisma.availability.findMany({
       where: {
@@ -634,19 +655,7 @@ async function assertNoShiftAssignmentConflicts(input: {
     }
   }
 
-  if (conflicts.size === 0) {
-    return;
-  }
-
-  const details = Array.from(conflicts.values()).map(
-    (entry) => `${entry.name} (${Array.from(entry.reasons).join(", ")})`
-  );
-
-  if (input.isOnCall) {
-    throw new RuleError("Impossibile assegnare alla reperibilità: il dipendente risulta assente o indisponibile.");
-  }
-
-  throw new RuleError(`Non puoi assegnare questo turno a: ${details.join("; ")}`);
+  return conflicts;
 }
 
 function splitBulkTextEntries(value: string) {
@@ -5947,9 +5956,12 @@ export async function moveShiftMemberAction(formData: FormData) {
 
 /**
  * Copies last week's shifts onto the week that starts on `weekStart`, as
- * drafts to check and publish. A copy is skipped when its day is already
- * past, when its people are no longer in the venue, or when it would clash
- * with something already there - so pressing it twice copies nothing twice.
+ * drafts to check and publish. A person is left out when the day is past,
+ * when they are no longer in the venue, or when they are off or busy then
+ * (holidays, a permit, unavailability, another shift); the others on the
+ * same shift still get it, and everything left out comes back in `left`,
+ * by day, person and reason, for the owner to see. Pressing it twice copies
+ * nothing twice.
  */
 export async function copyPreviousWeekShiftsAction(formData: FormData) {
   try {
@@ -5981,7 +5993,7 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
           startTime: true,
           endTime: true,
           isOnCall: true,
-          assignments: { select: { userId: true } },
+          assignments: { select: { userId: true, user: { select: { firstName: true, lastName: true } } } },
         },
       }),
       prisma.employeeBar.findMany({
@@ -5992,32 +6004,53 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
 
     const active = new Set(activeMembers.map((member) => member.userId));
     let created = 0;
-    let skipped = 0;
+    let alreadyThere = 0;
+    // What did not come across, said to the owner by person and day: a copy
+    // that dropped a shift in silence looked like a finished week.
+    const left: string[] = [];
+    const dayLabel = new Intl.DateTimeFormat("it-IT", { weekday: "short", day: "numeric", timeZone: APP_TIME_ZONE });
+    const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: APP_TIME_ZONE });
 
     for (const source of sources) {
       const dayKey = addDaysToDayKey(toDateInputValueInTimeZone(source.startTime), 7);
-      const employeeIds = source.assignments.map((a) => a.userId).filter((id) => active.has(id));
-
-      if (dayKey < todayKey || employeeIds.length === 0) {
-        skipped += 1;
-        continue;
-      }
-
       const startTime = sameTimeOnDay(source.startTime, dayKey);
       const endTime = new Date(startTime.getTime() + (source.endTime.getTime() - source.startTime.getTime()));
+      const when = `${dayLabel.format(startTime)} ${clock.format(startTime)}–${clock.format(endTime)}`;
+      const names = new Map(source.assignments.map((a) => [a.userId, `${a.user.firstName} ${a.user.lastName}`.trim()]));
 
-      try {
-        await assertNoShiftAssignmentConflicts({
-          barId: activeBarId,
-          employeeIds,
-          startTime,
-          endTime,
-          isOnCall: source.isOnCall,
-        });
-      } catch {
-        skipped += 1;
+      if (dayKey < todayKey) {
+        left.push(`${when}: giorno già passato`);
         continue;
       }
+
+      const gone = source.assignments.filter((a) => !active.has(a.userId)).map((a) => names.get(a.userId));
+      for (const name of gone) left.push(`${when} · ${name}: non lavora più nel locale`);
+      let employeeIds = source.assignments.map((a) => a.userId).filter((id) => active.has(id));
+      if (employeeIds.length === 0) continue;
+
+      // Already copied (pressed twice): the same people at the same hours.
+      const same = await prisma.shift.findFirst({
+        where: { barId: activeBarId, startTime, endTime, assignments: { some: { userId: { in: employeeIds } } } },
+        select: { id: true },
+      });
+      if (same) {
+        alreadyThere += 1;
+        continue;
+      }
+
+      const conflicts = await findShiftAssignmentConflicts({
+        barId: activeBarId,
+        employeeIds,
+        startTime,
+        endTime,
+        isOnCall: source.isOnCall,
+      });
+      for (const [userId, entry] of conflicts) {
+        left.push(`${when} · ${entry.name}: ${Array.from(entry.reasons).join(", ")}`);
+        employeeIds = employeeIds.filter((id) => id !== userId);
+      }
+      // The others on the shift still get it.
+      if (employeeIds.length === 0) continue;
 
       await prisma.shift.create({
         data: {
@@ -6037,7 +6070,7 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/calendar");
 
-    return { ok: true, created, skipped };
+    return { ok: true, created, alreadyThere, skipped: left.length, left };
   } catch (error) {
     return ruleFailure(error);
   }
