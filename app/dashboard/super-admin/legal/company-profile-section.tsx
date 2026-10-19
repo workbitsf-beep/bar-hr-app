@@ -148,7 +148,7 @@ export function CompanyProfileSection({
           </label>
           <label className="wbc-check">
             <input type="checkbox" name="invoicingActive" defaultChecked={profile.invoicingActive} />
-            Fatture in Cloud è attivo
+            La fatturazione elettronica (Openapi) è attiva
           </label>
         </div>
 

@@ -132,7 +132,7 @@ function buildPrivacy(profile: CompanyProfile) {
     "• Google Firebase — notifiche push. Identificativo del dispositivo e testo della notifica.",
     "• Resend — invio di email. Indirizzo, nome e contenuto del messaggio.",
     profile.invoicingActive
-      ? "• Fatture in Cloud (TeamSystem) — fatturazione elettronica. Dati fiscali del cliente."
+      ? "• Openapi S.p.A. — invio delle fatture elettroniche al Sistema di Interscambio. Dati fiscali del cliente."
       : "",
     "Per alcune finalità, come la prevenzione delle frodi nei pagamenti, Stripe agisce come titolare autonomo secondo la propria informativa. I dati possono inoltre essere comunicati a consulenti fiscali e legali, vincolati al segreto professionale, e alle autorità quando la legge lo richiede.",
     "",
@@ -372,7 +372,7 @@ function buildDpa(profile: CompanyProfile) {
     "• Resend — invio di email. Nome, indirizzo email e contenuto del messaggio. Area: USA.",
     "• Stripe — incasso degli abbonamenti. Dati del cliente e di pagamento. Area: UE / USA.",
     profile.invoicingActive
-      ? "• Fatture in Cloud (TeamSystem) — fatturazione elettronica. Dati fiscali del cliente. Area: UE."
+      ? "• Openapi S.p.A. — invio delle fatture elettroniche al Sistema di Interscambio. Dati fiscali del cliente. Area: Italia (UE)."
       : "",
     "",
 
@@ -565,7 +565,7 @@ function buildProcessingRegister(profile: CompanyProfile) {
     "Base giuridica: esecuzione del contratto (art. 6.1.b) e obbligo di legge (art. 6.1.c).",
     "Interessati: clienti e loro legali rappresentanti.",
     "Dati: ragione sociale, partita IVA, codice fiscale, codice destinatario, PEC, indirizzo, identificativo cliente presso Stripe, storico dei pagamenti. I dati della carta sono trattati solo da Stripe.",
-    `Destinatari: Stripe${profile.invoicingActive ? ", Fatture in Cloud" : ""}, Agenzia delle Entrate tramite Sistema di Interscambio, consulente fiscale.`,
+    `Destinatari: Stripe${profile.invoicingActive ? ", Openapi (intermediario SDI)" : ""}, Agenzia delle Entrate tramite Sistema di Interscambio, consulente fiscale.`,
     `Trasferimenti extra UE: ${transfers}`,
     `Conservazione: ${value(profile, "retentionTaxData")}.`,
     "",

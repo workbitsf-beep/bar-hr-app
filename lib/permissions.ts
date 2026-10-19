@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ActivityType, PlanType, Role } from "@prisma/client";
+import { ActivityType, Role } from "@prisma/client";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -338,14 +338,6 @@ const getOwnerPrimaryBarState = cache(async function getOwnerPrimaryBarState(
   return ownedBars[0] ?? null;
 });
 
-/** The request comes from the installed app (cookie set by app/layout.tsx). */
-async function isInsideInstalledApp() {
-  try {
-    return (await cookies()).get("wb-native")?.value === "1";
-  } catch {
-    return false;
-  }
-}
 
 export async function getPostLoginDestination(input: {
   userId: string;
@@ -376,18 +368,7 @@ export async function getPostLoginDestination(input: {
       return "/onboarding";
     }
 
-    const needsBilling = Boolean(
-      ownedBar.subscription &&
-        ownedBar.subscription.planType === PlanType.TRIAL &&
-        ownedBar.subscription.trialEndsAt &&
-        ownedBar.subscription.trialEndsAt.getTime() > Date.now() &&
-        !ownedBar.subscription.stripeSubscriptionId
-    );
-
-    // Inside the installed app the card is not asked (see dashboard/context.ts).
-    if (needsBilling && !(await isInsideInstalledApp())) {
-      return "/dashboard/settings?billing=1";
-    }
+    // The trial starts without a card (since 19 Oct 2026): straight in.
   }
 
   return "/dashboard";

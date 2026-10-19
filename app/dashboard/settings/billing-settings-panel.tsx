@@ -99,15 +99,14 @@ function getBillingDisplay(status: BillingStatusResult) {
     };
   }
 
-  // A new venue's trial starts once a card is on Stripe (wanted, see the
-  // dashboard's route guard). It is a trial waiting for its card, not a
-  // switched-off service: "Disattivato" read as if the venue were blocked.
+  // The trial runs without a card (since 19 Oct 2026); the card is added
+  // before it ends, or the venue stops then with everything kept.
   if (status.planType === PlanType.TRIAL && status.requiresActivation && status.trialEndsAt) {
     const until = formatNullableDate(status.trialEndsAt);
     return {
       label: "In prova",
       tone: "warning" as const,
-      message: `30 giorni gratis: inserisci la carta per iniziare. Non paghi niente fino al ${until}, e puoi disdire prima.`,
+      message: `Prova gratuita fino al ${until}. Per continuare dopo, scegli il piano e aggiungi la carta prima di quel giorno: non paghi niente fino ad allora.`,
       messageColor: "#92400e",
     };
   }

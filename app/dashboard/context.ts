@@ -206,9 +206,9 @@ export const getDashboardContext = cache(async function getDashboardContext(
   // On the web a new owner enters a card before the trial (wanted). Inside the
   // installed app nothing is sold - Apple and Google forbid it - so there the
   // trial runs without one, and the card is asked by email, on the site.
-  const insideApp = (await cookies()).get("wb-native")?.value === "1";
-  const ownerNeedsSubscriptionActivation =
-    role === Role.OWNER && Boolean(billingStatus?.requiresActivation) && !insideApp;
+  // Since 19 Oct 2026 the 30-day trial starts without a card, on the web as
+  // in the app: the card is asked by email and in the app near the end.
+  const ownerNeedsSubscriptionActivation = false;
   const isCompany = activeBar?.activityType === ActivityType.COMPANY;
   const notesEnabled = features.tasks || features.noticeBoard;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
