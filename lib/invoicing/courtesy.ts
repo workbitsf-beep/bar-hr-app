@@ -58,13 +58,45 @@ export function courtesyFileName(fiscalNumber: string) {
 export async function renderCourtesyPdf(invoiceId: string) {
   const invoice = await loadInvoice(invoiceId);
   if (!invoice) return null;
-  const issuer = fiscalIssuerOf(await getCompanyProfile());
-  const customer = invoice.bar.billingProfile;
-  const lines = (Array.isArray(invoice.fiscalLines) ? invoice.fiscalLines : []) as FiscalLine[];
-  const total = invoiceTotalCents(lines);
-  const date = invoice.paidAt ?? invoice.issuedAt ?? new Date();
+  const pdf = await drawCourtesyPdf({
+    number: invoice.fiscalNumber ?? "",
+    date: invoice.paidAt ?? invoice.issuedAt ?? new Date(),
+    issuer: fiscalIssuerOf(await getCompanyProfile()),
+    customer: invoice.bar.billingProfile,
+    barName: invoice.bar.name,
+    lines: (Array.isArray(invoice.fiscalLines) ? invoice.fiscalLines : []) as FiscalLine[],
+  });
+  return { pdf, fileName: courtesyFileName(invoice.fiscalNumber ?? ""), invoice };
+}
 
-  const pdf = await new Promise<Buffer>((resolve, reject) => {
+type CourtesyCustomer = {
+  businessName: string | null;
+  vatNumber: string | null;
+  taxCode: string | null;
+  recipientCode: string | null;
+  certifiedEmail: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
+} | null;
+
+/** The readable PDF from the invoice's own data (also used by the console's test invoice). */
+export function drawCourtesyPdf(input: {
+  number: string;
+  date: Date;
+  issuer: ReturnType<typeof fiscalIssuerOf>;
+  customer: CourtesyCustomer;
+  barName: string;
+  lines: FiscalLine[];
+  test?: boolean;
+}) {
+  const { issuer, customer, lines, date } = input;
+  const invoice = { fiscalNumber: input.number, bar: { name: input.barName } };
+  const total = invoiceTotalCents(lines);
+
+  return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 56, ...(fs.existsSync(FONT) ? { font: FONT } : {}) });
     const chunks: Buffer[] = [];
     doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -74,7 +106,7 @@ export async function renderCourtesyPdf(invoiceId: string) {
     const ink = "#1d1b26";
     const muted = "#6b6880";
 
-    doc.fillColor("#4c1d95").fontSize(9).text("WORKBIT · COPIA DI CORTESIA", { characterSpacing: 1.5 });
+    doc.fillColor(input.test ? "#b4232a" : "#4c1d95").fontSize(9).text(input.test ? "WORKBIT · FATTURA DI PROVA, NON VALIDA" : "WORKBIT · COPIA DI CORTESIA", { characterSpacing: 1.5 });
     doc.moveDown(0.4);
     doc.fillColor(ink).fontSize(22).text(`Fattura n. ${invoice.fiscalNumber}`);
     doc.fillColor(muted).fontSize(10).text(`Data ${day.format(date)} · Fattura elettronica TD01`);
@@ -142,8 +174,6 @@ export async function renderCourtesyPdf(invoiceId: string) {
     );
     doc.end();
   });
-
-  return { pdf, fileName: courtesyFileName(invoice.fiscalNumber ?? ""), invoice };
 }
 
 /** Emails the courtesy copy, PDF and XML attached. Never throws: a failed email must not stop invoicing. */

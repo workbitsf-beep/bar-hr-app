@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prepareWaitingFiscalInvoices, rebuildRejectedFiscalInvoice } from "@/lib/invoicing/issue";
 import { sendFiscalInvoice, syncFiscalInvoice } from "@/lib/invoicing/send";
+import { runTestInvoice } from "@/lib/invoicing/test-invoice";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 
@@ -95,5 +96,21 @@ export async function refreshInvoiceStateAction(formData: FormData) {
     };
   } catch (error) {
     return ruleFailure(error);
+  }
+}
+
+/** A fake invoice for one venue, through the sandbox SDI, emailed to the super admin. */
+export async function testInvoiceAction(formData: FormData) {
+  try {
+    const session = await superAdmin();
+    const barId = String(formData.get("barId") ?? "");
+    if (!barId) throw new RuleError("Scegli il locale.");
+    const result = await runTestInvoice(barId, session.user.email);
+    return {
+      ok: true as const,
+      message: `Fattura di prova ${result.number} per ${result.customer}: accettata dallo SDI di prova${result.emailed ? `, email con PDF e XML inviata a ${result.sendTo}` : ", ma l'email non è partita"}.`,
+    };
+  } catch (error) {
+    return ruleFailure(error instanceof RuleError ? error : new RuleError(error instanceof Error ? error.message : "Prova non riuscita."));
   }
 }

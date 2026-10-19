@@ -5,9 +5,9 @@ import { missingIssuerFields } from "@/lib/invoicing/fattura-pa";
 import { formatCents } from "@/lib/ledger";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../../context";
-import { ConsoleButton } from "../../console-form";
+import { ConsoleButton, ConsoleForm } from "../../console-form";
 import { Empty, Figure, FigureBand, Forbidden, Note, Row, Section, Status, type Tone } from "../../console-ui";
-import { markInvoiceSentAction, refreshInvoiceStateAction, sendInvoiceToSdiAction, prepareWaitingInvoicesAction } from "./actions";
+import { markInvoiceSentAction, refreshInvoiceStateAction, sendInvoiceToSdiAction, testInvoiceAction, prepareWaitingInvoicesAction } from "./actions";
 import { sdiConfig } from "@/lib/invoicing/openapi-sdi";
 
 /**
@@ -33,7 +33,7 @@ export default async function ConsoleInvoicesPage() {
   if (String(role) !== "SUPER_ADMIN") return Forbidden();
 
   const year = Number(new Intl.DateTimeFormat("en", { timeZone: "Europe/Rome", year: "numeric" }).format(new Date()));
-  const [profile, invoices, yearTotal] = await Promise.all([
+  const [profile, invoices, yearTotal, venues] = await Promise.all([
     getCompanyProfile(),
     prisma.invoice.findMany({
       where: { status: InvoiceStatus.PAID, totalAmount: { gt: 0 } },
@@ -53,6 +53,7 @@ export default async function ConsoleInvoicesPage() {
       },
     }),
     prisma.invoice.aggregate({ where: { fiscalYear: year }, _sum: { totalAmount: true }, _count: true }),
+    prisma.bar.findMany({ where: { mainBarId: null }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   const issuerMissing = missingIssuerFields(fiscalIssuerOf(profile));
   // Openapi set up: invoices go to the SDI by themselves.
@@ -108,6 +109,22 @@ export default async function ConsoleInvoicesPage() {
           tone="positive"
         />
       </FigureBand>
+
+      <Section title="Fattura di prova">
+        <p className="wbc-row-meta" style={{ margin: 0 }}>
+          Finta, dall&apos;inizio alla fine: dati del locale scelto, numero PROVA fuori dalla numerazione, invio allo SDI
+          di prova di Openapi (non arriva a nessuno) e email a te con PDF e XML. Nessun pagamento.
+        </p>
+        <ConsoleForm action={testInvoiceAction} label="Fai una fattura di prova" pendingLabel="Invio…" style={{ gap: 10 }}>
+          <select name="barId" defaultValue={venues.find((venue) => /caff/i.test(venue.name))?.id ?? venues[0]?.id}>
+            {venues.map((venue) => (
+              <option key={venue.id} value={venue.id}>
+                {venue.name}
+              </option>
+            ))}
+          </select>
+        </ConsoleForm>
+      </Section>
 
       <Section
         title="Pagamenti e fatture"
