@@ -35,7 +35,7 @@ import { LocaleSettingsPopupContent } from "./locale-settings-popup-content";
 import { PasswordChangePanel } from "./password-change-panel";
 import { SupportPanel } from "./support-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
-import { ExternalLink } from "@/app/components/external-link";
+import { LegalFileLink } from "@/app/components/legal-file-link";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DepartmentSettingsForm } from "../department-forms";
 import { SitesForm } from "../sites-form";
@@ -516,12 +516,19 @@ async function LegalDocumentsPanel({
                 <span style={{ color: "#64748b" }}>Contenuto testuale non presente.</span>
               )}
               {document.fileName ? (
-                <ExternalLink
-                  href={`/api/legal-documents/${document.id}`}
-                  style={{ color: "#6d28d9", fontWeight: 800 }}
-                >
-                  Apri PDF
-                </ExternalLink>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <LegalFileLink documentId={document.id} mode="open" style={{ color: "#6d28d9", fontWeight: 800 }}>
+                    Apri PDF
+                  </LegalFileLink>
+                  <LegalFileLink
+                    documentId={document.id}
+                    mode="download"
+                    fileName={document.fileName}
+                    style={{ color: "#0f172a", fontWeight: 800 }}
+                  >
+                    Scarica PDF
+                  </LegalFileLink>
+                </div>
               ) : null}
             </div>
           </PopupAction>

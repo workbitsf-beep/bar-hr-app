@@ -409,6 +409,12 @@ export function PlanBilling({
         <span>{status.detail}</span>
       </div>
 
+      {/* In the installed app, the way NOW puts it: the plan is shown, and
+          where it is changed is named, with no price, link or button. */}
+      <p className="wb-native-only" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: "#4c4670" }}>
+        Per abbonarti, cambiare il piano, aggiungere pacchetti o disdire, visita Workbit sul web.
+      </p>
+
       {/* What to do about the subscription is said on the web only: inside the
           installed app nothing may point at paying. */}
       {status.notice ? (

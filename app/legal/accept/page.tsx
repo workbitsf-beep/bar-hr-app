@@ -1,5 +1,4 @@
 import { Role } from "@prisma/client";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { getSession } from "@/lib/auth";
@@ -9,7 +8,7 @@ import {
   legalDocumentTypeLabels,
 } from "@/lib/legal-documents";
 import { LegalAcceptanceForm } from "./legal-acceptance-form";
-import { ExternalLink } from "@/app/components/external-link";
+import { LegalFileLink } from "@/app/components/legal-file-link";
 
 function normalizeParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -116,18 +115,17 @@ export default async function LegalAcceptancePage({
                 )}
                 {document.fileName ? (
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <ExternalLink
-                      href={`/api/legal-documents/${document.id}`}
-                      style={{ color: "#6d28d9", fontWeight: 800 }}
-                    >
+                    <LegalFileLink documentId={document.id} mode="open" style={{ color: "#6d28d9", fontWeight: 800 }}>
                       Apri PDF
-                    </ExternalLink>
-                    <Link
-                      href={`/api/legal-documents/${document.id}?download=1`}
+                    </LegalFileLink>
+                    <LegalFileLink
+                      documentId={document.id}
+                      mode="download"
+                      fileName={document.fileName}
                       style={{ color: "#0f172a", fontWeight: 800 }}
                     >
                       Scarica PDF
-                    </Link>
+                    </LegalFileLink>
                   </div>
                 ) : null}
               </div>

@@ -1488,7 +1488,8 @@ export function BillingRequiredState({
             words: Apple counts that as steering to an outside purchase. */}
         {canManageBilling ? (
           <p className="wb-native-only" style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-            Turni, timbrature e report restano salvati e ripartono appena l&apos;abbonamento è di nuovo attivo.
+            Turni, timbrature e report restano salvati e ripartono appena l&apos;abbonamento è di nuovo attivo. Per
+            riattivarlo, visita Workbit sul web.
           </p>
         ) : null}
         {canManageBilling && nativeNotice ? (
