@@ -5,11 +5,12 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 /**
  * A legal document's PDF opened from the installed app goes to the phone's
  * browser, which has none of Workbit's cookies. The address carries a
- * permission instead, signed and good for ten minutes. Legal documents are
+ * permission instead, signed and good for a day. Legal documents are
  * the same text for everyone, so nothing more than "someone signed in asked
  * for this one, just now" is needed.
  */
-const TTL_MS = 10 * 60 * 1000;
+// Long enough for a page left open; the text is the same for everyone.
+const TTL_MS = 24 * 60 * 60 * 1000;
 
 function secret() {
   const value = process.env.SESSION_SECRET?.trim();

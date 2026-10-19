@@ -8,17 +8,20 @@ import { shareFileFromUrl } from "@/lib/native-extras";
 /**
  * Opens or saves a published legal document's PDF. In a browser, a plain
  * link. In the installed app the PDF goes to the phone's browser, which has
- * no session ("Sessione scaduta"), so a signed address good for ten minutes
- * is asked for at the tap (app/api/legal-documents/[documentId]/link).
+ * no session ("Sessione scaduta"), so the page hands it a signed address
+ * (lib/legal-link.ts) and the app opens that.
  */
 export function LegalFileLink({
   documentId,
+  signedHref,
   mode,
   fileName,
   children,
   style,
 }: {
   documentId: string;
+  /** Made by the page (lib/legal-link.ts): opens without a session, in the phone's browser. */
+  signedHref: string;
   mode: "open" | "download";
   fileName?: string | null;
   children: ReactNode;
@@ -40,10 +43,7 @@ export function LegalFileLink({
         setBusy(true);
         void (async () => {
           try {
-            const response = await fetch(`/api/legal-documents/${documentId}/link`, { method: "POST" });
-            const payload = (await response.json().catch(() => null)) as { ok?: boolean; url?: string; message?: string } | null;
-            if (!response.ok || !payload?.ok || !payload.url) throw new Error(payload?.message || "Documento non disponibile.");
-            const url = new URL(payload.url, window.location.origin);
+            const url = new URL(signedHref, window.location.origin);
             if (mode === "download") {
               url.searchParams.set("download", "1");
               if (await shareFileFromUrl(url.toString(), fileName || "documento.pdf", "Documento")) return;

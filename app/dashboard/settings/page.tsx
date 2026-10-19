@@ -36,6 +36,7 @@ import { PasswordChangePanel } from "./password-change-panel";
 import { SupportPanel } from "./support-panel";
 import { StandardHoursForm, type StandardHourEntry } from "./standard-hours-form";
 import { LegalFileLink } from "@/app/components/legal-file-link";
+import { legalDocumentLink } from "@/lib/legal-link";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { DepartmentSettingsForm } from "../department-forms";
 import { SitesForm } from "../sites-form";
@@ -517,11 +518,12 @@ async function LegalDocumentsPanel({
               )}
               {document.fileName ? (
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  <LegalFileLink documentId={document.id} mode="open" style={{ color: "#6d28d9", fontWeight: 800 }}>
+                  <LegalFileLink documentId={document.id} signedHref={legalDocumentLink(document.id)} mode="open" style={{ color: "#6d28d9", fontWeight: 800 }}>
                     Apri PDF
                   </LegalFileLink>
                   <LegalFileLink
                     documentId={document.id}
+                    signedHref={legalDocumentLink(document.id)}
                     mode="download"
                     fileName={document.fileName}
                     style={{ color: "#0f172a", fontWeight: 800 }}
