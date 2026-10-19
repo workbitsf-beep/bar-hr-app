@@ -17,6 +17,7 @@
 export const CATALOG_LIMITS = {
   maxSeatPacks: 2,
   paidSitesOnBase: 3,
+  restaurantPaidSitesOnBase: 2,
   sitesIncludedInPro: 3,
   restaurantSitesIncludedInPro: 2,
   sitesOnPro: 6,
@@ -89,7 +90,11 @@ export function normalizeSelection(input: Partial<Record<keyof PlanSelection, un
     // Paid sites: a company's, or a restaurant's branches (2 in its Pro).
     extraSites: whole(
       input.extraSites,
-      pro ? SITES_ON_PRO - (company ? SITES_INCLUDED_IN_PRO : CATALOG_LIMITS.restaurantSitesIncludedInPro) : PAID_SITES_ON_BASE
+      pro
+        ? SITES_ON_PRO - (company ? SITES_INCLUDED_IN_PRO : CATALOG_LIMITS.restaurantSitesIncludedInPro)
+        : company
+          ? PAID_SITES_ON_BASE
+          : CATALOG_LIMITS.restaurantPaidSitesOnBase
     ),
   };
 }

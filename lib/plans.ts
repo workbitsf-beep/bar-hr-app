@@ -36,6 +36,8 @@ export const BASE_SEATS = 12;
  * paid; on Pro 3 included, up to 6 in all.
  */
 export const PAID_SITES_ON_BASE = 3;
+/** A restaurant on Base: up to 3 venues in all, the main one and 2 branches. */
+export const RESTAURANT_PAID_SITES_ON_BASE = 2;
 export const SITES_INCLUDED_IN_PRO = 3;
 export const SITES_ON_PRO = 6;
 /** A restaurant's Pro: its main venue and one branch. */
@@ -99,7 +101,7 @@ export function entitlementsOf(bar: {
     ? Math.max(1, bar.customSiteLimit ?? includedInPro)
     : pro
     ? Math.min(SITES_ON_PRO, includedInPro + paid)
-    : 1 + Math.min(PAID_SITES_ON_BASE, paid);
+    : 1 + Math.min(company ? PAID_SITES_ON_BASE : RESTAURANT_PAID_SITES_ON_BASE, paid);
   if (custom) {
     return {
       plan: bar.plan,

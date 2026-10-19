@@ -339,7 +339,7 @@ export function PlanBilling({
     // A restaurant's branches: same name and tax details, one subscription.
     const max = pro
       ? CATALOG_LIMITS.sitesOnPro - CATALOG_LIMITS.restaurantSitesIncludedInPro
-      : CATALOG_LIMITS.paidSitesOnBase;
+      : CATALOG_LIMITS.restaurantPaidSitesOnBase;
     rows.push(
       <ExtraRow
         key="sedi"

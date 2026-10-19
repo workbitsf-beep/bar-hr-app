@@ -314,7 +314,7 @@ export default async function ConsoleBarPage({
                   <select name="extraSites" defaultValue={String(bar.extraSites)}>
                     {[0, 1, 2, 3, 4].map((count) => (
                       <option key={count} value={count}>
-                        {count} · Base {count > 3 ? "—" : `${1 + count} in tutto`} · Pro {2 + count} in tutto
+                        {count} · Base {count > 2 ? "—" : `${1 + count} in tutto`} · Pro {2 + count} in tutto
                       </option>
                     ))}
                   </select>

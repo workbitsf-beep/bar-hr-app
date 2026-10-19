@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_SEAT_PACKS, PAID_SITES_ON_BASE, PLAN_PRICES, RESTAURANT_SITES_IN_PRO, SITES_INCLUDED_IN_PRO, SITES_ON_PRO, entitlementsOf } from "../lib/plans";
+import { MAX_SEAT_PACKS, PAID_SITES_ON_BASE, RESTAURANT_PAID_SITES_ON_BASE, PLAN_PRICES, RESTAURANT_SITES_IN_PRO, SITES_INCLUDED_IN_PRO, SITES_ON_PRO, entitlementsOf } from "../lib/plans";
 import {
   CATALOG_LIMITS,
   PRICE_CENTS,
@@ -16,6 +16,7 @@ test("the catalog's limits and prices match the plans", () => {
   assert.deepEqual(CATALOG_LIMITS, {
     maxSeatPacks: MAX_SEAT_PACKS,
     paidSitesOnBase: PAID_SITES_ON_BASE,
+    restaurantPaidSitesOnBase: RESTAURANT_PAID_SITES_ON_BASE,
     sitesIncludedInPro: SITES_INCLUDED_IN_PRO,
     restaurantSitesIncludedInPro: RESTAURANT_SITES_IN_PRO,
     sitesOnPro: SITES_ON_PRO,
