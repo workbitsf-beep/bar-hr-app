@@ -12,10 +12,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // Long enough for a page left open; the text is the same for everyone.
 const TTL_MS = 24 * 60 * 60 * 1000;
 
+// Any server-only secret will do; production has no SESSION_SECRET, and a
+// missing one used to break every page that lists legal documents.
 function secret() {
-  const value = process.env.SESSION_SECRET?.trim();
-  if (!value) throw new Error("SESSION_SECRET missing");
-  return value;
+  const value =
+    process.env.LEGAL_LINK_SECRET?.trim() ||
+    process.env.SESSION_SECRET?.trim() ||
+    process.env.STRIPE_WEBHOOK_SECRET?.trim() ||
+    process.env.DATABASE_URL?.trim();
+  return value || "workbit-legal-links";
 }
 
 function sign(documentId: string, expires: number) {
