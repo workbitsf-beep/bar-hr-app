@@ -169,11 +169,14 @@ export function parseRecipientField(value: string | null | undefined) {
 
 export async function saveRecipientFromCheckout(barId: string, session: Stripe.Checkout.Session) {
   const field = session.custom_fields?.find((entry) => entry.key === "sdi");
-  const parsed = parseRecipientField(field?.text?.value);
-  if (!parsed) return;
+  const parsed = parseRecipientField(field?.text?.value) ?? {};
+  // Typed on the payment page for the invoice: it wins over the venue's name.
+  const businessName = session.custom_fields?.find((entry) => entry.key === "ragione_sociale")?.text?.value?.trim();
+  const data = { ...parsed, ...(businessName ? { businessName } : {}) };
+  if (!Object.keys(data).length) return;
   await prisma.billingProfile.upsert({
     where: { barId },
-    create: { barId, ...parsed },
-    update: parsed,
+    create: { barId, ...data },
+    update: data,
   });
 }

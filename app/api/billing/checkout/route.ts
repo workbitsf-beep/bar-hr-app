@@ -363,8 +363,21 @@ export async function POST(req: Request) {
       name: "auto",
       address: "auto",
     },
-    // For the electronic invoice: where the SDI delivers it.
+    // For the electronic invoice: whose name goes on it, and where the SDI
+    // delivers it. The VAT number was given in the app before this page, so
+    // Stripe does not ask for the business details itself.
     custom_fields: [
+      {
+        key: "ragione_sociale",
+        label: { type: "custom", custom: "Ragione sociale (come in visura)" },
+        type: "text",
+        optional: false,
+        text: {
+          minimum_length: 2,
+          maximum_length: 120,
+          ...(bar.legalName?.trim() ? { default_value: bar.legalName.trim().slice(0, 120) } : {}),
+        },
+      },
       {
         key: "sdi",
         label: { type: "custom", custom: "Codice destinatario SDI o PEC" },
