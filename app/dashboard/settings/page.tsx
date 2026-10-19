@@ -1047,6 +1047,16 @@ export default async function DashboardSettingsPage({
     role === Role.OWNER && activeBarId
       ? await prisma.billingProfile.findUnique({ where: { barId: activeBarId } })
       : null;
+  // The venue's e-invoices, newest first: the PDF copy and the XML (web only).
+  const venueInvoices =
+    role === Role.OWNER && activeBarId && !branchOf
+      ? await prisma.invoice.findMany({
+          where: { barId: activeBarId, fiscalNumber: { not: null }, fiscalXml: { not: null } },
+          orderBy: [{ fiscalYear: "desc" }, { fiscalSequence: "desc" }],
+          take: 36,
+          select: { id: true, fiscalNumber: true, totalAmount: true, paidAt: true, issuedAt: true },
+        })
+      : [];
   const billingProfileValues: BillingProfileValues | null =
     role === Role.OWNER && activeBarId
       ? {
@@ -1344,6 +1354,55 @@ export default async function DashboardSettingsPage({
               }
             >
               <BillingProfileForm values={billingProfileValues} missing={billingProfileMissing} />
+            </PopupAction>
+          </div>
+        ) : null}
+
+        {venueInvoices.length ? (
+          <div className="wb-web-only">
+            <PopupAction
+              title="Fatture"
+              ariaLabel="Apri le fatture"
+              triggerRow={
+                <SettingsRow
+                  dot="#0f766e"
+                  title="Fatture"
+                  lead="Le fatture di Workbit, in PDF e XML"
+                  status={String(venueInvoices.length)}
+                />
+              }
+            >
+              <div style={{ display: "grid", gap: 8 }}>
+                {venueInvoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      padding: "11px 13px",
+                      borderRadius: 16,
+                      border: "1px solid #ebe6f7",
+                      background: "#fff",
+                    }}
+                  >
+                    <span style={{ display: "grid", gap: 2, flex: 1, minWidth: 0 }}>
+                      <strong style={{ fontSize: 14.5 }}>N. {invoice.fiscalNumber}</strong>
+                      <span style={{ fontSize: 12.5, color: "#8a84a8" }}>
+                        {(invoice.paidAt ?? invoice.issuedAt)?.toLocaleDateString("it-IT", { timeZone: "Europe/Rome" })} ·{" "}
+                        {(invoice.totalAmount / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}
+                      </span>
+                    </span>
+                    <a href={`/api/billing/invoices/${invoice.id}`} target="_blank" rel="noreferrer" style={{ color: "#6d28d9", fontWeight: 800, fontSize: 13.5 }}>
+                      PDF
+                    </a>
+                    <a href={`/api/billing/invoices/${invoice.id}?xml=1`} style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5 }}>
+                      XML
+                    </a>
+                  </div>
+                ))}
+              </div>
             </PopupAction>
           </div>
         ) : null}

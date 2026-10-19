@@ -13,6 +13,8 @@ type SendEmailInput = {
   to: string | string[];
   subject: string;
   html: string;
+  /** Files sent along, e.g. an invoice's PDF and XML. */
+  attachments?: Array<{ filename: string; content: Buffer }>;
 };
 
 export type SendEmailResult =
@@ -134,6 +136,7 @@ export async function sendEmail({
   to,
   subject,
   html,
+  attachments,
 }: SendEmailInput): Promise<SendEmailResult> {
   const recipients = normalizeRecipients(to);
   const emailFrom = getEmailFrom();
@@ -181,6 +184,7 @@ export async function sendEmail({
       to: recipients,
       subject,
       html,
+      ...(attachments?.length ? { attachments } : {}),
     });
 
     if (result.error) {

@@ -16,6 +16,7 @@ import {
 } from "./fattura-pa";
 import { fiscalLinesOf } from "./stripe-sync";
 import { sendFiscalInvoice } from "@/lib/invoicing/send";
+import { sendCourtesyCopy } from "@/lib/invoicing/courtesy";
 
 export { fiscalLinesOf };
 
@@ -153,6 +154,8 @@ export async function prepareFiscalInvoice(invoiceId: string, lines?: FiscalLine
       // Straight to the SDI when Openapi is set up; otherwise it waits in
       // the console to be uploaded by hand. A failed send stays READY.
       await sendFiscalInvoice(invoice.id).catch(() => null);
+      // The readable copy, by email, with the XML for the accountant.
+      await sendCourtesyCopy(invoice.id);
       return FiscalState.READY;
     } catch (error) {
       if (attempt === 2) throw error;
