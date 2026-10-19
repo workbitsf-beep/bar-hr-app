@@ -34,7 +34,8 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Documento non trovato." }, { status: 404 });
   }
 
-  if (session.user.role !== Role.SUPER_ADMIN && (session.user.role !== Role.OWNER || !document.isActive)) {
+  // Anyone signed in reads a published document: staff accept theirs too.
+  if (session.user.role !== Role.SUPER_ADMIN && !document.isActive) {
     return NextResponse.json({ ok: false, error: "Non hai i permessi per farlo." }, { status: 403 });
   }
 

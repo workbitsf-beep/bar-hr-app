@@ -957,6 +957,9 @@ model LegalDocument {
   fileMimeType String?
   fileSize     Int?
   fileContent  Bytes?
+  /// The PDF was made by Workbit from `content` (lib/legal-pdf.ts) and is
+  /// made again when the text changes; false for a PDF uploaded by hand.
+  fileGenerated Boolean          @default(false)
   isActive     Boolean           @default(true)
   isRequired   Boolean           @default(true)
   acceptances  LegalAcceptance[]

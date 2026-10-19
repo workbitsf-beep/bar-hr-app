@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Role, type LegalDocumentType } from "@prisma/client";
+import { ensurePublishedLegalPdfs } from "@/lib/legal-pdf";
 import { prisma } from "@/lib/prisma";
 
 export const legalDocumentTypeLabels: Record<LegalDocumentType, string> = {
@@ -65,6 +66,7 @@ export async function ownerNeedsLegalAcceptance(input: {
 }
 
 export async function getLegalDocumentsWithAcceptance(userId: string) {
+  await ensurePublishedLegalPdfs().catch(() => 0);
   return prisma.legalDocument.findMany({
     where: {
       isActive: true,

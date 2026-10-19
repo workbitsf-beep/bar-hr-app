@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { getSession } from "@/lib/auth";
+import { ensurePublishedLegalPdfs } from "@/lib/legal-pdf";
 import {
   getRequiredLegalDocumentsForUser,
   legalDocumentTypeLabels,
@@ -35,6 +36,7 @@ export default async function LegalAcceptancePage({
 
   const params = searchParams ? await searchParams : {};
   const error = normalizeParam(params.error);
+  await ensurePublishedLegalPdfs().catch(() => 0);
   const documents = await getRequiredLegalDocumentsForUser(session.user.id);
 
   if (documents.length === 0) {

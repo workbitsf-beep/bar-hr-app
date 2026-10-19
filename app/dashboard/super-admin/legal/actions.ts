@@ -9,6 +9,7 @@ import {
   saveCompanyProfile,
 } from "@/lib/company-profile";
 import { LEGAL_TEMPLATES } from "@/lib/legal-templates";
+import { refreshLegalPdf } from "@/lib/legal-pdf";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
@@ -53,6 +54,7 @@ async function readPdfFile(formData: FormData) {
     fileSize: entry.size,
     fileContent: bytes,
     fileUrl: null,
+    fileGenerated: false,
   };
 }
 
@@ -121,7 +123,7 @@ export async function createLegalDocumentAction(formData: FormData) {
   await ensureSuperAdmin();
   const payload = await getDocumentPayload(formData, { requireBody: true });
 
-  await prisma.legalDocument.create({
+  const created = await prisma.legalDocument.create({
     data: {
       title: payload.title,
       version: payload.version,
@@ -131,7 +133,10 @@ export async function createLegalDocumentAction(formData: FormData) {
       isRequired: payload.isRequired,
       ...(payload.pdfFile ?? {}),
     },
+    select: { id: true },
   });
+  // The text becomes a downloadable PDF, unless a PDF was uploaded.
+  await refreshLegalPdf(created.id).catch(() => false);
 
   await notifyOwnersForLegalDocument({
     title: payload.title,
@@ -168,6 +173,7 @@ export async function updateLegalDocumentAction(formData: FormData) {
       ...(payload.pdfFile ?? {}),
     },
   });
+  await refreshLegalPdf(documentId).catch(() => false);
 
   await notifyOwnersForLegalDocument({
     title: payload.title,
@@ -227,6 +233,7 @@ export async function generateLegalDocumentAction(formData: FormData) {
         revision: { increment: 1 },
       },
     });
+    await refreshLegalPdf(existing.id).catch(() => false);
   } else {
     await prisma.legalDocument.create({
       data: {

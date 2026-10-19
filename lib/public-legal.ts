@@ -1,6 +1,7 @@
 import "server-only";
 
 import { LegalDocumentType } from "@prisma/client";
+import { ensurePublishedLegalPdfs } from "@/lib/legal-pdf";
 import { prisma } from "@/lib/prisma";
 
 export const publicLegalDocumentTypes = [
@@ -20,6 +21,7 @@ export function getSupportEmail() {
 }
 
 export async function getLatestPublicLegalDocument(type: LegalDocumentType) {
+  await ensurePublishedLegalPdfs().catch(() => 0);
   return prisma.legalDocument.findFirst({
     where: { type, isActive: true },
     orderBy: [{ updatedAt: "desc" }, { revision: "desc" }],
