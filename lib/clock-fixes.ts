@@ -1,6 +1,8 @@
 import { ClockFixKind, ClockFixStatus, ClockType, type Prisma } from "@prisma/client";
 import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/staff-permissions";
+import { memberDepartmentOf } from "@/lib/staff-scope";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone, APP_TIME_ZONE } from "@/lib/time-zone";
 
 /**
@@ -126,6 +128,7 @@ export async function getEmployeeClockFixState(
         id: true,
         type: true,
         timestamp: true,
+        autoClockOut: true,
         shift: { select: { id: true, startTime: true, endTime: true } },
       },
     }),
@@ -198,6 +201,29 @@ export async function getEmployeeClockFixState(
     return state;
   }
 
+  // A forgotten exit closed provisionally at the shift's end (lib/forgotten-
+  // exits): the hours stopped, and the person still says when they left.
+  if (latestLog?.type === ClockType.OUT && latestLog.autoClockOut) {
+    const entry = await prisma.timeLog.findFirst({
+      where: { barId, userId, type: ClockType.IN, timestamp: { lte: latestLog.timestamp } },
+      orderBy: { timestamp: "desc" },
+      select: { id: true, timestamp: true, shift: { select: { id: true, startTime: true, endTime: true } } },
+    });
+    if (entry && (await prisma.clockFix.count({ where: { clockInId: entry.id } })) === 0) {
+      state.offer = {
+        kind: ClockFixKind.MISSED_OUT,
+        shiftId: entry.shift?.id ?? null,
+        clockInId: entry.id,
+        dayLabel: formatDayLabel(entry.timestamp),
+        shiftStart: entry.shift?.startTime.toISOString() ?? null,
+        shiftEnd: entry.shift?.endTime.toISOString() ?? null,
+        inAt: entry.timestamp.toISOString(),
+        needsOut: true,
+      };
+    }
+    return state;
+  }
+
   // Someone clocked in, or already declared an entry they are working: no
   // forgotten entry to ask about.
   if (latestLog?.type === ClockType.IN || pendingInAtWork) return state;
@@ -243,6 +269,28 @@ export async function getEmployeeClockFixState(
   }
 
   return state;
+}
+
+/** The owner, and whoever holds "Timbrature" over this person. */
+export async function reviewersOf(barId: string, exceptId: string) {
+  const [bar, department] = await Promise.all([
+    prisma.bar.findUnique({
+      where: { id: barId },
+      select: {
+        ownerId: true,
+        memberships: {
+          where: { isActive: true },
+          select: { userId: true, role: true, permissions: true, managesDepartments: true },
+        },
+      },
+    }),
+    memberDepartmentOf(barId, exceptId),
+  ]);
+  if (!bar) return [];
+  const reviewers = bar.memberships.filter((member) => can(member, "timelogs", department));
+  return Array.from(new Set([bar.ownerId, ...reviewers.map((member) => member.userId)])).filter(
+    (id) => id !== exceptId
+  );
 }
 
 export type ClockFixForReview = {

@@ -64,7 +64,8 @@ export const POST = withBar(
     // An entry left open since a shift long over is not closed now: that
     // would count every hour since. The person reports when they really left
     // (the "Uscita dimenticata" line on the Oggi page) and the owner approves.
-    if (entryOpen && lastClockIn && !existingClockOut) {
+    // A provisional exit (written by lib/forgotten-exits) counts as no exit here.
+    if (entryOpen && lastClockIn && (!existingClockOut || existingClockOut.autoClockOut)) {
       const entryShift = lastClockIn.shiftId
         ? await prisma.shift.findUnique({ where: { id: lastClockIn.shiftId }, select: { endTime: true } })
         : null;

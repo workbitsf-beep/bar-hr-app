@@ -3,14 +3,14 @@
 import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
-import { clockTime, getEmployeeClockFixState, timeNear } from "@/lib/clock-fixes";
+import { clockTime, getEmployeeClockFixState, reviewersOf, timeNear } from "@/lib/clock-fixes";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { can, isStaffRole } from "@/lib/staff-permissions";
-import { ensureMembersInScope, memberDepartmentOf } from "@/lib/staff-scope";
+import { ensureMembersInScope } from "@/lib/staff-scope";
 import { closeClockInReminders, closeClockOutReminders } from "@/lib/timelog-reminders";
 
 /**
@@ -30,28 +30,6 @@ async function context() {
 
 function refresh() {
   for (const path of ["/dashboard", "/dashboard/timelogs", "/dashboard/export"]) revalidatePath(path);
-}
-
-/** The owner, and whoever holds "Timbrature" over this person. */
-async function reviewersOf(barId: string, exceptId: string) {
-  const [bar, department] = await Promise.all([
-    prisma.bar.findUnique({
-      where: { id: barId },
-      select: {
-        ownerId: true,
-        memberships: {
-          where: { isActive: true },
-          select: { userId: true, role: true, permissions: true, managesDepartments: true },
-        },
-      },
-    }),
-    memberDepartmentOf(barId, exceptId),
-  ]);
-  if (!bar) return [];
-  const reviewers = bar.memberships.filter((member) => can(member, "timelogs", department));
-  return Array.from(new Set([bar.ownerId, ...reviewers.map((member) => member.userId)])).filter(
-    (id) => id !== exceptId
-  );
 }
 
 function readTime(formData: FormData, name: string) {
@@ -184,6 +162,7 @@ export async function approveClockFixAction(formData: FormData) {
     let resolvedInAt: Date | null = null;
     let resolvedOutAt: Date | null = null;
     const writes: Array<{ type: ClockType; timestamp: Date }> = [];
+    let provisionalWindow: { from: Date; to: Date | null } | null = null;
 
     if (fix.kind === ClockFixKind.MISSED_OUT) {
       const entry = fix.clockInId
@@ -215,10 +194,15 @@ export async function approveClockFixAction(formData: FormData) {
           barId,
           userId: fix.userId,
           type: ClockType.OUT,
+          // The provisional exit at the shift's end is what this replaces.
+          autoClockOut: false,
           timestamp: { gt: entry.timestamp, ...(nextEntry ? { lt: nextEntry.timestamp } : {}) },
         },
       });
-      if (!alreadyOut) writes.push({ type: ClockType.OUT, timestamp: resolvedOutAt });
+      if (!alreadyOut) {
+        writes.push({ type: ClockType.OUT, timestamp: resolvedOutAt });
+        provisionalWindow = { from: entry.timestamp, to: nextEntry?.timestamp ?? null };
+      }
     } else {
       const rawIn = readTime(formData, "in");
       const inReference = fix.requestedInAt ?? fix.shift?.startTime ?? now;
@@ -264,6 +248,17 @@ export async function approveClockFixAction(formData: FormData) {
         },
       });
       if (count === 0) return false;
+      if (provisionalWindow) {
+        await tx.timeLog.deleteMany({
+          where: {
+            barId,
+            userId: fix.userId,
+            type: ClockType.OUT,
+            autoClockOut: true,
+            timestamp: { gt: provisionalWindow.from, ...(provisionalWindow.to ? { lt: provisionalWindow.to } : {}) },
+          },
+        });
+      }
       if (writes.length) {
         await tx.timeLog.createMany({
           data: writes.map((write) => ({
