@@ -78,7 +78,7 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_PERSIST_COOKIE_NAME,
 } from "@/lib/auth";
-import { applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
+import { MAX_GLOBAL_GPS_RADIUS, applyGlobalGpsRadius, getGlobalGpsRadius } from "@/lib/gps-settings";
 import { closeClockInReminders, closeClockOutReminders } from "@/lib/timelog-reminders";
 import {
   cancelShiftClockReminders,
@@ -4857,6 +4857,7 @@ export async function updateSettingsAction(formData: FormData) {
       activityType: true,
       latitude: true,
       longitude: true,
+      radiusMeters: true,
       settings: {
         select: {
           roundingEnabled: true,
@@ -4930,7 +4931,9 @@ export async function updateSettingsAction(formData: FormData) {
   } else if (settingsSection === "gps") {
     const gpsLatitude = parseOptionalNumber(formData.get("gpsLatitude"));
     const gpsLongitude = parseOptionalNumber(formData.get("gpsLongitude"));
-    const gpsRadius = await getGlobalGpsRadius();
+    // A venue set wider than any global radius (the review demo) keeps it.
+    const gpsRadius =
+      currentBar.radiusMeters > MAX_GLOBAL_GPS_RADIUS ? currentBar.radiusMeters : await getGlobalGpsRadius();
     const roundingEnabled = formData.get("roundingEnabled") === "on";
     const roundingMinutes = normalizeRoundingStep(Number(formData.get("roundingMinutes") ?? 15));
     const roundingMode = "NEAREST";
