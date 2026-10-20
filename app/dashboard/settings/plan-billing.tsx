@@ -155,6 +155,7 @@ export function PlanBilling({
   purchase,
   canActivate,
   canCancel,
+  canResume = false,
   trialSetupRequired,
   monthlyDiscountPercent,
   requested = null,
@@ -165,6 +166,8 @@ export function PlanBilling({
   purchase: PurchaseProps | null;
   canActivate: boolean;
   canCancel: boolean;
+  /** Turned off with the paid period still running: the renewal can come back on. */
+  canResume?: boolean;
   trialSetupRequired: boolean;
   monthlyDiscountPercent: number;
   /** From the site's "Passa al Pro" / "Aggiungi…" links: shown already chosen, saved with one tap. */
@@ -246,20 +249,49 @@ export function PlanBilling({
   }
 
   function cancelSubscription() {
-    if (!window.confirm("Vuoi davvero disattivare l'abbonamento? Il locale verrà bloccato subito.")) return;
+    if (
+      !window.confirm(
+        "Vuoi davvero disattivare l'abbonamento? Non ti verrà addebitato altro: il locale resta attivo fino alla fine del periodo già pagato, poi si ferma."
+      )
+    )
+      return;
     setError(null);
     start(async () => {
       try {
         const response = await fetch("/api/billing/cancel", { method: "POST" });
-        const result = (await response.json().catch(() => null)) as { ok?: boolean; message?: string } | null;
+        const result = (await response.json().catch(() => null)) as
+          | { ok?: boolean; message?: string; endsAt?: string | null }
+          | null;
         if (!response.ok || !result?.ok) {
           setError(result?.message || "Non è stato possibile disattivare l'abbonamento.");
           return;
         }
-        showAppToast("Abbonamento disattivato.");
+        showAppToast(
+          result.endsAt
+            ? `Abbonamento disattivato. Il locale resta attivo fino al ${new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(new Date(result.endsAt))}.`
+            : "Abbonamento disattivato."
+        );
         router.refresh();
       } catch {
         setError("Non è stato possibile disattivare l'abbonamento. Riprova.");
+      }
+    });
+  }
+
+  function resumeSubscription() {
+    setError(null);
+    start(async () => {
+      try {
+        const response = await fetch("/api/billing/resume", { method: "POST" });
+        const result = (await response.json().catch(() => null)) as { ok?: boolean; message?: string } | null;
+        if (!response.ok || !result?.ok) {
+          setError(result?.message || "Non è stato possibile riattivare l'abbonamento.");
+          return;
+        }
+        showAppToast("Abbonamento riattivato: si rinnova come prima.");
+        router.refresh();
+      } catch {
+        setError("Non è stato possibile riattivare l'abbonamento. Riprova.");
       }
     });
   }
@@ -519,6 +551,17 @@ export function PlanBilling({
             style={{ border: 0, padding: 0, background: "none", color: "#b3202f", fontWeight: 750, fontSize: 13, cursor: "pointer" }}
           >
             Disattiva abbonamento
+          </button>
+        ) : null}
+        {canResume ? (
+          <button
+            type="button"
+            className="wb-web-only"
+            onClick={resumeSubscription}
+            disabled={pending}
+            style={{ border: 0, padding: 0, background: "none", color: "#4c1d95", fontWeight: 800, fontSize: 13, cursor: "pointer" }}
+          >
+            Riattiva abbonamento
           </button>
         ) : null}
       </div>

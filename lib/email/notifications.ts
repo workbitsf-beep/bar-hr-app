@@ -328,6 +328,12 @@ export async function sendTemporaryPasswordEmail(
   });
 }
 
+// A courtesy question in the end-of-trial notices: replies reach supporto@.
+const FEEDBACK_LINES = [
+  "Intanto, come ti stai trovando con Workbit? Se ti va di lasciarci un riscontro - cosa ti è utile, cosa manca, cosa non ti convince - rispondi pure a questa email: la leggiamo noi e ci aiuta davvero.",
+  "",
+];
+
 /**
  * L'avviso che la prova sta per finire.
  *
@@ -364,8 +370,9 @@ export async function sendTrialEndingEmail(
       `Ciao ${ownerName},`,
       `la prova gratuita di ${barName} finisce ${giorno}.`,
       "",
-      "Da quel giorno parte l'abbonamento a 29,99 EUR al mese, e continua tutto come adesso: turni, timbrature, ore e report restano dove sono.",
+      "Da quel giorno parte l'abbonamento al piano che hai scelto, e continua tutto come adesso: turni, timbrature, ore e report restano dove sono.",
       "",
+      ...FEEDBACK_LINES,
       // The installed app sells nothing, so it cannot cancel either: the
       // owner's area on the web is where this is done.
       "Se invece non ti serve, disdici dall'area titolare di Workbit sul sito prima di quella data e non paghi niente. Bastano due clic e non devi scrivere a nessuno.",
@@ -409,6 +416,7 @@ export async function sendTrialCardEmail(
       "Per continuare dopo la prova aggiungi un metodo di pagamento dall'area titolare sul sito: non paghi niente fino a quel giorno, e puoi disdire quando vuoi.",
       "",
       "Senza metodo di pagamento, alla fine della prova il locale si ferma: turni, timbrature e report restano salvati e ripartono appena lo aggiungi.",
+      ...(ending ? ["", ...FEEDBACK_LINES.slice(0, -1)] : []),
     ].join("\n"),
     ctaLabel: "Aggiungi il metodo di pagamento",
     ctaUrl: getEmailAppUrl("/dashboard/settings?billing=1"),

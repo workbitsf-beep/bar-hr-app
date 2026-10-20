@@ -135,6 +135,7 @@ async function upsertSubscriptionFromStripe(input: {
   billingInterval?: BillingInterval | null;
   currentPeriodEnd?: Date | null;
   trialEndsAt?: Date | null;
+  cancelAtPeriodEnd?: boolean;
 }) {
   await prisma.subscription.upsert({
     where: { barId: input.barId },
@@ -149,6 +150,7 @@ async function upsertSubscriptionFromStripe(input: {
       currentPeriodEnd:
         input.currentPeriodEnd === undefined ? undefined : input.currentPeriodEnd,
       trialEndsAt: input.trialEndsAt === undefined ? undefined : input.trialEndsAt,
+      cancelAtPeriodEnd: input.cancelAtPeriodEnd,
     },
     create: {
       barId: input.barId,
@@ -162,6 +164,7 @@ async function upsertSubscriptionFromStripe(input: {
       currentPeriodEnd:
         input.currentPeriodEnd === undefined ? null : input.currentPeriodEnd,
       trialEndsAt: input.trialEndsAt === undefined ? null : input.trialEndsAt,
+      cancelAtPeriodEnd: input.cancelAtPeriodEnd ?? false,
     },
   });
 
@@ -428,6 +431,8 @@ export async function POST(req: Request) {
           billingInterval: mapInterval(subscription.items.data[0]?.price.recurring?.interval),
           currentPeriodEnd: getSubscriptionPeriodEnd(subscription),
           trialEndsAt: toDateFromUnix(subscription.trial_end),
+          // Turned off from the app or from Stripe: runs to the period's end.
+          cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end || subscription.cancel_at),
         });
         // A plan changed from Stripe's dashboard reaches the venue too.
         await applyPlanFromSubscription(barId, subscription);
@@ -480,6 +485,7 @@ export async function POST(req: Request) {
           billingInterval: mapInterval(subscription.items.data[0]?.price.recurring?.interval),
           currentPeriodEnd: null,
           trialEndsAt: null,
+          cancelAtPeriodEnd: false,
         });
 
         if (previous?.status !== SubscriptionStatus.CANCELED) {

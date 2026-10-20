@@ -37,6 +37,8 @@ export type BillingStatusResult = {
   gracePeriodEndsAt: Date | null;
   isInGracePeriod: boolean;
   trialEndsAt: Date | null;
+  /** Turned off by the owner: runs until the end of what is already paid. */
+  cancelAtPeriodEnd: boolean;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   stripePriceId: string | null;
@@ -75,6 +77,7 @@ export const getBillingStatus = cache(async function getBillingStatus(
           currentPeriodEnd: true,
           paymentDueSince: true,
           trialEndsAt: true,
+          cancelAtPeriodEnd: true,
           stripeCustomerId: true,
           stripeSubscriptionId: true,
           stripePriceId: true,
@@ -93,6 +96,7 @@ export const getBillingStatus = cache(async function getBillingStatus(
     gracePeriodEndsAt: getBillingGracePeriodEndsAt(subscription?.currentPeriodEnd ?? null),
     isInGracePeriod: false,
     trialEndsAt: subscription?.trialEndsAt ?? null,
+    cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
     stripeCustomerId: subscription?.stripeCustomerId ?? null,
     stripeSubscriptionId: subscription?.stripeSubscriptionId ?? null,
     stripePriceId: subscription?.stripePriceId ?? null,

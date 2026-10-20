@@ -191,7 +191,7 @@ export async function sendCourtesyCopy(invoiceId: string) {
 <p>Ciao${invoice.bar.owner.firstName ? ` ${invoice.bar.owner.firstName}` : ""},</p>
 <p>in allegato la fattura n. <strong>${invoice.fiscalNumber}</strong> per l'abbonamento Workbit di <strong>${invoice.bar.name}</strong>: il PDF da leggere e il file XML per il tuo commercialista.</p>
 <p>La fattura elettronica arriva anche tramite il Sistema di Interscambio, al tuo codice destinatario o alla tua PEC, e la trovi nel tuo cassetto fiscale.</p>
-<p>Tutte le fatture sono anche in Workbit, in Impostazioni › Fatture, dal sito.</p>
+<p><strong>Dove ritrovare le fatture:</strong> tutte le tue fatture Workbit le vedi accedendo dal sito, da browser, su <a href="${(process.env.APP_URL?.trim() || "https://app.workbit.it").replace(/\/$/, "")}/dashboard/settings" style="color:#4c1d95">app.workbit.it</a>, in Impostazioni › Fatture. Non sono visibili dall'applicazione installata su iPhone o Android: per motivi fiscali e per gli accordi con gli store (App Store e Google Play), abbonamento e fatture si gestiscono solo dal sito.</p>
 <p style="color:#6b6880">Workbit</p></div>`,
       attachments: [
         { filename: fileName, content: pdf },

@@ -1082,7 +1082,12 @@ export default async function DashboardSettingsPage({
         taxCode: billingProfileValues.taxCode || null,
       })
     : [];
-  const billingRowStatus = resolvedBillingStatus.currentPeriodEnd
+  const billingRowStatus = resolvedBillingStatus.cancelAtPeriodEnd && (resolvedBillingStatus.currentPeriodEnd ?? resolvedBillingStatus.trialEndsAt)
+    ? `Termina il ${new Intl.DateTimeFormat("it-IT", {
+        day: "numeric",
+        month: "short",
+      }).format((resolvedBillingStatus.currentPeriodEnd ?? resolvedBillingStatus.trialEndsAt)!)}`
+    : resolvedBillingStatus.currentPeriodEnd
     ? `Rinnova il ${new Intl.DateTimeFormat("it-IT", {
         day: "numeric",
         month: "short",

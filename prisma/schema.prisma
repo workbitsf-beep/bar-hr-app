@@ -414,6 +414,9 @@ model Subscription {
   /// arrives. Cleared when Stripe reports the invoice paid.
   paymentDueSince        DateTime?
   trialEndsAt            DateTime?
+  /// The owner turned the subscription off: Stripe stops renewing it, and the
+  /// venue keeps working until currentPeriodEnd (or trialEndsAt), already paid.
+  cancelAtPeriodEnd      Boolean            @default(false)
   // Quando e partito l'avviso "la prova scade fra tre giorni". Serve solo a
   // non mandarlo due volte: il lavoro notturno gira ogni giorno e senza
   // questo segno riscriverebbe alla stessa persona ogni mattina.

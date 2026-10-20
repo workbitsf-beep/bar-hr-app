@@ -416,7 +416,12 @@ export async function POST(req: Request) {
       },
       ...(pendingTrialSetup && subscription?.trialEndsAt
         ? {
-            trial_end: Math.floor(subscription.trialEndsAt.getTime() / 1000),
+            // Stripe Checkout refuses a trial ending less than 48 hours
+            // away: whoever subscribes in the last two days got an error. The
+            // trial is stretched to just past that instead, a free extra day.
+            trial_end: Math.floor(
+              Math.max(subscription.trialEndsAt.getTime(), Date.now() + 49 * 60 * 60 * 1000) / 1000
+            ),
             trial_settings: {
               end_behavior: {
                 missing_payment_method: "cancel",

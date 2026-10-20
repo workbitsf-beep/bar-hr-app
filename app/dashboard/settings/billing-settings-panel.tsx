@@ -47,6 +47,20 @@ function getBillingDisplay(status: BillingStatusResult) {
 
   const isManagedOutsideStripe =
     status.planType === PlanType.FREE || status.planType === PlanType.LIFETIME;
+
+  // Turned off, with the paid period (or the trial) still running.
+  if (status.cancelAtPeriodEnd && status.canAccess && !isManagedOutsideStripe) {
+    const until = formatNullableDate(
+      status.planType === PlanType.TRIAL ? status.trialEndsAt : status.currentPeriodEnd
+    );
+    return {
+      label: "Disattivato a fine periodo",
+      tone: "warning" as const,
+      message: `Il rinnovo è disattivato: non ti verrà addebitato altro. Il locale resta attivo fino al ${until}, poi si ferma con tutti i dati conservati. Fino ad allora puoi riattivarlo.`,
+      messageColor: "#92400e",
+    };
+  }
+
   const relevantEndDate =
     status.planType === PlanType.TRIAL ? status.trialEndsAt : status.currentPeriodEnd;
   const isExpiringSoon = isDateWithinDays(relevantEndDate, 7);
@@ -153,15 +167,21 @@ export function BillingSettingsPanel({
     status.planType === PlanType.PAID &&
     (status.status === SubscriptionStatus.ACTIVE || status.status === SubscriptionStatus.TRIALING);
   const canActivateCheckout = !isManagedOutsideStripe && !isPaidActive && !isTrialReady;
+  const canResumeSubscription =
+    !isManagedOutsideStripe && status.cancelAtPeriodEnd && status.canAccess && Boolean(status.stripeSubscriptionId);
   const canCancelSubscription =
     !isManagedOutsideStripe &&
+    !status.cancelAtPeriodEnd &&
     (status.planType === PlanType.PAID || isTrialReady) &&
     status.status !== SubscriptionStatus.CANCELED &&
     // Something to cancel: a live status, or at least a Stripe subscription.
     (status.status !== SubscriptionStatus.INACTIVE || Boolean(status.stripeSubscriptionId));
   const display = getBillingDisplay(status);
 
-  const when = status.currentPeriodEnd
+  const endsOn = status.planType === PlanType.TRIAL ? status.trialEndsAt : status.currentPeriodEnd;
+  const when = status.cancelAtPeriodEnd && endsOn
+    ? `Termina il ${formatShortDate(endsOn)}`
+    : status.currentPeriodEnd
     ? `Rinnova il ${formatShortDate(status.currentPeriodEnd)}`
     : status.planType === PlanType.TRIAL && status.trialEndsAt
       ? `Prova fino al ${formatShortDate(status.trialEndsAt)}`
@@ -194,6 +214,7 @@ export function BillingSettingsPanel({
       purchase={purchase}
       canActivate={canActivateCheckout}
       canCancel={canCancelSubscription}
+      canResume={canResumeSubscription}
       trialSetupRequired={requiresTrialCardSetup}
       monthlyDiscountPercent={status.monthlyDiscountPercent}
       requested={requested}

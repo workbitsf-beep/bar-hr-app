@@ -62,3 +62,13 @@ export async function cancelStripeSubscriptionSafely(stripeSubscriptionId: strin
     throw error;
   }
 }
+
+/**
+ * Stops the renewal and leaves the period already paid (or the trial) to run
+ * out: Stripe ends the subscription at currentPeriodEnd and then tells the
+ * webhook. With resume, the renewal is turned back on.
+ */
+export async function setStripeCancelAtPeriodEnd(stripeSubscriptionId: string, cancel: boolean) {
+  const client = requireStripe();
+  return client.subscriptions.update(stripeSubscriptionId, { cancel_at_period_end: cancel });
+}
