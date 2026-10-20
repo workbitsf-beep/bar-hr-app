@@ -79,7 +79,8 @@ export function ShiftDetailTap({
               style={{
                 position: "fixed",
                 inset: 0,
-                zIndex: 2000,
+                // Above the day popup it opens from (2147483646/7); last in the body, so on top.
+                zIndex: 2147483647,
                 background: "rgba(23, 22, 31, 0.42)",
                 display: "grid",
                 placeItems: "center",
