@@ -598,6 +598,10 @@ export function PlanBilling({
               {changes.length ? (
                 <span style={{ display: "block", color: "#b45309", fontWeight: 700 }}>{changes.join(" · ")}</span>
               ) : null}
+              {/* Stripe prorates a mid-period change onto the renewal invoice. */}
+              {purchase?.live && changes.length > removed.length ? (
+                <span style={{ display: "block" }}>Paghi solo i giorni fino al rinnovo, nella stessa fattura del rinnovo.</span>
+              ) : null}
               {discount ? `−${discount}% ${monthlyDiscountPercent > 0 && interval === "MONTHLY" ? "concordato" : "stessa partita IVA"} · ` : ""}
               Senza IVA
             </span>
