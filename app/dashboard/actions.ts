@@ -1822,7 +1822,11 @@ async function updateBarSubscription(formData: FormData) {
   const currentPeriodEnd = currentPeriodEndRaw
     ? parseRequiredDate(currentPeriodEndRaw)
     : null;
-  const trialEndsAt = trialEndsAtRaw ? parseRequiredDate(trialEndsAtRaw) : null;
+  // "Prova fino al 31" includes the 31st: a bare date ends at 23:59:59 that
+  // day. Read as midnight, the venue was locked for the whole last day.
+  const trialEndsAt = trialEndsAtRaw
+    ? parseRequiredDate(/^\d{4}-\d{2}-\d{2}$/.test(trialEndsAtRaw) ? `${trialEndsAtRaw}T23:59:59` : trialEndsAtRaw)
+    : null;
 
   const [currentSubscription] = await Promise.all([
     prisma.subscription.findUnique({
