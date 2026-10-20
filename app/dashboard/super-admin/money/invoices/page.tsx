@@ -184,11 +184,14 @@ export default async function ConsoleInvoicesPage() {
                         className="wbc-btn wbc-btn-primary wbc-btn-sm"
                       />
                     ) : null}
-                    {(invoice.fiscalState === FiscalState.READY || invoice.fiscalState === FiscalState.REJECTED) && !sdi ? (
+                    {/* Also with Openapi set up: an XML uploaded by hand to Fatture e
+                        Corrispettivi (no credit, say) must stop the nightly send, or
+                        the same invoice reaches the SDI twice. */}
+                    {invoice.fiscalState === FiscalState.READY || invoice.fiscalState === FiscalState.REJECTED ? (
                       <ConsoleButton
                         action={markInvoiceSentAction}
                         fields={{ invoiceId: invoice.id }}
-                        label="Segna inviata"
+                        label={sdi ? "Inviata a mano" : "Segna inviata"}
                         className="wbc-btn wbc-btn-primary wbc-btn-sm"
                       />
                     ) : null}
