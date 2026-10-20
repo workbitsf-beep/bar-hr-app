@@ -2777,6 +2777,16 @@
         overflow-y: auto;
         padding-right: 0;
         overscroll-behavior: contain;
+        /* Rows keep their height and the list scrolls: a grid track with a
+           clipped child was allowed to shrink to nothing, so a long list of
+           notes or shifts came out squashed on top of each other. */
+        grid-auto-rows: max-content;
+        align-content: start;
+      }
+
+      .dashboard-scroll-list > * {
+        min-height: max-content;
+        flex-shrink: 0;
       }
 
       @media (max-width: 900px) {

@@ -79,6 +79,7 @@ import {
 } from "./calendar-client-utils";
 import { showAppToast } from "@/app/components/app-toast";
 import { ActionForm } from "@/app/components/action-form";
+import { ShiftDetailTap } from "./shift-detail";
 
 type MemberOption = {
   id: string;
@@ -4928,7 +4929,7 @@ export function DayActionCalendarClient({
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.shifts.map((shift) => renderShiftSwipeActions(shift, (
-                          renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))
+                          <ShiftDetailTap shift={shift} locale={locale} currentUserId={currentUserId}>{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
                         ), selectedDay.date, true))}
                       </div>
                     )}

@@ -82,6 +82,7 @@ import {
 import { showAppToast } from "@/app/components/app-toast";
 import { ActionForm } from "@/app/components/action-form";
 import { CopyWeekReport, copyWeekResultOf, copyWeekSummary, type CopyWeekResult } from "./copy-week-report";
+import { ShiftDetailTap } from "./shift-detail";
 
 type MemberOption = {
   id: string;
@@ -4141,7 +4142,7 @@ export function OwnerCalendarClient({
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 7 }}>
                       {day.shifts.map((shift) => renderShiftSwipeActions(shift, (
-                        renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))
+                        <ShiftDetailTap shift={shift} locale={locale} currentUserId={currentUserId}>{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
                       ), day.date, true))}
                     </div>
                   )}
