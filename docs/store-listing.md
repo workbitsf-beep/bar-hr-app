@@ -17,7 +17,10 @@ serve una decisione tua o del consulente privacy prima dell'invio.
 | URL supporto | https://app.workbit.it/support |
 | URL privacy | https://app.workbit.it/privacy |
 | URL eliminazione account | https://app.workbit.it/account-deletion |
-| Parole chiave Apple (max 100) | turni,presenze,timbratura,ferie,ristorante,bar,personale,haccp,calendario,report |
+| Parole chiave Apple (max 100) | turni,presenze,timbratura,ferie,ristorante,bar,personale,haccp,calendario,report,orari,staff |
+| Testo promozionale Apple (max 170) | Turni della settimana, timbrature dal telefono, ferie e cambi turno in un tocco, e il report del mese pronto in PDF. Per bar, ristoranti e locali. |
+| Copyright | 2026 [nome della ditta individuale, come sul D-U-N-S] |
+| Dispositivi | Solo iPhone (niente iPad) |
 
 ## Descrizione lunga (max 4000)
 
@@ -101,14 +104,33 @@ analisi o pubblicità).
 | Foto o video | Sì, se allegati a un documento | Sì | Funzionalità dell'app |
 | Altri contenuti dell'utente | Sì (note, richieste, documenti) | Sì | Funzionalità dell'app |
 | ID utente | Sì | Sì | Funzionalità dell'app |
-| Informazioni sanitarie | **[da confermare]** — la richiesta di malattia può contenere il numero del certificato | Sì | Funzionalità dell'app |
+| Informazioni sanitarie | Sì: la richiesta di malattia contiene il codice del certificato medico. Dichiararlo è la scelta prudente (deciso 20 ott 2026) | Sì | Funzionalità dell'app |
 | Dati di pagamento | No: li raccoglie Stripe, sul sito | — | — |
 | Diagnostica | No | — | — |
+
+## Dati del commerciante (DSA, Unione Europea)
+
+Apple e Google li mostrano pubblicamente a chi scarica l'app in UE. Devono coincidere con quelli
+della ditta (e del D-U-N-S per Google).
+
+| Campo | Valore |
+|---|---|
+| Stato | Commerciante (vendi un servizio come attività) |
+| Indirizzo | Via dell'Olmo 9/B, 35010 San Giorgio delle Pertiche (PD), Italia |
+| Telefono | +39 379 256 9955 |
+| Email | supporto@workbit.it |
+
+## Classificazione età
+
+Apple ha un questionario nuovo (dal 2025): rispondi "No" / "Nessuno" a tutto (niente violenza,
+contenuti per adulti, gioco d'azzardo, chat aperta tra sconosciuti, contenuti generati
+liberamente visibili al pubblico). Workbit è usata solo tra colleghi dello stesso locale.
+Risultato atteso: 4+. Google: questionario IARC, stesso esito (PEGI 3).
 
 ## Sicurezza dei dati Google (Data safety)
 
 - **Raccolta:** posizione precisa, nome, email, ID utente, file e documenti, foto, altri
-  contenuti generati dall'utente; **[da confermare]** informazioni sanitarie (come sopra).
+  contenuti generati dall'utente, informazioni sanitarie (il codice del certificato di malattia, come sopra).
 - **Condivisione con terzi:** nessuna. Hosting e invio di email e notifiche sono fornitori che
   trattano i dati per conto di Workbit, e per Google non contano come condivisione.
 - **Cifratura in transito:** sì (solo HTTPS).
