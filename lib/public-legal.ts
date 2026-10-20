@@ -17,7 +17,7 @@ export function isPublicLegalDocumentType(value: string): value is LegalDocument
 }
 
 export function getSupportEmail() {
-  return process.env.SUPPORT_EMAIL?.trim() || "support@workbit.it";
+  return process.env.SUPPORT_EMAIL?.trim() || "supporto@workbit.it";
 }
 
 export async function getLatestPublicLegalDocument(type: LegalDocumentType) {

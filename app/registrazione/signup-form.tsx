@@ -101,7 +101,7 @@ export function SignupForm() {
           </p>
         ) : null}
         {resend === "failed" ? (
-          <p role="alert">Non è partita nemmeno adesso: scrivi a support@workbit.it e te la mandiamo noi.</p>
+          <p role="alert">Non è partita nemmeno adesso: scrivi a supporto@workbit.it e te la mandiamo noi.</p>
         ) : null}
       </div>
     );

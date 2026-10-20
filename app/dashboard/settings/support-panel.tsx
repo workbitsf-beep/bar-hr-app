@@ -73,6 +73,19 @@ export function SupportPanel({
         spiegare chi sei.
       </div>
 
+      {/* The three addresses, each for its own kind of question. */}
+      <div style={{ display: "grid", gap: 4, fontSize: 12.5, color: "#6b6880", lineHeight: 1.5 }}>
+        <span>
+          Supporto tecnico: <strong style={{ fontWeight: 700, color: "#17161f" }}>{supportEmail}</strong>
+        </span>
+        <span>
+          Commerciale: <strong style={{ fontWeight: 700, color: "#17161f" }}>commerciale@workbit.it</strong>
+        </span>
+        <span>
+          Privacy e informazioni: <strong style={{ fontWeight: 700, color: "#17161f" }}>info.workbit@workbit.it</strong>
+        </span>
+      </div>
+
       <div
         style={{
           display: "flex",
