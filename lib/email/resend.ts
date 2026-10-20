@@ -184,6 +184,8 @@ export async function sendEmail({
       to: recipients,
       subject,
       html,
+      // Replies go to support, not to the noreply sender.
+      replyTo: process.env.EMAIL_REPLY_TO?.trim() || process.env.SUPPORT_EMAIL?.trim() || "supporto@workbit.it",
       ...(attachments?.length ? { attachments } : {}),
     });
 
