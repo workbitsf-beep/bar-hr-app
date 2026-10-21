@@ -34,6 +34,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Written into the app rather than installed from npm, so Capacitor
+        // has to be told about it - before the bridge starts.
+        registerPlugin(WorkbitWidgetsPlugin.class);
         super.onCreate(savedInstanceState);
 
         final View webView = getBridge().getWebView();

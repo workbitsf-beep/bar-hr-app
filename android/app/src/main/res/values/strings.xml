@@ -4,4 +4,8 @@
     <string name="title_activity_main">Workbit</string>
     <string name="package_name">it.workbit.app</string>
     <string name="custom_url_scheme">it.workbit.app</string>
+    <string name="widget_next_shift_name">Prossimo turno</string>
+    <string name="widget_next_shift_description">Quando lavori la prossima volta.</string>
+    <string name="widget_week_name">La tua settimana</string>
+    <string name="widget_week_description">I tuoi turni da lunedì a domenica e le ore.</string>
 </resources>

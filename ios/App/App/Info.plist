@@ -41,6 +41,13 @@
 	<false/>
 	<!-- Lets a notification reach the app while it is in the background, as
 	     Firebase messaging expects. -->
+	<!-- "In servizio" on the lock screen and in the Dynamic Island while a
+	     shift is stamped (WorkbitWidget/ShiftLiveActivity.swift). -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<!-- Where the app leaves the shifts for the widgets (Shared/WorkbitShared.swift). -->
+	<key>WorkbitKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)it.workbit.shared</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

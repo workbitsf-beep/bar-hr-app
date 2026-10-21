@@ -8,5 +8,12 @@
 	<array>
 		<string>webcredentials:app.workbit.it</string>
 	</array>
+	<!-- The first is the app's own group, where everything it already kept
+	     stays; the second is shared with the widgets. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)it.workbit.app</string>
+		<string>$(AppIdentifierPrefix)it.workbit.shared</string>
+	</array>
 </dict>
 </plist>

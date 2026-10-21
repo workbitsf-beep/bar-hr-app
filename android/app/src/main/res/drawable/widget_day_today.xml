@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Today: the gradient of the app's main buttons. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="315" android:startColor="#3B1D8F" android:centerColor="#5E4AE3" android:endColor="#8B5CF6" />
+    <corners android:radius="10dp" />
+</shape>

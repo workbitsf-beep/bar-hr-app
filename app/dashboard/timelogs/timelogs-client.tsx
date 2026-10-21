@@ -31,6 +31,7 @@ import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-
 import { calculateRoundedWorkDuration } from "@/lib/rounding";
 import { showAppToast } from "@/app/components/app-toast";
 import { describeActionError } from "@/lib/rule-error";
+import { announceClockChanged } from "@/lib/native-widgets";
 
 type LogItem = {
   id: string;
@@ -1245,6 +1246,7 @@ export function ClockActionsPanel({
         setConfirmationKey((current) => current + 1);
       }
 
+      announceClockChanged();
       router.refresh();
     } catch {
       setActionMessage("Impossibile contattare il servizio timbrature.");

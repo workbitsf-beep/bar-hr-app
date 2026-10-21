@@ -9,7 +9,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        window?.rootViewController = WorkbitBridgeViewController()
         window?.makeKeyAndVisible()
 
         // Opened from "Timbra" on the app icon (long press): handed to the

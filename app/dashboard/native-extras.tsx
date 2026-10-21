@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { showAppToast } from "@/app/components/app-toast";
 import { haptic, isNativeApp, setAppBadge, setupClockShortcut } from "@/lib/native-extras";
 import { flushQueuedStamps } from "@/lib/offline-clock-queue";
+import { announceClockChanged } from "@/lib/native-widgets";
 
 /**
  * Inside the installed app only: stamps made without network go out as soon
@@ -25,6 +26,7 @@ export function NativeExtras({ canClock }: { canClock: boolean }) {
         showAppToast(
           result.sent === 1 ? "Timbratura senza rete registrata." : `${result.sent} timbrature senza rete registrate.`
         );
+        announceClockChanged();
         router.refresh();
       }
     }

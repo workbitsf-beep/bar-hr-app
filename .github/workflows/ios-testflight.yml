@@ -19,6 +19,11 @@ name: App iOS · TestFlight
 #   GOOGLE_SERVICE_INFO_PLIST  the text of GoogleService-Info.plist from Firebase
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Versione (es. 1.1). Vuoto: quella del progetto."
+        required: false
+        default: ""
 
 jobs:
   testflight:
@@ -96,6 +101,18 @@ jobs:
           cp "$RUNNER_TEMP/appstore.mobileprovision" "$PROFILES/$UUID.mobileprovision"
           security find-identity -v -p codesigning "$KEYCHAIN"
 
+      # The widget extension is signed with a profile of its own, fetched
+      # through the App Store Connect key (made the first time).
+      - name: Profilo del widget
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          node scripts/ios-widget-profile.mjs "$RUNNER_TEMP/widget.mobileprovision"
+          PROFILES="$HOME/Library/MobileDevice/Provisioning Profiles"
+          UUID=$(security cms -D -i "$RUNNER_TEMP/widget.mobileprovision" | plutil -extract UUID raw -)
+          cp "$RUNNER_TEMP/widget.mobileprovision" "$PROFILES/$UUID.mobileprovision"
+
       # Manual signing for the app target's Release configuration only: set
       # on the command line it would reach the Swift packages too, which
       # refuse a provisioning profile.
@@ -106,8 +123,11 @@ jobs:
           perl -0pi -e '
             s{(504EC3181FED79650016851F /\* Release \*/ = \{.*?buildSettings = \{)}{$1\n\t\t\t\tDEVELOPMENT_TEAM = $ENV{APPLE_TEAM_ID};\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "Workbit App Store";}s;
             s{(504EC3181FED79650016851F /\* Release \*/ = \{.*?)CODE_SIGN_STYLE = Automatic;}{$1CODE_SIGN_STYLE = Manual;}s;
+            s{(A7E1D0000000000000000043 /\* Release \*/ = \{.*?buildSettings = \{)}{$1\n\t\t\t\tDEVELOPMENT_TEAM = $ENV{APPLE_TEAM_ID};\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "Workbit Widget App Store";}s;
+            s{(A7E1D0000000000000000043 /\* Release \*/ = \{.*?)CODE_SIGN_STYLE = Automatic;}{$1CODE_SIGN_STYLE = Manual;}s;
           ' ios/App/App.xcodeproj/project.pbxproj
           grep -c 'PROVISIONING_PROFILE_SPECIFIER = "Workbit App Store"' ios/App/App.xcodeproj/project.pbxproj
+          grep -c 'PROVISIONING_PROFILE_SPECIFIER = "Workbit Widget App Store"' ios/App/App.xcodeproj/project.pbxproj
           grep -c 'CODE_SIGN_STYLE = Manual' ios/App/App.xcodeproj/project.pbxproj
           # TestFlight and the App Store deliver push through Apple's
           # production servers; the file in the repo says development.
@@ -128,7 +148,13 @@ jobs:
           fi
 
       - name: Archivia (firmata)
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
+          # Passed on the command line, so the app and its widget carry the
+          # same version, as the App Store requires.
+          VERSION_ARG=()
+          if [ -n "$VERSION" ]; then VERSION_ARG=("MARKETING_VERSION=$VERSION"); fi
           xcodebuild \
             -project ios/App/App.xcodeproj \
             -scheme App \
@@ -136,6 +162,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Workbit.xcarchive" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            "${VERSION_ARG[@]}" \
             archive
 
       - name: Aggiungi la configurazione Firebase all'archivio
@@ -160,7 +187,10 @@ jobs:
             <key>teamID</key><string>$APPLE_TEAM_ID</string>
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key>
-            <dict><key>it.workbit.app</key><string>Workbit App Store</string></dict>
+            <dict>
+              <key>it.workbit.app</key><string>Workbit App Store</string>
+              <key>it.workbit.app.widget</key><string>Workbit Widget App Store</string>
+            </dict>
             <key>uploadSymbols</key><true/>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>

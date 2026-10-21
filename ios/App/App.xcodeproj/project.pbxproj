@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A7E1D0000000000000000001 /* WorkbitShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000011 /* WorkbitShared.swift */; };
+		A7E1D0000000000000000002 /* WorkbitWidgetsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000012 /* WorkbitWidgetsPlugin.swift */; };
+		A7E1D0000000000000000003 /* WorkbitBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000013 /* WorkbitBridgeViewController.swift */; };
+		A7E1D0000000000000000004 /* WorkbitShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000011 /* WorkbitShared.swift */; };
+		A7E1D0000000000000000005 /* WorkbitWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000014 /* WorkbitWidget.swift */; };
+		A7E1D0000000000000000006 /* ShiftLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000015 /* ShiftLiveActivity.swift */; };
+		A7E1D0000000000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000016 /* Assets.xcassets */; };
+		A7E1D0000000000000000008 /* WorkbitWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A7E1D0000000000000000019 /* WorkbitWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -19,7 +27,40 @@
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A7E1D0000000000000000037 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A7E1D0000000000000000031;
+			remoteInfo = WorkbitWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A7E1D0000000000000000035 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A7E1D0000000000000000008 /* WorkbitWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		A7E1D0000000000000000011 /* WorkbitShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkbitShared.swift; sourceTree = "<group>"; };
+		A7E1D0000000000000000012 /* WorkbitWidgetsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkbitWidgetsPlugin.swift; sourceTree = "<group>"; };
+		A7E1D0000000000000000013 /* WorkbitBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkbitBridgeViewController.swift; sourceTree = "<group>"; };
+		A7E1D0000000000000000014 /* WorkbitWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkbitWidget.swift; sourceTree = "<group>"; };
+		A7E1D0000000000000000015 /* ShiftLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiftLiveActivity.swift; sourceTree = "<group>"; };
+		A7E1D0000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A7E1D0000000000000000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A7E1D0000000000000000018 /* WorkbitWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorkbitWidget.entitlements; sourceTree = "<group>"; };
+		A7E1D0000000000000000019 /* WorkbitWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WorkbitWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -43,6 +84,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A7E1D0000000000000000033 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -51,6 +99,8 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				A7E1D0000000000000000021 /* Shared */,
+				A7E1D0000000000000000022 /* WorkbitWidget */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				A7E1D0000000000000000019 /* WorkbitWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,6 +118,8 @@
 			isa = PBXGroup;
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
+				A7E1D0000000000000000013 /* WorkbitBridgeViewController.swift */,
+				A7E1D0000000000000000012 /* WorkbitWidgetsPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -80,6 +133,26 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		A7E1D0000000000000000021 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A7E1D0000000000000000011 /* WorkbitShared.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A7E1D0000000000000000022 /* WorkbitWidget */ = {
+			isa = PBXGroup;
+			children = (
+				A7E1D0000000000000000014 /* WorkbitWidget.swift */,
+				A7E1D0000000000000000015 /* ShiftLiveActivity.swift */,
+				A7E1D0000000000000000016 /* Assets.xcassets */,
+				A7E1D0000000000000000017 /* Info.plist */,
+				A7E1D0000000000000000018 /* WorkbitWidget.entitlements */,
+			);
+			path = WorkbitWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -90,10 +163,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				A7E1D0000000000000000035 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A7E1D0000000000000000036 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -102,6 +177,23 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A7E1D0000000000000000031 /* WorkbitWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A7E1D0000000000000000041 /* Build configuration list for PBXNativeTarget "WorkbitWidget" */;
+			buildPhases = (
+				A7E1D0000000000000000032 /* Sources */,
+				A7E1D0000000000000000033 /* Frameworks */,
+				A7E1D0000000000000000034 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WorkbitWidget;
+			productName = WorkbitWidget;
+			productReference = A7E1D0000000000000000019 /* WorkbitWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -116,6 +208,9 @@
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Automatic;
+					};
+					A7E1D0000000000000000031 = {
+						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
@@ -136,6 +231,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				A7E1D0000000000000000031 /* WorkbitWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -155,6 +251,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A7E1D0000000000000000034 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7E1D0000000000000000007 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -164,10 +268,31 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				A7E1D0000000000000000001 /* WorkbitShared.swift in Sources */,
+				A7E1D0000000000000000002 /* WorkbitWidgetsPlugin.swift in Sources */,
+				A7E1D0000000000000000003 /* WorkbitBridgeViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7E1D0000000000000000032 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A7E1D0000000000000000004 /* WorkbitShared.swift in Sources */,
+				A7E1D0000000000000000005 /* WorkbitWidget.swift in Sources */,
+				A7E1D0000000000000000006 /* ShiftLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A7E1D0000000000000000036 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A7E1D0000000000000000031 /* WorkbitWidget */;
+			targetProxy = A7E1D0000000000000000037 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -312,6 +437,11 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = it.workbit.app;
@@ -335,9 +465,62 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = it.workbit.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		A7E1D0000000000000000042 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = WorkbitWidget/WorkbitWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = WorkbitWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = it.workbit.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A7E1D0000000000000000043 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = WorkbitWidget/WorkbitWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = WorkbitWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = it.workbit.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -361,6 +544,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A7E1D0000000000000000041 /* Build configuration list for PBXNativeTarget "WorkbitWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A7E1D0000000000000000042 /* Debug */,
+				A7E1D0000000000000000043 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
