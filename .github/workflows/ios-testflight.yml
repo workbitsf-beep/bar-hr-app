@@ -1,7 +1,8 @@
 name: App iOS · TestFlight
 
 # Builds the signed iPhone app on GitHub's Macs and uploads it to TestFlight,
-# so no Mac is needed. Started by hand from the Actions tab ("Run workflow").
+# so no Mac is needed. Started by hand from the Actions tab ("Run workflow"),
+# or by pushing a testflight-* tag.
 #
 # It needs an Apple Developer account and these repository secrets
 # (Settings > Secrets and variables > Actions):
@@ -24,6 +25,11 @@ on:
         description: "Versione (es. 1.1). Vuoto: quella del progetto."
         required: false
         default: ""
+  # Or by pushing a tag such as testflight-1.1-2: the version is the part
+  # after the first dash (1.1), the rest only keeps tags unique.
+  push:
+    tags:
+      - "testflight-*"
 
 jobs:
   testflight:
@@ -153,6 +159,9 @@ jobs:
         run: |
           # Passed on the command line, so the app and its widget carry the
           # same version, as the App Store requires.
+          if [ -z "$VERSION" ] && [[ "$GITHUB_REF_NAME" == testflight-* ]]; then
+            VERSION=$(echo "$GITHUB_REF_NAME" | cut -d- -f2)
+          fi
           VERSION_ARG=()
           if [ -n "$VERSION" ]; then VERSION_ARG=("MARKETING_VERSION=$VERSION"); fi
           xcodebuild \
