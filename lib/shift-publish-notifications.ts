@@ -1,4 +1,5 @@
 import "server-only";
+import { daysRange } from "@/lib/notification-copy";
 
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { getPushTokensForUsers } from "@/lib/push";
@@ -9,23 +10,9 @@ type ShiftPublishRecipient = {
   firstName: string;
 };
 
+/** "19–25 ott": the week, in the short form of the other notifications. */
 function getRangeLabel(rangeStart: Date, rangeEnd: Date) {
-  if (
-    rangeStart.getMonth() === rangeEnd.getMonth() &&
-    rangeStart.getFullYear() === rangeEnd.getFullYear()
-  ) {
-    return new Intl.DateTimeFormat("it-IT", {
-      month: "long",
-      year: "numeric",
-    }).format(rangeStart);
-  }
-
-  const formatter = new Intl.DateTimeFormat("it-IT", {
-    day: "numeric",
-    month: "long",
-  });
-
-  return `${formatter.format(rangeStart)} - ${formatter.format(rangeEnd)}`;
+  return daysRange(rangeStart, rangeEnd);
 }
 
 function collectShiftRecipients(
