@@ -5111,7 +5111,7 @@ export async function deleteTimeLogPairAction(formData: FormData) {
   await notifyUsers([userId], {
     barId: activeBarId,
     title: "Timbratura annullata",
-    message: `${when} · da ${shortName(session.user)}. Se è un errore, diglielo.`,
+    message: `${when} · da ${shortName(session.user)}`,
     type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CANCELLED,
     actionUrl: "/dashboard/timelogs",
   });
