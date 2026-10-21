@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { closeClockOutReminders } from "@/lib/timelog-reminders";
+import { notifyClocked } from "@/lib/clock-notifications";
 import { withBar } from "@/lib/withBar";
 
 type ClockOutBody = {
@@ -200,6 +201,14 @@ export const POST = withBar(
     });
 
     const duration = outTimestamp.getTime() - sessionStart.getTime();
+    notifyClocked({
+      barId: session.activeBarId,
+      userId: session.user.id,
+      kind: "out",
+      at: outTimestamp,
+      offline: moment.offline,
+      workedMs: duration,
+    });
 
     return Response.json({ ok: true, duration });
   }

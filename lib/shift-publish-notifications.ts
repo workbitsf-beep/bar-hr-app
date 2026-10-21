@@ -108,7 +108,7 @@ export async function notifyPublishedShiftRecipients(input: {
         {
           barId: input.barId,
           title: "Turni pubblicati",
-          message: `Ciao ${recipient.firstName},\nSono stati pubblicati o aggiornati i tuoi turni della settimana ${rangeLabel} per ${bar.name}.`,
+          message: `Settimana ${rangeLabel}`,
           type: INTERNAL_NOTIFICATION_TYPES.SHIFT_PUBLISHED,
           actionUrl: "/dashboard/calendar",
         },

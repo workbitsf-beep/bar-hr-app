@@ -93,23 +93,22 @@ async function sendOwnerBillingEmail(input: {
       return;
     }
 
-    const ownerName = `${bar.owner.firstName} ${bar.owner.lastName}`.trim();
     const notification =
       input.kind === "failed"
         ? {
-            title: "Pagamento fallito",
-            message: `Ciao ${ownerName},\nIl pagamento dell'abbonamento per ${bar.name} non è andato a buon fine. Controlla il metodo di pagamento o rinnova l'abbonamento.`,
+            title: "Pagamento non riuscito",
+            message: "Aggiorna la carta dal sito, in Impostazioni.",
             type: INTERNAL_NOTIFICATION_TYPES.BILLING_PAST_DUE,
           }
         : input.kind === "canceled"
           ? {
-              title: "Abbonamento cancellato",
-              message: `Ciao ${ownerName},\nL'abbonamento del locale ${bar.name} è stato cancellato o disattivato.`,
+              title: "Abbonamento terminato",
+              message: `${bar.name} è fermo. Riattivalo dal sito.`,
               type: INTERNAL_NOTIFICATION_TYPES.BILLING_CANCELED,
             }
           : {
               title: "Abbonamento attivo",
-              message: `Ciao ${ownerName},\nL'abbonamento del locale ${bar.name} è ora attivo.`,
+              message: `${bar.name} è attivo.`,
               type: INTERNAL_NOTIFICATION_TYPES.BILLING_ACTIVE,
             };
 

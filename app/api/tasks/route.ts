@@ -145,12 +145,8 @@ export const POST = withBar(
 
           return notifyUsers([recipient.user.id], {
             barId: session.activeBarId,
-            title:
-              taskTitles.length === 1 ? "Nuova mansione assegnata" : "Nuove mansioni assegnate",
-            message:
-              taskTitles.length === 1
-                ? `Ti è stata assegnata una nuova mansione: ${taskTitles[0]}.\nLocale: ${bar.name}.`
-                : `Ti sono state assegnate ${taskTitles.length} nuove mansioni per ${bar.name}.\n${preview}${extraLine}`,
+            title: taskTitles.length === 1 ? "Nuova mansione per te" : `${taskTitles.length} nuove mansioni per te`,
+            message: taskTitles.length === 1 ? taskTitles[0] : `${preview}${extraLine}`,
             type: INTERNAL_NOTIFICATION_TYPES.TASK_ASSIGNED,
             actionUrl: "/dashboard/tasks",
           });

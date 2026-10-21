@@ -109,11 +109,8 @@ async function notifyOwnersForLegalDocument(input: {
 
   await notifyUsers(owners, {
     barId: null,
-    title: input.action === "created" ? "Nuovo documento da accettare" : "Documento aggiornato",
-    message:
-      input.action === "created"
-        ? `E disponibile un nuovo documento legale da accettare: ${input.title}.`
-        : `È stato aggiornato un documento legale da accettare: ${input.title}.`,
+    title: input.action === "created" ? "Nuovo documento da accettare" : "Documento aggiornato da accettare",
+    message: input.title,
     type: INTERNAL_NOTIFICATION_TYPES.LEGAL_DOCUMENT_REQUIRED,
     actionUrl: "/legal/accept",
   });

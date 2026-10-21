@@ -68,26 +68,26 @@ function getClockReminderSchedule(shift: Pick<ShiftForReminder, "startTime" | "e
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE,
       sendAt: new Date(shift.startTime.getTime() - CLOCK_IN_REMINDER_LEAD_MS),
-      title: "Promemoria entrata",
-      message: "Il tuo turno inizier\u00e0 tra 5 minuti. Ricordati di registrare l'entrata.",
+      title: "Tra 5 minuti inizi",
+      message: "Ricordati di timbrare l'entrata.",
     },
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_START,
       sendAt: shift.startTime,
       title: "Turno iniziato",
-      message: "Il tuo turno \u00e8 iniziato. Registra l'entrata.",
+      message: "Timbra l'entrata.",
     },
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_BEFORE,
       sendAt: new Date(shift.endTime.getTime() - CLOCK_OUT_REMINDER_LEAD_MS),
-      title: "Promemoria uscita",
-      message: "Il tuo turno terminer\u00e0 tra 5 minuti. Ricordati di registrare l'uscita.",
+      title: "Tra 5 minuti finisci",
+      message: "Ricordati di timbrare l'uscita.",
     },
     {
       type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_OUT_REMINDER_END,
       sendAt: shift.endTime,
-      title: "Turno terminato",
-      message: "Il tuo turno \u00e8 terminato. Registra l'uscita.",
+      title: "Turno finito",
+      message: "Timbra l'uscita.",
     },
   ];
 }

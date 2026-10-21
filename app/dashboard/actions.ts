@@ -54,7 +54,6 @@ import { buildShiftPresets } from "@/lib/shift-presets";
 import { cancelStripeSubscriptionSafely, requireStripe } from "@/lib/stripe";
 import {
   APP_TIME_ZONE,
-  formatDateInTimeZone,
   formatDateTimeInTimeZone,
   toDateInputValueInTimeZone,
   toTimeInputValueInTimeZone,
@@ -89,6 +88,8 @@ import {
   INTERNAL_NOTIFICATION_TYPES,
   notifyUsers,
 } from "@/lib/notifications";
+import { daysRange, requestCreatedTitle, requestReviewedTitle, requestWhen, shiftWhen } from "@/lib/notification-copy";
+import { shortName } from "@/lib/clock-notifications";
 import { deleteShiftWithCleanup } from "@/lib/shiftCleanup";
 import { createTemporaryPassword } from "@/lib/temporary-password";
 import { SUPER_ADMIN_OVERVIEW_CACHE_TAG } from "@/lib/super-admin-overview";
@@ -141,10 +142,6 @@ function getLeaveTypeLabel(type: RequestType) {
   }
 
   return "ferie";
-}
-
-function formatRangeLabel(startsAt: Date, endsAt: Date) {
-  return `${formatDateTimeInTimeZone(startsAt)} - ${formatDateTimeInTimeZone(endsAt)}`;
 }
 
 function dedupeUsers(users: Array<NotificationUser | null | undefined>) {
@@ -2504,14 +2501,8 @@ async function runCreateTask(formData: FormData) {
 
         return notifyUsers([recipient.id], {
           barId: activeBarId,
-          title:
-            taskTitles.length === 1
-              ? "Nuova nota assegnata"
-              : "Nuove note assegnate",
-          message:
-            taskTitles.length === 1
-              ? `Ciao ${recipient.firstName},\nTi è stata assegnata una nuova nota: ${taskTitles[0]}.\nLocale: ${notificationContext.barName}.`
-              : `Ciao ${recipient.firstName},\nTi sono state assegnate ${taskTitles.length} nuove note per ${notificationContext.barName}.\n${preview}${extraLine}`,
+          title: taskTitles.length === 1 ? "Nuova nota per te" : `${taskTitles.length} nuove note per te`,
+          message: taskTitles.length === 1 ? taskTitles[0] : `${preview}${extraLine}`,
           type: INTERNAL_NOTIFICATION_TYPES.TASK_ASSIGNED,
           actionUrl: "/dashboard/tasks",
         });
@@ -2651,8 +2642,8 @@ async function completeOneTask({
   if (task.createdById !== session.user.id) {
     await notifyUsers([task.createdById], {
       barId: activeBarId,
-      title: "Nota completata",
-      message: `${getFullName(session.user)} ha completato una nota nel locale.`,
+      title: `${shortName(session.user)} ha completato una nota`,
+      message: task.title,
       type: INTERNAL_NOTIFICATION_TYPES.TASK_COMPLETED,
       actionUrl: "/dashboard/tasks",
     });
@@ -2942,7 +2933,6 @@ export async function updateShiftAction(formData: FormData) {
       const after = new Set(employeeIds);
       const timeChanged =
         existingShift.startTime.getTime() !== startTime.getTime() || existingShift.endTime.getTime() !== endTime.getTime();
-      const when = `${formatDateInTimeZone(startTime)} dalle ${toTimeInputValueInTimeZone(startTime)} alle ${toTimeInputValueInTimeZone(endTime)}`;
       const kept = [...after].filter((id) => before.has(id) && id !== session.user.id);
       const added = [...after].filter((id) => !before.has(id) && id !== session.user.id);
       const removed = [...before].filter((id) => !after.has(id) && id !== session.user.id);
@@ -2950,8 +2940,8 @@ export async function updateShiftAction(formData: FormData) {
       if (timeChanged && kept.length) {
         await notifyUsers(kept, {
           barId: activeBarId,
-          title: "Turno cambiato",
-          message: `Il tuo turno ora è ${when}.`,
+          title: "Turno spostato",
+          message: `Ora: ${shiftWhen(startTime, endTime)}`,
           type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
           actionUrl: "/dashboard/calendar",
         });
@@ -2960,7 +2950,7 @@ export async function updateShiftAction(formData: FormData) {
         await notifyUsers(added, {
           barId: activeBarId,
           title: "Nuovo turno",
-          message: `Sei in turno ${when}.`,
+          message: shiftWhen(startTime, endTime),
           type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
           actionUrl: "/dashboard/calendar",
         });
@@ -2969,7 +2959,7 @@ export async function updateShiftAction(formData: FormData) {
         await notifyUsers(removed, {
           barId: activeBarId,
           title: "Turno tolto",
-          message: `Non sei più nel turno ${formatDateInTimeZone(existingShift.startTime)} dalle ${toTimeInputValueInTimeZone(existingShift.startTime)} alle ${toTimeInputValueInTimeZone(existingShift.endTime)}.`,
+          message: shiftWhen(existingShift.startTime, existingShift.endTime),
           type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
           actionUrl: "/dashboard/calendar",
         });
@@ -3006,6 +2996,8 @@ export async function confirmShiftAction(formData: FormData) {
         id: true,
         isOnCall: true,
         confirmedAt: true,
+        startTime: true,
+        endTime: true,
         assignments: {
           select: {
             userId: true,
@@ -3051,8 +3043,8 @@ export async function confirmShiftAction(formData: FormData) {
       if (recipients.length > 0) {
         await notifyUsers(recipients, {
           barId: activeBarId,
-          title: "Reperibilità confermata",
-          message: `La reperibilità del turno selezionato è stata confermata da ${getFullName(session.user)}.`,
+          title: `${shortName(session.user)} ha confermato la reperibilità`,
+          message: shiftWhen(shift.startTime, shift.endTime),
           type: INTERNAL_NOTIFICATION_TYPES.REPERIBILITY_REVIEWED,
           actionUrl: "/dashboard/calendar",
         });
@@ -3134,9 +3126,8 @@ export async function deleteShiftAction(formData: FormData) {
         if (recipients.length > 0) {
           await notifyUsers(recipients, {
             barId: activeBarId,
-            title: existingShift.isOnCall ? "Reperibilità eliminata" : "Turno eliminato",
-            message:
-              `${existingShift.isOnCall ? "La reperibilità" : "Il turno"} prevista per ${formatRangeLabel(existingShift.startTime, existingShift.endTime)}${existingShift.title ? ` - ${existingShift.title}` : ""} è stata eliminata.`,
+            title: existingShift.isOnCall ? "Reperibilità annullata" : "Turno annullato",
+            message: shiftWhen(existingShift.startTime, existingShift.endTime),
             type: INTERNAL_NOTIFICATION_TYPES.SHIFT_DELETED,
             actionUrl: "/dashboard/calendar",
           });
@@ -3219,14 +3210,10 @@ async function runCreateBoardNote(formData: FormData) {
 
     await Promise.all(
       Array.from(recipientsById.entries()).map(([recipientId, recipient]) => {
-        const notificationCountLabel =
-          recipient.count === 1 ? "una nuova nota" : `${recipient.count} nuove note`;
-
         return notifyUsers([recipientId], {
           barId: activeBarId,
-          title:
-            recipient.count === 1 ? "Nuova nota" : "Nuove note",
-          message: `Ciao ${recipient.firstName},\n${authorName} ha pubblicato ${notificationCountLabel} per ${notificationContext.barName}.`,
+          title: recipient.count === 1 ? `${authorName} ha pubblicato una nota` : `${authorName} ha pubblicato ${recipient.count} note`,
+          message: "In bacheca",
           type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
           actionUrl: "/dashboard/board",
         });
@@ -3333,7 +3320,7 @@ async function runUpdateBoardNote(formData: FormData) {
       await notifyUsers(recipients, {
         barId: activeBarId,
         title: "Nota aggiornata",
-        message: `${getFullName(session.user)} ha aggiornato una nota di ${notificationContext.barName}.`,
+        message: `Modificata da ${shortName(session.user)}`,
         type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
         actionUrl: "/dashboard/board",
       });
@@ -3542,13 +3529,11 @@ async function runCreateAvailability(formData: FormData) {
     );
 
     if (recipients.length > 0) {
-      const employeeName = getFullName(session.user);
-      const dateLabel = formatRangeLabel(startsAt, endsAt);
 
       await notifyUsers(recipients, {
         barId: activeBarId,
-        title: "Nuova indisponibilità registrata",
-        message: `${employeeName} ha registrato un'indisponibilità per ${dateLabel} in ${notificationContext.barName}.`,
+        title: `${shortName(session.user)} non è disponibile`,
+        message: daysRange(startsAt, endsAt),
         type: INTERNAL_NOTIFICATION_TYPES.AVAILABILITY_CREATED,
         actionUrl: "/dashboard/calendar",
       });
@@ -3624,7 +3609,7 @@ async function runCreateCalendarClosure(formData: FormData) {
             : type === CalendarClosureType.VACATION
               ? "Nuove ferie aziendali"
               : "Nuova chiusura",
-        message: `${titleRaw || fallbackTitle} è stata inserita per ${notificationContext.barName}.`,
+        message: titleRaw || fallbackTitle,
         type: INTERNAL_NOTIFICATION_TYPES.CLOSURE_CREATED,
         actionUrl: "/dashboard/requests",
       });
@@ -3710,7 +3695,7 @@ async function runUpdateCalendarClosure(formData: FormData) {
             : type === CalendarClosureType.VACATION
               ? "Ferie aziendali aggiornate"
               : "Chiusura aggiornata",
-        message: `${titleRaw || fallbackTitle} è stata aggiornata per ${notificationContext.barName}.`,
+        message: titleRaw || fallbackTitle,
         type: INTERNAL_NOTIFICATION_TYPES.CLOSURE_UPDATED,
         actionUrl: "/dashboard/requests",
       });
@@ -3771,8 +3756,8 @@ async function runDeleteCalendarClosure(formData: FormData) {
     if (recipients.length > 0) {
       await notifyUsers(recipients, {
         barId: activeBarId,
-        title: "Chiusura eliminata",
-        message: `Una chiusura del calendario è stata eliminata da ${notificationContext.barName}.`,
+        title: "Chiusura tolta",
+        message: "Non è più in calendario",
         type: INTERNAL_NOTIFICATION_TYPES.CLOSURE_DELETED,
         actionUrl: "/dashboard/requests",
       });
@@ -3866,8 +3851,8 @@ async function runCreateCourse(formData: FormData) {
     if (recipients.length > 0) {
       await notifyUsers(recipients, {
         barId: activeBarId,
-        title: "Nuovo corso inserito",
-        message: `${title} è stato aggiunto per ${notificationContext.barName}.`,
+        title: "Nuovo corso",
+        message: title,
         type: INTERNAL_NOTIFICATION_TYPES.COURSE_CREATED,
         actionUrl: "/dashboard/courses",
       });
@@ -3946,8 +3931,8 @@ export async function deleteCourseAction(formData: FormData) {
       if (recipients.length > 0) {
         await notifyUsers(recipients, {
           barId: activeBarId,
-          title: "Corso eliminato",
-          message: `${existingCourse.title} è stato eliminato da ${notificationContext.barName}.`,
+          title: "Corso annullato",
+          message: existingCourse.title,
           type: INTERNAL_NOTIFICATION_TYPES.COURSE_DELETED,
           actionUrl: "/dashboard/courses",
         });
@@ -4031,8 +4016,8 @@ export async function createDocumentAction(formData: FormData) {
     if (recipients.length > 0) {
       await notifyUsers(recipients, {
         barId: activeBarId,
-        title: "Nuovo documento disponibile",
-        message: "",
+        title: "Nuovo documento per te",
+        message: title,
         type: INTERNAL_NOTIFICATION_TYPES.DOCUMENT_CREATED,
         actionUrl: "/dashboard/documents",
       });
@@ -5126,7 +5111,7 @@ export async function deleteTimeLogPairAction(formData: FormData) {
   await notifyUsers([userId], {
     barId: activeBarId,
     title: "Timbratura annullata",
-    message: `${getFullName(session.user)} ha annullato una timbratura del ${when}.\nSe non era un errore, avvisalo così la rimettiamo.`,
+    message: `${when} · da ${shortName(session.user)}. Se è un errore, diglielo.`,
     type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CANCELLED,
     actionUrl: "/dashboard/timelogs",
   });
@@ -5397,8 +5382,8 @@ async function runCreateTimeOffRequest(formData: FormData) {
     if (ownerRecipients.length > 0) {
       await notifyUsers(ownerRecipients, {
         barId: activeBarId,
-        title: `Nuova richiesta ${getLeaveTypeLabel(type)}`,
-        message: `${getFullName(session.user)} ha inviato una richiesta di ${getLeaveTypeLabel(type)} per ${notificationContext.barName}.`,
+        title: requestCreatedTitle(shortName(session.user), type),
+        message: type === RequestType.SICKNESS ? requestWhen(type, startsAt, endsAt) : `${requestWhen(type, startsAt, endsAt)} · Tocca per rispondere`,
         type: INTERNAL_NOTIFICATION_TYPES.REQUEST_CREATED,
         actionUrl: "/dashboard/requests",
       });
@@ -5528,12 +5513,11 @@ async function runCreateShiftChangeRequest(formData: FormData) {
     );
 
     if (recipients.length > 0) {
-      const requesterName = getFullName(session.user);
 
       await notifyUsers(recipients, {
         barId: activeBarId,
-        title: "Richiesta cambio turno",
-        message: `${requesterName} ha inviato una richiesta di cambio turno per ${notificationContext.barName}.`,
+        title: `${shortName(session.user)} chiede un cambio turno`,
+        message: "Tocca per rispondere",
         type: INTERNAL_NOTIFICATION_TYPES.SHIFT_CHANGE_REQUESTED,
         actionUrl: "/dashboard/requests",
       });
@@ -5630,6 +5614,8 @@ async function runReviewRequest(formData: FormData) {
         barName: string;
         employee: NotificationUser;
         type: string;
+        requestType: RequestType;
+        when: string;
       }
     | null = null;
 
@@ -5768,6 +5754,8 @@ async function runReviewRequest(formData: FormData) {
         role: Role.EMPLOYEE,
       },
       type: getLeaveTypeLabel(request.type),
+      requestType: request.type,
+      when: requestWhen(request.type, request.startsAt, request.endsAt),
     };
   }
 
@@ -5777,7 +5765,7 @@ async function runReviewRequest(formData: FormData) {
       title: shiftChangeNotification.approved
         ? "Cambio turno approvato"
         : "Cambio turno rifiutato",
-      message: `La richiesta di cambio turno per ${shiftChangeNotification.barName} è stata ${shiftChangeNotification.approved ? "approvata" : "rifiutata"}.`,
+      message: shiftChangeNotification.approved ? "Il calendario è aggiornato" : "Il turno resta com'era",
       type: INTERNAL_NOTIFICATION_TYPES.SHIFT_CHANGE_REVIEWED,
       actionUrl: "/dashboard/requests",
     });
@@ -5786,8 +5774,8 @@ async function runReviewRequest(formData: FormData) {
   if (leaveNotification) {
     await notifyUsers([leaveNotification.employee], {
       barId: activeBarId,
-      title: `Richiesta di ${leaveNotification.type} ${leaveNotification.approved ? "approvata" : "rifiutata"}`,
-      message: `La tua richiesta di ${leaveNotification.type} per ${leaveNotification.barName} è stata ${leaveNotification.approved ? "approvata" : "rifiutata"}.`,
+      title: requestReviewedTitle(leaveNotification.requestType, leaveNotification.approved),
+      message: leaveNotification.when,
       type: INTERNAL_NOTIFICATION_TYPES.REQUEST_REVIEWED,
       actionUrl: "/dashboard/requests",
     });
@@ -6310,8 +6298,8 @@ export async function changeTodayShiftAction(formData: FormData) {
       activeBarId,
       session.user.id,
       userId,
-      "Turno di oggi cambiato",
-      `Il tuo turno di oggi ora è dalle ${toTimeInputValueInTimeZone(startTime)} alle ${toTimeInputValueInTimeZone(endTime)}.`
+      "Turno di oggi spostato",
+      `Ora ${toTimeInputValueInTimeZone(startTime)}–${toTimeInputValueInTimeZone(endTime)}`
     );
 
     revalidatePath("/dashboard");
@@ -6359,7 +6347,7 @@ export async function removeFromTodayShiftAction(formData: FormData) {
       session.user.id,
       userId,
       "Turno di oggi tolto",
-      `Il tuo turno di oggi dalle ${toTimeInputValueInTimeZone(shift.startTime)} alle ${toTimeInputValueInTimeZone(shift.endTime)} è stato tolto.`
+      `Era ${toTimeInputValueInTimeZone(shift.startTime)}–${toTimeInputValueInTimeZone(shift.endTime)}`
     );
 
     revalidatePath("/dashboard");
@@ -6414,7 +6402,7 @@ export async function addTodayShiftAction(formData: FormData) {
       session.user.id,
       userId,
       "Nuovo turno oggi",
-      `Oggi sei in turno dalle ${toTimeInputValueInTimeZone(startTime)} alle ${toTimeInputValueInTimeZone(endTime)}.`
+      `${toTimeInputValueInTimeZone(startTime)}–${toTimeInputValueInTimeZone(endTime)}`
     );
 
     revalidatePath("/dashboard");

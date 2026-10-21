@@ -1,5 +1,6 @@
 import { ClockType } from "@prisma/client";
 import { clockTime, formatDayLabel, isStaleEntry, reviewersOf, STALE_ENTRY_AFTER_SHIFT_MS } from "@/lib/clock-fixes";
+import { shortName } from "@/lib/clock-notifications";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { invalidateReportingCache } from "@/lib/reporting";
@@ -81,23 +82,21 @@ export async function runForgottenExits(now = new Date()) {
     invalidateReportingCache(entry.barId, entry.userId);
 
     const day = formatDayLabel(entry.timestamp);
-    const name = `${entry.user.firstName} ${entry.user.lastName}`.trim();
-    const provisional = entry.shift
-      ? `le ore si fermano a fine turno, alle ${clockTime(exitAt)}, in via provvisoria`
-      : "le ore restano da confermare";
+    const name = shortName(entry.user);
+    const provisional = entry.shift ? `Ore ferme alle ${clockTime(exitAt)}` : "Ore da confermare";
 
     try {
       await notifyUsers([entry.userId], {
         barId: entry.barId,
         title: "Uscita non timbrata",
-        message: `Non hai timbrato l'uscita di ${day}: ${provisional}. Indica l'ora in cui sei uscito nella pagina Oggi ("Uscita dimenticata") e il titolare la conferma.`,
+        message: `${day} · ${provisional}. Indica l'ora di uscita.`,
         type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_AUTO_CLOCK_OUT,
         actionUrl: "/dashboard",
       });
       await notifyUsers(await reviewersOf(entry.barId, entry.userId), {
         barId: entry.barId,
-        title: "Uscita non timbrata",
-        message: `${name} non ha timbrato l'uscita di ${day}: ${provisional}. Quando indica l'ora vera la approvi nella pagina Oggi, oppure correggila nelle Timbrature.`,
+        title: `${name} non ha timbrato l'uscita`,
+        message: `${day} · ${provisional}`,
         type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_AUTO_CLOCK_OUT,
         actionUrl: "/dashboard",
       });

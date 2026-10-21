@@ -252,8 +252,8 @@ export async function POST(request: Request) {
       if (recipients.length > 0) {
         await notifyUsers(recipients, {
           barId: activeBar.id,
-          title: "Nuovo documento disponibile",
-          message: "",
+          title: "Nuovo documento per te",
+          message: title,
           type: INTERNAL_NOTIFICATION_TYPES.DOCUMENT_CREATED,
           actionUrl: "/dashboard/documents",
         });

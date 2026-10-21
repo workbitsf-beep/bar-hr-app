@@ -53,6 +53,7 @@ function formatRelativeDate(value: string) {
 function getNotificationEmoji(type: string) {
   const normalized = type.toLowerCase();
 
+  if (normalized.startsWith("timelog")) return "🕘";
   if (normalized.includes("shift")) return "⏱️";
   if (normalized.includes("task")) return "✅";
   if (normalized.includes("board")) return "📢";
@@ -63,6 +64,45 @@ function getNotificationEmoji(type: string) {
   if (normalized.includes("billing")) return "💳";
   if (normalized.includes("reper")) return "📍";
   return "🔔";
+}
+
+/** The rail colour of a notification: the same colours as the rest of Workbit. */
+function getNotificationColor(type: string) {
+  const t = type.toLowerCase();
+  if (t.startsWith("timelog")) return "#0ea5e9";
+  if (t.startsWith("billing")) return "#b3202f";
+  if (t.includes("closure")) return "#e0868f";
+  if (t.includes("course")) return "#0284c7";
+  if (t.includes("document")) return "#64748b";
+  if (t.includes("task") || t.includes("board")) return "#f59e0b";
+  if (t.includes("request") || t.includes("shift-change") || t.includes("availability")) return "#10b981";
+  if (t.includes("shift") || t.includes("reper")) return "#6d5ce7";
+  return "#7c3aed";
+}
+
+// The word that says how it went, coloured: green done, red undone, amber to look at.
+const OUTCOME = /(non approvat[aoie]|rifiutat[aoie]|annullat[aoie]|tolt[aoie]|non riuscito|terminato|approvat[aoie]|registrat[aoie]|confermat[aoie]|attivo|dimenticat[aoie]|non timbrat[aoie]|non è disponibile|in malattia)/i;
+function outcomeColor(word: string) {
+  const w = word.toLowerCase();
+  if (/^(non approvat|rifiutat|annullat|tolt|non riuscito|terminato)/.test(w)) return "#b3202f";
+  if (/^(dimenticat|non timbrat|non è disponibile|in malattia)/.test(w)) return "#b45309";
+  return "#1f9d63";
+}
+function NotificationTitle({ text }: { text: string }) {
+  const parts = text.split(OUTCOME);
+  return (
+    <>
+      {parts.map((part, index) =>
+        index % 2 === 1 ? (
+          <span key={index} style={{ color: outcomeColor(part) }}>
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
 }
 
 function removeLegacyClockAction(actionUrl: string) {
@@ -620,6 +660,7 @@ export function NotificationsBell({
                         disabled={markingId === notification.id}
                         style={{
                           border: "1px solid " + (notification.read ? "#e2e8f0" : "#c4b5fd"),
+                          borderLeft: `4px solid ${getNotificationColor(notification.type)}`,
                           background: notification.read ? "#ffffff" : "#f8f5ff",
                           borderRadius: 20,
                           padding: 16,
@@ -666,7 +707,7 @@ export function NotificationsBell({
                                   lineHeight: 1.4,
                                 }}
                               >
-                                {notification.title}
+                                <NotificationTitle text={notification.title} />
                               </strong>
                               {!notification.read ? (
                                 <span

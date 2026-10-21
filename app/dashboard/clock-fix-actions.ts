@@ -4,6 +4,7 @@ import { ClockFixKind, ClockFixStatus, ClockType, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { clockTime, getEmployeeClockFixState, reviewersOf, timeNear } from "@/lib/clock-fixes";
+import { shortName } from "@/lib/clock-notifications";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -97,16 +98,14 @@ export async function requestClockFixAction(formData: FormData) {
       await closeClockInReminders({ userId: session.user.id, barId, shiftId: offer.shiftId });
     }
 
-    const name = `${session.user.firstName} ${session.user.lastName}`.trim();
     const what =
       offer.kind === ClockFixKind.MISSED_OUT
-        ? `l'uscita e indica le ${clockTime(requestedOutAt)}`
-        : `l'entrata e indica le ${clockTime(requestedInAt)}` +
-          (requestedOutAt ? `, uscita alle ${clockTime(requestedOutAt)}` : "");
+        ? `Uscita alle ${clockTime(requestedOutAt)}`
+        : `Entrata alle ${clockTime(requestedInAt)}` + (requestedOutAt ? `, uscita alle ${clockTime(requestedOutAt)}` : "");
     await notifyUsers(await reviewersOf(barId, session.user.id), {
       barId,
-      title: offer.kind === ClockFixKind.MISSED_OUT ? "Uscita dimenticata" : "Entrata dimenticata",
-      message: `${name} ha dimenticato di timbrare ${what}. Approvala nella pagina Oggi.`,
+      title: `${shortName(session.user)}: ${offer.kind === ClockFixKind.MISSED_OUT ? "uscita dimenticata" : "entrata dimenticata"}`,
+      message: `${what} · Tocca per approvare`,
       type: INTERNAL_NOTIFICATION_TYPES.REQUEST_CREATED,
       actionUrl: "/dashboard",
     });
@@ -284,9 +283,8 @@ export async function approveClockFixAction(formData: FormData) {
       title: fix.kind === ClockFixKind.MISSED_OUT ? "Uscita registrata" : "Entrata registrata",
       message:
         fix.kind === ClockFixKind.MISSED_OUT
-          ? `${reviewer} ha registrato la tua uscita alle ${clockTime(resolvedOutAt)}.`
-          : `${reviewer} ha registrato la tua entrata alle ${clockTime(resolvedInAt)}` +
-            (resolvedOutAt ? ` e l'uscita alle ${clockTime(resolvedOutAt)}.` : "."),
+          ? `Alle ${clockTime(resolvedOutAt)} · da ${reviewer}`
+          : `Alle ${clockTime(resolvedInAt)}` + (resolvedOutAt ? `, uscita alle ${clockTime(resolvedOutAt)}` : "") + ` · da ${reviewer}`,
       type: INTERNAL_NOTIFICATION_TYPES.REQUEST_REVIEWED,
       actionUrl: "/dashboard/timelogs",
     });
@@ -313,7 +311,7 @@ export async function rejectClockFixAction(formData: FormData) {
     await notifyUsers([fix.userId], {
       barId,
       title: fix.kind === ClockFixKind.MISSED_OUT ? "Uscita non approvata" : "Entrata non approvata",
-      message: `${session.user.firstName} non ha approvato l'orario che hai indicato. Parlane con ${session.user.firstName} per sistemarlo.`,
+      message: `Parlane con ${session.user.firstName}.`,
       type: INTERNAL_NOTIFICATION_TYPES.REQUEST_REVIEWED,
       actionUrl: "/dashboard",
     });

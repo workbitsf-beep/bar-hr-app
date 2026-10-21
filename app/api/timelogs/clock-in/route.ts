@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveBarAccess } from "@/lib/permissions";
 import { invalidateReportingCache } from "@/lib/reporting";
 import { closeClockInReminders } from "@/lib/timelog-reminders";
+import { notifyClocked } from "@/lib/clock-notifications";
 import { withBar } from "@/lib/withBar";
 import { clockMomentOf } from "@/lib/offline-clock";
 
@@ -209,6 +210,7 @@ export const POST = withBar(
       barId: session.activeBarId,
       shiftId: activeShift?.id ?? null,
     });
+    notifyClocked({ barId: session.activeBarId, userId: session.user.id, kind: "in", at: now, offline: moment.offline });
 
     return Response.json({ ok: true, log });
   }
