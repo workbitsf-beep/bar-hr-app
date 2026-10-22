@@ -1429,6 +1429,11 @@ export default async function DashboardSettingsPage({
           <LegalDocumentsPanel userId={session.user.id} />
         </PopupAction>
 
+        {/* Temporary: finds out why the widgets stay empty. */}
+        <a href="/dashboard/widget-check" style={{ textDecoration: "none", color: "inherit" }}>
+          <SettingsRow dot="#6d5ce7" title="Controllo widget" lead="Temporaneo" />
+        </a>
+
         <PopupAction
           title="Assistenza"
           ariaLabel="Apri assistenza"
