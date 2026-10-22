@@ -51,7 +51,7 @@ enum WorkbitSharedStore {
     /// itself - the group a plain item lands in starts with it - because
     /// $(AppIdentifierPrefix) in the Info.plist came out empty in the builds
     /// signed on GitHub, and the app and the widget then never met.
-    private static let accessGroup: String? = {
+    static let accessGroup: String? = {
         if let prefix = teamPrefix() { return prefix + "it.workbit.shared" }
         guard let group = Bundle.main.object(forInfoDictionaryKey: "WorkbitKeychainGroup") as? String,
               !group.isEmpty, group.contains("."), !group.hasPrefix("it.") else { return nil }
@@ -89,7 +89,11 @@ enum WorkbitSharedStore {
         return query
     }
 
-    static func save(_ data: Data) {
+    /// What the keychain said last, shown by the temporary check page.
+    static var lastStatus: OSStatus = 0
+
+    @discardableResult
+    static func save(_ data: Data) -> OSStatus {
         SecItemDelete(query() as CFDictionary)
         var item = query()
         item[kSecValueData as String] = data
@@ -99,6 +103,8 @@ enum WorkbitSharedStore {
         if status != errSecSuccess {
             NSLog("[widgets] snapshot not saved (%d) in %@", status, accessGroup ?? "default group")
         }
+        lastStatus = status
+        return status
     }
 
     static func clear() {
@@ -115,7 +121,8 @@ enum WorkbitSharedStore {
         request[kSecReturnData as String] = true
         request[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: AnyObject?
-        guard SecItemCopyMatching(request as CFDictionary, &result) == errSecSuccess,
+        lastStatus = SecItemCopyMatching(request as CFDictionary, &result)
+        guard lastStatus == errSecSuccess,
               let data = result as? Data,
               let snapshot = try? JSONDecoder().decode(WidgetSnapshot.self, from: data) else {
             return nil

@@ -60,12 +60,19 @@ public class WorkbitWidgetsPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Dati dei widget non validi")
             return
         }
-        WorkbitSharedStore.save(data)
+        let saved = WorkbitSharedStore.save(data)
+        let readBack = WorkbitSharedStore.loadIfSaved() != nil
+        let readStatus = WorkbitSharedStore.lastStatus
         WidgetCenter.shared.reloadAllTimelines()
         if #available(iOS 16.2, *) {
             ShiftActivityController.sync(snapshot)
         }
-        call.resolve()
+        call.resolve([
+            "saved": Int(saved),
+            "readBack": readBack,
+            "readStatus": Int(readStatus),
+            "group": WorkbitSharedStore.accessGroup ?? "",
+        ])
     }
 
     @objc func clear(_ call: CAPPluginCall) {

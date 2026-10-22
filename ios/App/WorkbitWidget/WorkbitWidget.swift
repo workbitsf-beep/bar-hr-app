@@ -371,10 +371,16 @@ struct WeekView: View {
                     Text(Words.monthDays(week.from, week.to)).font(.system(size: 11)).foregroundColor(Brand.muted)
                 }
                 if !entry.hasData {
-                    Text("Apri Workbit per vedere i tuoi turni")
-                        .font(.system(size: 14))
-                        .foregroundColor(Brand.muted)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    VStack(spacing: 4) {
+                        Text("Apri Workbit per vedere i tuoi turni")
+                            .font(.system(size: 14))
+                            .foregroundColor(Brand.muted)
+                        // Temporary: what the keychain answered the widget.
+                        Text("\(WorkbitSharedStore.lastStatus) · \(WorkbitSharedStore.accessGroup ?? "-")")
+                            .font(.system(size: 9))
+                            .foregroundColor(Brand.muted)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     HStack(spacing: 5) {
                         ForEach(week.days) { day in
