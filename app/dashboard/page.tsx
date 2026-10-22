@@ -953,6 +953,7 @@ export default async function DashboardPage() {
                   ? `turno ${toTimeInputValueInTimeZone(timerShift.startTime)} – ${toTimeInputValueInTimeZone(timerShift.endTime)}`
                   : null
               }
+              shiftEndAt={timerShift ? timerShift.endTime.toISOString() : null}
               compact
             />
           ) : null}

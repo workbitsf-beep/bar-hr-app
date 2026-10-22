@@ -31,7 +31,7 @@ import { formatDurationClock, formatDurationFromMilliseconds } from "@/lib/time-
 import { calculateRoundedWorkDuration } from "@/lib/rounding";
 import { showAppToast } from "@/app/components/app-toast";
 import { describeActionError } from "@/lib/rule-error";
-import { announceClockChanged } from "@/lib/native-widgets";
+import { announceClockChanged, CLOCK_REQUEST_EVENT, requestClock, takeClockRequest } from "@/lib/native-widgets";
 
 type LogItem = {
   id: string;
@@ -73,6 +73,8 @@ type Totals = {
 export type ClockActionStatus = "CAN_CLOCK_IN" | "CAN_CLOCK_OUT" | "DONE";
 
 const CLOCK_LOCATION_CACHE_KEY = "workbit.clock.location";
+// An exit stamped from outside the page more than this before the shift ends asks first.
+const EARLY_EXIT_ASK_MS = 15 * 60 * 1000;
 const CLOCK_LOCATION_CACHE_MAX_AGE_MS = 2 * 60 * 1000;
 
 type CachedClockLocation = GeolocationSample & {
@@ -823,6 +825,7 @@ export function ClockActionsPanel({
   hasScheduledShiftToday = false,
   activeClockInAt = null,
   shiftLabel = null,
+  shiftEndAt = null,
   clockPoints = null,
   personName = "",
   venueName = "",
@@ -840,6 +843,8 @@ export function ClockActionsPanel({
   /** When set, the bar counts up from here instead of naming the shift. */
   activeClockInAt?: string | null;
   shiftLabel?: string | null;
+  /** The end of the shift being worked: an early exit from a notification asks first. */
+  shiftEndAt?: string | null;
 }) {
   const router = useRouter();
   const [latitude, setLatitude] = useState("");
@@ -1255,20 +1260,40 @@ export function ClockActionsPanel({
     }
   }
 
-  // Opened from "Timbra" on the app icon (long press): the stamp starts by
-  // itself, once, and the address goes back to plain Oggi.
-  const shortcutRan = useRef(false);
+  // A stamp asked for from outside the page - "Timbra" on the app icon,
+  // "Entra" / "Esci" on a notification - starts by itself, once. Only an exit
+  // well before the end of the shift asks first: a tap on the lock screen is
+  // easy to make by mistake, and an early exit is the costly one.
+  function stampFromOutside() {
+    const leaving = clockStatus === "CAN_CLOCK_OUT";
+    if (leaving && shiftEndAt) {
+      const end = new Date(shiftEndAt);
+      if (end.getTime() - Date.now() > EARLY_EXIT_ASK_MS) {
+        const at = end.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+        if (!window.confirm(`Il turno finisce alle ${at === "00:00" ? "24:00" : at}. Timbri l'uscita adesso?`)) return;
+      }
+    }
+    void runClockAction(leaving ? "clock-out" : "clock-in");
+  }
+  const stampFromOutsideRef = useRef(stampFromOutside);
+  stampFromOutsideRef.current = stampFromOutside;
+
   useEffect(() => {
-    if (!compact || !canClock || shortcutRan.current) return;
+    if (!compact || !canClock) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("azione") !== "timbra") return;
-    shortcutRan.current = true;
-    params.delete("azione");
-    const rest = params.toString();
-    window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`);
-    void runClockAction(clockStatus === "CAN_CLOCK_OUT" ? "clock-out" : "clock-in");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [compact, canClock, clockStatus]);
+    if (params.get("azione") === "timbra") {
+      params.delete("azione");
+      const rest = params.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${rest ? `?${rest}` : ""}`);
+      requestClock();
+    }
+    const take = () => {
+      if (takeClockRequest()) stampFromOutsideRef.current();
+    };
+    take();
+    window.addEventListener(CLOCK_REQUEST_EVENT, take);
+    return () => window.removeEventListener(CLOCK_REQUEST_EVENT, take);
+  }, [compact, canClock]);
 
   function captureGeolocation() {
     if (locating) {

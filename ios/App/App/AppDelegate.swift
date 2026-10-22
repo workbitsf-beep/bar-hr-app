@@ -1,4 +1,5 @@
 import UIKit
+import UserNotifications
 import Capacitor
 
 @UIApplicationMain
@@ -7,7 +8,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // The shift reminders carry a button: "Entra" before the shift starts,
+        // "Esci" when it ends (lib/push.ts names the category). It opens the
+        // app, which stamps on Oggi (app/dashboard/native-widgets-sync.tsx).
+        let enter = UNNotificationAction(identifier: "timbra", title: "Entra", options: [.foreground])
+        let leave = UNNotificationAction(identifier: "timbra", title: "Esci", options: [.foreground])
+        UNUserNotificationCenter.current().setNotificationCategories([
+            UNNotificationCategory(identifier: "WB_CLOCK_IN", actions: [enter], intentIdentifiers: [], options: []),
+            UNNotificationCategory(identifier: "WB_CLOCK_OUT", actions: [leave], intentIdentifiers: [], options: []),
+        ])
         return true
     }
 

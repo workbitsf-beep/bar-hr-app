@@ -32,10 +32,13 @@ struct WidgetOpenEntry: Codable, Hashable {
 }
 
 struct WidgetSnapshot: Codable {
-    let v: Int
-    let venue: String?
-    let shifts: [WidgetShift]
-    let open: WidgetOpenEntry?
+    var v: Int
+    var venue: String?
+    var shifts: [WidgetShift]
+    var open: WidgetOpenEntry?
+    /// "ottobre" and the month's closed hours, for "Ore di ottobre: 86 h".
+    var month: String? = nil
+    var monthHours: Double? = nil
 
     static let empty = WidgetSnapshot(v: 1, venue: nil, shifts: [], open: nil)
 }
@@ -97,6 +100,8 @@ struct ShiftActivityAttributes: ActivityAttributes {
         var end: Date?
         /// Set once the exit is stamped: the activity says so, then goes.
         var out: Date?
+        var month: String? = nil
+        var monthHours: Double? = nil
     }
 
     var venue: String

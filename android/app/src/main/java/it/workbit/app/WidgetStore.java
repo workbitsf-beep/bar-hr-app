@@ -52,6 +52,9 @@ final class WidgetStore {
 
     static final class Snapshot {
         String venue = "";
+        /** "ottobre" and the month's closed hours, for "Ore di ottobre: 86 h". */
+        String month = "";
+        double monthHours = -1;
         final List<Shift> shifts = new ArrayList<>();
         Open open;
 
@@ -80,6 +83,8 @@ final class WidgetStore {
         try {
             JSONObject json = new JSONObject(text);
             snapshot.venue = json.optString("venue", "");
+            snapshot.month = json.optString("month", "");
+            snapshot.monthHours = json.optDouble("monthHours", -1);
             JSONArray shifts = json.optJSONArray("shifts");
             if (shifts != null) {
                 for (int i = 0; i < shifts.length(); i++) {

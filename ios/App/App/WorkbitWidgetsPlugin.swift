@@ -17,7 +17,41 @@ public class WorkbitWidgetsPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "update", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "takeOpen", returnType: CAPPluginReturnPromise),
     ]
+
+    // MARK: Opened from a widget, the Live Activity or a notification
+
+    private static weak var shared: WorkbitWidgetsPlugin?
+    private static var pending: (path: String, at: Date)?
+
+    override public func load() {
+        WorkbitWidgetsPlugin.shared = self
+    }
+
+    /// workbit://timbra ("Esci" on the Live Activity) stamps on Oggi;
+    /// workbit://oggi just opens it. Told to the page if it is listening,
+    /// otherwise kept until it asks (takeOpen) - for a minute at most.
+    @discardableResult
+    static func open(_ url: URL) -> Bool {
+        guard url.scheme == "workbit" else { return false }
+        let path = url.host == "timbra" ? "/dashboard?azione=timbra" : "/dashboard"
+        if let plugin = shared, plugin.hasListeners("open") {
+            plugin.notifyListeners("open", data: ["path": path])
+        } else {
+            pending = (path, Date())
+        }
+        return true
+    }
+
+    @objc func takeOpen(_ call: CAPPluginCall) {
+        defer { WorkbitWidgetsPlugin.pending = nil }
+        if let pending = WorkbitWidgetsPlugin.pending, Date().timeIntervalSince(pending.at) < 60 {
+            call.resolve(["path": pending.path])
+        } else {
+            call.resolve([:])
+        }
+    }
 
     @objc func update(_ call: CAPPluginCall) {
         guard let text = call.getString("snapshot"),
@@ -67,7 +101,13 @@ enum ShiftActivityController {
             return
         }
 
-        let state = ShiftActivityAttributes.ContentState(since: open.sinceDate, end: open.endDate, out: nil)
+        let state = ShiftActivityAttributes.ContentState(
+            since: open.sinceDate,
+            end: open.endDate,
+            out: nil,
+            month: snapshot.month,
+            monthHours: snapshot.monthHours
+        )
 
         if let current = running.first {
             if current.content.state != state {

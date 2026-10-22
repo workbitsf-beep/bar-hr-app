@@ -43,6 +43,19 @@
 	     Firebase messaging expects. -->
 	<!-- "In servizio" on the lock screen and in the Dynamic Island while a
 	     shift is stamped (WorkbitWidget/ShiftLiveActivity.swift). -->
+	<!-- workbit://timbra and workbit://oggi: "Esci" on the Live Activity and
+	     the widgets open the app on Oggi (WorkbitWidgetsPlugin.swift). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>it.workbit.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>workbit</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<!-- Where the app leaves the shifts for the widgets (Shared/WorkbitShared.swift). -->

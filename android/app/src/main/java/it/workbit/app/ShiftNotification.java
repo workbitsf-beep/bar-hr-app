@@ -50,12 +50,19 @@ final class ShiftNotification {
         String place = open.area == null || open.area.isEmpty() ? snapshot.venue : snapshot.venue + " · " + open.area;
         String detail = "Entrata " + WidgetStore.clock(open.since)
             + (open.end > open.since ? " · fine turno " + WidgetStore.endClock(open.since, open.end) : "");
+        if (snapshot.monthHours >= 0 && !snapshot.month.isEmpty()) {
+            detail += "\nOre di " + snapshot.month + ": " + Math.round(snapshot.monthHours) + " h, già contate";
+        }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_workbit)
             .setColor(Color.parseColor("#6D5CE7"))
             .setContentTitle("In servizio · " + place)
             .setContentText(detail)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(detail))
+            // Opens Workbit, which stamps the exit straight away (asking
+            // first if the shift is not near its end).
+            .addAction(0, "Esci", WorkbitWidgetsPlugin.stampIntent(context))
             .setWhen(open.since)
             .setShowWhen(true)
             .setUsesChronometer(true)

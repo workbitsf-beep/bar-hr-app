@@ -18,6 +18,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             NotificationCenter.default.post(name: NSNotification.Name(AppShortcutsPlugin.notificationName), object: nil, userInfo: [AppShortcutsPlugin.userInfoShortcutItemKey: shortcutItem])
         }
 
+        // Opened from "Esci" on the Live Activity while the app was closed.
+        for context in connectionOptions.urlContexts {
+            WorkbitWidgetsPlugin.open(context.url)
+        }
+
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
     }
 
@@ -27,7 +32,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+        // workbit:// links come from the widgets and the Live Activity.
+        let ours = URLContexts.filter { WorkbitWidgetsPlugin.open($0.url) }
+        if ours.count == URLContexts.count { return }
+        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts.subtracting(ours))
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {

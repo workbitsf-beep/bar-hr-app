@@ -1,6 +1,7 @@
 import { ClockType } from "@prisma/client";
 import { getVenueDepartments } from "@/lib/departments";
 import { prisma } from "@/lib/prisma";
+import { buildMonthlyTotals } from "@/lib/reporting";
 import { withBar } from "@/lib/withBar";
 
 /**
@@ -23,7 +24,7 @@ export const GET = withBar(async (_req, session) => {
   const userId = session.user.id;
   const now = new Date();
 
-  const [bar, shifts, last, departments] = await Promise.all([
+  const [bar, shifts, last, departments, month] = await Promise.all([
     prisma.bar.findUnique({ where: { id: barId }, select: { name: true } }),
     prisma.shift.findMany({
       where: {
@@ -43,6 +44,7 @@ export const GET = withBar(async (_req, session) => {
       select: { type: true, timestamp: true, shift: { select: { endTime: true, department: true } } },
     }),
     getVenueDepartments(barId, userId),
+    buildMonthlyTotals(barId, userId, now.getMonth() + 1, now.getFullYear()),
   ]);
 
   const names = new Map<string, string>();
@@ -63,6 +65,10 @@ export const GET = withBar(async (_req, session) => {
   return Response.json({
     v: 1,
     venue: bar?.name ?? "",
+    // "Ore di ottobre: 86 h, già contate": the closed stamps of the month,
+    // as the payroll counts them.
+    month: new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "Europe/Rome" }).format(now),
+    monthHours: Math.round(month.roundedHours * 10) / 10,
     shifts: shifts.map((shift) => ({
       start: shift.startTime.getTime(),
       end: shift.endTime.getTime(),

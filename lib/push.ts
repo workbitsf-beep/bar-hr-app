@@ -130,6 +130,11 @@ export async function sendPushNotification(
   data.title = input.title;
   data.body = input.body;
   const isTimeSensitiveReminder = data.type.startsWith("timelog.");
+  const clockCategory = data.type.startsWith("timelog.clock-in.")
+    ? "WB_CLOCK_IN"
+    : data.type.startsWith("timelog.clock-out.")
+      ? "WB_CLOCK_OUT"
+      : null;
   const pushLink = buildPushLink(data.actionUrl);
   const notificationTag = `${data.type || "workbit-notification"}:${data.barId || "global"}:${data.actionUrl || ""}`.slice(
     0,
@@ -170,6 +175,9 @@ export async function sendPushNotification(
           payload: {
             aps: {
               sound: "default",
+              // The shift reminders carry an "Entra" / "Esci" button on the
+              // iPhone (categories registered in ios/App/App/AppDelegate.swift).
+              ...(clockCategory ? { category: clockCategory } : {}),
             },
           },
         },
