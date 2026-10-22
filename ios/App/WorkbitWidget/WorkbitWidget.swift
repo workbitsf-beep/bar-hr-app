@@ -127,6 +127,8 @@ enum Words {
 struct ShiftsEntry: TimelineEntry {
     let date: Date
     let snapshot: WidgetSnapshot
+    /// False until the app has handed the shifts over once.
+    var hasData = true
 
     var next: WidgetShift? {
         snapshot.shifts.sorted { $0.start < $1.start }.first { $0.endDate > date }
@@ -163,15 +165,20 @@ struct ShiftsProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ShiftsEntry) -> Void) {
-        let stored = WorkbitSharedStore.load()
-        completion(ShiftsEntry(date: Date(), snapshot: context.isPreview && stored.shifts.isEmpty ? Self.sample : stored))
+        let stored = WorkbitSharedStore.loadIfSaved()
+        if context.isPreview && (stored?.shifts.isEmpty ?? true) {
+            completion(ShiftsEntry(date: Date(), snapshot: Self.sample))
+        } else {
+            completion(ShiftsEntry(date: Date(), snapshot: stored ?? .empty, hasData: stored != nil))
+        }
     }
 
     /// One entry now and one at every moment the words change: each start
     /// and end of a shift in the next two days, and midnight.
     func getTimeline(in context: Context, completion: @escaping (Timeline<ShiftsEntry>) -> Void) {
         let now = Date()
-        let snapshot = WorkbitSharedStore.load()
+        let stored = WorkbitSharedStore.loadIfSaved()
+        let snapshot = stored ?? .empty
         let horizon = now.addingTimeInterval(48 * 60 * 60)
         var moments: Set<Date> = [now]
         for shift in snapshot.shifts {
@@ -187,7 +194,7 @@ struct ShiftsProvider: TimelineProvider {
         for hour in 1...12 {
             moments.insert(now.addingTimeInterval(Double(hour) * 60 * 60))
         }
-        let entries = moments.sorted().map { ShiftsEntry(date: $0, snapshot: snapshot) }
+        let entries = moments.sorted().map { ShiftsEntry(date: $0, snapshot: snapshot, hasData: stored != nil) }
         completion(Timeline(entries: entries, policy: .after(now.addingTimeInterval(6 * 60 * 60))))
     }
 
@@ -310,6 +317,11 @@ struct NextShiftView: View {
                             .foregroundColor(Brand.muted)
                             .lineLimit(1)
                     }
+                } else if !entry.hasData {
+                    Text("Apri Workbit per vedere i tuoi turni")
+                        .font(.system(size: 14))
+                        .foregroundColor(Brand.muted)
+                    Spacer()
                 } else {
                     Text("Nessun turno in programma")
                         .font(.system(size: 15))
@@ -358,13 +370,20 @@ struct WeekView: View {
                     Text(Words.hours(week.total)).font(.system(size: 14, weight: .bold)).foregroundColor(Brand.ink)
                     Text(Words.monthDays(week.from, week.to)).font(.system(size: 11)).foregroundColor(Brand.muted)
                 }
-                HStack(spacing: 5) {
-                    ForEach(week.days) { day in
-                        VStack(spacing: 5) {
-                            Text(day.label)
-                                .font(.system(size: 11))
-                                .foregroundColor(day.isToday ? Brand.violetInk : Brand.muted)
-                            cell(day)
+                if !entry.hasData {
+                    Text("Apri Workbit per vedere i tuoi turni")
+                        .font(.system(size: 14))
+                        .foregroundColor(Brand.muted)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    HStack(spacing: 5) {
+                        ForEach(week.days) { day in
+                            VStack(spacing: 5) {
+                                Text(day.label)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(day.isToday ? Brand.violetInk : Brand.muted)
+                                cell(day)
+                            }
                         }
                     }
                 }
