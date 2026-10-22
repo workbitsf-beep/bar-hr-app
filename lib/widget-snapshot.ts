@@ -144,9 +144,29 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
       area: area(shift.department),
     })),
     open,
-    team: runsFloor && staff ? await buildTeam(barId, userId, staff, now) : null,
+    team: runsFloor && staff ? await buildTeamSafely(barId, userId, staff, now) : null,
     updatedAt: now.getTime(),
   };
+}
+
+/**
+ * The floor must never cost a person their own widgets: if it cannot be
+ * worked out, the snapshot goes without it - and, for now, the "Da
+ * approvare" widget names what went wrong.
+ */
+async function buildTeamSafely(barId: string, userId: string, staff: StaffAccess, now: Date) {
+  try {
+    return await buildTeam(barId, userId, staff, now);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[widgets] team not built", { barId, error: message });
+    return {
+      inService: [],
+      expected: 0,
+      pending: [{ icon: "⚠️", title: message.replace(/\s+/g, " ").slice(-120), when: "", attention: true }],
+      pendingCount: 1,
+    };
+  }
 }
 
 async function buildTeam(barId: string, userId: string, staff: StaffAccess, now: Date) {
