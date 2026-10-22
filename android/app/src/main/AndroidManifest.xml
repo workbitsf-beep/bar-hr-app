@@ -59,6 +59,31 @@
                 android:resource="@xml/widget_week_info" />
         </receiver>
 
+        <!-- The owner's and managers' widgets: who is in, what waits. -->
+        <receiver
+            android:name=".TeamNowWidget"
+            android:exported="false"
+            android:label="@string/widget_team_now_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_team_now_info" />
+        </receiver>
+
+        <receiver
+            android:name=".PendingWidget"
+            android:exported="false"
+            android:label="@string/widget_pending_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_pending_info" />
+        </receiver>
+
             <!-- CapacitorPasskey auto-configuration -->
         <meta-data
             android:name="asset_statements"

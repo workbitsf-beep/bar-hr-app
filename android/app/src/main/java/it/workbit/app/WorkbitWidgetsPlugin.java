@@ -92,8 +92,7 @@ public class WorkbitWidgetsPlugin extends Plugin {
     }
 
     private static void refreshAll(Context context) {
-        NextShiftWidget.refresh(context);
-        WeekWidget.refresh(context);
+        WidgetStore.renderAll(context);
         ShiftNotification.sync(context, WidgetStore.read(context));
     }
 }

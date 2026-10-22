@@ -19,6 +19,9 @@ public class NextShiftWidget extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         render(context, manager, ids);
+        // Then fresh data from Workbit, without opening the app.
+        final PendingResult pending = goAsync();
+        WidgetStore.refreshFromServer(context, pending::finish);
     }
 
     static void refresh(Context context) {

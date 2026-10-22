@@ -31,6 +31,26 @@ struct WidgetOpenEntry: Codable, Hashable {
     var endDate: Date? { end.map { Date(timeIntervalSince1970: $0 / 1000) } }
 }
 
+/// The floor, for the owner and the managers: who is in, what waits.
+struct WidgetTeam: Codable, Hashable {
+    struct Person: Codable, Hashable {
+        let name: String
+        let initials: String
+    }
+
+    struct Pending: Codable, Hashable {
+        let icon: String
+        let title: String
+        let when: String
+        let attention: Bool
+    }
+
+    let inService: [Person]
+    let expected: Int
+    let pending: [Pending]
+    let pendingCount: Int
+}
+
 struct WidgetSnapshot: Codable {
     var v: Int
     var venue: String?
@@ -39,6 +59,11 @@ struct WidgetSnapshot: Codable {
     /// "ottobre" and the month's closed hours, for "Ore di ottobre: 86 h".
     var month: String? = nil
     var monthHours: Double? = nil
+    /// "manager" for the owner and staff running the floor.
+    var role: String? = nil
+    var team: WidgetTeam? = nil
+    /// Lets the widgets refresh by themselves (lib/widget-snapshot.ts).
+    var token: String? = nil
 
     static let empty = WidgetSnapshot(v: 1, venue: nil, shifts: [], open: nil)
 }

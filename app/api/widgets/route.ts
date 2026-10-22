@@ -1,79 +1,39 @@
-import { ClockType } from "@prisma/client";
-import { getVenueDepartments } from "@/lib/departments";
-import { prisma } from "@/lib/prisma";
-import { buildMonthlyTotals } from "@/lib/reporting";
-import { withBar } from "@/lib/withBar";
+import { canAccessBar } from "@/lib/billing";
+import { getSession } from "@/lib/auth";
+import { userCanAccessBar } from "@/lib/permissions";
+import { buildWidgetSnapshot, readWidgetToken, widgetToken } from "@/lib/widget-snapshot";
 
 /**
- * What the phone's widgets and the Live Activity show, for the person signed
- * in at their active venue: their published shifts around this week and the
- * entry they are working on, if any.
+ * The widgets' data (lib/widget-snapshot.ts).
  *
- * The app hands this to the native side every time it opens. The widgets
- * then work out "next shift" and "this week" from it by themselves, so they
- * stay right as the hours pass without asking the server again.
+ * From the app, with the session: the snapshot plus a fresh token. From the
+ * widgets refreshing on their own, with `?t=` that token: the same snapshot,
+ * still only while the person belongs to the venue and it is active.
  */
+export async function GET(req: Request) {
+  const token = new URL(req.url).searchParams.get("t");
 
-const PAST_MS = 8 * 24 * 60 * 60 * 1000;
-const AHEAD_MS = 15 * 24 * 60 * 60 * 1000;
-// Past this an entry is a forgotten exit, not someone at work.
-const OPEN_ENTRY_MS = 16 * 60 * 60 * 1000;
-
-export const GET = withBar(async (_req, session) => {
-  const barId = session.activeBarId;
-  const userId = session.user.id;
-  const now = new Date();
-
-  const [bar, shifts, last, departments, month] = await Promise.all([
-    prisma.bar.findUnique({ where: { id: barId }, select: { name: true } }),
-    prisma.shift.findMany({
-      where: {
-        barId,
-        isOnCall: false,
-        confirmedAt: { not: null },
-        startTime: { gte: new Date(now.getTime() - PAST_MS), lt: new Date(now.getTime() + AHEAD_MS) },
-        assignments: { some: { userId } },
-      },
-      orderBy: { startTime: "asc" },
-      take: 40,
-      select: { startTime: true, endTime: true, department: true },
-    }),
-    prisma.timeLog.findFirst({
-      where: { barId, userId },
-      orderBy: { timestamp: "desc" },
-      select: { type: true, timestamp: true, shift: { select: { endTime: true, department: true } } },
-    }),
-    getVenueDepartments(barId, userId),
-    buildMonthlyTotals(barId, userId, now.getMonth() + 1, now.getFullYear()),
-  ]);
-
-  const names = new Map<string, string>();
-  if (departments.enabled) {
-    for (const entry of [...departments.list, ...departments.sites]) names.set(entry.id, entry.name);
+  if (token) {
+    const holder = readWidgetToken(token);
+    if (!holder) return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    if (!(await userCanAccessBar(holder.userId, holder.barId)) || !(await canAccessBar(holder.barId))) {
+      return Response.json({ ok: false, message: "Forbidden" }, { status: 403 });
+    }
+    return Response.json(await buildWidgetSnapshot(holder.barId, holder.userId), {
+      headers: { "Cache-Control": "no-store" },
+    });
   }
-  const area = (department: string | null | undefined) => (department ? names.get(department) ?? "" : "");
 
-  const open =
-    last && last.type === ClockType.IN && now.getTime() - last.timestamp.getTime() < OPEN_ENTRY_MS
-      ? {
-          since: last.timestamp.getTime(),
-          end: last.shift && last.shift.endTime > last.timestamp ? last.shift.endTime.getTime() : null,
-          area: area(last.shift?.department),
-        }
-      : null;
+  const session = await getSession();
+  if (!session) return Response.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+  if (!session.activeBarId) return Response.json({ ok: false, message: "No active bar selected" }, { status: 400 });
+  if (!(await userCanAccessBar(session.user.id, session.activeBarId)) || !(await canAccessBar(session.activeBarId))) {
+    return Response.json({ ok: false, message: "Forbidden" }, { status: 403 });
+  }
 
-  return Response.json({
-    v: 1,
-    venue: bar?.name ?? "",
-    // "Ore di ottobre: 86 h, già contate": the closed stamps of the month,
-    // as the payroll counts them.
-    month: new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "Europe/Rome" }).format(now),
-    monthHours: Math.round(month.roundedHours * 10) / 10,
-    shifts: shifts.map((shift) => ({
-      start: shift.startTime.getTime(),
-      end: shift.endTime.getTime(),
-      area: area(shift.department),
-    })),
-    open,
-  });
-});
+  const snapshot = await buildWidgetSnapshot(session.activeBarId, session.user.id);
+  return Response.json(
+    { ...snapshot, token: widgetToken(session.user.id, session.activeBarId) },
+    { headers: { "Cache-Control": "no-store" } }
+  );
+}

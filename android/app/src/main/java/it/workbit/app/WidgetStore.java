@@ -50,6 +50,14 @@ final class WidgetStore {
         }
     }
 
+    /** The floor: who is in, against those on today, and what waits for approval. */
+    static final class Team {
+        final List<String> inServiceInitials = new ArrayList<>();
+        int expected;
+        final List<String[]> pending = new ArrayList<>(); // icon, title, when, "1" when it needs attention
+        int pendingCount;
+    }
+
     static final class Snapshot {
         String venue = "";
         /** "ottobre" and the month's closed hours, for "Ore di ottobre: 86 h". */
@@ -57,6 +65,9 @@ final class WidgetStore {
         double monthHours = -1;
         final List<Shift> shifts = new ArrayList<>();
         Open open;
+        /** For the owner and staff running the floor; null for everyone else. */
+        Team team;
+        boolean hasData;
 
         Shift next(long now) {
             for (Shift shift : shifts) {
@@ -97,6 +108,30 @@ final class WidgetStore {
             if (open != null) {
                 snapshot.open = new Open(open.getLong("since"), open.isNull("end") ? 0 : open.getLong("end"), open.optString("area", ""));
             }
+            JSONObject team = json.optJSONObject("team");
+            if (team != null) {
+                Team floor = new Team();
+                JSONArray in = team.optJSONArray("inService");
+                if (in != null) {
+                    for (int i = 0; i < in.length(); i++) floor.inServiceInitials.add(in.getJSONObject(i).optString("initials", ""));
+                }
+                floor.expected = team.optInt("expected", 0);
+                floor.pendingCount = team.optInt("pendingCount", 0);
+                JSONArray pending = team.optJSONArray("pending");
+                if (pending != null) {
+                    for (int i = 0; i < pending.length(); i++) {
+                        JSONObject item = pending.getJSONObject(i);
+                        floor.pending.add(new String[] {
+                            item.optString("icon", ""),
+                            item.optString("title", ""),
+                            item.optString("when", ""),
+                            item.optBoolean("attention", false) ? "1" : "0",
+                        });
+                    }
+                }
+                snapshot.team = floor;
+            }
+            snapshot.hasData = true;
         } catch (Exception ignored) {
             // A snapshot that cannot be read shows as no shifts.
         }
@@ -105,6 +140,64 @@ final class WidgetStore {
 
     private static SharedPreferences prefs(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    // ---------- refreshing by themselves ----------
+
+    private static final String FETCHED_AT = "fetched_at";
+
+    /**
+     * Fetches a fresh snapshot with the token the app left (lib/widget-snapshot.ts)
+     * and redraws every widget. Runs off the main thread; at most once every
+     * five minutes, however many widgets ask.
+     */
+    static void refreshFromServer(Context context, Runnable done) {
+        final Context app = context.getApplicationContext();
+        SharedPreferences prefs = prefs(app);
+        long now = System.currentTimeMillis();
+        if (now - prefs.getLong(FETCHED_AT, 0) < 5 * 60 * 1000) {
+            done.run();
+            return;
+        }
+        prefs.edit().putLong(FETCHED_AT, now).apply();
+        new Thread(() -> {
+            java.net.HttpURLConnection connection = null;
+            try {
+                String text = prefs.getString(KEY, null);
+                String token = text == null ? "" : new JSONObject(text).optString("token", "");
+                if (!token.isEmpty()) {
+                    java.net.URL url = new java.net.URL("https://app.workbit.it/api/widgets?t=" + java.net.URLEncoder.encode(token, "UTF-8"));
+                    connection = (java.net.HttpURLConnection) url.openConnection();
+                    connection.setConnectTimeout(4000);
+                    connection.setReadTimeout(4000);
+                    connection.setRequestProperty("Accept", "application/json");
+                    if (connection.getResponseCode() == 200) {
+                        StringBuilder body = new StringBuilder();
+                        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                            new java.io.InputStreamReader(connection.getInputStream(), "UTF-8"))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) body.append(line);
+                        }
+                        JSONObject fresh = new JSONObject(body.toString());
+                        fresh.put("token", token);
+                        save(app, fresh.toString());
+                    }
+                }
+            } catch (Exception ignored) {
+                // Offline or a token no longer good: what is stored stays.
+            } finally {
+                if (connection != null) connection.disconnect();
+                renderAll(app);
+                done.run();
+            }
+        }).start();
+    }
+
+    static void renderAll(Context context) {
+        NextShiftWidget.refresh(context);
+        WeekWidget.refresh(context);
+        TeamNowWidget.refresh(context);
+        PendingWidget.refresh(context);
     }
 
     // ---------- words and times, as in the app's notifications ----------

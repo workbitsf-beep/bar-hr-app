@@ -15,6 +15,8 @@ struct WorkbitWidgetBundle: WidgetBundle {
     var body: some Widget {
         NextShiftWidget()
         WeekWidget()
+        TeamNowWidget()
+        PendingWidget()
         ShiftLiveActivity()
     }
 }
@@ -176,8 +178,13 @@ struct ShiftsProvider: TimelineProvider {
     /// One entry now and one at every moment the words change: each start
     /// and end of a shift in the next two days, and midnight.
     func getTimeline(in context: Context, completion: @escaping (Timeline<ShiftsEntry>) -> Void) {
+        WidgetRefresh.fetch { stored in
+            completion(Self.timeline(stored))
+        }
+    }
+
+    private static func timeline(_ stored: WidgetSnapshot?) -> Timeline<ShiftsEntry> {
         let now = Date()
-        let stored = WorkbitSharedStore.loadIfSaved()
         let snapshot = stored ?? .empty
         let horizon = now.addingTimeInterval(48 * 60 * 60)
         var moments: Set<Date> = [now]
@@ -195,7 +202,10 @@ struct ShiftsProvider: TimelineProvider {
             moments.insert(now.addingTimeInterval(Double(hour) * 60 * 60))
         }
         let entries = moments.sorted().map { ShiftsEntry(date: $0, snapshot: snapshot, hasData: stored != nil) }
-        completion(Timeline(entries: entries, policy: .after(now.addingTimeInterval(6 * 60 * 60))))
+        // Asked again soon, to fetch fresh data: the floor changes by the
+        // minute, one's own shifts much less. iOS may stretch it.
+        let refresh = snapshot.role == "manager" ? 20.0 : 45.0
+        return Timeline(entries: entries, policy: .after(now.addingTimeInterval(refresh * 60)))
     }
 
     static let sample: WidgetSnapshot = {
@@ -371,16 +381,10 @@ struct WeekView: View {
                     Text(Words.monthDays(week.from, week.to)).font(.system(size: 11)).foregroundColor(Brand.muted)
                 }
                 if !entry.hasData {
-                    VStack(spacing: 4) {
-                        Text("Apri Workbit per vedere i tuoi turni")
-                            .font(.system(size: 14))
-                            .foregroundColor(Brand.muted)
-                        // Temporary: what the keychain answered the widget.
-                        Text("\(WorkbitSharedStore.lastStatus) · \(WorkbitSharedStore.accessGroup ?? "-")")
-                            .font(.system(size: 9))
-                            .foregroundColor(Brand.muted)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Text("Apri Workbit per vedere i tuoi turni")
+                        .font(.system(size: 14))
+                        .foregroundColor(Brand.muted)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     HStack(spacing: 5) {
                         ForEach(week.days) { day in
@@ -421,5 +425,182 @@ struct WeekView: View {
                         .strokeBorder(Brand.dashed, style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 )
         }
+    }
+}
+
+// MARK: - Refreshing by themselves
+
+/// Fetches a fresh snapshot with the token the app left, and keeps it. Falls
+/// back to what is stored when offline or when the token is no longer good.
+enum WidgetRefresh {
+    static func fetch(_ done: @escaping (WidgetSnapshot?) -> Void) {
+        let stored = WorkbitSharedStore.loadIfSaved()
+        guard let token = stored?.token,
+              var components = URLComponents(string: "https://app.workbit.it/api/widgets") else {
+            done(stored)
+            return
+        }
+        components.queryItems = [URLQueryItem(name: "t", value: token)]
+        guard let url = components.url else {
+            done(stored)
+            return
+        }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            guard let data,
+                  (response as? HTTPURLResponse)?.statusCode == 200,
+                  var fresh = try? JSONDecoder().decode(WidgetSnapshot.self, from: data) else {
+                done(stored)
+                return
+            }
+            fresh.token = token
+            if let encoded = try? JSONEncoder().encode(fresh) {
+                WorkbitSharedStore.save(encoded)
+            }
+            done(fresh)
+        }.resume()
+    }
+}
+
+// MARK: - Per il titolare: in servizio
+
+private let avatarColors: [Color] = [
+    Color(red: 0x6d / 255, green: 0x5c / 255, blue: 0xe7 / 255),
+    Color(red: 0x0e / 255, green: 0x74 / 255, blue: 0x90 / 255),
+    Color(red: 0xb4 / 255, green: 0x53 / 255, blue: 0x09 / 255),
+    Color(red: 0x04 / 255, green: 0x78 / 255, blue: 0x57 / 255),
+]
+
+private let greenInk = Color(red: 0x04 / 255, green: 0x78 / 255, blue: 0x57 / 255)
+
+struct TeamNowWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "WorkbitTeamNow", provider: ShiftsProvider()) { entry in
+            TeamNowView(entry: entry)
+        }
+        .configurationDisplayName("In servizio")
+        .description("Chi è al lavoro adesso. Per titolare e responsabili.")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
+struct TeamNowView: View {
+    let entry: ShiftsEntry
+
+    var body: some View {
+        HStack(spacing: 0) {
+            RoundedRectangle(cornerRadius: 2).fill(Brand.sky).frame(width: 3).padding(.trailing, 10)
+            VStack(alignment: .leading, spacing: 0) {
+                Label11(text: "In servizio", dot: Brand.sky, ink: Color(red: 0x03 / 255, green: 0x69 / 255, blue: 0xa1 / 255))
+                Spacer(minLength: 4)
+                if let team = entry.snapshot.team {
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text("\(team.inService.count)")
+                            .font(.system(size: 42))
+                            .foregroundColor(Brand.ink)
+                        Text("di \(team.expected)")
+                            .font(.system(size: 16))
+                            .foregroundColor(Brand.muted)
+                    }
+                    Spacer(minLength: 4)
+                    HStack(spacing: -8) {
+                        ForEach(Array(team.inService.prefix(5).enumerated()), id: \.offset) { index, person in
+                            Text(person.initials)
+                                .font(.system(size: 9))
+                                .foregroundColor(.white)
+                                .frame(width: 26, height: 26)
+                                .background(Circle().fill(avatarColors[index % avatarColors.count]))
+                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                        }
+                    }
+                } else {
+                    Text(entry.hasData ? "Per titolare e responsabili" : "Apri Workbit")
+                        .font(.system(size: 13))
+                        .foregroundColor(Brand.muted)
+                    Spacer()
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .workbitBackground()
+    }
+}
+
+// MARK: - Per il titolare: da approvare
+
+struct PendingWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "WorkbitPending", provider: ShiftsProvider()) { entry in
+            PendingView(entry: entry)
+        }
+        .configurationDisplayName("Da approvare")
+        .description("Ferie, permessi e timbrature che aspettano te.")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
+struct PendingView: View {
+    let entry: ShiftsEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label11(text: "Da approvare", dot: Brand.green, ink: greenInk)
+                Spacer()
+                if let count = entry.snapshot.team?.pendingCount, count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 12))
+                        .foregroundColor(greenInk)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color(red: 0xe3 / 255, green: 0xf7 / 255, blue: 0xef / 255)))
+                }
+            }
+            .padding(.bottom, 6)
+
+            if let team = entry.snapshot.team {
+                if team.pending.isEmpty {
+                    Spacer()
+                    Text("Niente da approvare")
+                        .font(.system(size: 14))
+                        .foregroundColor(Brand.muted)
+                        .frame(maxWidth: .infinity)
+                    Spacer()
+                } else {
+                    ForEach(Array(team.pending.prefix(3).enumerated()), id: \.offset) { _, item in
+                        VStack(spacing: 0) {
+                            Rectangle().fill(Brand.hairline).frame(height: 1)
+                            HStack(spacing: 8) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(item.attention ? Color(red: 0xf5 / 255, green: 0x9e / 255, blue: 0x0b / 255) : Brand.green)
+                                    .frame(width: 3, height: 18)
+                                Text(item.icon).font(.system(size: 15))
+                                Text(item.title)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Brand.ink)
+                                    .lineLimit(1)
+                                Spacer(minLength: 4)
+                                Text(item.when)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Brand.muted)
+                                    .lineLimit(1)
+                                Text("›").foregroundColor(Brand.muted)
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+            } else {
+                Spacer()
+                Text(entry.hasData ? "Per titolare e responsabili" : "Apri Workbit")
+                    .font(.system(size: 14))
+                    .foregroundColor(Brand.muted)
+                    .frame(maxWidth: .infinity)
+                Spacer()
+            }
+        }
+        .workbitBackground()
     }
 }
