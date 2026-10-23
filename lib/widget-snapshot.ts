@@ -130,13 +130,39 @@ function workedMs(logs: Array<{ type: ClockType; timestamp: Date }>, now: Date) 
 
 export async function buildWidgetSnapshot(barId: string, userId: string, now = new Date()) {
   const when = calendarOf(now);
-  const [bar, person, accessible, shifts, last, departments, month, monthShifts, tasks] = await Promise.all([
-    prisma.bar.findUnique({ where: { id: barId }, select: { name: true } }),
+  const [person, accessible] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
     getAccessibleBarsForUser(userId),
+  ]);
+
+  // Who they are at a venue, worked out exactly as the app does
+  // (lib/permissions getActiveBarAccess): the owner, a manager with their
+  // permissions, or - with no role of their own there - the account's role,
+  // which makes a super admin a boss too.
+  const staffAt = (id: string): StaffAccess | null => {
+    const here = accessible.find((entry) => entry.id === id) ?? null;
+    const role = here?.role ?? person?.role ?? null;
+    return role
+      ? { role: String(role), permissions: here?.permissions ?? [], managesDepartments: here?.managesDepartments ?? [] }
+      : null;
+  };
+  const runsFloorAt = (id: string) => {
+    const staff = staffAt(id);
+    return Boolean(staff && (can(staff, "timelogs") || can(staff, "shifts")));
+  };
+
+  // One person, every venue: the owner of one place who works shifts in
+  // another sees both - their own shifts from wherever they are on the rota,
+  // and the floor of the venue they run (the one open in the app, else the
+  // first they run).
+  const barIds = Array.from(new Set([barId, ...accessible.map((entry) => entry.id)]));
+  const floorBarId = runsFloorAt(barId) ? barId : (accessible.find((entry) => runsFloorAt(entry.id))?.id ?? null);
+
+  const [venues, shifts, last, monthShifts, tasks] = await Promise.all([
+    prisma.bar.findMany({ where: { id: { in: barIds } }, select: { id: true, name: true } }),
     prisma.shift.findMany({
       where: {
-        barId,
+        barId: { in: barIds },
         isOnCall: false,
         confirmedAt: { not: null },
         startTime: { gte: new Date(now.getTime() - PAST_MS), lt: new Date(now.getTime() + AHEAD_MS) },
@@ -144,30 +170,28 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
       },
       orderBy: { startTime: "asc" },
       take: 40,
-      select: { startTime: true, endTime: true, department: true },
+      select: { barId: true, startTime: true, endTime: true, department: true },
     }),
     prisma.timeLog.findFirst({
-      where: { barId, userId },
+      where: { barId: { in: barIds }, userId },
       orderBy: { timestamp: "desc" },
-      select: { type: true, timestamp: true, shift: { select: { endTime: true, department: true } } },
+      select: { barId: true, type: true, timestamp: true, shift: { select: { endTime: true, department: true } } },
     }),
-    getVenueDepartments(barId, userId),
-    buildMonthlyTotals(barId, userId, now.getMonth() + 1, now.getFullYear()),
     prisma.shift.findMany({
       where: {
-        barId,
+        barId: { in: barIds },
         isOnCall: false,
         confirmedAt: { not: null },
         startTime: { gte: when.monthStart, lt: when.monthEnd },
         assignments: { some: { userId } },
       },
-      select: { startTime: true, endTime: true },
+      select: { barId: true, startTime: true, endTime: true },
     }),
     prisma.task.findMany({
       where: {
-        barId,
+        barId: { in: barIds },
         dueDate: { gte: when.dayStart, lt: when.dayEnd },
-        OR: [{ assignedToId: userId }, { assignedToAll: true }],
+        OR: [{ assignedToId: userId }, { assignedToAll: true, bar: { memberships: { some: { userId, isActive: true } } } }],
       },
       orderBy: [{ isUrgent: "desc" }, { dueDate: "asc" }],
       take: 12,
@@ -180,39 +204,48 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
       },
     }),
   ]);
+  const nameOf = new Map(venues.map((venue) => [venue.id, venue.name]));
 
-  const names = new Map<string, string>();
-  if (departments.enabled) {
-    for (const entry of [...departments.list, ...departments.sites]) names.set(entry.id, entry.name);
-  }
-  const area = (department: string | null | undefined) => (department ? names.get(department) ?? "" : "");
+  // Departments of the venues that matter: where they work, and the floor.
+  const workBars = Array.from(new Set([...shifts.map((shift) => shift.barId), ...(last ? [last.barId] : []), ...(floorBarId ? [floorBarId] : [])])).slice(0, 6);
+  const departmentNames = new Map<string, Map<string, string>>();
+  await Promise.all(
+    workBars.map(async (id) => {
+      const departments = await getVenueDepartments(id, userId);
+      const names = new Map<string, string>();
+      if (departments.enabled) for (const entry of [...departments.list, ...departments.sites]) names.set(entry.id, entry.name);
+      departmentNames.set(id, names);
+    })
+  );
+  const departmentOf = (id: string, department: string | null | undefined) =>
+    department ? departmentNames.get(id)?.get(department) ?? "" : "";
+  // With shifts in more than one venue, each one says where.
+  const manyVenues = new Set(shifts.map((shift) => shift.barId)).size > 1;
+  const area = (id: string, department: string | null | undefined) =>
+    [departmentOf(id, department), manyVenues ? nameOf.get(id) ?? "" : ""].filter(Boolean).join(" · ");
+
+  const monthBars = Array.from(new Set([...monthShifts.map((shift) => shift.barId), ...(last ? [last.barId] : [])])).slice(0, 6);
+  const monthTotals = await Promise.all(
+    monthBars.map((id) => buildMonthlyTotals(id, userId, now.getMonth() + 1, now.getFullYear()))
+  );
+  const monthHours = monthTotals.reduce((sum, totals) => sum + totals.roundedHours, 0);
 
   const open =
     last && last.type === ClockType.IN && now.getTime() - last.timestamp.getTime() < OPEN_ENTRY_MS
       ? {
           since: last.timestamp.getTime(),
           end: last.shift && last.shift.endTime > last.timestamp ? last.shift.endTime.getTime() : null,
-          area: area(last.shift?.department),
+          area: departmentOf(last.barId, last.shift?.department),
+          venue: nameOf.get(last.barId) ?? "",
         }
       : null;
-
-  // Who they are here, worked out exactly as the app does
-  // (lib/permissions getActiveBarAccess): the owner, a manager with their
-  // permissions, or - with no role of their own here - the account's role,
-  // which makes a super admin a boss too.
-  const here = accessible.find((entry) => entry.id === barId) ?? null;
-  const role = here?.role ?? person?.role ?? null;
-  const staff: StaffAccess | null = role
-    ? { role: String(role), permissions: here?.permissions ?? [], managesDepartments: here?.managesDepartments ?? [] }
-    : null;
-  const runsFloor = Boolean(staff && (can(staff, "timelogs") || can(staff, "shifts")));
 
   // Who they work with on their next shift (or the one they are on).
   const next = shifts.find((shift) => shift.endTime > now) ?? null;
   const mates = next
     ? await prisma.shift.findMany({
         where: {
-          barId,
+          barId: next.barId,
           isOnCall: false,
           confirmedAt: { not: null },
           startTime: { lt: next.endTime },
@@ -234,20 +267,23 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
     urgent: task.isUrgent,
   }));
 
+  const floorStaff = floorBarId ? staffAt(floorBarId) : null;
+
   return {
     v: 1,
-    venue: bar?.name ?? "",
-    role: runsFloor ? "manager" : "staff",
+    // The floor's venue for the owner's widgets; else where they are at work.
+    venue: nameOf.get(floorBarId ?? last?.barId ?? barId) ?? "",
+    role: floorBarId ? "manager" : "staff",
     // "Ore di ottobre: 86 h, già contate": the closed stamps of the month,
     // as the payroll counts them; against the hours on the rota.
     month: new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "Europe/Rome" }).format(now),
-    monthHours: Math.round(month.roundedHours * 10) / 10,
+    monthHours: Math.round(monthHours * 10) / 10,
     monthPlannedHours:
       Math.round(monthShifts.reduce((sum, shift) => sum + shift.endTime.getTime() - shift.startTime.getTime(), 0) / HOUR_MS * 10) / 10,
     shifts: shifts.map((shift) => ({
       start: shift.startTime.getTime(),
       end: shift.endTime.getTime(),
-      area: area(shift.department),
+      area: area(shift.barId, shift.department),
     })),
     open,
     mates: next
@@ -258,7 +294,10 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
       done: taskItems.filter((task) => task.done).length,
       items: [...taskItems.filter((task) => !task.done), ...taskItems.filter((task) => task.done)].slice(0, 5),
     },
-    team: runsFloor && staff ? await buildTeamSafely(barId, userId, staff, now, area) : null,
+    team:
+      floorBarId && floorStaff
+        ? await buildTeamSafely(floorBarId, userId, floorStaff, now, (department) => departmentOf(floorBarId, department))
+        : null,
     updatedAt: now.getTime(),
   };
 }
