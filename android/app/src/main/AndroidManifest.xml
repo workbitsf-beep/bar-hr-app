@@ -84,6 +84,91 @@
                 android:resource="@xml/widget_pending_info" />
         </receiver>
 
+        <!-- The second round of widgets (MoreWidgets.java). -->
+        <receiver
+            android:name=".MoreWidgets$Late"
+            android:exported="false"
+            android:label="@string/widget_late_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_late_info" />
+        </receiver>
+
+        <receiver
+            android:name=".MoreWidgets$Day"
+            android:exported="false"
+            android:label="@string/widget_day_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_day_info" />
+        </receiver>
+
+        <receiver
+            android:name=".MoreWidgets$WeekHours"
+            android:exported="false"
+            android:label="@string/widget_week_hours_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_week_hours_info" />
+        </receiver>
+
+        <receiver
+            android:name=".MoreWidgets$Board"
+            android:exported="false"
+            android:label="@string/widget_board_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_board_info" />
+        </receiver>
+
+        <receiver
+            android:name=".MoreWidgets$Mates"
+            android:exported="false"
+            android:label="@string/widget_mates_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_mates_info" />
+        </receiver>
+
+        <receiver
+            android:name=".MoreWidgets$Month"
+            android:exported="false"
+            android:label="@string/widget_month_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_month_info" />
+        </receiver>
+
+        <receiver
+            android:name=".MoreWidgets$Tasks"
+            android:exported="false"
+            android:label="@string/widget_tasks_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_tasks_info" />
+        </receiver>
+
             <!-- CapacitorPasskey auto-configuration -->
         <meta-data
             android:name="asset_statements"

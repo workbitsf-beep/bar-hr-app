@@ -45,10 +45,64 @@ struct WidgetTeam: Codable, Hashable {
         let attention: Bool
     }
 
+    /// Someone late (minutes past the start) or on the way (minutes to it).
+    struct Due: Codable, Hashable {
+        let name: String
+        let initials: String
+        let detail: String
+        let minutes: Int
+    }
+
+    struct DayRow: Codable, Hashable {
+        let name: String
+        let start: Double
+        let end: Double
+        /// in, late, next, done
+        let state: String
+    }
+
+    struct Day: Codable, Hashable {
+        let from: Double
+        let to: Double
+        let rows: [DayRow]
+    }
+
+    struct Week: Codable, Hashable {
+        let worked: Double
+        let planned: Double
+        let cost: Double?
+        let missingRates: Int
+        let label: String
+    }
+
     let inService: [Person]
     let expected: Int
     let pending: [Pending]
     let pendingCount: Int
+    var late: [Due]? = nil
+    var arriving: [Due]? = nil
+    var day: Day? = nil
+    var week: Week? = nil
+}
+
+/// Who one works with on the next shift.
+struct WidgetMates: Codable, Hashable {
+    let start: Double
+    let end: Double
+    let people: [WidgetTeam.Person]
+}
+
+/// Today's notes and duties, the open ones first.
+struct WidgetTasks: Codable, Hashable {
+    struct Item: Codable, Hashable {
+        let title: String
+        let done: Bool
+        let urgent: Bool
+    }
+
+    let total: Int
+    let done: Int
+    let items: [Item]
 }
 
 struct WidgetSnapshot: Codable {
@@ -64,6 +118,11 @@ struct WidgetSnapshot: Codable {
     var team: WidgetTeam? = nil
     /// Lets the widgets refresh by themselves (lib/widget-snapshot.ts).
     var token: String? = nil
+    var monthPlannedHours: Double? = nil
+    var mates: WidgetMates? = nil
+    var tasks: WidgetTasks? = nil
+    /// When the server made it, in ms: "12 min late" keeps counting from here.
+    var updatedAt: Double? = nil
 
     static let empty = WidgetSnapshot(v: 1, venue: nil, shifts: [], open: nil)
 }

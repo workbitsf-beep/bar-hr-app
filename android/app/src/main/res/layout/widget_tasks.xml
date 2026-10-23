@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Da fare oggi": MoreWidgets.java fills it in. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/widget_dot_amber" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:text="DA FARE OGGI"
+            android:textColor="#92400E"
+            android:textSize="10sp" />
+        <TextView
+            android:id="@+id/task_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#57536B"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/task_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="Niente da fare oggi"
+        android:textColor="#57536B"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:id="@+id/task_row0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#ECE9F5" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/task_box0"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="9dp"
+                android:background="@drawable/widget_box"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/task_title0"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#1B1830"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/task_urgent0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_pill_urgent"
+                android:paddingStart="7dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="7dp"
+                android:paddingBottom="1dp"
+                android:text="urgente"
+                android:textColor="#B3202F"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/task_row1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#ECE9F5" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/task_box1"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="9dp"
+                android:background="@drawable/widget_box"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/task_title1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#1B1830"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/task_urgent1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_pill_urgent"
+                android:paddingStart="7dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="7dp"
+                android:paddingBottom="1dp"
+                android:text="urgente"
+                android:textColor="#B3202F"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/task_row2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#ECE9F5" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/task_box2"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="9dp"
+                android:background="@drawable/widget_box"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/task_title2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#1B1830"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/task_urgent2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_pill_urgent"
+                android:paddingStart="7dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="7dp"
+                android:paddingBottom="1dp"
+                android:text="urgente"
+                android:textColor="#B3202F"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/task_row3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#ECE9F5" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/task_box3"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="9dp"
+                android:background="@drawable/widget_box"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/task_title3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#1B1830"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/task_urgent3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_pill_urgent"
+                android:paddingStart="7dp"
+                android:paddingTop="1dp"
+                android:paddingEnd="7dp"
+                android:paddingBottom="1dp"
+                android:text="urgente"
+                android:textColor="#B3202F"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -1,15 +1,17 @@
 import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { ClockFixKind, ClockFixStatus, ClockType, RequestStatus, RequestType } from "@prisma/client";
+import { ClockFixKind, ClockFixStatus, ClockType, RequestStatus, RequestType, TaskStatus } from "@prisma/client";
 import { shortName } from "@/lib/clock-notifications";
 import { getVenueDepartments } from "@/lib/departments";
+import { parseDateTimeLocal } from "@/lib/date-time-local";
 import { daysRange, requestWhen } from "@/lib/notification-copy";
 import { prisma } from "@/lib/prisma";
 import { getAccessibleBarsForUser } from "@/lib/permissions";
 import { buildMonthlyTotals } from "@/lib/reporting";
 import { can, type StaffAccess } from "@/lib/staff-permissions";
 import { userScopeWhere, shiftScopeWhere } from "@/lib/staff-scope";
+import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
 
 /**
  * What the phone's widgets and the Live Activity show (app/api/widgets).
@@ -80,8 +82,55 @@ const REQUEST_WORD: Record<RequestType, string> = {
 const initialsOf = (user: { firstName: string; lastName: string }) =>
   `${user.firstName.trim().charAt(0)}${user.lastName.trim().charAt(0)}`.toUpperCase();
 
+const HOUR_MS = 60 * 60 * 1000;
+const hm = (value: Date) => toTimeInputValueInTimeZone(value);
+const range = (start: Date, end: Date) => `${hm(start)}–${hm(end) === "00:00" ? "24:00" : hm(end)}`;
+
+function addDaysKey(dayKey: string, days: number) {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+function mondayKey(dayKey: string) {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return addDaysKey(dayKey, -((weekday + 6) % 7));
+}
+
+/** Today, this week and this month, as the venue's clock (Rome) counts them. */
+function calendarOf(now: Date) {
+  const todayKey = toDateInputValueInTimeZone(now);
+  const weekKey = mondayKey(todayKey);
+  const [y, m] = todayKey.split("-").map(Number);
+  const nextMonth = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  return {
+    dayStart: parseDateTimeLocal(`${todayKey}T00:00`),
+    dayEnd: parseDateTimeLocal(`${addDaysKey(todayKey, 1)}T00:00`),
+    weekStart: parseDateTimeLocal(`${weekKey}T00:00`),
+    weekEnd: parseDateTimeLocal(`${addDaysKey(weekKey, 7)}T00:00`),
+    monthStart: parseDateTimeLocal(`${todayKey.slice(0, 8)}01T00:00`),
+    monthEnd: parseDateTimeLocal(`${nextMonth}T00:00`),
+  };
+}
+
+/** Hours worked from a list of stamps: each entry to the exit after it, an open one up to now. */
+function workedMs(logs: Array<{ type: ClockType; timestamp: Date }>, now: Date) {
+  let total = 0;
+  let inAt: Date | null = null;
+  for (const log of [...logs].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())) {
+    if (log.type === ClockType.IN) inAt = log.timestamp;
+    else if (inAt) {
+      total += log.timestamp.getTime() - inAt.getTime();
+      inAt = null;
+    }
+  }
+  if (inAt && now.getTime() - inAt.getTime() < OPEN_ENTRY_MS) total += now.getTime() - inAt.getTime();
+  return total;
+}
+
 export async function buildWidgetSnapshot(barId: string, userId: string, now = new Date()) {
-  const [bar, person, accessible, shifts, last, departments, month] = await Promise.all([
+  const when = calendarOf(now);
+  const [bar, person, accessible, shifts, last, departments, month, monthShifts, tasks] = await Promise.all([
     prisma.bar.findUnique({ where: { id: barId }, select: { name: true } }),
     prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
     getAccessibleBarsForUser(userId),
@@ -104,6 +153,32 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
     }),
     getVenueDepartments(barId, userId),
     buildMonthlyTotals(barId, userId, now.getMonth() + 1, now.getFullYear()),
+    prisma.shift.findMany({
+      where: {
+        barId,
+        isOnCall: false,
+        confirmedAt: { not: null },
+        startTime: { gte: when.monthStart, lt: when.monthEnd },
+        assignments: { some: { userId } },
+      },
+      select: { startTime: true, endTime: true },
+    }),
+    prisma.task.findMany({
+      where: {
+        barId,
+        dueDate: { gte: when.dayStart, lt: when.dayEnd },
+        OR: [{ assignedToId: userId }, { assignedToAll: true }],
+      },
+      orderBy: [{ isUrgent: "desc" }, { dueDate: "asc" }],
+      take: 12,
+      select: {
+        title: true,
+        status: true,
+        isUrgent: true,
+        assignedToAll: true,
+        completions: { where: { userId }, select: { id: true } },
+      },
+    }),
   ]);
 
   const names = new Map<string, string>();
@@ -132,66 +207,124 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
     : null;
   const runsFloor = Boolean(staff && (can(staff, "timelogs") || can(staff, "shifts")));
 
+  // Who they work with on their next shift (or the one they are on).
+  const next = shifts.find((shift) => shift.endTime > now) ?? null;
+  const mates = next
+    ? await prisma.shift.findMany({
+        where: {
+          barId,
+          isOnCall: false,
+          confirmedAt: { not: null },
+          startTime: { lt: next.endTime },
+          endTime: { gt: next.startTime },
+        },
+        select: { assignments: { select: { user: { select: { id: true, firstName: true, lastName: true } } } } },
+      })
+    : [];
+  const matePeople = new Map<string, { name: string; initials: string }>();
+  for (const shift of mates) {
+    for (const { user } of shift.assignments) {
+      if (user.id !== userId) matePeople.set(user.id, { name: shortName(user), initials: initialsOf(user) });
+    }
+  }
+
+  const taskItems = tasks.map((task) => ({
+    title: task.title,
+    done: task.assignedToAll ? task.completions.length > 0 : task.status === TaskStatus.DONE,
+    urgent: task.isUrgent,
+  }));
+
   return {
     v: 1,
     venue: bar?.name ?? "",
     role: runsFloor ? "manager" : "staff",
     // "Ore di ottobre: 86 h, già contate": the closed stamps of the month,
-    // as the payroll counts them.
+    // as the payroll counts them; against the hours on the rota.
     month: new Intl.DateTimeFormat("it-IT", { month: "long", timeZone: "Europe/Rome" }).format(now),
     monthHours: Math.round(month.roundedHours * 10) / 10,
+    monthPlannedHours:
+      Math.round(monthShifts.reduce((sum, shift) => sum + shift.endTime.getTime() - shift.startTime.getTime(), 0) / HOUR_MS * 10) / 10,
     shifts: shifts.map((shift) => ({
       start: shift.startTime.getTime(),
       end: shift.endTime.getTime(),
       area: area(shift.department),
     })),
     open,
-    team: runsFloor && staff ? await buildTeamSafely(barId, userId, staff, now) : null,
+    mates: next
+      ? { start: next.startTime.getTime(), end: next.endTime.getTime(), people: [...matePeople.values()].slice(0, 6) }
+      : null,
+    tasks: {
+      total: taskItems.length,
+      done: taskItems.filter((task) => task.done).length,
+      items: [...taskItems.filter((task) => !task.done), ...taskItems.filter((task) => task.done)].slice(0, 5),
+    },
+    team: runsFloor && staff ? await buildTeamSafely(barId, userId, staff, now, area) : null,
     updatedAt: now.getTime(),
   };
 }
 
 /**
  * The floor must never cost a person their own widgets: if it cannot be
- * worked out, the snapshot goes without it - and, for now, the "Da
- * approvare" widget names what went wrong.
+ * worked out, the snapshot goes without it.
  */
-async function buildTeamSafely(barId: string, userId: string, staff: StaffAccess, now: Date) {
+async function buildTeamSafely(
+  barId: string,
+  userId: string,
+  staff: StaffAccess,
+  now: Date,
+  area: (department: string | null | undefined) => string
+) {
   try {
-    return await buildTeam(barId, userId, staff, now);
+    return await buildTeam(barId, userId, staff, now, area);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("[widgets] team not built", { barId, error: message });
-    return {
-      inService: [],
-      expected: 0,
-      pending: [{ icon: "⚠️", title: message.replace(/\s+/g, " ").slice(-120), when: "", attention: true }],
-      pendingCount: 1,
-    };
+    console.error("[widgets] team not built", { barId, error: error instanceof Error ? error.message : String(error) });
+    return null;
   }
 }
 
-async function buildTeam(barId: string, userId: string, staff: StaffAccess, now: Date) {
+async function buildTeam(
+  barId: string,
+  userId: string,
+  staff: StaffAccess,
+  now: Date,
+  area: (department: string | null | undefined) => string
+) {
+  const when = calendarOf(now);
   const inScope = userScopeWhere(staff, barId);
-  const dayStart = new Date(now.getTime() - 14 * 60 * 60 * 1000);
   const userSelect = { select: { id: true, firstName: true, lastName: true } } as const;
+  const showsCost = can(staff, "reports");
 
-  const [logs, todayShifts, requests, fixes] = await Promise.all([
+  const [logs, todayShifts, weekShifts, weekLogs, requests, fixes] = await Promise.all([
     prisma.timeLog.findMany({
       where: { barId, timestamp: { gte: new Date(now.getTime() - OPEN_ENTRY_MS) }, user: inScope },
       orderBy: { timestamp: "desc" },
-      select: { userId: true, type: true, user: userSelect },
+      select: { userId: true, type: true, timestamp: true, user: userSelect },
     }),
     prisma.shift.findMany({
       where: {
         barId,
         isOnCall: false,
         confirmedAt: { not: null },
-        startTime: { lt: new Date(now.getTime() + 12 * 60 * 60 * 1000) },
-        endTime: { gt: dayStart },
+        startTime: { lt: when.dayEnd },
+        endTime: { gt: when.dayStart },
         ...shiftScopeWhere(staff, barId),
       },
-      select: { startTime: true, assignments: { select: { userId: true } } },
+      orderBy: { startTime: "asc" },
+      select: { startTime: true, endTime: true, department: true, assignments: { select: { user: userSelect } } },
+    }),
+    prisma.shift.findMany({
+      where: {
+        barId,
+        isOnCall: false,
+        confirmedAt: { not: null },
+        startTime: { gte: when.weekStart, lt: when.weekEnd },
+        ...shiftScopeWhere(staff, barId),
+      },
+      select: { startTime: true, endTime: true, assignments: { select: { userId: true } } },
+    }),
+    prisma.timeLog.findMany({
+      where: { barId, timestamp: { gte: when.weekStart, lt: when.weekEnd }, user: inScope },
+      select: { userId: true, type: true, timestamp: true },
     }),
     can(staff, "requests")
       ? prisma.request.findMany({
@@ -217,18 +350,78 @@ async function buildTeam(barId: string, userId: string, staff: StaffAccess, now:
       : Promise.resolve([]),
   ]);
 
-  // Who is in: their latest stamp of the last hours is an entry.
+  // Where everyone stands: their latest stamp of the last hours.
   const latest = new Map<string, (typeof logs)[number]>();
   for (const log of logs) if (!latest.has(log.userId)) latest.set(log.userId, log);
+  const isIn = (id: string) => latest.get(id)?.type === ClockType.IN;
   const inService = [...latest.values()]
     .filter((log) => log.type === ClockType.IN && log.userId !== userId)
     .map((log) => ({ name: shortName(log.user), initials: initialsOf(log.user) }));
 
-  // On today: people on a shift that is running or starts within the day.
-  const rosterToday = new Set<string>();
+  // Today's rota, one row a person and shift: in, late, on the way or done.
+  type Row = { id: string; name: string; initials: string; start: number; end: number; detail: string; state: string };
+  const rows: Row[] = [];
   for (const shift of todayShifts) {
-    if (shift.startTime.toDateString() !== now.toDateString() && shift.startTime > now) continue;
-    for (const assignment of shift.assignments) if (assignment.userId !== userId) rosterToday.add(assignment.userId);
+    for (const { user } of shift.assignments) {
+      const last = latest.get(user.id);
+      const leftAfterStart = last?.type === ClockType.OUT && last.timestamp >= new Date(shift.startTime.getTime() - 2 * HOUR_MS);
+      const state = isIn(user.id)
+        ? "in"
+        : shift.endTime <= now || leftAfterStart
+          ? "done"
+          : shift.startTime <= now
+            ? "late"
+            : "next";
+      const place = area(shift.department);
+      rows.push({
+        id: user.id,
+        name: shortName(user),
+        initials: initialsOf(user),
+        start: shift.startTime.getTime(),
+        end: shift.endTime.getTime(),
+        detail: `Turno ${range(shift.startTime, shift.endTime)}${place ? ` · ${place}` : ""}`,
+        state,
+      });
+    }
+  }
+
+  const late = rows
+    .filter((row) => row.state === "late" && now.getTime() - row.start >= 2 * 60 * 1000)
+    .map((row) => ({ name: row.name, initials: row.initials, detail: row.detail, minutes: Math.floor((now.getTime() - row.start) / 60000) }))
+    .sort((a, b) => b.minutes - a.minutes);
+  const arriving = rows
+    .filter((row) => row.state === "next" && row.start - now.getTime() <= HOUR_MS)
+    .map((row) => ({ name: row.name, initials: row.initials, detail: row.detail, minutes: Math.ceil((row.start - now.getTime()) / 60000) }));
+
+  // The day's window: from the first start to the last end, whole hours.
+  const dayRows = rows.slice(0, 8);
+  const from = dayRows.length ? Math.min(...dayRows.map((row) => row.start)) : when.dayStart.getTime() + 8 * HOUR_MS;
+  const to = dayRows.length ? Math.max(...dayRows.map((row) => row.end)) : when.dayStart.getTime() + 24 * HOUR_MS;
+
+  // The week: hours worked against hours on the rota, and what they cost.
+  const plannedMs = weekShifts.reduce(
+    (sum, shift) => sum + (shift.endTime.getTime() - shift.startTime.getTime()) * shift.assignments.length,
+    0
+  );
+  const byPerson = new Map<string, Array<{ type: ClockType; timestamp: Date }>>();
+  for (const log of weekLogs) byPerson.set(log.userId, [...(byPerson.get(log.userId) ?? []), log]);
+  const workedByPerson = new Map([...byPerson].map(([id, list]) => [id, workedMs(list, now)]));
+  const workedTotal = [...workedByPerson.values()].reduce((sum, ms) => sum + ms, 0);
+  let cost: number | null = null;
+  let missingRates = 0;
+  if (showsCost && workedByPerson.size > 0) {
+    const rates = await prisma.employeeBar.findMany({
+      where: { barId, userId: { in: [...workedByPerson.keys()] } },
+      select: { userId: true, hourlyRate: true },
+    });
+    const rateOf = new Map(rates.map((rate) => [rate.userId, rate.hourlyRate ? Number(rate.hourlyRate) : null]));
+    cost = 0;
+    for (const [id, ms] of workedByPerson) {
+      const rate = rateOf.get(id);
+      if (rate) cost += (ms / HOUR_MS) * rate;
+      else if (ms > 0) missingRates += 1;
+    }
+    cost = Math.round(cost);
   }
 
   const pending = [
@@ -246,11 +439,27 @@ async function buildTeam(barId: string, userId: string, staff: StaffAccess, now:
     })),
   ];
 
+  const onToday = new Set(rows.filter((row) => row.id !== userId && row.end > now.getTime() - HOUR_MS).map((row) => row.id));
+
   return {
     inService,
     // "4 di 6": everyone in, against those on today (or in, if more).
-    expected: Math.max(rosterToday.size, inService.length),
+    expected: Math.max(onToday.size, inService.length),
     pending: pending.slice(0, 4),
     pendingCount: pending.length,
+    late: late.slice(0, 5),
+    arriving: arriving.slice(0, 3),
+    day: {
+      from,
+      to,
+      rows: dayRows.map((row) => ({ name: row.name, start: row.start, end: row.end, state: row.state })),
+    },
+    week: {
+      worked: Math.round((workedTotal / HOUR_MS) * 10) / 10,
+      planned: Math.round((plannedMs / HOUR_MS) * 10) / 10,
+      cost,
+      missingRates,
+      label: daysRange(when.weekStart, new Date(when.weekEnd.getTime() - 1)),
+    },
   };
 }

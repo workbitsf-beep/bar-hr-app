@@ -56,6 +56,25 @@ final class WidgetStore {
         int expected;
         final List<String[]> pending = new ArrayList<>(); // icon, title, when, "1" when it needs attention
         int pendingCount;
+        final List<String> inServiceNames = new ArrayList<>();
+        /** name, detail, minutes: late (past the start) and on the way (to it). */
+        final List<String[]> late = new ArrayList<>();
+        final List<String[]> arriving = new ArrayList<>();
+        long dayFrom;
+        long dayTo;
+        /** name, start, end, state (in, late, next, done) */
+        final List<String[]> day = new ArrayList<>();
+        double weekWorked = -1;
+        double weekPlanned;
+        double weekCost = -1;
+        int missingRates;
+        String weekLabel = "";
+    }
+
+    static final class Mates {
+        long start;
+        long end;
+        final List<String[]> people = new ArrayList<>(); // name, initials
     }
 
     static final class Snapshot {
@@ -68,6 +87,12 @@ final class WidgetStore {
         /** For the owner and staff running the floor; null for everyone else. */
         Team team;
         boolean hasData;
+        double monthPlannedHours = -1;
+        Mates mates;
+        int tasksTotal;
+        int tasksDone;
+        final List<String[]> tasks = new ArrayList<>(); // title, "1" done, "1" urgent
+        long updatedAt;
 
         Shift next(long now) {
             for (Shift shift : shifts) {
@@ -129,13 +154,90 @@ final class WidgetStore {
                         });
                     }
                 }
+                if (in != null) {
+                    for (int i = 0; i < in.length(); i++) floor.inServiceNames.add(in.getJSONObject(i).optString("name", ""));
+                }
+                readDue(team.optJSONArray("late"), floor.late);
+                readDue(team.optJSONArray("arriving"), floor.arriving);
+                JSONObject day = team.optJSONObject("day");
+                if (day != null) {
+                    floor.dayFrom = day.optLong("from");
+                    floor.dayTo = day.optLong("to");
+                    JSONArray rows = day.optJSONArray("rows");
+                    if (rows != null) {
+                        for (int i = 0; i < rows.length(); i++) {
+                            JSONObject row = rows.getJSONObject(i);
+                            floor.day.add(new String[] {
+                                row.optString("name", ""),
+                                String.valueOf(row.optLong("start")),
+                                String.valueOf(row.optLong("end")),
+                                row.optString("state", "next"),
+                            });
+                        }
+                    }
+                }
+                JSONObject week = team.optJSONObject("week");
+                if (week != null) {
+                    floor.weekWorked = week.optDouble("worked", 0);
+                    floor.weekPlanned = week.optDouble("planned", 0);
+                    floor.weekCost = week.isNull("cost") ? -1 : week.optDouble("cost", -1);
+                    floor.missingRates = week.optInt("missingRates", 0);
+                    floor.weekLabel = week.optString("label", "");
+                }
                 snapshot.team = floor;
+            }
+            snapshot.monthPlannedHours = json.optDouble("monthPlannedHours", -1);
+            snapshot.updatedAt = json.optLong("updatedAt", 0);
+            JSONObject mates = json.optJSONObject("mates");
+            if (mates != null) {
+                Mates found = new Mates();
+                found.start = mates.optLong("start");
+                found.end = mates.optLong("end");
+                JSONArray people = mates.optJSONArray("people");
+                if (people != null) {
+                    for (int i = 0; i < people.length(); i++) {
+                        JSONObject one = people.getJSONObject(i);
+                        found.people.add(new String[] {one.optString("name", ""), one.optString("initials", "")});
+                    }
+                }
+                snapshot.mates = found;
+            }
+            JSONObject tasks = json.optJSONObject("tasks");
+            if (tasks != null) {
+                snapshot.tasksTotal = tasks.optInt("total", 0);
+                snapshot.tasksDone = tasks.optInt("done", 0);
+                JSONArray items = tasks.optJSONArray("items");
+                if (items != null) {
+                    for (int i = 0; i < items.length(); i++) {
+                        JSONObject item = items.getJSONObject(i);
+                        snapshot.tasks.add(new String[] {
+                            item.optString("title", ""),
+                            item.optBoolean("done", false) ? "1" : "0",
+                            item.optBoolean("urgent", false) ? "1" : "0",
+                        });
+                    }
+                }
             }
             snapshot.hasData = true;
         } catch (Exception ignored) {
             // A snapshot that cannot be read shows as no shifts.
         }
         return snapshot;
+    }
+
+    private static void readDue(JSONArray list, List<String[]> into) throws org.json.JSONException {
+        if (list == null) return;
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject due = list.getJSONObject(i);
+            into.add(new String[] {due.optString("name", ""), due.optString("detail", ""), String.valueOf(due.optInt("minutes", 0))});
+        }
+    }
+
+    /** Minutes late, still counting from when the server looked. */
+    static int lateMinutes(Snapshot snapshot, String[] due, long now) {
+        int minutes = Integer.parseInt(due[2]);
+        if (snapshot.updatedAt <= 0) return minutes;
+        return minutes + (int) Math.max(0, (now - snapshot.updatedAt) / 60000);
     }
 
     private static SharedPreferences prefs(Context context) {
@@ -198,6 +300,7 @@ final class WidgetStore {
         WeekWidget.refresh(context);
         TeamNowWidget.refresh(context);
         PendingWidget.refresh(context);
+        MoreWidgets.refreshAll(context);
     }
 
     // ---------- words and times, as in the app's notifications ----------

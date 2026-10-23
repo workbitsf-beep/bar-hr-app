@@ -12,4 +12,18 @@
     <string name="widget_team_now_description">Chi è al lavoro adesso. Per titolare e responsabili.</string>
     <string name="widget_pending_name">Da approvare</string>
     <string name="widget_pending_description">Ferie, permessi e timbrature che aspettano te.</string>
+    <string name="widget_late_name">Ritardi</string>
+    <string name="widget_late_description">Chi doveva entrare e non ha ancora timbrato.</string>
+    <string name="widget_day_name">La giornata</string>
+    <string name="widget_day_description">I turni di oggi su una riga del tempo.</string>
+    <string name="widget_week_hours_name">Ore della settimana</string>
+    <string name="widget_week_hours_description">Ore lavorate su quelle programmate e costo stimato.</string>
+    <string name="widget_board_name">Plancia</string>
+    <string name="widget_board_description">Il locale in un colpo d'occhio: in servizio, ritardi, da approvare.</string>
+    <string name="widget_mates_name">Con chi lavori</string>
+    <string name="widget_mates_description">I colleghi del tuo prossimo turno.</string>
+    <string name="widget_month_name">Ore del mese</string>
+    <string name="widget_month_description">Le ore lavorate su quelle programmate nel mese.</string>
+    <string name="widget_tasks_name">Da fare oggi</string>
+    <string name="widget_tasks_description">Le note e le mansioni di oggi.</string>
 </resources>
