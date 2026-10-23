@@ -1424,6 +1424,13 @@ export default async function DashboardSettingsPage({
           <LegalDocumentsPanel userId={session.user.id} />
         </PopupAction>
 
+        {/* Temporary, super admin only: why the owner's widgets stay empty. */}
+        {String(session.user.role) === "SUPER_ADMIN" ? (
+          <a href="/dashboard/widget-check" style={{ textDecoration: "none", color: "inherit" }}>
+            <SettingsRow dot="#6d5ce7" title="Controllo widget" lead="Solo super admin" />
+          </a>
+        ) : null}
+
         <PopupAction
           title="Assistenza"
           ariaLabel="Apri assistenza"
