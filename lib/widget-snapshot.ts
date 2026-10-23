@@ -1,11 +1,12 @@
 import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { ClockFixKind, ClockFixStatus, ClockType, RequestStatus, RequestType, Role } from "@prisma/client";
+import { ClockFixKind, ClockFixStatus, ClockType, RequestStatus, RequestType } from "@prisma/client";
 import { shortName } from "@/lib/clock-notifications";
 import { getVenueDepartments } from "@/lib/departments";
 import { daysRange, requestWhen } from "@/lib/notification-copy";
 import { prisma } from "@/lib/prisma";
+import { getAccessibleBarsForUser } from "@/lib/permissions";
 import { buildMonthlyTotals } from "@/lib/reporting";
 import { can, type StaffAccess } from "@/lib/staff-permissions";
 import { userScopeWhere, shiftScopeWhere } from "@/lib/staff-scope";
@@ -80,12 +81,10 @@ const initialsOf = (user: { firstName: string; lastName: string }) =>
   `${user.firstName.trim().charAt(0)}${user.lastName.trim().charAt(0)}`.toUpperCase();
 
 export async function buildWidgetSnapshot(barId: string, userId: string, now = new Date()) {
-  const [bar, membership, shifts, last, departments, month] = await Promise.all([
-    prisma.bar.findUnique({ where: { id: barId }, select: { name: true, ownerId: true } }),
-    prisma.employeeBar.findFirst({
-      where: { barId, userId, isActive: true },
-      select: { role: true, permissions: true, managesDepartments: true },
-    }),
+  const [bar, person, accessible, shifts, last, departments, month] = await Promise.all([
+    prisma.bar.findUnique({ where: { id: barId }, select: { name: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
+    getAccessibleBarsForUser(userId),
     prisma.shift.findMany({
       where: {
         barId,
@@ -122,12 +121,15 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
         }
       : null;
 
-  const staff: StaffAccess | null =
-    bar?.ownerId === userId
-      ? { role: Role.OWNER }
-      : membership
-        ? { role: membership.role, permissions: membership.permissions, managesDepartments: membership.managesDepartments }
-        : null;
+  // Who they are here, worked out exactly as the app does
+  // (lib/permissions getActiveBarAccess): the owner, a manager with their
+  // permissions, or - with no role of their own here - the account's role,
+  // which makes a super admin a boss too.
+  const here = accessible.find((entry) => entry.id === barId) ?? null;
+  const role = here?.role ?? person?.role ?? null;
+  const staff: StaffAccess | null = role
+    ? { role: String(role), permissions: here?.permissions ?? [], managesDepartments: here?.managesDepartments ?? [] }
+    : null;
   const runsFloor = Boolean(staff && (can(staff, "timelogs") || can(staff, "shifts")));
 
   return {
