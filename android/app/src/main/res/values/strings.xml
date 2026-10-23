@@ -19,7 +19,7 @@
     <string name="widget_week_hours_name">Ore della settimana</string>
     <string name="widget_week_hours_description">Ore lavorate su quelle programmate e costo stimato.</string>
     <string name="widget_board_name">Plancia</string>
-    <string name="widget_board_description">Il locale in un colpo d'occhio: in servizio, ritardi, da approvare.</string>
+    <string name="widget_board_description">Il locale in un colpo d\'occhio: in servizio, ritardi, da approvare.</string>
     <string name="widget_mates_name">Con chi lavori</string>
     <string name="widget_mates_description">I colleghi del tuo prossimo turno.</string>
     <string name="widget_month_name">Ore del mese</string>
