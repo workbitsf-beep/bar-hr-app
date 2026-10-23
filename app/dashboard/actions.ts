@@ -1,5 +1,6 @@
 "use server";
 
+import { assertNoBranchClash, lendFromBranches } from "@/lib/branch-staff";
 import bcrypt from "bcrypt";
 import {
   ActivityType,
@@ -2785,6 +2786,9 @@ export async function createShiftAction(formData: FormData) {
     ensureValidDateRange(startTime, endTime, "La fine del turno deve essere dopo l'inizio.");
     ensureShiftIsNotBeforeToday(startTime);
 
+    // Someone of another sede joins this one for the shift (lib/branch-staff).
+    await assertNoBranchClash({ barId: activeBarId, userIds: employeeIds, startTime, endTime, isOnCall });
+    await lendFromBranches(activeBarId, employeeIds, staff);
     await ensureUsersBelongToBar(activeBarId, employeeIds);
     await assertNoShiftAssignmentConflicts({
       barId: activeBarId,
@@ -2855,6 +2859,8 @@ export async function updateShiftAction(formData: FormData) {
     ensureValidDateRange(startTime, endTime, "La fine del turno deve essere dopo l'inizio.");
     ensureShiftIsNotBeforeToday(startTime);
 
+    await assertNoBranchClash({ barId: activeBarId, userIds: employeeIds, startTime, endTime, isOnCall });
+    await lendFromBranches(activeBarId, employeeIds, staff);
     await ensureUsersBelongToBar(activeBarId, employeeIds);
     await assertNoShiftAssignmentConflicts({
       barId: activeBarId,

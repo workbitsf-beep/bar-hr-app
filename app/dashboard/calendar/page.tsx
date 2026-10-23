@@ -1,6 +1,7 @@
 import { BillingRequired } from "../billing-required";
 import { ActivityType, type Department, RequestStatus, RequestType, Role, TaskStatus } from "@prisma/client";
 import { getVenueDepartments, showsInDepartment, staffDepartments } from "@/lib/departments";
+import { borrowableMembers } from "@/lib/branch-staff";
 import { prisma } from "@/lib/prisma";
 import { visibleOnBoard } from "@/lib/note-visibility";
 import { buildNoteMeta } from "@/lib/note-list-format";
@@ -1074,12 +1075,24 @@ export default async function DashboardCalendarPage({
         (member) => member.department === "JOLLY" || (member.department && myScope.includes(member.department))
       )
     : calendarMembers;
-  const memberOptions = pickableMembers.map((member) => ({
+  const ownOptions = pickableMembers.map((member) => ({
     id: member.user.id,
     firstName: member.user.firstName,
     lastName: member.user.lastName,
     role: member.role,
   }));
+  // A restaurant's other sedi lend their people: offered after this sede's
+  // own, with where they come from; put on a shift, they join this sede too.
+  const borrowed = canShifts && isRestaurant ? await borrowableMembers(activeBarId, staff) : [];
+  const memberOptions = [
+    ...ownOptions,
+    ...borrowed.map((member) => ({
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.branch ? `${member.lastName} · ${member.branch}` : member.lastName,
+      role: member.role,
+    })),
+  ];
   // On a computer the week is a row per person: with a department in view,
   // the rows are the people who work in it or can lend a hand there, plus
   // anyone already on one of its shifts.
@@ -1092,12 +1105,12 @@ export default async function DashboardCalendarPage({
   );
   // A company's people can be moved to any of its sites: one account each,
   // offered in every site's calendar, the site's own people first.
-  const departmentById = new Map(memberOptions.map((option, index) => [option.id, pickableMembers[index]?.department ?? null]));
+  const departmentById = new Map(ownOptions.map((option, index) => [option.id, pickableMembers[index]?.department ?? null]));
   const outsideSite = (id: string) => Number(departmentById.get(id) !== activeDepartment);
   const plannerMembers = activeDepartment && departments.kind === "sites"
-    ? [...memberOptions].sort((a, b) => outsideSite(a.id) - outsideSite(b.id))
+    ? [...ownOptions].sort((a, b) => outsideSite(a.id) - outsideSite(b.id))
     : activeDepartment
-    ? memberOptions.filter((option, index) => {
+    ? ownOptions.filter((option, index) => {
         const member = pickableMembers[index];
         return (
           member.department === activeDepartment ||
@@ -1105,7 +1118,7 @@ export default async function DashboardCalendarPage({
           onDepartmentShift.has(option.id)
         );
       })
-    : memberOptions;
+    : ownOptions;
   const shiftPresets = buildShiftPresets(settings);
   const initialFocusedDay = toDayKey(anchorDate);
   const initialCalendarView = parseCalendarView(params);
