@@ -32,6 +32,7 @@ import { calculateRoundedWorkDuration } from "@/lib/rounding";
 import { showAppToast } from "@/app/components/app-toast";
 import { describeActionError } from "@/lib/rule-error";
 import { announceClockChanged, CLOCK_REQUEST_EVENT, requestClock, takeClockRequest } from "@/lib/native-widgets";
+import { type ClockDirection, decideOutsideStamp } from "@/lib/clock-request";
 
 type LogItem = {
   id: string;
@@ -73,8 +74,6 @@ type Totals = {
 export type ClockActionStatus = "CAN_CLOCK_IN" | "CAN_CLOCK_OUT" | "DONE";
 
 const CLOCK_LOCATION_CACHE_KEY = "workbit.clock.location";
-// An exit stamped from outside the page more than this before the shift ends asks first.
-const EARLY_EXIT_ASK_MS = 15 * 60 * 1000;
 const CLOCK_LOCATION_CACHE_MAX_AGE_MS = 2 * 60 * 1000;
 
 type CachedClockLocation = GeolocationSample & {
@@ -1264,16 +1263,22 @@ export function ClockActionsPanel({
   // "Entra" / "Esci" on a notification - starts by itself, once. Only an exit
   // well before the end of the shift asks first: a tap on the lock screen is
   // easy to make by mistake, and an early exit is the costly one.
-  function stampFromOutside() {
-    const leaving = clockStatus === "CAN_CLOCK_OUT";
-    if (leaving && shiftEndAt) {
-      const end = new Date(shiftEndAt);
-      if (end.getTime() - Date.now() > EARLY_EXIT_ASK_MS) {
-        const at = end.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
-        if (!window.confirm(`Il turno finisce alle ${at === "00:00" ? "24:00" : at}. Timbri l'uscita adesso?`)) return;
-      }
+  function stampFromOutside(direction: ClockDirection) {
+    const decision = decideOutsideStamp({
+      direction,
+      isIn: clockStatus === "CAN_CLOCK_OUT",
+      shiftEndAt,
+      now: new Date(),
+    });
+    if (decision.kind === "refuse") {
+      showAppToast(decision.message);
+      return;
     }
-    void runClockAction(leaving ? "clock-out" : "clock-in");
+    if (decision.kind === "confirm") {
+      const at = decision.endsAt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+      if (!window.confirm(`Il turno finisce alle ${at === "00:00" ? "24:00" : at}. Timbri l'uscita adesso?`)) return;
+    }
+    void runClockAction(decision.endpoint);
   }
   const stampFromOutsideRef = useRef(stampFromOutside);
   stampFromOutsideRef.current = stampFromOutside;
@@ -1288,7 +1293,8 @@ export function ClockActionsPanel({
       requestClock();
     }
     const take = () => {
-      if (takeClockRequest()) stampFromOutsideRef.current();
+      const direction = takeClockRequest();
+      if (direction) stampFromOutsideRef.current(direction);
     };
     take();
     window.addEventListener(CLOCK_REQUEST_EVENT, take);

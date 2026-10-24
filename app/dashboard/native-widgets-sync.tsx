@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isNativeApp } from "@/lib/native-app";
+import { type ClockDirection, clockDirectionOf } from "@/lib/clock-request";
 import { CLOCK_CHANGED_EVENT, nativeWidgets, refreshNativeWidgets, requestClock } from "@/lib/native-widgets";
 
 /**
@@ -21,9 +22,9 @@ export function NativeWidgetsSync() {
   useEffect(() => {
     if (!isNativeApp()) return;
 
-    function open(path: string) {
+    function open(path: string, direction: ClockDirection = "any") {
       if (path.includes("azione=timbra")) {
-        requestClock();
+        requestClock(direction);
         if (window.location.pathname !== "/dashboard") router.push("/dashboard");
         return;
       }
@@ -66,8 +67,12 @@ export function NativeWidgetsSync() {
       const handle = await FirebaseMessaging.addListener("notificationActionPerformed", async (event) => {
         const data = (event.notification?.data ?? {}) as Record<string, unknown>;
         await selectVenue(data.barId);
-        if (event.actionId === "timbra") {
-          open("/dashboard?azione=timbra");
+        // "Entra" / "Esci" on the reminder - or a plain tap on it: a reminder
+        // to stamp is opened to stamp. The auto-closed exit and the owner's
+        // "ha timbrato" notices are other types and just open their page.
+        const direction = clockDirectionOf(typeof data.type === "string" ? data.type : "", event.actionId);
+        if (direction) {
+          open("/dashboard?azione=timbra", direction);
           return;
         }
         const target = typeof data.actionUrl === "string" && data.actionUrl.startsWith("/") ? data.actionUrl : null;

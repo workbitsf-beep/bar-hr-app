@@ -17,6 +17,7 @@
  * nothing happens, as in a browser.
  */
 
+import type { ClockDirection } from "./clock-request";
 import { isNativeApp } from "./native-app";
 
 type OpenEvent = { path?: string };
@@ -69,15 +70,16 @@ export function announceClockChanged() {
  * stamps by surprise later.
  */
 export const CLOCK_REQUEST_EVENT = "workbit:clock-request";
-let clockRequestedAt = 0;
 
-export function requestClock() {
-  clockRequestedAt = Date.now();
+let clockRequest: { at: number; direction: ClockDirection } | null = null;
+
+export function requestClock(direction: ClockDirection = "any") {
+  clockRequest = { at: Date.now(), direction };
   if (typeof window !== "undefined") window.dispatchEvent(new Event(CLOCK_REQUEST_EVENT));
 }
 
-export function takeClockRequest() {
-  const fresh = Date.now() - clockRequestedAt < 60_000;
-  clockRequestedAt = 0;
-  return fresh;
+export function takeClockRequest(): ClockDirection | null {
+  const request = clockRequest && Date.now() - clockRequest.at < 60_000 ? clockRequest.direction : null;
+  clockRequest = null;
+  return request;
 }
