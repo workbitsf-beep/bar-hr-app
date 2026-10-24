@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 /**
  * The home and lock screen widgets: the next shift and the week. They read
@@ -204,7 +205,7 @@ struct ShiftsProvider: TimelineProvider {
         }
     }
 
-    private static func timeline(_ stored: WidgetSnapshot?) -> Timeline<ShiftsEntry> {
+    static func timeline(_ stored: WidgetSnapshot?) -> Timeline<ShiftsEntry> {
         let now = Date()
         let snapshot = stored ?? .empty
         let horizon = now.addingTimeInterval(48 * 60 * 60)
@@ -279,7 +280,7 @@ struct NextShiftWidget: Widget {
             NextShiftView(entry: entry)
         }
         .configurationDisplayName("Prossimo turno")
-        .description("Quando lavori la prossima volta.")
+        .description("I tuoi turni: quando lavori la prossima volta.")
         .supportedFamilies([.systemSmall, .accessoryRectangular, .accessoryInline, .accessoryCircular])
     }
 }
@@ -375,7 +376,7 @@ struct WeekWidget: Widget {
             WeekView(entry: entry)
         }
         .configurationDisplayName("La tua settimana")
-        .description("I tuoi turni da lunedì a domenica e le ore.")
+        .description("I tuoi turni: da lunedì a domenica, con le ore.")
         .supportedFamilies([.systemMedium, .accessoryCircular])
     }
 }
@@ -499,11 +500,11 @@ private let greenInk = Color(red: 0x04 / 255, green: 0x78 / 255, blue: 0x57 / 25
 
 struct TeamNowWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "WorkbitTeamNow", provider: ShiftsProvider()) { entry in
+        AppIntentConfiguration(kind: "WorkbitTeamNow", intent: VenueIntent.self, provider: FloorProvider()) { entry in
             TeamNowSwitch(entry: entry)
         }
         .configurationDisplayName("In servizio")
-        .description("Chi è al lavoro adesso. Per titolare e responsabili.")
+        .description("Per il titolare: chi è al lavoro adesso.")
         .supportedFamilies([.systemSmall, .accessoryCircular])
     }
 }
@@ -554,11 +555,11 @@ struct TeamNowView: View {
 
 struct PendingWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "WorkbitPending", provider: ShiftsProvider()) { entry in
+        AppIntentConfiguration(kind: "WorkbitPending", intent: VenueIntent.self, provider: FloorProvider()) { entry in
             PendingSwitch(entry: entry)
         }
         .configurationDisplayName("Da approvare")
-        .description("Ferie, permessi e timbrature che aspettano te.")
+        .description("Per il titolare: ferie, permessi e timbrature da approvare.")
         .supportedFamilies([.systemMedium, .accessoryInline])
     }
 }
@@ -780,11 +781,11 @@ struct PendingSwitch: View {
 
 struct LateWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "WorkbitLate", provider: ShiftsProvider()) { entry in
+        AppIntentConfiguration(kind: "WorkbitLate", intent: VenueIntent.self, provider: FloorProvider()) { entry in
             LateView(entry: entry)
         }
         .configurationDisplayName("Ritardi")
-        .description("Chi doveva entrare e non ha ancora timbrato.")
+        .description("Per il titolare: chi doveva entrare e non ha ancora timbrato.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     }
 }
@@ -880,11 +881,11 @@ struct LateView: View {
 
 struct DayWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "WorkbitDay", provider: ShiftsProvider()) { entry in
+        AppIntentConfiguration(kind: "WorkbitDay", intent: VenueIntent.self, provider: FloorProvider()) { entry in
             DayView(entry: entry)
         }
         .configurationDisplayName("La giornata")
-        .description("I turni di oggi su una riga del tempo: chi c'è, chi arriva, chi è in ritardo.")
+        .description("Per il titolare: i turni di oggi su una riga del tempo.")
         .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
@@ -989,11 +990,11 @@ struct DayView: View {
 
 struct WeekHoursWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "WorkbitWeekHours", provider: ShiftsProvider()) { entry in
+        AppIntentConfiguration(kind: "WorkbitWeekHours", intent: VenueIntent.self, provider: FloorProvider()) { entry in
             WeekHoursView(entry: entry)
         }
         .configurationDisplayName("Ore della settimana")
-        .description("Ore lavorate su quelle programmate e il costo stimato del personale.")
+        .description("Per il titolare: ore lavorate, programmate e costo stimato.")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -1052,11 +1053,11 @@ struct WeekHoursView: View {
 
 struct BoardWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "WorkbitBoard", provider: ShiftsProvider()) { entry in
+        AppIntentConfiguration(kind: "WorkbitBoard", intent: VenueIntent.self, provider: FloorProvider()) { entry in
             BoardView(entry: entry)
         }
         .configurationDisplayName("Plancia")
-        .description("Il locale in un colpo d'occhio: in servizio, ritardi, da approvare.")
+        .description("Per il titolare: in servizio, ritardi e cose da approvare.")
         .supportedFamilies([.systemLarge])
     }
 }
@@ -1126,7 +1127,7 @@ struct MatesWidget: Widget {
             MatesView(entry: entry)
         }
         .configurationDisplayName("Con chi lavori")
-        .description("I colleghi del tuo prossimo turno.")
+        .description("I tuoi turni: i colleghi del prossimo turno.")
         .supportedFamilies([.systemSmall])
     }
 }
@@ -1181,7 +1182,7 @@ struct MonthWidget: Widget {
             MonthView(entry: entry)
         }
         .configurationDisplayName("Ore del mese")
-        .description("Le ore lavorate su quelle programmate nel mese.")
+        .description("I tuoi turni: le ore del mese su quelle programmate.")
         .supportedFamilies([.systemSmall, .accessoryCircular])
     }
 }
@@ -1230,7 +1231,7 @@ struct TasksWidget: Widget {
             TasksView(entry: entry)
         }
         .configurationDisplayName("Da fare oggi")
-        .description("Le note e le mansioni di oggi.")
+        .description("I tuoi turni: note e mansioni di oggi.")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -1290,5 +1291,75 @@ struct TasksView: View {
             }
         }
         .workbitBackground()
+    }
+}
+
+// MARK: - Which venue an owner's widget shows
+
+/// A venue one runs, offered in the widget's settings (long press > Modifica widget).
+struct VenueEntity: AppEntity {
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Locale"
+    static var defaultQuery = VenueQuery()
+
+    var id: String
+    var name: String
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(name)")
+    }
+}
+
+struct VenueQuery: EntityQuery {
+    private func all() -> [VenueEntity] {
+        (WorkbitSharedStore.loadIfSaved()?.floors ?? []).map { VenueEntity(id: $0.id, name: $0.name) }
+    }
+
+    func entities(for identifiers: [VenueEntity.ID]) async throws -> [VenueEntity] {
+        all().filter { identifiers.contains($0.id) }
+    }
+
+    func suggestedEntities() async throws -> [VenueEntity] {
+        all()
+    }
+
+    func defaultResult() async -> VenueEntity? {
+        nil
+    }
+}
+
+struct VenueIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Locale"
+    static var description = IntentDescription("Il locale che il widget mostra. Vuoto: quello aperto nell'app.")
+
+    @Parameter(title: "Locale")
+    var venue: VenueEntity?
+}
+
+/// The owner's widgets: the same data as the others, with the floor of the
+/// venue chosen in the widget's settings when there is one.
+struct FloorProvider: AppIntentTimelineProvider {
+    func placeholder(in context: Context) -> ShiftsEntry {
+        ShiftsEntry(date: Date(), snapshot: ShiftsProvider.sample)
+    }
+
+    func snapshot(for configuration: VenueIntent, in context: Context) async -> ShiftsEntry {
+        let stored = WorkbitSharedStore.loadIfSaved()
+        return ShiftsEntry(date: Date(), snapshot: Self.pick(stored ?? .empty, configuration), hasData: stored != nil)
+    }
+
+    func timeline(for configuration: VenueIntent, in context: Context) async -> Timeline<ShiftsEntry> {
+        let stored: WidgetSnapshot? = await withCheckedContinuation { continuation in
+            WidgetRefresh.fetch { continuation.resume(returning: $0) }
+        }
+        return ShiftsProvider.timeline(stored.map { Self.pick($0, configuration) })
+    }
+
+    private static func pick(_ snapshot: WidgetSnapshot, _ configuration: VenueIntent) -> WidgetSnapshot {
+        guard let chosen = configuration.venue?.id,
+              let floor = snapshot.floors?.first(where: { $0.id == chosen }) else { return snapshot }
+        var copy = snapshot
+        copy.team = floor.team
+        copy.venue = floor.name
+        return copy
     }
 }

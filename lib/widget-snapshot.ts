@@ -267,7 +267,26 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
     urgent: task.isUrgent,
   }));
 
-  const floorStaff = floorBarId ? staffAt(floorBarId) : null;
+  // Every venue they run, each with its floor, so a widget on the iPhone can
+  // be set to one of them (long press > Modifica widget). The first is the
+  // default: the venue open in the app, if they run it.
+  const floorIds = Array.from(new Set([...(floorBarId ? [floorBarId] : []), ...accessible.filter((entry) => runsFloorAt(entry.id)).map((entry) => entry.id)])).slice(0, 4);
+  const floors = await Promise.all(
+    floorIds.map(async (id) => {
+      const staff = staffAt(id);
+      if (!departmentNames.has(id)) {
+        const departments = await getVenueDepartments(id, userId);
+        const names = new Map<string, string>();
+        if (departments.enabled) for (const entry of [...departments.list, ...departments.sites]) names.set(entry.id, entry.name);
+        departmentNames.set(id, names);
+      }
+      return {
+        id,
+        name: nameOf.get(id) ?? accessible.find((entry) => entry.id === id)?.name ?? "",
+        team: staff ? await buildTeamSafely(id, userId, staff, now, (department) => departmentOf(id, department)) : null,
+      };
+    })
+  );
 
   return {
     v: 1,
@@ -294,10 +313,8 @@ export async function buildWidgetSnapshot(barId: string, userId: string, now = n
       done: taskItems.filter((task) => task.done).length,
       items: [...taskItems.filter((task) => !task.done), ...taskItems.filter((task) => task.done)].slice(0, 5),
     },
-    team:
-      floorBarId && floorStaff
-        ? await buildTeamSafely(floorBarId, userId, floorStaff, now, (department) => departmentOf(floorBarId, department))
-        : null,
+    team: floors[0]?.team ?? null,
+    floors,
     updatedAt: now.getTime(),
   };
 }

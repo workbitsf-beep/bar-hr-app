@@ -85,6 +85,13 @@ struct WidgetTeam: Codable, Hashable {
     var week: Week? = nil
 }
 
+/// One venue they run and its floor: a widget can be set to show it.
+struct WidgetFloor: Codable, Hashable {
+    let id: String
+    let name: String
+    let team: WidgetTeam?
+}
+
 /// Who one works with on the next shift.
 struct WidgetMates: Codable, Hashable {
     let start: Double
@@ -123,6 +130,8 @@ struct WidgetSnapshot: Codable {
     var tasks: WidgetTasks? = nil
     /// When the server made it, in ms: "12 min late" keeps counting from here.
     var updatedAt: Double? = nil
+    /// Every venue they run; the first is the default for the owner's widgets.
+    var floors: [WidgetFloor]? = nil
 
     static let empty = WidgetSnapshot(v: 1, venue: nil, shifts: [], open: nil)
 }
