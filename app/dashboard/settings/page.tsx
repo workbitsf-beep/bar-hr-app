@@ -908,6 +908,11 @@ export default async function DashboardSettingsPage({
         <LegalDocumentsPanel userId={session.user.id} onlyOwnDocuments={role !== Role.OWNER} />
       </PopupAction>
 
+      {/* Temporary, for the testers: why someone's widgets stay empty. */}
+      <a href="/dashboard/widget-check" style={{ textDecoration: "none", color: "inherit" }}>
+        <SettingsRow dot="#6d5ce7" title="Controllo widget" lead="Se i widget restano vuoti" />
+      </a>
+
       <PopupAction
         title="Assistenza"
         ariaLabel="Apri assistenza"
@@ -1424,12 +1429,10 @@ export default async function DashboardSettingsPage({
           <LegalDocumentsPanel userId={session.user.id} />
         </PopupAction>
 
-        {/* Temporary, super admin only: why the owner's widgets stay empty. */}
-        {String(session.user.role) === "SUPER_ADMIN" ? (
-          <a href="/dashboard/widget-check" style={{ textDecoration: "none", color: "inherit" }}>
-            <SettingsRow dot="#6d5ce7" title="Controllo widget" lead="Solo super admin" />
-          </a>
-        ) : null}
+        {/* Temporary, for the testers: why someone's widgets stay empty. */}
+        <a href="/dashboard/widget-check" style={{ textDecoration: "none", color: "inherit" }}>
+          <SettingsRow dot="#6d5ce7" title="Controllo widget" lead="Se i widget restano vuoti" />
+        </a>
 
         <PopupAction
           title="Assistenza"
