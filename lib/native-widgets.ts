@@ -27,6 +27,11 @@ type WorkbitWidgetsPlugin = {
   clear(): Promise<void>;
   takeOpen(): Promise<OpenEvent>;
   addListener(event: "open", handler: (event: OpenEvent) => void): Promise<{ remove: () => Promise<void> }>;
+  /** Android, from the app that shows the shift reminders with a button. */
+  drawsReminders(): Promise<{ value: boolean }>;
+  /** iPhone 17.2+: the token that lets the server start the shift's Live Activity. */
+  liveActivityToken(): Promise<{ token?: string }>;
+  addListener(event: "liveActivityToken", handler: (event: { token: string }) => void): Promise<{ remove: () => Promise<void> }>;
 };
 
 export async function nativeWidgets() {
@@ -46,6 +51,36 @@ export async function refreshNativeWidgets() {
   } catch (error) {
     console.error("[widgets] not refreshed", error);
   }
+}
+
+export async function appDrawsReminders() {
+  try {
+    const widgets = await nativeWidgets();
+    return Boolean(widgets && (await widgets.drawsReminders()).value);
+  } catch {
+    return false;
+  }
+}
+
+/** Hands the server the iPhone's Live Activity start token, now and whenever it changes. */
+export async function registerLiveActivityToken() {
+  const widgets = await nativeWidgets().catch(() => null);
+  if (!widgets) return () => undefined;
+  const send = (token?: string) => {
+    if (!token) return;
+    void fetch("/api/push/live-activity-token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token }),
+    }).catch(() => undefined);
+  };
+  try {
+    send((await widgets.liveActivityToken()).token);
+  } catch {
+    // An app from before the Live Activity start: nothing to hand over.
+  }
+  const handle = await widgets.addListener("liveActivityToken", (event) => send(event.token)).catch(() => null);
+  return () => void handle?.remove();
 }
 
 export async function clearNativeWidgets() {

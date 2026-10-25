@@ -2,6 +2,7 @@ import "server-only";
 
 import { ClockType, Role } from "@prisma/client";
 import { INTERNAL_NOTIFICATION_TYPES, notifyUsers } from "@/lib/notifications";
+import { startShiftLiveActivity } from "@/lib/live-activity";
 import { prisma } from "@/lib/prisma";
 
 const CLOCK_IN_REMINDER_LEAD_MS = 5 * 60 * 1000;
@@ -521,6 +522,10 @@ export async function runDueScheduledClockNotifications(now = new Date()) {
         ? getClockReminderActionUrl(item.shiftId, item.barId)
         : item.actionUrl,
     });
+    // On an iPhone, five minutes before: the Live Activity with ENTRA too.
+    if (item.shiftId && item.type === INTERNAL_NOTIFICATION_TYPES.TIMELOG_CLOCK_IN_REMINDER_BEFORE) {
+      await startShiftLiveActivity({ userId: item.userId, shiftId: item.shiftId });
+    }
     await prisma.scheduledNotification.update({
       where: {
         id: item.id,

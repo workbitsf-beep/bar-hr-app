@@ -4,7 +4,13 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isNativeApp } from "@/lib/native-app";
 import { type ClockDirection, clockDirectionOf } from "@/lib/clock-request";
-import { CLOCK_CHANGED_EVENT, nativeWidgets, refreshNativeWidgets, requestClock } from "@/lib/native-widgets";
+import {
+  CLOCK_CHANGED_EVENT,
+  nativeWidgets,
+  refreshNativeWidgets,
+  registerLiveActivityToken,
+  requestClock,
+} from "@/lib/native-widgets";
 
 /**
  * Inside the installed app only: keeps the home screen widgets and the Live
@@ -24,7 +30,9 @@ export function NativeWidgetsSync() {
 
     function open(path: string, direction: ClockDirection = "any") {
       if (path.includes("azione=timbra")) {
-        requestClock(direction);
+        // Android's reminder says which way in the address ("dir=in").
+        const said = new URLSearchParams(path.split("?")[1] ?? "").get("dir");
+        requestClock(said === "in" || said === "out" ? said : direction);
         if (window.location.pathname !== "/dashboard") router.push("/dashboard");
         return;
       }
@@ -49,6 +57,7 @@ export function NativeWidgetsSync() {
     window.addEventListener(CLOCK_CHANGED_EVENT, onClock);
 
     const removers: Array<() => void> = [];
+    void registerLiveActivityToken().then((remove) => removers.push(remove));
 
     void nativeWidgets().then(async (widgets) => {
       if (!widgets) return;

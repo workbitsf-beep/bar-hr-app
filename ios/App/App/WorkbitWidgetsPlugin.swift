@@ -18,7 +18,13 @@ public class WorkbitWidgetsPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "update", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clear", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeOpen", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "drawsReminders", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "liveActivityToken", returnType: CAPPluginReturnPromise),
     ]
+
+    /// The token that lets the server start the shift's Live Activity
+    /// (lib/live-activity.ts), as hex; iOS 17.2 and later.
+    private static var startToken: String?
 
     // MARK: Opened from a widget, the Live Activity or a notification
 
@@ -27,6 +33,28 @@ public class WorkbitWidgetsPlugin: CAPPlugin, CAPBridgedPlugin {
 
     override public func load() {
         WorkbitWidgetsPlugin.shared = self
+        if #available(iOS 17.2, *) {
+            Task { [weak self] in
+                for await data in Activity<ShiftActivityAttributes>.pushToStartTokenUpdates {
+                    let token = data.map { String(format: "%02x", $0) }.joined()
+                    WorkbitWidgetsPlugin.startToken = token
+                    self?.notifyListeners("liveActivityToken", data: ["token": token])
+                }
+            }
+        }
+    }
+
+    /// iPhone reminders are drawn by iOS; the Live Activity carries the button.
+    @objc func drawsReminders(_ call: CAPPluginCall) {
+        call.resolve(["value": false])
+    }
+
+    @objc func liveActivityToken(_ call: CAPPluginCall) {
+        if let token = WorkbitWidgetsPlugin.startToken {
+            call.resolve(["token": token])
+        } else {
+            call.resolve([:])
+        }
     }
 
     /// workbit://timbra ("Esci" on the Live Activity) stamps on Oggi;
@@ -94,8 +122,16 @@ enum ShiftActivityController {
         }
 
         guard let open = snapshot.open else {
-            // The exit was stamped: say so for a moment, then go.
             for activity in running {
+                // Started by the server before the shift: it waits for ENTRA,
+                // and goes by itself two hours after the start if nobody stamps.
+                if activity.content.state.pending == true {
+                    if activity.content.state.since.timeIntervalSinceNow < -2 * 60 * 60 {
+                        Task { await activity.end(nil, dismissalPolicy: .immediate) }
+                    }
+                    continue
+                }
+                // The exit was stamped: say so for a moment, then go.
                 var state = activity.content.state
                 state.out = Date()
                 Task {

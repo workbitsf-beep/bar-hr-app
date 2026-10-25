@@ -235,6 +235,8 @@ struct ShiftActivityAttributes: ActivityAttributes {
         var out: Date?
         var month: String? = nil
         var monthHours: Double? = nil
+        /// Started by the server before the shift: ENTRA, `since` is the start.
+        var pending: Bool? = nil
     }
 
     var venue: String

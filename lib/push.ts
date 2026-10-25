@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getMessagingService } from "@/lib/firebase-admin";
+import { LIVE_ACTIVITY_PLATFORM } from "@/lib/live-activity";
 import { prisma } from "@/lib/prisma";
 
 export type PushNotificationInput = {
@@ -77,6 +78,8 @@ export async function getPushTokensForUsers(userIds: string[]): Promise<PushToke
       userId: {
         in: ids,
       },
+      // The Live Activity's start token is not for notifications (lib/live-activity).
+      platform: { not: LIVE_ACTIVITY_PLATFORM },
     },
     select: {
       id: true,
@@ -161,7 +164,34 @@ export async function sendPushNotification(
       new Map(Array.from(latestTokensByUserPlatform.values()).map((entry) => [entry.token, entry])).values()
     );
 
-    for (const batch of chunk(uniqueTokens, 500)) {
+    // Android draws the shift reminders itself, with an "Entra" / "Esci"
+    // button always in view (android/.../ReminderNotification.java): they go
+    // as data only, which reaches the app even when it is closed.
+    const drawnByApp = clockCategory
+      ? uniqueTokens.filter((entry) => entry.platform === "android-app")
+      : [];
+    if (drawnByApp.length > 0) {
+      const response = await messaging.sendEachForMulticast({
+        tokens: drawnByApp.map((entry) => entry.token),
+        data,
+        android: { priority: "high" },
+      });
+      response.responses.forEach((result, index) => {
+        if (result.success) {
+          successfulTokenIds.add(drawnByApp[index].id);
+          sentCount += 1;
+        } else {
+          console.error("[push] Reminder send failed for a token.", {
+            userId: drawnByApp[index].userId,
+            tokenId: drawnByApp[index].id,
+            error: result.error?.message ?? "Unknown push error",
+          });
+        }
+      });
+    }
+    const drawnBySystem = uniqueTokens.filter((entry) => !drawnByApp.includes(entry));
+
+    for (const batch of chunk(drawnBySystem, 500)) {
       const response = await messaging.sendEachForMulticast({
         tokens: batch.map((entry) => entry.token),
         notification: {

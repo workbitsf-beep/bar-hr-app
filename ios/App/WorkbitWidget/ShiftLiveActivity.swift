@@ -28,6 +28,25 @@ private enum Glass {
         endRadius: 70
     )
     static let done = Color(red: 0x10 / 255, green: 0xb9 / 255, blue: 0x81 / 255)
+    static let enter = RadialGradient(
+        colors: [
+            Color(red: 0x6e / 255, green: 0xe7 / 255, blue: 0xb7 / 255),
+            Color(red: 0x10 / 255, green: 0xb9 / 255, blue: 0x81 / 255),
+            Color(red: 0x04 / 255, green: 0x78 / 255, blue: 0x57 / 255),
+        ],
+        center: UnitPoint(x: 0.35, y: 0.3),
+        startRadius: 2,
+        endRadius: 70
+    )
+}
+
+/// "In servizio da", "Il turno inizia alle 18:00", "Uscita timbrata".
+private func caption(_ state: ShiftActivityAttributes.ContentState) -> String {
+    if state.out != nil { return "Uscita timbrata" }
+    if state.pending == true {
+        return state.since > Date() ? "Il turno inizia alle \(Words.clock(state.since))" : "Turno iniziato alle \(Words.clock(state.since))"
+    }
+    return "In servizio da"
 }
 
 struct ShiftLiveActivity: Widget {
@@ -45,7 +64,7 @@ struct ShiftLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .leading, spacing: 2) {
-                        SmallCaps(context.state.out == nil ? "In servizio da" : "Uscita timbrata")
+                        SmallCaps(caption(context.state))
                         Elapsed(state: context.state)
                             .font(.system(size: 30, weight: .bold))
                             .foregroundColor(.white)
@@ -82,9 +101,9 @@ private struct StampButton: View {
         if state.out == nil {
             Link(destination: stampURL) {
                 ZStack {
-                    Circle().fill(Glass.button)
+                    Circle().fill(state.pending == true ? Glass.enter : Glass.button)
                     Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
-                    Text("ESCI")
+                    Text(state.pending == true ? "ENTRA" : "ESCI")
                         .font(.system(size: size * 0.24, weight: .bold))
                         .foregroundColor(.white)
                 }
@@ -157,6 +176,9 @@ private struct Elapsed: View {
         if let out = state.out {
             Text(Words.hours(out.timeIntervalSince(state.since)))
                 .monospacedDigit()
+        } else if state.pending == true {
+            Text(state.since, style: .timer)
+                .monospacedDigit()
         } else {
             Text(timerInterval: state.since...Date.distantFuture, countsDown: false)
                 .monospacedDigit()
@@ -171,7 +193,7 @@ private struct LockScreenActivityView: View {
         HStack(spacing: 18) {
             StampButton(state: state, size: 84)
             VStack(alignment: .leading, spacing: 4) {
-                SmallCaps(state.out == nil ? "In servizio da" : "Uscita timbrata")
+                SmallCaps(caption(state))
                 Elapsed(state: state)
                     .font(.system(size: 42, weight: .bold))
                     .foregroundColor(.white)

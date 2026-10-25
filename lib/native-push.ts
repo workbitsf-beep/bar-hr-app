@@ -14,6 +14,7 @@
  */
 
 import { isNativeApp } from "./native-app";
+import { appDrawsReminders } from "./native-widgets";
 
 export { isNativeApp };
 
@@ -157,13 +158,18 @@ async function sendToken(token: string | null, platform: string): Promise<Native
     return { status: "failed", reason: "Nessun token restituito dal sistema." };
   }
 
+  // An Android app that draws the shift reminders itself, with the
+  // Entra/Esci button in view, says so: it gets them as data (lib/push.ts).
+  // An older app keeps the plain notifications it can show.
+  const name = platform === "android" && (await appDrawsReminders()) ? "android-app" : `${platform}-native`;
+
   const response = await fetch("/api/push/register-token", {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "same-origin",
     // Kept apart per platform: the server keeps one token per person and
     // platform, so an iPhone and an Android phone both ring.
-    body: JSON.stringify({ token, platform: `${platform}-native` }),
+    body: JSON.stringify({ token, platform: name }),
   });
 
   if (!response.ok) {

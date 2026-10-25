@@ -60,6 +60,20 @@ public class WorkbitWidgetsPlugin extends Plugin {
         }
     }
 
+    /** This app draws the shift reminders with their button (ReminderNotification). */
+    @PluginMethod
+    public void drawsReminders(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("value", true);
+        call.resolve(result);
+    }
+
+    /** The Live Activity is the iPhone's: nothing to hand over here. */
+    @PluginMethod
+    public void liveActivityToken(PluginCall call) {
+        call.resolve(new JSObject());
+    }
+
     @PluginMethod
     public void takeOpen(PluginCall call) {
         JSObject result = new JSObject();
