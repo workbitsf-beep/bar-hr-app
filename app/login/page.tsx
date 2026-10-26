@@ -381,8 +381,12 @@ export default function LoginPage() {
           </form>
 
           {/* Chi ha scaricato l'app senza un invito: un titolare apre qui il suo
-              locale. Un dipendente invece entra con l'accesso del titolare. */}
-          <div className={styles.signupCard}>
+              locale. Un dipendente invece entra con l'accesso del titolare.
+              Solo sul web: dentro l'app installata Apple conta l'apertura di
+              un locale con la prova gratuita come un acquisto fuori dall'App
+              Store (rifiuto 3.1.1 del 26 ottobre 2026), quindi l'app fa solo
+              entrare chi un account ce l'ha già. */}
+          <div className={`wb-web-only ${styles.signupCard}`}>
             <span className={styles.signupText}>
               <strong>Hai un locale?</strong>
               <span>
@@ -393,6 +397,9 @@ export default function LoginPage() {
               Registrati
             </a>
           </div>
+          <p className={`wb-native-only ${styles.inviteNote}`}>
+            Sei il titolare? Entra con l&apos;email e la password del tuo locale.
+          </p>
           <p className={styles.inviteNote}>
             Lavori in un locale? Il tuo accesso te lo manda il titolare.
           </p>

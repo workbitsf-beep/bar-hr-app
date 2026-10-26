@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { BrandMark } from "@/components/brand-mark";
@@ -24,6 +25,12 @@ export default async function RegistrationPage() {
   // Chi e gia dentro non ha niente da fare qui.
   if (session) {
     redirect("/dashboard");
+  }
+
+  // Nell'app installata non si aprono locali: si entra soltanto (vedi la
+  // pagina di accesso). Il modulo resta per chi arriva dal sito.
+  if ((await cookies()).get("wb-native")?.value === "1") {
+    redirect("/login");
   }
 
   return (
