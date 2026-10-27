@@ -448,8 +448,33 @@ function expandAudienceDrafts<T extends { assignedToAll: boolean; assignedToId: 
   });
 }
 
-function shouldAutoConfirmOwnShift(actorUserId: string, employeeIds: string[]) {
-  return employeeIds.length === 1 && employeeIds[0] === actorUserId;
+/**
+ * A shift goes out at once, with its tick, when there is nobody to wait for:
+ * the person saving it is the only one on it, or everyone on it is a titolare
+ * of the venue. Two owners putting each other on shifts used to leave them in
+ * draft for ever, because nobody thinks of pressing "Invia" for a partner.
+ */
+async function shouldAutoConfirmShift(barId: string, actorUserId: string, employeeIds: string[]) {
+  const people = Array.from(new Set(employeeIds));
+  if (people.length === 0) return false;
+  if (people.length === 1 && people[0] === actorUserId) return true;
+  const owners = await prisma.employeeBar.count({
+    where: { barId, userId: { in: people }, role: Role.OWNER, isActive: true },
+  });
+  return owners === people.length;
+}
+
+/** The other titolari on a shift that went out by itself hear about it, like any published shift. */
+async function notifyAutoConfirmedShift(barId: string, actorUserId: string, employeeIds: string[], startTime: Date, endTime: Date) {
+  const others = Array.from(new Set(employeeIds)).filter((id) => id !== actorUserId);
+  if (others.length === 0) return;
+  await notifyUsers(others, {
+    barId,
+    title: "Nuovo turno",
+    message: shiftWhen(startTime, endTime),
+    type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
+    actionUrl: "/dashboard/calendar",
+  });
 }
 
 function getShiftConflictLabel(type: "AVAILABILITY" | RequestType) {
@@ -2797,7 +2822,7 @@ export async function createShiftAction(formData: FormData) {
       endTime,
       isOnCall,
     });
-    const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
+    const autoConfirm = await shouldAutoConfirmShift(activeBarId, session.user.id, employeeIds);
 
     const shift = await prisma.shift.create({
       data: {
@@ -2824,6 +2849,7 @@ export async function createShiftAction(formData: FormData) {
 
     if (autoConfirm && !isOnCall) {
       await scheduleShiftClockReminders([shift.id]);
+      await notifyAutoConfirmedShift(activeBarId, session.user.id, employeeIds, startTime, endTime);
     }
 
     revalidatePath("/dashboard");
@@ -2870,7 +2896,7 @@ export async function updateShiftAction(formData: FormData) {
       isOnCall,
       excludeShiftId: shiftId,
     });
-    const autoConfirm = shouldAutoConfirmOwnShift(session.user.id, employeeIds);
+    const autoConfirm = await shouldAutoConfirmShift(activeBarId, session.user.id, employeeIds);
     const existingShift = await prisma.shift.findFirst({
       where: {
         id: shiftId,
@@ -2932,6 +2958,10 @@ export async function updateShiftAction(formData: FormData) {
 
     if (publishedAt) {
       await scheduleShiftClockReminders([shiftId]);
+    }
+
+    if (publishedAt && !wasPublished) {
+      await notifyAutoConfirmedShift(activeBarId, session.user.id, employeeIds, startTime, endTime);
     }
 
     if (wasPublished) {
@@ -6184,6 +6214,8 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
 
     const todayKey = toDateInputValueInTimeZone(new Date());
     let created = 0;
+    const publishedIds: string[] = [];
+    const tellOwners = new Map<string, number>();
 
     for (const item of items) {
       const { startTime, endTime } = copyItemTimes(item);
@@ -6218,7 +6250,9 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
       }
       if (employeeIds.length === 0) continue;
 
-      await prisma.shift.create({
+      // Titolari only: out at once with the tick, like a shift added by hand.
+      const publish = !item.isOnCall && (await shouldAutoConfirmShift(activeBarId, session.user.id, employeeIds));
+      const shift = await prisma.shift.create({
         data: {
           title: item.title,
           startTime,
@@ -6228,10 +6262,33 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
           barId: activeBarId,
           assignedToId: employeeIds[0],
           createdById: session.user.id,
+          confirmedAt: publish ? new Date() : null,
+          confirmedById: publish ? session.user.id : null,
           assignments: { createMany: { data: employeeIds.map((userId) => ({ userId })) } },
         },
+        select: { id: true },
       });
       created += 1;
+      if (publish) {
+        publishedIds.push(shift.id);
+        for (const id of employeeIds) {
+          if (id !== session.user.id) tellOwners.set(id, (tellOwners.get(id) ?? 0) + 1);
+        }
+      }
+    }
+
+    if (publishedIds.length) {
+      await scheduleShiftClockReminders(publishedIds);
+      // One message per person for the whole copy, not one per shift.
+      for (const [userId, count] of tellOwners) {
+        await notifyUsers([userId], {
+          barId: activeBarId,
+          title: count === 1 ? "Nuovo turno" : "Nuovi turni",
+          message: `${count === 1 ? "1 turno" : `${count} turni`} nella settimana dal ${copyDayLabel.format(parseDateTimeLocal(`${weekStart}T12:00:00`))}`,
+          type: INTERNAL_NOTIFICATION_TYPES.SHIFT_UPDATED,
+          actionUrl: "/dashboard/calendar",
+        });
+      }
     }
 
     revalidatePath("/dashboard");
