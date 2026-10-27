@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { copyPreviousWeekShiftsAction, previewPreviousWeekShiftsAction } from "../actions";
+import { SwipeRevealAction } from "../swipe-reveal-action";
 import { useOverlayLock } from "../use-overlay-lock";
 
 type PreviewItem = {
@@ -145,7 +146,7 @@ export function CopyWeekPreview({
             <span style={{ fontSize: 13, fontWeight: 700, color: "#8a84a8" }}>
               {rows === null
                 ? "Preparo i turni…"
-                : `${kept.length === 1 ? "1 turno" : `${kept.length} turni`} da copiare · cambia o togli prima di copiare`}
+                : `${kept.length === 1 ? "1 turno" : `${kept.length} turni`} da copiare · scorri a destra per cambiare, a sinistra per togliere`}
             </span>
           </span>
           <button
@@ -177,9 +178,10 @@ export function CopyWeekPreview({
           ) : null}
 
           {days.map((dayKey) => (
-            <section key={dayKey} style={{ display: "grid", gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a84a8" }}>
+            <section key={dayKey} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8 }}>
+              <span style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "0 2px", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a84a8" }}>
                 {dayTitle.format(new Date(`${dayKey}T12:00:00Z`))}
+                <span>{(rows ?? []).filter((row) => row.dayKey === dayKey && !row.removed).length}</span>
               </span>
               {(rows ?? [])
                 .filter((row) => row.dayKey === dayKey)
@@ -213,13 +215,15 @@ export function CopyWeekPreview({
 }
 
 function ShiftRow({ row, onChange }: { row: Row; onChange: (patch: Partial<Row>) => void }) {
+  const [editing, setEditing] = useState(false);
+
   if (row.removed) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 14px", borderRadius: 16, border: "1.5px dashed #e2deef", color: "#8a84a8" }}>
-        <span style={{ fontSize: 13.5, textDecoration: "line-through" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 48, padding: "0 6px 0 14px", borderRadius: 14, border: "1.5px dashed #e2deef" }}>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, color: "#a49fc0", textDecoration: "line-through" }}>
           {row.start}–{row.end} · {row.people.map((person) => person.name).join(", ") || "nessuno"}
         </span>
-        <button type="button" onClick={() => onChange({ removed: false })} style={{ ...buttonStyle("edit"), minHeight: 34, padding: "0 12px" }}>
+        <button type="button" onClick={() => onChange({ removed: false })} style={{ ...buttonStyle("edit"), minHeight: 36, padding: "0 12px", fontSize: 13.5 }}>
           Rimetti
         </button>
       </div>
@@ -227,51 +231,122 @@ function ShiftRow({ row, onChange }: { row: Row; onChange: (patch: Partial<Row>)
   }
 
   const empty = row.people.length === 0;
-  return (
-    <div style={{ display: "grid", gap: 10, padding: "12px 14px", borderRadius: 18, background: "#ffffff", border: `1.5px solid ${empty ? "#fecaca" : "#ebe8f6"}` }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <input type="time" aria-label="Inizio" value={row.start} onChange={(event) => event.target.value && onChange({ start: event.target.value })} style={timeStyle} />
-        <span style={{ color: "#8a84a8", fontWeight: 800 }}>–</span>
-        <input type="time" aria-label="Fine" value={row.end} onChange={(event) => event.target.value && onChange({ end: event.target.value })} style={timeStyle} />
-        {row.end < row.start ? <span style={{ fontSize: 12, fontWeight: 700, color: "#8a84a8" }}>fino al giorno dopo</span> : null}
-        <button
-          type="button"
-          onClick={() => onChange({ removed: true })}
-          style={{ ...buttonStyle("danger"), minHeight: 34, padding: "0 12px", marginLeft: "auto" }}
-        >
-          Togli
-        </button>
-      </div>
-      {row.title || row.isOnCall ? (
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#4c4670" }}>
-          {[row.title, row.isOnCall ? "Reperibilità" : null].filter(Boolean).join(" · ")}
-        </span>
-      ) : null}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {row.people.map((person) => (
-          <span
-            key={person.id}
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, minHeight: 32, padding: "0 4px 0 12px", borderRadius: 999, background: "#f5f3ff", color: "#3b1d8f", fontSize: 13.5, fontWeight: 700 }}
-          >
-            {person.name}
-            <button
-              type="button"
-              aria-label={`Togli ${person.name}`}
-              onClick={() => onChange({ people: row.people.filter((other) => other.id !== person.id) })}
-              style={{ width: 26, height: 26, borderRadius: 999, border: 0, background: "transparent", color: "#6d5bd0", fontSize: 16, cursor: "pointer" }}
+  const overnight = row.end < row.start;
+
+  if (editing) {
+    return (
+      <div style={{ display: "grid", gap: 12, padding: 14, borderRadius: 16, background: "#ffffff", border: "1.5px solid #c4b5fd", boxShadow: "0 8px 22px rgba(94, 74, 227, 0.12)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "end", gap: 8 }}>
+          <label style={fieldStyle}>
+            Inizio
+            <input type="time" value={row.start} onChange={(event) => event.target.value && onChange({ start: event.target.value })} style={timeStyle} />
+          </label>
+          <span style={{ paddingBottom: 12, color: "#a49fc0", fontWeight: 800 }}>–</span>
+          <label style={fieldStyle}>
+            Fine
+            <input type="time" value={row.end} onChange={(event) => event.target.value && onChange({ end: event.target.value })} style={timeStyle} />
+          </label>
+        </div>
+        {overnight ? <span style={{ marginTop: -4, fontSize: 12.5, fontWeight: 700, color: "#8a84a8" }}>Finisce il giorno dopo.</span> : null}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {row.people.map((person) => (
+            <span
+              key={person.id}
+              style={{ display: "inline-flex", alignItems: "center", gap: 2, minHeight: 34, padding: "0 4px 0 12px", borderRadius: 999, background: "#f5f3ff", color: "#3b1d8f", fontSize: 13.5, fontWeight: 700 }}
             >
-              ×
-            </button>
-          </span>
-        ))}
-        {empty ? <span style={{ fontSize: 13, fontWeight: 700, color: "#b3202f" }}>Nessuno: non verrà copiato.</span> : null}
+              {person.name}
+              <button
+                type="button"
+                aria-label={`Togli ${person.name}`}
+                onClick={() => onChange({ people: row.people.filter((other) => other.id !== person.id) })}
+                style={{ width: 28, height: 28, borderRadius: 999, border: 0, background: "transparent", color: "#6d5bd0", fontSize: 17, cursor: "pointer" }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {empty ? <span style={{ fontSize: 13, fontWeight: 700, color: "#b3202f" }}>Nessuno: non verrà copiato.</span> : null}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              onChange({ removed: true });
+            }}
+            style={{ ...buttonStyle("danger"), minHeight: 40 }}
+          >
+            Togli turno
+          </button>
+          <button type="button" onClick={() => setEditing(false)} style={{ ...buttonStyle("edit"), minHeight: 40 }}>
+            Fatto
+          </button>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  const note = [row.title, row.isOnCall ? "Reperibilità" : null, overnight ? "fino al giorno dopo" : null].filter(Boolean).join(" · ");
+
+  return (
+    <SwipeRevealAction
+      resetKey={`${row.key}-${row.start}-${row.end}-${row.people.length}`}
+      revealWidth={62}
+      actionInset={8}
+      borderRadius={16}
+      leadingAction={
+        <button type="button" aria-label="Modifica turno" onClick={() => setEditing(true)} style={swipeButtonStyle("#7c3aed", "#ddd6fe")}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      }
+      action={
+        <button type="button" aria-label="Togli turno" onClick={() => onChange({ removed: true })} style={swipeButtonStyle("#ef4444", "#fecaca")}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      }
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "58px minmax(0, 1fr)",
+          alignItems: "center",
+          gap: 12,
+          minHeight: 60,
+          padding: "10px 14px",
+          borderRadius: 16,
+          background: "#ffffff",
+          border: `1.5px solid ${empty ? "#fecaca" : "#ebe8f6"}`,
+        }}
+      >
+        <span style={{ display: "grid", gap: 1, paddingRight: 12, borderRight: "1.5px solid #efecff", fontVariantNumeric: "tabular-nums" }}>
+          <strong style={{ fontSize: 15.5, color: "#16161d" }}>{row.start}</strong>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#8a84a8" }}>{row.end}</span>
+        </span>
+        <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 14.5, fontWeight: 800, color: empty ? "#b3202f" : "#16161d" }}>
+            {empty ? "Nessuno: non verrà copiato" : row.people.map((person) => person.name).join(", ")}
+          </span>
+          {note ? <span style={{ fontSize: 12.5, fontWeight: 700, color: "#8a84a8" }}>{note}</span> : null}
+        </span>
+      </div>
+    </SwipeRevealAction>
   );
 }
 
+function swipeButtonStyle(background: string, border: string) {
+  return { width: 38, height: 38, borderRadius: 13, border: `1px solid ${border}`, background, color: "#ffffff", cursor: "pointer", fontWeight: 900 } as const;
+}
+
+const fieldStyle = { display: "grid", gap: 4, fontSize: 11.5, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8a84a8" } as const;
+
 const timeStyle = {
-  minHeight: 38,
+  width: "100%",
+  boxSizing: "border-box",
+  minHeight: 44,
   padding: "0 10px",
   borderRadius: 12,
   border: "1.5px solid #e2deef",
