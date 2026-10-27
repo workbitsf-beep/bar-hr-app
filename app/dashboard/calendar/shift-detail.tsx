@@ -8,7 +8,9 @@ import { tapOutsideProps } from "../tap-outside";
  * A tap on a shift in the day popup opens its detail: the hours, the
  * department, and everyone on it by full name, one per line. The row itself
  * cuts the names short ("Federico F.", "+2") to fit; here they are all
- * readable. Same for owner and staff; editing and deleting stay on the swipe.
+ * readable. Same for owner and staff. For whoever plans the shifts it also
+ * carries "Modifica" and "Elimina": the swipe that does the same was never
+ * found, and a copied or saved shift looked impossible to change.
  */
 
 type DetailShift = {
@@ -31,13 +33,23 @@ export function ShiftDetailTap({
   locale,
   currentUserId,
   children,
+  onEdit,
+  onDelete,
 }: {
   shift: DetailShift;
   locale: string;
   currentUserId: string;
   children: ReactNode;
+  /** Present only when the viewer may change this shift (planner, day not past). */
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (!open) setConfirmDelete(false);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -203,6 +215,59 @@ export function ShiftDetailTap({
                     })}
                   </ul>
                 </div>
+
+                {onEdit || onDelete ? (
+                  <div style={{ display: "grid", gridTemplateColumns: onEdit && onDelete ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)", gap: 8, paddingTop: 4 }}>
+                    {onDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!confirmDelete) {
+                            setConfirmDelete(true);
+                            return;
+                          }
+                          setOpen(false);
+                          onDelete();
+                        }}
+                        style={{
+                          minHeight: 48,
+                          borderRadius: 15,
+                          border: confirmDelete ? 0 : "1.5px solid #fecaca",
+                          background: confirmDelete ? "#b3202f" : "#fff5f5",
+                          color: confirmDelete ? "#ffffff" : "#b3202f",
+                          fontSize: 15,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {confirmDelete ? "Sì, elimina" : "Elimina"}
+                      </button>
+                    ) : null}
+                    {onEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpen(false);
+                          onEdit();
+                        }}
+                        style={{
+                          minHeight: 48,
+                          borderRadius: 15,
+                          border: 0,
+                          background: "linear-gradient(135deg, #3b1d8f 0%, #5e4ae3 55%, #8b5cf6 100%)",
+                          color: "#ffffff",
+                          fontSize: 15,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Modifica
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>,
             document.body

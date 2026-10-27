@@ -4929,7 +4929,13 @@ export function DayActionCalendarClient({
                     ) : (
                       <div className="dashboard-scroll-list" style={{ display: "grid", gap: 10 }}>
                         {selectedDay.shifts.map((shift) => renderShiftSwipeActions(shift, (
-                          <ShiftDetailTap shift={shift} locale={locale} currentUserId={currentUserId}>{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
+                          <ShiftDetailTap
+                            shift={shift}
+                            locale={locale}
+                            currentUserId={currentUserId}
+                            onEdit={canManageOptionalShifts && !isShiftPastDay(shift, todayKey) ? () => openShiftEditor(shift.id, selectedDay.date) : undefined}
+                            onDelete={canManageOptionalShifts && !isShiftPastDay(shift, todayKey) ? () => handleDeleteShift(shift.id) : undefined}
+                          >{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
                         ), selectedDay.date, true))}
                       </div>
                     )}

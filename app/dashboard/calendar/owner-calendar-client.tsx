@@ -4148,7 +4148,13 @@ export function OwnerCalendarClient({
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 7 }}>
                       {day.shifts.map((shift) => renderShiftSwipeActions(shift, (
-                        <ShiftDetailTap shift={shift} locale={locale} currentUserId={currentUserId}>{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
+                        <ShiftDetailTap
+                          shift={shift}
+                          locale={locale}
+                          currentUserId={currentUserId}
+                          onEdit={features.shifts && !isShiftPastDay(shift, todayKey) ? () => openShiftEditor(shift.id, day.date) : undefined}
+                          onDelete={features.shifts && !isShiftPastDay(shift, todayKey) ? () => handleDeleteShift(shift.id) : undefined}
+                        >{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
                       ), day.date, true))}
                     </div>
                   )}
