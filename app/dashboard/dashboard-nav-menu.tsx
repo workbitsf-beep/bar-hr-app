@@ -136,36 +136,16 @@ export function DashboardNavMenu({
     }
   }
 
-  // A dot on the menu button while something is unread: the notifications
-  // live in the menu now, so the button says when there is news inside.
-  const [unread, setUnread] = useState(0);
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/notifications?limit=1", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { unreadCount?: number } | null) => {
-        if (alive && payload) setUnread(payload.unreadCount ?? 0);
-      })
-      .catch(() => undefined);
-    const follow = (event: Event) => setUnread(Number((event as CustomEvent<number>).detail) || 0);
-    window.addEventListener("workbit:notifications-unread", follow);
-    return () => {
-      alive = false;
-      window.removeEventListener("workbit:notifications-unread", follow);
-    };
-  }, []);
-
   return (
     <>
       <button
         className="dashboard-menu-button"
-        data-unread={unread > 0 ? "true" : undefined}
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={unread > 0 ? `${menuLabel}, ${unread} notifiche da leggere` : menuLabel}
+        aria-label={menuLabel}
         style={{
           position: "relative",
           width: 44,
@@ -193,21 +173,6 @@ export function DashboardNavMenu({
             strokeLinecap="round"
           />
         </svg>
-        {unread > 0 ? (
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              top: 6,
-              right: 6,
-              width: 10,
-              height: 10,
-              borderRadius: 999,
-              background: "#ef4444",
-              boxShadow: "0 0 0 2px #ffffff",
-            }}
-          />
-        ) : null}
       </button>
 
       {mounted && open
