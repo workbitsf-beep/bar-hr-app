@@ -158,7 +158,7 @@ export function CopyWeekPreview({
           </button>
         </div>
 
-        <div style={{ overflowY: "auto", padding: "0 18px 14px", display: "grid", gap: 14, alignContent: "start" }}>
+        <div style={{ overflowY: "auto", padding: "0 18px 14px", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 14, alignContent: "start" }}>
           {left.length ? (
             <div style={{ display: "grid", gap: 6, padding: "12px 14px", borderRadius: 16, border: "1px solid #fcd9a5", background: "#fff8eb", color: "#7a4a06" }}>
               <strong style={{ fontSize: 14 }}>{left.length === 1 ? "1 turno non si può copiare" : `${left.length} turni non si possono copiare`}</strong>
