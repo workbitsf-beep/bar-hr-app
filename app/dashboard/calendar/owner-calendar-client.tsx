@@ -41,7 +41,6 @@ import { isActionFailure, describeActionError } from "@/lib/rule-error";
 import {
   addStandardShiftPresetAction,
   completeTaskAction,
-  copyPreviousWeekShiftsAction,
   createBoardNoteAction,
   createShiftAction,
   createTaskAction,
@@ -82,6 +81,7 @@ import {
 import { showAppToast } from "@/app/components/app-toast";
 import { ActionForm } from "@/app/components/action-form";
 import { CopyWeekReport, copyWeekResultOf, copyWeekSummary, type CopyWeekResult } from "./copy-week-report";
+import { CopyWeekPreview } from "./copy-week-preview";
 import { ShiftDetailTap } from "./shift-detail";
 
 type MemberOption = {
@@ -1537,6 +1537,8 @@ export function OwnerCalendarClient({
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   // The shifts the last "Copia la settimana scorsa" could not bring across.
   const [copyReport, setCopyReport] = useState<{ weekKey: string; result: CopyWeekResult } | null>(null);
+  // The week whose "Copia la settimana scorsa" popup is open.
+  const [copyPreviewWeek, setCopyPreviewWeek] = useState<string | null>(null);
   const [savedShiftDrafts, setSavedShiftDrafts] = useState<ShiftDraft[]>([]);
   // Counts every save that went through, for the composer to start afresh.
   const [savedCount, setSavedCount] = useState(0);
@@ -2625,23 +2627,15 @@ export function OwnerCalendarClient({
   /**
    * The week before, copied as drafts into an empty week: on the phone a week
    * was rebuilt shift by shift, about two hundred taps, while the computer
-   * had this all along.
+   * had this all along. The popup shows the shifts first, to change or take
+   * out (CopyWeekPreview); this reports what it copied.
    */
-  function copyPreviousWeek(weekStart: string) {
-    const formData = new FormData();
-    formData.set("weekStart", weekStart);
-    startTransition(async () => {
-      try {
-        const result = await copyPreviousWeekShiftsAction(formData);
-        throwIfRefused(result);
-        const report = copyWeekResultOf(result);
-        showAppToast(copyWeekSummary(report));
-        setCopyReport(report.left.length ? { weekKey: weekStart, result: report } : null);
-        router.refresh();
-      } catch (error) {
-        setFeedback({ tone: "danger", message: getErrorMessage(error) });
-      }
-    });
+  function handleWeekCopied(weekStart: string, result: unknown) {
+    const report = copyWeekResultOf(result);
+    setCopyPreviewWeek(null);
+    showAppToast(copyWeekSummary(report));
+    setCopyReport(report.left.length ? { weekKey: weekStart, result: report } : null);
+    router.refresh();
   }
 
   function handleCompleteTask(taskId: string) {
@@ -3124,7 +3118,7 @@ export function OwnerCalendarClient({
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => copyPreviousWeek(weekKey)}
+                  onClick={() => setCopyPreviewWeek(weekKey)}
                   style={{
                     minHeight: 46,
                     borderRadius: 16,
@@ -3138,6 +3132,14 @@ export function OwnerCalendarClient({
                 >
                   {isPending ? "Copio…" : "Copia la settimana scorsa"}
                 </button>
+              ) : null}
+
+              {copyPreviewWeek === weekKey ? (
+                <CopyWeekPreview
+                  weekStart={weekKey}
+                  onClose={() => setCopyPreviewWeek(null)}
+                  onCopied={(result) => handleWeekCopied(weekKey, result)}
+                />
               ) : null}
 
               {copyReport && copyReport.weekKey === weekKey ? (

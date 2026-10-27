@@ -10,7 +10,6 @@ import type { ShiftPreset } from "@/lib/shift-presets";
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { toDateInputValueInTimeZone, toTimeInputValueInTimeZone } from "@/lib/time-zone";
 import {
-  copyPreviousWeekShiftsAction,
   createShiftAction,
   moveShiftMemberAction,
   reviewRequestAction,
@@ -19,6 +18,7 @@ import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { PublishWeekPanel } from "./publish-week-panel";
 import { ActionForm } from "@/app/components/action-form";
 import { CopyWeekReport, copyWeekResultOf, copyWeekSummary, type CopyWeekResult } from "./copy-week-report";
+import { CopyWeekPreview } from "./copy-week-preview";
 
 /**
  * The week on a computer: people down the side, days across the top, every
@@ -144,6 +144,7 @@ export function DesktopWeekPlanner({
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   const [copyReport, setCopyReport] = useState<CopyWeekResult | null>(null);
+  const [copyPreviewOpen, setCopyPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const todayKey = toDateInputValueInTimeZone(new Date());
@@ -233,23 +234,12 @@ export function DesktopWeekPlanner({
     });
   }
 
-  function copyPreviousWeek() {
-    const form = new FormData();
-    form.set("weekStart", weekStart);
-    startTransition(async () => {
-      try {
-        const result = await copyPreviousWeekShiftsAction(form);
-        if (isActionFailure(result)) {
-          report(result, "");
-          return;
-        }
-        const copied = copyWeekResultOf(result);
-        report(result, copyWeekSummary(copied));
-        setCopyReport(copied.left.length ? copied : null);
-      } catch (error) {
-        setFeedback({ tone: "bad", text: describeActionError(error) });
-      }
-    });
+  // After the popup that shows the shifts first (CopyWeekPreview).
+  function handleWeekCopied(result: unknown) {
+    const copied = copyWeekResultOf(result);
+    setCopyPreviewOpen(false);
+    report(result, copyWeekSummary(copied));
+    setCopyReport(copied.left.length ? copied : null);
   }
 
   const rangeLabel = (() => {
@@ -291,7 +281,7 @@ export function DesktopWeekPlanner({
           </button>
           {manage ? (
             <>
-              <button type="button" className="wbp-btn" disabled={isPending} onClick={copyPreviousWeek}>
+              <button type="button" className="wbp-btn" disabled={isPending} onClick={() => setCopyPreviewOpen(true)}>
                 Copia settimana prima
               </button>
               <PublishWeekPanel
@@ -315,6 +305,9 @@ export function DesktopWeekPlanner({
       ) : null}
 
       {copyReport ? <CopyWeekReport result={copyReport} onClose={() => setCopyReport(null)} /> : null}
+      {copyPreviewOpen ? (
+        <CopyWeekPreview weekStart={weekStart} onClose={() => setCopyPreviewOpen(false)} onCopied={handleWeekCopied} />
+      ) : null}
 
       <div className="wbp-layout">
         <div className={`wbp-grid${isPending ? " wbp-grid--busy" : ""}`} role="grid" aria-label="Turni della settimana">

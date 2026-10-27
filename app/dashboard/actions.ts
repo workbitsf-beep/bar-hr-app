@@ -5955,14 +5955,198 @@ export async function moveShiftMemberAction(formData: FormData) {
   }
 }
 
+/** One shift "Copia la settimana scorsa" would put in, as the owner sees and edits it first. */
+type CopyWeekItem = {
+  title: string | null;
+  isOnCall: boolean;
+  department: Department | null;
+  /** The day in the week being filled. */
+  dayKey: string;
+  /** "HH:MM"; an end at or before the start runs past midnight. */
+  start: string;
+  end: string;
+  people: { id: string; name: string }[];
+};
+
+function copyItemTimes(item: { dayKey: string; start: string; end: string }) {
+  const startTime = parseDateTimeLocal(`${item.dayKey}T${item.start}`);
+  const endDay = item.end <= item.start ? addDaysToDayKey(item.dayKey, 1) : item.dayKey;
+  return { startTime, endTime: parseDateTimeLocal(`${endDay}T${item.end}`) };
+}
+
+const copyDayLabel = new Intl.DateTimeFormat("it-IT", { weekday: "short", day: "numeric", timeZone: APP_TIME_ZONE });
+
+function copyItemWhen(item: { dayKey: string; start: string; end: string }) {
+  return `${copyDayLabel.format(copyItemTimes(item).startTime)} ${item.start}–${item.end}`;
+}
+
+/**
+ * Works out, without writing anything, what copying the week before onto the
+ * week starting `weekStart` would put in. A person is left out when the day
+ * is past, when they are no longer in the venue, or when they are off or busy
+ * then (holidays, a permit, unavailability, another shift); the others on the
+ * same shift still get it, and everything left out comes back in `left`, by
+ * day, person and reason. A shift already there (pressed twice) is counted,
+ * not planned again.
+ */
+async function planPreviousWeekCopy(barId: string, staff: StaffAccess, weekStart: string) {
+  const sourceStart = parseDateTimeLocal(`${addDaysToDayKey(weekStart, -7)}T00:00`);
+  const sourceEnd = parseDateTimeLocal(`${weekStart}T00:00`);
+  const todayKey = toDateInputValueInTimeZone(new Date());
+
+  const [sources, activeMembers] = await Promise.all([
+    prisma.shift.findMany({
+      where: { barId, startTime: { gte: sourceStart, lt: sourceEnd }, ...shiftScopeWhere(staff, barId) },
+      orderBy: { startTime: "asc" },
+      select: {
+        title: true,
+        startTime: true,
+        endTime: true,
+        isOnCall: true,
+        department: true,
+        assignments: { select: { userId: true, user: { select: { firstName: true, lastName: true } } } },
+      },
+    }),
+    prisma.employeeBar.findMany({
+      where: { barId, isActive: true },
+      select: { userId: true },
+    }),
+  ]);
+
+  const active = new Set(activeMembers.map((member) => member.userId));
+  const items: CopyWeekItem[] = [];
+  let alreadyThere = 0;
+  // What will not come across, said to the owner by person and day: a copy
+  // that dropped a shift in silence looked like a finished week.
+  const left: string[] = [];
+
+  for (const source of sources) {
+    const dayKey = addDaysToDayKey(toDateInputValueInTimeZone(source.startTime), 7);
+    const startTime = sameTimeOnDay(source.startTime, dayKey);
+    const endTime = new Date(startTime.getTime() + (source.endTime.getTime() - source.startTime.getTime()));
+    const slot = { dayKey, start: toTimeInputValueInTimeZone(startTime), end: toTimeInputValueInTimeZone(endTime) };
+    const when = copyItemWhen(slot);
+    const names = new Map(source.assignments.map((a) => [a.userId, `${a.user.firstName} ${a.user.lastName}`.trim()]));
+
+    if (dayKey < todayKey) {
+      left.push(`${when}: giorno già passato`);
+      continue;
+    }
+
+    const gone = source.assignments.filter((a) => !active.has(a.userId)).map((a) => names.get(a.userId));
+    for (const name of gone) left.push(`${when} · ${name}: non lavora più nel locale`);
+    let employeeIds = source.assignments.map((a) => a.userId).filter((id) => active.has(id));
+    if (employeeIds.length === 0) continue;
+
+    // Already copied (pressed twice): the same people at the same hours.
+    const same = await prisma.shift.findFirst({
+      where: { barId, startTime, endTime, assignments: { some: { userId: { in: employeeIds } } } },
+      select: { id: true },
+    });
+    if (same) {
+      alreadyThere += 1;
+      continue;
+    }
+
+    const conflicts = await findShiftAssignmentConflicts({
+      barId,
+      employeeIds,
+      startTime,
+      endTime,
+      isOnCall: source.isOnCall,
+    });
+    for (const [userId, entry] of conflicts) {
+      left.push(`${when} · ${entry.name}: ${Array.from(entry.reasons).join(", ")}`);
+      employeeIds = employeeIds.filter((id) => id !== userId);
+    }
+    // The others on the shift still get it.
+    if (employeeIds.length === 0) continue;
+
+    items.push({
+      title: source.title,
+      isOnCall: source.isOnCall,
+      department: source.department,
+      ...slot,
+      people: employeeIds.map((id) => ({ id, name: names.get(id) ?? "" })),
+    });
+  }
+
+  return { items, alreadyThere, left };
+}
+
+/**
+ * What "Copia la settimana scorsa" is about to put in, shown in a popup to
+ * look over, change and trim before anything is written. Copying used to fill
+ * the week at once, and a wrong shift then had to be found and fixed by hand.
+ */
+export async function previewPreviousWeekShiftsAction(formData: FormData) {
+  try {
+    const { staff, activeBarId, activeBarActivityType } = await getActionContext();
+    ensureCan(staff, "shifts");
+
+    if (!activeBarId) {
+      throw new Error("No active bar selected");
+    }
+
+    await ensureCompanyShiftsEnabled(activeBarId, activeBarActivityType);
+
+    const weekStart = String(formData.get("weekStart") ?? "").trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+      throw new RuleError("Settimana non valida");
+    }
+
+    return { ok: true, ...(await planPreviousWeekCopy(activeBarId, staff, weekStart)) };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** The popup's list, as sent back: anything that does not look like a shift of that week is refused. */
+function parseCopyPlan(raw: string, weekStart: string): CopyWeekItem[] {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    throw new RuleError("Turni da copiare non validi");
+  }
+  if (!Array.isArray(value) || value.length > 500) {
+    throw new RuleError("Turni da copiare non validi");
+  }
+  const weekEnd = addDaysToDayKey(weekStart, 6);
+  const clock = /^([01]\d|2[0-3]):[0-5]\d$/;
+  return value.map((entry) => {
+    const item = (entry ?? {}) as Record<string, unknown>;
+    const dayKey = String(item.dayKey ?? "");
+    const start = String(item.start ?? "");
+    const end = String(item.end ?? "");
+    const people = Array.isArray(item.people) ? item.people.map((id) => String(id)).filter(Boolean) : [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey) || dayKey < weekStart || dayKey > weekEnd || !clock.test(start) || !clock.test(end)) {
+      throw new RuleError("Turni da copiare non validi");
+    }
+    if (start === end) {
+      throw new RuleError(`${copyItemWhen({ dayKey, start, end })}: inizio e fine sono uguali`);
+    }
+    return {
+      title: typeof item.title === "string" && item.title.trim() ? item.title.trim().slice(0, 120) : null,
+      isOnCall: item.isOnCall === true,
+      department: parseDepartment(typeof item.department === "string" ? item.department : null),
+      dayKey,
+      start,
+      end,
+      people: Array.from(new Set(people)).map((id) => ({ id, name: "" })),
+    };
+  });
+}
+
 /**
  * Copies last week's shifts onto the week that starts on `weekStart`, as
- * drafts to check and publish. A person is left out when the day is past,
- * when they are no longer in the venue, or when they are off or busy then
- * (holidays, a permit, unavailability, another shift); the others on the
- * same shift still get it, and everything left out comes back in `left`,
- * by day, person and reason, for the owner to see. Pressing it twice copies
- * nothing twice.
+ * drafts to check and publish. With `plan`, it puts in the list the owner
+ * looked over in the popup, hours changed and shifts or people taken out;
+ * without, the week before as it was. Either way each shift goes through the
+ * same checks again (someone may have asked for a day off meanwhile, or the
+ * new hours may clash), and whoever does not fit comes back in `left`.
+ * Pressing it twice copies nothing twice.
  */
 export async function copyPreviousWeekShiftsAction(formData: FormData) {
   try {
@@ -5981,55 +6165,37 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
       throw new RuleError("Settimana non valida");
     }
 
-    const sourceStart = parseDateTimeLocal(`${addDaysToDayKey(weekStart, -7)}T00:00`);
-    const sourceEnd = parseDateTimeLocal(`${weekStart}T00:00`);
-    const todayKey = toDateInputValueInTimeZone(new Date());
-
-    const [sources, activeMembers] = await Promise.all([
-      prisma.shift.findMany({
-        where: { barId: activeBarId, startTime: { gte: sourceStart, lt: sourceEnd }, ...shiftScopeWhere(staff, activeBarId) },
-        orderBy: { startTime: "asc" },
-        select: {
-          title: true,
-          startTime: true,
-          endTime: true,
-          isOnCall: true,
-          assignments: { select: { userId: true, user: { select: { firstName: true, lastName: true } } } },
-        },
-      }),
-      prisma.employeeBar.findMany({
-        where: { barId: activeBarId, isActive: true },
-        select: { userId: true },
-      }),
-    ]);
-
-    const active = new Set(activeMembers.map((member) => member.userId));
-    let created = 0;
+    const rawPlan = formData.get("plan");
+    let items: CopyWeekItem[];
     let alreadyThere = 0;
-    // What did not come across, said to the owner by person and day: a copy
-    // that dropped a shift in silence looked like a finished week.
     const left: string[] = [];
-    const dayLabel = new Intl.DateTimeFormat("it-IT", { weekday: "short", day: "numeric", timeZone: APP_TIME_ZONE });
-    const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: APP_TIME_ZONE });
 
-    for (const source of sources) {
-      const dayKey = addDaysToDayKey(toDateInputValueInTimeZone(source.startTime), 7);
-      const startTime = sameTimeOnDay(source.startTime, dayKey);
-      const endTime = new Date(startTime.getTime() + (source.endTime.getTime() - source.startTime.getTime()));
-      const when = `${dayLabel.format(startTime)} ${clock.format(startTime)}–${clock.format(endTime)}`;
-      const names = new Map(source.assignments.map((a) => [a.userId, `${a.user.firstName} ${a.user.lastName}`.trim()]));
+    if (typeof rawPlan === "string") {
+      items = parseCopyPlan(rawPlan, weekStart);
+      const everyone = Array.from(new Set(items.flatMap((item) => item.people.map((person) => person.id))));
+      await ensureUsersBelongToBar(activeBarId, everyone);
+      await ensureMembersInScope(staff, "shifts", activeBarId, everyone);
+    } else {
+      const plan = await planPreviousWeekCopy(activeBarId, staff, weekStart);
+      items = plan.items;
+      alreadyThere = plan.alreadyThere;
+      left.push(...plan.left);
+    }
 
-      if (dayKey < todayKey) {
+    const todayKey = toDateInputValueInTimeZone(new Date());
+    let created = 0;
+
+    for (const item of items) {
+      const { startTime, endTime } = copyItemTimes(item);
+      const when = copyItemWhen(item);
+      let employeeIds = item.people.map((person) => person.id);
+      if (employeeIds.length === 0) continue;
+
+      if (item.dayKey < todayKey) {
         left.push(`${when}: giorno già passato`);
         continue;
       }
 
-      const gone = source.assignments.filter((a) => !active.has(a.userId)).map((a) => names.get(a.userId));
-      for (const name of gone) left.push(`${when} · ${name}: non lavora più nel locale`);
-      let employeeIds = source.assignments.map((a) => a.userId).filter((id) => active.has(id));
-      if (employeeIds.length === 0) continue;
-
-      // Already copied (pressed twice): the same people at the same hours.
       const same = await prisma.shift.findFirst({
         where: { barId: activeBarId, startTime, endTime, assignments: { some: { userId: { in: employeeIds } } } },
         select: { id: true },
@@ -6044,21 +6210,21 @@ export async function copyPreviousWeekShiftsAction(formData: FormData) {
         employeeIds,
         startTime,
         endTime,
-        isOnCall: source.isOnCall,
+        isOnCall: item.isOnCall,
       });
       for (const [userId, entry] of conflicts) {
         left.push(`${when} · ${entry.name}: ${Array.from(entry.reasons).join(", ")}`);
         employeeIds = employeeIds.filter((id) => id !== userId);
       }
-      // The others on the shift still get it.
       if (employeeIds.length === 0) continue;
 
       await prisma.shift.create({
         data: {
-          title: source.title,
+          title: item.title,
           startTime,
           endTime,
-          isOnCall: source.isOnCall,
+          isOnCall: item.isOnCall,
+          department: item.department,
           barId: activeBarId,
           assignedToId: employeeIds[0],
           createdById: session.user.id,
