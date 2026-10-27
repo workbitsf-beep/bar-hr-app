@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { describeActionError, isActionFailure } from "@/lib/rule-error";
 import { copyPreviousWeekShiftsAction, previewPreviousWeekShiftsAction } from "../actions";
@@ -17,14 +17,14 @@ type PreviewItem = {
   people: { id: string; name: string }[];
 };
 
-type Row = PreviewItem & { key: string; removed: boolean };
+type Row = PreviewItem & { key: string; selected: boolean };
 
 /**
- * "Copia la settimana scorsa", looked over first: the shifts it would put in,
- * by day, in a popup. Hours can be changed, a person or a whole shift taken
- * out (and put back), and only then "Copia" writes them as drafts. Copying
- * used to fill the week at once, and a wrong shift had to be found and fixed
- * by hand afterwards.
+ * "Copia la settimana scorsa" as a pick list: last week's shifts, by day,
+ * none chosen at first. The owner taps the ones worth keeping (or a whole
+ * day, or all), can swipe one open to change hours or people, and "Copia"
+ * writes only those as drafts; the rest of the week is added by hand from the
+ * calendar as usual.
  */
 export function CopyWeekPreview({
   weekStart,
@@ -56,7 +56,7 @@ export function CopyWeekPreview({
           return;
         }
         const value = result as { items?: PreviewItem[]; left?: string[]; alreadyThere?: number };
-        setRows((value.items ?? []).map((item, index) => ({ ...item, key: String(index), removed: false })));
+        setRows((value.items ?? []).map((item, index) => ({ ...item, key: String(index), selected: false })));
         setLeft(value.left ?? []);
         setAlreadyThere(value.alreadyThere ?? 0);
       })
@@ -74,7 +74,7 @@ export function CopyWeekPreview({
     setRows((current) => (current ?? []).map((row) => (row.key === key ? { ...row, ...patch } : row)));
   }
 
-  const kept = (rows ?? []).filter((row) => !row.removed && row.people.length > 0 && row.start !== row.end);
+  const kept = (rows ?? []).filter((row) => row.selected && row.people.length > 0 && row.start !== row.end);
 
   function copy() {
     const form = new FormData();
@@ -107,6 +107,12 @@ export function CopyWeekPreview({
       }
     });
   }
+
+  function selectWhere(match: (row: Row) => boolean, selected: boolean) {
+    setRows((current) => (current ?? []).map((row) => (match(row) ? { ...row, selected } : row)));
+  }
+
+  const allSelected = Boolean(rows?.length) && (rows ?? []).every((row) => row.selected);
 
   const dayTitle = new Intl.DateTimeFormat("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
   const days = Array.from(new Set((rows ?? []).map((row) => row.dayKey)));
@@ -146,9 +152,20 @@ export function CopyWeekPreview({
             <span style={{ fontSize: 13, fontWeight: 700, color: "#8a84a8" }}>
               {rows === null
                 ? "Preparo i turni…"
-                : `${kept.length === 1 ? "1 turno" : `${kept.length} turni`} da copiare · scorri a destra per cambiare, a sinistra per togliere`}
+                : rows.length === 0
+                  ? "Niente da scegliere"
+                  : "Tocca i turni che vuoi · scorri a destra per cambiarli · il resto lo aggiungi tu"}
             </span>
           </span>
+          {rows?.length ? (
+            <button
+              type="button"
+              onClick={() => selectWhere(() => true, !allSelected)}
+              style={{ ...buttonStyle("edit"), minHeight: 36, padding: "0 12px", fontSize: 13.5, flex: "0 0 auto" }}
+            >
+              {allSelected ? "Nessuno" : "Tutti"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onClose}
@@ -177,19 +194,30 @@ export function CopyWeekPreview({
             </p>
           ) : null}
 
-          {days.map((dayKey) => (
-            <section key={dayKey} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8 }}>
-              <span style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "0 2px", fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a84a8" }}>
-                {dayTitle.format(new Date(`${dayKey}T12:00:00Z`))}
-                <span>{(rows ?? []).filter((row) => row.dayKey === dayKey && !row.removed).length}</span>
-              </span>
-              {(rows ?? [])
-                .filter((row) => row.dayKey === dayKey)
-                .map((row) => (
+          {days.map((dayKey) => {
+            const dayRows = (rows ?? []).filter((row) => row.dayKey === dayKey);
+            const chosen = dayRows.filter((row) => row.selected).length;
+            const whole = chosen === dayRows.length;
+            return (
+              <section key={dayKey} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8 }}>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "0 2px" }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a84a8" }}>
+                    {dayTitle.format(new Date(`${dayKey}T12:00:00Z`))}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => selectWhere((row) => row.dayKey === dayKey, !whole)}
+                    style={{ border: 0, background: "transparent", padding: "4px 2px", fontSize: 12.5, fontWeight: 800, color: "#6d28d9", cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    {whole ? "Togli il giorno" : chosen ? `${chosen} di ${dayRows.length} · tutto il giorno` : "Tutto il giorno"}
+                  </button>
+                </span>
+                {dayRows.map((row) => (
                   <ShiftRow key={row.key} row={row} onChange={(patch) => change(row.key, patch)} />
                 ))}
-            </section>
-          ))}
+              </section>
+            );
+          })}
         </div>
 
         <div style={{ display: "grid", gap: 8, padding: "12px 18px calc(14px + env(safe-area-inset-bottom))", borderTop: "1px solid #ebe8f6", background: "#ffffff" }}>
@@ -203,7 +231,7 @@ export function CopyWeekPreview({
               Annulla
             </button>
             <button type="button" disabled={isPending || kept.length === 0} onClick={copy} style={{ ...buttonStyle("primary"), opacity: kept.length === 0 ? 0.5 : 1 }}>
-              {isPending ? "Copio…" : kept.length === 1 ? "Copia 1 turno" : `Copia ${kept.length} turni`}
+              {isPending ? "Copio…" : kept.length === 0 ? "Scegli i turni" : kept.length === 1 ? "Copia 1 turno" : `Copia ${kept.length} turni`}
             </button>
           </div>
         </div>
@@ -216,19 +244,8 @@ export function CopyWeekPreview({
 
 function ShiftRow({ row, onChange }: { row: Row; onChange: (patch: Partial<Row>) => void }) {
   const [editing, setEditing] = useState(false);
-
-  if (row.removed) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 48, padding: "0 6px 0 14px", borderRadius: 14, border: "1.5px dashed #e2deef" }}>
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5, color: "#a49fc0", textDecoration: "line-through" }}>
-          {row.start}–{row.end} · {row.people.map((person) => person.name).join(", ") || "nessuno"}
-        </span>
-        <button type="button" onClick={() => onChange({ removed: false })} style={{ ...buttonStyle("edit"), minHeight: 36, padding: "0 12px", fontSize: 13.5 }}>
-          Rimetti
-        </button>
-      </div>
-    );
-  }
+  // A mouse drag that opens the swipe still ends in a click; only a tap toggles.
+  const pressX = useRef<number | null>(null);
 
   const empty = row.people.length === 0;
   const overnight = row.end < row.start;
@@ -272,11 +289,11 @@ function ShiftRow({ row, onChange }: { row: Row; onChange: (patch: Partial<Row>)
             type="button"
             onClick={() => {
               setEditing(false);
-              onChange({ removed: true });
+              onChange({ selected: false });
             }}
-            style={{ ...buttonStyle("danger"), minHeight: 40 }}
+            style={{ ...buttonStyle("plain"), minHeight: 40 }}
           >
-            Togli turno
+            Non copiarlo
           </button>
           <button type="button" onClick={() => setEditing(false)} style={{ ...buttonStyle("edit"), minHeight: 40 }}>
             Fatto
@@ -287,22 +304,31 @@ function ShiftRow({ row, onChange }: { row: Row; onChange: (patch: Partial<Row>)
   }
 
   const note = [row.title, row.isOnCall ? "Reperibilità" : null, overnight ? "fino al giorno dopo" : null].filter(Boolean).join(" · ");
+  const on = row.selected;
 
   return (
     <SwipeRevealAction
-      resetKey={`${row.key}-${row.start}-${row.end}-${row.people.length}`}
+      resetKey={`${row.key}-${row.start}-${row.end}-${row.people.length}-${on}`}
       revealWidth={62}
       actionInset={8}
       borderRadius={16}
       leadingAction={
-        <button type="button" aria-label="Modifica turno" onClick={() => setEditing(true)} style={swipeButtonStyle("#7c3aed", "#ddd6fe")}>
+        <button
+          type="button"
+          aria-label="Modifica turno"
+          onClick={() => {
+            onChange({ selected: true });
+            setEditing(true);
+          }}
+          style={swipeButtonStyle("#7c3aed", "#ddd6fe")}
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="m14.5 5.5 4 4M4 20l4.5-1 10.5-10.5a2.8 2.8 0 0 0-4-4L4.5 15 4 20Z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       }
       action={
-        <button type="button" aria-label="Togli turno" onClick={() => onChange({ removed: true })} style={swipeButtonStyle("#ef4444", "#fecaca")}>
+        <button type="button" aria-label="Non copiarlo" onClick={() => onChange({ selected: false })} style={swipeButtonStyle("#ef4444", "#fecaca")}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -310,23 +336,55 @@ function ShiftRow({ row, onChange }: { row: Row; onChange: (patch: Partial<Row>)
       }
     >
       <div
+        aria-pressed={on}
+        aria-label={`${on ? "Scelto" : "Non scelto"}: ${row.start}–${row.end} ${row.people.map((person) => person.name).join(", ")}`}
+        onPointerDown={(event) => {
+          pressX.current = event.clientX;
+        }}
+        onClick={(event) => {
+          if (pressX.current !== null && Math.abs(event.clientX - pressX.current) > 8) return;
+          onChange({ selected: !on });
+        }}
         style={{
           display: "grid",
-          gridTemplateColumns: "58px minmax(0, 1fr)",
+          gridTemplateColumns: "24px 52px minmax(0, 1fr)",
           alignItems: "center",
           gap: 12,
           minHeight: 60,
           padding: "10px 14px",
           borderRadius: 16,
-          background: "#ffffff",
-          border: `1.5px solid ${empty ? "#fecaca" : "#ebe8f6"}`,
+          background: on ? "#ffffff" : "#fbfaff",
+          border: `1.5px solid ${on ? (empty ? "#fecaca" : "#a78bfa") : "#ebe8f6"}`,
+          cursor: "pointer",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          transition: "border-color 140ms ease, background 140ms ease",
         }}
       >
-        <span style={{ display: "grid", gap: 1, paddingRight: 12, borderRight: "1.5px solid #efecff", fontVariantNumeric: "tabular-nums" }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 999,
+            display: "grid",
+            placeItems: "center",
+            border: on ? 0 : "2px solid #d4cfe8",
+            background: on ? "linear-gradient(135deg, #5e4ae3, #8b5cf6)" : "#ffffff",
+            color: "#ffffff",
+          }}
+        >
+          {on ? (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : null}
+        </span>
+        <span style={{ display: "grid", gap: 1, paddingRight: 12, borderRight: "1.5px solid #efecff", fontVariantNumeric: "tabular-nums", opacity: on ? 1 : 0.55 }}>
           <strong style={{ fontSize: 15.5, color: "#16161d" }}>{row.start}</strong>
           <span style={{ fontSize: 13, fontWeight: 700, color: "#8a84a8" }}>{row.end}</span>
         </span>
-        <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
+        <span style={{ display: "grid", gap: 2, minWidth: 0, opacity: on ? 1 : 0.55 }}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 14.5, fontWeight: 800, color: empty ? "#b3202f" : "#16161d" }}>
             {empty ? "Nessuno: non verrà copiato" : row.people.map((person) => person.name).join(", ")}
           </span>
