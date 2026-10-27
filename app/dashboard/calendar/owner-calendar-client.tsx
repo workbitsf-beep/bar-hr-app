@@ -1062,6 +1062,16 @@ function renderDayShiftRow(
  * Bold is spent on one thing only - your own hours and your own name - so a
  * glance down the week finds where you are working.
  */
+/**
+ * A week row can stand for several shifts with the same hours (they are
+ * grouped to save room). Swiping one of those would change only the first, so
+ * only a row that is exactly one shift swipes; a grouped one opens the day.
+ */
+function isSingleShift(day: { shifts: ShiftItem[] }, shift: ShiftItem) {
+  const own = day.shifts.find((entry) => entry.id === shift.id);
+  return Boolean(own) && own!.assignments.length === shift.assignments.length;
+}
+
 function renderWeekShiftLine(
   shift: ShiftItem,
   locale: string,
@@ -1075,6 +1085,7 @@ function renderWeekShiftLine(
     <div
       key={shift.id}
       className="workbit-week-shift-line"
+      data-swipe-surface
       role="button"
       tabIndex={0}
       onClick={(event) => {
@@ -1152,6 +1163,7 @@ function renderCompactShiftCard(
     <div
       key={shift.id}
       className="workbit-day-shift-row"
+      data-swipe-surface
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
       onClick={(event) => {
@@ -2920,7 +2932,8 @@ export function OwnerCalendarClient({
                                     setActiveCalendarModal("shifts");
                                     setEditingShiftId(null);
                                   }),
-                                  day.date
+                                  day.date,
+                                  isSingleShift(day, shift)
                                 )
                               )}
                         </div>,
@@ -3329,7 +3342,8 @@ export function OwnerCalendarClient({
                               setActiveCalendarModal("shifts");
                               setEditingShiftId(null);
                             }),
-                            day.date
+                            day.date,
+                            isSingleShift(day, shift)
                           )
                         )}
                       </div>
@@ -3506,7 +3520,8 @@ export function OwnerCalendarClient({
                               setActiveCalendarModal("shifts");
                               setEditingShiftId(null);
                               }),
-                              day.date
+                              day.date,
+                              isSingleShift(day, shift)
                             )
                           );
                         }
@@ -4148,13 +4163,7 @@ export function OwnerCalendarClient({
                   ) : (
                     <div className="dashboard-scroll-list" style={{ display: "grid", gap: 7 }}>
                       {day.shifts.map((shift) => renderShiftSwipeActions(shift, (
-                        <ShiftDetailTap
-                          shift={shift}
-                          locale={locale}
-                          currentUserId={currentUserId}
-                          onEdit={features.shifts && !isShiftPastDay(shift, todayKey) ? () => openShiftEditor(shift.id, day.date) : undefined}
-                          onDelete={features.shifts && !isShiftPastDay(shift, todayKey) ? () => handleDeleteShift(shift.id) : undefined}
-                        >{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
+                        <ShiftDetailTap shift={shift} locale={locale} currentUserId={currentUserId}>{renderDayShiftRow(shift, locale, sharedFirstNames, currentUserId, dayOverlaps.clashing.has(shift.id))}</ShiftDetailTap>
                       ), day.date, true))}
                     </div>
                   )}

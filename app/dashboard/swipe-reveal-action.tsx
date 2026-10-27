@@ -46,6 +46,8 @@ export function SwipeRevealAction({
   const touchIdRef = useRef<number | null>(null);
   const horizontalDragRef = useRef(false);
   const actionTriggeredRef = useRef(false);
+  // A mouse drag ends in a click on the row; that click must not open it.
+  const swallowClickRef = useRef(false);
   const [revealedSide, setRevealedSide] = useState<RevealedSide>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -191,6 +193,12 @@ export function SwipeRevealAction({
 
   function finishDrag(clientX: number) {
     const deltaX = clientX - startXRef.current;
+    if (horizontalDragRef.current) {
+      swallowClickRef.current = true;
+      window.setTimeout(() => {
+        swallowClickRef.current = false;
+      }, 400);
+    }
     const maxOffset = leadingAction ? getFullSwipeThreshold() + 18 : 0;
     const finalRawOffset = Math.max(
       -getFullSwipeThreshold() - 18,
@@ -226,10 +234,13 @@ export function SwipeRevealAction({
     horizontalDragRef.current = false;
   }
 
+  // A row that is itself tappable (it opens a detail) marks itself
+  // data-swipe-surface: the swipe still starts on it, and the tap still works.
+  // Without the mark every tappable shift row blocked its own swipe.
   function isInteractiveTarget(target: EventTarget | null) {
-    return target instanceof Element && Boolean(
-      target.closest("button, a, form, input, select, textarea, [role='button'], [data-swipe-ignore]")
-    );
+    if (!(target instanceof Element)) return false;
+    const hit = target.closest("button, a, form, input, select, textarea, [role='button'], [data-swipe-ignore]");
+    return Boolean(hit) && !hit?.hasAttribute("data-swipe-surface");
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -423,6 +434,21 @@ export function SwipeRevealAction({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onDragStart={(event) => event.preventDefault()}
+        onClickCapture={(event) => {
+          if (swallowClickRef.current) {
+            swallowClickRef.current = false;
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+          // A tap on a row whose actions are showing closes them instead of opening the row.
+          if (revealedSide && !(event.target instanceof Element && event.target.closest("button, a, input, select, textarea"))) {
+            event.preventDefault();
+            event.stopPropagation();
+            setRevealedSide(null);
+            setDragOffset(0);
+          }
+        }}
         style={{
           position: "relative",
           zIndex: 1,
