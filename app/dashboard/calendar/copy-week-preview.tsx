@@ -19,6 +19,42 @@ type PreviewItem = {
 
 type Row = PreviewItem & { key: string; selected: boolean };
 
+type PreviewResult = { items?: PreviewItem[]; left?: string[]; alreadyThere?: number };
+
+/** How long a fetched preview is trusted before the popup asks again. */
+const FRESH_MS = 60_000;
+const previewCache = new Map<string, { at: number; promise: Promise<unknown>; value?: unknown }>();
+
+/**
+ * Starts loading the week's preview before the popup opens, so it opens full.
+ * The calendar calls it when the "Copia" button appears and again on press;
+ * a fresh entry is reused, so repeated calls cost nothing.
+ */
+export function prefetchCopyWeekPreview(weekStart: string, force = false) {
+  const cached = previewCache.get(weekStart);
+  if (cached && !force && Date.now() - cached.at < FRESH_MS) return cached.promise;
+  const form = new FormData();
+  form.set("weekStart", weekStart);
+  const entry: { at: number; promise: Promise<unknown>; value?: unknown } = { at: Date.now(), promise: Promise.resolve() };
+  entry.promise = previewPreviousWeekShiftsAction(form).then(
+    (result) => {
+      if (isActionFailure(result)) previewCache.delete(weekStart);
+      else entry.value = result;
+      return result;
+    },
+    (caught) => {
+      previewCache.delete(weekStart);
+      throw caught;
+    },
+  );
+  previewCache.set(weekStart, entry);
+  return entry.promise;
+}
+
+function toRows(value: PreviewResult) {
+  return (value.items ?? []).map((item, index) => ({ ...item, key: String(index), selected: false }));
+}
+
 const INK = "#16161d";
 const MUTED = "#8a84a8";
 const VIOLET = "#6d5ce7";
@@ -41,18 +77,22 @@ export function CopyWeekPreview({
   /** The copy's result, for the caller's toast and "not copied" report. */
   onCopied: (result: unknown) => void;
 }) {
-  const [rows, setRows] = useState<Row[] | null>(null);
-  const [left, setLeft] = useState<string[]>([]);
-  const [alreadyThere, setAlreadyThere] = useState(0);
+  // Already fetched (the button prefetches): the popup opens full, no loading state.
+  const [ready] = useState(() => {
+    const cached = previewCache.get(weekStart);
+    return cached?.value && Date.now() - cached.at < FRESH_MS ? (cached.value as PreviewResult) : null;
+  });
+  const [rows, setRows] = useState<Row[] | null>(() => (ready ? toRows(ready) : null));
+  const [left, setLeft] = useState<string[]>(() => ready?.left ?? []);
+  const [alreadyThere, setAlreadyThere] = useState(() => ready?.alreadyThere ?? 0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   useOverlayLock(true);
 
   useEffect(() => {
-    const form = new FormData();
-    form.set("weekStart", weekStart);
+    if (ready) return;
     let gone = false;
-    previewPreviousWeekShiftsAction(form)
+    prefetchCopyWeekPreview(weekStart)
       .then((result) => {
         if (gone) return;
         if (isActionFailure(result)) {
@@ -60,8 +100,8 @@ export function CopyWeekPreview({
           setRows([]);
           return;
         }
-        const value = result as { items?: PreviewItem[]; left?: string[]; alreadyThere?: number };
-        setRows((value.items ?? []).map((item, index) => ({ ...item, key: String(index), selected: false })));
+        const value = result as PreviewResult;
+        setRows(toRows(value));
         setLeft(value.left ?? []);
         setAlreadyThere(value.alreadyThere ?? 0);
       })
@@ -73,7 +113,7 @@ export function CopyWeekPreview({
     return () => {
       gone = true;
     };
-  }, [weekStart]);
+  }, [weekStart, ready]);
 
   function change(key: string, patch: Partial<Row>) {
     setRows((current) => (current ?? []).map((row) => (row.key === key ? { ...row, ...patch } : row)));
@@ -112,6 +152,7 @@ export function CopyWeekPreview({
           setError(describeActionError(result));
           return;
         }
+        previewCache.delete(weekStart);
         onCopied(result);
       } catch (caught) {
         setError(describeActionError(caught));
@@ -134,30 +175,30 @@ export function CopyWeekPreview({
         zIndex: 1200,
         background: "rgba(22, 22, 29, 0.42)",
         display: "flex",
-        alignItems: "flex-end",
+        alignItems: "center",
         justifyContent: "center",
+        padding: "max(16px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom))",
       }}
     >
       <div
         onClick={(event) => event.stopPropagation()}
         style={{
-          width: "min(600px, 100%)",
-          maxHeight: "92dvh",
+          width: "min(560px, 100%)",
+          maxHeight: "min(86dvh, 780px)",
           display: "grid",
           gridTemplateRows: "auto minmax(0, 1fr) auto",
           background: "#f4f3fa",
-          borderRadius: "26px 26px 0 0",
-          boxShadow: "0 -12px 40px rgba(30, 20, 70, 0.18)",
+          borderRadius: 26,
+          boxShadow: "0 24px 60px rgba(30, 20, 70, 0.28)",
           overflow: "hidden",
         }}
       >
-        <div style={{ display: "grid", gap: 14, padding: "10px 20px 14px", background: "#f4f3fa", borderBottom: `1px solid #e9e6f5` }}>
-          <span aria-hidden="true" style={{ justifySelf: "center", width: 38, height: 5, borderRadius: 999, background: "#d9d5ea" }} />
+        <div style={{ display: "grid", gap: 14, padding: "18px 20px 14px", background: "#f4f3fa", borderBottom: `1px solid #e9e6f5` }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <span style={{ display: "grid", gap: 3, minWidth: 0 }}>
               <strong style={{ fontSize: 20, letterSpacing: "-0.02em", color: INK }}>Copia la settimana scorsa</strong>
               <span style={{ fontSize: 13.5, color: MUTED }}>
-                {rows === null ? "Preparo i turni…" : total === 0 ? "Niente da scegliere" : "Scegli i turni da ripetere, il resto lo aggiungi tu"}
+                {rows === null ? "Scegli i turni da ripetere, il resto lo aggiungi tu" : total === 0 ? "Niente da scegliere" : "Scegli i turni da ripetere, il resto lo aggiungi tu"}
               </span>
             </span>
             <button
@@ -193,6 +234,27 @@ export function CopyWeekPreview({
                   <li key={line}>{line}</li>
                 ))}
               </ul>
+            </div>
+          ) : null}
+
+          {rows === null ? (
+            <div aria-hidden="true" style={{ display: "grid", gap: 8 }}>
+              <span style={{ width: 150, height: 10, margin: "2px 6px", borderRadius: 999, background: "#e6e3f2" }} />
+              <div style={{ borderRadius: 20, background: "#ffffff", border: "1px solid #e9e6f5", overflow: "hidden" }}>
+                {[0, 1, 2].map((index) => (
+                  <div
+                    key={index}
+                    style={{ display: "grid", gridTemplateColumns: "38px minmax(0, 1fr) 26px", alignItems: "center", gap: 12, minHeight: 64, padding: "10px 16px", borderTop: index ? `1px solid ${HAIRLINE}` : 0 }}
+                  >
+                    <span style={{ width: 38, height: 38, borderRadius: 999, background: "#f1effa" }} />
+                    <span style={{ display: "grid", gap: 7 }}>
+                      <span style={{ width: `${62 - index * 12}%`, height: 11, borderRadius: 999, background: "#ece9f7" }} />
+                      <span style={{ width: "34%", height: 9, borderRadius: 999, background: "#f1effa" }} />
+                    </span>
+                    <span style={{ width: 24, height: 24, borderRadius: 999, border: "1.5px solid #ece9f7" }} />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 
@@ -234,7 +296,7 @@ export function CopyWeekPreview({
           ) : null}
         </div>
 
-        <div style={{ display: "grid", gap: 8, padding: "12px 16px calc(14px + env(safe-area-inset-bottom))", borderTop: "1px solid #e9e6f5", background: "#ffffff" }}>
+        <div style={{ display: "grid", gap: 8, padding: "12px 16px 14px", borderTop: "1px solid #e9e6f5", background: "#ffffff" }}>
           {error ? (
             <span role="alert" style={{ fontSize: 13.5, fontWeight: 700, color: "#b3202f" }}>
               {error}

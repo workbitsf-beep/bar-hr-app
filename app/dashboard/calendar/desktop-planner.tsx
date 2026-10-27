@@ -18,7 +18,7 @@ import { ShiftEditorModal } from "../shifts/shift-editor-modal";
 import { PublishWeekPanel } from "./publish-week-panel";
 import { ActionForm } from "@/app/components/action-form";
 import { CopyWeekReport, copyWeekResultOf, copyWeekSummary, type CopyWeekResult } from "./copy-week-report";
-import { CopyWeekPreview } from "./copy-week-preview";
+import { CopyWeekPreview, prefetchCopyWeekPreview } from "./copy-week-preview";
 
 /**
  * The week on a computer: people down the side, days across the top, every
@@ -281,7 +281,14 @@ export function DesktopWeekPlanner({
           </button>
           {manage ? (
             <>
-              <button type="button" className="wbp-btn" disabled={isPending} onClick={() => setCopyPreviewOpen(true)}>
+              <button
+                type="button"
+                className="wbp-btn"
+                disabled={isPending}
+                onPointerEnter={() => void prefetchCopyWeekPreview(weekStart).catch(() => undefined)}
+                onPointerDown={() => void prefetchCopyWeekPreview(weekStart).catch(() => undefined)}
+                onClick={() => setCopyPreviewOpen(true)}
+              >
                 Copia settimana prima
               </button>
               <PublishWeekPanel

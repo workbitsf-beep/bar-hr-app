@@ -81,7 +81,7 @@ import {
 import { showAppToast } from "@/app/components/app-toast";
 import { ActionForm } from "@/app/components/action-form";
 import { CopyWeekReport, copyWeekResultOf, copyWeekSummary, type CopyWeekResult } from "./copy-week-report";
-import { CopyWeekPreview } from "./copy-week-preview";
+import { CopyWeekPreview, prefetchCopyWeekPreview } from "./copy-week-preview";
 import { ShiftDetailTap } from "./shift-detail";
 
 type MemberOption = {
@@ -3118,6 +3118,10 @@ export function OwnerCalendarClient({
                 <button
                   type="button"
                   disabled={isPending}
+                  ref={(node) => {
+                    if (node) void prefetchCopyWeekPreview(weekKey).catch(() => undefined);
+                  }}
+                  onPointerDown={() => void prefetchCopyWeekPreview(weekKey).catch(() => undefined)}
                   onClick={() => setCopyPreviewWeek(weekKey)}
                   style={{
                     minHeight: 46,
