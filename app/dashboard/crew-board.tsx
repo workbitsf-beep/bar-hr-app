@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { cloneElement, isValidElement, useState, type ReactNode } from "react";
 import type { Department } from "@prisma/client";
 import type { DepartmentInfo } from "@/lib/departments";
 import { CrewSwipe } from "./today-crew";
@@ -29,7 +29,7 @@ export function CrewBoard({
 }: {
   rows: CrewRow[];
   departments: DepartmentInfo[];
-  /** "Turno al volo", next to the count. */
+  /** "Turno al volo", next to the count; it opens on the picked tile's department. */
   addShift?: ReactNode;
 }) {
   const [picked, setPicked] = useState<Department | null>(null);
@@ -123,7 +123,7 @@ export function CrewBoard({
                 {inside} su {shown.length} dentro
               </span>
             ) : null}
-            {addShift}
+            {isValidElement<{ preset?: Department | null }>(addShift) ? cloneElement(addShift, { preset: picked }) : addShift}
           </span>
         </div>
 

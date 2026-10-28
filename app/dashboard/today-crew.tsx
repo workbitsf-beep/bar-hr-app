@@ -220,11 +220,14 @@ export function TodayShiftAdd({
   members,
   departments,
   label = "Reparto",
+  preset = null,
 }: {
   members: Array<{ id: string; name: string; department: Department | null }>;
   departments: DepartmentInfo[] | null;
   /** "Reparto", or "Sede" for a company. */
   label?: string;
+  /** The department tile picked above: the new shift starts there. */
+  preset?: Department | null;
 }) {
   const [open, setOpen] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -251,7 +254,7 @@ export function TodayShiftAdd({
           setFrom(start);
           setTo(moveTime(start, 4 * 60));
           setUserId(null);
-          setDepartment(null);
+          setDepartment(preset);
           setError(null);
           setOpen(true);
         }}
@@ -278,7 +281,8 @@ export function TodayShiftAdd({
               aria-pressed={userId === member.id}
               onClick={() => {
                 setUserId(member.id);
-                if (departments && member.department) setDepartment(member.department);
+                // A tile picked above wins over the person's usual department.
+                if (departments && member.department && !preset) setDepartment(member.department);
               }}
             >
               {member.name}
