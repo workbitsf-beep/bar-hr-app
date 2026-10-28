@@ -15,6 +15,8 @@ type SendEmailInput = {
   html: string;
   /** Files sent along, e.g. an invoice's PDF and XML. */
   attachments?: Array<{ filename: string; content: Buffer }>;
+  /** Where a reply goes; support when left out. */
+  replyTo?: string;
 };
 
 export type SendEmailResult =
@@ -137,6 +139,7 @@ export async function sendEmail({
   subject,
   html,
   attachments,
+  replyTo,
 }: SendEmailInput): Promise<SendEmailResult> {
   const recipients = normalizeRecipients(to);
   const emailFrom = getEmailFrom();
@@ -185,7 +188,7 @@ export async function sendEmail({
       subject,
       html,
       // Replies go to support, not to the noreply sender.
-      replyTo: process.env.EMAIL_REPLY_TO?.trim() || process.env.SUPPORT_EMAIL?.trim() || "supporto@workbit.it",
+      replyTo: replyTo || process.env.EMAIL_REPLY_TO?.trim() || process.env.SUPPORT_EMAIL?.trim() || "supporto@workbit.it",
       ...(attachments?.length ? { attachments } : {}),
     });
 

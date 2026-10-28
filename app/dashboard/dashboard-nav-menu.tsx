@@ -27,7 +27,11 @@ const MENU_DOTS: Record<string, string> = {
   "/dashboard/people": "#a855f7",
   "/dashboard/settings": "#64748b",
   "/dashboard/export": "#7e22ce",
+  "/dashboard/consulente": "#7e22ce",
+  "/dashboard/costi": "#16a34a",
 };
+
+const DOWNLOADS = new Set(["/dashboard/export", "/dashboard/consulente"]);
 
 export function DashboardNavMenu({
   navItems,
@@ -377,8 +381,8 @@ export function DashboardNavMenu({
                       // are not the same errand: the report used to sit in the
                       // same list as Corsi and Impostazioni, under a heading
                       // that read "Navigazione".
-                      { label: "", items: navItems.filter((item) => item.href !== "/dashboard/export") },
-                      { label: "Scarica", items: navItems.filter((item) => item.href === "/dashboard/export") },
+                      { label: "", items: navItems.filter((item) => !DOWNLOADS.has(item.href)) },
+                      { label: "Scarica", items: navItems.filter((item) => DOWNLOADS.has(item.href)) },
                     ]
                       .filter((section) => section.items.length > 0)
                       .map((section) => (

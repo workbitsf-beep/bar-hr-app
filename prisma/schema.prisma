@@ -384,6 +384,11 @@ model Bar {
   mainBarId              String?                 @db.Uuid
   mainBar                Bar?                    @relation("BarBranches", fields: [mainBarId], references: [id], onDelete: Cascade)
   branches               Bar[]                   @relation("BarBranches")
+  supplierInvoices       SupplierInvoice[]
+  invoiceUploads         InvoiceUpload[]
+  supplierCategories     SupplierCategory[]
+  priceChecks            PriceCheck[]
+  monthlyRevenues        MonthlyRevenue[]
   legalAcceptances       LegalAcceptance[]
   notifications          Notification[]
   scheduledNotifications ScheduledNotification[]
@@ -543,6 +548,18 @@ model BarSettings {
   eveningStartTime     String?
   eveningEndTime       String?
   standardShiftPresets Json?
+  /// The labour consultant: where the month's attendance is sent, and the
+  /// codes their payroll software uses for each kind of hour.
+  consultantEmail      String?
+  consultantName       String?
+  payrollCodes         Json?
+  /// Supplier invoices received through Openapi (codice destinatario
+  /// USAL8PV): OFF, WAITING (registered, the owner still has to set the code
+  /// at the Agenzia delle Entrate), ACTIVE once the first invoice arrived.
+  invoiceInboxStatus   String        @default("OFF")
+  invoiceInboxFiscalId String?
+  invoiceInboxSince    DateTime?
+  invoiceInboxSyncedAt DateTime?
 }
 
 model Notification {
@@ -606,29 +623,35 @@ model PushToken {
 }
 
 model EmployeeBar {
-  id               String       @id @default(uuid()) @db.Uuid
-  userId           String       @db.Uuid
-  barId            String       @db.Uuid
-  role             Role         @default(EMPLOYEE)
-  hourlyRate       Decimal?     @db.Decimal(10, 2)
-  isActive         Boolean      @default(true)
-  hiredAt          DateTime     @default(now())
-  endedAt          DateTime?
+  id                  String       @id @default(uuid()) @db.Uuid
+  userId              String       @db.Uuid
+  barId               String       @db.Uuid
+  role                Role         @default(EMPLOYEE)
+  hourlyRate          Decimal?     @db.Decimal(10, 2)
+  isActive            Boolean      @default(true)
+  hiredAt             DateTime     @default(now())
+  endedAt             DateTime?
   /// Pro only: where this person works, and where they can lend a hand.
-  department       Department?
-  helpsIn          Department[] @default([])
+  department          Department?
+  helpsIn             Department[] @default([])
   /// Runs the shifts, leave and swaps of their department. Kept for history:
   /// since 13 Oct 2026 a lead is a Responsabile of their department.
-  isDepartmentLead Boolean      @default(false)
+  isDepartmentLead    Boolean      @default(false)
   /// Responsabile / Amministrazione: what the owner lets them do, as keys
   /// (shifts, requests, timelogs, notes, checklists, people, documents,
   /// reports). Ignored for the owner and for employees.
-  permissions      String[]     @default([])
+  permissions         String[]     @default([])
   /// Where those permissions apply: departments (a restaurant's Sala) or
   /// sites (a company's SEDE_2, SEDE_3); empty means the whole venue or company.
-  managesDepartments Department[] @default([])
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bar              Bar          @relation(fields: [barId], references: [id], onDelete: Cascade)
+  managesDepartments  Department[] @default([])
+  /// How the labour consultant knows this person: matricola or codice
+  /// fiscale, written on the monthly export.
+  payrollCode         String?
+  /// Contract hours a week: above them a day's hours are overtime on the
+  /// consultant's export. Null when the owner has not said.
+  contractWeeklyHours Float?
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bar                 Bar          @relation(fields: [barId], references: [id], onDelete: Cascade)
 
   @@unique([userId, barId])
   @@index([userId])
@@ -949,25 +972,25 @@ model CalendarClosure {
 }
 
 model LegalDocument {
-  id           String            @id @default(uuid()) @db.Uuid
-  title        String
-  type         LegalDocumentType
-  version      String
-  revision     Int               @default(1)
-  content      String?
-  fileUrl      String?
-  fileName     String?
-  fileMimeType String?
-  fileSize     Int?
-  fileContent  Bytes?
+  id            String            @id @default(uuid()) @db.Uuid
+  title         String
+  type          LegalDocumentType
+  version       String
+  revision      Int               @default(1)
+  content       String?
+  fileUrl       String?
+  fileName      String?
+  fileMimeType  String?
+  fileSize      Int?
+  fileContent   Bytes?
   /// The PDF was made by Workbit from `content` (lib/legal-pdf.ts) and is
   /// made again when the text changes; false for a PDF uploaded by hand.
-  fileGenerated Boolean          @default(false)
-  isActive     Boolean           @default(true)
-  isRequired   Boolean           @default(true)
-  acceptances  LegalAcceptance[]
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  fileGenerated Boolean           @default(false)
+  isActive      Boolean           @default(true)
+  isRequired    Boolean           @default(true)
+  acceptances   LegalAcceptance[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@index([type, isActive])
   @@index([isActive, isRequired])
@@ -1178,4 +1201,153 @@ model LedgerPayment {
 
   @@index([entryId])
   @@index([paidOn])
+}
+
+/// A supplier's invoice to the venue, read from its FatturaPA XML - uploaded
+/// in the monthly zip from the cassetto fiscale, or received through Openapi.
+model SupplierInvoice {
+  id              String                @id @default(uuid()) @db.Uuid
+  barId           String                @db.Uuid
+  bar             Bar                   @relation(fields: [barId], references: [id], onDelete: Cascade)
+  /// "upload" or "openapi".
+  source          String
+  uploadId        String?               @db.Uuid
+  upload          InvoiceUpload?        @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  openapiUuid     String?
+  /// Supplier, number, date and type: the same invoice uploaded twice, or
+  /// uploaded and also received, is kept once.
+  dedupeKey       String
+  /// TD01 invoice, TD04 credit note (its amounts are stored negative)...
+  docType         String
+  supplierName    String
+  supplierVat     String?
+  supplierTaxCode String?
+  number          String
+  /// The invoice date, at UTC midnight.
+  issueDate       DateTime
+  currency        String                @default("EUR")
+  totalCents      Int
+  taxableCents    Int
+  vatCents        Int
+  /// The original XML, gzip-compressed, attachments removed.
+  xmlGz           Bytes?
+  lines           SupplierInvoiceLine[]
+  createdAt       DateTime              @default(now())
+
+  @@unique([barId, dedupeKey])
+  @@index([barId, issueDate])
+  @@index([barId, supplierVat])
+}
+
+model SupplierInvoiceLine {
+  id             String          @id @default(uuid()) @db.Uuid
+  invoiceId      String          @db.Uuid
+  invoice        SupplierInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  barId          String          @db.Uuid
+  lineNo         Int
+  description    String
+  code           String?
+  quantity       Float?
+  unit           String?
+  unitPrice      Float?
+  /// The line's amount without VAT, negative on a credit note.
+  totalCents     Int
+  vatRate        Float?
+  /// A key of lib/costs/categories.ts; "da_classificare" until it is known.
+  category       String          @default("da_classificare")
+  /// rule, ai, user, supplier.
+  categorySource String?
+  /// The same product across invoices and suppliers ("peroni-33cl"), with a
+  /// readable name, the base unit (kg, l, pz, kwh, smc) and how much of it
+  /// the line holds.
+  productKey     String?
+  productLabel   String?
+  baseUnit       String?
+  baseQty        Float?
+
+  @@index([invoiceId])
+  @@index([barId, category])
+  @@index([barId, productKey])
+}
+
+model InvoiceUpload {
+  id           String            @id @default(uuid()) @db.Uuid
+  barId        String            @db.Uuid
+  bar          Bar               @relation(fields: [barId], references: [id], onDelete: Cascade)
+  fileName     String
+  uploadedById String?           @db.Uuid
+  found        Int               @default(0)
+  imported     Int               @default(0)
+  duplicates   Int               @default(0)
+  skipped      Int               @default(0)
+  failed       Int               @default(0)
+  /// What was skipped and why, for the owner to read.
+  notes        Json?
+  invoices     SupplierInvoice[]
+  createdAt    DateTime          @default(now())
+
+  @@index([barId, createdAt])
+}
+
+/// What a line of a supplier's invoice is: learnt once - by the rules, by
+/// Claude, or by the owner correcting it - and reused on every later
+/// invoice. Scope "" is shared by every venue; a venue's own corrections
+/// carry its id and win.
+model SupplierProductMap {
+  id           String   @id @default(uuid()) @db.Uuid
+  scope        String   @default("")
+  key          String
+  category     String
+  productKey   String?
+  productLabel String?
+  baseUnit     String?
+  /// Base units in one invoiced unit: a "CT" of 24 Peroni 33 cl is 7.92 l.
+  unitsPerItem Float?
+  source       String
+  updatedAt    DateTime @updatedAt
+
+  @@unique([scope, key])
+}
+
+/// The owner's word on a whole supplier: "Enel is Energia".
+model SupplierCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  barId       String   @db.Uuid
+  bar         Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  supplierKey String
+  category    String
+  updatedAt   DateTime @updatedAt
+
+  @@unique([barId, supplierKey])
+}
+
+/// One search of the web for what a product costs elsewhere.
+model PriceCheck {
+  id            String   @id @default(uuid()) @db.Uuid
+  barId         String   @db.Uuid
+  bar           Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  productKey    String
+  productLabel  String
+  baseUnit      String?
+  ourUnitPrice  Float?
+  /// Offers found: title, seller, url, price, unit price, conditions.
+  offers        Json
+  bestUnitPrice Float?
+  summary       String?
+  checkedAt     DateTime @default(now())
+
+  @@index([barId, productKey, checkedAt])
+}
+
+/// What the venue took in a month, typed by the owner: costs read against it.
+model MonthlyRevenue {
+  id          String   @id @default(uuid()) @db.Uuid
+  barId       String   @db.Uuid
+  bar         Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  /// "2026-10"
+  month       String
+  amountCents Int
+  updatedAt   DateTime @updatedAt
+
+  @@unique([barId, month])
 }

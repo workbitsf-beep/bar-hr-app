@@ -33,7 +33,7 @@ export function sdiConfig() {
   };
 }
 
-async function call(path: string, init: { method: string; body?: string; contentType?: string }) {
+export async function call(path: string, init: { method: string; body?: string; contentType?: string }) {
   const config = sdiConfig();
   if (!config) throw new Error("Invio allo SDI non configurato (OPENAPI_SDI_TOKEN).");
   const response = await fetch(`${config.baseUrl}${path}`, {

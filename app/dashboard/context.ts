@@ -9,7 +9,8 @@ import { getActiveBarAccess, getPostLoginDestination } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getTranslation } from "@/lib/i18n";
 import type { Department } from "@prisma/client";
-import type { StaffAccess } from "@/lib/staff-permissions";
+import { can, type StaffAccess } from "@/lib/staff-permissions";
+import { costsEnabledFor } from "@/lib/costs/access";
 
 async function logMissingSession() {
   try {
@@ -254,6 +255,8 @@ export const getDashboardContext = cache(async function getDashboardContext(
 
   if (role === Role.OWNER) {
     navItems.push({ label: t.people, href: "/dashboard/people" });
+    // Supplier invoices and where to save: the owner's alone.
+    if (costsEnabledFor(session.user.role)) navItems.push({ label: "Costi", href: "/dashboard/costi" });
     navItems.push({ label: t.settings, href: "/dashboard/settings" });
   } else if (String(role) !== "SUPER_ADMIN") {
     navItems.push({ label: t.settings, href: "/dashboard/settings" });
@@ -263,6 +266,11 @@ export const getDashboardContext = cache(async function getDashboardContext(
     navItems.push({ label: t.personalPdf, href: "/dashboard/export" });
   } else if (role === Role.OWNER && features.reports) {
     navItems.push({ label: t.exportPdf, href: "/dashboard/export" });
+  }
+
+  // The month's attendance for the labour consultant, for whoever runs the reports.
+  if (features.reports && (role === Role.OWNER || can(staff, "reports"))) {
+    navItems.push({ label: "Presenze per il consulente", href: "/dashboard/consulente" });
   }
 
   return {

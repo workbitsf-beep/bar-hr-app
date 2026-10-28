@@ -17,6 +17,7 @@ export async function GET(request: Request): Promise<Response> {
     { runTrialEndingReminders },
     { runFiscalSending },
     { runForgottenExits },
+    { runInboxSync },
   ] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/task-recurrence"),
@@ -26,6 +27,7 @@ export async function GET(request: Request): Promise<Response> {
     import("@/lib/trial-reminders"),
     import("@/lib/invoicing/send"),
     import("@/lib/forgotten-exits"),
+    import("@/lib/costs/openapi-inbox"),
   ]);
 
   // Recurrence runs before escalation: escalation rewrites an overdue note's
@@ -33,7 +35,7 @@ export async function GET(request: Request): Promise<Response> {
   // it stayed untouched.
   const recurrenceResult = await runTaskRecurrence();
 
-  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult] =
+  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult, inboxResult] =
     await Promise.all([
       runTaskEscalation(),
       runShiftRetentionCleanup(),
@@ -46,6 +48,8 @@ export async function GET(request: Request): Promise<Response> {
       runFiscalSending().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
       // An exit left unstamped stops the hours at the shift's end, provisionally.
       runForgottenExits().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
+      // Supplier invoices waiting at Openapi for venues that receive them there.
+      runInboxSync().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
     ]);
 
   return Response.json({
@@ -54,6 +58,7 @@ export async function GET(request: Request): Promise<Response> {
     trialEndingNotices: trialResult,
     fiscalSending: fiscalResult,
     forgottenExits: forgottenExitResult,
+    supplierInvoiceInbox: inboxResult,
     updatedCount: taskResult.count,
     renewedRecurringTaskCount: recurrenceResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,
