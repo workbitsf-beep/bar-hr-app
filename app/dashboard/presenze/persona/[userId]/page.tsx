@@ -94,11 +94,9 @@ export default async function PersonPresencePage({
       </div>
       <header style={{ display: "grid", gap: 4 }}>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 750, letterSpacing: "-0.03em" }}>{name}</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <MonthMenu base={base} year={year} month={month} />
-          {inNow ? <span style={{ fontSize: 14, color: "#0f7a4f" }}>· in lavoro dalle {clock.format(lastStamp!.timestamp)}</span> : null}
-        </div>
+        {inNow ? <span style={{ fontSize: 14, color: "#0f7a4f" }}>In lavoro dalle {clock.format(lastStamp!.timestamp)}</span> : null}
       </header>
+      <MonthMenu base={base} year={year} month={month} />
       <PersonMonth
         barId={activeBarId}
         userId={userId}

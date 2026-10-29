@@ -170,50 +170,71 @@ export function GearLink({ href, label }: { href: string; label: string }) {
 
 /** "Ottobre 2026 ▾": the last twelve months, in a menu that opens on tap. */
 export function MonthMenu({ base, year, month }: { base: string; year: number; month: number }) {
+  // A bar: the month before and after with the arrows, and the name opens
+  // the last twelve months to jump straight to one.
   const now = new Date();
-  const months = Array.from({ length: 12 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - index, 1));
+  const atCurrent = year === now.getFullYear() && month === now.getMonth() + 1;
+  const months = Array.from({ length: 12 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - 11 + index, 1));
+  const round: CSSProperties = { width: 38, height: 38, borderRadius: 999, background: "#f4f3f9", color: "#4c1d95", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 19, textDecoration: "none", flex: "0 0 auto" };
   return (
-    <details style={{ position: "relative" }}>
-      <summary style={{ listStyle: "none", cursor: "pointer", fontSize: 15.5, fontWeight: 600, color: "#5e4ae3", display: "inline-flex", alignItems: "center", gap: 6 }}>
-        {monthNames[month - 1]} {year}
-        <span aria-hidden style={{ fontSize: 11 }}>▾</span>
-      </summary>
-      <div
-        style={{
-          position: "absolute",
-          zIndex: 30,
-          top: "calc(100% + 8px)",
-          left: 0,
-          width: 220,
-          background: "#ffffff",
-          borderRadius: 18,
-          boxShadow: "0 18px 40px rgba(31,27,58,.16)",
-          padding: 6,
-          display: "grid",
-        }}
-      >
-        {months.map((date) => {
-          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-          const active = date.getFullYear() === year && date.getMonth() + 1 === month;
-          return (
-            <Link
-              key={key}
-              href={`${base}${base.includes("?") ? "&" : "?"}mese=${key}`}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 12,
-                fontSize: 15,
-                textDecoration: "none",
-                color: active ? "#4c1d95" : "#1f1b3a",
-                background: active ? "#f1eeff" : "transparent",
-                fontWeight: active ? 700 : 400,
-              }}
-            >
-              {monthNames[date.getMonth()]} {date.getFullYear()}
-            </Link>
-          );
-        })}
-      </div>
-    </details>
+    <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, background: "#ffffff", borderRadius: 18, padding: 6, boxShadow: "0 1px 2px rgba(31,27,58,.04)" }}>
+      <Link href={monthHref(base, year, month, -1)} aria-label="Mese prima" scroll={false} style={round}>
+        ‹
+      </Link>
+      <details className="wb-month-jump" style={{ flex: 1, minWidth: 0 }}>
+        <summary style={{ listStyle: "none", cursor: "pointer", textAlign: "center", fontSize: 16.5, fontWeight: 600, color: "#1f1b3a", padding: "8px 0" }}>
+          {monthNames[month - 1]} {year}
+        </summary>
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 30,
+            top: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            background: "#ffffff",
+            borderRadius: 20,
+            boxShadow: "0 18px 40px rgba(31,27,58,.16)",
+            padding: 10,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 6,
+          }}
+        >
+          {months.map((date) => {
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+            const active = date.getFullYear() === year && date.getMonth() + 1 === month;
+            return (
+              <Link
+                key={key}
+                href={`${base}${base.includes("?") ? "&" : "?"}mese=${key}`}
+                scroll={false}
+                style={{
+                  padding: "11px 4px",
+                  borderRadius: 12,
+                  fontSize: 14.5,
+                  textAlign: "center",
+                  textDecoration: "none",
+                  color: active ? "#ffffff" : "#1f1b3a",
+                  background: active ? "#3b1d8f" : "#f7f6fb",
+                  fontWeight: active ? 650 : 400,
+                }}
+              >
+                {monthNames[date.getMonth()].slice(0, 3)} {String(date.getFullYear()).slice(2)}
+              </Link>
+            );
+          })}
+        </div>
+      </details>
+      {atCurrent ? (
+        <span aria-hidden style={{ ...round, opacity: 0.35 }}>
+          ›
+        </span>
+      ) : (
+        <Link href={monthHref(base, year, month, 1)} aria-label="Mese dopo" scroll={false} style={round}>
+          ›
+        </Link>
+      )}
+    </div>
   );
 }

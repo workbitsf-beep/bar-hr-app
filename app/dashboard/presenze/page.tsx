@@ -69,10 +69,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
   const shell = (children: ReactNode) => (
     <div style={{ display: "grid", gap: 22, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 0" }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "grid", gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Presenze</h1>
-          <MonthMenu base="/dashboard/presenze" year={year} month={month} />
-        </div>
+        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Presenze</h1>
         {isOwner ? (
           <GearLink href="/dashboard/presenze/impostazioni" label="Impostazioni delle presenze" />
         ) : manager ? (
@@ -81,6 +78,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
           </Link>
         ) : null}
       </header>
+      <MonthMenu base="/dashboard/presenze" year={year} month={month} />
       {children}
     </div>
   );
