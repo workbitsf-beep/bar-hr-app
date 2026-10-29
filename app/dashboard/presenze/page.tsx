@@ -10,7 +10,8 @@ import { memberScopeWhere } from "@/lib/staff-scope";
 import { BillingRequired } from "../billing-required";
 import { getDashboardContext } from "../context";
 import { EmptyState, Panel } from "../ui";
-import { GearLink, hoursValue, MonthMenu, Quiet, Sheet } from "./payroll-ui";
+import { Avatar, MixCard, Pill } from "../mix-ui";
+import { GearLink, hoursValue, initials, MonthMenu, Quiet } from "./payroll-ui";
 import { PersonMonth } from "./person-month";
 import { SendPanel } from "./send-panel";
 
@@ -20,14 +21,22 @@ const when = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", 
 const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
 const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", textDecoration: "none" };
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join("")
+    .toUpperCase() || "?";
 const dot = (color: string): CSSProperties => ({ width: 8, height: 8, borderRadius: 999, background: color, flex: "0 0 auto" });
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+/** A card with its bold title inside and the count on the right. */
+function Group({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
-    <section style={{ display: "grid", gap: 8 }}>
-      <span style={{ fontSize: 13, color: "#8a85a3", padding: "0 4px" }}>{title}</span>
-      <Sheet>{children}</Sheet>
-    </section>
+    <MixCard title={title} aside={count}>
+      {children}
+    </MixCard>
   );
 }
 
@@ -186,7 +195,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
   return shell(
     <>
       <div style={{ display: "grid", gap: 2 }}>
-        <span style={{ fontSize: 52, fontWeight: 750, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{hoursValue(totalWorked)}</span>
+        <span style={{ fontSize: 52, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{hoursValue(totalWorked)}</span>
         <Quiet style={{ fontSize: 14.5 }}>
           ore nel mese · {data.people.length} {data.people.length === 1 ? "persona" : "persone"}
           {data.source === "SHIFTS" ? " · dai turni" : ""}
@@ -203,27 +212,30 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
       ) : null}
 
       {inNow.length ? (
-        <Group title={`In lavoro · ${inNow.length}`}>
+        <Group title="In lavoro adesso" count={inNow.length}>
           {inNow.map((item, index) => (
             <Link key={item.userId} href={personHref(item.userId)} style={{ ...row, borderTop: index ? row.borderTop : 0 }}>
-              <span style={dot("#10b981")} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 16 }}>{item.name}</span>
-              <Quiet style={{ fontSize: 14.5, fontVariantNumeric: "tabular-nums" }}>{item.status}</Quiet>
+              <Avatar>{initialsOf(item.name)}</Avatar>
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                <b style={{ fontSize: 15, fontWeight: 650 }}>{item.name}</b>
+                <Quiet style={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>{item.status}</Quiet>
+              </span>
+              <Pill tone="good">dentro</Pill>
             </Link>
           ))}
         </Group>
       ) : null}
 
       {late.length ? (
-        <Group title={`Da sistemare oggi · ${late.length}`}>
+        <Group title="Da sistemare oggi" count={late.length}>
           {late.map((item, index) => (
             <Link key={item.userId} href={personHref(item.userId)} style={{ ...row, borderTop: index ? row.borderTop : 0 }}>
-              <span style={dot("#f59e0b")} />
-              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
-                <span style={{ fontSize: 16 }}>{item.name}</span>
-                <span style={{ fontSize: 13.5, color: "#b45309" }}>{item.status}</span>
+              <Avatar>{initialsOf(item.name)}</Avatar>
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                <b style={{ fontSize: 15, fontWeight: 650 }}>{item.name}</b>
+                <span style={{ fontSize: 13, color: "#b45309" }}>{item.status}</span>
               </span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#b45309" }}>Sistema</span>
+              <Pill tone="wait">Sistema</Pill>
             </Link>
           ))}
         </Group>
@@ -233,9 +245,12 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
         <Group title="Più tardi e già usciti">
           {laterOrDone.map((item, index) => (
             <Link key={item.userId} href={personHref(item.userId)} style={{ ...row, borderTop: index ? row.borderTop : 0 }}>
-              <span style={dot(item.done ? "#cbd5e1" : "#c4b5fd")} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 16 }}>{item.name}</span>
-              <Quiet style={{ fontSize: 14.5, fontVariantNumeric: "tabular-nums" }}>{item.status}</Quiet>
+              <Avatar>{initialsOf(item.name)}</Avatar>
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                <b style={{ fontSize: 15, fontWeight: 650 }}>{item.name}</b>
+                <Quiet style={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>{item.status}</Quiet>
+              </span>
+              <Pill tone={item.done ? "grey" : "violet"}>{item.done ? "uscito" : "più tardi"}</Pill>
             </Link>
           ))}
         </Group>
@@ -260,18 +275,20 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
         </div>
       ) : null}
 
-      <Group title="Persone">
+      <Group title="Persone" count={data.people.length}>
         {data.people.length ? (
           data.people.map((person, index) => {
             const twin = (nameCount.get(fullName(person).toLowerCase()) ?? 0) > 1;
             return (
               <Link key={person.userId} href={personHref(person.userId)} style={{ ...row, borderTop: index ? row.borderTop : 0 }}>
+                <Avatar>{initials(person.firstName, person.lastName)}</Avatar>
                 <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
-                  <span style={{ fontSize: 16 }}>{fullName(person)}</span>
+                  <span style={{ fontSize: 15.5 }}>{fullName(person)}</span>
                   {twin ? <Quiet style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{person.email}</Quiet> : null}
                 </span>
                 {person.flags.length ? <span aria-label={`${person.flags.length} da sistemare`} style={dot("#f59e0b")} /> : null}
-                <span style={{ fontSize: 16, fontVariantNumeric: "tabular-nums" }}>{hoursValue(person.totals.ordinary.hours + person.totals.overtime.hours)}</span>
+                <b style={{ fontSize: 15.5, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{hoursValue(person.totals.ordinary.hours + person.totals.overtime.hours)}</b>
+                <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
               </Link>
             );
           })

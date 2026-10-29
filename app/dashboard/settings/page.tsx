@@ -133,6 +133,29 @@ function parseStandardHoursFromSettings(settings?: {
  * bought is spent on something true on the right: how many features are on,
  * how wide the clock-in circle is, when the subscription renews.
  */
+// Each setting's emoji, as in the rest of the app; a row not listed keeps its dot.
+const ROW_ICONS: Record<string, string> = {
+  Accesso: "🔐",
+  Lingua: "🌐",
+  "Documenti legali": "📄",
+  "Controllo widget": "🧩",
+  "Scrivi all’assistenza": "💬",
+  Assistenza: "💬",
+  "Elimina il mio account": "🗑️",
+  "Elimina locale e account": "🗑️",
+  "Locale e attività": "🏠",
+  Funzioni: "🧩",
+  "Orari pre-impostati": "🕐",
+  Sedi: "📍",
+  Reparti: "🟣",
+  "Checklist reparti": "✅",
+  "GPS timbratura": "📍",
+  "Stile del locale": "🎨",
+  Abbonamento: "💳",
+  "Dati fatturazione": "🧾",
+  Fatture: "🧾",
+};
+
 function SettingsRow({
   dot,
   title,
@@ -153,22 +176,28 @@ function SettingsRow({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        gap: 12,
         minWidth: 0,
-        padding: "10px 0",
+        padding: "11px 0",
         borderTop: "1px solid #f1eff8",
       }}
     >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 9,
-          height: 9,
-          flex: "0 0 auto",
-          borderRadius: 999,
-          background: tone === "danger" ? "#b3202f" : dot,
-        }}
-      />
+      {ROW_ICONS[title] ? (
+        <span aria-hidden="true" style={{ width: 26, flex: "0 0 auto", fontSize: 19, lineHeight: 1, textAlign: "center" }}>
+          {ROW_ICONS[title]}
+        </span>
+      ) : (
+        <span
+          aria-hidden="true"
+          style={{
+            width: 9,
+            height: 9,
+            flex: "0 0 auto",
+            borderRadius: 999,
+            background: tone === "danger" ? "#b3202f" : dot,
+          }}
+        />
+      )}
       <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
         <strong
           style={{

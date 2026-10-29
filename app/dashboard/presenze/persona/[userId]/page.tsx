@@ -7,7 +7,8 @@ import { memberScopeWhere } from "@/lib/staff-scope";
 import { BillingRequired } from "../../../billing-required";
 import { getDashboardContext } from "../../../context";
 import { EmptyState, Panel } from "../../../ui";
-import { MonthMenu } from "../../payroll-ui";
+import { Avatar } from "../../../mix-ui";
+import { initials, MonthMenu } from "../../payroll-ui";
 import { PdfButton } from "../../pdf-button";
 import { PersonMonth } from "../../person-month";
 import { roundWhite } from "../../../round-button";
@@ -69,7 +70,7 @@ export default async function PersonPresencePage({
   const base = `/dashboard/presenze/persona/${userId}`;
 
   return (
-    <div style={{ display: "grid", gap: 20, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px" }}>
+    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <Link href={`/dashboard/presenze?mese=${year}-${String(month).padStart(2, "0")}`} style={{ fontSize: 15, fontWeight: 600, color: "#5e4ae3", textDecoration: "none" }}>
           ‹ Presenze
@@ -93,8 +94,9 @@ export default async function PersonPresencePage({
           </details>
         ) : null}
       </div>
-      <header style={{ display: "grid", gap: 4 }}>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: "-0.035em" }}>{name}</h1>
+      <header style={{ display: "grid", justifyItems: "center", gap: 4, textAlign: "center" }}>
+        <Avatar size={60}>{initials(member.user.firstName, member.user.lastName)}</Avatar>
+        <h1 style={{ margin: "4px 0 0", fontSize: 28, fontWeight: 800, letterSpacing: "-0.035em" }}>{name}</h1>
         {inNow ? <span style={{ fontSize: 14, color: "#0f7a4f" }}>In lavoro dalle {clock.format(lastStamp!.timestamp)}</span> : null}
       </header>
       <MonthMenu base={base} year={year} month={month} />

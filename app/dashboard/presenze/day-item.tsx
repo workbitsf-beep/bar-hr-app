@@ -305,37 +305,46 @@ export function DayRow({ view, userId, personName, canFix }: { view: DayView; us
   const status = view.flags.length
     ? view.flags[0].replace(" senza timbratura", ", non timbrato")
     : view.times || (view.away ?? (view.right === "Riposo" ? "Riposo" : ""));
+  const hours = view.segments.length || /^\d/.test(view.right) ? view.right : "";
+  // Two lines like every other row: the day in bold, what happened under it;
+  // on the right the hours, or a pill when there is something to do.
   const content = (
     <>
-      <span style={{ fontSize: 14, color: "#8a85a3", whiteSpace: "nowrap" }}>
-        {view.weekday.charAt(0).toUpperCase() + view.weekday.slice(1)}
-        <b style={{ color: "#1f1b3a", fontWeight: 600, fontSize: 16, marginLeft: 5 }}>{view.day}</b>
+      <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
+        <b style={{ fontSize: 15, fontWeight: 650, color: "#111827" }}>
+          {view.weekday.charAt(0).toUpperCase() + view.weekday.slice(1)} {view.day}
+        </b>
+        <span
+          style={{
+            minWidth: 0,
+            fontSize: 13,
+            fontVariantNumeric: "tabular-nums",
+            color: flagged ? "#b45309" : view.away ? "#0f7a4f" : "#667085",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {status}
+          {view.overridden ? <span style={{ color: "#6d5ce7" }}> · corretto nel file</span> : null}
+        </span>
       </span>
-      <span
-        style={{
-          minWidth: 0,
-          fontSize: 14,
-          fontVariantNumeric: "tabular-nums",
-          color: flagged ? "#b45309" : view.away ? "#0f7a4f" : "#8a85a3",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {status}
-        {view.overridden ? <span style={{ color: "#6d5ce7" }}> · corretto nel file</span> : null}
-      </span>
-      <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 15.5, color: flagged ? "#b45309" : "#1f1b3a", whiteSpace: "nowrap" }}>
-        {flagged && actionable ? "›" : view.segments.length || /^\d/.test(view.right) ? view.right : ""}
-      </span>
+      {flagged && actionable ? (
+        <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#fdf0c4", color: "#92400e", whiteSpace: "nowrap" }}>Sistema</span>
+      ) : view.away && !hours ? (
+        <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#dcfce7", color: "#166534", whiteSpace: "nowrap" }}>{view.away}</span>
+      ) : (
+        <b style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 15, fontWeight: 700, color: flagged ? "#b45309" : "#111827", whiteSpace: "nowrap" }}>{hours}</b>
+      )}
     </>
   );
   const rowStyle: CSSProperties = {
     display: "grid",
-    gridTemplateColumns: "58px minmax(0, 1fr) auto",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
     alignItems: "center",
     gap: 10,
-    padding: "13px 18px",
-    borderTop: "1px solid #f2f0f8",
+    padding: "10px 0",
+    borderTop: "1px solid #f1eff8",
     background: "transparent",
     opacity: view.right === "Riposo" && !flagged ? 0.45 : 1,
     color: "#1f1b3a",
@@ -346,7 +355,7 @@ export function DayRow({ view, userId, personName, canFix }: { view: DayView; us
   return (
     <>
       {actionable ? (
-        <button type="button" onClick={() => setOpen(true)} style={{ ...rowStyle, border: 0, borderTop: "1px solid #f2f0f8", cursor: "pointer" }}>
+        <button type="button" onClick={() => setOpen(true)} style={{ ...rowStyle, border: 0, borderTop: "1px solid #f1eff8", cursor: "pointer" }}>
           {content}
         </button>
       ) : (

@@ -19,7 +19,7 @@ import { DepartmentDot } from "../department-forms";
 import { can, isStaffRole } from "@/lib/staff-permissions";
 import { memberScopeWhere } from "@/lib/staff-scope";
 import { AddFace } from "../round-button";
-import { MixCard, mixPage } from "../mix-ui";
+import { MixCard, mixPage, Pill } from "../mix-ui";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -255,7 +255,7 @@ export default async function DashboardPeoplePage({
         key={member.id}
         href={`/dashboard/people/${member.id}`}
         aria-label={`Apri la scheda di ${name}`}
-        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: first ? 0 : "1px solid #f1eff8", color: "#111827", textDecoration: "none" }}
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: first ? 0 : "1px solid #f1eff8", color: "#111827", textDecoration: "none" }}
       >
         <span
           aria-hidden="true"
@@ -267,8 +267,8 @@ export default async function DashboardPeoplePage({
             alignItems: "center",
             justifyContent: "center",
             borderRadius: 999,
-            background: live ? "#e7f7ef" : "#f1eeff",
-            color: live ? "#0f7a4f" : "#4c1d95",
+            background: "#f1eeff",
+            color: "#4c1d95",
             fontSize: 11.5,
             fontWeight: 800,
           }}
@@ -282,7 +282,12 @@ export default async function DashboardPeoplePage({
           </span>
           <span style={{ fontSize: 13, color: tone, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{line}</span>
         </span>
-        <span style={{ flex: "0 0 auto", fontSize: 15, fontVariantNumeric: "tabular-nums", color: live ? "#0f7a4f" : "#1f1b3a" }}>{hoursText(row.monthMs)}</span>
+        {live ? (
+          <Pill tone="good">dentro</Pill>
+        ) : (
+          <span style={{ flex: "0 0 auto", fontSize: 13.5, fontVariantNumeric: "tabular-nums", color: "#667085" }}>{hoursText(row.monthMs)}</span>
+        )}
+        <span aria-hidden style={{ flex: "0 0 auto", color: "#c4c0d6", fontSize: 18 }}>›</span>
       </Link>
     );
   }
@@ -329,7 +334,7 @@ export default async function DashboardPeoplePage({
       ) : (
         <>
           {teamGroup("Chi gestisce", leaders)}
-          {teamGroup("In lavoro adesso", onShift, "#0f7a4f")}
+          {teamGroup("In lavoro adesso", onShift)}
           {teamGroup(onShift.length ? "Il resto del team" : "Dipendenti", offShift)}
         </>
       )}

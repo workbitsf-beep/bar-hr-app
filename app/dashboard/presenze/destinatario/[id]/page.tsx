@@ -12,20 +12,24 @@ import { PopupAction } from "../../../popup-action";
 import { EmptyState, Panel } from "../../../ui";
 import { deleteRecipientAction, saveRecipientFieldAction } from "../../actions";
 import { ConsultantWizard } from "../../consultant-wizard";
+import { MixCard } from "../../../mix-ui";
 import { Quiet, ROLE_LABELS, Sheet } from "../../payroll-ui";
 import { recipientSample } from "../../recipient-sample";
 
 export const dynamic = "force-dynamic";
 
-const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, textDecoration: "none" };
+const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderTop: "1px solid #f1eff8", color: "#1f1b3a", fontSize: 15.5, textDecoration: "none" };
 const value: CSSProperties = { marginLeft: "auto", color: "#8a85a3", fontSize: 15, textAlign: "right", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 const chevron = <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18, flex: "0 0 auto" }}>›</span>;
 const field: CSSProperties = { minHeight: 50, borderRadius: 14, border: "1px solid #e9e6f5", background: "#fbfaff", fontSize: 16, color: "#1f1b3a", padding: "0 14px", width: "100%", boxSizing: "border-box" };
 const primary: CSSProperties = { minHeight: 50, borderRadius: 999, border: 0, background: "linear-gradient(135deg,#3b1d8f,#5e4ae3 55%,#8b5cf6)", color: "#ffffff", fontSize: 15.5, fontWeight: 700, width: "100%", cursor: "pointer" };
 
-function Line({ label, shown, first = false }: { label: string; shown: ReactNode; first?: boolean }) {
+const icon: CSSProperties = { width: 26, flex: "0 0 auto", fontSize: 19, lineHeight: 1, textAlign: "center" };
+
+function Line({ emoji, label, shown, first = false }: { emoji: string; label: string; shown: ReactNode; first?: boolean }) {
   return (
     <span style={{ ...row, borderTop: first ? 0 : row.borderTop }}>
+      <span aria-hidden style={icon}>{emoji}</span>
       <span style={{ flex: "0 0 auto" }}>{label}</span>
       <span style={value}>{shown}</span>
       {chevron}
@@ -97,7 +101,7 @@ export default async function RecipientPage({ params }: { params: Promise<{ id: 
     .toUpperCase();
 
   return (
-    <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 560, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
+    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 560, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
       <Link href="/dashboard/presenze/impostazioni" style={{ fontSize: 15, fontWeight: 600, color: "#5e4ae3", textDecoration: "none", justifySelf: "start" }}>
         ‹ Impostazioni
       </Link>
@@ -127,28 +131,29 @@ export default async function RecipientPage({ params }: { params: Promise<{ id: 
         </FieldForm>
       </PopupAction>
 
-      <Sheet>
-        <PopupAction title="Email" ariaLabel="Cambia l'email" triggerRow={<Line first label="Email" shown={recipient.email} />}>
+      <MixCard title="Dove arriva">
+        <PopupAction title="Email" ariaLabel="Cambia l'email" triggerRow={<Line first emoji="✉️" label="Email" shown={recipient.email} />}>
           <FieldForm id={recipient.id} name="email">
             <input name="email" type="email" required defaultValue={recipient.email} placeholder="paghe@studiorossi.it" style={field} />
           </FieldForm>
         </PopupAction>
-        <PopupAction title="In copia" ariaLabel="Cambia chi è in copia" triggerRow={<Line label="In copia" shown={recipient.cc || "Nessuno"} />}>
+        <PopupAction title="In copia" ariaLabel="Cambia chi è in copia" triggerRow={<Line emoji="👥" label="In copia" shown={recipient.cc || "Nessuno"} />}>
           <FieldForm id={recipient.id} name="cc" hint="Fino a cinque indirizzi, separati da una virgola. Vuoto per nessuno.">
             <input name="cc" defaultValue={recipient.cc ?? ""} placeholder="segreteria@studiorossi.it" style={field} />
           </FieldForm>
         </PopupAction>
-      </Sheet>
+      </MixCard>
 
-      <Sheet>
+      <MixCard title="Cosa riceve">
         <Link href={`/dashboard/presenze/destinatario/${recipient.id}/file`} style={{ ...row, borderTop: 0 }}>
+          <span aria-hidden style={icon}>📊</span>
           <span style={{ flex: "0 0 auto" }}>Il file</span>
           <span style={value}>
             {template.fileType === "xlsx" ? "Excel" : "CSV"} · {LAYOUT_LABELS[template.layout].title.toLowerCase()}
           </span>
           {chevron}
         </Link>
-        <PopupAction title="Il messaggio" ariaLabel="Cambia il messaggio" triggerRow={<Line label="Il messaggio" shown={`“${message.split("\n")[0].slice(0, 40)}…”`} />}>
+        <PopupAction title="Il messaggio" ariaLabel="Cambia il messaggio" triggerRow={<Line emoji="💬" label="Il messaggio" shown={`“${message.split("\n")[0].slice(0, 40)}…”`} />}>
           <FieldForm
             id={recipient.id}
             name="message"
@@ -157,7 +162,7 @@ export default async function RecipientPage({ params }: { params: Promise<{ id: 
             <textarea name="message" rows={8} defaultValue={message} style={{ ...field, padding: "12px 14px", lineHeight: 1.45, fontFamily: "inherit", resize: "vertical" }} />
           </FieldForm>
         </PopupAction>
-        <PopupAction title="Promemoria" ariaLabel="Cambia il promemoria" triggerRow={<Line label="Promemoria" shown={recipient.sendDay ? `il ${recipient.sendDay} del mese` : "Nessuno"} />}>
+        <PopupAction title="Promemoria" ariaLabel="Cambia il promemoria" triggerRow={<Line emoji="🔔" label="Promemoria" shown={recipient.sendDay ? `il ${recipient.sendDay} del mese` : "Nessuno"} />}>
           <FieldForm id={recipient.id} name="sendDay" hint="Quel giorno del mese dopo ti ricordiamo di mandare le presenze.">
             <select name="sendDay" defaultValue={recipient.sendDay ? String(recipient.sendDay) : ""} style={field}>
               <option value="">Nessun promemoria</option>
@@ -169,7 +174,7 @@ export default async function RecipientPage({ params }: { params: Promise<{ id: 
             </select>
           </FieldForm>
         </PopupAction>
-      </Sheet>
+      </MixCard>
 
       <Sheet>
         <ActionForm action={deleteRecipientAction} style={{ display: "flex", justifyContent: "center" }}>

@@ -15,19 +15,25 @@ type MenuPosition = {
   width: number;
 };
 
-/** The colour each destination wears in the rest of the app. */
-const MENU_DOTS: Record<string, string> = {
-  "/dashboard": "#4c1d95",
-  "/dashboard/calendar": "#6d5ce7",
-  "/dashboard/tasks": "#f59e0b",
-  "/dashboard/documents": "#64748b",
-  "/dashboard/courses": "#0284c7",
-  "/dashboard/presenze": "#0ea5e9",
-  "/dashboard/requests": "#10b981",
-  "/dashboard/people": "#a855f7",
-  "/dashboard/settings": "#64748b",
-  "/dashboard/costi": "#16a34a",
+/** The emoji each destination wears in the rest of the app. */
+const MENU_ICONS: Record<string, string> = {
+  "/dashboard": "🏠",
+  "/dashboard/calendar": "📅",
+  "/dashboard/tasks": "📝",
+  "/dashboard/documents": "📄",
+  "/dashboard/courses": "🎓",
+  "/dashboard/presenze": "⏱️",
+  "/dashboard/requests": "📨",
+  "/dashboard/people": "👥",
+  "/dashboard/settings": "⚙️",
+  "/dashboard/costi": "💶",
 };
+
+/** The menu's cards: the day's work, the people and their papers, the rest. */
+const MENU_GROUPS: { label: string; hrefs: string[] }[] = [
+  { label: "Il locale", hrefs: ["/dashboard", "/dashboard/calendar", "/dashboard/tasks", "/dashboard/requests", "/dashboard/presenze"] },
+  { label: "Persone e carte", hrefs: ["/dashboard/people", "/dashboard/documents", "/dashboard/courses", "/dashboard/costi"] },
+];
 
 const DOWNLOADS = new Set<string>();
 
@@ -379,28 +385,16 @@ export function DashboardNavMenu({
                       // are not the same errand: the report used to sit in the
                       // same list as Corsi and Impostazioni, under a heading
                       // that read "Navigazione".
-                      { label: "", items: navItems.filter((item) => !DOWNLOADS.has(item.href)) },
+                      ...MENU_GROUPS.map((group) => ({ label: group.label, items: navItems.filter((item) => group.hrefs.includes(item.href)) })),
+                      {
+                        label: "Altro",
+                        items: navItems.filter((item) => !DOWNLOADS.has(item.href) && !MENU_GROUPS.some((group) => group.hrefs.includes(item.href))),
+                      },
                       { label: "Scarica", items: navItems.filter((item) => DOWNLOADS.has(item.href)) },
                     ]
                       .filter((section) => section.items.length > 0)
                       .map((section) => (
                         <div key={section.label || "vai"} style={{ display: "grid", gap: 6 }}>
-                          {section.label ? (
-                            <span
-                              className="workbit-menu-section-label"
-                              style={{
-                                paddingLeft: 4,
-                                fontSize: 9.5,
-                                fontWeight: 830,
-                                letterSpacing: "0.12em",
-                                textTransform: "uppercase",
-                                color: "#a3a0b8",
-                              }}
-                            >
-                              {section.label}
-                            </span>
-                          ) : null}
-
                           <div
                             className="workbit-menu-navigation-list"
                             style={{
@@ -408,10 +402,15 @@ export function DashboardNavMenu({
                               border: "1px solid #ece9f7",
                               borderRadius: 20,
                               overflow: "hidden",
-                              padding: "0 16px",
+                              padding: "12px 16px 2px",
                               boxShadow: "0 3px 10px rgba(76, 29, 149, 0.04)",
                             }}
                           >
+                            {section.label ? (
+                              <div className="workbit-menu-card-title" style={{ fontSize: 14.5, fontWeight: 750, letterSpacing: "-0.01em", color: "#111827", marginBottom: 4 }}>
+                                {section.label}
+                              </div>
+                            ) : null}
                             {section.items.map((item, index) => {
                               const active =
                                 pathname === item.href ||
@@ -428,8 +427,8 @@ export function DashboardNavMenu({
                                   style={{
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: 10,
-                                    padding: "10px 0",
+                                    gap: 12,
+                                    padding: "11px 0",
                                     borderTop: index === 0 ? undefined : "1px solid #f1eff8",
                                     background: active ? "#f6f3ff" : "transparent",
                                     textDecoration: "none",
@@ -439,14 +438,10 @@ export function DashboardNavMenu({
                                   <span
                                     className="workbit-menu-link-icon"
                                     aria-hidden="true"
-                                    style={{
-                                      width: 9,
-                                      height: 9,
-                                      flex: "0 0 auto",
-                                      borderRadius: 999,
-                                      background: MENU_DOTS[item.href] ?? "#94a3b8",
-                                    }}
-                                  />
+                                    style={{ width: 26, flex: "0 0 auto", fontSize: 19, lineHeight: 1, textAlign: "center" }}
+                                  >
+                                    {MENU_ICONS[item.href] ?? "•"}
+                                  </span>
                                   <span
                                     className="workbit-menu-link-copy"
                                     style={{

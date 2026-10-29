@@ -184,7 +184,7 @@ export function DayEditor({ userId, date, entries, overridden, note, dailyHours,
 export function AddDay({ editor }: { editor: Omit<DayEditorProps, "date" | "entries" | "overridden" | "note"> }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ borderTop: "1px solid #f1eff8", padding: "10px 15px", display: "grid", gap: 6 }}>
+    <div style={{ borderTop: "1px solid #f1eff8", padding: "10px 0", display: "grid", gap: 6 }}>
       <button type="button" onClick={() => setOpen((value) => !value)} style={{ ...soft, justifySelf: "start", background: "transparent" }}>
         {open ? "Chiudi" : "+ Aggiungi un giorno"}
       </button>

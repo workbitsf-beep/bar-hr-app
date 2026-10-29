@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { AddDay } from "./day-editor";
 import { DayRow, type DayView, type Span } from "./day-item";
+import { MixCard, mixCard, MixRows } from "../mix-ui";
 import { hoursValue, Quiet, Sheet } from "./payroll-ui";
 import { PdfButton } from "./pdf-button";
 
@@ -222,10 +223,10 @@ export async function PersonMonth({
   }
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div style={{ display: "grid", gap: 12 }}>
       <div style={{ display: "grid", gap: 2 }}>
         {embedded ? (
-          <span style={{ fontSize: 52, fontWeight: 750, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{hoursValue(worked)}</span>
+          <span style={{ fontSize: 52, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{hoursValue(worked)}</span>
         ) : null}
         <Quiet style={{ fontSize: 14.5 }}>
           {embedded ? "ore nel mese" : <span style={{ color: "#1f1b3a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{hoursValue(worked)} ore</span>}
@@ -235,35 +236,30 @@ export async function PersonMonth({
       </div>
 
       {fixRows.length ? (
-        <section style={{ display: "grid", gap: 8 }}>
-          <span style={{ fontSize: 13, color: "#b45309", padding: "0 18px" }}>Da sistemare · {fixRows.length}</span>
-          <Sheet style={{ boxShadow: "inset 3px 0 0 #f59e0b" }}>
-            <div style={{ marginTop: -1 }}>
-              {fixRows.map((view) => (
-                <DayRow key={view.date} view={view} userId={userId} personName={personName} canFix />
-              ))}
-            </div>
-          </Sheet>
-        </section>
+        <MixCard title="Da sistemare" aside={fixRows.length}>
+          <MixRows>
+            {fixRows.map((view) => (
+              <DayRow key={view.date} view={view} userId={userId} personName={personName} canFix />
+            ))}
+          </MixRows>
+        </MixCard>
       ) : null}
 
       {weeks.length ? (
         weeks.map((week, index) => (
-          <details key={week.key} open={index === 0} className="wb-week" style={{ display: "grid", gap: 8 }}>
-            <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: "4px 18px", fontSize: 13, color: "#8a85a3" }}>
-              <span style={{ flex: 1 }}>
-                Settimana {week.label} · {week.days.length} {week.days.length === 1 ? "giorno" : "giorni"}
-              </span>
-              <span style={{ fontVariantNumeric: "tabular-nums", color: "#1f1b3a", fontSize: 14 }}>{hoursValue(week.hours)}</span>
-              <span aria-hidden className="wb-week-chev" style={{ color: "#c4c0d6", fontSize: 16 }}>›</span>
+          <details key={week.key} open={index === 0} className="wb-week" style={{ ...mixCard, padding: "12px 16px" }}>
+            <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "baseline", gap: 10, fontSize: 14.5, fontWeight: 750, letterSpacing: "-0.01em", color: "#111827" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>Settimana {week.label}</span>
+              <span style={{ fontVariantNumeric: "tabular-nums", color: "#667085", fontSize: 13, fontWeight: 400 }}>{hoursValue(week.hours)}</span>
+              <span aria-hidden className="wb-week-chev" style={{ color: "#c4c0d6", fontSize: 16, fontWeight: 400 }}>›</span>
             </summary>
-            <Sheet style={{ marginTop: 8 }}>
-              <div style={{ marginTop: -1 }}>
+            <div style={{ marginTop: 4 }}>
+              <MixRows>
                 {week.days.map((view) => (
                   <DayRow key={view.date} view={view} userId={userId} personName={personName} canFix={false} />
                 ))}
-              </div>
-            </Sheet>
+              </MixRows>
+            </div>
           </details>
         ))
       ) : fixRows.length ? null : (

@@ -15,6 +15,7 @@ import { BillingRequired } from "../../billing-required";
 import { getDashboardContext } from "../../context";
 import { MemberDepartmentForm } from "../../department-forms";
 import { PopupAction } from "../../popup-action";
+import { MixCard } from "../../mix-ui";
 import { Quiet, Sheet } from "../../presenze/payroll-ui";
 import { EmptyState, Panel } from "../../ui";
 import { ConfirmSubmit } from "../confirm-submit";
@@ -23,7 +24,7 @@ import { StaffRoleForm } from "../staff-role-form";
 
 export const dynamic = "force-dynamic";
 
-const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, textDecoration: "none" };
+const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderTop: "1px solid #f1eff8", color: "#1f1b3a", fontSize: 15.5, textDecoration: "none" };
 const value: CSSProperties = { marginLeft: "auto", color: "#8a85a3", fontSize: 15, textAlign: "right", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 const chevron = <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18, flex: "0 0 auto" }}>›</span>;
 const field: CSSProperties = { minHeight: 50, borderRadius: 14, border: "1px solid #e9e6f5", background: "#fbfaff", fontSize: 17, color: "#1f1b3a", padding: "0 14px", width: "100%", boxSizing: "border-box", textAlign: "center" };
@@ -42,9 +43,12 @@ function hoursText(ms: number) {
 }
 
 /** A line of the card; tapping it opens what changes it. */
-function Line({ label, shown, tone, first = false }: { label: string; shown: ReactNode; tone?: string; first?: boolean }) {
+const icon: CSSProperties = { width: 26, flex: "0 0 auto", fontSize: 19, lineHeight: 1, textAlign: "center" };
+
+function Line({ emoji, label, shown, tone, first = false }: { emoji: string; label: string; shown: ReactNode; tone?: string; first?: boolean }) {
   return (
     <span style={{ ...row, borderTop: first ? 0 : row.borderTop }}>
+      <span aria-hidden style={icon}>{emoji}</span>
       <span style={{ flex: "0 0 auto" }}>{label}</span>
       <span style={{ ...value, ...(tone ? { color: tone, fontWeight: 600 } : {}) }}>{shown}</span>
       {chevron}
@@ -168,7 +172,7 @@ export default async function PersonPage({ params }: { params: Promise<{ members
   const month = now.toLocaleDateString("it-IT", { month: "long", timeZone: "Europe/Rome" });
 
   return (
-    <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 560, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
+    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 560, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
       <Link href="/dashboard/people" style={{ fontSize: 15, fontWeight: 600, color: "#5e4ae3", textDecoration: "none", justifySelf: "start" }}>
         ‹ Team
       </Link>
@@ -180,8 +184,8 @@ export default async function PersonPage({ params }: { params: Promise<{ members
             width: 64,
             height: 64,
             borderRadius: 999,
-            background: since ? "#e7f7ef" : "#f1eeff",
-            color: since ? "#0f7a4f" : "#4c1d95",
+            background: "#f1eeff",
+            color: "#4c1d95",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -200,9 +204,9 @@ export default async function PersonPage({ params }: { params: Promise<{ members
         {member.user.mustChangePwd ? <span style={{ fontSize: 14, color: "#b45309" }}>Non ha ancora aperto l&apos;app</span> : null}
       </header>
 
-      <Sheet>
+      <MixCard title="Lavoro">
         {canRole ? (
-          <PopupAction title={manages ? "Ruolo e permessi" : "Ruolo"} ariaLabel="Cambia il ruolo" triggerRow={<Line first label="Ruolo" shown={manages ? `${roleLabel(member.role)} · ${scopeText}` : roleLabel(member.role)} />}>
+          <PopupAction title={manages ? "Ruolo e permessi" : "Ruolo"} ariaLabel="Cambia il ruolo" triggerRow={<Line first emoji="👤" label="Ruolo" shown={manages ? `${roleLabel(member.role)} · ${scopeText}` : roleLabel(member.role)} />}>
             <StaffRoleForm
               membershipId={member.id}
               firstName={member.user.firstName}
@@ -216,49 +220,53 @@ export default async function PersonPage({ params }: { params: Promise<{ members
           </PopupAction>
         ) : (
           <span style={{ ...row, borderTop: 0 }}>
+            <span aria-hidden style={icon}>👤</span>
             <span>Ruolo</span>
             <span style={value}>{roleLabel(member.role)}</span>
           </span>
         )}
         {manages ? (
-          <span style={{ ...row, fontSize: 14, color: "#8a85a3", paddingTop: 0, borderTop: 0, marginTop: -6 }}>Può: {permissionText}</span>
+          <span style={{ ...row, fontSize: 13, color: "#667085", paddingTop: 0, paddingLeft: 38, borderTop: 0, marginTop: -6 }}>Può: {permissionText}</span>
         ) : null}
 
         {departments.enabled && departmentChoices.length ? (
-          <PopupAction title={isCompany ? "Sede" : "Reparto"} ariaLabel={isCompany ? "Cambia la sede" : "Cambia il reparto"} triggerRow={<Line label={isCompany ? "Sede" : "Reparto"} shown={departmentOf(member.department)?.name ?? "Nessuno"} />}>
+          <PopupAction title={isCompany ? "Sede" : "Reparto"} ariaLabel={isCompany ? "Cambia la sede" : "Cambia il reparto"} triggerRow={<Line emoji={isCompany ? "📍" : "🟣"} label={isCompany ? "Sede" : "Reparto"} shown={departmentOf(member.department)?.name ?? "Nessuno"} />}>
             <MemberDepartmentForm words={departments.words} membershipId={member.id} department={member.department} helpsIn={member.helpsIn} departments={departmentChoices} />
           </PopupAction>
         ) : null}
 
         {isOwner ? (
           <>
-            <PopupAction title="Paga oraria" ariaLabel="Cambia la paga oraria" triggerRow={<Line label="Paga oraria" shown={member.hourlyRate ? `${Number(member.hourlyRate).toFixed(2).replace(".", ",")} €` : "Aggiungi"} tone={member.hourlyRate ? undefined : "#5e4ae3"} />}>
+            <PopupAction title="Paga oraria" ariaLabel="Cambia la paga oraria" triggerRow={<Line emoji="💶" label="Paga oraria" shown={member.hourlyRate ? `${Number(member.hourlyRate).toFixed(2).replace(".", ",")} €` : "Aggiungi"} tone={member.hourlyRate ? undefined : "#5e4ae3"} />}>
               <DetailForm membershipId={member.id} name="hourlyRate" current={member.hourlyRate ? Number(member.hourlyRate).toFixed(2).replace(".", ",") : ""} placeholder="9,50" hint="Euro lordi all'ora. La vedi solo tu." inputMode="decimal" />
             </PopupAction>
-            <PopupAction title="Matricola o codice fiscale" ariaLabel="Cambia matricola o codice fiscale" triggerRow={<Line label="Matricola o cod. fiscale" shown={member.payrollCode ?? "Aggiungi"} tone={member.payrollCode ? undefined : "#5e4ae3"} />}>
+            <PopupAction title="Matricola o codice fiscale" ariaLabel="Cambia matricola o codice fiscale" triggerRow={<Line emoji="🪪" label="Matricola o cod. fiscale" shown={member.payrollCode ?? "Aggiungi"} tone={member.payrollCode ? undefined : "#5e4ae3"} />}>
               <DetailForm membershipId={member.id} name="payrollCode" current={member.payrollCode ?? ""} placeholder="Matricola o codice fiscale" hint="Va nel file delle presenze per il consulente." inputMode="text" />
             </PopupAction>
           </>
         ) : null}
-      </Sheet>
+      </MixCard>
 
-      <Sheet>
+      <MixCard title="Le sue cose">
         <Link href={`/dashboard/presenze/persona/${member.user.id}`} style={{ ...row, borderTop: 0 }}>
+          <span aria-hidden style={icon}>⏱️</span>
           <span>Presenze</span>
           <span style={value}>{month}</span>
           {chevron}
         </Link>
         <Link href="/dashboard/documents" style={row}>
+          <span aria-hidden style={icon}>📄</span>
           <span>Documenti</span>
           <span style={value}>{documents}</span>
           {chevron}
         </Link>
         <Link href="/dashboard/courses" style={row}>
+          <span aria-hidden style={icon}>🎓</span>
           <span>Corsi</span>
           <span style={{ ...value, ...(courses.tone ? { color: courses.tone } : {}) }}>{courses.text}</span>
           {chevron}
         </Link>
-      </Sheet>
+      </MixCard>
 
       {canRemove ? (
         <Sheet>
