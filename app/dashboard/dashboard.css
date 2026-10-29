@@ -4058,3 +4058,8 @@
         text-align: center;
         margin: 0 auto;
       }
+
+/* Presenze, one person's weeks: the chevron turns when a week is open. */
+.wb-week > summary::-webkit-details-marker { display: none; }
+.wb-week-chev { display: inline-block; transition: transform 0.15s ease; }
+.wb-week[open] .wb-week-chev { transform: rotate(90deg); }

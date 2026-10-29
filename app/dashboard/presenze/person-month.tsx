@@ -5,7 +5,7 @@ import { DAY_KINDS, type PayrollCodeKey } from "@/lib/payroll/template";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { AddDay } from "./day-editor";
-import { AddStampButton, DayRow, type DayChoice, type DayView, type Span } from "./day-item";
+import { DayRow, type DayView, type Span } from "./day-item";
 import { hoursValue, Quiet, Sheet } from "./payroll-ui";
 import { PdfButton } from "./pdf-button";
 
@@ -19,6 +19,7 @@ const AWAY_LABELS: Partial<Record<PayrollCodeKey, string>> = {
 };
 
 const weekdayOf = new Intl.DateTimeFormat("it-IT", { weekday: "short", timeZone: "UTC" });
+const shortMonth = new Intl.DateTimeFormat("it-IT", { month: "short", timeZone: "UTC" });
 const romeParts = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Rome" });
 
 function clockText(value: Date) {
@@ -48,8 +49,8 @@ function workedOf(entries: PayrollPerson["entries"]) {
 }
 
 /**
- * One person's month, week by week: a track per day with the stamped spans
- * (6:00 to midnight), the exact times, the hours. Who may, taps a day to fix
+ * One person's month: first what is to fix, then the weeks, newest open and
+ * the rest folded to a line. Rest days are left out. Who may, taps a day to fix
  * its clock-ins or to correct the consultant's file.
  */
 export async function PersonMonth({
@@ -182,10 +183,6 @@ export async function PersonMonth({
     const shift = shiftOf.get(view.date);
     return Boolean(shift && shift.endTime < now && !(stampsOf.get(view.date)?.pairs.length) && !view.away);
   };
-  const stampChoices: DayChoice[] = views
-    .filter(missingStamp)
-    .reverse()
-    .map((view) => ({ date: view.date, weekday: view.weekday, day: view.day, shift: view.shift }));
 
   const worked = person ? person.totals.ordinary.hours + person.totals.overtime.hours : 0;
   const summary = person
@@ -199,8 +196,30 @@ export async function PersonMonth({
         .filter(Boolean)
         .join(" · ")
     : "";
-  const missing = canFixStamps && timeTracking ? stampChoices.length : 0;
-  const days = [...views].reverse();
+  const toFix = (view: DayView) => canFixStamps && timeTracking && missingStamp(view);
+  // Only the days with something in them: a rest day says nothing.
+  const shown = views.filter((view) => !toFix(view) && (view.right !== "Riposo" && view.right !== "Oggi" || view.flags.length || view.overridden || view.times));
+  const fixRows = [...views].filter(toFix).reverse();
+
+  // Week by week, newest first; only the latest is open, the rest fold to one line.
+  const weeks: { key: string; label: string; days: DayView[]; hours: number }[] = [];
+  for (const view of [...shown].reverse()) {
+    const date = new Date(`${view.date}T00:00:00Z`);
+    const monday = new Date(date);
+    monday.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+    const weekKey = monday.toISOString().slice(0, 10);
+    let week = weeks.find((entry) => entry.key === weekKey);
+    if (!week) {
+      const sunday = new Date(monday);
+      sunday.setUTCDate(monday.getUTCDate() + 6);
+      const sameMonth = monday.getUTCMonth() === sunday.getUTCMonth();
+      const label = `${monday.getUTCDate()}${sameMonth ? "" : ` ${shortMonth.format(monday)}`} – ${sunday.getUTCDate()} ${shortMonth.format(sunday)}`;
+      week = { key: weekKey, label, days: [], hours: 0 };
+      weeks.push(week);
+    }
+    week.days.push(view);
+    week.hours += workedOf(entriesOf.get(view.date) ?? []);
+  }
 
   return (
     <div style={{ display: "grid", gap: 18 }}>
@@ -215,48 +234,45 @@ export async function PersonMonth({
         </Quiet>
       </div>
 
-      {missing ? (
-        <AddStampButton
-          userId={userId}
-          personName={personName}
-          choices={stampChoices}
-          style={{
-            all: "unset",
-            boxSizing: "border-box",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: "#fff7e8",
-            borderRadius: 16,
-            padding: "13px 16px",
-            cursor: "pointer",
-            width: "100%",
-          }}
-          trigger={
-            <>
-              <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: "#f59e0b", flex: "0 0 auto" }} />
-              <span style={{ flex: 1, fontSize: 15, color: "#92400e" }}>
-                {missing} {missing === 1 ? "turno senza timbratura" : "turni senza timbratura"}
-              </span>
-              <span style={{ fontSize: 14.5, fontWeight: 700, color: "#92400e" }}>Sistema</span>
-            </>
-          }
-        />
+      {fixRows.length ? (
+        <section style={{ display: "grid", gap: 8 }}>
+          <span style={{ fontSize: 13, color: "#b45309", padding: "0 18px" }}>Da sistemare · {fixRows.length}</span>
+          <Sheet style={{ boxShadow: "inset 3px 0 0 #f59e0b" }}>
+            <div style={{ marginTop: -1 }}>
+              {fixRows.map((view) => (
+                <DayRow key={view.date} view={view} userId={userId} personName={personName} canFix />
+              ))}
+            </div>
+          </Sheet>
+        </section>
       ) : null}
 
-      <Sheet>
-        <div style={{ marginTop: -1 }}>
-          {days.length ? (
-            days.map((view) => (
-              <DayRow key={view.date} view={view} userId={userId} personName={personName} canFix={canFixStamps && timeTracking && missingStamp(view)} />
-            ))
-          ) : (
-            <div style={{ padding: "15px 18px" }}>
-              <Quiet>Nessun giorno in questo mese.</Quiet>
-            </div>
-          )}
-        </div>
-      </Sheet>
+      {weeks.length ? (
+        weeks.map((week, index) => (
+          <details key={week.key} open={index === 0} className="wb-week" style={{ display: "grid", gap: 8 }}>
+            <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: "4px 18px", fontSize: 13, color: "#8a85a3" }}>
+              <span style={{ flex: 1 }}>
+                Settimana {week.label} · {week.days.length} {week.days.length === 1 ? "giorno" : "giorni"}
+              </span>
+              <span style={{ fontVariantNumeric: "tabular-nums", color: "#1f1b3a", fontSize: 14 }}>{hoursValue(week.hours)}</span>
+              <span aria-hidden className="wb-week-chev" style={{ color: "#c4c0d6", fontSize: 16 }}>›</span>
+            </summary>
+            <Sheet style={{ marginTop: 8 }}>
+              <div style={{ marginTop: -1 }}>
+                {week.days.map((view) => (
+                  <DayRow key={view.date} view={view} userId={userId} personName={personName} canFix={false} />
+                ))}
+              </div>
+            </Sheet>
+          </details>
+        ))
+      ) : fixRows.length ? null : (
+        <Sheet>
+          <div style={{ padding: "15px 18px" }}>
+            <Quiet>Nessun giorno lavorato in questo mese.</Quiet>
+          </div>
+        </Sheet>
+      )}
 
       {canCorrectFile && person ? (
         <Sheet>
