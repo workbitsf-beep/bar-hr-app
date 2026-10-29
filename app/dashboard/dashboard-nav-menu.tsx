@@ -405,9 +405,11 @@ export function DashboardNavMenu({
                             className="workbit-menu-navigation-list"
                             style={{
                               background: "#ffffff",
-                              border: "1px solid #e9e6f5",
-                              borderRadius: 18,
+                              border: "1px solid #ece9f7",
+                              borderRadius: 20,
                               overflow: "hidden",
+                              padding: "0 16px",
+                              boxShadow: "0 3px 10px rgba(76, 29, 149, 0.04)",
                             }}
                           >
                             {section.items.map((item, index) => {
@@ -426,9 +428,9 @@ export function DashboardNavMenu({
                                   style={{
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: 11,
-                                    padding: "13px",
-                                    borderTop: index === 0 ? undefined : "1px solid #f4f2fb",
+                                    gap: 10,
+                                    padding: "10px 0",
+                                    borderTop: index === 0 ? undefined : "1px solid #f1eff8",
                                     background: active ? "#f6f3ff" : "transparent",
                                     textDecoration: "none",
                                     color: active ? "#4c1d95" : "#17161f",
@@ -450,18 +452,11 @@ export function DashboardNavMenu({
                                     style={{
                                       flex: 1,
                                       minWidth: 0,
-                                      fontSize: 14.5,
-                                      fontWeight: active ? 820 : 740,
+                                      fontSize: 15,
+                                      fontWeight: active ? 750 : 600,
                                     }}
                                   >
                                     {item.label}
-                                  </span>
-                                  <span
-                                    className="workbit-menu-link-arrow"
-                                    aria-hidden="true"
-                                    style={{ flex: "0 0 auto", color: "#c8c5d8", fontSize: 15 }}
-                                  >
-                                    ›
                                   </span>
                                 </Link>
                               );
