@@ -204,7 +204,7 @@ function Shell({
         <Link href={backHref} style={{ fontSize: 13, fontWeight: 700, color: "#6d5ce7", textDecoration: "none" }}>
           ‹ Costi
         </Link>
-        <h1 style={{ margin: 0, fontSize: 26, letterSpacing: "-0.03em" }}>{title}</h1>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: "-0.035em" }}>{title}</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14, color: "#4b4763" }}>
           <Link href={query(shiftMonth(month, -1))} aria-label="Mese prima" style={{ color: "#6d5ce7", textDecoration: "none", fontSize: 18 }}>
             ‹

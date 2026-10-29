@@ -23,8 +23,8 @@ export function change(now: number, before: number | null | undefined) {
 export function SectionLabel({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, padding: "0 4px" }}>
-      <span style={{ fontSize: 10, fontWeight: 830, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8a84a8" }}>{children}</span>
-      {aside ? <span style={{ fontSize: 12, color: "#8a84a8" }}>{aside}</span> : null}
+      <span style={{ fontSize: 14.5, fontWeight: 750, letterSpacing: "-0.01em", color: "#111827" }}>{children}</span>
+      {aside ? <span style={{ fontSize: 13, color: "#667085" }}>{aside}</span> : null}
     </div>
   );
 }
@@ -34,9 +34,11 @@ export function RowsCard({ children, style }: { children: ReactNode; style?: CSS
     <div
       style={{
         background: "#ffffff",
-        border: "1px solid #e9e6f5",
+        border: "1px solid #ece9f7",
         borderRadius: 20,
         overflow: "hidden",
+        padding: "0 16px",
+        boxShadow: "0 3px 10px rgba(76, 29, 149, 0.04)",
         display: "grid",
         gridTemplateColumns: "minmax(0, 1fr)",
         ...style,
@@ -65,10 +67,10 @@ export function Row({
   const css: CSSProperties = {
     display: "grid",
     gap: 4,
-    padding: "13px 15px",
+    padding: rail ? "10px 0 10px 10px" : "10px 0",
     borderTop: first ? undefined : "1px solid #f1eff8",
     boxShadow: rail ? `inset 3px 0 0 ${rails[rail]}` : undefined,
-    color: "#17161f",
+    color: "#111827",
     textDecoration: "none",
     minWidth: 0,
     ...style,

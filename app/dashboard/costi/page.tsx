@@ -61,10 +61,10 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
   const ai = aiEnabled();
 
   return (
-    <div className="wbcost" style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
+    <div className="wbcost" style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
       <header style={{ display: "grid", gap: 2, padding: "0 4px" }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#6d5ce7" }}>Costi e fornitori</span>
-        <h1 style={{ margin: 0, fontSize: 30, letterSpacing: "-0.03em", textTransform: "capitalize" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: "#5e4ae3" }}>Dove vanno i soldi del locale</span>
+        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05, textTransform: "capitalize" }}>
           {report ? monthLabel(report.month) : "Dove vanno i soldi"}
         </h1>
       </header>
