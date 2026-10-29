@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { NoteMeta } from "@/lib/note-list-format";
+import { APP_TIME_ZONE } from "@/lib/time-zone";
 
 export type NoteChip = { text: string; tone: "plain" | "alarm" | "day" };
 
@@ -10,11 +11,17 @@ const CHIP = {
 };
 
 /** The meta of a note as small chips: what is wrong in red, a day ahead in violet. */
-export function chipsOf(meta: NoteMeta, options: { ahead: boolean; repeat: boolean; department: string | null }): NoteChip[] {
+export function chipsOf(meta: NoteMeta, options: { ahead: boolean; repeat: boolean; department: string | null; date: Date }): NoteChip[] {
+  // "Oggi" alone says nothing a week later in the archive: the date goes with it.
+  const dated = (text: string) =>
+    /^(oggi|domani|ieri)$/i.test(text)
+      ? `${text} · ${new Intl.DateTimeFormat("it-IT", { timeZone: APP_TIME_ZONE, day: "numeric", month: "short" }).format(options.date).replace(/\.$/, "")}`
+      : text;
   return [
     ...meta.parts.map((part, index): NoteChip => {
       if (part.alarming) return { text: part.text.charAt(0).toUpperCase() + part.text.slice(1), tone: "alarm" };
-      const text = part.text.charAt(0).toUpperCase() + part.text.slice(1);
+      const base = index === 0 && !meta.done ? dated(part.text) : part.text;
+      const text = base.charAt(0).toUpperCase() + base.slice(1);
       if (index === 0 && options.ahead && !meta.done) return { text: `📅 ${text}`, tone: "day" };
       if (options.repeat && /^ogni|^tutti/i.test(part.text)) return { text: `🔁 ${part.text}`, tone: "plain" };
       return { text, tone: "plain" };

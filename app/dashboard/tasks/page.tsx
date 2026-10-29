@@ -193,7 +193,7 @@ export default async function DashboardTasksPage({
         ? { name: `${lastCompletion.user.firstName} ${lastCompletion.user.lastName}`, at: lastCompletion.completedAt }
         : null,
     });
-    const chips = chipsOf(meta, { ahead: task.dueDate > todayEnd, repeat: Boolean(repeatLabel), department: departmentName(task.department) });
+    const chips = chipsOf(meta, { ahead: task.dueDate > todayEnd, repeat: Boolean(repeatLabel), department: departmentName(task.department), date: task.dueDate });
     // On a team check, who else confirmed it is the proof it was done.
     const extraCompletions = (group.members.length > 1 ? [] : allCompletions)
       .slice(1)
