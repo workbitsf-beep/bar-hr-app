@@ -4046,3 +4046,19 @@
         background: #fdecec !important;
         color: #e5484d !important;
       }
+
+      /* Dates and times typed in Presenze and Corsi: the value in the middle of
+         the box, as the shift times are, instead of iOS's top-left. */
+      .wb-centered-field {
+        -webkit-appearance: none;
+        appearance: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: normal;
+      }
+      .wb-centered-field::-webkit-date-and-time-value {
+        text-align: center;
+        margin: 0 auto;
+      }

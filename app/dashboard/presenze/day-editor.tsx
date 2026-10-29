@@ -31,6 +31,44 @@ const soft = {
   padding: "0 14px",
 } as const;
 
+/** "7:30" (or 7,5 or 7) to hours. */
+function parseHours(text: string) {
+  const value = text.trim();
+  if (!value) return 0;
+  const clock = /^(\d{1,2})[:.](\d{1,2})$/.exec(value);
+  if (clock && value.includes(":")) return Number(clock[1]) + Number(clock[2]) / 60;
+  return Number(value.replace(",", ".")) || 0;
+}
+
+function clockOf(hours: number) {
+  if (!hours) return "";
+  const minutes = Math.round(hours * 60);
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+/** Hours written as a clock, 7:30; sent to the action as a number. */
+function HoursField({ hours, onChange }: { hours: number; onChange: (hours: number) => void }) {
+  const [text, setText] = useState(clockOf(hours));
+  return (
+    <>
+      <input
+        inputMode="text"
+        value={text}
+        placeholder="0:00"
+        aria-label="Ore"
+        onChange={(event) => setText(event.currentTarget.value)}
+        onBlur={() => {
+          const next = parseHours(text);
+          setText(clockOf(next));
+          onChange(Math.round(next * 100) / 100);
+        }}
+        style={{ ...input, textAlign: "center", fontVariantNumeric: "tabular-nums" }}
+      />
+      <input type="hidden" name="hours" value={String(hours)} />
+    </>
+  );
+}
+
 const WHOLE_DAY: PayrollCodeKey[] = ["holiday", "sickness", "closure", "publicHoliday"];
 
 /**
@@ -77,7 +115,7 @@ export function DayEditor({ userId, date, entries, overridden, note, dailyHours,
         ) : (
           <label style={{ display: "grid", gap: 4, fontSize: 12.5, color: "#7c7894" }}>
             Giorno
-            <input type="date" name="date" min={minDate} max={maxDate} required style={input} />
+            <input type="date" className="wb-centered-field" name="date" min={minDate} max={maxDate} required style={input} />
           </label>
         )}
         {rows.map((row, index) => (
@@ -94,14 +132,7 @@ export function DayEditor({ userId, date, entries, overridden, note, dailyHours,
             </label>
             <label style={{ display: "grid", gap: 4, fontSize: 12, color: "#7c7894" }}>
               {index === 0 ? "Ore" : <span aria-hidden> </span>}
-              <input
-                name="hours"
-                inputMode="decimal"
-                value={row.hours ? String(row.hours).replace(".", ",") : ""}
-                placeholder="0"
-                onChange={(event) => update(index, { hours: Number(event.currentTarget.value.replace(",", ".")) || 0 })}
-                style={{ ...input, textAlign: "right" }}
-              />
+              <HoursField key={`${index}-${row.kind}`} hours={row.hours} onChange={(hours) => update(index, { hours })} />
             </label>
             <label style={{ display: "grid", gap: 4, fontSize: 12, color: "#7c7894" }}>
               {index === 0 ? "Giorni" : <span aria-hidden> </span>}

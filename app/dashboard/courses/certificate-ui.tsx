@@ -208,11 +208,11 @@ export function CertificateButton({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <label style={label}>
               Fatto il
-              <input type="date" value={done} max={todayKey()} onChange={(event) => setDone(event.currentTarget.value)} style={field} />
+              <input type="date" className="wb-centered-field" value={done} max={todayKey()} onChange={(event) => setDone(event.currentTarget.value)} style={field} />
             </label>
             <label style={label}>
               Scade il
-              <input type="date" value={expiresAt} min={done} onChange={(event) => setExpiry(event.currentTarget.value)} style={field} />
+              <input type="date" className="wb-centered-field" value={expiresAt} min={done} onChange={(event) => setExpiry(event.currentTarget.value)} style={field} />
             </label>
           </div>
           {suggested && expiresAt === suggested ? (

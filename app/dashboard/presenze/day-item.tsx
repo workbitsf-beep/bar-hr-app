@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ActionForm } from "@/app/components/action-form";
+import { TimeInput } from "@/app/components/time-input";
 import { PendingButton } from "@/app/components/pending-button";
 import { createManualTimeLogAction, deleteTimeLogPairAction } from "../actions";
 import { DayEditor, type DayEditorProps } from "./day-editor";
@@ -82,8 +83,7 @@ function durationText(inTime: string, outTime: string) {
   if (!inTime || !outTime) return null;
   let minutes = minutesOf(outTime) - minutesOf(inTime);
   if (minutes <= 0) minutes += 24 * 60;
-  const hours = minutes / 60;
-  return `${hours.toLocaleString("it-IT", { maximumFractionDigits: 2 })} ${hours === 1 ? "ora" : "ore"}`;
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")} ore`;
 }
 
 function nextDay(date: string) {
@@ -104,12 +104,15 @@ function DaySheet({
   personName,
   canFix,
   onClose,
+  top,
 }: {
   view: DayView;
   userId: string;
   personName: string;
   canFix: boolean;
   onClose: () => void;
+  /** Above the form: the choice of day, for a stamp added from the month. */
+  top?: ReactNode;
 }) {
   const [mode, setMode] = useState<"stamps" | "file">(canFix ? "stamps" : "file");
   const [inTime, setInTime] = useState(view.shift?.start ?? "");
@@ -164,6 +167,7 @@ function DaySheet({
             {view.shift ? ` · turno ${view.shift.start} – ${view.shift.end}` : ""}
           </span>
         </div>
+        {top}
 
         {view.flags.length ? (
           <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff7e8", borderRadius: 14, padding: "11px 14px", color: "#92400e", fontSize: 13.5 }}>
@@ -225,6 +229,11 @@ function DaySheet({
                 ))}
               </div>
             ) : null}
+            {view.pairs.length ? (
+              <span style={{ fontSize: 13, color: "#6f6a88" }}>
+                Una timbratura sbagliata si toglie, poi si aggiunge quella giusta: così resta chiaro chi ha cambiato cosa.
+              </span>
+            ) : (
             <ActionForm action={createManualTimeLogAction} success="Timbratura salvata" style={{ display: "grid", gap: 14 }}>
               <input type="hidden" name="userId" value={userId} />
               <input type="hidden" name="clockInAt" value={inTime ? `${view.date}T${inTime}` : ""} />
@@ -253,15 +262,15 @@ function DaySheet({
                   </button>
                 </div>
               ) : null}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <label style={{ display: "grid", gap: 6, fontSize: 12.5, color: "#6f6a88" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div style={{ display: "grid", gap: 6, fontSize: 12.5, color: "#6f6a88" }}>
                   Entrata
-                  <input type="time" required value={inTime} onChange={(event) => setInTime(event.currentTarget.value)} style={input} />
-                </label>
-                <label style={{ display: "grid", gap: 6, fontSize: 12.5, color: "#6f6a88" }}>
+                  <TimeInput value={inTime} onChange={setInTime} required />
+                </div>
+                <div style={{ display: "grid", gap: 6, fontSize: 12.5, color: "#6f6a88" }}>
                   Uscita
-                  <input type="time" required value={outTime} onChange={(event) => setOutTime(event.currentTarget.value)} style={input} />
-                </label>
+                  <TimeInput value={outTime} onChange={setOutTime} required />
+                </div>
               </div>
               <label style={{ display: "grid", gap: 6, fontSize: 12.5, color: "#6f6a88" }}>
                 Nota per {personName.split(" ")[0]}
@@ -272,13 +281,14 @@ function DaySheet({
                   style={{ ...input, fontSize: 15, fontWeight: 400, textAlign: "left", padding: "0 14px", minHeight: 46 }}
                 />
               </label>
-              <PendingButton type="submit" pendingLabel="Salvo…" style={primary}>
+              <PendingButton type="submit" pendingLabel="Salvo…" style={{ ...primary, opacity: inTime && outTime ? 1 : 0.55 }} disabled={!inTime || !outTime}>
                 {duration ? `Salva ${duration}` : "Salva timbratura"}
               </PendingButton>
               <span style={{ fontSize: 12.5, color: "#6f6a88", textAlign: "center" }}>
-                {personName.split(" ")[0]} riceve una notifica se una timbratura viene tolta. Le ore del mese e il file del consulente si aggiornano da soli.
+                Le ore del mese e il file del consulente si aggiornano da soli.
               </span>
             </ActionForm>
+            )}
           </>
         ) : null}
 
@@ -394,55 +404,98 @@ export function DayRow({ view, userId, personName, canFix }: { view: DayView; us
   );
 }
 
-/** "+ Timbratura": a day chosen first, then the same sheet. */
+export type DayChoice = { date: string; weekday: string; day: number; shift: { start: string; end: string } | null };
+
+/** "+ Timbratura": one of the month's days without a stamp, then the same sheet. */
 export function AddStampButton({
   userId,
   personName,
-  minDate,
-  maxDate,
+  choices,
   style,
 }: {
   userId: string;
   personName: string;
-  minDate: string;
-  maxDate: string;
+  /** Days so far with no stamp and no day away, newest first. */
+  choices: DayChoice[];
   style: CSSProperties;
 }) {
-  const [date, setDate] = useState<string | null>(null);
-  const [picking, setPicking] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<DayChoice | null>(null);
+  const first = choices.find((choice) => choice.shift) ?? choices[0] ?? null;
+  const current = picked ?? first;
+  if (!choices.length) return null;
+
+  const chooser = (
+    <div style={{ display: "grid", gap: 8 }}>
+      <span style={{ fontSize: 12.5, color: "#6f6a88" }}>Che giorno? Solo quelli senza timbratura.</span>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+        {choices.map((choice) => {
+          const active = current?.date === choice.date;
+          return (
+            <button
+              key={choice.date}
+              type="button"
+              onClick={() => setPicked(choice)}
+              style={{
+                flex: "0 0 auto",
+                minWidth: 64,
+                minHeight: 62,
+                borderRadius: 16,
+                border: active ? "1.5px solid #6d5ce7" : choice.shift ? "1px solid #fcd9a0" : "1px solid #e9e6f5",
+                background: active ? "#f1eeff" : choice.shift ? "#fffaf0" : "#ffffff",
+                color: "#1f1b3a",
+                display: "grid",
+                justifyItems: "center",
+                alignContent: "center",
+                gap: 2,
+                cursor: "pointer",
+                padding: "6px 8px",
+              }}
+            >
+              <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#7c7894" }}>{choice.weekday}</span>
+              <span style={{ fontSize: 18, fontWeight: 650 }}>{choice.day}</span>
+              {choice.shift ? <span style={{ fontSize: 10.5, color: "#b45309" }}>turno</span> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <>
-      {picking ? (
-        <input
-          type="date"
-          min={minDate}
-          max={maxDate}
-          aria-label="Giorno della timbratura"
-          autoFocus
-          onChange={(event) => {
-            if (event.currentTarget.value) {
-              setDate(event.currentTarget.value);
-              setPicking(false);
-            }
-          }}
-          onBlur={() => setPicking(false)}
-          style={{ ...style, padding: "0 12px" }}
-        />
-      ) : (
-        <button type="button" onClick={() => setPicking(true)} style={style}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Timbratura
-        </button>
-      )}
-      {date ? (
+      <button type="button" onClick={() => setOpen(true)} style={style}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Timbratura
+      </button>
+      {open && current ? (
         <DaySheet
-          view={{ date, weekday: "", day: Number(date.slice(8)), segments: [], planned: null, away: null, times: "", right: "", flags: [], overridden: false, shift: null, pairs: [], editor: null }}
+          key={current.date}
+          view={{
+            date: current.date,
+            weekday: current.weekday,
+            day: current.day,
+            segments: [],
+            planned: null,
+            away: null,
+            times: "",
+            right: "",
+            flags: [],
+            overridden: false,
+            shift: current.shift,
+            pairs: [],
+            editor: null,
+          }}
           userId={userId}
           personName={personName}
           canFix
-          onClose={() => setDate(null)}
+          top={chooser}
+          onClose={() => {
+            setOpen(false);
+            setPicked(null);
+          }}
         />
       ) : null}
     </>

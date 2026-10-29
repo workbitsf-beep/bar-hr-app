@@ -5,7 +5,7 @@ import { DAY_KINDS, type PayrollCodeKey } from "@/lib/payroll/template";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { AddDay } from "./day-editor";
-import { AddStampButton, DayRow, type DayView, type Span } from "./day-item";
+import { AddStampButton, DayRow, type DayChoice, type DayView, type Span } from "./day-item";
 import { Card, ghostButton, hoursValue, MonthSwitch, SectionHead } from "./payroll-ui";
 import { PdfButton } from "./pdf-button";
 
@@ -180,6 +180,12 @@ export async function PersonMonth({
     });
   }
 
+  // A stamp is added only where none is: days so far with no stamp and no day away.
+  const stampChoices: DayChoice[] = views
+    .filter((view) => !(stampsOf.get(view.date)?.pairs.length) && !view.away)
+    .reverse()
+    .map((view) => ({ date: view.date, weekday: view.weekday, day: view.day, shift: view.shift }));
+
   // Newest week first: the days that matter now sit on top.
   const weeks = new Map<string, DayView[]>();
   for (const view of views) weeks.set(weekStart(view.date), [...(weeks.get(weekStart(view.date)) ?? []), view]);
@@ -229,11 +235,8 @@ export async function PersonMonth({
         {canPdf || (canFixStamps && timeTracking) ? (
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             {canPdf ? <PdfButton userId={userId} month={month} year={year} style={ghostButton} /> : null}
-            {canFixStamps && timeTracking ? <AddStampButton userId={userId} personName={personName} minDate={minDate} maxDate={maxDate} style={ghostButton} /> : null}
+            {canFixStamps && timeTracking ? <AddStampButton userId={userId} personName={personName} choices={stampChoices} style={ghostButton} /> : null}
           </div>
-        ) : null}
-        {canCorrectFile && person?.warnings.length ? (
-          <span style={{ fontSize: 12.5, color: "#6f6a88", textAlign: "center" }}>{person.warnings.join(" ")}</span>
         ) : null}
         <span style={{ fontSize: 12, color: "#9a95b2", textAlign: "center" }}>{payroll.source === "SHIFTS" ? "Ore dai turni pubblicati" : "Ore dalle timbrature, arrotondate"}</span>
       </Card>

@@ -42,9 +42,10 @@ export function hoursText(value: number) {
   return value ? value.toLocaleString("it-IT", { maximumFractionDigits: 2 }) : "–";
 }
 
-/** Hours as a number people read: 0 is "0", not a dash. */
+/** Hours as a clock reads them, 8:12 rather than 8,2; 0 is "0:00", not a dash. */
 export function hoursValue(value: number) {
-  return (value || 0).toLocaleString("it-IT", { maximumFractionDigits: 1 });
+  const minutes = Math.round((value || 0) * 60);
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
 export function initials(firstName: string, lastName: string) {
