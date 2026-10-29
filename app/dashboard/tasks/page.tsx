@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { describeTaskRepeat } from "@/lib/task-recurrence";
 import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
 import { buildNoteMeta } from "@/lib/note-list-format";
-import { NoteRow } from "../note-row";
+import Link from "next/link";
+import { chipsOf, NoteCard, tickStyle } from "./note-card";
 import {
   completeTaskAction,
   createTaskAction,
@@ -14,24 +15,22 @@ import {
 } from "../actions";
 import { getDashboardContext } from "../context";
 import { NotesAside } from "../desktop-asides";
-import {
-  EmptyState,
-  IconButton,
-  ItemList,
-  Panel,
-  Stack,
-} from "../ui";
+import { EmptyState, Panel } from "../ui";
 import { PopupAction } from "../popup-action";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { TaskComposeForm } from "./task-compose-form";
 import { ConfirmationArchive } from "./confirmation-archive";
 import { confirmedTaskArchived } from "@/lib/note-visibility";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
-import { DepartmentDot } from "../department-forms";
-import { Fragment } from "react";
 import { ActionForm } from "@/app/components/action-form";
 
-export default async function DashboardTasksPage() {
+export default async function DashboardTasksPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const requestedTab = Array.isArray(params.vista) ? params.vista[0] : params.vista;
   const { session, role, staff, activeBarId, billingStatus, features } = await getDashboardContext();
 
   if (!activeBarId) {
@@ -144,234 +143,202 @@ export default async function DashboardTasksPage() {
         }),
   ]);
 
-  // Pro: notes sent to a department sit in its own section; the rest are
-  // "Per tutti". A Base venue keeps the single list it has always had.
+  // Three tabs, by what the note asks: something to do, something to read,
+  // a check that comes back. Department and date travel as chips on the card.
   const groupedTasks = groupSharedTasks(tasks);
-  const noteSections = departments.enabled
-    ? [
-        // Jolly has no section of its own: a Jolly note is for everyone.
-        {
-          key: "ALL",
-          title: "Per tutti",
-          department: null,
-          groups: groupedTasks.filter((group) => !group.lead.department || group.lead.department === "JOLLY"),
-        },
-        ...staffDepartments(departments.list).map((department) => ({
-          key: department.id,
-          title: department.name,
-          department,
-          groups: groupedTasks.filter((group) => group.lead.department === department.id),
-        })),
-      ].filter((section) => section.groups.length > 0)
-    : [{ key: "ALL", title: "", department: null, groups: groupedTasks }];
+  type Group = (typeof groupedTasks)[number];
+  const tabOf = (group: Group) => (group.lead.repeatEvery ? "controlli" : !group.lead.requiresConfirmation ? "avvisi" : "fare");
+  const isDoneGroup = (group: Group) => group.members.every((member) => member.status === "DONE");
+  const TABS = [
+    { id: "fare", label: "Da fare" },
+    { id: "avvisi", label: "Avvisi" },
+    { id: "controlli", label: "Controlli" },
+  ] as const;
+  const pendingIn = (id: string) => groupedTasks.filter((group) => tabOf(group) === id && !isDoneGroup(group)).length;
+  const tab = TABS.some((entry) => entry.id === requestedTab) ? (requestedTab as string) : "fare";
+  const inTab = groupedTasks.filter((group) => tabOf(group) === tab);
+  const pending = inTab.filter((group) => !isDoneGroup(group));
+  const finished = inTab.filter(isDoneGroup);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  const departmentName = (id: string | null) =>
+    departments.enabled && id && id !== "JOLLY" ? staffDepartments(departments.list).find((entry) => entry.id === id)?.name ?? null : null;
+
+  function card(group: Group) {
+    // A note given to several people comes back as one card here, with
+    // everyone's name; each of them still confirms their own.
+    const task = group.lead;
+    const isDone = isDoneGroup(group);
+    const pendingIds = group.members
+      .filter((member) => member.status !== "DONE")
+      .map((member) => member.id)
+      .join(",");
+    const canComplete =
+      !isDone && task.requiresConfirmation && (canManage || task.assignedToAll || task.assignedToId === session.user.id);
+    const canDeleteTask = canManage || task.createdBy.id === session.user.id;
+    const allCompletions = group.members
+      .flatMap((member) => member.completions)
+      .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
+    const lastCompletion = allCompletions[0];
+    const repeatLabel = describeTaskRepeat(task.repeatEvery, task.repeatUnit);
+    const meta = buildNoteMeta({
+      dueDate: task.dueDate,
+      done: isDone,
+      urgent: task.isUrgent,
+      requiresConfirmation: task.requiresConfirmation,
+      repeatLabel,
+      assignedLabel: task.assignedToAll ? null : describeAssignees(group.members),
+      authorLabel: task.createdBy.id === session.user.id ? null : task.createdBy.firstName,
+      completedBy: lastCompletion
+        ? { name: `${lastCompletion.user.firstName} ${lastCompletion.user.lastName}`, at: lastCompletion.completedAt }
+        : null,
+    });
+    const chips = chipsOf(meta, { ahead: task.dueDate > todayEnd, repeat: Boolean(repeatLabel), department: departmentName(task.department) });
+    // On a team check, who else confirmed it is the proof it was done.
+    const extraCompletions = (group.members.length > 1 ? [] : allCompletions)
+      .slice(1)
+      .map((completion) => completion.user.firstName)
+      .join(", ");
+
+    return (
+      <SwipeRevealAction
+        key={group.ids}
+        enabled={canDeleteTask}
+        action={
+          <ActionForm action={deleteTaskAction} success="Nota eliminata.">
+            <input type="hidden" name="taskId" value={group.ids} />
+            <button
+              type="submit"
+              aria-label="Elimina nota"
+              style={{ width: 54, height: 54, borderRadius: 18, border: 0, background: "#ef4444", color: "#ffffff", cursor: "pointer" }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </ActionForm>
+        }
+      >
+        <NoteCard
+          title={task.title}
+          chips={chips}
+          done={isDone}
+          urgent={task.isUrgent || meta.late}
+          footnote={extraCompletions ? `anche ${extraCompletions}` : null}
+          tick={
+            canComplete ? (
+              <ActionForm action={completeTaskAction} success="Nota fatta.">
+                <input type="hidden" name="taskId" value={pendingIds} />
+                <input type="hidden" name="notifySuccess" value="1" />
+                <button type="submit" aria-label="Segna come fatta" title="Segna come fatta" style={tickStyle} />
+              </ActionForm>
+            ) : task.requiresConfirmation ? (
+              <span aria-hidden style={{ ...tickStyle, cursor: "default", opacity: 0.5 }} />
+            ) : null
+          }
+        />
+      </SwipeRevealAction>
+    );
+  }
+
+  const composeMembers = members
+    .map((member) => ({ id: member.user.id, firstName: member.user.firstName, lastName: member.user.lastName }))
+    .filter((member) =>
+      canManage
+        ? members.some((source) => source.user.id === member.id && source.role !== Role.OWNER)
+        : member.id === session.user.id
+    );
+  const emptyText = tab === "avvisi" ? "Nessun avviso." : tab === "controlli" ? "Nessun controllo periodico." : "Niente da fare.";
 
   return (
     <div className="wb-desk-split">
-    <Stack columns="1fr" className="workbit-notes-page">
+      <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
+        <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Note</h1>
+          <PopupAction
+            title="Nuova nota"
+            ariaLabel="Aggiungi nota"
+            triggerRow={
+              <span style={{ width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </span>
+            }
+          >
+            <TaskComposeForm action={createTaskAction} members={composeMembers} canChooseAudience={canManage} />
+          </PopupAction>
+        </header>
 
-      <Panel
-        title="Note"
-        className="workbit-notes-panel"
-        action={
-          <div className="workbit-notes-actions">
-            {canManage && hasWholeScope(staff) && tasks.some((task) => task.status === "DONE") ? (
-              <ActionForm action={deleteAllCompletedTasksAction} success="Note completate eliminate." style={{ display: "contents" }}>
-                <button
-                  type="submit"
-                  className="workbit-notes-icon workbit-notes-icon--danger"
-                  aria-label="Elimina note completate"
-                  title="Elimina note completate"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path
-                      d="M4 7h16M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7m-8.5 0 .8 12.2c.1.9.8 1.8 1.8 1.8h5.8c1 0 1.7-.9 1.8-1.8L17.5 7M10 11v6M14 11v6"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </ActionForm>
-            ) : null}
-            {canManage ? (
-              <PopupAction
-                title="Archivio conferme"
-                ariaLabel="Apri archivio conferme"
-                className="workbit-notes-icon workbit-notes-icon--archive"
-                triggerContent={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path
-                      d="M3 7.5c0-1.1.9-2 2-2h4.2l2 2.2H19c1.1 0 2 .9 2 2v7.8c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V7.5Z"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                }
-              >
-                <ConfirmationArchive barId={activeBarId} />
-              </PopupAction>
-            ) : null}
-            <PopupAction title="Nuova nota" ariaLabel="Aggiungi nota">
-              <TaskComposeForm
-                action={createTaskAction}
-                members={members
-                  .map((member) => ({
-                    id: member.user.id,
-                    firstName: member.user.firstName,
-                    lastName: member.user.lastName,
-                  }))
-                  .filter((member) =>
-                    canManage
-                      ? members.some((source) => source.user.id === member.id && source.role !== Role.OWNER)
-                      : member.id === session.user.id
-                  )}
-                canChooseAudience={canManage}
-              />
-            </PopupAction>
-          </div>
-        }
-      >
-        {tasks.length === 0 ? (
-          <EmptyState message="Nessuna nota disponibile." />
-        ) : (
-          <ItemList>
-            {noteSections.map((section) => (
-            <Fragment key={section.key}>
-            {section.title ? (
-              <div
+        <nav aria-label="Tipi di nota" style={{ display: "flex", background: "#eeebf7", borderRadius: 14, padding: 3 }}>
+          {TABS.map((entry) => {
+            const active = entry.id === tab;
+            const count = pendingIn(entry.id);
+            return (
+              <Link
+                key={entry.id}
+                href={entry.id === "fare" ? "/dashboard/tasks" : `/dashboard/tasks?vista=${entry.id}`}
+                scroll={false}
+                aria-current={active ? "page" : undefined}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  margin: "8px 2px 2px",
-                  fontSize: 11.5,
-                  fontWeight: 900,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: section.department?.ink ?? "#8a84a8",
+                  flex: 1,
+                  minWidth: 0,
+                  textAlign: "center",
+                  padding: "9px 0",
+                  borderRadius: 11,
+                  fontSize: 14,
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                  color: active ? "#1f1b3a" : "#5b5675",
+                  fontWeight: active ? 600 : 500,
+                  background: active ? "#ffffff" : "transparent",
+                  boxShadow: active ? "0 1px 2px rgba(31,27,58,.08)" : "none",
                 }}
               >
-                {section.department ? <DepartmentDot department={section.department} size={18} /> : null}
-                {section.title} · {section.groups.length}
-              </div>
-            ) : null}
-            {section.groups.map((group) => {
-              // A note given to several people comes back as one row here,
-              // with everyone's name; each of them still confirms their own.
-              const task = group.lead;
-              const isDone = group.members.every((member) => member.status === "DONE");
-              const pendingIds = group.members
-                .filter((member) => member.status !== "DONE")
-                .map((member) => member.id)
-                .join(",");
-              const canComplete =
-                !isDone &&
-                task.requiresConfirmation &&
-                (canManage || task.assignedToAll || task.assignedToId === session.user.id);
-              const canDeleteTask = canManage || task.createdBy.id === session.user.id;
-              const allCompletions = group.members
-                .flatMap((member) => member.completions)
-                .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
-              const lastCompletion = allCompletions[0];
-              const meta = buildNoteMeta({
-                dueDate: task.dueDate,
-                done: isDone,
-                urgent: task.isUrgent,
-                requiresConfirmation: task.requiresConfirmation,
-                repeatLabel: describeTaskRepeat(task.repeatEvery, task.repeatUnit),
-                assignedLabel: task.assignedToAll ? null : describeAssignees(group.members),
-                authorLabel:
-                  task.createdBy.id === session.user.id ? null : task.createdBy.firstName,
-                completedBy: lastCompletion
-                  ? {
-                      name: `${lastCompletion.user.firstName} ${lastCompletion.user.lastName}`,
-                      at: lastCompletion.completedAt,
-                    }
-                  : null,
-              });
+                {entry.label}
+                {count ? ` · ${count}` : ""}
+              </Link>
+            );
+          })}
+        </nav>
 
-              // Who else confirmed it. On a note for the whole team that list
-              // is the proof the check was done, so it stays.
-              // On a shared note the ticks are already next to each name.
-              const extraCompletions = (group.members.length > 1 ? [] : allCompletions)
-                .slice(1)
-                .map((completion) => completion.user.firstName)
-                .join(", ");
-
-              return (
-                <SwipeRevealAction
-                  key={group.ids}
-                  enabled={canDeleteTask}
-                  action={
-                    <ActionForm action={deleteTaskAction} success="Nota eliminata.">
-                      <input type="hidden" name="taskId" value={group.ids} />
-                      <button
-                        type="submit"
-                        aria-label="Elimina nota"
-                        style={{
-                          width: 54,
-                          height: 54,
-                          borderRadius: 18,
-                          border: "1px solid #fecaca",
-                          background: "#ef4444",
-                          color: "#ffffff",
-                          fontWeight: 900,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <path
-                            d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"
-                            stroke="currentColor"
-                            strokeWidth="1.9"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    </ActionForm>
-                  }
-                >
-                <NoteRow
-                  title={task.title}
-                  meta={meta}
-                  footnote={extraCompletions ? `anche ${extraCompletions}` : null}
-                  action={
-                    canComplete ? (
-                      <ActionForm action={completeTaskAction} success="Nota fatta.">
-                        <input type="hidden" name="taskId" value={pendingIds} />
-                        <input type="hidden" name="notifySuccess" value="1" />
-                        <IconButton
-                          type="submit"
-                          aria-label="Completa nota"
-                          title="Completa nota"
-                          style={{
-                            width: 40,
-                            height: 40,
-                            background: "#dcfce7",
-                            color: "#166534",
-                            border: "1px solid #bbf7d0",
-                            fontSize: 15,
-                            fontWeight: 900,
-                          }}
-                        >
-                          ✓
-                        </IconButton>
-                      </ActionForm>
-                    ) : null
-                  }
-                />
-                </SwipeRevealAction>
-              );
-            })}
-            </Fragment>
-            ))}
-          </ItemList>
+        {pending.length ? (
+          <div style={{ display: "grid", gap: 10 }}>{pending.map(card)}</div>
+        ) : (
+          <div style={{ background: "#ffffff", borderRadius: 20, padding: "16px 18px", fontSize: 15, color: "#8a85a3" }}>{emptyText}</div>
         )}
-      </Panel>
-    </Stack>
+
+        {finished.length ? (
+          <details className="wb-week" style={{ display: "grid", gap: 10 }}>
+            <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: "4px 16px", fontSize: 13.5, color: "#8a85a3" }}>
+              <span style={{ flex: 1 }}>Fatte · {finished.length}</span>
+              <span aria-hidden className="wb-week-chev" style={{ color: "#c4c0d6", fontSize: 16 }}>›</span>
+            </summary>
+            <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+              {finished.map(card)}
+              {canManage && hasWholeScope(staff) ? (
+                <ActionForm action={deleteAllCompletedTasksAction} success="Note fatte eliminate." style={{ display: "flex", justifyContent: "center" }}>
+                  <button type="submit" style={{ border: 0, background: "transparent", color: "#b3202f", fontSize: 14.5, cursor: "pointer", minHeight: 40 }}>
+                    Elimina le note fatte
+                  </button>
+                </ActionForm>
+              ) : null}
+            </div>
+          </details>
+        ) : null}
+
+        {canManage ? (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <PopupAction
+              title="Archivio conferme"
+              ariaLabel="Apri archivio conferme"
+              triggerRow={<span style={{ fontSize: 13.5, color: "#8a85a3", padding: "8px 12px", display: "inline-block" }}>Archivio delle conferme ›</span>}
+            >
+              <ConfirmationArchive barId={activeBarId} />
+            </PopupAction>
+          </div>
+        ) : null}
+      </div>
       <aside className="wb-desk-only">
         <NotesAside barId={activeBarId} userId={session.user.id} manage={canManage} />
       </aside>

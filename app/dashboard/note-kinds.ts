@@ -33,20 +33,6 @@ export type NoteKind = {
 
 export const NOTE_KINDS: NoteKind[] = [
   {
-    id: "check",
-    emoji: "🔁",
-    label: "Controllo periodico",
-    hint: "Torna da sola · da confermare",
-    defaults: {
-      isUrgent: false,
-      requiresConfirmation: true,
-      repeat: { every: 1, unit: "MONTH" },
-    },
-    dueToday: false,
-    asks: ["repeat", "date", "audience"],
-    saveLabel: "Salva controllo",
-  },
-  {
     id: "today",
     emoji: "⚡",
     // Not "da fare oggi": the same kind is picked from the calendar, where the
@@ -76,6 +62,20 @@ export const NOTE_KINDS: NoteKind[] = [
     dueToday: false,
     asks: ["date", "audience"],
     saveLabel: "Salva nota",
+  },
+  {
+    id: "check",
+    emoji: "🔁",
+    label: "Controllo periodico",
+    hint: "Torna da sola · da confermare",
+    defaults: {
+      isUrgent: false,
+      requiresConfirmation: true,
+      repeat: { every: 1, unit: "MONTH" },
+    },
+    dueToday: false,
+    asks: ["repeat", "date", "audience"],
+    saveLabel: "Salva controllo",
   },
   {
     id: "notice",
