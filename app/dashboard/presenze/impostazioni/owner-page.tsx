@@ -49,7 +49,7 @@ export function SettingsShell({ back, backLabel, title, children }: { back: stri
       <Link href={back} style={{ fontSize: 15, fontWeight: 600, color: "#5e4ae3", textDecoration: "none" }}>
         ‹ {backLabel}
       </Link>
-      <h1 style={{ margin: "0 0 8px", fontSize: 28, fontWeight: 750, letterSpacing: "-0.03em" }}>{title}</h1>
+      <h1 style={{ margin: "0 0 8px", fontSize: 28, fontWeight: 800, letterSpacing: "-0.035em" }}>{title}</h1>
       {children}
     </div>
   );

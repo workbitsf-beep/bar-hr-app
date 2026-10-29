@@ -39,7 +39,7 @@ export default async function RecipientFilePage({ params }: { params: Promise<{ 
         ‹ {recipient.name}
       </Link>
       <header style={{ display: "grid", gap: 4 }}>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 750, letterSpacing: "-0.03em" }}>Il file</h1>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: "-0.035em" }}>Il file</h1>
         <Quiet style={{ fontSize: 14.5 }}>Così lo riceve, con i dati di {MONTHS[sample.month - 1]}.</Quiet>
       </header>
       <RecipientFile recipientId={recipient.id} initial={templateOf(recipient.template)} sample={sample} aiEnabled={templateAiEnabled()} />

@@ -151,7 +151,7 @@ export function Quiet({ children, style }: { children: ReactNode; style?: CSSPro
 
 /** A white sheet of rows, no border: the minimal card. */
 export function Sheet({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ background: "#ffffff", borderRadius: 22, overflow: "hidden", boxShadow: "0 1px 2px rgba(31,27,58,.04)", ...style }}>{children}</div>;
+  return <div style={{ background: "#ffffff", border: "1px solid #ece9f7", borderRadius: 20, overflow: "hidden", padding: "0 16px", boxShadow: "0 3px 10px rgba(76, 29, 149, 0.04)", ...style }}>{children}</div>;
 }
 
 export function GearLink({ href, label }: { href: string; label: string }) {

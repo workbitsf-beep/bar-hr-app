@@ -94,7 +94,7 @@ export default async function PersonPresencePage({
         ) : null}
       </div>
       <header style={{ display: "grid", gap: 4 }}>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 750, letterSpacing: "-0.03em" }}>{name}</h1>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: "-0.035em" }}>{name}</h1>
         {inNow ? <span style={{ fontSize: 14, color: "#0f7a4f" }}>In lavoro dalle {clock.format(lastStamp!.timestamp)}</span> : null}
       </header>
       <MonthMenu base={base} year={year} month={month} />

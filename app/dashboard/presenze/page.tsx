@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 const when = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", timeZone: "Europe/Rome" });
 const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
-const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "15px 18px", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", textDecoration: "none" };
+const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", textDecoration: "none" };
 const dot = (color: string): CSSProperties => ({ width: 8, height: 8, borderRadius: 999, background: color, flex: "0 0 auto" });
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -67,9 +67,12 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
   const name = monthName(month, year);
 
   const shell = (children: ReactNode) => (
-    <div style={{ display: "grid", gap: 22, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 0" }}>
-      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Presenze</h1>
+    <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 0" }}>
+      <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "grid" }}>
+          <span style={{ color: "#5e4ae3", fontWeight: 600, fontSize: 13.5 }}>{isOwner ? "Le ore del mese, per il consulente" : "Le ore del tuo team"}</span>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05 }}>Presenze</h1>
+        </div>
         {isOwner ? (
           <GearLink href="/dashboard/presenze/impostazioni" label="Impostazioni delle presenze" />
         ) : manager ? (

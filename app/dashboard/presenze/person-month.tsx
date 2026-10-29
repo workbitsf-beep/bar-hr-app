@@ -268,7 +268,7 @@ export async function PersonMonth({
         ))
       ) : fixRows.length ? null : (
         <Sheet>
-          <div style={{ padding: "15px 18px" }}>
+          <div style={{ padding: "10px 0" }}>
             <Quiet>Nessun giorno lavorato in questo mese.</Quiet>
           </div>
         </Sheet>

@@ -19,6 +19,7 @@ import { DepartmentDot } from "../department-forms";
 import { can, isStaffRole } from "@/lib/staff-permissions";
 import { memberScopeWhere } from "@/lib/staff-scope";
 import { AddFace } from "../round-button";
+import { MixCard, mixPage } from "../mix-ui";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -254,13 +255,13 @@ export default async function DashboardPeoplePage({
         key={member.id}
         href={`/dashboard/people/${member.id}`}
         aria-label={`Apri la scheda di ${name}`}
-        style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderTop: first ? 0 : "1px solid #f2f0f8", color: "#1f1b3a", textDecoration: "none" }}
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: first ? 0 : "1px solid #f1eff8", color: "#111827", textDecoration: "none" }}
       >
         <span
           aria-hidden="true"
           style={{
-            width: 40,
-            height: 40,
+            width: 30,
+            height: 30,
             flex: "0 0 auto",
             display: "inline-flex",
             alignItems: "center",
@@ -268,18 +269,18 @@ export default async function DashboardPeoplePage({
             borderRadius: 999,
             background: live ? "#e7f7ef" : "#f1eeff",
             color: live ? "#0f7a4f" : "#4c1d95",
-            fontSize: 13.5,
-            fontWeight: 700,
+            fontSize: 11.5,
+            fontWeight: 800,
           }}
         >
           {initialsOf(member.user.firstName, member.user.lastName)}
         </span>
         <span style={{ display: "grid", gap: 1, minWidth: 0, flex: "1 1 auto" }}>
-          <span style={{ fontSize: 16, display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontSize: 15, fontWeight: 650, display: "flex", alignItems: "center", gap: 7 }}>
             {name}
             {memberDepartment ? <DepartmentDot department={memberDepartment} size={16} /> : null}
           </span>
-          <span style={{ fontSize: 13.5, color: tone, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{line}</span>
+          <span style={{ fontSize: 13, color: tone, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{line}</span>
         </span>
         <span style={{ flex: "0 0 auto", fontSize: 15, fontVariantNumeric: "tabular-nums", color: live ? "#0f7a4f" : "#1f1b3a" }}>{hoursText(row.monthMs)}</span>
       </Link>
@@ -289,12 +290,9 @@ export default async function DashboardPeoplePage({
   function teamGroup(title: string, list: typeof rows, color = "#8a85a3") {
     if (!list.length) return null;
     return (
-      <section style={{ display: "grid", gap: 8 }}>
-        <span style={{ fontSize: 13, color, padding: "0 18px" }}>{title}</span>
-        <div style={{ background: "#ffffff", borderRadius: 22, overflow: "hidden", boxShadow: "0 1px 2px rgba(31,27,58,.04)" }}>
-          {list.map((row, index) => personRow(row, index === 0))}
-        </div>
-      </section>
+      <MixCard title={<span style={{ color: color === "#8a85a3" ? undefined : color }}>{title}</span>} aside={list.length}>
+        {list.map((row, index) => personRow(row, index === 0))}
+      </MixCard>
     );
   }
 
@@ -307,13 +305,13 @@ export default async function DashboardPeoplePage({
     .join(" · ");
 
   const phonePage = (
-    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
+    <div style={mixPage}>
       {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
 
-      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "grid", gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Team</h1>
-          <span style={{ fontSize: 15, color: "#8a85a3" }}>{teamLine}</span>
+      <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "grid" }}>
+          <span style={{ color: "#5e4ae3", fontWeight: 600, fontSize: 13.5 }}>{teamLine}</span>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05 }}>Team</h1>
         </div>
         <PopupAction
           title="Nuova persona"

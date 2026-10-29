@@ -17,7 +17,7 @@ import { recipientSample } from "../../recipient-sample";
 
 export const dynamic = "force-dynamic";
 
-const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "15px 18px", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, textDecoration: "none" };
+const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, textDecoration: "none" };
 const value: CSSProperties = { marginLeft: "auto", color: "#8a85a3", fontSize: 15, textAlign: "right", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 const chevron = <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18, flex: "0 0 auto" }}>›</span>;
 const field: CSSProperties = { minHeight: 50, borderRadius: 14, border: "1px solid #e9e6f5", background: "#fbfaff", fontSize: 16, color: "#1f1b3a", padding: "0 14px", width: "100%", boxSizing: "border-box" };
@@ -110,7 +110,7 @@ export default async function RecipientPage({ params }: { params: Promise<{ id: 
             <span aria-hidden style={{ width: 60, height: 60, borderRadius: 999, background: "#f1eeff", color: "#4c1d95", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700 }}>
               {initials}
             </span>
-            <span style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 750, letterSpacing: "-0.03em" }}>{recipient.name}</span>
+            <span style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 800, letterSpacing: "-0.035em" }}>{recipient.name}</span>
             <Quiet style={{ fontSize: 14.5 }}>{ROLE_LABELS[recipient.role] ?? "Altro"}</Quiet>
           </span>
         }

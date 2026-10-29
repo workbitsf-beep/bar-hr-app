@@ -10,7 +10,7 @@ import { PopupAction } from "../popup-action";
 import { saveRecipientFieldAction } from "./actions";
 import { TemplateFields } from "./template-editor";
 
-const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "15px 18px", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, width: "100%", boxSizing: "border-box" };
+const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, width: "100%", boxSizing: "border-box" };
 const chevron = <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18, marginLeft: "auto" }}>›</span>;
 const sheet: CSSProperties = { background: "#ffffff", borderRadius: 22, overflow: "hidden", boxShadow: "0 1px 2px rgba(31,27,58,.04)" };
 

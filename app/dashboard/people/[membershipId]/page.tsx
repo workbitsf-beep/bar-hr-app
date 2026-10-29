@@ -23,7 +23,7 @@ import { StaffRoleForm } from "../staff-role-form";
 
 export const dynamic = "force-dynamic";
 
-const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "15px 18px", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, textDecoration: "none" };
+const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, textDecoration: "none" };
 const value: CSSProperties = { marginLeft: "auto", color: "#8a85a3", fontSize: 15, textAlign: "right", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 const chevron = <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18, flex: "0 0 auto" }}>›</span>;
 const field: CSSProperties = { minHeight: 50, borderRadius: 14, border: "1px solid #e9e6f5", background: "#fbfaff", fontSize: 17, color: "#1f1b3a", padding: "0 14px", width: "100%", boxSizing: "border-box", textAlign: "center" };
@@ -191,7 +191,7 @@ export default async function PersonPage({ params }: { params: Promise<{ members
         >
           {`${member.user.firstName.charAt(0)}${member.user.lastName.charAt(0)}`.toUpperCase()}
         </span>
-        <h1 style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 750, letterSpacing: "-0.03em" }}>{name}</h1>
+        <h1 style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 800, letterSpacing: "-0.035em" }}>{name}</h1>
         <Quiet style={{ fontSize: 14.5, overflowWrap: "anywhere" }}>{member.user.email}</Quiet>
         <span style={{ fontSize: 14.5, marginTop: 2 }}>
           <b style={{ fontWeight: 650, fontVariantNumeric: "tabular-nums" }}>{hoursText(ms)}</b> <Quiet style={{ fontSize: 14.5 }}>ore a {month}</Quiet>
