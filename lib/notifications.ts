@@ -13,6 +13,9 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   COURSE_CREATED: "course.created",
   COURSE_UPDATED: "course.updated",
   COURSE_DELETED: "course.deleted",
+  // Before a certificate runs out, and when one is added by the person.
+  COURSE_EXPIRING: "course.expiring",
+  COURSE_CERTIFICATE_ADDED: "course.certificate-added",
   REQUEST_CREATED: "request.created",
   REQUEST_REVIEWED: "request.reviewed",
   SHIFT_CHANGE_REQUESTED: "shift-change.requested",

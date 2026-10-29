@@ -248,6 +248,8 @@ model User {
   swapRequests             Request[]               @relation("RequestSwapEmployee")
   availabilities           Availability[]
   coursesAssigned          Course[]                @relation("CourseAssigned")
+  courseCertificates       CourseCertificate[]     @relation("CertificateHolder")
+  courseCertificatesAdded  CourseCertificate[]     @relation("CertificateAdder")
   coursesCreated           Course[]                @relation("CourseCreated")
   calendarClosuresCreated  CalendarClosure[]
   sessions                 Session[]
@@ -373,6 +375,7 @@ model Bar {
   requests               Request[]
   availabilities         Availability[]
   courses                Course[]
+  courseCertificates     CourseCertificate[]
   calendarClosures       CalendarClosure[]
   documents              Document[]
   shoppingListItems      ShoppingListItem[]
@@ -538,6 +541,9 @@ model BarSettings {
   tasksEnabled           Boolean       @default(true)
   noticeBoardEnabled     Boolean       @default(true)
   coursesEnabled         Boolean       @default(true)
+  /// Days before a certificate expires that the owner and the person are
+  /// first reminded, so there is time to book the course again.
+  courseReminderDays     Int           @default(60)
   documentsEnabled       Boolean       @default(true)
   reportsEnabled         Boolean       @default(true)
   shoppingListEnabled    Boolean       @default(true)
@@ -936,25 +942,26 @@ model Request {
 }
 
 model Course {
-  id            String     @id @default(uuid()) @db.Uuid
-  barId         String     @db.Uuid
+  certificates  CourseCertificate[]
+  id            String              @id @default(uuid()) @db.Uuid
+  barId         String              @db.Uuid
   title         String
   description   String?
   // A course in a venue is nearly always a deadline: HACCP lasts three years,
   // fire safety five. The kind knows how long, so nobody has to.
-  kind          CourseKind @default(OTHER)
+  kind          CourseKind          @default(OTHER)
   expiresAt     DateTime?
   startsAt      DateTime
   endsAt        DateTime
   location      String?
-  assignedToAll Boolean    @default(false)
-  assignedToId  String?    @db.Uuid
-  createdById   String     @db.Uuid
-  bar           Bar        @relation(fields: [barId], references: [id], onDelete: Cascade)
-  assignedTo    User?      @relation("CourseAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy     User       @relation("CourseCreated", fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  assignedToAll Boolean             @default(false)
+  assignedToId  String?             @db.Uuid
+  createdById   String              @db.Uuid
+  bar           Bar                 @relation(fields: [barId], references: [id], onDelete: Cascade)
+  assignedTo    User?               @relation("CourseAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy     User                @relation("CourseCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   @@index([barId, startsAt])
   @@index([barId, assignedToId, startsAt])
@@ -1424,4 +1431,38 @@ model PayrollSend {
 
   @@index([barId, month])
   @@index([recipientId, month])
+}
+
+/// One person's course, done: when, until when it is valid, and the
+/// certificate. The scheduled Course is the event; this is what it left.
+/// A newer one of the same kind for the same person takes its place.
+model CourseCertificate {
+  id            String     @id @default(uuid()) @db.Uuid
+  barId         String     @db.Uuid
+  bar           Bar        @relation(fields: [barId], references: [id], onDelete: Cascade)
+  userId        String     @db.Uuid
+  user          User       @relation("CertificateHolder", fields: [userId], references: [id], onDelete: Cascade)
+  kind          CourseKind @default(OTHER)
+  title         String
+  /// The scheduled course it came from, when there was one.
+  courseId      String?    @db.Uuid
+  course        Course?    @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  /// UTC midnight of the day the course was done.
+  completedAt   DateTime
+  /// UTC midnight of the last valid day; none for a course that does not expire.
+  expiresAt     DateTime?
+  fileName      String?
+  mimeType      String?
+  fileSize      Int?
+  content       Bytes?
+  addedById     String?    @db.Uuid
+  addedBy       User?      @relation("CertificateAdder", fields: [addedById], references: [id], onDelete: SetNull)
+  /// 0 none sent, 1 the first notice, 2 a month before, 3 a week before, 4 expired.
+  reminderStage Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([barId, expiresAt])
+  @@index([barId, userId, kind])
+  @@index([courseId])
 }
