@@ -49,6 +49,8 @@ export type PayrollMonth = Omit<PayrollMonthData, "people"> & {
   people: PayrollPerson[];
   /** Shifts not published yet, left out when the hours come from the shifts. */
   draftShifts: number;
+  /** Hours past the weekly contract are overtime (owner's choice). */
+  countOvertime: boolean;
 };
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
@@ -113,7 +115,7 @@ export async function buildPayrollMonth(input: {
     }),
     prisma.barSettings.findUnique({
       where: { barId: input.barId },
-      select: { payrollSource: true, timeTrackingEnabled: true, payrollBreakMinutes: true, payrollBreakAfterHours: true },
+      select: { payrollSource: true, timeTrackingEnabled: true, payrollBreakMinutes: true, payrollBreakAfterHours: true, payrollOvertime: true },
     }),
     prisma.employeeBar.findMany({
       where: {
@@ -202,6 +204,8 @@ export async function buildPayrollMonth(input: {
     return round2(breakMinutes > 0 && hours >= breakAfter ? Math.max(0, hours - breakMinutes / 60) : hours);
   };
 
+  // A bar's long shift is ordinary hours unless the owner says otherwise.
+  const countOvertime = settings?.payrollOvertime ?? bar.activityType === ActivityType.COMPANY;
   // Six working days a week in a bar or restaurant, five in an office.
   const workingDays = bar.activityType === ActivityType.COMPANY ? 5 : 6;
   const result: PayrollPerson[] = [];
@@ -310,7 +314,7 @@ export async function buildPayrollMonth(input: {
       const worked = day.worked;
       if (worked > 0) {
         workedDays += 1;
-        if (member.contractWeeklyHours) {
+        if (member.contractWeeklyHours && countOvertime) {
           // Ordinary up to the week's contract hours, day by day; the rest is overtime.
           const week = weekOf(key);
           const before = workedByWeek.get(week) ?? 0;
@@ -332,7 +336,7 @@ export async function buildPayrollMonth(input: {
     const approvedOvertime = overtimeRequests
       .filter((request) => request.employeeId === member.userId && request.startsAt && request.endsAt)
       .reduce((sum, request) => sum + (request.endsAt!.getTime() - request.startsAt!.getTime()) / 3_600_000, 0);
-    if (!member.contractWeeklyHours && approvedOvertime > 0) {
+    if (countOvertime && !member.contractWeeklyHours && approvedOvertime > 0) {
       warnings.push(`${round2(approvedOvertime)} ore di straordinario approvate sono comprese nelle ordinarie: scrivi le ore settimanali del contratto per separarle.`);
     }
     if (!member.contractWeeklyHours && entries.some((entry) => DAY_KINDS.includes(entry.kind))) {
@@ -374,6 +378,7 @@ export async function buildPayrollMonth(input: {
     source,
     people: result,
     draftShifts,
+    countOvertime,
   };
 }
 

@@ -108,24 +108,65 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
   const range = { gte: new Date(Date.UTC(year, month - 1, 1)), lt: new Date(Date.UTC(year, month, 1)) };
   const scope = memberScopeWhere(staff);
 
-  const [data, recipients, sends, lastOverride, lastStamps] = await Promise.all([
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const showToday = features.timeTracking && isCurrentMonth;
+  const [data, recipients, sends, lastOverride, todayLogs, todayShifts] = await Promise.all([
     buildPayrollMonth({ barId: activeBarId, month, year, memberWhere: scope }),
     canReports ? prisma.payrollRecipient.findMany({ where: { barId: activeBarId }, orderBy: { createdAt: "asc" } }) : Promise.resolve([]),
     canReports ? prisma.payrollSend.findMany({ where: { barId: activeBarId, month: key }, orderBy: { sentAt: "desc" } }) : Promise.resolve([]),
     prisma.payrollDayOverride.findFirst({ where: { barId: activeBarId, date: range }, orderBy: { updatedAt: "desc" }, select: { updatedAt: true } }),
-    // Who is in right now: everyone whose last stamp of the last 16 hours is an entry.
-    features.timeTracking && isCurrentMonth
+    // Today's stamps, and last night's entry still open.
+    showToday
       ? prisma.timeLog.findMany({
-          where: { barId: activeBarId, timestamp: { gte: new Date(now.getTime() - 16 * 3_600_000) } },
-          orderBy: [{ userId: "asc" }, { timestamp: "desc" }],
-          distinct: ["userId"],
-          select: { userId: true, type: true, timestamp: true, user: { select: { firstName: true } } },
+          where: { barId: activeBarId, timestamp: { gte: new Date(Math.min(dayStart.getTime(), now.getTime() - 16 * 3_600_000)) } },
+          orderBy: { timestamp: "asc" },
+          select: { userId: true, type: true, timestamp: true },
+        })
+      : Promise.resolve([]),
+    showToday
+      ? prisma.shift.findMany({
+          where: { barId: activeBarId, confirmedAt: { not: null }, isOnCall: false, startTime: { gte: dayStart, lt: new Date(dayStart.getTime() + 86_400_000) } },
+          orderBy: { startTime: "asc" },
+          select: { startTime: true, endTime: true, assignedToId: true, assignments: { select: { userId: true } } },
         })
       : Promise.resolve([]),
   ]);
 
-  const peopleIds = new Set(data.people.map((person) => person.userId));
-  const inside = lastStamps.filter((stamp) => stamp.type === "IN" && peopleIds.has(stamp.userId)).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  // Today, person by person: in since, in and out, or the shift still to come.
+  type TodayRow = { userId: string; name: string; order: number; status: string; detail: string; tone: "in" | "done" | "late" | "next" };
+  const todayRows: TodayRow[] = [];
+  for (const person of data.people) {
+    const logs = todayLogs.filter((log) => log.userId === person.userId);
+    const pairs: string[] = [];
+    let openIn: Date | null = null;
+    for (const log of logs) {
+      if (log.type === "IN") openIn = log.timestamp;
+      else if (openIn) {
+        if (log.timestamp >= dayStart) pairs.push(`${clock.format(openIn)}–${clock.format(log.timestamp)}`);
+        openIn = null;
+      }
+    }
+    const shift = todayShifts.find((item) => item.assignedToId === person.userId || item.assignments.some((assignment) => assignment.userId === person.userId));
+    const name = `${person.firstName} ${person.lastName}`.trim();
+    if (openIn) {
+      todayRows.push({ userId: person.userId, name, order: 0, tone: "in", status: `In lavoro dalle ${clock.format(openIn)}`, detail: pairs.join(" · ") });
+    } else if (pairs.length) {
+      const lastOut = logs.filter((log) => log.type === "OUT").at(-1)?.timestamp;
+      todayRows.push({ userId: person.userId, name, order: 2, tone: "done", status: lastOut ? `Uscito alle ${clock.format(lastOut)}` : "Uscito", detail: pairs.join(" · ") });
+    } else if (shift) {
+      const late = shift.startTime.getTime() + 15 * 60_000 < now.getTime();
+      todayRows.push({
+        userId: person.userId,
+        name,
+        order: late ? 0.5 : 1,
+        tone: late ? "late" : "next",
+        status: late ? `Turno delle ${clock.format(shift.startTime)}, non ha timbrato` : `Entra alle ${clock.format(shift.startTime)}`,
+        detail: `Turno ${clock.format(shift.startTime)}–${clock.format(shift.endTime)}`,
+      });
+    }
+  }
+  todayRows.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "it"));
+  const insideCount = todayRows.filter((row) => row.tone === "in").length;
 
   // Shifts moved after the files went out change them, when the hours come from the shifts.
   const firstSend = sends.at(-1)?.sentAt ?? null;
@@ -146,16 +187,39 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
 
   return shell(
     <>
-      {inside.length ? (
-        <RowsCard>
-          <Row first style={{ gap: 4 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
-              <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: "#10b981" }} />
-              <span style={{ fontWeight: 650 }}>{inside.length} dentro adesso</span>
-            </span>
-            <Line muted left={inside.map((stamp) => `${stamp.user.firstName} dalle ${clock.format(stamp.timestamp)}`).join(" · ")} />
-          </Row>
-        </RowsCard>
+      {todayRows.length ? (
+        <section style={{ display: "grid", gap: 8 }}>
+          <SectionLabel aside={insideCount ? <span style={{ color: "#0f7a4f" }}>{insideCount} in lavoro</span> : undefined}>Oggi</SectionLabel>
+          <RowsCard>
+            {todayRows.map((row, index) => (
+              <Link
+                key={row.userId}
+                href={`/dashboard/presenze/persona/${row.userId}?mese=${key}`}
+                style={{ textDecoration: "none", color: "inherit", display: "block" }}
+              >
+                <Row first={index === 0} rail={row.tone === "late" ? "amber" : undefined}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14.5 }}>
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 999,
+                        flex: "0 0 auto",
+                        background: row.tone === "in" ? "#10b981" : row.tone === "late" ? "#f59e0b" : row.tone === "next" ? "#c4b5fd" : "#cbd5e1",
+                      }}
+                    />
+                    <span style={{ flex: 1, minWidth: 0 }}>{row.name}</span>
+                    <span style={{ fontSize: 13, color: row.tone === "in" ? "#0f7a4f" : row.tone === "late" ? "#b45309" : "#6f6a88", fontVariantNumeric: "tabular-nums" }}>
+                      {row.status}
+                    </span>
+                  </span>
+                  {row.detail ? <span style={{ fontSize: 12.5, color: "#7c7894", paddingLeft: 18, fontVariantNumeric: "tabular-nums" }}>{row.detail}</span> : null}
+                </Row>
+              </Link>
+            ))}
+          </RowsCard>
+        </section>
       ) : null}
 
       <RowsCard>

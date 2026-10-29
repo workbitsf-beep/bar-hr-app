@@ -35,7 +35,7 @@ export default async function PayrollSettingsPage() {
   const [settings, recipients, members, bar] = await Promise.all([
     prisma.barSettings.findUnique({
       where: { barId: activeBarId },
-      select: { payrollSource: true, payrollBreakMinutes: true, payrollBreakAfterHours: true, timeTrackingEnabled: true },
+      select: { payrollSource: true, payrollBreakMinutes: true, payrollBreakAfterHours: true, payrollOvertime: true, timeTrackingEnabled: true },
     }),
     prisma.payrollRecipient.findMany({ where: { barId: activeBarId }, orderBy: { createdAt: "asc" } }),
     prisma.employeeBar.findMany({
@@ -43,10 +43,12 @@ export default async function PayrollSettingsPage() {
       orderBy: { user: { lastName: "asc" } },
       select: { userId: true, payrollCode: true, contractWeeklyHours: true, user: { select: { firstName: true, lastName: true } } },
     }),
-    prisma.bar.findUnique({ where: { id: activeBarId }, select: { ownerId: true } }),
+    prisma.bar.findUnique({ where: { id: activeBarId }, select: { ownerId: true, activityType: true } }),
   ]);
   const source = settings?.payrollSource ?? "AUTO";
   const clocks = settings?.timeTrackingEnabled ?? true;
+  const overtimeDefault = bar?.activityType === "COMPANY";
+  const overtime = settings?.payrollOvertime ?? overtimeDefault;
 
   return (
     <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
@@ -110,6 +112,21 @@ export default async function PayrollSettingsPage() {
                   </span>
                 </label>
               ))}
+              <span style={{ display: "grid", gap: 6, paddingTop: 6, borderTop: "1px solid #f1eff8" }}>
+                <span style={{ fontSize: 14.5, fontWeight: 700, paddingTop: 8 }}>Straordinari</span>
+                {[
+                  { value: "off", title: "Non contarli", hint: "Un turno che si allunga resta ore normali: è la regola di quasi tutti i bar e ristoranti." },
+                  { value: "on", title: "Contali", hint: "Le ore oltre il contratto della settimana diventano straordinari, nel mese e nel file del consulente." },
+                ].map((option) => (
+                  <label key={option.value} style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: 10, alignItems: "start", cursor: "pointer" }}>
+                    <input type="radio" name="overtime" value={option.value} defaultChecked={(overtime ? "on" : "off") === option.value} style={{ marginTop: 3 }} />
+                    <span style={{ display: "grid", gap: 2 }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 600 }}>{option.title}</span>
+                      <span style={{ fontSize: 12.5, color: "#7c7894" }}>{option.hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </span>
               <span style={{ fontSize: 12.5, color: "#7c7894", paddingTop: 4 }}>Dai turni: la pausa da togliere, se il contratto non la paga.</span>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
                 <label style={fieldLabel}>
@@ -132,7 +149,7 @@ export default async function PayrollSettingsPage() {
       </section>
 
       <section style={{ display: "grid", gap: 8 }}>
-        <SectionLabel aside="per separare ordinarie e straordinari">Matricole e ore di contratto</SectionLabel>
+        <SectionLabel aside="matricola per il consulente">Matricole e ore di contratto</SectionLabel>
         <RowsCard>
           <Row first>
             <ActionForm action={savePayrollPeopleAction} success="Salvato" style={{ display: "grid", gap: 10 }}>
@@ -162,7 +179,7 @@ export default async function PayrollSettingsPage() {
                   </div>
                 ))}
               <span style={{ fontSize: 12.5, color: "#7c7894" }}>
-                Con le ore settimanali (40, 24…) le ore oltre il contratto della settimana diventano straordinari, e ferie e malattia hanno anche le ore del giorno.
+                Le ore settimanali (40, 24…) danno le ore di un giorno di ferie o malattia e, se conti gli straordinari, dicono dove cominciano.
               </span>
               <div>
                 <PendingButton type="submit" style={softButton} pendingLabel="Salvo…">

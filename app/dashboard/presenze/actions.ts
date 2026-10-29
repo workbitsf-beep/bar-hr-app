@@ -26,7 +26,13 @@ export async function saveSourceAction(formData: FormData) {
     if (breakAfterHours !== null && (!Number.isFinite(breakAfterHours) || breakAfterHours < 0 || breakAfterHours > 12)) {
       throw new RuleError("Le ore del turno per la pausa vanno da 0 a 12.");
     }
-    const data = { payrollSource: source, payrollBreakMinutes: breakMinutes || null, payrollBreakAfterHours: breakMinutes ? breakAfterHours ?? 6 : null };
+    const overtime = String(formData.get("overtime") ?? "");
+    const data = {
+      payrollSource: source,
+      payrollBreakMinutes: breakMinutes || null,
+      payrollBreakAfterHours: breakMinutes ? breakAfterHours ?? 6 : null,
+      payrollOvertime: overtime === "on" ? true : overtime === "off" ? false : null,
+    };
     await prisma.barSettings.upsert({ where: { barId }, create: { barId, ...data }, update: data });
     revalidatePath(PATH, "layout");
     return { ok: true };

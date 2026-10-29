@@ -558,6 +558,10 @@ model BarSettings {
   payrollSource          String        @default("AUTO")
   payrollBreakMinutes    Int?
   payrollBreakAfterHours Float?
+  /// Whether hours past the weekly contract count as overtime in Presenze and
+  /// the consultant's file. Null: no for a bar or restaurant, where a shift
+  /// that runs long is still ordinary hours; yes for a company.
+  payrollOvertime        Boolean?
   /// Supplier invoices received through Openapi (codice destinatario
   /// USAL8PV): OFF, WAITING (registered, the owner still has to set the code
   /// at the Agenzia delle Entrate), ACTIVE once the first invoice arrived.
