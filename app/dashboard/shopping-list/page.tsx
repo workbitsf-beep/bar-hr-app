@@ -2,14 +2,10 @@ import { BillingRequired } from "../billing-required";
 import { prisma } from "@/lib/prisma";
 import { createShoppingListItemAction } from "../actions";
 import { getDashboardContext } from "../context";
-import {
-  EmptyState,
-  FormField,
-  Panel,
-  PrimaryButton,
-  Stack,
-  TextInput,
-} from "../ui";
+import { EmptyState, FormField, Panel, PrimaryButton, TextInput } from "../ui";
+import { MixCard, mixPage, PageHead } from "../mix-ui";
+import { PopupAction } from "../popup-action";
+import { AddFace } from "../round-button";
 import { ShoppingListChecklist } from "./shopping-list-checklist";
 import { ActionForm } from "@/app/components/action-form";
 
@@ -50,29 +46,28 @@ export default async function DashboardShoppingListPage() {
   });
 
   return (
-    <Stack className="workbit-shopping-list-page">
-      <Panel title="Aggiungi articolo">
-        <ActionForm action={createShoppingListItemAction} success="Aggiunto alla lista della spesa." style={{ display: "grid", gap: 12 }}>
-          <div
-            className="dashboard-inline-grid"
-            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}
-          >
-            <FormField label="Articolo">
-              <TextInput name="name" placeholder="Es. Bottiglie gin" required />
-            </FormField>
-            <FormField label="Quantità (opzionale)">
-              <TextInput name="quantity" placeholder="Es. 6 casse" />
-            </FormField>
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <PrimaryButton type="submit">Aggiungi</PrimaryButton>
-          </div>
-        </ActionForm>
-      </Panel>
+    <div className="workbit-shopping-list-page" style={mixPage}>
+      <PageHead
+        eyebrow="Spunta quando è ordinato"
+        title="Lista ordini"
+        actions={
+          <PopupAction title="Aggiungi articolo" ariaLabel="Aggiungi articolo" triggerRow={<AddFace />}>
+            <ActionForm action={createShoppingListItemAction} success="Aggiunto alla lista della spesa." style={{ display: "grid", gap: 12 }}>
+              <FormField label="Articolo">
+                <TextInput name="name" placeholder="Es. Bottiglie gin" required />
+              </FormField>
+              <FormField label="Quantità (opzionale)">
+                <TextInput name="quantity" placeholder="Es. 6 casse" />
+              </FormField>
+              <PrimaryButton type="submit">Aggiungi</PrimaryButton>
+            </ActionForm>
+          </PopupAction>
+        }
+      />
 
-      <Panel title="Lista ordini" className="workbit-shopping-list-panel">
+      <MixCard title="Da ordinare" aside={items.length || null}>
         {items.length === 0 ? (
-          <EmptyState message="Nessun articolo in lista." />
+          <p style={{ margin: "4px 0 6px", fontSize: 14.5, color: "#667085" }}>Nessun articolo in lista: aggiungilo col +.</p>
         ) : (
           <ShoppingListChecklist
             items={items.map((item) => ({
@@ -83,7 +78,7 @@ export default async function DashboardShoppingListPage() {
             }))}
           />
         )}
-      </Panel>
-    </Stack>
+      </MixCard>
+    </div>
   );
 }
