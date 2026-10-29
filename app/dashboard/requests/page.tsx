@@ -46,7 +46,7 @@ import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
 import { ShiftChangeForm } from "./shift-change-form";
 import { AskSomething, type AskOption } from "./ask-something";
-import { mixCard, mixPage, mixRow, PageHead, Pill } from "../mix-ui";
+import { Avatar, mixCard, mixPage, mixRow, PageHead, Pill } from "../mix-ui";
 import { ActionForm } from "@/app/components/action-form";
 
 const AVAILABILITY_VISIBILITY_HOURS = 24;
@@ -129,6 +129,10 @@ function describeSpan(start: Date | null, end: Date | null) {
   }
 
   return `${day(start)} ${time(start)} – ${day(end)} ${time(end)}`;
+}
+
+function initialsOf(firstName: string, lastName: string) {
+  return `${firstName.trim().charAt(0)}${lastName.trim().charAt(0)}`.toUpperCase();
 }
 
 function requestEmoji(type: RequestType | string) {
@@ -641,7 +645,15 @@ export default async function DashboardRequestsPage({
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + 14);
 
-  const happeningNow = [
+  const happeningNow: {
+    key: string;
+    emoji: string;
+    title: string;
+    detail: string;
+    at: Date;
+    /** Set for a person who is away: shown with their avatar and a pill. */
+    person?: { initials: string; name: string; when: string };
+  }[] = [
     ...closures
       .filter((closure) => closure.endsAt >= availabilityVisibleAfter && closure.startsAt <= horizon)
       .map((closure) => ({
@@ -667,6 +679,36 @@ export default async function DashboardRequestsPage({
             : `${availability.user.firstName} non c'è`,
         detail: describeSpan(availability.startsAt, availability.endsAt),
         at: availability.startsAt,
+        person: {
+          initials: initialsOf(availability.user.firstName, availability.user.lastName),
+          name: availability.user.firstName,
+          when: describeSpan(availability.startsAt, availability.endsAt),
+        },
+      })),
+    // Approved time off of the people: who is out, said with their face.
+    ...standardRequests
+      .filter(
+        (request) =>
+          request.status === RequestStatus.APPROVED &&
+          (request.type === RequestType.VACATION ||
+            request.type === RequestType.PERMISSION ||
+            request.type === RequestType.SICKNESS) &&
+          request.startsAt &&
+          request.endsAt &&
+          request.endsAt >= availabilityVisibleAfter &&
+          request.startsAt <= horizon
+      )
+      .map((request) => ({
+        key: `request-${request.id}`,
+        emoji: requestEmoji(request.type),
+        title: request.employee.firstName,
+        detail: describeSpan(request.startsAt, request.endsAt),
+        at: request.startsAt as Date,
+        person: {
+          initials: initialsOf(request.employee.firstName, request.employee.lastName),
+          name: request.employee.firstName,
+          when: describeSpan(request.startsAt, request.endsAt),
+        },
       })),
   ].sort((left, right) => left.at.getTime() - right.at.getTime());
 
@@ -1000,9 +1042,22 @@ export default async function DashboardRequestsPage({
         {canManageClosures && happeningNow.length > 0 ? (
           <section style={mixCard}>
             <RequestGroup label="In questi giorni" />
-            {happeningNow.map((item) => (
-              <RequestRow key={item.key} emoji={item.emoji} title={item.title} detail={item.detail} />
-            ))}
+            {happeningNow.map((item) =>
+              item.person ? (
+                <div key={item.key} style={{ ...mixRow, gap: 12 }}>
+                  <Avatar>{item.person.initials}</Avatar>
+                  <span style={{ flex: "1 1 auto", minWidth: 0, fontSize: 15 }}>{item.person.name}</span>
+                  <Pill tone="grey">
+                    <span aria-hidden="true" style={{ marginRight: 5 }}>
+                      {item.emoji}
+                    </span>
+                    {item.person.when}
+                  </Pill>
+                </div>
+              ) : (
+                <RequestRow key={item.key} emoji={item.emoji} title={item.title} detail={item.detail} />
+              )
+            )}
           </section>
         ) : null}
 

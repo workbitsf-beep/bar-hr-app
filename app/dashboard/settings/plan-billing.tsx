@@ -14,6 +14,7 @@ import {
   type CatalogInterval,
   type PlanSelection,
 } from "@/lib/stripe-catalog";
+import { MixCard, Pill, mixCard } from "../mix-ui";
 
 /**
  * The plan and its subscription in one screen: where the venue stands on top,
@@ -54,7 +55,8 @@ export type OwnedPlan = {
   siteLimit: number;
 };
 
-const TONES: Record<PlanStatus["tone"], string> = { ok: "#1f9d63", warn: "#d97706", bad: "#c2334d", off: "#94a3b8" };
+const PILL: Record<PlanStatus["tone"], "good" | "wait" | "bad" | "grey"> = { ok: "good", warn: "wait", bad: "bad", off: "grey" };
+const EXTRA_ICONS: Partial<Record<PlanInfoKey, string>> = { reparti: "🟣", sedi: "📍", persone5: "👥", stile: "🎨" };
 const smallCaps = { fontSize: 10.5, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8b88a3" } as const;
 
 function Info({ id, company }: { id: PlanInfoKey; company: boolean }) {
@@ -112,19 +114,15 @@ function ExtraRow({
   state: { on: boolean; text: string };
   control: ReactNode;
 }) {
-  const pill = {
-    fontSize: 11.5,
-    fontWeight: 850,
-    padding: "3px 9px",
-    borderRadius: 999,
-    whiteSpace: "nowrap",
-    ...(state.on ? { background: "#dcf5e8", color: "#148a55" } : { background: "#f4f2fb", color: "#8b88a3" }),
-  } as const;
+  const pill = <Pill tone={state.on ? "good" : "grey"}>{state.text}</Pill>;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: "1px solid #f1eefa" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderTop: "1px solid #f1eff8" }}>
+      <span aria-hidden="true" style={{ width: 26, flex: "0 0 auto", fontSize: 19, lineHeight: 1, textAlign: "center" }}>
+        {EXTRA_ICONS[info] ?? "•"}
+      </span>
       <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <strong style={{ fontSize: 15, color: "#17161f" }}>{planInfo(info, company).title}</strong>
+          <span style={{ fontSize: 15, color: "#17161f" }}>{planInfo(info, company).title}</span>
           <Info id={info} company={company} />
         </span>
         <span className="wb-web-only" style={{ fontSize: 12, fontWeight: subOn ? 700 : 500, color: subOn ? "#146c43" : "#8b88a3" }}>
@@ -137,12 +135,10 @@ function ExtraRow({
           <span className="wb-web-only" style={{ display: "inline-flex", alignItems: "center" }}>
             {control}
           </span>
-          <span className="wb-native-only" style={pill}>
-            {state.text}
-          </span>
+          <span className="wb-native-only">{pill}</span>
         </>
       ) : (
-        <span style={pill}>{state.text}</span>
+        pill
       )}
     </div>
   );
@@ -433,19 +429,28 @@ export function PlanBilling({
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 13, color: "#6b6880" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, color: "#17161f" }}>
-          <span style={{ width: 8, height: 8, borderRadius: 999, background: TONES[status.tone] }} />
-          {status.label}
+      {/* The plan the venue has, its state as a pill, and the line under it. */}
+      <div style={{ ...mixCard, display: "grid", gap: 4 }}>
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <strong style={{ fontSize: 15.5, fontWeight: 750, color: "#17161f" }}>
+            {owned.plan === "CUSTOM" ? "Su misura" : owned.plan === "PRO" ? "Pro" : "Base"}
+          </strong>
+          <Pill tone={PILL[status.tone]}>{status.label}</Pill>
         </span>
-        <span>{status.detail}</span>
+        {status.detail ? <span style={{ fontSize: 13.5, color: "#667085" }}>{status.detail}</span> : null}
       </div>
 
       {/* In the installed app, the way NOW puts it: the plan is shown, and
           where it is changed is named, with no price, link or button. */}
-      <p className="wb-native-only" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5, color: "#4c4670" }}>
-        Per abbonarti, cambiare il piano, aggiungere pacchetti o disdire, visita Workbit sul web.
-      </p>
+      {/* .wb-native-only forces display:block, so the dot and text sit in an inner flex. */}
+      <div className="wb-native-only" style={{ ...mixCard, background: "#faf9ff" }}>
+        <span style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+          <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: "#6d5ce7", flex: "0 0 auto" }} />
+          <span style={{ fontSize: 13.5, lineHeight: 1.5, color: "#4c4670" }}>
+            Per abbonarti, cambiare il piano, aggiungere pacchetti o disdire, visita Workbit sul web.
+          </span>
+        </span>
+      </div>
 
       {/* What to do about the subscription is said on the web only: inside the
           installed app nothing may point at paying. */}
@@ -477,14 +482,14 @@ export function PlanBilling({
         </div>
       ) : (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+          {/* Base and Pro side by side to choose from on the web; the app shows the plan in the card above. */}
+          <div className="wb-web-only" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
             {planCard("BASE")}
             {planCard("PRO")}
           </div>
-          <div style={{ display: "grid" }}>
-            <span style={{ ...smallCaps, paddingBottom: 4 }}>Extra</span>
-            {rows}
-          </div>
+          <MixCard title="Compreso nel tuo piano" style={{ padding: "12px 16px 2px" }}>
+            <div className="wb-mix-rows">{rows}</div>
+          </MixCard>
         </>
       )}
 
