@@ -164,17 +164,28 @@ export default async function DashboardCoursesPage() {
     </div>
   );
 
-  const plus = (
-    <CertificateButton
-      members={manager ? memberOptions : null}
-      selfId={session.user.id}
-      trigger={
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      }
-      style={{ width: 42, height: 42, borderRadius: 999, border: 0, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}
-    />
+  const roundPlus = (
+    <span style={{ width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </span>
+  );
+  // The + programs a course; a certificate has its own button beside it.
+  const headerActions = (
+    <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
+      <CertificateButton
+        members={manager ? memberOptions : null}
+        selfId={session.user.id}
+        trigger="Attestato"
+        style={{ minHeight: 42, borderRadius: 999, border: 0, background: "#ffffff", color: "#4c1d95", fontSize: 14.5, fontWeight: 650, padding: "0 16px", cursor: "pointer", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}
+      />
+      {manager ? (
+        <PopupAction title="Nuovo corso" ariaLabel="Programma un corso" triggerRow={roundPlus}>
+          <CourseComposeForm action={createCourseAction} members={members.map((member) => ({ id: member.user.id, label: `${member.user.firstName} ${member.user.lastName} - ${member.role}` }))} />
+        </PopupAction>
+      ) : null}
+    </span>
   );
 
   // Each person's card: the ring tells the worst state, the sentence the most urgent fact.
@@ -217,7 +228,7 @@ export default async function DashboardCoursesPage() {
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Corsi</h1>
           <Quiet style={{ fontSize: 15 }}>{manager ? `${covered} di ${people.length} in regola` : "I tuoi attestati"}</Quiet>
         </div>
-        <span aria-label={manager ? "Aggiungi un attestato" : "Carica un attestato"}>{plus}</span>
+        {headerActions}
       </header>
 
       {toUpload.length ? (
@@ -313,16 +324,7 @@ export default async function DashboardCoursesPage() {
         </Sheet>
       )}
 
-      <Group
-        title="In programma"
-        aside={
-          manager ? (
-            <PopupAction title="Nuovo corso" ariaLabel="Programma un corso" triggerContent="Programma un corso">
-              <CourseComposeForm action={createCourseAction} members={members.map((member) => ({ id: member.user.id, label: `${member.user.firstName} ${member.user.lastName} - ${member.role}` }))} />
-            </PopupAction>
-          ) : undefined
-        }
-      >
+      <Group title="In programma">
         {upcoming.length ? (
           upcoming.map((course) => (
             <div key={course.id} style={row}>
@@ -350,7 +352,7 @@ export default async function DashboardCoursesPage() {
           ))
         ) : (
           <div style={row}>
-            <Quiet>Nessun corso in programma.</Quiet>
+            <Quiet>{manager ? "Nessun corso in programma: col + ne programmi uno." : "Nessun corso in programma."}</Quiet>
           </div>
         )}
       </Group>
