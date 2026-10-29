@@ -212,7 +212,7 @@ export function NoteKindFields({
       ) : null}
 
       {showDate && kind.asks.includes("date") ? (
-        <FormField label={kind.id === "check" ? "A partire da" : "Data"}>
+        <FormField label={kind.id === "check" ? "A partire da" : kind.id === "day" ? "Che giorno" : "Data"}>
           <TextInput
             type="date"
             value={dueDate}

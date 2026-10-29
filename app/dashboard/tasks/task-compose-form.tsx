@@ -46,6 +46,9 @@ export function TaskComposeForm({
 
     if (nextKind.dueToday) {
       setDueDate(todayDateInputValue());
+    } else if (nextKind.id === "day" && !dueDate) {
+      // A note for a set day is rarely for today: tomorrow is the likely start.
+      setDueDate(todayDateInputValue(1));
     }
   }
 
