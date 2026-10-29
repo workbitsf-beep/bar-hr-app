@@ -8,6 +8,8 @@ import { showAppToast } from "@/app/components/app-toast";
 import { COURSE_KINDS, describeCourseValidity, getCourseKind } from "@/lib/course-kinds";
 import { isNativeApp, shareFileFromUrl } from "@/lib/native-extras";
 import { saveCourseReminderDaysAction } from "./certificate-actions";
+import { tapOutsideProps } from "../tap-outside";
+import { useOverlayLock } from "../use-overlay-lock";
 
 const field: CSSProperties = {
   minHeight: 46,
@@ -55,31 +57,45 @@ function suggestExpiry(kind: CourseKind, done: string) {
   return date.toISOString().slice(0, 10);
 }
 
+/** A popup in the middle of the screen, like every other one in the app. */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useOverlayLock(true);
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <button type="button" aria-label="Chiudi" onClick={onClose} style={{ position: "absolute", inset: 0, border: 0, background: "rgba(31,27,58,.32)", cursor: "pointer" }} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 2147483647, display: "grid", placeItems: "center", padding: 16 }}>
+      <div aria-hidden="true" {...tapOutsideProps(onClose)} style={{ position: "absolute", inset: 0, background: "rgba(31,27,58,.22)" }} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         style={{
           position: "relative",
-          width: "100%",
-          maxWidth: 560,
-          maxHeight: "92vh",
+          zIndex: 1,
+          width: "min(94vw, 520px)",
+          maxHeight: "calc(100dvh - 32px)",
           overflowY: "auto",
           background: "#ffffff",
-          borderRadius: "28px 28px 0 0",
-          padding: "12px 20px calc(24px + env(safe-area-inset-bottom, 0px))",
+          borderRadius: 28,
+          padding: "18px 18px 20px",
           display: "grid",
           gap: 14,
-          boxShadow: "0 -20px 40px rgba(31,27,58,.18)",
+          boxShadow: "0 18px 42px rgba(31,27,58,.2)",
           color: "#1f1b3a",
+          boxSizing: "border-box",
         }}
       >
-        <span aria-hidden style={{ width: 40, height: 5, borderRadius: 3, background: "#e4e1ef", justifySelf: "center" }} />
-        <span style={{ fontSize: 21, fontWeight: 750, letterSpacing: "-0.02em" }}>{title}</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <span style={{ fontSize: 20, fontWeight: 750, letterSpacing: "-0.02em" }}>{title}</span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={`Chiudi ${title}`}
+            style={{ width: 40, height: 40, borderRadius: 999, border: "1px solid #ebe8f4", background: "#f7f6fb", color: "#5b5675", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flex: "0 0 auto" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
         {children}
       </div>
     </div>,
@@ -163,6 +179,10 @@ export function CertificateButton({
       </button>
       {open ? (
         <Sheet title={fromCourse ? "Corso fatto" : "Aggiungi un attestato"} onClose={() => setOpen(false)}>
+          {members && preset?.userId ? (
+            <span style={{ fontSize: 15, color: "#6f6a88", marginTop: -6 }}>Per {members.find((member) => member.id === preset.userId)?.name ?? "questa persona"}</span>
+          ) : null}
+
           {!picked ? (
             <div style={{ display: "grid", gap: 8 }}>
               <span style={{ fontSize: 15, fontWeight: 650 }}>Che corso è?</span>
@@ -230,7 +250,7 @@ export function CertificateButton({
             </button>
           )}
 
-          {members ? (
+          {members && !preset?.userId ? (
             <label style={label}>
               Chi
               <select value={userId} onChange={(event) => setUserId(event.currentTarget.value)} disabled={Boolean(preset?.userId)} style={field}>
@@ -374,36 +394,40 @@ export function CertificateLink({ certificateId, fileName, style }: { certificat
   );
 }
 
-/** How far ahead the first reminder goes. */
+/** How far ahead the first reminder goes: the words show, the phone's picker sits on top. */
 export function ReminderDays({ value }: { value: number }) {
   const router = useRouter();
   const [days, setDays] = useState(value);
   return (
-    <select
-      aria-label="Primo avviso prima della scadenza"
-      value={days}
-      onChange={(event) => {
-        const next = Number(event.currentTarget.value);
-        setDays(next);
-        const form = new FormData();
-        form.append("days", String(next));
-        void saveCourseReminderDaysAction(form).then((result) => {
-          if (result && "ruleError" in result) {
-            showAppToast(result.ruleError, "error");
-            setDays(value);
-            return;
-          }
-          showAppToast(`Avviso ${next} giorni prima`);
-          router.refresh();
-        });
-      }}
-      style={{ minHeight: 36, border: 0, background: "transparent", color: "#8a85a3", fontSize: 15, textAlign: "right", padding: 0, appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}
-    >
-      {[30, 60, 90, 120].map((option) => (
-        <option key={option} value={option}>
-          {option} giorni prima
-        </option>
-      ))}
-    </select>
+    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6, flex: "0 0 auto", color: "#8a85a3", fontSize: 15, whiteSpace: "nowrap" }}>
+      {days} giorni prima
+      <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+      <select
+        aria-label="Primo avviso prima della scadenza"
+        value={days}
+        onChange={(event) => {
+          const next = Number(event.currentTarget.value);
+          setDays(next);
+          const form = new FormData();
+          form.append("days", String(next));
+          void saveCourseReminderDaysAction(form).then((result) => {
+            if (result && "ruleError" in result) {
+              showAppToast(result.ruleError, "error");
+              setDays(value);
+              return;
+            }
+            showAppToast(`Avviso ${next} giorni prima`);
+            router.refresh();
+          });
+        }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer", fontSize: 16 }}
+      >
+        {[30, 60, 90, 120].map((option) => (
+          <option key={option} value={option}>
+            {option} giorni prima
+          </option>
+        ))}
+      </select>
+    </span>
   );
 }

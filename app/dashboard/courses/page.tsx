@@ -171,15 +171,9 @@ export default async function DashboardCoursesPage() {
       </svg>
     </span>
   );
-  // The + programs a course; a certificate has its own button beside it.
+  // The + programs a course; a certificate is added from the person's card.
   const headerActions = (
     <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
-      <CertificateButton
-        members={manager ? memberOptions : null}
-        selfId={session.user.id}
-        trigger="Attestato"
-        style={{ minHeight: 42, borderRadius: 999, border: 0, background: "#ffffff", color: "#4c1d95", fontSize: 14.5, fontWeight: 650, padding: "0 16px", cursor: "pointer", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}
-      />
       {manager ? (
         <PopupAction title="Nuovo corso" ariaLabel="Programma un corso" triggerRow={roundPlus}>
           <CourseComposeForm action={createCourseAction} members={members.map((member) => ({ id: member.user.id, label: `${member.user.firstName} ${member.user.lastName} - ${member.role}` }))} />
@@ -365,7 +359,6 @@ export default async function DashboardCoursesPage() {
               <Quiet style={{ fontSize: 13 }}>A te e alla persona, poi a 30 e 7 giorni</Quiet>
             </span>
             <ReminderDays value={lead} />
-            <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
           </label>
         </Group>
       ) : null}
