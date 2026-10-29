@@ -4108,3 +4108,11 @@
         color: #4c1d95 !important;
         border: 0 !important;
       }
+
+      /* The mix style (mix-ui.tsx): rows inside a card carry a rule above
+         each one; the first rule of a card is clipped away, whatever element
+         the first row is (a link, a swipe wrapper, a popup trigger). */
+      .wb-mix-rows {
+        margin-top: -1px;
+        clip-path: inset(1px 0 0 0);
+      }

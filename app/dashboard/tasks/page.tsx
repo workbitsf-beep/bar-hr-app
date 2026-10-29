@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { describeTaskRepeat, nextTaskDueDate } from "@/lib/task-recurrence";
 import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
 import { buildNoteMeta } from "@/lib/note-list-format";
-import Link from "next/link";
 import { chipsOf, NoteCard, tickStyle } from "./note-card";
 import {
   completeTaskAction,
@@ -24,6 +23,7 @@ import { confirmedTaskArchived } from "@/lib/note-visibility";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { ActionForm } from "@/app/components/action-form";
 import { AddFace } from "../round-button";
+import { MixCard, MixRows, mixPage, PageHead, Segmented } from "../mix-ui";
 
 export default async function DashboardTasksPage({
   searchParams,
@@ -261,66 +261,50 @@ export default async function DashboardTasksPage({
 
   return (
     <div className="wb-desk-split">
-      <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
-        <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Note</h1>
-          <PopupAction
-            title="Nuova nota"
-            ariaLabel="Aggiungi nota"
-            triggerRow={
-              <AddFace />
-            }
-          >
-            <TaskComposeForm action={createTaskAction} members={composeMembers} canChooseAudience={canManage} />
-          </PopupAction>
-        </header>
+      <div style={mixPage}>
+        <PageHead
+          eyebrow={canManage ? "Cose da fare, avvisi e controlli" : "Quello che ti chiede il locale"}
+          title="Note"
+          actions={
+            <PopupAction title="Nuova nota" ariaLabel="Aggiungi nota" triggerRow={<AddFace />}>
+              <TaskComposeForm action={createTaskAction} members={composeMembers} canChooseAudience={canManage} />
+            </PopupAction>
+          }
+        />
 
-        <nav aria-label="Tipi di nota" style={{ display: "flex", background: "#eeebf7", borderRadius: 14, padding: 3 }}>
-          {TABS.map((entry) => {
-            const active = entry.id === tab;
+        <Segmented
+          label="Tipi di nota"
+          items={TABS.map((entry) => {
             const count = pendingIn(entry.id);
-            return (
-              <Link
-                key={entry.id}
-                href={entry.id === "fare" ? "/dashboard/tasks" : `/dashboard/tasks?vista=${entry.id}`}
-                scroll={false}
-                aria-current={active ? "page" : undefined}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  textAlign: "center",
-                  padding: "9px 0",
-                  borderRadius: 11,
-                  fontSize: 14,
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                  color: active ? "#1f1b3a" : "#5b5675",
-                  fontWeight: active ? 600 : 500,
-                  background: active ? "#ffffff" : "transparent",
-                  boxShadow: active ? "0 1px 2px rgba(31,27,58,.08)" : "none",
-                }}
-              >
-                {entry.label}
-                {count ? ` · ${count}` : ""}
-              </Link>
-            );
+            return {
+              href: entry.id === "fare" ? "/dashboard/tasks" : `/dashboard/tasks?vista=${entry.id}`,
+              label: `${entry.label}${count ? ` · ${count}` : ""}`,
+              active: entry.id === tab,
+            };
           })}
-        </nav>
+        />
 
-        {pending.length ? (
-          <div style={{ display: "grid", gap: 10 }}>{pending.map(card)}</div>
-        ) : (
-          <div style={{ background: "#ffffff", borderRadius: 20, padding: "16px 18px", fontSize: 15, color: "#8a85a3" }}>{emptyText}</div>
-        )}
+        <MixCard title={TABS.find((entry) => entry.id === tab)?.label} aside={pending.length || null}>
+          {pending.length ? (
+            <MixRows>{pending.map(card)}</MixRows>
+          ) : (
+            <p style={{ margin: "4px 0 2px", fontSize: 14.5, color: "#667085" }}>{emptyText}</p>
+          )}
+        </MixCard>
 
         {finished.length ? (
           <details className="wb-week" style={{ display: "grid", gap: 10 }}>
-            <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: "4px 16px", fontSize: 13.5, color: "#8a85a3" }}>
-              <span style={{ flex: 1 }}>Fatte · {finished.length}</span>
+            <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: "#fbfaff", border: "1px solid #ece9f7", borderRadius: 16, padding: "10px 14px", fontSize: 14, color: "#111827" }}>
+              <span aria-hidden style={{ width: 9, height: 9, borderRadius: 999, background: "#22c55e" }} />
+              <span style={{ flex: 1 }}>
+                <b>Fatte</b> <span style={{ color: "#667085" }}>· {finished.length}</span>
+              </span>
               <span aria-hidden className="wb-week-chev" style={{ color: "#c4c0d6", fontSize: 16 }}>›</span>
             </summary>
             <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-              {finished.map(card)}
+              <MixCard>
+                <MixRows>{finished.map(card)}</MixRows>
+              </MixCard>
               {canManage && hasWholeScope(staff) ? (
                 <ActionForm action={deleteAllCompletedTasksAction} success="Note fatte eliminate." style={{ display: "flex", justifyContent: "center" }}>
                   <button type="submit" style={{ border: 0, background: "transparent", color: "#b3202f", fontSize: 14.5, cursor: "pointer", minHeight: 40 }}>

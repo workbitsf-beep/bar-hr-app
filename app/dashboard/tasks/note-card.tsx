@@ -32,8 +32,8 @@ export function chipsOf(meta: NoteMeta, options: { ahead: boolean; repeat: boole
 }
 
 /**
- * A note as a card: the text and its chips, the green tick on the right. A
- * note with nothing to confirm has no tick.
+ * A note as a row of its card: the text and its chips, the green tick on the
+ * right. A note with nothing to confirm has no tick. Urgent shows as its chip.
  */
 export function NoteCard({
   title,
@@ -55,20 +55,22 @@ export function NoteCard({
     <div
       style={{
         background: "#ffffff",
-        borderRadius: 20,
-        padding: "14px 16px",
+        padding: "10px 0",
+        borderTop: "1px solid #f1eff8",
         display: "flex",
         gap: 12,
         alignItems: "center",
-        boxShadow: urgent && !done ? "inset 3px 0 0 #e5484d, 0 1px 2px rgba(31,27,58,.04)" : "0 1px 2px rgba(31,27,58,.04)",
       }}
     >
       <span style={{ display: "grid", gap: 6, flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 16, lineHeight: 1.3, color: done ? "#8a85a3" : "#1f1b3a", textDecoration: done ? "line-through" : "none", overflowWrap: "anywhere" }}>{title}</span>
+        <span style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.3, color: done ? "#8a85a3" : "#111827", textDecoration: done ? "line-through" : "none", overflowWrap: "anywhere" }}>
+          {urgent && !done ? <span aria-label="Urgente" style={{ display: "inline-block", width: 8, height: 8, borderRadius: 999, background: "#e5484d", marginRight: 7, verticalAlign: "middle" }} /> : null}
+          {title}
+        </span>
         {chips.length ? (
           <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {chips.map((chip) => (
-              <span key={chip.text} style={{ fontSize: 12.5, padding: "3px 9px", borderRadius: 999, ...CHIP[chip.tone] }}>
+              <span key={chip.text} style={{ fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 999, ...CHIP[chip.tone] }}>
                 {chip.text}
               </span>
             ))}
@@ -77,7 +79,7 @@ export function NoteCard({
         {footnote ? <span style={{ fontSize: 12.5, color: "#8a85a3" }}>{footnote}</span> : null}
       </span>
       {done ? (
-        <span aria-label="Fatta" style={{ flex: "0 0 auto", width: 40, height: 40, borderRadius: 999, background: "#10b981", color: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800 }}>
+        <span aria-label="Fatta" style={{ flex: "0 0 auto", width: 34, height: 34, borderRadius: 999, background: "#10b981", color: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800 }}>
           ✓
         </span>
       ) : tick ? (
@@ -89,8 +91,8 @@ export function NoteCard({
 
 /** The green tick on the right that confirms a note. */
 export const tickStyle = {
-  width: 40,
-  height: 40,
+  width: 34,
+  height: 34,
   borderRadius: 999,
   border: "1px solid #bbf7d0",
   background: "#dcfce7",
