@@ -3900,13 +3900,13 @@ async function runCreateCourse(formData: FormData) {
 
     revalidatePath("/dashboard/courses");
     revalidatePath("/dashboard/calendar");
-    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/presenze", "layout");
     redirect(appendStatusToPath(returnPath, { success: "course-created" }));
   }
 
   revalidatePath("/dashboard/courses");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/presenze", "layout");
 }
 
 /** Hands a refusal back in words; a redirect still goes through. */
@@ -3978,7 +3978,7 @@ export async function deleteCourseAction(formData: FormData) {
 
   revalidatePath("/dashboard/courses");
   revalidatePath("/dashboard/calendar");
-  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/presenze", "layout");
 }
 
 export async function createDocumentAction(formData: FormData) {
@@ -5011,13 +5011,13 @@ export async function updateSettingsAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/timelogs");
+  revalidatePath("/dashboard/presenze", "layout");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/tasks");
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard/documents");
   revalidatePath("/dashboard/courses");
-  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/presenze", "layout");
   revalidatePath("/dashboard");
   revalidatePath("/onboarding");
 }
@@ -5038,7 +5038,7 @@ export async function updateGlobalGpsRadiusAction(nextRadius: number) {
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/super-admin/system");
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/timelogs");
+  revalidatePath("/dashboard/presenze", "layout");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/onboarding");
 
@@ -5152,8 +5152,8 @@ export async function deleteTimeLogPairAction(formData: FormData) {
     actionUrl: "/dashboard/timelogs",
   });
 
-  revalidatePath("/dashboard/timelogs");
-  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/presenze", "layout");
+  revalidatePath("/dashboard/presenze", "layout");
 }
 
 async function runCreateManualTimeLog(formData: FormData) {
@@ -5277,15 +5277,15 @@ async function runCreateManualTimeLog(formData: FormData) {
   }
 
   if (wantsSuccessRedirect(formData)) {
-    const returnPath = await getReturnPathFromReferer("/dashboard/timelogs");
+    const returnPath = await getReturnPathFromReferer("/dashboard/presenze");
 
-    revalidatePath("/dashboard/timelogs");
-    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/presenze", "layout");
+    revalidatePath("/dashboard/presenze", "layout");
     redirect(appendStatusToPath(returnPath, { success: "timelog-created" }));
   }
 
-  revalidatePath("/dashboard/timelogs");
-  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/presenze", "layout");
+  revalidatePath("/dashboard/presenze", "layout");
 }
 
 /** Hands a refusal back in words; a redirect still goes through. */
@@ -5375,14 +5375,14 @@ async function runCreateTimeOffRequest(formData: FormData) {
 
       revalidatePath("/dashboard");
       revalidatePath("/dashboard/requests");
-      revalidatePath("/dashboard/export");
+      revalidatePath("/dashboard/presenze", "layout");
       revalidatePath("/dashboard/calendar");
       redirect(appendStatusToPath(returnPath, { success: "request-created" }));
     }
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/requests");
-    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/presenze", "layout");
     revalidatePath("/dashboard/calendar");
     return;
   }
@@ -5431,14 +5431,14 @@ async function runCreateTimeOffRequest(formData: FormData) {
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/requests");
-    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/presenze", "layout");
     revalidatePath("/dashboard/calendar");
     redirect(appendStatusToPath(returnPath, { success: "request-created" }));
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/requests");
-  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/presenze", "layout");
   revalidatePath("/dashboard/calendar");
 }
 
@@ -5822,14 +5822,14 @@ async function runReviewRequest(formData: FormData) {
 
     revalidatePath("/dashboard/requests");
     revalidatePath("/dashboard");
-    revalidatePath("/dashboard/export");
+    revalidatePath("/dashboard/presenze", "layout");
     revalidatePath("/dashboard/calendar");
     redirect(appendStatusToPath(returnPath, { success: "request-reviewed" }));
   }
 
   revalidatePath("/dashboard/requests");
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/export");
+  revalidatePath("/dashboard/presenze", "layout");
   revalidatePath("/dashboard/calendar");
 }
 

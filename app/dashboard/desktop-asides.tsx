@@ -275,7 +275,7 @@ export async function ReportAside({ barId, userId, staff }: { barId: string; use
           Scegli il mese{team ? " e la persona" : ""} a sinistra e scarica il PDF: ore reali e arrotondate, ferie,
           permessi, straordinari, corsi e reperibilità.
         </p>
-        <Link className="wbd-r" href="/dashboard/timelogs" style={{ marginLeft: 0 }}>
+        <Link className="wbd-r" href="/dashboard/presenze" style={{ marginLeft: 0 }}>
           Vedi le timbrature →
         </Link>
       </section>

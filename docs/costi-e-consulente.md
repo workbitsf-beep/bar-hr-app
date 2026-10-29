@@ -1,6 +1,21 @@
 # Costi e fornitori · Presenze per il consulente
 
-## Presenze per il consulente (`/dashboard/consulente`)
+## Presenze (`/dashboard/presenze`)
+
+Dal 30 ottobre 2026 una sola pagina sostituisce tre voci di menu: Timbrature, Export PDF e Presenze per il consulente. I vecchi indirizzi portano qui (`next.config.js`). Cosa vede chi la apre:
+- **Titolare e staff con il permesso timbrature o report**:
+  - chi è dentro adesso;
+  - il riepilogo del mese e la lista delle persone;
+  - l'invio al consulente.
+- **Dettaglio di una persona**:
+  - i giorni con le timbrature e il PDF del mese;
+  - "Sistema timbratura", per togliere o aggiungere una timbratura;
+  - "Solo nel file", per la correzione che vale solo per il consulente.
+- **Tutti gli altri**: il proprio mese.
+
+La timbratura vera resta sulla Home.
+
+### Il file per il consulente
 
 Per il titolare e per chi ha il permesso "report", ognuno sulle persone che segue. Impostazioni e destinatari: solo il titolare.
 
@@ -31,7 +46,7 @@ Lo stesso codice scrive il file sul server e fa l'anteprima nel browser.
 
 **Formato da un file del consulente** (`lib/payroll/template-ai.ts`, con `ANTHROPIC_API_KEY`): si carica un Excel o un CSV che il consulente usa già. Claude legge le prime righe e restituisce il modello, compilando uno schema JSON fisso. Il titolare lo vede nell'anteprima prima di salvare.
 
-**Revisione** (`/revisione`):
+**Revisione** (dettaglio persona, `/dashboard/presenze/persona/[userId]`):
 - i giorni strani sono segnati:
   - turno pubblicato senza timbratura;
   - più di 12 ore;

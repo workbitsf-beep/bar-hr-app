@@ -149,53 +149,6 @@ export function DayEditor({ userId, date, entries, overridden, note, dailyHours,
   );
 }
 
-/** A day's line that opens its editor. */
-export function DayRow({
-  label,
-  summary,
-  flags,
-  overridden,
-  editor,
-}: {
-  label: string;
-  summary: string;
-  flags: string[];
-  overridden: boolean;
-  editor: DayEditorProps;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div
-      style={{
-        borderTop: "1px solid #f1eff8",
-        padding: "10px 15px",
-        display: "grid",
-        gap: 4,
-        boxShadow: flags.length ? "inset 3px 0 0 #f59e0b" : overridden ? "inset 3px 0 0 #6d5ce7" : undefined,
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        style={{ all: "unset", cursor: "pointer", display: "grid", gap: 3 }}
-      >
-        <span style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 14 }}>
-          <span style={{ textTransform: "capitalize", color: "#1f1b3a" }}>{label}</span>
-          <span style={{ color: "#4b4763", textAlign: "right" }}>{summary || "–"}</span>
-        </span>
-        {flags.map((flag) => (
-          <span key={flag} style={{ fontSize: 12.5, color: "#b45309" }}>
-            {flag}
-          </span>
-        ))}
-        {overridden ? <span style={{ fontSize: 12.5, color: "#6d5ce7" }}>Corretto da te: vale solo per il file</span> : null}
-      </button>
-      {open ? <DayEditor {...editor} /> : null}
-    </div>
-  );
-}
-
 /** A day with nothing on it yet: a sickness not asked in the app, a shift not entered. */
 export function AddDay({ editor }: { editor: Omit<DayEditorProps, "date" | "entries" | "overridden" | "note"> }) {
   const [open, setOpen] = useState(false);

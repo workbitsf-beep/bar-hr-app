@@ -6,6 +6,16 @@ const nextConfig = {
   generateEtags: true,
   output: "standalone",
   cacheMaxMemorySize: 16 * 1024 * 1024,
+  // Timbrature, the PDF report and the consultant's attendance became one
+  // page, Presenze (30 Oct 2026). Old links, notifications included, land there.
+  async redirects() {
+    return [
+      { source: "/dashboard/timelogs", destination: "/dashboard/presenze", permanent: false },
+      { source: "/dashboard/export", destination: "/dashboard/presenze", permanent: false },
+      { source: "/dashboard/consulente/revisione", destination: "/dashboard/presenze", permanent: false },
+      { source: "/dashboard/consulente/:path*", destination: "/dashboard/presenze/:path*", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

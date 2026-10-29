@@ -17,9 +17,9 @@ const SHORTCUTS: Array<Entry & { needs: string }> = [
   { label: "Nuova nota", hint: "Note", href: "/dashboard/tasks", needs: "/dashboard/tasks" },
   { label: "Chiedi ferie o permesso", hint: "Richieste", href: "/dashboard/requests", needs: "/dashboard/requests" },
   { label: "Richieste da decidere", hint: "Richieste", href: "/dashboard/requests", needs: "/dashboard/requests" },
-  { label: "Timbrature con anomalie", hint: "Timbrature", href: "/dashboard/timelogs?f=anomalie", needs: "/dashboard/timelogs" },
-  { label: "Chi è dentro adesso", hint: "Timbrature", href: "/dashboard/timelogs?f=dentro", needs: "/dashboard/timelogs" },
-  { label: "Scarica il report del mese", hint: "Report", href: "/dashboard/export", needs: "/dashboard/export" },
+  { label: "Giorni da guardare", hint: "Presenze", href: "/dashboard/presenze", needs: "/dashboard/presenze" },
+  { label: "Chi è dentro adesso", hint: "Presenze", href: "/dashboard/presenze", needs: "/dashboard/presenze" },
+  { label: "Scarica il report del mese", hint: "Presenze", href: "/dashboard/presenze", needs: "/dashboard/presenze" },
   { label: "Carica un documento", hint: "Documenti", href: "/dashboard/documents", needs: "/dashboard/documents" },
 ];
 

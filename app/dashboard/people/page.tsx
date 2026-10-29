@@ -485,11 +485,11 @@ export default async function DashboardPeoplePage({
               {row.expired > 0 ? `${row.expired} scaduti` : "in regola"} &rsaquo;
             </span>
           </Link>
-          <Link href="/dashboard/timelogs" style={personLinkStyle}>
+          <Link href="/dashboard/presenze" style={personLinkStyle}>
             <span>⏱️ Timbrature</span>
             <span style={{ color: "#94a3b8", fontWeight: 800 }}>&rsaquo;</span>
           </Link>
-          <Link href="/dashboard/export" style={personLinkStyle}>
+          <Link href="/dashboard/presenze" style={personLinkStyle}>
             <span>🧾 Report del mese</span>
             <span style={{ color: "#94a3b8", fontWeight: 800 }}>&rsaquo;</span>
           </Link>

@@ -12,7 +12,7 @@ export function getBottomNavItems(navItems: DashboardNavItem[], slots = 5) {
     "/dashboard/calendar",
     "/dashboard/tasks",
     "/dashboard/documents",
-    "/dashboard/timelogs",
+    "/dashboard/presenze",
     "/dashboard/requests",
   ];
   const preferred = preferredHrefs

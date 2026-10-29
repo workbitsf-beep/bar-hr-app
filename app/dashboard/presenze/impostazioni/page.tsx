@@ -51,8 +51,8 @@ export default async function PayrollSettingsPage() {
   return (
     <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
       <header style={{ display: "grid", gap: 4, padding: "0 4px" }}>
-        <Link href="/dashboard/consulente" style={{ fontSize: 13, fontWeight: 700, color: "#6d5ce7", textDecoration: "none" }}>
-          ‹ Presenze per il consulente
+        <Link href="/dashboard/presenze" style={{ fontSize: 13, fontWeight: 700, color: "#6d5ce7", textDecoration: "none" }}>
+          ‹ Presenze
         </Link>
         <h1 style={{ margin: 0, fontSize: 28, letterSpacing: "-0.03em" }}>Impostazioni</h1>
       </header>
@@ -63,7 +63,7 @@ export default async function PayrollSettingsPage() {
           {recipients.map((recipient, index) => {
             const template = templateOf(recipient.template);
             return (
-              <Link key={recipient.id} href={`/dashboard/consulente/destinatario/${recipient.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <Link key={recipient.id} href={`/dashboard/presenze/destinatario/${recipient.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
                 <Row first={index === 0}>
                   <Line left={recipient.name} right={<span style={{ color: "#6d5ce7" }}>Modifica ›</span>} />
                   <Line
@@ -76,7 +76,7 @@ export default async function PayrollSettingsPage() {
           })}
           <Row first={!recipients.length}>
             <div>
-              <Link href="/dashboard/consulente/destinatario/nuovo" style={{ ...softButton, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+              <Link href="/dashboard/presenze/destinatario/nuovo" style={{ ...softButton, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
                 {recipients.length ? "Aggiungi un altro" : "Aggiungi il consulente o il commercialista"}
               </Link>
             </div>

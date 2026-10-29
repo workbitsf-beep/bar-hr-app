@@ -630,7 +630,7 @@ function DangerDeleteForm({
           Per legge le timbrature vanno conservate 5 anni. Prima di eliminare, scarica i report
           dei mesi che ti servono: dopo non si recuperano.
         </span>
-        <a href="/dashboard/export" style={{ color: "#4c1d95", fontWeight: 700 }}>
+        <a href="/dashboard/presenze" style={{ color: "#4c1d95", fontWeight: 700 }}>
           Vai ai report ›
         </a>
         <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 600 }}>

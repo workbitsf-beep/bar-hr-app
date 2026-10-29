@@ -536,7 +536,7 @@ export async function DesktopToday({
               <h3>
                 <span className="wbt-live" aria-hidden="true" />
                 Adesso nel locale
-                <Link className="wbt-r" href="/dashboard/timelogs">
+                <Link className="wbt-r" href="/dashboard/presenze">
                   Timbrature →
                 </Link>
               </h3>
@@ -645,7 +645,7 @@ export async function DesktopToday({
               <div className="wbt-clockcard">
                 <b aria-hidden="true">📱</b>
                 <small>Le timbrature si fanno dal telefono, quando sei nel locale. Qui vedi le tue ore.</small>
-                <Link className="wbt-btn" href="/dashboard/timelogs">
+                <Link className="wbt-btn" href="/dashboard/presenze">
                   Le mie ore
                 </Link>
               </div>
@@ -732,7 +732,7 @@ export async function DesktopToday({
             <section className="wbt-card">
               <h3>
                 Le mie ore del mese
-                <Link className="wbt-r" href="/dashboard/export">
+                <Link className="wbt-r" href="/dashboard/presenze">
                   Il mio PDF →
                 </Link>
               </h3>

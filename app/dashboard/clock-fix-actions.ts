@@ -30,7 +30,7 @@ async function context() {
 }
 
 function refresh() {
-  for (const path of ["/dashboard", "/dashboard/timelogs", "/dashboard/export"]) revalidatePath(path);
+  for (const path of ["/dashboard", "/dashboard/presenze"]) revalidatePath(path, "layout");
 }
 
 function readTime(formData: FormData, name: string) {

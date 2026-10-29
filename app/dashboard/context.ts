@@ -9,7 +9,7 @@ import { getActiveBarAccess, getPostLoginDestination } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getTranslation } from "@/lib/i18n";
 import type { Department } from "@prisma/client";
-import { can, type StaffAccess } from "@/lib/staff-permissions";
+import type { StaffAccess } from "@/lib/staff-permissions";
 import { costsEnabledFor } from "@/lib/costs/access";
 
 async function logMissingSession() {
@@ -210,7 +210,6 @@ export const getDashboardContext = cache(async function getDashboardContext(
   // Since 19 Oct 2026 the 30-day trial starts without a card, on the web as
   // in the app: the card is asked by email and in the app near the end.
   const ownerNeedsSubscriptionActivation = false;
-  const isCompany = activeBar?.activityType === ActivityType.COMPANY;
   const notesEnabled = features.tasks || features.noticeBoard;
   const requestsNavLabel = features.requests ? t.requests : t.availability;
   // The calendar is where courses, holidays, leave and closures live too, not
@@ -245,9 +244,8 @@ export const getDashboardContext = cache(async function getDashboardContext(
           // something has run out. The page still exists for the link inside
           // the notification.
           ...(features.courses ? [{ label: "Corsi", href: "/dashboard/courses" }] : []),
-          ...(features.timeTracking && !isCompany
-            ? [{ label: t.timelogs, href: "/dashboard/timelogs" }]
-            : []),
+          // Timbrature, the month's PDF and the consultant's file, in one place.
+          ...(features.timeTracking || features.reports ? [{ label: "Presenze", href: "/dashboard/presenze" }] : []),
           ...(features.requests || features.availability
             ? [{ label: requestsNavLabel, href: "/dashboard/requests" }]
             : []),
@@ -262,16 +260,6 @@ export const getDashboardContext = cache(async function getDashboardContext(
     navItems.push({ label: t.settings, href: "/dashboard/settings" });
   }
 
-  if (role !== Role.OWNER && String(role) !== "SUPER_ADMIN" && features.reports) {
-    navItems.push({ label: t.personalPdf, href: "/dashboard/export" });
-  } else if (role === Role.OWNER && features.reports) {
-    navItems.push({ label: t.exportPdf, href: "/dashboard/export" });
-  }
-
-  // The month's attendance for the labour consultant, for whoever runs the reports.
-  if (features.reports && (role === Role.OWNER || can(staff, "reports"))) {
-    navItems.push({ label: "Presenze per il consulente", href: "/dashboard/consulente" });
-  }
 
   return {
     session,

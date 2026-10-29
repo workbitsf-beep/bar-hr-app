@@ -69,7 +69,7 @@ export default async function RecipientPage({ params }: { params: Promise<{ id: 
   return (
     <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
       <header style={{ display: "grid", gap: 4, padding: "0 4px" }}>
-        <Link href="/dashboard/consulente/impostazioni" style={{ fontSize: 13, fontWeight: 700, color: "#6d5ce7", textDecoration: "none" }}>
+        <Link href="/dashboard/presenze/impostazioni" style={{ fontSize: 13, fontWeight: 700, color: "#6d5ce7", textDecoration: "none" }}>
           ‹ Impostazioni
         </Link>
         <h1 style={{ margin: 0, fontSize: 28, letterSpacing: "-0.03em" }}>{recipient?.name ?? "Nuovo destinatario"}</h1>

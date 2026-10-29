@@ -528,7 +528,7 @@ export function DesktopWeekPlanner({
                 <Link href="/dashboard/requests" className="wbp-link">
                   Chiedi ferie o permesso →
                 </Link>
-                <Link href="/dashboard/timelogs" className="wbp-link">
+                <Link href="/dashboard/presenze" className="wbp-link">
                   Le tue timbrature →
                 </Link>
               </span>

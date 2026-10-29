@@ -22,16 +22,14 @@ const MENU_DOTS: Record<string, string> = {
   "/dashboard/tasks": "#f59e0b",
   "/dashboard/documents": "#64748b",
   "/dashboard/courses": "#0284c7",
-  "/dashboard/timelogs": "#0ea5e9",
+  "/dashboard/presenze": "#0ea5e9",
   "/dashboard/requests": "#10b981",
   "/dashboard/people": "#a855f7",
   "/dashboard/settings": "#64748b",
-  "/dashboard/export": "#7e22ce",
-  "/dashboard/consulente": "#7e22ce",
   "/dashboard/costi": "#16a34a",
 };
 
-const DOWNLOADS = new Set(["/dashboard/export", "/dashboard/consulente"]);
+const DOWNLOADS = new Set<string>();
 
 export function DashboardNavMenu({
   navItems,
@@ -456,7 +454,7 @@ export function DashboardNavMenu({
                                       fontWeight: active ? 820 : 740,
                                     }}
                                   >
-                                    {item.href === "/dashboard/export" ? "Report in PDF" : item.label}
+                                    {item.label}
                                   </span>
                                   <span
                                     className="workbit-menu-link-arrow"

@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { ensureMembersInScope } from "@/lib/staff-scope";
 
-const PATH = "/dashboard/consulente";
+const PATH = "/dashboard/presenze";
 
 /** Where the hours come from: the clock-ins, or the shifts in the calendar. */
 export async function saveSourceAction(formData: FormData) {

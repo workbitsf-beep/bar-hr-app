@@ -39,7 +39,7 @@ export async function runPayrollReminders(now = new Date()) {
       title: `Presenze di ${monthName(month, year)} pronte`,
       message: `Controllale e mandale a ${recipient.name}: è un tasto.`,
       type: INTERNAL_NOTIFICATION_TYPES.PAYROLL_READY,
-      actionUrl: `/dashboard/consulente?mese=${key}`,
+      actionUrl: `/dashboard/presenze?mese=${key}`,
     }).catch((error) => console.error("[payroll] reminder not sent", recipient.id, error instanceof Error ? error.message : error));
     reminded += 1;
   }

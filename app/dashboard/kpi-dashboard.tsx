@@ -330,7 +330,7 @@ export function KpiDashboard({
           count: data.today.presentUsers,
           label: data.today.presentUsers === 1 ? "Presente ora" : "Presenti ora",
           detail: "entrata timbrata",
-          href: "/dashboard/timelogs",
+          href: "/dashboard/presenze",
         }
       : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
