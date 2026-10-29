@@ -10,29 +10,37 @@ import { ensureMembersInScope } from "@/lib/staff-scope";
 
 const PATH = "/dashboard/presenze";
 
-/** Where the hours come from: the clock-ins, or the shifts in the calendar. */
+/**
+ * Where the hours come from, the break off a shift, whether overtime counts.
+ * Each control saves on its own, so only the fields sent are changed.
+ */
 export async function saveSourceAction(formData: FormData) {
   try {
     const { barId } = await payrollAccess({ ownerOnly: true });
-    const source = String(formData.get("source") ?? "AUTO");
-    if (!["AUTO", "CLOCK", "SHIFTS"].includes(source)) throw new RuleError("Scegli da dove prendere le ore.");
-    const minutesText = String(formData.get("breakMinutes") ?? "").trim();
-    const afterText = String(formData.get("breakAfterHours") ?? "").trim().replace(",", ".");
-    const breakMinutes = minutesText ? Number(minutesText) : null;
-    const breakAfterHours = afterText ? Number(afterText) : null;
-    if (breakMinutes !== null && (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes > 180)) {
-      throw new RuleError("La pausa va da 0 a 180 minuti.");
+    const data: { payrollSource?: string; payrollBreakMinutes?: number | null; payrollBreakAfterHours?: number | null; payrollOvertime?: boolean | null } = {};
+    if (formData.has("source")) {
+      const source = String(formData.get("source"));
+      if (!["AUTO", "CLOCK", "SHIFTS"].includes(source)) throw new RuleError("Scegli da dove prendere le ore.");
+      data.payrollSource = source;
     }
-    if (breakAfterHours !== null && (!Number.isFinite(breakAfterHours) || breakAfterHours < 0 || breakAfterHours > 12)) {
-      throw new RuleError("Le ore del turno per la pausa vanno da 0 a 12.");
+    if (formData.has("breakMinutes")) {
+      const minutesText = String(formData.get("breakMinutes") ?? "").trim();
+      const afterText = String(formData.get("breakAfterHours") ?? "").trim().replace(",", ".");
+      const breakMinutes = minutesText ? Number(minutesText) : null;
+      const breakAfterHours = afterText ? Number(afterText) : null;
+      if (breakMinutes !== null && (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes > 180)) {
+        throw new RuleError("La pausa va da 0 a 180 minuti.");
+      }
+      if (breakAfterHours !== null && (!Number.isFinite(breakAfterHours) || breakAfterHours < 0 || breakAfterHours > 12)) {
+        throw new RuleError("Le ore del turno per la pausa vanno da 0 a 12.");
+      }
+      data.payrollBreakMinutes = breakMinutes || null;
+      data.payrollBreakAfterHours = breakMinutes ? breakAfterHours ?? 6 : null;
     }
-    const overtime = String(formData.get("overtime") ?? "");
-    const data = {
-      payrollSource: source,
-      payrollBreakMinutes: breakMinutes || null,
-      payrollBreakAfterHours: breakMinutes ? breakAfterHours ?? 6 : null,
-      payrollOvertime: overtime === "on" ? true : overtime === "off" ? false : null,
-    };
+    if (formData.has("overtime")) {
+      const overtime = String(formData.get("overtime"));
+      data.payrollOvertime = overtime === "on" ? true : overtime === "off" ? false : null;
+    }
     await prisma.barSettings.upsert({ where: { barId }, create: { barId, ...data }, update: data });
     revalidatePath(PATH, "layout");
     return { ok: true };

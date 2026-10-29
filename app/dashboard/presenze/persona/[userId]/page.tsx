@@ -7,10 +7,12 @@ import { memberScopeWhere } from "@/lib/staff-scope";
 import { BillingRequired } from "../../../billing-required";
 import { getDashboardContext } from "../../../context";
 import { EmptyState, Panel } from "../../../ui";
-import { MonthChips } from "../../payroll-ui";
+import { Avatar, initials } from "../../payroll-ui";
 import { PersonMonth } from "../../person-month";
 
 export const dynamic = "force-dynamic";
+
+const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
 /** One person's month in Presenze: their days, clock-ins to fix, the file to correct, the PDF. */
 export default async function PersonPresencePage({
@@ -36,10 +38,17 @@ export default async function PersonPresencePage({
   const canStamps = isOwner || can(staff, "timelogs");
   const canReports = isOwner || can(staff, "reports");
 
-  const member = await prisma.employeeBar.findFirst({
-    where: { barId: activeBarId, userId, ...(isOwner || isSelf ? {} : memberScopeWhere(staff)) },
-    select: { user: { select: { firstName: true, lastName: true } } },
-  });
+  const [member, lastStamp] = await Promise.all([
+    prisma.employeeBar.findFirst({
+      where: { barId: activeBarId, userId, ...(isOwner || isSelf ? {} : memberScopeWhere(staff)) },
+      select: { contractWeeklyHours: true, user: { select: { firstName: true, lastName: true } } },
+    }),
+    prisma.timeLog.findFirst({
+      where: { barId: activeBarId, userId, timestamp: { gte: new Date(Date.now() - 16 * 3_600_000) } },
+      orderBy: { timestamp: "desc" },
+      select: { type: true, timestamp: true },
+    }),
+  ]);
   if (!member || (!isSelf && !canStamps && !canReports)) {
     return (
       <Panel title="Presenze">
@@ -52,21 +61,34 @@ export default async function PersonPresencePage({
   const today = new Date();
   const { year, month } =
     parseMonthKey(mese) ?? (today.getDate() <= 5 && !isSelf ? defaultPayrollMonth(today) : { year: today.getFullYear(), month: today.getMonth() + 1 });
+  const name = `${member.user.firstName} ${member.user.lastName}`.trim();
+  const status =
+    features.timeTracking && lastStamp?.type === "IN"
+      ? `In lavoro dalle ${clock.format(lastStamp.timestamp)}`
+      : member.contractWeeklyHours
+        ? `Contratto ${member.contractWeeklyHours.toLocaleString("it-IT")} h a settimana`
+        : null;
 
   return (
-    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
-      <header style={{ display: "grid", gap: 4, padding: "0 4px" }}>
-        <Link href={`/dashboard/presenze?mese=${year}-${String(month).padStart(2, "0")}`} style={{ fontSize: 13, fontWeight: 700, color: "#6d5ce7", textDecoration: "none" }}>
+    <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
+      <header style={{ display: "grid", gap: 8, padding: "0 4px" }}>
+        <Link href={`/dashboard/presenze?mese=${year}-${String(month).padStart(2, "0")}`} style={{ fontSize: 13.5, fontWeight: 700, color: "#5e4ae3", textDecoration: "none" }}>
           ‹ Presenze
         </Link>
-        <h1 style={{ margin: 0, fontSize: 28, letterSpacing: "-0.03em" }}>
-          {member.user.firstName} {member.user.lastName}
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Avatar text={initials(member.user.firstName, member.user.lastName)} size={44} />
+          <div style={{ display: "grid", gap: 1, minWidth: 0 }}>
+            <h1 style={{ margin: 0, fontSize: 25, fontWeight: 750, letterSpacing: "-0.03em" }}>{name}</h1>
+            {status ? (
+              <span style={{ fontSize: 13, color: lastStamp?.type === "IN" && features.timeTracking ? "#0f7a4f" : "#6f6a88" }}>{status}</span>
+            ) : null}
+          </div>
+        </div>
       </header>
-      <MonthChips base={`/dashboard/presenze/persona/${userId}`} year={year} month={month} />
       <PersonMonth
         barId={activeBarId}
         userId={userId}
+        personName={name}
         year={year}
         month={month}
         // Staff never fix their own hours: the owner does.

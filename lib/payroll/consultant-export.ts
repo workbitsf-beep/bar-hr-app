@@ -31,6 +31,7 @@ export type PayrollSource = "CLOCK" | "SHIFTS";
 export type PayrollFlag = { date: string; message: string };
 
 export type PayrollPerson = PayrollPersonData & {
+  email: string;
   dailyHours: number | null;
   totals: Record<PayrollCodeKey, { hours: number; days: number }>;
   workedDays: number;
@@ -128,7 +129,7 @@ export async function buildPayrollMonth(input: {
         userId: true,
         payrollCode: true,
         contractWeeklyHours: true,
-        user: { select: { firstName: true, lastName: true } },
+        user: { select: { firstName: true, lastName: true, email: true } },
       },
     }),
     prisma.request.findMany({
@@ -354,6 +355,7 @@ export async function buildPayrollMonth(input: {
       userId: member.userId,
       firstName: member.user.firstName,
       lastName: member.user.lastName,
+      email: member.user.email,
       payrollCode: member.payrollCode,
       contractWeeklyHours: member.contractWeeklyHours,
       dailyHours,

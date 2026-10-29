@@ -48,6 +48,8 @@ const secondary = {
 type Props = {
   recipientId: string;
   firstName: string;
+  /** The closed button's words; "Invia a <nome>" when left out. */
+  label?: string;
   to: string;
   cc: string;
   subject: string;
@@ -208,7 +210,7 @@ export function SendPanel(props: Props) {
     return (
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 8 }}>
         <button type="button" style={primary} onClick={() => setOpen(true)}>
-          Invia a {props.firstName}
+          {props.label ?? `Invia a ${props.firstName}`}
         </button>
         <button type="button" style={secondary} disabled={busy !== null} onClick={() => void download()}>
           {busy === "file" ? "Preparo…" : "File"}
