@@ -317,15 +317,18 @@ export default async function DashboardPeoplePage({
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05 }}>Team</h1>
         </div>
-        <PopupAction
-          title="Nuova persona"
-          ariaLabel="Aggiungi una persona"
-          triggerRow={
-            <AddFace />
-          }
-        >
-          {addPerson}
-        </PopupAction>
+        {/* The trigger is a full-width button: boxed, so it stays on the right instead of over the title. */}
+        <div style={{ flex: "0 0 auto" }}>
+          <PopupAction
+            title="Nuova persona"
+            ariaLabel="Aggiungi una persona"
+            triggerRow={
+              <AddFace />
+            }
+          >
+            {addPerson}
+          </PopupAction>
+        </div>
       </header>
 
       {members.length === 0 ? (
