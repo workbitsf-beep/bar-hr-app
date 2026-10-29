@@ -2,7 +2,7 @@ import { BillingRequired } from "../billing-required";
 import { Role } from "@prisma/client";
 import { can, hasWholeScope } from "@/lib/staff-permissions";
 import { prisma } from "@/lib/prisma";
-import { describeTaskRepeat } from "@/lib/task-recurrence";
+import { describeTaskRepeat, nextTaskDueDate } from "@/lib/task-recurrence";
 import { describeAssignees, groupSharedTasks } from "@/lib/task-groups";
 import { buildNoteMeta } from "@/lib/note-list-format";
 import Link from "next/link";
@@ -193,7 +193,11 @@ export default async function DashboardTasksPage({
         ? { name: `${lastCompletion.user.firstName} ${lastCompletion.user.lastName}`, at: lastCompletion.completedAt }
         : null,
     });
-    const chips = chipsOf(meta, { ahead: task.dueDate > todayEnd, repeat: Boolean(repeatLabel), department: departmentName(task.department), date: task.dueDate });
+    const chips = chipsOf(meta, { ahead: task.dueDate > todayEnd, repeat: Boolean(repeatLabel), department: departmentName(task.department),
+      date: task.dueDate,
+      // A check that comes back says when: the occurrence after this one.
+      next: task.repeatEvery && task.repeatUnit ? nextTaskDueDate(task.dueDate, { repeatEvery: task.repeatEvery, repeatUnit: task.repeatUnit }, task.dueDate) : null,
+    });
     // On a team check, who else confirmed it is the proof it was done.
     const extraCompletions = (group.members.length > 1 ? [] : allCompletions)
       .slice(1)

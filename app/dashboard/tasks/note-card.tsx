@@ -11,11 +11,12 @@ const CHIP = {
 };
 
 /** The meta of a note as small chips: what is wrong in red, a day ahead in violet. */
-export function chipsOf(meta: NoteMeta, options: { ahead: boolean; repeat: boolean; department: string | null; date: Date }): NoteChip[] {
+export function chipsOf(meta: NoteMeta, options: { ahead: boolean; repeat: boolean; department: string | null; date: Date; next?: Date | null }): NoteChip[] {
   // "Oggi" alone says nothing a week later in the archive: the date goes with it.
+  const dayMonth = (date: Date) => new Intl.DateTimeFormat("it-IT", { timeZone: APP_TIME_ZONE, day: "numeric", month: "short" }).format(date).replace(/\.$/, "");
   const dated = (text: string) =>
     /^(oggi|domani|ieri)$/i.test(text)
-      ? `${text} · ${new Intl.DateTimeFormat("it-IT", { timeZone: APP_TIME_ZONE, day: "numeric", month: "short" }).format(options.date).replace(/\.$/, "")}`
+      ? `${text} · ${dayMonth(options.date)}`
       : text;
   return [
     ...meta.parts.map((part, index): NoteChip => {
@@ -23,7 +24,7 @@ export function chipsOf(meta: NoteMeta, options: { ahead: boolean; repeat: boole
       const base = index === 0 && !meta.done ? dated(part.text) : part.text;
       const text = base.charAt(0).toUpperCase() + base.slice(1);
       if (index === 0 && options.ahead && !meta.done) return { text: `📅 ${text}`, tone: "day" };
-      if (options.repeat && /^ogni|^tutti/i.test(part.text)) return { text: `🔁 ${part.text}`, tone: "plain" };
+      if (options.repeat && /^ogni|^tutti/i.test(part.text)) return { text: `🔁 ${part.text}${options.next ? ` · poi ${dayMonth(options.next)}` : ""}`, tone: "plain" };
       return { text, tone: "plain" };
     }),
     ...(options.department ? [{ text: options.department, tone: "plain" as const }] : []),
