@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { ActionForm } from "@/app/components/action-form";
 import { TimeInput } from "@/app/components/time-input";
 import { PendingButton } from "@/app/components/pending-button";
-import { createManualTimeLogAction, deleteTimeLogPairAction } from "../actions";
+import { createManualTimeLogAction } from "../actions";
 import { DayEditor, type DayEditorProps } from "./day-editor";
 
 export type StampPair = {
@@ -213,27 +213,6 @@ function DaySheet({
 
         {mode === "stamps" && canFix ? (
           <>
-            {view.pairs.length ? (
-              <div style={{ display: "grid", gap: 6 }}>
-                {view.pairs.map((pair) => (
-                  <div key={pair.logIds.join(",")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 14.5, fontVariantNumeric: "tabular-nums" }}>
-                    <span>{pair.label}</span>
-                    <ActionForm action={deleteTimeLogPairAction} success="Timbratura tolta" keepOpen>
-                      <input type="hidden" name="userId" value={userId} />
-                      <input type="hidden" name="logIds" value={pair.logIds.join(",")} />
-                      <PendingButton type="submit" pendingLabel="…" style={{ ...chip(false), color: "#b45309" }}>
-                        Togli
-                      </PendingButton>
-                    </ActionForm>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {view.pairs.length ? (
-              <span style={{ fontSize: 13, color: "#6f6a88" }}>
-                Una timbratura sbagliata si toglie, poi si aggiunge quella giusta: così resta chiaro chi ha cambiato cosa.
-              </span>
-            ) : (
             <ActionForm action={createManualTimeLogAction} success="Timbratura salvata" style={{ display: "grid", gap: 14 }}>
               <input type="hidden" name="userId" value={userId} />
               <input type="hidden" name="clockInAt" value={inTime ? `${view.date}T${inTime}` : ""} />
@@ -288,7 +267,6 @@ function DaySheet({
                 Le ore del mese e il file del consulente si aggiornano da soli.
               </span>
             </ActionForm>
-            )}
           </>
         ) : null}
 
@@ -427,7 +405,7 @@ export function AddStampButton({
 
   const chooser = (
     <div style={{ display: "grid", gap: 8 }}>
-      <span style={{ fontSize: 12.5, color: "#6f6a88" }}>Che giorno? Solo quelli senza timbratura.</span>
+      <span style={{ fontSize: 12.5, color: "#6f6a88" }}>Che giorno? I turni già finiti senza timbratura.</span>
       <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
         {choices.map((choice) => {
           const active = current?.date === choice.date;
@@ -454,7 +432,7 @@ export function AddStampButton({
             >
               <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#7c7894" }}>{choice.weekday}</span>
               <span style={{ fontSize: 18, fontWeight: 650 }}>{choice.day}</span>
-              {choice.shift ? <span style={{ fontSize: 10.5, color: "#b45309" }}>turno</span> : null}
+              {choice.shift ? <span style={{ fontSize: 10.5, color: "#b45309", fontVariantNumeric: "tabular-nums" }}>{choice.shift.start}</span> : null}
             </button>
           );
         })}

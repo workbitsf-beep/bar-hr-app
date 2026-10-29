@@ -180,9 +180,14 @@ export async function PersonMonth({
     });
   }
 
-  // A stamp is added only where none is: days so far with no stamp and no day away.
+  // A stamp is added only where one is missing: a shift already over, with no stamp
+  // and no day away. What was stamped stays as it was.
+  const missingStamp = (view: DayView) => {
+    const shift = shiftOf.get(view.date);
+    return Boolean(shift && shift.endTime < now && !(stampsOf.get(view.date)?.pairs.length) && !view.away);
+  };
   const stampChoices: DayChoice[] = views
-    .filter((view) => !(stampsOf.get(view.date)?.pairs.length) && !view.away)
+    .filter(missingStamp)
     .reverse()
     .map((view) => ({ date: view.date, weekday: view.weekday, day: view.day, shift: view.shift }));
 
@@ -259,7 +264,7 @@ export async function PersonMonth({
               <div style={{ marginTop: -1 }}>
                 {[...days].reverse().map((view) => (
                   <div key={view.date} style={view.right === "Riposo" && !view.flags.length && !view.segments.length ? { opacity: 0.55 } : undefined}>
-                    <DayRow view={view} userId={userId} personName={personName} canFix={canFixStamps && timeTracking} />
+                    <DayRow view={view} userId={userId} personName={personName} canFix={canFixStamps && timeTracking && missingStamp(view)} />
                   </div>
                 ))}
               </div>

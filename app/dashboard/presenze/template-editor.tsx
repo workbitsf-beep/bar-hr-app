@@ -210,34 +210,52 @@ export function TemplateEditor({ initial, sample, aiEnabled }: { initial: Payrol
         hint="Nell'ordine del file. L'intestazione la scrivi come la vuole il consulente."
       >
         {template.columns.map((column, index) => (
-          <div key={index} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) auto", gap: 6, alignItems: "center" }}>
-            <select
-              value={column.field}
-              aria-label="Cosa contiene"
-              onChange={(event) => {
-                const field = event.currentTarget.value as PayrollField;
-                set({ columns: template.columns.map((item, position) => (position === index ? { field, header: FIELD_LABELS[field], ...(field === "fisso" ? { value: "" } : {}) } : item)) });
-              }}
-              style={input}
-            >
-              {fields.map((item) => (
-                <option key={item} value={item}>
-                  {FIELD_LABELS[item]}
-                </option>
-              ))}
-            </select>
-            <div style={{ display: "grid", gap: 4 }}>
+          <div key={index} style={{ display: "grid", gap: 6, padding: "10px 12px", border: "1px solid #f1eff8", borderRadius: 14, background: "#fbfaff" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0, 1fr) auto", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#7c7894", textAlign: "center" }}>{index + 1}</span>
               <input
                 value={column.header}
-                aria-label="Intestazione"
+                aria-label="Intestazione della colonna"
                 placeholder="Intestazione"
                 onChange={(event) => {
                   const header = event.currentTarget.value;
                   setTemplate((current) => ({ ...current, columns: current.columns.map((item, position) => (position === index ? { ...item, header } : item)) }));
                 }}
-                style={input}
+                style={{ ...input, fontWeight: 600 }}
               />
-              {column.field === "fisso" ? (
+              <span style={{ display: "flex" }}>
+                <button type="button" style={small} aria-label="Sposta su" onClick={() => moveColumn(index, -1)}>
+                  ↑
+                </button>
+                <button type="button" style={small} aria-label="Sposta giù" onClick={() => moveColumn(index, 1)}>
+                  ↓
+                </button>
+                <button type="button" style={small} aria-label="Togli" onClick={() => set({ columns: template.columns.filter((_, position) => position !== index) })}>
+                  ×
+                </button>
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0, 1fr)", gap: 8, alignItems: "center" }}>
+              <span aria-hidden />
+              <select
+                value={column.field}
+                aria-label="Cosa contiene"
+                onChange={(event) => {
+                  const field = event.currentTarget.value as PayrollField;
+                  set({ columns: template.columns.map((item, position) => (position === index ? { field, header: FIELD_LABELS[field], ...(field === "fisso" ? { value: "" } : {}) } : item)) });
+                }}
+                style={{ ...input, minHeight: 34, fontSize: 13.5, color: "#4b4763" }}
+              >
+                {fields.map((item) => (
+                  <option key={item} value={item}>
+                    Contiene: {FIELD_LABELS[item]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {column.field === "fisso" ? (
+              <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0, 1fr)", gap: 8 }}>
+                <span aria-hidden />
                 <input
                   value={column.value ?? ""}
                   aria-label="Valore"
@@ -248,19 +266,8 @@ export function TemplateEditor({ initial, sample, aiEnabled }: { initial: Payrol
                   }}
                   style={input}
                 />
-              ) : null}
-            </div>
-            <span style={{ display: "flex" }}>
-              <button type="button" style={small} aria-label="Sposta su" onClick={() => moveColumn(index, -1)}>
-                ↑
-              </button>
-              <button type="button" style={small} aria-label="Sposta giù" onClick={() => moveColumn(index, 1)}>
-                ↓
-              </button>
-              <button type="button" style={small} aria-label="Togli" onClick={() => set({ columns: template.columns.filter((_, position) => position !== index) })}>
-                ×
-              </button>
-            </span>
+              </div>
+            ) : null}
           </div>
         ))}
         <div>
@@ -435,11 +442,11 @@ export function TemplateEditor({ initial, sample, aiEnabled }: { initial: Payrol
               <option value="hhmm:comma">7:30</option>
             </select>
           </label>
-          <label style={label}>
-            Nome del file
-            <input value={template.fileName} maxLength={80} onChange={(event) => set({ fileName: event.currentTarget.value })} style={input} />
-          </label>
         </div>
+        <label style={label}>
+          Nome del file
+          <input value={template.fileName} maxLength={80} onChange={(event) => set({ fileName: event.currentTarget.value })} style={input} />
+        </label>
         <span style={{ fontSize: 12, color: "#7c7894" }}>Nel nome: {"{azienda}"}, {"{anno}"}, {"{mese}"}, {"{nomemese}"}.</span>
         <div style={{ display: "grid", gap: 6 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>

@@ -129,12 +129,15 @@ export function BreakFields({ minutes, after }: { minutes: number | null; after:
 export function PersonPayrollRow({
   userId,
   name,
+  detail,
   initials,
   payrollCode,
   weeklyHours,
 }: {
   userId: string;
   name: string;
+  /** The email, for two people with the same name. */
+  detail?: string | null;
   initials: string;
   payrollCode: string | null;
   weeklyHours: number | null;
@@ -162,7 +165,10 @@ export function PersonPayrollRow({
         >
           {initials}
         </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: "#1f1b3a" }}>{name}</span>
+        <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+          <span style={{ fontSize: 15, color: "#1f1b3a" }}>{name}</span>
+          {detail ? <span style={{ fontSize: 12, color: "#7c7894", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detail}</span> : null}
+        </span>
         {open ? (
           <span style={{ fontSize: 12.5, color: "#6d5ce7", fontWeight: 700 }}>Chiudi</span>
         ) : done ? (

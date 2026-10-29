@@ -198,7 +198,8 @@ export default async function PayrollSettingsPage() {
             <PersonPayrollRow
               key={member.userId}
               userId={member.userId}
-              name={twin ? `${full} · ${member.user.email}` : full}
+              name={full}
+              detail={twin ? member.user.email : null}
               initials={initials(member.user.firstName, member.user.lastName)}
               payrollCode={member.payrollCode}
               weeklyHours={member.contractWeeklyHours}
