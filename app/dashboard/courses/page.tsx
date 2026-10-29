@@ -356,11 +356,16 @@ export default async function DashboardCoursesPage() {
       </Group>
 
       {manager ? (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-          <Quiet style={{ fontSize: 13.5 }}>Avviso a te e alla persona</Quiet>
-          <ReminderDays value={lead} />
-          <Quiet style={{ fontSize: 13.5 }}>della scadenza</Quiet>
-        </div>
+        <Group title="Avvisi">
+          <label style={{ ...row, borderTop: 0, cursor: "pointer" }}>
+            <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
+              <span style={{ fontSize: 16 }}>🔔 Primo avviso</span>
+              <Quiet style={{ fontSize: 13 }}>A te e alla persona, poi a 30 e 7 giorni</Quiet>
+            </span>
+            <ReminderDays value={lead} />
+            <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+          </label>
+        </Group>
       ) : null}
     </div>
   );

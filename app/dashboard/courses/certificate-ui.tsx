@@ -5,7 +5,7 @@ import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "r
 import { createPortal } from "react-dom";
 import { CourseKind } from "@prisma/client";
 import { showAppToast } from "@/app/components/app-toast";
-import { COURSE_KINDS, getCourseKind } from "@/lib/course-kinds";
+import { COURSE_KINDS, describeCourseValidity, getCourseKind } from "@/lib/course-kinds";
 import { isNativeApp, shareFileFromUrl } from "@/lib/native-extras";
 import { saveCourseReminderDaysAction } from "./certificate-actions";
 
@@ -121,6 +121,8 @@ export function CertificateButton({
   const suggested = useMemo(() => suggestExpiry(kind, done), [kind, done]);
   const expiresAt = expiry ?? suggested;
   const fromCourse = Boolean(preset?.courseId);
+  // A new certificate starts from which course it is; a renewal already knows.
+  const [picked, setPicked] = useState(Boolean(preset?.kind));
 
   async function submit() {
     if (!userId) return showAppToast("Scegli la persona.", "error");
@@ -143,6 +145,7 @@ export function CertificateButton({
       }
       showAppToast(file ? "Attestato salvato" : "Corso salvato: l'attestato puoi aggiungerlo dopo");
       setOpen(false);
+      setPicked(Boolean(preset?.kind));
       setFile(null);
       setExpiry(null);
       router.refresh();
@@ -160,6 +163,73 @@ export function CertificateButton({
       </button>
       {open ? (
         <Sheet title={fromCourse ? "Corso fatto" : "Aggiungi un attestato"} onClose={() => setOpen(false)}>
+          {!picked ? (
+            <div style={{ display: "grid", gap: 8 }}>
+              <span style={{ fontSize: 15, fontWeight: 650 }}>Che corso è?</span>
+              {COURSE_KINDS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setKind(item.id);
+                    setExpiry(null);
+                    setPicked(true);
+                  }}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "42px minmax(0, 1fr) auto",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "11px 13px",
+                    borderRadius: 18,
+                    border: "1px solid #eeebf7",
+                    background: "#ffffff",
+                    textAlign: "left",
+                    color: "#1f1b3a",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span aria-hidden="true" style={{ width: 42, height: 42, display: "inline-grid", placeItems: "center", borderRadius: 14, background: "#f6f4fc", fontSize: 19 }}>
+                    {item.emoji}
+                  </span>
+                  <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 15.5, fontWeight: 650 }}>{item.label}</span>
+                    <span style={{ color: "#8a85a3", fontSize: 13 }}>{describeCourseValidity(item)}</span>
+                  </span>
+                  <span aria-hidden="true" style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {picked ? (
+            <>
+          {fromCourse ? null : (
+            <button
+              type="button"
+              onClick={() => setPicked(false)}
+              disabled={Boolean(preset?.kind)}
+              style={{
+                justifySelf: "start",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                minHeight: 38,
+                padding: "0 14px 0 11px",
+                borderRadius: 999,
+                border: "1px solid #ddd6fe",
+                background: "#f6f3ff",
+                color: "#4c1d95",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: preset?.kind ? "default" : "pointer",
+              }}
+            >
+              {preset?.kind ? null : <span aria-hidden="true">‹</span>}
+              {getCourseKind(kind).emoji} {kind === CourseKind.OTHER && preset?.title ? preset.title : getCourseKind(kind).label}
+            </button>
+          )}
+
           {members ? (
             <label style={label}>
               Chi
@@ -174,33 +244,6 @@ export function CertificateButton({
             </label>
           ) : null}
 
-          {fromCourse ? null : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {COURSE_KINDS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setKind(item.id);
-                    setExpiry(null);
-                  }}
-                  style={{
-                    minHeight: 36,
-                    borderRadius: 999,
-                    border: kind === item.id ? "1px solid #6d5ce7" : "1px solid #e9e6f5",
-                    background: kind === item.id ? "#f1eeff" : "#ffffff",
-                    color: kind === item.id ? "#4c1d95" : "#4b4763",
-                    fontSize: 13.5,
-                    fontWeight: kind === item.id ? 700 : 600,
-                    padding: "0 14px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
           {kind === CourseKind.OTHER && !fromCourse ? (
             <label style={label}>
               Nome del corso
@@ -267,6 +310,8 @@ export function CertificateButton({
           <button type="button" onClick={() => void submit()} disabled={busy} style={{ ...primary, opacity: busy ? 0.7 : 1 }}>
             {busy ? "Salvo…" : "Salva"}
           </button>
+            </>
+          ) : null}
         </Sheet>
       ) : null}
     </>
@@ -352,7 +397,7 @@ export function ReminderDays({ value }: { value: number }) {
           router.refresh();
         });
       }}
-      style={{ minHeight: 36, borderRadius: 999, border: "1px solid #ddd6fe", background: "#f6f3ff", color: "#4c1d95", fontSize: 13.5, fontWeight: 700, padding: "0 12px" }}
+      style={{ minHeight: 36, border: 0, background: "transparent", color: "#8a85a3", fontSize: 15, textAlign: "right", padding: 0, appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}
     >
       {[30, 60, 90, 120].map((option) => (
         <option key={option} value={option}>
