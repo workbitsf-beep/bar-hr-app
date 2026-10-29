@@ -9,7 +9,9 @@ import { COST_CATEGORIES } from "./categories";
  * of the web for what it costs elsewhere. Off without ANTHROPIC_API_KEY: the
  * rules still classify, nothing is searched.
  */
-const MODEL = "claude-opus-5-5";
+// Haiku for now: cheap enough for every invoice line. COSTS_AI_MODEL switches it
+// (for example to claude-opus-5-5) without a release.
+const MODEL = process.env.COSTS_AI_MODEL?.trim() || "claude-haiku-5-5";
 
 export function aiEnabled() {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
@@ -92,8 +94,6 @@ export async function classifyLines(lines: LineToClassify[]): Promise<Classified
     const response = await anthropic().beta.messages.create({
       model: MODEL,
       max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
       system: CLASSIFY_SYSTEM,
       output_config: { effort: "low", format: { type: "json_schema", schema: CLASSIFY_SCHEMA } },
       messages: [
@@ -198,43 +198,83 @@ Cerca sul web prezzi attuali dello STESSO prodotto (stessa marca, stesso formato
 - sameProduct: false se è un prodotto simile ma non identico.
 Non inventare offerte né link: se non trovi niente restituisci una lista vuota. summary: una o due frasi in italiano su cosa hai trovato.`;
 
-  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: prompt }];
-  for (let round = 0; round < 3; round += 1) {
+  // Two steps: the search writes what it found in plain words (a search answer
+  // carries citations, which a JSON-schema answer cannot), then a second call
+  // with no tools puts those words into the schema.
+  const messages: Anthropic.Beta.BetaMessageParam[] = [
+    { role: "user", content: `${prompt}\n\nScrivi le offerte trovate in testo semplice, una per riga, con il link completo di ognuna.` },
+  ];
+  const notes: string[] = [];
+  const seenUrls = new Set<string>();
+  let found = false;
+  for (let round = 0; round < 3 && !found; round += 1) {
     const response = await anthropic().beta.messages.create({
       model: MODEL,
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      max_tokens: 8000,
       tools: [
         {
-          type: "web_search_20260209",
+          type: "web_search_20250305",
           name: "web_search",
           max_uses: 6,
           user_location: { type: "approximate", country: "IT", ...(input.city ? { city: input.city } : {}) },
         },
       ],
-      output_config: { effort: "medium", format: { type: "json_schema", schema: SEARCH_SCHEMA } },
+      output_config: { effort: "medium" },
       messages,
     });
+    if (response.stop_reason === "refusal") return null;
 
+    for (const block of response.content) {
+      if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
+        for (const result of block.content) if (result.type === "web_search_result") seenUrls.add(result.url);
+      }
+      if (block.type === "text") {
+        notes.push(block.text);
+        for (const citation of block.citations ?? []) {
+          if (citation.type === "web_search_result_location") seenUrls.add(citation.url);
+        }
+      }
+    }
     if (response.stop_reason === "pause_turn") {
       messages.push({ role: "assistant", content: response.content });
       continue;
     }
-    if (response.stop_reason === "refusal") return null;
-
-    try {
-      const parsed = JSON.parse(answerText(response.content)) as { offers: PriceOffer[]; summary: string };
-      return {
-        offers: parsed.offers.filter((offer) => /^https?:\/\//.test(offer.url) && offer.unitPrice > 0).slice(0, 5),
-        summary: parsed.summary,
-      };
-    } catch (error) {
-      console.error("[costs] price search answer not readable", error);
-      return null;
-    }
+    found = true;
   }
-  return null;
+  const text = notes.join("\n").trim();
+  if (!text) return null;
+
+  const structured = await anthropic().beta.messages.create({
+    model: MODEL,
+    max_tokens: 4000,
+    system: "Trasformi in JSON le offerte descritte nel testo, senza aggiungerne. Usa solo link che compaiono nel testo.",
+    output_config: { effort: "low", format: { type: "json_schema", schema: SEARCH_SCHEMA } },
+    messages: [{ role: "user", content: `${prompt}\n\nRisultati della ricerca:\n${text}\n\nLink trovati:\n${Array.from(seenUrls).join("\n")}` }],
+  });
+  if (structured.stop_reason === "refusal" || structured.stop_reason === "max_tokens") return null;
+
+  // An offer whose page the search never opened is not shown: no invented links.
+  const known = (url: string) => {
+    try {
+      const target = new URL(url);
+      return Array.from(seenUrls).some((seen) => {
+        const page = new URL(seen);
+        return page.host === target.host && page.pathname.replace(/\/$/, "") === target.pathname.replace(/\/$/, "");
+      });
+    } catch {
+      return false;
+    }
+  };
+  try {
+    const parsed = JSON.parse(answerText(structured.content)) as { offers: PriceOffer[]; summary: string };
+    return {
+      offers: parsed.offers.filter((offer) => /^https?:\/\//.test(offer.url) && offer.unitPrice > 0 && known(offer.url)).slice(0, 5),
+      summary: parsed.summary,
+    };
+  } catch (error) {
+    console.error("[costs] price search answer not readable", error);
+    return null;
+  }
 }
 
 /**

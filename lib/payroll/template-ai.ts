@@ -10,7 +10,9 @@ import { DATE_FORMATS, FIELD_LABELS, PAYROLL_CODE_LABELS, PAYROLL_KINDS, templat
  * same file: same columns in the same order, same names, same codes, same
  * date and number formats. The owner checks the result before saving.
  */
-const MODEL = "claude-opus-5-5";
+// Haiku for now: cheap enough for every invoice line. COSTS_AI_MODEL switches it
+// (for example to claude-opus-5-5) without a release.
+const MODEL = process.env.COSTS_AI_MODEL?.trim() || "claude-haiku-5-5";
 
 export function templateAiEnabled() {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
@@ -152,8 +154,6 @@ export async function templateFromSample(name: string, bytes: Buffer): Promise<T
   const response = await anthropic().beta.messages.create({
     model: MODEL,
     max_tokens: 8000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
     system: SYSTEM,
     output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
     messages: [{ role: "user", content: `File "${name}" (${sample.kind}):\n\n${sample.text}` }],

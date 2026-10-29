@@ -155,13 +155,16 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
         </RowsCard>
       </section>
 
-      <Inbox
-        status={settings?.invoiceInboxStatus ?? "OFF"}
-        since={settings?.invoiceInboxSince ?? null}
-        syncedAt={settings?.invoiceInboxSyncedAt ?? null}
-        available={inboxAvailable()}
-        hasVat={Boolean(bar?.vatNumber || bar?.mainBar?.vatNumber)}
-      />
+      {/* Only the zip for now (29 Oct 2026): automatic receiving shows once Workbit turns it on. */}
+      {inboxAvailable() || (settings?.invoiceInboxStatus ?? "OFF") !== "OFF" ? (
+        <Inbox
+          status={settings?.invoiceInboxStatus ?? "OFF"}
+          since={settings?.invoiceInboxSince ?? null}
+          syncedAt={settings?.invoiceInboxSyncedAt ?? null}
+          available={inboxAvailable()}
+          hasVat={Boolean(bar?.vatNumber || bar?.mainBar?.vatNumber)}
+        />
+      ) : null}
     </div>
   );
 }
