@@ -1,5 +1,6 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { EMAIL_PATTERN, emailList, payrollAccess } from "@/lib/payroll/access";
@@ -117,6 +118,51 @@ export async function saveRecipientAction(formData: FormData) {
     return ruleFailure(error);
   }
   if (createdId) redirect(`${PATH}?success=destinatario`);
+  return { ok: true };
+}
+
+/** One row of the recipient's card: only that value changes. */
+export async function saveRecipientFieldAction(formData: FormData) {
+  try {
+    const { barId } = await payrollAccess({ ownerOnly: true });
+    const id = String(formData.get("id") ?? "");
+    const field = String(formData.get("field") ?? "");
+    let data: Prisma.PayrollRecipientUpdateManyMutationInput;
+    if (field === "who") {
+      const role = String(formData.get("role") ?? "consulente");
+      const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+      if (!name) throw new RuleError("Scrivi il nome o lo studio.");
+      data = { name, role: ["consulente", "commercialista", "altro"].includes(role) ? role : "altro" };
+    } else if (field === "email") {
+      const email = String(formData.get("email") ?? "").trim().toLowerCase();
+      if (!EMAIL_PATTERN.test(email)) throw new RuleError("L'email non sembra giusta.");
+      data = { email };
+    } else if (field === "cc") {
+      data = { cc: emailList(String(formData.get("cc") ?? "")).slice(0, 5).join(", ") || null };
+    } else if (field === "message") {
+      data = { message: String(formData.get("message") ?? "").trim().slice(0, 2000) || null };
+    } else if (field === "sendDay") {
+      const dayText = String(formData.get("sendDay") ?? "").trim();
+      const sendDay = dayText ? Number(dayText) : null;
+      if (sendDay !== null && (!Number.isInteger(sendDay) || sendDay < 1 || sendDay > 28)) throw new RuleError("Il giorno dell'invio va da 1 a 28.");
+      data = { sendDay };
+    } else if (field === "template") {
+      let template: unknown = null;
+      try {
+        template = JSON.parse(String(formData.get("template") ?? "null"));
+      } catch {
+        throw new RuleError("Il formato del file non si è salvato: riprova.");
+      }
+      data = { template: templateOf(template) };
+    } else {
+      throw new RuleError("Campo non valido.");
+    }
+    const updated = await prisma.payrollRecipient.updateMany({ where: { id, barId }, data });
+    if (!updated.count) throw new RuleError("Destinatario non trovato.");
+    revalidatePath(PATH, "layout");
+  } catch (error) {
+    return ruleFailure(error);
+  }
   return { ok: true };
 }
 

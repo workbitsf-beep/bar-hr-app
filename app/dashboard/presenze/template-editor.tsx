@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { showAppToast } from "@/app/components/app-toast";
 import {
   cellText,
@@ -84,10 +84,6 @@ export function TemplateEditor({ initial, sample, aiEnabled }: { initial: Payrol
   const [notes, setNotes] = useState<string[]>([]);
   const [reading, setReading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const set = (patch: Partial<PayrollTemplate>) => setTemplate((current) => templateOf({ ...current, ...patch }));
-
-  const table = useMemo(() => renderPayrollTable(sample, template), [sample, template]);
-  const fields = template.layout === "calendar" ? LAYOUT_FIELDS.perPerson : LAYOUT_FIELDS[template.layout];
 
   async function readSample(file: File | undefined) {
     if (!file) return;
@@ -112,25 +108,6 @@ export function TemplateEditor({ initial, sample, aiEnabled }: { initial: Payrol
       if (fileInput.current) fileInput.current.value = "";
     }
   }
-
-  const moveColumn = (index: number, by: number) =>
-    setTemplate((current) => {
-      const columns = [...current.columns];
-      const target = index + by;
-      if (target < 0 || target >= columns.length) return current;
-      [columns[index], columns[target]] = [columns[target], columns[index]];
-      return { ...current, columns };
-    });
-
-  const moveKind = (kind: PayrollCodeKey, by: number) =>
-    setTemplate((current) => {
-      const kinds = [...current.personKinds];
-      const index = kinds.indexOf(kind);
-      const target = index + by;
-      if (index < 0 || target < 0 || target >= kinds.length) return current;
-      [kinds[index], kinds[target]] = [kinds[target], kinds[index]];
-      return { ...current, personKinds: kinds };
-    });
 
   return (
     <div style={{ display: "grid" }}>
@@ -185,6 +162,38 @@ export function TemplateEditor({ initial, sample, aiEnabled }: { initial: Payrol
         </div>
       </Block>
 
+      <TemplateFields template={template} setTemplate={setTemplate} />
+      <TemplatePreview template={template} sample={sample} />
+    </div>
+  );
+}
+
+/** Every column, code and format of the file: the long part, kept apart so it can sit in its own popup. */
+export function TemplateFields({ template, setTemplate }: { template: PayrollTemplate; setTemplate: Dispatch<SetStateAction<PayrollTemplate>> }) {
+  const set = (patch: Partial<PayrollTemplate>) => setTemplate((current) => templateOf({ ...current, ...patch }));
+  const fields = template.layout === "calendar" ? LAYOUT_FIELDS.perPerson : LAYOUT_FIELDS[template.layout];
+
+  const moveColumn = (index: number, by: number) =>
+    setTemplate((current) => {
+      const columns = [...current.columns];
+      const target = index + by;
+      if (target < 0 || target >= columns.length) return current;
+      [columns[index], columns[target]] = [columns[target], columns[index]];
+      return { ...current, columns };
+    });
+
+  const moveKind = (kind: PayrollCodeKey, by: number) =>
+    setTemplate((current) => {
+      const kinds = [...current.personKinds];
+      const index = kinds.indexOf(kind);
+      const target = index + by;
+      if (index < 0 || target < 0 || target >= kinds.length) return current;
+      [kinds[index], kinds[target]] = [kinds[target], kinds[index]];
+      return { ...current, personKinds: kinds };
+    });
+
+  return (
+    <div style={{ display: "grid" }}>
       <Block title="Forma del file">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 8 }}>
           {(Object.keys(LAYOUT_LABELS) as PayrollLayout[]).map((layout) => (
@@ -468,40 +477,47 @@ export function TemplateEditor({ initial, sample, aiEnabled }: { initial: Payrol
         </div>
       </Block>
 
-      <Block title="Anteprima" hint={`${payrollFileBaseName(sample, template)}.${template.fileType} · con i dati veri del locale${table.rows.length > 12 ? `, prime 12 righe di ${table.rows.length}` : ""}`}>
-        <div style={{ overflowX: "auto", border: "1px solid #e9e6f5", borderRadius: 12, background: "#ffffff" }}>
-          <table style={{ borderCollapse: "collapse", fontSize: 12.5, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", whiteSpace: "nowrap" }}>
-            {table.header ? (
-              <thead>
-                <tr>
-                  {table.header.map((cell, index) => (
-                    <th key={index} style={{ padding: "6px 9px", background: "#f6f3ff", textAlign: "left", borderBottom: "1px solid #e9e6f5" }}>
-                      {cell}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-            ) : null}
-            <tbody>
-              {table.rows.slice(0, 12).map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {row.map((cell, index) => (
-                    <td key={index} style={{ padding: "5px 9px", borderTop: "1px solid #f1eff8", textAlign: typeof cell === "number" ? "right" : "left" }}>
-                      {cellText(cell, template)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {!table.rows.length ? (
-                <tr>
-                  <td style={{ padding: "8px 10px", color: "#7c7894" }}>Nessuna riga: nel mese di prova non ci sono ore.</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-        {table.legend ? <span style={{ fontSize: 12, color: "#7c7894" }}>{table.legend}</span> : null}
-      </Block>
     </div>
+  );
+}
+
+/** The file as it comes out, from the venue's real month. */
+export function TemplatePreview({ template, sample, limit = 12 }: { template: PayrollTemplate; sample: PayrollMonthData; limit?: number }) {
+  const table = useMemo(() => renderPayrollTable(sample, template), [sample, template]);
+  return (
+    <Block title="Anteprima" hint={`${payrollFileBaseName(sample, template)}.${template.fileType} · con i dati veri del locale${table.rows.length > limit ? `, prime ${limit} righe di ${table.rows.length}` : ""}`}>
+      <div style={{ overflowX: "auto", border: "1px solid #e9e6f5", borderRadius: 12, background: "#ffffff" }}>
+        <table style={{ borderCollapse: "collapse", fontSize: 12.5, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", whiteSpace: "nowrap" }}>
+          {table.header ? (
+            <thead>
+              <tr>
+                {table.header.map((cell, index) => (
+                  <th key={index} style={{ padding: "6px 9px", background: "#f6f3ff", textAlign: "left", borderBottom: "1px solid #e9e6f5" }}>
+                    {cell}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          ) : null}
+          <tbody>
+            {table.rows.slice(0, limit).map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, index) => (
+                  <td key={index} style={{ padding: "5px 9px", borderTop: "1px solid #f1eff8", textAlign: typeof cell === "number" ? "right" : "left" }}>
+                    {cellText(cell, template)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {!table.rows.length ? (
+              <tr>
+                <td style={{ padding: "8px 10px", color: "#7c7894" }}>Nessuna riga: nel mese di prova non ci sono ore.</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+      {table.legend ? <span style={{ fontSize: 12, color: "#7c7894" }}>{table.legend}</span> : null}
+    </Block>
   );
 }
