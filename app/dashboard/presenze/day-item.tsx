@@ -133,8 +133,8 @@ function DaySheet({
   }, [onClose]);
 
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <button type="button" aria-label="Chiudi" onClick={onClose} style={{ position: "absolute", inset: 0, border: 0, background: "rgba(31,27,58,.32)", cursor: "pointer" }} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 400, display: "grid", placeItems: "center", padding: 16 }}>
+      <button type="button" aria-label="Chiudi" tabIndex={-1} onClick={onClose} style={{ position: "absolute", inset: 0, border: 0, background: "rgba(31,27,58,.22)", cursor: "pointer" }} />
       <div
         role="dialog"
         aria-modal="true"
@@ -144,21 +144,21 @@ function DaySheet({
         }}
         style={{
           position: "relative",
-          width: "100%",
-          maxWidth: 560,
-          maxHeight: "92vh",
+          width: "min(94vw, 520px)",
+          maxHeight: "calc(100dvh - 32px)",
           overflowY: "auto",
           background: "#ffffff",
-          borderRadius: "28px 28px 0 0",
-          padding: "12px 20px calc(24px + env(safe-area-inset-bottom, 0px))",
+          borderRadius: 28,
+          padding: "18px 18px 20px",
           display: "grid",
           gap: 16,
-          boxShadow: "0 -20px 40px rgba(31,27,58,.18)",
+          boxShadow: "0 18px 42px rgba(31,27,58,.2)",
           color: "#1f1b3a",
+          boxSizing: "border-box",
         }}
       >
-        <span aria-hidden style={{ width: 40, height: 5, borderRadius: 3, background: "#e4e1ef", justifySelf: "center" }} />
-        <div style={{ display: "grid", gap: 2 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
           <span style={{ fontSize: 21, fontWeight: 750, letterSpacing: "-0.02em", textTransform: "capitalize" }}>
             {longDate.format(new Date(`${view.date}T00:00:00Z`))}
           </span>
@@ -166,6 +166,17 @@ function DaySheet({
             {personName}
             {view.shift ? ` · turno ${view.shift.start} – ${view.shift.end}` : ""}
           </span>
+        </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi"
+            style={{ width: 40, height: 40, borderRadius: 999, border: "1px solid #ebe8f4", background: "#f7f6fb", color: "#5b5675", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flex: "0 0 auto" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
         {top}
 
