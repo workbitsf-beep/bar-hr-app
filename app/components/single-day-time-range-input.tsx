@@ -59,12 +59,15 @@ export function SingleDayTimeRangeInput({
   startValue,
   endValue,
   required,
+  pastDays = 0,
 }: {
   startName: string;
   endName: string;
   startValue?: string | null;
   endValue?: string | null;
   required?: boolean;
+  /** How many days back the date may go: overtime is reported once done. */
+  pastDays?: number;
 }) {
   const today = useMemo(() => getTodayInputValue(), []);
   const initialStart = splitDateTimeValue(startValue);
@@ -94,7 +97,7 @@ export function SingleDayTimeRangeInput({
         <span style={{ fontWeight: 600, color: "#1e293b" }}>Data</span>
         <input
           type="date"
-          min={today}
+          min={pastDays ? shiftDayValue(today, -pastDays) : today}
           required={required}
           value={safeDate}
           onChange={(event) => {
@@ -197,4 +200,11 @@ export function SingleDayTimeRangeInput({
       <input type="hidden" name={endName} value={buildDateTime(safeDate, endTime)} />
     </div>
   );
+}
+
+/** A YYYY-MM-DD value moved by whole days. */
+function shiftDayValue(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
 }

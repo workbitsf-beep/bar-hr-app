@@ -46,7 +46,8 @@ import { PopupAction } from "../popup-action";
 import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
 import { ShiftChangeForm } from "./shift-change-form";
-import { AskSomething } from "./ask-something";
+import { AskSomething, type AskOption } from "./ask-something";
+import { mixCard, mixPage, mixRow, PageHead } from "../mix-ui";
 import { ActionForm } from "@/app/components/action-form";
 
 const AVAILABILITY_VISIBILITY_HOURS = 24;
@@ -270,76 +271,43 @@ function RequestRow({
   trailing?: ReactNode;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        minHeight: 62,
-        padding: "12px 14px",
-        borderRadius: 18,
-        boxSizing: "border-box",
-        border: `1px solid ${pending ? "#fde68a" : "#e9edf3"}`,
-        background: pending ? "#fffbeb" : "#ffffff",
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 38,
-          height: 38,
-          flex: "0 0 auto",
-          display: "inline-grid",
-          placeItems: "center",
-          borderRadius: 12,
-          background: pending ? "#ffffff" : "#f8fafc",
-          fontSize: 16,
-        }}
-      >
-        {emoji}
-      </span>
-
+    <div style={{ ...mixRow, background: "#ffffff" }}>
       <span style={{ display: "grid", gap: 2, minWidth: 0, flex: "1 1 auto" }}>
-        <strong style={{ fontSize: 14.5, letterSpacing: "-0.015em", color: "#0f172a" }}>
-          {title}
-        </strong>
-        {detail ? (
-          <span
-            style={{
-              fontSize: 12.5,
-              fontWeight: pending ? 780 : 690,
-              color: pending ? "#92400e" : "#64748b",
-              lineHeight: 1.35,
-            }}
-          >
-            {detail}
+        <b style={{ fontSize: 15, fontWeight: 650 }}>
+          <span aria-hidden="true" style={{ marginRight: 6 }}>
+            {emoji}
           </span>
-        ) : null}
+          {title}
+        </b>
+        {detail ? <span style={{ fontSize: 13, color: pending ? "#92400e" : "#667085", lineHeight: 1.35 }}>{detail}</span> : null}
       </span>
-
       {trailing}
     </div>
   );
 }
 
-function RequestGroup({ label, count, hot = false }: { label: string; count?: number; hot?: boolean }) {
+/** A card's title. It sits a pixel over the first row, hiding that row's rule. */
+function RequestGroup({ label, count }: { label: string; count?: number; hot?: boolean }) {
   return (
     <span
       style={{
-        marginTop: 7,
+        position: "relative",
+        zIndex: 1,
         display: "flex",
         alignItems: "baseline",
         justifyContent: "space-between",
         gap: 10,
-        fontSize: 11.5,
-        fontWeight: 820,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        color: hot ? "#92400e" : "#94a3b8",
+        background: "#ffffff",
+        paddingBottom: 4,
+        marginBottom: -1,
+        fontSize: 14.5,
+        fontWeight: 750,
+        letterSpacing: "-0.01em",
+        color: "#111827",
       }}
     >
       <span>{label}</span>
-      {count === undefined ? null : <span>{count}</span>}
+      {count === undefined ? null : <span style={{ fontSize: 13, fontWeight: 400, color: "#667085" }}>{count}</span>}
     </span>
   );
 }
@@ -364,40 +332,10 @@ function ArchiveRow({
       title={sheetTitle}
       ariaLabel={`Apri ${title}`}
       triggerRow={
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            minHeight: 62,
-            padding: "12px 14px",
-            borderRadius: 18,
-            boxSizing: "border-box",
-            border: "1px solid #e9edf3",
-            background: "#f8fafc",
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              width: 38,
-              height: 38,
-              flex: "0 0 auto",
-              display: "inline-grid",
-              placeItems: "center",
-              borderRadius: 12,
-              background: "#ffffff",
-              fontSize: 16,
-            }}
-          >
-            {emoji}
-          </span>
-          <span style={{ flex: "1 1 auto", fontSize: 14.5, fontWeight: 780, color: "#0f172a" }}>
-            {title}
-          </span>
-          <span style={{ flex: "0 0 auto", color: "#94a3b8", fontWeight: 800, fontSize: 13.5 }}>
-            {count} &rsaquo;
-          </span>
+        <div style={{ ...mixRow, background: "#ffffff" }}>
+          <span aria-hidden="true">{emoji}</span>
+          <span style={{ flex: "1 1 auto" }}>{title}</span>
+          <span style={{ flex: "0 0 auto", color: "#667085", fontSize: 13.5 }}>{count} &rsaquo;</span>
         </div>
       }
     >
@@ -685,7 +623,7 @@ export default async function DashboardRequestsPage({
   // What is waiting for an answer is why this page gets opened - by the owner
   // to give one, by the employee to see whether it came. It used to be at the
   // bottom, mixed in with everything already settled.
-  const pendingRequests = standardRequests.filter(
+  const pendingRequests = requests.filter(
     (request) => request.status === RequestStatus.PENDING
   );
   const closedRequests = standardRequests.filter(
@@ -744,22 +682,157 @@ export default async function DashboardRequestsPage({
       request.endsAt >= awayFrom
   );
 
-  const phonePage = (
-    <div className="workbit-requests-page">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <div className="workbit-requests-heading">
-          <span>{canManageClosures ? "Gestisci" : "Le tue"}</span>
-          <h2>Richieste</h2>
-        </div>
+  // What an employee can ask for: one tile each, the form in its own popup.
+  const askOptions: AskOption[] = canCreateRequests
+    ? [
+                {
+                  id: "vacation",
+                  emoji: "🏖️",
+                  label: "Ferie",
+                  hint: "giorni",
+                  form: (
+                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
+                      <RequestDateFields type={RequestType.VACATION} />
+                      <FormField label="Motivo">
+                        <TextArea name="reason" placeholder="Facoltativo" />
+                      </FormField>
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <div className="dashboard-form-actions">
+                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
+                      </div>
+                    </ActionForm>
+                  ),
+                },
+                {
+                  id: "permission",
+                  emoji: "⏱️",
+                  label: "Permesso",
+                  hint: "ore",
+                  form: (
+                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
+                      <RequestDateFields type={RequestType.PERMISSION} />
+                      <FormField label="Motivo">
+                        <TextArea name="reason" placeholder="Facoltativo" />
+                      </FormField>
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <div className="dashboard-form-actions">
+                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
+                      </div>
+                    </ActionForm>
+                  ),
+                },
+                {
+                  id: "sickness",
+                  emoji: "🤒",
+                  label: "Malattia",
+                  hint: "certificato",
+                  form: (
+                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
+                      <RequestDateFields type={RequestType.SICKNESS} />
+                      <FormField label="Codice certificato">
+                        <TextInput name="certificateCode" placeholder="Il numero sul certificato" />
+                      </FormField>
+                      <input type="hidden" name="notifySuccess" value="1" />
+                      <div className="dashboard-form-actions">
+                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
+                      </div>
+                    </ActionForm>
+                  ),
+                },
+                ...(isCompany || ownShifts.length === 0
+                  ? []
+                  : [
+                      {
+                        id: "swap",
+                        emoji: "🔄",
+                        label: "Cambio",
+                        hint: "con un collega",
+                        form: (
+                          <ShiftChangeForm
+                            action={createShiftChangeRequestAction}
+                            ownShifts={ownShifts.map((shift) => ({
+                              id: shift.id,
+                              title: shift.title,
+                              startTime: shift.startTime.toISOString(),
+                              endTime: shift.endTime.toISOString(),
+                            }))}
+                            teammates={teammates.map((teammate) => ({
+                              id: teammate.user.id,
+                              firstName: teammate.user.firstName,
+                              lastName: teammate.user.lastName,
+                            }))}
+                            teammateShifts={teammateShifts.flatMap((shift) =>
+                              shift.assignments.map((assignment) => ({
+                                id: shift.id,
+                                title: shift.title,
+                                startTime: shift.startTime.toISOString(),
+                                endTime: shift.endTime.toISOString(),
+                                userId: assignment.user.id,
+                                userName: `${assignment.user.firstName} ${assignment.user.lastName}`.trim(),
+                              }))
+                            )}
+                          />
+                        ),
+                      },
+                    ]),
+                ...(features.availability && !isCompany
+                  ? [
+                      {
+                        id: "unavailable",
+                        emoji: "🚫",
+                        label: "Non ci sono",
+                        hint: "un giorno",
+                        form: (
+                          <ActionForm action={createAvailabilityAction} success="Indisponibilità salvata." style={{ display: "grid", gap: 16 }}>
+                            <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
+                            <FormField label="Motivo">
+                              <TextArea
+                                name="reason"
+                                placeholder="Facoltativo: esame, visita, evento personale"
+                              />
+                            </FormField>
+                            <input type="hidden" name="notifySuccess" value="1" />
+                            <div className="dashboard-form-actions">
+                              <PrimaryButton type="submit">Salva</PrimaryButton>
+                            </div>
+                          </ActionForm>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(canUseOvertime
+                  ? [
+                      {
+                        id: "overtime",
+                        emoji: "⏱",
+                        label: "Straordinario",
+                        hint: "ore in più",
+                        form: (
+                          <ActionForm action={createTimeOffRequestAction} success="Straordinario segnalato." style={{ display: "grid", gap: 16 }}>
+                            <input type="hidden" name="type" value="OVERTIME" />
+                            <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required pastDays={31} />
+                            <FormField label="Cosa hai fatto">
+                              <TextArea name="reason" placeholder="Facoltativo: es. inventario dopo la chiusura" />
+                            </FormField>
+                            <input type="hidden" name="notifySuccess" value="1" />
+                            <div className="dashboard-form-actions">
+                              <PrimaryButton type="submit">Segnala straordinario</PrimaryButton>
+                            </div>
+                          </ActionForm>
+                        ),
+                      },
+                    ]
+                  : []),
+      ]
+    : [];
 
-        {canManageClosures ? (
+  const phonePage = (
+    <div className="workbit-requests-page" style={mixPage}>
+      <PageHead
+        eyebrow={canManageClosures ? "Ferie, permessi, cambi e straordinari" : "Il titolare risponde qui"}
+        title="Richieste"
+        actions={
+        canManageClosures ? (
           <PopupAction title="Cosa aggiungi?" ariaLabel="Aggiungi">
             <AskSomething
               heading="Cosa aggiungi?"
@@ -797,7 +870,7 @@ export default async function DashboardRequestsPage({
                     </FormField>
 
                     <div style={{ gridColumn: "1 / -1" }}>
-                      <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
+                      <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required pastDays={31} />
                     </div>
                   </div>
 
@@ -825,162 +898,36 @@ export default async function DashboardRequestsPage({
               ]}
             />
           </PopupAction>
-        ) : null}
-      </div>
+        ) : null
+        }
+      />
 
-      <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 12 }}>
 
-        {canCreateRequests ? (
-          <PopupAction
-            title="Nuova richiesta"
-            ariaLabel="Chiedi qualcosa"
-            triggerRow={
-              <span
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 9,
-                  width: "100%",
-                  minHeight: 52,
-                  borderRadius: 18,
-                  boxSizing: "border-box",
-                  background: "linear-gradient(135deg, #30217f 0%, #5e5ce6 58%, #8b5cf6 100%)",
-                  color: "#ffffff",
-                  fontSize: 15.5,
-                  fontWeight: 830,
-                  boxShadow: "0 10px 22px rgba(94, 92, 230, 0.26)",
-                }}
+        {askOptions.length ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+            {askOptions.map((option) => (
+              <PopupAction
+                key={option.id}
+                title={option.label}
+                ariaLabel={`Chiedi: ${option.label}`}
+                triggerRow={
+                  <span style={{ ...mixCard, display: "grid", justifyItems: "center", gap: 2, padding: "10px 6px", borderRadius: 16, textAlign: "center" }}>
+                    <span aria-hidden style={{ fontSize: 22 }}>{option.emoji}</span>
+                    <b style={{ fontSize: 13.5, fontWeight: 700 }}>{option.label}</b>
+                    <span style={{ fontSize: 11.5, color: "#667085" }}>{option.hint}</span>
+                  </span>
+                }
               >
-                ＋ Chiedi qualcosa
-              </span>
-            }
-          >
-            <AskSomething
-              options={[
-                {
-                  id: "vacation",
-                  emoji: "🏖️",
-                  label: "Ferie",
-                  hint: "Uno o più giorni · da approvare",
-                  form: (
-                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
-                      <RequestDateFields type={RequestType.VACATION} />
-                      <FormField label="Motivo">
-                        <TextArea name="reason" placeholder="Facoltativo" />
-                      </FormField>
-                      <input type="hidden" name="notifySuccess" value="1" />
-                      <div className="dashboard-form-actions">
-                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
-                      </div>
-                    </ActionForm>
-                  ),
-                },
-                {
-                  id: "permission",
-                  emoji: "⏱️",
-                  label: "Permesso",
-                  hint: "Qualche ora in un giorno",
-                  form: (
-                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
-                      <RequestDateFields type={RequestType.PERMISSION} />
-                      <FormField label="Motivo">
-                        <TextArea name="reason" placeholder="Facoltativo" />
-                      </FormField>
-                      <input type="hidden" name="notifySuccess" value="1" />
-                      <div className="dashboard-form-actions">
-                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
-                      </div>
-                    </ActionForm>
-                  ),
-                },
-                {
-                  id: "sickness",
-                  emoji: "🤒",
-                  label: "Malattia",
-                  hint: "Serve il codice del certificato",
-                  form: (
-                    <ActionForm action={createTimeOffRequestAction} success="Richiesta inviata." style={{ display: "grid", gap: 16 }}>
-                      <RequestDateFields type={RequestType.SICKNESS} />
-                      <FormField label="Codice certificato">
-                        <TextInput name="certificateCode" placeholder="Il numero sul certificato" />
-                      </FormField>
-                      <input type="hidden" name="notifySuccess" value="1" />
-                      <div className="dashboard-form-actions">
-                        <PrimaryButton type="submit">Invia richiesta</PrimaryButton>
-                      </div>
-                    </ActionForm>
-                  ),
-                },
-                ...(isCompany || ownShifts.length === 0
-                  ? []
-                  : [
-                      {
-                        id: "swap",
-                        emoji: "🔄",
-                        label: "Cambio turno",
-                        hint: "Proponi uno scambio a un collega",
-                        form: (
-                          <ShiftChangeForm
-                            action={createShiftChangeRequestAction}
-                            ownShifts={ownShifts.map((shift) => ({
-                              id: shift.id,
-                              title: shift.title,
-                              startTime: shift.startTime.toISOString(),
-                              endTime: shift.endTime.toISOString(),
-                            }))}
-                            teammates={teammates.map((teammate) => ({
-                              id: teammate.user.id,
-                              firstName: teammate.user.firstName,
-                              lastName: teammate.user.lastName,
-                            }))}
-                            teammateShifts={teammateShifts.flatMap((shift) =>
-                              shift.assignments.map((assignment) => ({
-                                id: shift.id,
-                                title: shift.title,
-                                startTime: shift.startTime.toISOString(),
-                                endTime: shift.endTime.toISOString(),
-                                userId: assignment.user.id,
-                                userName: `${assignment.user.firstName} ${assignment.user.lastName}`.trim(),
-                              }))
-                            )}
-                          />
-                        ),
-                      },
-                    ]),
-                ...(features.availability && !isCompany
-                  ? [
-                      {
-                        id: "unavailable",
-                        emoji: "🚫",
-                        label: "Non posso esserci",
-                        hint: "Avvisi senza chiedere permesso",
-                        form: (
-                          <ActionForm action={createAvailabilityAction} success="Indisponibilità salvata." style={{ display: "grid", gap: 16 }}>
-                            <SingleDayTimeRangeInput startName="startsAt" endName="endsAt" required />
-                            <FormField label="Motivo">
-                              <TextArea
-                                name="reason"
-                                placeholder="Facoltativo: esame, visita, evento personale"
-                              />
-                            </FormField>
-                            <input type="hidden" name="notifySuccess" value="1" />
-                            <div className="dashboard-form-actions">
-                              <PrimaryButton type="submit">Salva</PrimaryButton>
-                            </div>
-                          </ActionForm>
-                        ),
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-          </PopupAction>
+                {option.form}
+              </PopupAction>
+            ))}
+          </div>
         ) : null}
 
 
         {features.requests && pendingRequests.length > 0 ? (
-          <>
+          <section style={mixCard}>
             <RequestGroup
               label={canManageClosures ? "Da approvare" : "In attesa di risposta"}
               count={pendingRequests.length}
@@ -1042,20 +989,20 @@ export default async function DashboardRequestsPage({
                 />
               );
             })}
-          </>
+          </section>
         ) : null}
 
         {canManageClosures && happeningNow.length > 0 ? (
-          <>
+          <section style={mixCard}>
             <RequestGroup label="In questi giorni" />
             {happeningNow.map((item) => (
               <RequestRow key={item.key} emoji={item.emoji} title={item.title} detail={item.detail} />
             ))}
-          </>
+          </section>
         ) : null}
 
         {!canManageClosures && features.requests && closedRequests.length > 0 ? (
-          <>
+          <section style={mixCard}>
             <RequestGroup label="Già risposte" />
             {closedRequests.map((request) => (
               <RequestRow
@@ -1071,11 +1018,11 @@ export default async function DashboardRequestsPage({
                 }
               />
             ))}
-          </>
+          </section>
         ) : null}
 
         {!canManageClosures && features.availability && !isCompany ? (
-          <>
+          <section style={mixCard}>
             <RequestGroup label="Quando non ci sei" count={ownAvailabilities.length + ownApprovedAway.length} />
             {ownApprovedAway.map((request) => (
               <RequestRow
@@ -1087,19 +1034,7 @@ export default async function DashboardRequestsPage({
               />
             ))}
             {ownAvailabilities.length === 0 && ownApprovedAway.length === 0 ? (
-              <div
-                style={{
-                  padding: 16,
-                  borderRadius: 16,
-                  background: "#f8fafc",
-                  color: "#64748b",
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  textAlign: "center",
-                }}
-              >
-                Niente in programma.
-              </div>
+              <p style={{ ...mixRow, margin: 0, color: "#667085", fontSize: 14 }}>Niente in programma.</p>
             ) : (
               ownAvailabilities.map((availability) => (
                 <SwipeRevealAction
@@ -1122,11 +1057,11 @@ export default async function DashboardRequestsPage({
                 </SwipeRevealAction>
               ))
             )}
-          </>
+          </section>
         ) : null}
 
         {canManageClosures ? (
-          <>
+          <section style={mixCard}>
             <RequestGroup label="Archivio" />
 
             {canUseOvertime && role === Role.OWNER ? (
@@ -1382,7 +1317,7 @@ export default async function DashboardRequestsPage({
             )}
               </ArchiveRow>
             ) : null}
-          </>
+          </section>
         ) : null}
       </div>
     </div>

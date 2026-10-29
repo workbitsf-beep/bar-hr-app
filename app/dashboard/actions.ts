@@ -5355,7 +5355,14 @@ async function runCreateTimeOffRequest(formData: FormData) {
   }
 
   ensureValidDateRange(startsAt, endsAt, "La data di fine deve essere uguale o dopo quella di inizio.");
-  ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire richieste prima del giorno corrente");
+  if (type === RequestType.OVERTIME) {
+    // Overtime is reported once done, so it may lie behind; a month at most.
+    if (startsAt.getTime() < Date.now() - 31 * 24 * 60 * 60 * 1000) {
+      throw new RuleError("Lo straordinario si segnala entro un mese.");
+    }
+  } else {
+    ensureDateIsNotBeforeToday(startsAt, "Non puoi inserire richieste prima del giorno corrente");
+  }
 
   if (type === RequestType.OVERTIME) {
     ensureSameLocalDay(startsAt, endsAt, "Lo straordinario deve essere nella stessa giornata");
