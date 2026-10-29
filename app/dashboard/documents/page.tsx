@@ -240,9 +240,16 @@ export default async function DashboardDocumentsPage() {
           folders.length === 0 ? (
             <EmptyState message="Nessun documento caricato." />
           ) : (
-            <MixCard title="Persone" aside={folders.length}>
+            <>
+              {[
+                { title: "Tutto il team", list: folders.filter((folder) => folder.key === "team") },
+                { title: "Persone", list: folders.filter((folder) => folder.key !== "team") },
+              ]
+                .filter((group) => group.list.length)
+                .map(({ title, list }) => (
+            <MixCard key={title} title={title} aside={list.length}>
               <MixRows>
-              {folders.map((folder) => {
+              {list.map((folder) => {
                 const hiddenCount = folder.documents.filter((item) => !item.isActive).length;
                 const isTeam = folder.key === "team";
                 const initials = isTeam
@@ -291,6 +298,8 @@ export default async function DashboardDocumentsPage() {
               })}
               </MixRows>
             </MixCard>
+                ))}
+            </>
           )
         ) : myDocuments.length === 0 ? (
           <EmptyState message="Nessun documento disponibile." />

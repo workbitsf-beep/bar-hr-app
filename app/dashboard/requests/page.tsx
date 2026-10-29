@@ -36,7 +36,6 @@ import {
   Panel,
   PrimaryButton,
   Select,
-  StatusPill,
   TextArea,
   TextInput,
   formatDate,
@@ -47,21 +46,27 @@ import { ClosureComposeForm } from "./closure-compose-form";
 import { RequestDateFields } from "./request-date-fields";
 import { ShiftChangeForm } from "./shift-change-form";
 import { AskSomething, type AskOption } from "./ask-something";
-import { mixCard, mixPage, mixRow, PageHead } from "../mix-ui";
+import { mixCard, mixPage, mixRow, PageHead, Pill } from "../mix-ui";
 import { ActionForm } from "@/app/components/action-form";
 
 const AVAILABILITY_VISIBILITY_HOURS = 24;
 
+/** A request's state as the small pill of the rest of the app. */
+function StatusPill({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "success" | "warning" | "danger" }) {
+  const tones = { neutral: "violet", success: "good", warning: "wait", danger: "bad" } as const;
+  return <Pill tone={tones[tone]}>{label}</Pill>;
+}
+
 const approveButtonStyle = {
-  width: 34,
-  height: 34,
+  width: 40,
+  height: 40,
   display: "inline-grid",
   placeItems: "center",
   borderRadius: 999,
   border: "1px solid #bfe8cd",
   background: "#e9f7ee",
   color: "#15803d",
-  fontSize: 14,
+  fontSize: 16,
   fontWeight: 900,
   cursor: "pointer",
 } as const;

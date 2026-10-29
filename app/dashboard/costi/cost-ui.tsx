@@ -29,7 +29,8 @@ export function SectionLabel({ children, aside }: { children: ReactNode; aside?:
   );
 }
 
-export function RowsCard({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+/** A white card of rows; its bold title, when it has one, sits inside at the top. */
+export function RowsCard({ children, style, title, aside }: { children: ReactNode; style?: CSSProperties; title?: ReactNode; aside?: ReactNode }) {
   return (
     <div
       style={{
@@ -37,13 +38,19 @@ export function RowsCard({ children, style }: { children: ReactNode; style?: CSS
         border: "1px solid #ece9f7",
         borderRadius: 20,
         overflow: "hidden",
-        padding: "0 16px",
+        padding: title ? "12px 16px 2px" : "0 16px",
         boxShadow: "0 3px 10px rgba(76, 29, 149, 0.04)",
         display: "grid",
         gridTemplateColumns: "minmax(0, 1fr)",
         ...style,
       }}
     >
+      {title ? (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+          <span style={{ fontSize: 14.5, fontWeight: 750, letterSpacing: "-0.01em", color: "#111827" }}>{title}</span>
+          {aside ? <span style={{ fontSize: 13, color: "#667085", textAlign: "right" }}>{aside}</span> : null}
+        </div>
+      ) : null}
       {children}
     </div>
   );

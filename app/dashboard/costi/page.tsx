@@ -20,7 +20,7 @@ import {
   saveRevenueAction,
   syncInboxAction,
 } from "./actions";
-import { Bar, change, Delta, Dot, euro, Line, Pill, Row, RowsCard, SectionLabel, softButton } from "./cost-ui";
+import { Bar, change, Delta, Dot, euro, Line, Pill, Row, RowsCard, softButton } from "./cost-ui";
 import { UploadPanel } from "./upload-panel";
 
 export const dynamic = "force-dynamic";
@@ -63,10 +63,11 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
   return (
     <div className="wbcost" style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
       <header style={{ display: "grid", gap: 2, padding: "0 4px" }}>
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: "#5e4ae3" }}>Dove vanno i soldi del locale</span>
-        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05, textTransform: "capitalize" }}>
-          {report ? monthLabel(report.month) : "Dove vanno i soldi"}
-        </h1>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: "#5e4ae3" }}>
+          {report ? <span style={{ textTransform: "capitalize" }}>{monthLabel(report.month)}</span> : null}
+          {report ? " · " : ""}Dove vanno i soldi del locale
+        </span>
+        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05 }}>Costi</h1>
       </header>
 
       {report ? <MonthChips report={report} /> : null}
@@ -109,10 +110,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
       )}
 
       <section style={{ display: "grid", gap: 8 }}>
-        <SectionLabel aside={report ? <Link href={`/dashboard/costi/fatture?month=${report.month}`} style={{ color: "#6d5ce7" }}>Tutte le fatture ›</Link> : null}>
-          Fatture
-        </SectionLabel>
-        <RowsCard>
+        <RowsCard title="Fatture" aside={report ? <Link href={`/dashboard/costi/fatture?month=${report.month}`} style={{ color: "#6d5ce7" }}>Tutte le fatture ›</Link> : null}>
           <Row first>
             <UploadPanel compact={Boolean(report)} allowAnyRecipient={String(session.user.role) === "SUPER_ADMIN"} />
             <details style={{ marginTop: 4 }}>
@@ -297,8 +295,7 @@ function Savings({ report, ai }: { report: CostReport; ai: boolean }) {
   const total = report.savings.reduce((sum, tip) => sum + (tip.yearlyCents ?? 0), 0);
   return (
     <section style={{ display: "grid", gap: 8 }}>
-      <SectionLabel aside={total ? `fino a ${euro(total)} l'anno` : null}>Dove puoi risparmiare</SectionLabel>
-      <RowsCard>
+      <RowsCard title="Dove puoi risparmiare" aside={total ? `fino a ${euro(total)} l'anno` : null}>
         {report.savings.length ? (
           report.savings.map((tip, index) => (
             <Row key={tip.id} first={index === 0} rail={tip.confidence === "sicuro" ? "amber" : "grey"}>
@@ -342,8 +339,7 @@ function Categories({ report }: { report: CostReport }) {
   const max = Math.max(1, ...report.categories.map((category) => category.cents));
   return (
     <section style={{ display: "grid", gap: 8 }}>
-      <SectionLabel aside="rispetto alla media dei mesi prima">Per categoria</SectionLabel>
-      <RowsCard>
+      <RowsCard title="Per categoria" aside="rispetto alla media dei mesi prima">
         {report.categories.map((category, index) => (
           <Row key={category.key} first={index === 0} href={`/dashboard/costi/fatture?month=${report.month}&categoria=${category.key}`}>
             <Line
@@ -366,8 +362,7 @@ function Categories({ report }: { report: CostReport }) {
 function Suppliers({ report }: { report: CostReport }) {
   return (
     <section style={{ display: "grid", gap: 8 }}>
-      <SectionLabel aside={`${report.suppliers.length} nel mese`}>Fornitori</SectionLabel>
-      <RowsCard>
+      <RowsCard title="Fornitori" aside={`${report.suppliers.length} nel mese`}>
         {report.suppliers.slice(0, 10).map((supplier, index) => (
           <Row key={supplier.key} first={index === 0} href={`/dashboard/costi/fatture?month=${report.month}&fornitore=${encodeURIComponent(supplier.key)}`}>
             <Line
@@ -391,8 +386,7 @@ function PriceChanges({ report }: { report: CostReport }) {
   if (!report.priceChanges.length) return null;
   return (
     <section style={{ display: "grid", gap: 8 }}>
-      <SectionLabel aside="prezzo per unità, ultimi 6 mesi">Prezzi che cambiano</SectionLabel>
-      <RowsCard>
+      <RowsCard title="Prezzi che cambiano" aside="prezzo per unità, ultimi 6 mesi">
         {report.priceChanges.map((item, index) => (
           <Row key={`${item.productKey}-${item.supplier}`} first={index === 0} rail={item.changePct > 0 ? "amber" : "green"}>
             <Line
@@ -416,8 +410,7 @@ async function Products({ barId, report, ai }: { barId: string; report: CostRepo
   });
   return (
     <section style={{ display: "grid", gap: 8 }}>
-      <SectionLabel aside="la merce che pesa di più">Prodotti</SectionLabel>
-      <RowsCard>
+      <RowsCard title="Prodotti" aside="la merce che pesa di più">
         {report.topProducts.map((product, index) => {
           const check = checks.find((item) => item.productKey === product.productKey);
           const offers = (Array.isArray(check?.offers) ? check.offers : []) as Array<{ title?: string; seller?: string; url?: string; unitPrice?: number; sameProduct?: boolean; conditions?: string }>;
@@ -471,8 +464,7 @@ async function Energy({ barId, report, ai }: { barId: string; report: CostReport
   const check = await prisma.priceCheck.findFirst({ where: { barId, productKey: "energia-elettrica" }, orderBy: { checkedAt: "desc" } });
   return (
     <section style={{ display: "grid", gap: 8 }}>
-      <SectionLabel aside="stima dalle bollette del mese">Luce</SectionLabel>
-      <RowsCard>
+      <RowsCard title="Luce" aside="stima dalle bollette del mese">
         <Row first>
           <Line left={<><Dot color="#f59e0b" />Costo per kWh, tutto compreso</>} right={unitPrice(energy.unitCost, "kwh")} />
           <Line
@@ -518,10 +510,7 @@ function Inbox({
   const date = (value: Date | null) => (value ? new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" }).format(value) : "");
   return (
     <section style={{ display: "grid", gap: 8 }}>
-      <SectionLabel aside={status === "ACTIVE" ? <Pill tone="green">Attiva</Pill> : status === "WAITING" ? <Pill tone="amber">Da completare</Pill> : null}>
-        Ricezione automatica
-      </SectionLabel>
-      <RowsCard>
+      <RowsCard title="Ricezione automatica" aside={status === "ACTIVE" ? <Pill tone="green">Attiva</Pill> : status === "WAITING" ? <Pill tone="amber">Da completare</Pill> : null}>
         {status === "OFF" ? (
           <Row first>
             <Line left="Le fatture arrivano da sole, senza caricare lo zip" />

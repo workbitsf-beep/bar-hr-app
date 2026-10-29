@@ -9,7 +9,7 @@ import { BillingRequired } from "../../billing-required";
 import { getDashboardContext } from "../../context";
 import { EmptyState, Panel } from "../../ui";
 import { CategorySelect } from "../category-select";
-import { Dot, euro, Line, Row, RowsCard, SectionLabel } from "../cost-ui";
+import { Dot, euro, Line, Row, RowsCard } from "../cost-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -73,8 +73,7 @@ export default async function InvoicesPage({
     });
     return (
       <Shell title={title} month={month} backHref={backHref} extra={params}>
-        <SectionLabel aside={`${lines.length} righe · ${euro(lines.reduce((sum, line) => sum + line.totalCents, 0))}`}>Righe</SectionLabel>
-        <RowsCard>
+        <RowsCard title="Righe" aside={`${lines.length} righe · ${euro(lines.reduce((sum, line) => sum + line.totalCents, 0))}`}>
           {lines.length ? (
             lines.map((line, index) => (
               <Row key={line.id} first={index === 0} rail={line.category === "da_classificare" ? "amber" : undefined}>
@@ -118,10 +117,7 @@ export default async function InvoicesPage({
 
   return (
     <Shell title={title} month={month} backHref={backHref} extra={params}>
-      <SectionLabel aside={`${invoices.length} · ${euro(invoices.reduce((sum, invoice) => sum + invoice.taxableCents, 0))} imponibile`}>
-        Fatture
-      </SectionLabel>
-      <RowsCard>
+      <RowsCard title="Fatture" aside={`${invoices.length} · ${euro(invoices.reduce((sum, invoice) => sum + invoice.taxableCents, 0))} imponibile`}>
         {invoices.length ? (
           invoices.map((invoice, index) => (
             <details key={invoice.id} style={{ borderTop: index === 0 ? undefined : "1px solid #f1eff8" }}>

@@ -16,7 +16,7 @@ import { deleteCertificateAction } from "./certificate-actions";
 import { AddFileButton, CertificateButton, CertificateLink, ReminderDays } from "./certificate-ui";
 import { CourseComposeForm } from "./course-compose-form";
 import { AddFace } from "../round-button";
-import { MixCard, MixRows, mixPage, PageHead } from "../mix-ui";
+import { Avatar, MixCard, MixRows, mixPage, PageHead, Pill } from "../mix-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,6 @@ const shortDate = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "sho
 const dayMonth = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", timeZone: "Europe/Rome" });
 const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
-const TONE: Record<CertificateState, string> = { expired: "#b3202f", expiring: "#b45309", valid: "#0f7a4f", lasting: "#8a85a3" };
 const row: CSSProperties = { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid #f1eff8", color: "#111827", fontSize: 15 };
 const dot = (color: string): CSSProperties => ({ width: 8, height: 8, borderRadius: 999, background: color, flex: "0 0 auto" });
 const link: CSSProperties = { border: 0, background: "transparent", padding: 0, color: "#5e4ae3", fontSize: 14.5, fontWeight: 600, cursor: "pointer" };
@@ -42,6 +41,14 @@ function stateText(state: CertificateState, expiresAt: Date | null) {
     return `scade fra ${left} ${left === 1 ? "giorno" : "giorni"}`;
   }
   return `fino al ${shortDate.format(expiresAt)}`;
+}
+
+/** The state of a certificate as a small coloured pill. */
+function statePill(state: CertificateState | null, expiresAt: Date | null) {
+  if (!state) return <Pill tone="grey">nessuno</Pill>;
+  if (state === "expired") return <Pill tone="bad">scaduto</Pill>;
+  if (state === "expiring" && expiresAt) return <Pill tone="wait">fra {daysLeft(expiresAt)} gg</Pill>;
+  return <Pill tone="good">in regola</Pill>;
 }
 
 function Group({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
@@ -128,15 +135,18 @@ export default async function DashboardCoursesPage() {
 
   const certificateLine = (item: (typeof current)[number], withName: boolean) => (
     <div key={item.id} style={{ ...row, alignItems: "flex-start" }}>
-      <span style={{ ...dot(TONE[item.state]), marginTop: 7 }} />
       <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 3 }}>
-        <span style={{ fontSize: 15, fontWeight: 600 }}>
-          {withName ? `${nameOf.get(item.userId) ?? "Persona"} · ` : ""}
-          {courseName(item)}
+        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <b style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 650 }}>
+            <span aria-hidden style={{ marginRight: 7 }}>{getCourseKind(item.kind).emoji}</span>
+            {withName ? `${nameOf.get(item.userId) ?? "Persona"} · ` : ""}
+            {courseName(item)}
+          </b>
+          {statePill(item.state, item.expiresAt)}
         </span>
-        <span style={{ fontSize: 13, color: TONE[item.state] }}>
-          {stateText(item.state, item.expiresAt)}
-          <span style={{ color: "#8a85a3" }}> · fatto il {shortDate.format(item.completedAt)}</span>
+        <span style={{ fontSize: 13, color: "#667085" }}>
+          {item.expiresAt ? (item.state === "expired" ? `scaduto il ${shortDate.format(item.expiresAt)}` : `valido fino al ${shortDate.format(item.expiresAt)}`) : "non scade"}
+          {" · "}fatto il {shortDate.format(item.completedAt)}
         </span>
         <span style={{ display: "flex", flexWrap: "wrap", gap: 16, paddingTop: 4 }}>
           {item.fileSize ? (
@@ -183,7 +193,6 @@ export default async function DashboardCoursesPage() {
     lasting: { background: "#e7f7ef", color: "#0f7a4f" },
     missing: { background: "#f4f3f9", color: "#9a95b2" },
   };
-  const RING: Record<string, string> = { expired: "#e5484d", expiring: "#f59e0b", valid: "#10b981", lasting: "#10b981", none: "#d9d5e8" };
   const monthYear = new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric", timeZone: "UTC" });
   const cards = (manager ? people : people.filter((person) => person.id === session.user.id).concat(nameOf.has(session.user.id) ? [] : [{ id: session.user.id, firstName: session.user.firstName ?? "", lastName: session.user.lastName ?? "" }]))
     .map((person) => {
@@ -203,7 +212,7 @@ export default async function DashboardCoursesPage() {
             ? `In regola fino a ${monthYear.format(nextExpiry.expiresAt!)}`
             : "In regola"
           : "Nessun attestato";
-      return { person, items, worst, badges, sentence, order: worst ? rank[worst] : 4 };
+      return { person, items, worst, badges, sentence, urgent, order: worst ? rank[worst] : 4 };
     })
     .sort((a, b) => a.order - b.order || a.person.lastName.localeCompare(b.person.lastName, "it"));
 
@@ -246,41 +255,83 @@ export default async function DashboardCoursesPage() {
         </details>
       ) : null}
 
-      {cards.length ? (
+      <Group title={manager ? "In programma" : "Prossimi corsi"} aside={upcoming.length || undefined}>
+        {upcoming.length ? (
+          upcoming.map((course) => (
+            <div key={course.id} style={row}>
+              <span style={{ width: 52, display: "grid", justifyItems: "center", lineHeight: 1.1, flex: "0 0 auto" }}>
+                <span style={{ fontSize: 18, fontWeight: 650 }}>{course.startsAt.toLocaleDateString("it-IT", { day: "numeric", timeZone: "Europe/Rome" })}</span>
+                <Quiet style={{ fontSize: 12, textTransform: "capitalize" }}>{course.startsAt.toLocaleDateString("it-IT", { month: "short", timeZone: "Europe/Rome" }).replace(".", "")}</Quiet>
+              </span>
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
+                <b style={{ fontSize: 15, fontWeight: 650 }}>
+                  <span aria-hidden style={{ marginRight: 7 }}>{getCourseKind(course.kind).emoji}</span>
+                  {course.title}
+                </b>
+                <Quiet style={{ fontSize: 13.5 }}>
+                  {[course.assignedToAll ? "Tutto il team" : nameOf.get(course.assignedToId ?? "") ?? "", `${clock.format(course.startsAt)}–${clock.format(course.endsAt)}`, course.location]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </Quiet>
+              </span>
+              {manager ? (
+                <ActionForm action={deleteCourseAction} success="Corso annullato">
+                  <input type="hidden" name="courseId" value={course.id} />
+                  <PendingButton type="submit" pendingLabel="…" style={quietButton}>
+                    Annulla
+                  </PendingButton>
+                </ActionForm>
+              ) : null}
+            </div>
+          ))
+        ) : (
+          <div style={row}>
+            <Quiet>{manager ? "Nessun corso in programma: col + ne programmi uno." : "Nessun corso in programma."}</Quiet>
+          </div>
+        )}
+      </Group>
+
+      {!manager ? (
+        <MixCard title="I tuoi attestati" aside={current.length || undefined}>
+          <MixRows>
+            {current.length ? (
+              current.map((item) => certificateLine(item, false))
+            ) : (
+              <div style={row}>
+                <Quiet>Nessun attestato ancora.</Quiet>
+              </div>
+            )}
+            {cards[0]?.badges.some((badge) => badge.state === "missing") ? (
+              <div style={{ ...row, fontSize: 13, color: "#667085" }}>
+                Mancano: {cards[0].badges.filter((badge) => badge.state === "missing").map((badge) => badge.label).join(", ")}
+              </div>
+            ) : null}
+            <div style={row}>
+              <CertificateButton members={null} selfId={session.user.id} trigger="+ Aggiungi un attestato" style={link} />
+            </div>
+          </MixRows>
+        </MixCard>
+      ) : null}
+
+      {manager && cards.length ? (
         <MixCard title={manager ? "Attestati" : undefined} aside={manager ? `${cards.length} ${cards.length === 1 ? "persona" : "persone"}` : undefined}>
         <MixRows>
-        {cards.map(({ person, items, worst, badges, sentence }) => (
+        {cards.map(({ person, items, worst, badges, sentence, urgent }) => (
           <details key={person.id} style={{ borderTop: "1px solid #f1eff8", background: "#ffffff" }}>
             <summary style={{ listStyle: "none", cursor: "pointer", padding: "9px 0", display: "grid", gap: 8 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span
-                  aria-hidden
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    background: "#ffffff",
-                    boxShadow: `inset 0 0 0 2.5px ${RING[worst ?? "none"]}`,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    color: "#4c1d95",
-                    flex: "0 0 auto",
-                  }}
-                >
-                  {`${person.firstName.charAt(0)}${person.lastName.charAt(0)}`.toUpperCase()}
-                </span>
+                <Avatar>{`${person.firstName.charAt(0)}${person.lastName.charAt(0)}`.toUpperCase()}</Avatar>
                 <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
                   <b style={{ fontSize: 15, fontWeight: 650 }}>{`${person.firstName} ${person.lastName}`.trim()}</b>
-                  <span style={{ fontSize: 13, color: worst === "expired" || worst === "expiring" ? TONE[worst] : "#8a85a3" }}>{sentence}</span>
+                  <span style={{ fontSize: 13, color: "#667085", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {items.length ? items.map((item) => courseName(item)).join(" · ") : sentence}
+                  </span>
                 </span>
-                <span style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+                {statePill(worst, urgent?.expiresAt ?? null)}
               </span>
             </summary>
             <div style={{ paddingBottom: 6 }}>
-              <div style={{ paddingLeft: 42 }}>
+              <div style={{ paddingLeft: 40 }}>
               <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {badges.map((badge) => (
                   <span key={badge.key} style={{ borderRadius: 999, padding: "3px 9px", fontSize: 12, fontWeight: badge.state === "missing" ? 500 : 600, ...BADGE[badge.state] }}>
@@ -304,46 +355,14 @@ export default async function DashboardCoursesPage() {
         ))}
         </MixRows>
         </MixCard>
-      ) : (
+      ) : manager ? (
         <Sheet>
           <div style={row}>
             <Quiet>Aggiungi le persone del locale per seguire i loro corsi.</Quiet>
           </div>
         </Sheet>
-      )}
+      ) : null}
 
-      <Group title="In programma">
-        {upcoming.length ? (
-          upcoming.map((course) => (
-            <div key={course.id} style={row}>
-              <span style={{ width: 52, display: "grid", justifyItems: "center", lineHeight: 1.1, flex: "0 0 auto" }}>
-                <span style={{ fontSize: 18, fontWeight: 650 }}>{course.startsAt.toLocaleDateString("it-IT", { day: "numeric", timeZone: "Europe/Rome" })}</span>
-                <Quiet style={{ fontSize: 12, textTransform: "capitalize" }}>{course.startsAt.toLocaleDateString("it-IT", { month: "short", timeZone: "Europe/Rome" }).replace(".", "")}</Quiet>
-              </span>
-              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
-                <span style={{ fontSize: 16 }}>{course.title}</span>
-                <Quiet style={{ fontSize: 13.5 }}>
-                  {[course.assignedToAll ? "Tutto il team" : nameOf.get(course.assignedToId ?? "") ?? "", `${clock.format(course.startsAt)}–${clock.format(course.endsAt)}`, course.location]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </Quiet>
-              </span>
-              {manager ? (
-                <ActionForm action={deleteCourseAction} success="Corso annullato">
-                  <input type="hidden" name="courseId" value={course.id} />
-                  <PendingButton type="submit" pendingLabel="…" style={quietButton}>
-                    Annulla
-                  </PendingButton>
-                </ActionForm>
-              ) : null}
-            </div>
-          ))
-        ) : (
-          <div style={row}>
-            <Quiet>{manager ? "Nessun corso in programma: col + ne programmi uno." : "Nessun corso in programma."}</Quiet>
-          </div>
-        )}
-      </Group>
 
       {manager ? (
         <Group title="Avvisi">
