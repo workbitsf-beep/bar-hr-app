@@ -192,6 +192,15 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
         </Quiet>
       </div>
 
+      {showToday && !inNow.length && !late.length && !laterOrDone.length ? (
+        <Group title="Oggi">
+          <div style={{ ...row, borderTop: 0 }}>
+            <span style={dot("#cbd5e1")} />
+            <Quiet style={{ fontSize: 15 }}>Nessuno in lavoro e nessun turno oggi</Quiet>
+          </div>
+        </Group>
+      ) : null}
+
       {inNow.length ? (
         <Group title={`In lavoro · ${inNow.length}`}>
           {inNow.map((item, index) => (
