@@ -16,6 +16,7 @@ import { deleteCertificateAction } from "./certificate-actions";
 import { AddFileButton, CertificateButton, CertificateLink, ReminderDays } from "./certificate-ui";
 import { CourseComposeForm } from "./course-compose-form";
 import { AddFace } from "../round-button";
+import { MixCard, MixRows, mixPage, PageHead } from "../mix-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ const dayMonth = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "shor
 const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
 const TONE: Record<CertificateState, string> = { expired: "#b3202f", expiring: "#b45309", valid: "#0f7a4f", lasting: "#8a85a3" };
-const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "15px 18px", borderTop: "1px solid #f2f0f8", color: "#1f1b3a" };
+const row: CSSProperties = { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid #f1eff8", color: "#111827", fontSize: 15 };
 const dot = (color: string): CSSProperties => ({ width: 8, height: 8, borderRadius: 999, background: color, flex: "0 0 auto" });
 const link: CSSProperties = { border: 0, background: "transparent", padding: 0, color: "#5e4ae3", fontSize: 14.5, fontWeight: 600, cursor: "pointer" };
 const quietButton: CSSProperties = { ...link, color: "#8a85a3", fontWeight: 500 };
@@ -45,15 +46,9 @@ function stateText(state: CertificateState, expiresAt: Date | null) {
 
 function Group({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section style={{ display: "grid", gap: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "0 4px" }}>
-        <span style={{ fontSize: 13, color: "#8a85a3" }}>{title}</span>
-        {aside}
-      </div>
-      <Sheet>
-        <div style={{ marginTop: -1 }}>{children}</div>
-      </Sheet>
-    </section>
+    <MixCard title={title} aside={aside}>
+      <MixRows>{children}</MixRows>
+    </MixCard>
   );
 }
 
@@ -135,11 +130,11 @@ export default async function DashboardCoursesPage() {
     <div key={item.id} style={{ ...row, alignItems: "flex-start" }}>
       <span style={{ ...dot(TONE[item.state]), marginTop: 7 }} />
       <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 3 }}>
-        <span style={{ fontSize: 16 }}>
+        <span style={{ fontSize: 15, fontWeight: 600 }}>
           {withName ? `${nameOf.get(item.userId) ?? "Persona"} · ` : ""}
           {courseName(item)}
         </span>
-        <span style={{ fontSize: 13.5, color: TONE[item.state] }}>
+        <span style={{ fontSize: 13, color: TONE[item.state] }}>
           {stateText(item.state, item.expiresAt)}
           <span style={{ color: "#8a85a3" }}> · fatto il {shortDate.format(item.completedAt)}</span>
         </span>
@@ -213,25 +208,23 @@ export default async function DashboardCoursesPage() {
     .sort((a, b) => a.order - b.order || a.person.lastName.localeCompare(b.person.lastName, "it"));
 
   return (
-    <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px" }}>
-      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "grid", gap: 4 }}>
-          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Corsi</h1>
-          <Quiet style={{ fontSize: 15 }}>{manager ? `${covered} di ${people.length} in regola` : "I tuoi attestati"}</Quiet>
-        </div>
-        {headerActions}
-      </header>
+    <div style={mixPage}>
+      <PageHead
+        eyebrow={manager ? `Corsi e attestati · ${covered} di ${people.length} in regola` : "I tuoi attestati e i prossimi corsi"}
+        title="Corsi"
+        actions={headerActions}
+      />
 
       {toUpload.length ? (
         <details style={{ background: "#f1eeff", borderRadius: 16 }}>
-          <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: "13px 16px" }}>
+          <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px" }}>
             <span style={dot("#6d5ce7")} />
             <span style={{ flex: 1, fontSize: 15, color: "#4c1d95" }}>
               {toUpload.length} {toUpload.length === 1 ? "attestato da caricare" : "attestati da caricare"}
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#4c1d95" }}>Vedi</span>
           </summary>
-          <div style={{ background: "#ffffff", borderRadius: "0 0 16px 16px" }}>
+          <div style={{ background: "#ffffff", borderRadius: "0 0 16px 16px", padding: "0 14px" }}>
             {toUpload.map(({ course, userId }) => (
               <div key={`${course.id}:${userId}`} style={row}>
                 <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
@@ -254,45 +247,47 @@ export default async function DashboardCoursesPage() {
       ) : null}
 
       {cards.length ? (
-        cards.map(({ person, items, worst, badges, sentence }) => (
-          <details key={person.id} style={{ background: "#ffffff", borderRadius: 22, boxShadow: "0 1px 2px rgba(31,27,58,.04)" }}>
-            <summary style={{ listStyle: "none", cursor: "pointer", padding: 16, display: "grid", gap: 12 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <MixCard title={manager ? "Attestati" : undefined} aside={manager ? `${cards.length} ${cards.length === 1 ? "persona" : "persone"}` : undefined}>
+        <MixRows>
+        {cards.map(({ person, items, worst, badges, sentence }) => (
+          <details key={person.id} style={{ borderTop: "1px solid #f1eff8", background: "#ffffff" }}>
+            <summary style={{ listStyle: "none", cursor: "pointer", padding: "9px 0", display: "grid", gap: 8 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span
                   aria-hidden
                   style={{
-                    width: 44,
-                    height: 44,
+                    width: 32,
+                    height: 32,
                     borderRadius: 999,
                     background: "#ffffff",
                     boxShadow: `inset 0 0 0 2.5px ${RING[worst ?? "none"]}`,
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#1f1b3a",
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    color: "#4c1d95",
                     flex: "0 0 auto",
                   }}
                 >
                   {`${person.firstName.charAt(0)}${person.lastName.charAt(0)}`.toUpperCase()}
                 </span>
                 <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
-                  <span style={{ fontSize: 16.5 }}>{`${person.firstName} ${person.lastName}`.trim()}</span>
-                  <span style={{ fontSize: 13.5, color: worst === "expired" || worst === "expiring" ? TONE[worst] : "#8a85a3" }}>{sentence}</span>
+                  <b style={{ fontSize: 15, fontWeight: 650 }}>{`${person.firstName} ${person.lastName}`.trim()}</b>
+                  <span style={{ fontSize: 13, color: worst === "expired" || worst === "expiring" ? TONE[worst] : "#8a85a3" }}>{sentence}</span>
                 </span>
                 <span style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
               </span>
+            </summary>
+            <div style={{ paddingBottom: 6 }}>
+              <div style={{ paddingLeft: 42 }}>
               <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {badges.map((badge) => (
-                  <span key={badge.key} style={{ borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: badge.state === "missing" ? 500 : 600, ...BADGE[badge.state] }}>
+                  <span key={badge.key} style={{ borderRadius: 999, padding: "3px 9px", fontSize: 12, fontWeight: badge.state === "missing" ? 500 : 600, ...BADGE[badge.state] }}>
                     {badge.label}
                   </span>
                 ))}
               </span>
-            </summary>
-            <div style={{ borderTop: "1px solid #f2f0f8" }}>
-              <div style={{ marginTop: -1 }}>
                 {items.map((item) => certificateLine(item, false))}
                 <div style={row}>
                   <CertificateButton
@@ -306,7 +301,9 @@ export default async function DashboardCoursesPage() {
               </div>
             </div>
           </details>
-        ))
+        ))}
+        </MixRows>
+        </MixCard>
       ) : (
         <Sheet>
           <div style={row}>
