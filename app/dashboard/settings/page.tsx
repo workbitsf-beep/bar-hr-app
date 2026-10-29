@@ -72,9 +72,9 @@ function parseRequestedPlan(raw: string, owned: { seatPacks: number; paidSites: 
 
 function SettingsPageHeading() {
   return (
-    <div className="workbit-page-heading">
-      <span>Personalizza</span>
-      <h1>Impostazioni</h1>
+    <div style={{ gridColumn: "1 / -1", display: "grid", padding: "0 4px" }}>
+      <span style={{ color: "#5e4ae3", fontWeight: 600, fontSize: 13.5 }}>Il locale, l&apos;abbonamento e il tuo account</span>
+      <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05, color: "#111827" }}>Impostazioni</h1>
     </div>
   );
 }
@@ -153,9 +153,10 @@ function SettingsRow({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 11,
+        gap: 10,
         minWidth: 0,
-        padding: "12px 13px",
+        padding: "10px 0",
+        borderTop: "1px solid #f1eff8",
       }}
     >
       <span
@@ -171,10 +172,10 @@ function SettingsRow({
       <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
         <strong
           style={{
-            fontSize: 14,
+            fontSize: 15,
             // A rose that reads as decoration on white is the wrong warning.
-            fontWeight: tone === "danger" ? 820 : 760,
-            color: tone === "danger" ? "#a11626" : "#17161f",
+            fontWeight: tone === "danger" ? 750 : 600,
+            color: tone === "danger" ? "#a11626" : "#111827",
           }}
         >
           {title}
@@ -182,9 +183,9 @@ function SettingsRow({
         {lead ? (
           <span
             style={{
-              fontSize: 11.5,
-              fontWeight: tone === "danger" ? 620 : 520,
-              color: tone === "danger" ? "#c2586a" : "#a3a0b8",
+              fontSize: 12.5,
+              fontWeight: 400,
+              color: tone === "danger" ? "#c2586a" : "#667085",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -198,10 +199,10 @@ function SettingsRow({
         <span
           style={{
             flex: "0 0 auto",
-            fontSize: 12,
-            fontWeight: 640,
+            fontSize: 13,
+            fontWeight: 500,
             fontVariantNumeric: "tabular-nums",
-            color: statusTone === "warn" ? "#a15c07" : "#6b6880",
+            color: statusTone === "warn" ? "#a15c07" : "#667085",
           }}
         >
           {status}
@@ -225,30 +226,19 @@ function SettingsGroup({
   children: ReactNode;
 }) {
   return (
-    <div style={{ display: "grid", gap: 6 }}>
-      {label ? (
-        <span
-          style={{
-            paddingLeft: 4,
-            fontSize: 9.5,
-            fontWeight: 830,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "#a3a0b8",
-          }}
-        >
-          {label}
-        </span>
-      ) : null}
-      <div
-        className="workbit-settings-group"
-        style={{
-          background: tone === "danger" ? "#fdf2f3" : "#ffffff",
-          border: `1px solid ${tone === "danger" ? "#f0cdd2" : "#e9e6f5"}`,
-          borderRadius: 18,
-          overflow: "hidden",
-        }}
-      >
+    <div
+      className="workbit-settings-group"
+      style={{
+        background: tone === "danger" ? "#fdf2f3" : "#ffffff",
+        border: `1px solid ${tone === "danger" ? "#f0cdd2" : "#ece9f7"}`,
+        borderRadius: 20,
+        padding: "12px 16px 2px",
+        boxShadow: "0 3px 10px rgba(76, 29, 149, 0.04)",
+        overflow: "hidden",
+      }}
+    >
+      {label ? <div style={{ fontSize: 14.5, fontWeight: 750, letterSpacing: "-0.01em", color: "#111827", marginBottom: 4 }}>{label}</div> : null}
+      <div className="wb-mix-rows" style={tone === "danger" ? { background: "#fdf2f3" } : undefined}>
         {children}
       </div>
     </div>
