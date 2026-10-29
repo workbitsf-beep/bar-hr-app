@@ -96,20 +96,20 @@ export function DocumentRow({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "40px minmax(0, 1fr) auto",
+        gridTemplateColumns: "34px minmax(0, 1fr) auto",
         alignItems: "center",
-        gap: 12,
-        padding: "11px 12px",
-        borderRadius: 16,
-        border: `1px solid ${document.isActive ? "#e9edf3" : "#fde68a"}`,
-        background: document.isActive ? "#ffffff" : "#fffbeb",
+        gap: 10,
+        padding: "9px 0",
+        borderTop: "1px solid #f1eff8",
+        background: "#ffffff",
+        opacity: document.isActive ? 1 : 0.7,
       }}
     >
       <span
         aria-hidden="true"
         style={{
-          width: 40,
-          height: 40,
+          width: 34,
+          height: 34,
           display: "inline-grid",
           placeItems: "center",
           borderRadius: 12,

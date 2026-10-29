@@ -10,8 +10,9 @@ import { DocumentsAside } from "../desktop-asides";
 import { SwipeRevealAction } from "../swipe-reveal-action";
 import { DocumentComposeForm } from "./document-compose-form";
 import { DocumentRow } from "./document-row";
-import { EmptyState, Panel, Stack } from "../ui";
+import { EmptyState, Panel } from "../ui";
 import { PopupAction } from "../popup-action";
+import { Avatar, MixCard, MixRows, mixPage, mixRow, PageHead, Stacked } from "../mix-ui";
 import { ActionForm } from "@/app/components/action-form";
 
 export default async function DashboardDocumentsPage() {
@@ -213,11 +214,11 @@ export default async function DashboardDocumentsPage() {
 
   return (
     <div className="wb-desk-split">
-    <Stack className="workbit-documents-page">
-      <Panel
+    <div className="workbit-documents-page" style={mixPage}>
+      <PageHead
+        eyebrow={canManage ? "I documenti di ogni persona" : "I tuoi documenti"}
         title="Documenti"
-        className="workbit-documents-overview"
-        action={
+        actions={
           canManage ? (
             <PopupAction title="Nuovo documento" ariaLabel="Carica documento">
               <DocumentComposeForm
@@ -230,7 +231,7 @@ export default async function DashboardDocumentsPage() {
             </PopupAction>
           ) : null
         }
-      >
+      />
         {/* For an owner the page is the people, because the question here is
             whose folder is missing something. An employee only ever sees their
             own, so a list of one person would be a door to nowhere: they get
@@ -239,7 +240,8 @@ export default async function DashboardDocumentsPage() {
           folders.length === 0 ? (
             <EmptyState message="Nessun documento caricato." />
           ) : (
-            <div style={{ display: "grid", gap: 9 }}>
+            <MixCard title="Persone" aside={folders.length}>
+              <MixRows>
               {folders.map((folder) => {
                 const hiddenCount = folder.documents.filter((item) => !item.isActive).length;
                 const isTeam = folder.key === "team";
@@ -260,82 +262,43 @@ export default async function DashboardDocumentsPage() {
                         .map((item) => item.fileName.replace(/\.[a-z0-9]+$/i, ""))
                         .join(" · ");
 
-                return (
-                  <div
-                    key={folder.key}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "38px minmax(0, 1fr) auto",
-                      alignItems: "center",
-                      gap: 11,
-                      padding: "11px 12px",
-                      borderRadius: 16,
-                      border: `1px solid ${folder.documents.length === 0 ? "#fde68a" : "#e9edf3"}`,
-                      background: folder.documents.length === 0 ? "#fffbeb" : "#ffffff",
-                    }}
-                  >
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        width: 38,
-                        height: 38,
-                        display: "inline-grid",
-                        placeItems: "center",
-                        borderRadius: 999,
-                        background: folder.documents.length === 0 ? "#ffffff" : "#f3e8ff",
-                        color: "#4c1d95",
-                        fontSize: isTeam ? 16 : 12.5,
-                        fontWeight: 850,
-                      }}
-                    >
-                      {initials}
-                    </span>
-
-                    <span style={{ display: "grid", gap: 1, minWidth: 0 }}>
-                      <strong style={{ fontSize: 14.5, color: "#0f172a", letterSpacing: "-0.015em" }}>
-                        {folder.label}
-                      </strong>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: folder.documents.length === 0 ? "#92400e" : "#64748b",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {summary}
-                        {hiddenCount > 0 ? ` · ${hiddenCount} nascosto` : ""}
-                      </span>
-                    </span>
-
-                    {folder.documents.length === 0 ? (
-                      <span style={{ color: "#cbd5e1", fontSize: 13, fontWeight: 800 }}>—</span>
-                    ) : (
-                      <PopupAction
-                        title={folder.label}
-                        ariaLabel={`Apri documenti di ${folder.label}`}
-                        triggerContent={`Apri ${folder.documents.length}`}
-                      >
-                        <div style={{ display: "grid", gap: 9 }}>
-                          {folder.documents.map((document) => renderDocument(document, false))}
-                        </div>
-                      </PopupAction>
-                    )}
-                  </div>
+                const face = (
+                  <span style={{ ...mixRow, background: "#ffffff" }}>
+                    <Avatar>{initials}</Avatar>
+                    <Stacked
+                      title={folder.label}
+                      detail={
+                        <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {summary}
+                          {hiddenCount > 0 ? ` · ${hiddenCount} nascosto` : ""}
+                        </span>
+                      }
+                    />
+                    {folder.documents.length ? (
+                      <span style={{ color: "#667085", fontSize: 13.5, flex: "0 0 auto" }}>{folder.documents.length} &rsaquo;</span>
+                    ) : null}
+                  </span>
+                );
+                return folder.documents.length === 0 ? (
+                  <div key={folder.key}>{face}</div>
+                ) : (
+                  <PopupAction key={folder.key} title={folder.label} ariaLabel={`Apri documenti di ${folder.label}`} triggerRow={face}>
+                    <div style={{ display: "grid" }}>
+                      <MixRows>{folder.documents.map((document) => renderDocument(document, false))}</MixRows>
+                    </div>
+                  </PopupAction>
                 );
               })}
-            </div>
+              </MixRows>
+            </MixCard>
           )
         ) : myDocuments.length === 0 ? (
           <EmptyState message="Nessun documento disponibile." />
         ) : (
-          <div style={{ display: "grid", gap: 9 }}>
-            {myDocuments.map((document) => renderDocument(document, true))}
-          </div>
+          <MixCard title="I tuoi documenti" aside={myDocuments.length}>
+            <MixRows>{myDocuments.map((document) => renderDocument(document, true))}</MixRows>
+          </MixCard>
         )}
-      </Panel>
 
       <style
         dangerouslySetInnerHTML={{
@@ -384,7 +347,7 @@ export default async function DashboardDocumentsPage() {
           `,
         }}
       />
-    </Stack>
+    </div>
       <aside className="wb-desk-only">
         {canManage ? null : <DocumentsAside barId={activeBarId} userId={session.user.id} />}
       </aside>
