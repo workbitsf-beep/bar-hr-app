@@ -4052,11 +4052,7 @@
       .wb-centered-field {
         -webkit-appearance: none;
         appearance: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         text-align: center;
-        line-height: normal;
       }
       .wb-centered-field::-webkit-date-and-time-value {
         text-align: center;

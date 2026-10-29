@@ -22,6 +22,9 @@ const field: CSSProperties = {
   boxSizing: "border-box",
 };
 
+/** A date box with its value in the middle, as iOS otherwise puts it top-left. */
+const dateField: CSSProperties = { ...field, height: 50, minHeight: 50, lineHeight: "50px", padding: "0 10px", textAlign: "center", display: "block" };
+
 const label: CSSProperties = { display: "grid", gap: 6, fontSize: 12.5, color: "#6f6a88" };
 
 const primary: CSSProperties = {
@@ -208,11 +211,11 @@ export function CertificateButton({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <label style={label}>
               Fatto il
-              <input type="date" className="wb-centered-field" value={done} max={todayKey()} onChange={(event) => setDone(event.currentTarget.value)} style={field} />
+              <input type="date" className="wb-centered-field" value={done} max={todayKey()} onChange={(event) => setDone(event.currentTarget.value)} style={dateField} />
             </label>
             <label style={label}>
               Scade il
-              <input type="date" className="wb-centered-field" value={expiresAt} min={done} onChange={(event) => setExpiry(event.currentTarget.value)} style={field} />
+              <input type="date" className="wb-centered-field" value={expiresAt} min={done} onChange={(event) => setExpiry(event.currentTarget.value)} style={dateField} />
             </label>
           </div>
           {suggested && expiresAt === suggested ? (
