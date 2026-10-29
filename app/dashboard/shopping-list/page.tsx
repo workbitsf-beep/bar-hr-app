@@ -48,7 +48,6 @@ export default async function DashboardShoppingListPage() {
   return (
     <div className="workbit-shopping-list-page" style={mixPage}>
       <PageHead
-        eyebrow="Spunta quando è ordinato"
         title="Lista ordini"
         actions={
           <PopupAction title="Aggiungi articolo" ariaLabel="Aggiungi articolo" triggerRow={<AddFace />}>

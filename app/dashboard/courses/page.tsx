@@ -219,7 +219,6 @@ export default async function DashboardCoursesPage() {
   return (
     <div style={mixPage}>
       <PageHead
-        eyebrow={manager ? `Corsi e attestati · ${covered} di ${people.length} in regola` : "I tuoi attestati e i prossimi corsi"}
         title="Corsi"
         actions={headerActions}
       />

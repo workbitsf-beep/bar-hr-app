@@ -876,7 +876,6 @@ export default async function DashboardRequestsPage({
   const phonePage = (
     <div className="workbit-requests-page" style={mixPage}>
       <PageHead
-        eyebrow={canManageClosures ? "Ferie, permessi, cambi e straordinari" : "Il titolare risponde qui"}
         title="Richieste"
         actions={
         canManageClosures ? (

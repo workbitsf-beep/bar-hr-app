@@ -1858,7 +1858,7 @@
         .workbit-documents-page {
           display: grid !important;
           grid-template-columns: minmax(0, 1fr) !important;
-          gap: 0 !important;
+          gap: 14px !important;
         }
 
         .workbit-documents-overview,

@@ -263,7 +263,6 @@ export default async function DashboardTasksPage({
     <div className="wb-desk-split">
       <div style={mixPage}>
         <PageHead
-          eyebrow={canManage ? "Cose da fare, avvisi e controlli" : "Quello che ti chiede il locale"}
           title="Note"
           actions={
             <PopupAction title="Nuova nota" ariaLabel="Aggiungi nota" triggerRow={<AddFace />}>

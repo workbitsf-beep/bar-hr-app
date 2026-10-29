@@ -3,7 +3,7 @@ import { Role } from "@prisma/client";
 import { ActionForm } from "@/app/components/action-form";
 import { PendingButton } from "@/app/components/pending-button";
 import { aiEnabled } from "@/lib/costs/ai";
-import { buildCostReport, monthLabel, type CostReport } from "@/lib/costs/analysis";
+import { buildCostReport, type CostReport } from "@/lib/costs/analysis";
 import { BASE_UNIT_LABEL } from "@/lib/costs/categories";
 import { inboxAvailable, OPENAPI_RECIPIENT_CODE } from "@/lib/costs/openapi-inbox";
 import { costsEnabledFor } from "@/lib/costs/access";
@@ -63,10 +63,6 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
   return (
     <div className="wbcost" style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
       <header style={{ display: "grid", gap: 2, padding: "0 4px" }}>
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: "#5e4ae3" }}>
-          {report ? <span style={{ textTransform: "capitalize" }}>{monthLabel(report.month)}</span> : null}
-          {report ? " · " : ""}Dove vanno i soldi del locale
-        </span>
         <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05 }}>Costi</h1>
       </header>
 

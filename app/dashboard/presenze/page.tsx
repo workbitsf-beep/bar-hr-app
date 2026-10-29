@@ -77,15 +77,14 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
 
   const shell = (children: ReactNode) => (
     <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 0" }}>
-      <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "grid" }}>
-          <span style={{ color: "#5e4ae3", fontWeight: 600, fontSize: 13.5 }}>{isOwner ? "Le ore del mese, per il consulente" : "Le ore del tuo team"}</span>
+      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, minHeight: 56 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05 }}>Presenze</h1>
         </div>
         {isOwner ? (
           <GearLink href="/dashboard/presenze/impostazioni" label="Impostazioni delle presenze" />
         ) : manager ? (
-          <Link href={`/dashboard/presenze/persona/${session.user.id}`} style={{ fontSize: 14.5, fontWeight: 600, color: "#5e4ae3", textDecoration: "none", paddingTop: 8 }}>
+          <Link href={`/dashboard/presenze/persona/${session.user.id}`} style={{ fontSize: 14.5, fontWeight: 600, color: "#5e4ae3", textDecoration: "none", }}>
             Le tue ore
           </Link>
         ) : null}

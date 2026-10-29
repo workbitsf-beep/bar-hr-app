@@ -73,7 +73,6 @@ function parseRequestedPlan(raw: string, owned: { seatPacks: number; paidSites: 
 function SettingsPageHeading() {
   return (
     <div style={{ gridColumn: "1 / -1", display: "grid", padding: "0 4px" }}>
-      <span style={{ color: "#5e4ae3", fontWeight: 600, fontSize: 13.5 }}>Il locale, l&apos;abbonamento e il tuo account</span>
       <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05, color: "#111827" }}>Impostazioni</h1>
     </div>
   );

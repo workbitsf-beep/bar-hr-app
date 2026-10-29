@@ -313,9 +313,8 @@ export default async function DashboardPeoplePage({
     <div style={mixPage}>
       {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
 
-      <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "grid" }}>
-          <span style={{ color: "#5e4ae3", fontWeight: 600, fontSize: 13.5 }}>{teamLine}</span>
+      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, minHeight: 56 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05 }}>Team</h1>
         </div>
         <PopupAction
@@ -339,7 +338,7 @@ export default async function DashboardPeoplePage({
         </>
       )}
 
-      {members.length ? <span style={{ fontSize: 13, color: "#8a85a3", textAlign: "center" }}>Ore del mese. Tocca una persona per la sua scheda.</span> : null}
+      {members.length ? <span style={{ fontSize: 13, color: "#8a85a3", textAlign: "center", lineHeight: 1.5 }}>{teamLine}<br />Ore del mese. Tocca una persona per la sua scheda.</span> : null}
     </div>
   );
 

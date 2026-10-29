@@ -17,11 +17,11 @@ export const MIX = {
   rule: "#f1eff8",
 } as const;
 
-export function PageHead({ eyebrow, title, actions }: { eyebrow: string; title: string; actions?: ReactNode }) {
+/** The page's title and its buttons on the right. No line above the title: Loris found it ugly and useless (29 Oct). */
+export function PageHead({ title, actions }: { title: string; actions?: ReactNode }) {
   return (
-    <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
-      <div style={{ display: "grid", minWidth: 0 }}>
-        <span style={{ color: MIX.violet, fontWeight: 600, fontSize: 13.5 }}>{eyebrow}</span>
+    <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, minHeight: 56 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05, color: MIX.ink }}>{title}</h1>
       </div>
       {actions ? <div style={{ display: "flex", gap: 10, alignItems: "center", flex: "0 0 auto" }}>{actions}</div> : null}
@@ -114,7 +114,7 @@ export function Avatar({ children, size = 30 }: { children: ReactNode; size?: nu
 /** Two lines: a name in bold, a quiet detail under it. */
 export function Stacked({ title, detail }: { title: ReactNode; detail?: ReactNode }) {
   return (
-    <span style={{ display: "grid", gap: 2, flex: 1, minWidth: 0 }}>
+    <span style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 2, flex: 1, minWidth: 0 }}>
       <b style={{ fontWeight: 650, overflowWrap: "anywhere" }}>{title}</b>
       {detail ? <span style={{ color: MIX.quiet, fontSize: 13 }}>{detail}</span> : null}
     </span>
@@ -185,7 +185,7 @@ export function Segmented({ items, label }: { items: { href: string; label: stri
 /** The column every page sits in. */
 export const mixPage: CSSProperties = {
   display: "grid",
-  gap: 12,
+  gap: 14,
   gridTemplateColumns: "minmax(0, 1fr)",
   maxWidth: 640,
   margin: "0 auto",

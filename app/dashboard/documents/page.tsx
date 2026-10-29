@@ -216,7 +216,6 @@ export default async function DashboardDocumentsPage() {
     <div className="wb-desk-split">
     <div className="workbit-documents-page" style={mixPage}>
       <PageHead
-        eyebrow={canManage ? "I documenti di ogni persona" : "I tuoi documenti"}
         title="Documenti"
         actions={
           canManage ? (
@@ -273,7 +272,12 @@ export default async function DashboardDocumentsPage() {
                   <span style={{ ...mixRow, background: "#ffffff" }}>
                     <Avatar>{initials}</Avatar>
                     <Stacked
-                      title={folder.label}
+                      title={
+                        // Inside the "Tutto il team" card, saying "Tutto il team" again was confusing.
+                        isTeam
+                          ? `${folder.documents.length} ${folder.documents.length === 1 ? "documento per tutti" : "documenti per tutti"}`
+                          : folder.label
+                      }
                       detail={
                         <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {summary}
