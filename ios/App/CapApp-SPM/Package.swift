@@ -23,7 +23,8 @@ let package = Package(
         .package(name: "CapacitorSplashScreen", path: "../../../node_modules/@capacitor/splash-screen"),
         .package(name: "CapawesomeCapacitorAppShortcuts", path: "../../../node_modules/@capawesome/capacitor-app-shortcuts"),
         .package(name: "CapawesomeCapacitorBadge", path: "../../../node_modules/@capawesome/capacitor-badge"),
-        .package(name: "CapgoCapacitorPasskey", path: "../../../node_modules/@capgo/capacitor-passkey")
+        .package(name: "CapgoCapacitorPasskey", path: "../../../node_modules/@capgo/capacitor-passkey"),
+        .package(name: "CapacitorEmailComposer", path: "../../../node_modules/capacitor-email-composer")
     ],
     targets: [
         .target(
@@ -42,7 +43,8 @@ let package = Package(
                 .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
                 .product(name: "CapawesomeCapacitorAppShortcuts", package: "CapawesomeCapacitorAppShortcuts"),
                 .product(name: "CapawesomeCapacitorBadge", package: "CapawesomeCapacitorBadge"),
-                .product(name: "CapgoCapacitorPasskey", package: "CapgoCapacitorPasskey")
+                .product(name: "CapgoCapacitorPasskey", package: "CapgoCapacitorPasskey"),
+                .product(name: "CapacitorEmailComposer", package: "CapacitorEmailComposer")
             ]
         )
     ]

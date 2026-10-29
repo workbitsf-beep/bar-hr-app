@@ -37,3 +37,6 @@ project(':capawesome-capacitor-badge').projectDir = new File('../node_modules/@c
 
 include ':capgo-capacitor-passkey'
 project(':capgo-capacitor-passkey').projectDir = new File('../node_modules/@capgo/capacitor-passkey/android')
+
+include ':capacitor-email-composer'
+project(':capacitor-email-composer').projectDir = new File('../node_modules/capacitor-email-composer/android')

@@ -16,6 +16,7 @@ export const FLASH_MESSAGES: Record<string, string> = {
   "closure-deleted": "Chiusura eliminata.",
   "closure-updated": "Chiusura aggiornata.",
   "course-created": "Corso salvato.",
+  "destinatario": "Destinatario salvato.",
   "employee-created": "Persona aggiunta. Le credenziali sono partite per email.",
   "employee-linked": "Persona collegata a questo locale: aveva già un account.",
   "employee-removed": "Persona tolta da questo locale.",

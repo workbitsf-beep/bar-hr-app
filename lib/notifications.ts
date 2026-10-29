@@ -43,6 +43,8 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   LEGAL_DOCUMENT_REQUIRED: "legal-document.required",
   GENERIC_REQUEST_CREATED: "generic-request.created",
   GENERIC_REQUEST_REVIEWED: "generic-request.reviewed",
+  // To the owner, on the day they chose: last month's attendance to check and send.
+  PAYROLL_READY: "payroll.ready",
 } as const;
 
 export type InternalNotificationType =

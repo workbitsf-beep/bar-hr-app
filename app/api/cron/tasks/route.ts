@@ -18,6 +18,7 @@ export async function GET(request: Request): Promise<Response> {
     { runFiscalSending },
     { runForgottenExits },
     { runInboxSync },
+    { runPayrollReminders },
   ] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/task-recurrence"),
@@ -28,6 +29,7 @@ export async function GET(request: Request): Promise<Response> {
     import("@/lib/invoicing/send"),
     import("@/lib/forgotten-exits"),
     import("@/lib/costs/openapi-inbox"),
+    import("@/lib/payroll/reminders"),
   ]);
 
   // Recurrence runs before escalation: escalation rewrites an overdue note's
@@ -35,7 +37,7 @@ export async function GET(request: Request): Promise<Response> {
   // it stayed untouched.
   const recurrenceResult = await runTaskRecurrence();
 
-  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult, inboxResult] =
+  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult, inboxResult, payrollResult] =
     await Promise.all([
       runTaskEscalation(),
       runShiftRetentionCleanup(),
@@ -50,6 +52,8 @@ export async function GET(request: Request): Promise<Response> {
       runForgottenExits().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
       // Supplier invoices waiting at Openapi for venues that receive them there.
       runInboxSync().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
+      // On the day each owner chose: last month's attendance is ready to send.
+      runPayrollReminders().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
     ]);
 
   return Response.json({
@@ -59,6 +63,7 @@ export async function GET(request: Request): Promise<Response> {
     fiscalSending: fiscalResult,
     forgottenExits: forgottenExitResult,
     supplierInvoiceInbox: inboxResult,
+    payrollReminders: payrollResult,
     updatedCount: taskResult.count,
     renewedRecurringTaskCount: recurrenceResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,

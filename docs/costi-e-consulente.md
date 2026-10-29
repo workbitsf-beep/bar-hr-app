@@ -2,26 +2,51 @@
 
 ## Presenze per il consulente (`/dashboard/consulente`)
 
-Per il titolare e per chi ha il permesso "report". Per ogni persona e ogni giorno del mese:
-- ore ordinarie e straordinari;
-- ferie, permessi e malattia;
-- festività, chiusure e formazione.
+Per il titolare e per chi ha il permesso "report", ognuno sulle persone che segue. Impostazioni e destinatari: solo il titolare.
 
-Ogni voce porta il codice che usa il programma paghe del consulente.
+**Da dove vengono le ore** (`BarSettings.payrollSource`):
+- `CLOCK`: dalle timbrature arrotondate, come il report del mese.
+- `SHIFTS`: dai turni pubblicati, meno l'eventuale pausa (`payrollBreakMinutes` sui turni di almeno `payrollBreakAfterHours` ore). Il file si ricalcola a ogni apertura, quindi segue il calendario. I turni non pubblicati e quelli su chiamata non contano, e la pagina lo dice.
+- `AUTO` (predefinito): `SHIFTS` se il locale ha spento la timbratura, altrimenti `CLOCK`.
 
-- **File**:
-  - un Excel con tre fogli: Riepilogo, Foglio presenze e Tracciato;
-  - un CSV con le righe del tracciato (`;`, decimali con la virgola, date gg/mm/aaaa).
+Ferie, permessi, malattia, chiusure e corsi arrivano sempre dal calendario, giorno per giorno. Con le ore settimanali del contratto (`EmployeeBar.contractWeeklyHours`):
+- quello che supera la settimana (da lunedì a domenica) è straordinario;
+- un giorno di assenza vale ore settimanali ÷ 6 (÷ 5 per un'azienda).
 
-  Si scaricano o partono per email al consulente. La risposta del consulente arriva al titolare.
-- **Codici**: ORD, STR, FER, PER, MAL, CHI, FES e FOR di partenza. Si cambiano dalla pagina.
-- **Matricola o codice fiscale**: si scrive persona per persona nella stessa pagina (`EmployeeBar.payrollCode`).
-- **Ore settimanali del contratto** (`EmployeeBar.contractWeeklyHours`):
-  - le ore oltre il contratto della settimana (da lunedì a domenica) diventano straordinario;
-  - un giorno di ferie o malattia vale ore settimanali ÷ 6 (÷ 5 per un'azienda).
+**Destinatari** (`PayrollRecipient`, fino a 5): consulente, commercialista o altro. Ognuno ha:
+- email e copia;
+- il giorno del promemoria;
+- il testo della mail;
+- il proprio formato del file (`template`, vedi `lib/payroll/template.ts`).
 
-  Senza queste ore va tutto in ordinarie e il riepilogo lo segnala.
-- **Ore lavorate**: sono quelle arrotondate del report del mese (`buildMonthlyDataset`), con le stesse regole del PDF.
+Le opzioni del formato:
+- **forma**: una riga per giorno, una per causale, una per persona, oppure il calendario del mese;
+- **colonne**: in ordine, con le intestazioni libere e valori fissi;
+- **causali**: un codice per ogni voce; un codice vuoto toglie la voce dal file;
+- **tipo di file**: Excel o CSV, con separatore e codifica (UTF-8 con BOM, UTF-8, Windows);
+- **formati**: date, decimali, ore a decimali o in hh:mm;
+- **nome**: del file e del foglio.
+
+Lo stesso codice scrive il file sul server e fa l'anteprima nel browser.
+
+**Formato da un file del consulente** (`lib/payroll/template-ai.ts`, con `ANTHROPIC_API_KEY`): si carica un Excel o un CSV che il consulente usa già. Claude legge le prime righe e restituisce il modello, compilando uno schema JSON fisso. Il titolare lo vede nell'anteprima prima di salvare.
+
+**Revisione** (`/revisione`):
+- i giorni strani sono segnati:
+  - turno pubblicato senza timbratura;
+  - più di 12 ore;
+  - turno in un giorno di assenza;
+- un giorno corretto (`PayrollDayOverride`) cambia solo il file, mentre timbrature e turni restano come sono;
+- "Torna com'era" toglie la correzione.
+
+**Invio**: la mail è già scritta e si può cambiare prima di mandarla. A seconda di dove si è:
+- **nell'app**: si apre la mail del telefono con destinatari, oggetto, testo e allegato (`capacitor-email-composer`, serve la build nativa nuova). Le build vecchie, o un telefono senza un account di posta, passano dal menu Condividi;
+- **dal computer**: il file si scarica e si apre il programma di posta (`mailto:`);
+- **in alternativa**: "Invia da Workbit" (Resend), con risposte al titolare e titolare in copia.
+
+Ogni invio resta in `PayrollSend`. Se dopo l'invio cambia una correzione, o un turno quando le ore vengono dai turni, la pagina chiede di rimandare.
+
+**Promemoria** (`lib/payroll/reminders.ts`, nel passaggio dei cron): dal giorno scelto, dalle 9 ora italiana, una notifica al titolare per il mese prima. Arriva una volta per destinatario e mese, e non arriva se il mese è già partito.
 
 ## Costi e fornitori (`/dashboard/costi`)
 

@@ -21,6 +21,7 @@ dependencies {
     implementation project(':capawesome-capacitor-app-shortcuts')
     implementation project(':capawesome-capacitor-badge')
     implementation project(':capgo-capacitor-passkey')
+    implementation project(':capacitor-email-composer')
 
 }
 

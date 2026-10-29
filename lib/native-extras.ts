@@ -62,6 +62,64 @@ export async function shareFileFromUrl(url: string, fileName: string, title: str
   }
 }
 
+export type MailDraft = {
+  to: string[];
+  cc: string[];
+  subject: string;
+  body: string;
+  files: Array<{ name: string; base64: string }>;
+};
+
+/**
+ * A mail ready in the phone's own mail app - recipient, subject, text and
+ * the files attached - for the person to send from their own address.
+ * "mail_app" when the composer opened; "share" when an older build without
+ * the composer, or a phone with no mail account, handed the files to the
+ * share sheet instead; "cancelled" when the sheet was closed; false outside
+ * the app or when neither worked.
+ */
+export async function openMailDraft(draft: MailDraft): Promise<"mail_app" | "share" | "cancelled" | false> {
+  if (!isNativeApp()) return false;
+  try {
+    const { Capacitor } = await import("@capacitor/core");
+    if (Capacitor.isPluginAvailable("EmailComposer")) {
+      const { EmailComposer } = await import("capacitor-email-composer");
+      const { hasAccount } = await EmailComposer.hasAccount().catch(() => ({ hasAccount: true }));
+      if (hasAccount) {
+        await EmailComposer.open({
+          to: draft.to,
+          cc: draft.cc,
+          subject: draft.subject,
+          body: draft.body,
+          isHtml: false,
+          attachments: draft.files.map((file) => ({ type: "base64" as const, path: file.base64, name: file.name })),
+        });
+        return "mail_app";
+      }
+    }
+  } catch {
+    // Fall through to the share sheet.
+  }
+  try {
+    const { Filesystem, Directory } = await import("@capacitor/filesystem");
+    const uris: string[] = [];
+    for (const file of draft.files) {
+      const written = await Filesystem.writeFile({
+        path: file.name.replace(/[^\w.\- ]+/g, "_") || "presenze",
+        data: file.base64,
+        directory: Directory.Cache,
+      });
+      uris.push(written.uri);
+    }
+    const { Share } = await import("@capacitor/share");
+    await Share.share({ title: draft.subject, text: draft.body, files: uris, dialogTitle: draft.subject });
+    return "share";
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return /cancel/i.test(message) ? "cancelled" : false;
+  }
+}
+
 /** The red count on the app icon: requests and forgotten stamps to answer. */
 export async function setAppBadge(count: number) {
   if (!isNativeApp()) return;

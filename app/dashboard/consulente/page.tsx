@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Role } from "@prisma/client";
-import { ActionForm } from "@/app/components/action-form";
-import { PendingButton } from "@/app/components/pending-button";
-import { buildPayrollMonth, PAYROLL_CODE_LABELS, payrollCodesOf, type PayrollCodeKey } from "@/lib/payroll/consultant-export";
+import { buildPayrollMonth } from "@/lib/payroll/consultant-export";
+import { defaultPayrollMonth, monthKeyOf, parseMonthKey } from "@/lib/payroll/access";
+import { composeMessage, monthName, payrollFileBaseName, templateOf } from "@/lib/payroll/template";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/staff-permissions";
 import { memberScopeWhere } from "@/lib/staff-scope";
@@ -10,29 +10,23 @@ import { BillingRequired } from "../billing-required";
 import { getDashboardContext } from "../context";
 import { Line, Row, RowsCard, SectionLabel, softButton } from "../costi/cost-ui";
 import { EmptyState, Panel } from "../ui";
-import { savePayrollPeopleAction, saveConsultantAction } from "./actions";
-import { ExportButtons } from "./export-buttons";
+import { MonthChips, hoursText, ROLE_LABELS } from "./payroll-ui";
+import { SendPanel } from "./send-panel";
 
 export const dynamic = "force-dynamic";
 
-const inputStyle = {
-  minHeight: 38,
-  borderRadius: 12,
-  border: "1px solid #e9e6f5",
-  padding: "0 10px",
-  fontSize: 15,
-  width: "100%",
-  minWidth: 0,
-  background: "#ffffff",
-} as const;
+const when = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
-function hours(value: number) {
-  return value ? value.toLocaleString("it-IT", { maximumFractionDigits: 2 }) : "–";
-}
+const CHANNEL_LABELS: Record<string, string> = {
+  mail_app: "dalla tua mail",
+  share: "dal telefono",
+  mailto: "dalla tua mail",
+  workbit: "da Workbit",
+};
 
-/** The month's attendance, ready for the labour consultant's payroll software. */
+/** The month's attendance: check it, then send it to whoever does the payroll. */
 export default async function ConsultantPage({ searchParams }: { searchParams: Promise<{ mese?: string }> }) {
-  const { role, staff, activeBarId, billingStatus, features } = await getDashboardContext();
+  const { session, role, staff, activeBarId, billingStatus, features } = await getDashboardContext();
   if (!activeBarId) {
     return (
       <Panel title="Presenze per il consulente">
@@ -57,107 +51,193 @@ export default async function ConsultantPage({ searchParams }: { searchParams: P
     );
   }
 
-  // Payroll is closed at the start of the next month: that month comes first.
   const { mese } = await searchParams;
-  const now = new Date();
-  const fallback = new Date(now.getFullYear(), now.getMonth() - (now.getDate() <= 20 ? 1 : 0), 1);
-  const [year, month] = mese && /^\d{4}-\d{2}$/.test(mese) ? mese.split("-").map(Number) : [fallback.getFullYear(), fallback.getMonth() + 1];
+  const { year, month } = parseMonthKey(mese) ?? defaultPayrollMonth();
+  const key = monthKeyOf(year, month);
+  const range = { gte: new Date(Date.UTC(year, month - 1, 1)), lt: new Date(Date.UTC(year, month, 1)) };
 
-  const [data, settings, members] = await Promise.all([
+  const [data, recipients, sends, lastOverride] = await Promise.all([
     buildPayrollMonth({ barId: activeBarId, month, year, memberWhere: memberScopeWhere(staff) }),
-    prisma.barSettings.findUnique({ where: { barId: activeBarId }, select: { consultantEmail: true, consultantName: true, payrollCodes: true } }),
-    isOwner
-      ? prisma.employeeBar.findMany({
-          where: { barId: activeBarId, isActive: true },
-          orderBy: { user: { lastName: "asc" } },
-          select: { userId: true, payrollCode: true, contractWeeklyHours: true, user: { select: { firstName: true, lastName: true } }, bar: { select: { ownerId: true } } },
-        })
-      : Promise.resolve([]),
+    prisma.payrollRecipient.findMany({ where: { barId: activeBarId }, orderBy: { createdAt: "asc" } }),
+    prisma.payrollSend.findMany({ where: { barId: activeBarId, month: key }, orderBy: { sentAt: "desc" } }),
+    prisma.payrollDayOverride.findFirst({ where: { barId: activeBarId, date: range }, orderBy: { updatedAt: "desc" }, select: { updatedAt: true } }),
   ]);
-  const codes = payrollCodesOf(settings?.payrollCodes);
-  const months = Array.from({ length: 12 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - index, 1));
-  const monthName = new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
-  const warnings = data.people.filter((person) => person.warnings.length).length;
+
+  // Shifts moved after the files went out change them, when the hours come from the shifts.
+  const firstSend = sends.at(-1)?.sentAt ?? null;
+  const lastShiftChange =
+    data.source === "SHIFTS" && firstSend
+      ? await prisma.shift.findFirst({
+          where: { barId: activeBarId, startTime: { gte: new Date(year, month - 1, 1), lt: new Date(year, month, 1) } },
+          orderBy: { updatedAt: "desc" },
+          select: { updatedAt: true },
+        })
+      : null;
+  const lastChange = [lastOverride?.updatedAt, lastShiftChange?.updatedAt].filter(Boolean).sort((a, b) => b!.getTime() - a!.getTime())[0] ?? null;
+
+  const flagged = data.people.reduce((sum, person) => sum + person.flags.length, 0);
+  const corrected = data.people.reduce((sum, person) => sum + person.overridden.length, 0);
+  const missing = data.people.filter((person) => person.warnings.length).length;
+  const name = monthName(month, year);
+  const venue = data.legalName || data.venueName;
+  const signer = `${session.user.firstName ?? ""} ${session.user.lastName ?? ""}`.trim();
 
   return (
     <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
       <header style={{ display: "grid", gap: 2, padding: "0 4px" }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#7e22ce" }}>Presenze per il consulente</span>
-        <h1 style={{ margin: 0, fontSize: 30, letterSpacing: "-0.03em", textTransform: "capitalize" }}>{monthName}</h1>
+        <h1 style={{ margin: 0, fontSize: 30, letterSpacing: "-0.03em", textTransform: "capitalize" }}>{name}</h1>
       </header>
 
-      <nav aria-label="Mese" style={{ display: "flex", gap: 6, overflowX: "auto", padding: "0 2px 2px", scrollbarWidth: "none" }}>
-        {months.map((date) => {
-          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-          const active = date.getFullYear() === year && date.getMonth() + 1 === month;
-          return (
-            <Link
-              key={key}
-              href={`/dashboard/consulente?mese=${key}`}
-              aria-current={active ? "page" : undefined}
-              style={{
-                flex: "0 0 auto",
-                padding: "7px 13px",
-                borderRadius: 999,
-                fontSize: 13,
-                fontWeight: 720,
-                textDecoration: "none",
-                background: active ? "#4c1d95" : "#ffffff",
-                color: active ? "#ffffff" : "#4b4763",
-                border: active ? "1px solid #4c1d95" : "1px solid #e9e6f5",
-              }}
-            >
-              {new Intl.DateTimeFormat("it-IT", { month: "short" }).format(date)} {String(date.getFullYear()).slice(2)}
-            </Link>
-          );
-        })}
-      </nav>
+      <MonthChips base="/dashboard/consulente" year={year} month={month} />
 
       <RowsCard>
-        <Row first style={{ gap: 10 }}>
+        <Row first rail={flagged ? "amber" : undefined} style={{ gap: 8 }}>
           <Line
-            left={`${data.people.length} ${data.people.length === 1 ? "persona" : "persone"} nel mese`}
-            right={warnings ? <span style={{ color: "#b45309" }}>{warnings} da controllare</span> : <span style={{ color: "#0f7a4f" }}>tutto in ordine</span>}
+            left={`${data.people.length} ${data.people.length === 1 ? "persona" : "persone"}`}
+            right={
+              flagged ? (
+                <span style={{ color: "#b45309" }}>{flagged} {flagged === 1 ? "giorno da guardare" : "giorni da guardare"}</span>
+              ) : (
+                <span style={{ color: "#0f7a4f" }}>nessun giorno strano</span>
+              )
+            }
           />
           <Line
             muted
-            left="Un file Excel con riepilogo, foglio presenze e tracciato, più un CSV con le stesse righe da importare nel programma paghe."
+            left={
+              data.source === "SHIFTS"
+                ? "Ore dai turni pubblicati nel calendario: se aggiungi, sposti o cancelli un turno, il file cambia da solo."
+                : "Ore dalle timbrature, arrotondate con le regole del locale. Ferie, permessi e malattia dalle richieste approvate."
+            }
           />
-          <ExportButtons month={month} year={year} consultantEmail={settings?.consultantEmail ?? null} />
+          {corrected || missing || data.draftShifts ? (
+            <Line
+              muted
+              left={[
+                corrected ? `${corrected} ${corrected === 1 ? "giorno corretto" : "giorni corretti"} da te` : null,
+                missing ? `${missing} ${missing === 1 ? "persona" : "persone"} senza matricola o ore di contratto` : null,
+                data.draftShifts ? `${data.draftShifts} turni non pubblicati, non contati` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+          ) : null}
+          <div style={{ paddingTop: 4 }}>
+            <Link href={`/dashboard/consulente/revisione?mese=${key}`} style={{ ...softButton, display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+              Controlla il mese
+            </Link>
+          </div>
         </Row>
       </RowsCard>
 
       <section style={{ display: "grid", gap: 8 }}>
-        <SectionLabel aside={`ore · ferie e malattia in giorni`}>Anteprima</SectionLabel>
+        <SectionLabel aside={isOwner ? <Link href="/dashboard/consulente/impostazioni" style={{ color: "#6d5ce7", textDecoration: "none" }}>Impostazioni</Link> : undefined}>
+          Invia
+        </SectionLabel>
+        <RowsCard>
+          {recipients.length ? (
+            recipients.map((recipient, index) => {
+              const template = templateOf(recipient.template);
+              const sent = sends.filter((send) => send.recipientId === recipient.id);
+              const last = sent[0] ?? null;
+              const changedAfter = last && lastChange && lastChange > last.sentAt;
+              const firstName = /^(studio|dott|rag|avv)/i.test(recipient.name) ? recipient.name : recipient.name.split(/\s+/)[0];
+              return (
+                <Row key={recipient.id} first={index === 0} rail={last && !changedAfter ? "green" : undefined} style={{ gap: 10 }}>
+                  <Line left={recipient.name} right={ROLE_LABELS[recipient.role] ?? ""} />
+                  <Line
+                    muted
+                    left={
+                      last ? (
+                        <span style={{ color: changedAfter ? "#b45309" : "#0f7a4f" }}>
+                          {changedAfter
+                            ? `Mandato il ${when.format(last.sentAt)}, poi è cambiato qualcosa: rimandalo`
+                            : `Mandato il ${when.format(last.sentAt)} ${CHANNEL_LABELS[last.channel] ?? ""}`}
+                        </span>
+                      ) : (
+                        `${recipient.email}${recipient.sendDay ? ` · promemoria il ${recipient.sendDay} del mese` : ""}`
+                      )
+                    }
+                  />
+                  <SendPanel
+                    recipientId={recipient.id}
+                    firstName={firstName}
+                    to={recipient.email}
+                    cc={recipient.cc ?? ""}
+                    subject={`Presenze ${name} – ${venue}`}
+                    body={composeMessage(recipient.message, {
+                      name: recipient.name,
+                      month: name,
+                      venue,
+                      people: data.people.length,
+                      signature: [signer, venue].filter(Boolean).join("\n"),
+                    })}
+                    fileName={`${payrollFileBaseName(data, template)}.${template.fileType}`}
+                    month={month}
+                    year={year}
+                  />
+                </Row>
+              );
+            })
+          ) : (
+            <Row first style={{ gap: 10 }}>
+              <Line left="A chi le mandi?" />
+              <Line
+                muted
+                left={
+                  isOwner
+                    ? "Aggiungi il consulente del lavoro o il commercialista: imposti una volta il file come lo vuole lui, poi ogni mese è un tasto."
+                    : "Il titolare non ha ancora scelto a chi mandare le presenze."
+                }
+              />
+              {isOwner ? (
+                <div>
+                  <Link
+                    href="/dashboard/consulente/destinatario/nuovo"
+                    style={{ ...softButton, display: "inline-flex", alignItems: "center", textDecoration: "none" }}
+                  >
+                    Aggiungi il consulente
+                  </Link>
+                </div>
+              ) : null}
+            </Row>
+          )}
+        </RowsCard>
+      </section>
+
+      <section style={{ display: "grid", gap: 8 }}>
+        <SectionLabel aside="ore · ferie e malattia in giorni">Il mese, persona per persona</SectionLabel>
         <RowsCard>
           {data.people.length ? (
             data.people.map((person, index) => (
-              <Row key={person.userId} first={index === 0} rail={person.warnings.length ? "amber" : undefined}>
-                <Line left={`${person.lastName} ${person.firstName}`} right={person.payrollCode ?? ""} muted={false} />
-                <Line
-                  muted
-                  left={[
-                    `${codes.ordinary} ${hours(person.totals.ordinary.hours)}`,
-                    person.totals.overtime.hours ? `${codes.overtime} ${hours(person.totals.overtime.hours)}` : null,
-                    person.totals.holiday.days ? `${codes.holiday} ${person.totals.holiday.days} gg` : null,
-                    person.totals.leave.hours || person.totals.leave.days
-                      ? `${codes.leave} ${person.totals.leave.hours ? `${hours(person.totals.leave.hours)} h` : `${person.totals.leave.days} gg`}`
-                      : null,
-                    person.totals.sickness.days ? `${codes.sickness} ${person.totals.sickness.days} gg` : null,
-                    person.totals.publicHoliday.days ? `${codes.publicHoliday} ${person.totals.publicHoliday.days} gg` : null,
-                    person.totals.closure.days ? `${codes.closure} ${person.totals.closure.days} gg` : null,
-                    person.totals.training.hours || person.totals.training.days ? `${codes.training}` : null,
-                    `${person.workedDays} giorni lavorati`,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                />
-                {person.warnings.map((warning) => (
-                  <span key={warning} style={{ fontSize: 12.5, color: "#b45309" }}>
-                    {warning}
-                  </span>
-                ))}
-              </Row>
+              <Link
+                key={person.userId}
+                href={`/dashboard/consulente/revisione?mese=${key}#p-${person.userId}`}
+                style={{ textDecoration: "none", color: "inherit", display: "block" }}
+              >
+                <Row first={index === 0} rail={person.flags.length || person.warnings.length ? "amber" : undefined}>
+                  <Line left={`${person.lastName} ${person.firstName}`} right={person.payrollCode ?? ""} />
+                  <Line
+                    muted
+                    left={[
+                      `Ordinarie ${hoursText(person.totals.ordinary.hours)}`,
+                      person.totals.overtime.hours ? `straordinari ${hoursText(person.totals.overtime.hours)}` : null,
+                      person.totals.holiday.days ? `ferie ${person.totals.holiday.days} gg` : null,
+                      person.totals.leave.hours || person.totals.leave.days ? `permessi ${person.totals.leave.hours ? `${hoursText(person.totals.leave.hours)} h` : `${person.totals.leave.days} gg`}` : null,
+                      person.totals.sickness.days ? `malattia ${person.totals.sickness.days} gg` : null,
+                      `${person.workedDays} giorni lavorati`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  />
+                  {person.flags.length ? (
+                    <span style={{ fontSize: 12.5, color: "#b45309" }}>
+                      {person.flags.length} {person.flags.length === 1 ? "giorno da guardare" : "giorni da guardare"}
+                    </span>
+                  ) : null}
+                </Row>
+              </Link>
             ))
           ) : (
             <Row first>
@@ -166,89 +246,6 @@ export default async function ConsultantPage({ searchParams }: { searchParams: P
           )}
         </RowsCard>
       </section>
-
-      {isOwner ? (
-        <>
-          <section style={{ display: "grid", gap: 8 }}>
-            <SectionLabel>Consulente del lavoro e codici</SectionLabel>
-            <RowsCard>
-              <Row first>
-                <ActionForm action={saveConsultantAction} success="Dati del consulente salvati" style={{ display: "grid", gap: 10 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
-                    <label style={{ display: "grid", gap: 4, fontSize: 12.5, color: "#7c7894" }}>
-                      Nome o studio
-                      <input name="consultantName" defaultValue={settings?.consultantName ?? ""} placeholder="Studio Rossi" style={inputStyle} />
-                    </label>
-                    <label style={{ display: "grid", gap: 4, fontSize: 12.5, color: "#7c7894" }}>
-                      Email
-                      <input name="consultantEmail" type="email" defaultValue={settings?.consultantEmail ?? ""} placeholder="paghe@studiorossi.it" style={inputStyle} />
-                    </label>
-                  </div>
-                  <span style={{ fontSize: 12.5, color: "#7c7894" }}>
-                    Le causali come le chiama il programma paghe del consulente: chiediglielo una volta e scrivile qui.
-                  </span>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
-                    {(Object.keys(PAYROLL_CODE_LABELS) as PayrollCodeKey[]).map((key) => (
-                      <label key={key} style={{ display: "grid", gap: 4, fontSize: 12.5, color: "#7c7894" }}>
-                        {PAYROLL_CODE_LABELS[key]}
-                        <input name={`code_${key}`} defaultValue={codes[key]} maxLength={12} style={{ ...inputStyle, textTransform: "uppercase" }} />
-                      </label>
-                    ))}
-                  </div>
-                  <div>
-                    <PendingButton type="submit" style={softButton} pendingLabel="Salvo…">
-                      Salva
-                    </PendingButton>
-                  </div>
-                </ActionForm>
-              </Row>
-            </RowsCard>
-          </section>
-
-          <section style={{ display: "grid", gap: 8 }}>
-            <SectionLabel aside="per separare ordinarie e straordinari">Matricole e ore di contratto</SectionLabel>
-            <RowsCard>
-              <Row first>
-                <ActionForm action={savePayrollPeopleAction} success="Salvato" style={{ display: "grid", gap: 10 }}>
-                  {members
-                    .filter((member) => member.userId !== member.bar.ownerId)
-                    .map((member) => (
-                      <div key={member.userId} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr) 76px", gap: 8, alignItems: "center" }}>
-                        <input type="hidden" name="userId" value={member.userId} />
-                        <span style={{ fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {member.user.lastName} {member.user.firstName}
-                        </span>
-                        <input
-                          name={`payrollCode_${member.userId}`}
-                          defaultValue={member.payrollCode ?? ""}
-                          placeholder="Matricola o CF"
-                          aria-label={`Matricola di ${member.user.firstName}`}
-                          style={{ ...inputStyle, textTransform: "uppercase" }}
-                        />
-                        <input
-                          name={`weeklyHours_${member.userId}`}
-                          defaultValue={member.contractWeeklyHours ?? ""}
-                          inputMode="decimal"
-                          placeholder="h/sett"
-                          aria-label={`Ore settimanali di ${member.user.firstName}`}
-                          style={{ ...inputStyle, textAlign: "right" }}
-                        />
-                      </div>
-                    ))}
-                  <span style={{ fontSize: 12.5, color: "#7c7894" }}>
-                    Con le ore settimanali (40, 24…) le ore oltre il contratto della settimana diventano straordinari, e ferie e malattia hanno anche le ore del giorno.
-                  </span>
-                  <div>
-                    <PendingButton type="submit" style={softButton} pendingLabel="Salvo…">
-                      Salva
-                    </PendingButton>
-                  </div>
-                </ActionForm>
-              </Row>
-            </RowsCard>
-          </section>
-        </>
-      ) : null}
     </div>
   );
 }

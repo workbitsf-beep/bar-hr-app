@@ -17,6 +17,8 @@ type SendEmailInput = {
   attachments?: Array<{ filename: string; content: Buffer }>;
   /** Where a reply goes; support when left out. */
   replyTo?: string;
+  /** In copy, e.g. the owner on what Workbit sent in their name. */
+  cc?: string[];
 };
 
 export type SendEmailResult =
@@ -140,6 +142,7 @@ export async function sendEmail({
   html,
   attachments,
   replyTo,
+  cc,
 }: SendEmailInput): Promise<SendEmailResult> {
   const recipients = normalizeRecipients(to);
   const emailFrom = getEmailFrom();
@@ -190,6 +193,7 @@ export async function sendEmail({
       // Replies go to support, not to the noreply sender.
       replyTo: replyTo || process.env.EMAIL_REPLY_TO?.trim() || process.env.SUPPORT_EMAIL?.trim() || "supporto@workbit.it",
       ...(attachments?.length ? { attachments } : {}),
+      ...(cc?.length ? { cc } : {}),
     });
 
     if (result.error) {

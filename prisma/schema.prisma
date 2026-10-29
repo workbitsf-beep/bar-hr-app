@@ -389,6 +389,9 @@ model Bar {
   supplierCategories     SupplierCategory[]
   priceChecks            PriceCheck[]
   monthlyRevenues        MonthlyRevenue[]
+  payrollRecipients      PayrollRecipient[]
+  payrollDayOverrides    PayrollDayOverride[]
+  payrollSends           PayrollSend[]
   legalAcceptances       LegalAcceptance[]
   notifications          Notification[]
   scheduledNotifications ScheduledNotification[]
@@ -517,49 +520,51 @@ model Invoice {
 }
 
 model BarSettings {
-  id                   String        @id @default(uuid()) @db.Uuid
-  barId                String        @unique @db.Uuid
-  bar                  Bar           @relation(fields: [barId], references: [id], onDelete: Cascade)
-  gpsLatitude          Float?
-  gpsLongitude         Float?
-  gpsRadius            Int?
+  id                     String        @id @default(uuid()) @db.Uuid
+  barId                  String        @unique @db.Uuid
+  bar                    Bar           @relation(fields: [barId], references: [id], onDelete: Cascade)
+  gpsLatitude            Float?
+  gpsLongitude           Float?
+  gpsRadius              Int?
   /// The owner chose "Imposto dopo" for the clock-in point during setup:
   /// setup is complete without it, and the home page reminds them until set.
-  gpsPostponedAt       DateTime?
-  companyShiftsEnabled Boolean?
-  timeTrackingEnabled  Boolean       @default(true)
-  shiftsEnabled        Boolean       @default(true)
-  requestsEnabled      Boolean       @default(true)
-  availabilityEnabled  Boolean       @default(true)
-  overtimeEnabled      Boolean       @default(true)
-  tasksEnabled         Boolean       @default(true)
-  noticeBoardEnabled   Boolean       @default(true)
-  coursesEnabled       Boolean       @default(true)
-  documentsEnabled     Boolean       @default(true)
-  reportsEnabled       Boolean       @default(true)
-  shoppingListEnabled  Boolean       @default(true)
-  roundingEnabled      Boolean       @default(false)
-  roundingMinutes      Int?
-  roundingMode         RoundingMode?
-  morningStartTime     String?
-  morningEndTime       String?
-  afternoonStartTime   String?
-  afternoonEndTime     String?
-  eveningStartTime     String?
-  eveningEndTime       String?
-  standardShiftPresets Json?
-  /// The labour consultant: where the month's attendance is sent, and the
-  /// codes their payroll software uses for each kind of hour.
-  consultantEmail      String?
-  consultantName       String?
-  payrollCodes         Json?
+  gpsPostponedAt         DateTime?
+  companyShiftsEnabled   Boolean?
+  timeTrackingEnabled    Boolean       @default(true)
+  shiftsEnabled          Boolean       @default(true)
+  requestsEnabled        Boolean       @default(true)
+  availabilityEnabled    Boolean       @default(true)
+  overtimeEnabled        Boolean       @default(true)
+  tasksEnabled           Boolean       @default(true)
+  noticeBoardEnabled     Boolean       @default(true)
+  coursesEnabled         Boolean       @default(true)
+  documentsEnabled       Boolean       @default(true)
+  reportsEnabled         Boolean       @default(true)
+  shoppingListEnabled    Boolean       @default(true)
+  roundingEnabled        Boolean       @default(false)
+  roundingMinutes        Int?
+  roundingMode           RoundingMode?
+  morningStartTime       String?
+  morningEndTime         String?
+  afternoonStartTime     String?
+  afternoonEndTime       String?
+  eveningStartTime       String?
+  eveningEndTime         String?
+  standardShiftPresets   Json?
+  /// Where the month's attendance for the consultant takes its hours from:
+  /// AUTO (clock-ins when the venue clocks in, otherwise the shifts), CLOCK
+  /// or SHIFTS. From the shifts, a break is taken off every shift at least
+  /// payrollBreakAfterHours long.
+  payrollSource          String        @default("AUTO")
+  payrollBreakMinutes    Int?
+  payrollBreakAfterHours Float?
   /// Supplier invoices received through Openapi (codice destinatario
   /// USAL8PV): OFF, WAITING (registered, the owner still has to set the code
   /// at the Agenzia delle Entrate), ACTIVE once the first invoice arrived.
-  invoiceInboxStatus   String        @default("OFF")
-  invoiceInboxFiscalId String?
-  invoiceInboxSince    DateTime?
-  invoiceInboxSyncedAt DateTime?
+  invoiceInboxStatus     String        @default("OFF")
+  invoiceInboxFiscalId   String?
+  invoiceInboxSince      DateTime?
+  invoiceInboxSyncedAt   DateTime?
 }
 
 model Notification {
@@ -1350,4 +1355,69 @@ model MonthlyRevenue {
   updatedAt   DateTime @updatedAt
 
   @@unique([barId, month])
+}
+
+/// Who the month's attendance goes to - the labour consultant, the
+/// accountant - each with the file the way their software wants it.
+model PayrollRecipient {
+  id            String        @id @default(uuid()) @db.Uuid
+  barId         String        @db.Uuid
+  bar           Bar           @relation(fields: [barId], references: [id], onDelete: Cascade)
+  /// consulente, commercialista or altro
+  role          String        @default("consulente")
+  name          String
+  email         String
+  cc            String?
+  /// The file's layout, columns, codes and formats (lib/payroll/template.ts).
+  template      Json?
+  /// The email's text, with {nome}, {mese}, {locale}, {persone}, {firma}.
+  message       String?
+  /// Day of the month the owner is reminded to check and send.
+  sendDay       Int?
+  /// "2026-10": the month already reminded about.
+  remindedMonth String?
+  sends         PayrollSend[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([barId])
+}
+
+/// A day corrected at review: replaces that day's hours in the files only.
+/// The clock-ins and the shifts stay as they were.
+model PayrollDayOverride {
+  id          String   @id @default(uuid()) @db.Uuid
+  barId       String   @db.Uuid
+  bar         Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  userId      String   @db.Uuid
+  /// UTC midnight of the day.
+  date        DateTime
+  /// [{ kind, hours, days }]
+  entries     Json
+  note        String?
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([barId, userId, date])
+  @@index([barId, date])
+}
+
+/// A month's files handed to a recipient: opened in the phone's mail, or
+/// sent by Workbit.
+model PayrollSend {
+  id          String           @id @default(uuid()) @db.Uuid
+  barId       String           @db.Uuid
+  bar         Bar              @relation(fields: [barId], references: [id], onDelete: Cascade)
+  recipientId String           @db.Uuid
+  recipient   PayrollRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  /// "2026-10"
+  month       String
+  /// mail_app, share, mailto or workbit
+  channel     String
+  sentById    String?          @db.Uuid
+  sentAt      DateTime         @default(now())
+
+  @@index([barId, month])
+  @@index([recipientId, month])
 }
