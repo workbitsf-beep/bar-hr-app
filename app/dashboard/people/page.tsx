@@ -18,6 +18,7 @@ import { SeatsFull } from "./seats-full";
 import { DepartmentDot } from "../department-forms";
 import { can, isStaffRole } from "@/lib/staff-permissions";
 import { memberScopeWhere } from "@/lib/staff-scope";
+import { AddFace } from "../round-button";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -318,11 +319,7 @@ export default async function DashboardPeoplePage({
           title="Nuova persona"
           ariaLabel="Aggiungi una persona"
           triggerRow={
-            <span style={{ width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </span>
+            <AddFace />
           }
         >
           {addPerson}

@@ -10,6 +10,7 @@ import { EmptyState, Panel } from "../../../ui";
 import { MonthMenu } from "../../payroll-ui";
 import { PdfButton } from "../../pdf-button";
 import { PersonMonth } from "../../person-month";
+import { roundWhite } from "../../../round-button";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,7 @@ export default async function PersonPresencePage({
           <details style={{ position: "relative" }}>
             <summary
               aria-label="Altro"
-              style={{ listStyle: "none", width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#4c1d95", fontSize: 20, cursor: "pointer", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}
+              style={{ ...roundWhite, listStyle: "none", fontSize: 20, cursor: "pointer" }}
             >
               ⋯
             </summary>

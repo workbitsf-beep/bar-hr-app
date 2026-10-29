@@ -15,6 +15,7 @@ import { EmptyState, Panel } from "../ui";
 import { deleteCertificateAction } from "./certificate-actions";
 import { AddFileButton, CertificateButton, CertificateLink, ReminderDays } from "./certificate-ui";
 import { CourseComposeForm } from "./course-compose-form";
+import { AddFace } from "../round-button";
 
 export const dynamic = "force-dynamic";
 
@@ -165,11 +166,7 @@ export default async function DashboardCoursesPage() {
   );
 
   const roundPlus = (
-    <span style={{ width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-        <path d="M12 5v14M5 12h14" />
-      </svg>
-    </span>
+    <AddFace />
   );
   // The + programs a course; a certificate is added from the person's card.
   const headerActions = (

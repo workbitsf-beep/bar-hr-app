@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
+import { roundWhite } from "../round-button";
 
 export const ROLE_LABELS: Record<string, string> = {
   consulente: "Consulente del lavoro",
@@ -158,7 +159,7 @@ export function GearLink({ href, label }: { href: string; label: string }) {
     <Link
       href={href}
       aria-label={label}
-      style={{ width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(31,27,58,.06)", flex: "0 0 auto" }}
+      style={roundWhite}
     >
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3" />

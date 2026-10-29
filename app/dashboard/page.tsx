@@ -41,6 +41,7 @@ import { findAssignedShiftForClockIn } from "@/lib/clockable-shift";
 import { INTERNAL_NOTIFICATION_TYPES } from "@/lib/notifications";
 import { formatDateInTimeZone } from "@/lib/time-zone";
 import { ActionForm } from "@/app/components/action-form";
+import { roundWhite } from "./round-button";
 
 function requestTypeLabel(type: RequestType) {
   if (type === RequestType.VACATION) return "Ferie";
@@ -1213,18 +1214,7 @@ export default async function DashboardPage() {
       title="Personalizza Oggi"
       ariaLabel="Personalizza Oggi"
       triggerRow={
-        <span
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 999,
-            background: "#ffffff",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 6px 14px rgba(76, 29, 149, 0.08)",
-          }}
-        >
+        <span style={roundWhite}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="7" height="7" rx="2" />
             <rect x="14" y="3" width="7" height="7" rx="2" />

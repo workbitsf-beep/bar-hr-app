@@ -4065,3 +4065,46 @@
 .wb-week[open] .wb-week-chev { transform: rotate(90deg); }
 
 .wb-month-jump > summary::-webkit-details-marker { display: none; }
+
+      /* Round buttons, one style (30 Oct 2026, round-button.tsx): 44 px; the
+         + that adds is violet, the other round buttons are white. Last in the
+         file on purpose: older page rules sized these from 34 to 48 px. */
+      .dashboard-icon-button[data-intent="add"],
+      .dashboard-popup-trigger:not(.dashboard-popup-trigger--label),
+      .workbit-calendar-add-shift,
+      .wbtc-add {
+        width: 44px !important;
+        min-width: 44px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 999px !important;
+        background: linear-gradient(135deg, #3b1d8f, #5e4ae3 55%, #8b5cf6) !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 14px rgba(94, 74, 227, 0.25) !important;
+      }
+
+      .dashboard-icon-button[data-intent="add"]::after,
+      .dashboard-popup-trigger:not(.dashboard-popup-trigger--label)::after {
+        font-size: 26px;
+        font-weight: 400;
+      }
+
+      .workbit-cart-trigger.dashboard-popup-trigger {
+        width: 44px !important;
+        min-width: 44px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+        border: 0 !important;
+        background: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(76, 29, 149, 0.08) !important;
+      }
+
+      /* A + that needs its word ("+ Nuova persona") is a lilac pill, the
+         same lilac as the small pills in Presenze. */
+      .dashboard-popup-trigger--label:not(.workbit-cart-trigger) {
+        background: #f1eeff !important;
+        color: #4c1d95 !important;
+        border: 0 !important;
+      }
