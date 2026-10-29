@@ -12,7 +12,7 @@ import { TemplateFields } from "./template-editor";
 
 const row: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid #f2f0f8", color: "#1f1b3a", fontSize: 16, width: "100%", boxSizing: "border-box" };
 const chevron = <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18, marginLeft: "auto" }}>›</span>;
-const sheet: CSSProperties = { background: "#ffffff", borderRadius: 22, overflow: "hidden", boxShadow: "0 1px 2px rgba(31,27,58,.04)" };
+const sheet: CSSProperties = { background: "#ffffff", border: "1px solid #ece9f7", borderRadius: 20, overflow: "hidden", padding: "0 16px", boxShadow: "0 3px 10px rgba(76, 29, 149, 0.04)" };
 
 function Line({ children, first = false, note }: { children: ReactNode; first?: boolean; note?: string }) {
   return (
