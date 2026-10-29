@@ -14,11 +14,11 @@ export type HomeBlockKey =
   | "nextWeek"
   | "requests"
   | "team"
-  | "notes"
-  | "hours"
-  | "courses"
-  | "shopping"
   | "costs"
+  | "absences"
+  | "prices"
+  | "staffMonth"
+  | "deadlines"
   | "clock"
   | "myHours"
   | "myWeek"
@@ -32,11 +32,11 @@ export const HOME_BLOCKS: Record<HomeBlockKey, HomeBlock> = {
   nextWeek: { key: "nextWeek", emoji: "📅", label: "Prossima settimana", hint: "Se tutti i giorni sono coperti" },
   requests: { key: "requests", emoji: "📨", label: "Richieste da approvare", hint: "Ferie, permessi e cambi turno" },
   team: { key: "team", emoji: "📊", label: "Andamento team", hint: "I turni e i numeri della settimana" },
-  notes: { key: "notes", emoji: "📝", label: "Note da fare", hint: "Quelle di oggi e le scadute" },
-  hours: { key: "hours", emoji: "⏱", label: "Ore e costo del mese", hint: "Le ore del team e quanto costano" },
-  courses: { key: "courses", emoji: "🎓", label: "Corsi in scadenza", hint: "Attestati scaduti o che scadono" },
-  shopping: { key: "shopping", emoji: "🛒", label: "Lista della spesa", hint: "Cosa c'è da comprare" },
-  costs: { key: "costs", emoji: "💶", label: "Fatture e costi", hint: "Le fatture dei fornitori del mese" },
+  costs: { key: "costs", emoji: "💶", label: "Analisi costi", hint: "Il resoconto del mese, dalle fatture e dalle ore" },
+  absences: { key: "absences", emoji: "📨", label: "Richieste e assenze", hint: "Approvi da qui e vedi chi manca" },
+  prices: { key: "prices", emoji: "📈", label: "Prezzi che salgono", hint: "I prodotti che costano di più" },
+  staffMonth: { key: "staffMonth", emoji: "⏱", label: "Personale del mese", hint: "Ore, straordinari e paga" },
+  deadlines: { key: "deadlines", emoji: "⏰", label: "Scadenze", hint: "Corsi, attestati e note con la data" },
   clock: { key: "clock", emoji: "📍", label: "Timbra", hint: "Entrata e uscita" },
   myHours: { key: "myHours", emoji: "⏱", label: "Le tue ore", hint: "Oggi e nel mese" },
   myWeek: { key: "myWeek", emoji: "📅", label: "La tua settimana", hint: "I tuoi turni" },
@@ -49,11 +49,14 @@ export const HOME_BASE: Record<HomeProfile, HomeBlockKey[]> = {
   staff: ["clock", "myHours", "myWeek", "inbox", "crew", "checklists", "requests", "team"],
 };
 
-/** What else each profile can put on Oggi. */
+/** The widgets each profile can add: things the base does not already show. */
 export const HOME_EXTRA: Record<HomeProfile, HomeBlockKey[]> = {
-  owner: ["notes", "hours", "courses", "shopping", "costs"],
-  staff: ["shopping"],
+  owner: ["costs", "absences", "prices", "staffMonth", "deadlines"],
+  staff: [],
 };
+
+/** Two blocks that say the same thing: adding one takes the other off. */
+export const HOME_REPLACES: Partial<Record<HomeBlockKey, HomeBlockKey>> = { absences: "requests" };
 
 export function homeChoices(profile: HomeProfile): HomeBlockKey[] {
   return [...HOME_BASE[profile], ...HOME_EXTRA[profile]];

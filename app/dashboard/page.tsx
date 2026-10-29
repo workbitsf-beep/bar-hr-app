@@ -1,9 +1,9 @@
 import { Fragment, type ReactNode } from "react";
 import { PopupAction } from "./popup-action";
 import { costsEnabledFor } from "@/lib/costs/access";
-import { HOME_BLOCKS, homeChoices, resolveHomeBlocks, type HomeBlockKey, type HomeProfile } from "@/lib/home-blocks";
+import { HOME_BLOCKS, HOME_EXTRA, homeChoices, resolveHomeBlocks, type HomeBlockKey, type HomeProfile } from "@/lib/home-blocks";
 import { HomeEditor } from "./home-editor";
-import { HomeCoursesBlock, HomeCostsBlock, HomeHoursBlock, HomeNotesBlock, HomeShoppingBlock } from "./home-extra-blocks";
+import { HomeAbsencesWidget, HomeCostsWidget, HomeDeadlinesWidget, HomePricesWidget, HomeStaffWidget } from "./home-extra-blocks";
 import { BillingRequired } from "./billing-required";
 import { RequestStatus, RequestType, Role, type Department } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -1176,11 +1176,15 @@ export default async function DashboardPage() {
     nextWeek: weekLine,
     requests: requestsBlock,
     team: teamBlock,
-    notes: homeBlocks.includes("notes") && features.tasks ? <HomeNotesBlock barId={activeBarId} /> : null,
-    hours: homeBlocks.includes("hours") && features.timeTracking ? <HomeHoursBlock barId={activeBarId} /> : null,
-    courses: homeBlocks.includes("courses") && features.courses ? <HomeCoursesBlock barId={activeBarId} /> : null,
-    shopping: features.shoppingList ? <HomeShoppingBlock items={shoppingItems} /> : null,
-    costs: homeBlocks.includes("costs") && costsEnabledFor(String(role)) ? <HomeCostsBlock barId={activeBarId} /> : null,
+    costs: homeBlocks.includes("costs") ? <HomeCostsWidget barId={activeBarId} /> : null,
+    absences: homeBlocks.includes("absences") ? (
+      <HomeAbsencesWidget barId={activeBarId} pending={pendingApprovalRequests} employeeWhere={peopleInScope} />
+    ) : null,
+    prices: homeBlocks.includes("prices") ? <HomePricesWidget barId={activeBarId} /> : null,
+    staffMonth: homeBlocks.includes("staffMonth") ? <HomeStaffWidget barId={activeBarId} /> : null,
+    deadlines: homeBlocks.includes("deadlines") ? (
+      <HomeDeadlinesWidget barId={activeBarId} courses={features.courses} notes={features.tasks} />
+    ) : null,
     clock: clockBlock,
     myHours: myHoursBlock,
     myWeek: myWeekBlock,
@@ -1193,35 +1197,51 @@ export default async function DashboardPage() {
     nextWeek: isOwner && features.shifts,
     requests: canRequests && features.requests,
     team: showKpi,
-    notes: features.tasks,
-    hours: isOwner && features.timeTracking,
-    courses: features.courses,
-    shopping: features.shoppingList,
     costs: isOwner && costsEnabledFor(String(role)),
+    absences: canRequests && features.requests,
+    prices: isOwner && costsEnabledFor(String(role)),
+    staffMonth: isOwner && features.timeTracking,
+    deadlines: features.courses || features.tasks,
     clock: features.timeTracking,
     myHours: features.timeTracking,
     myWeek: features.shifts,
     inbox: true,
   };
+  // The widgets' door sits next to the cart: a round button with tiles and a +.
   const homeEditor = (
-    <div style={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
-      <PopupAction
-        title="Modifica Oggi"
-        ariaLabel="Modifica Oggi"
-        triggerRow={
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 999, background: "#ffffff", border: "1px solid rgba(94, 92, 230, 0.14)", color: "#5e4ae3", fontWeight: 700, fontSize: 14.5 }}>
-            ✏️ Modifica Oggi
-          </span>
-        }
-      >
-        <HomeEditor
-          shown={homeBlocks}
-          choices={homeChoices(homeProfile)
-            .filter((key) => homeAvailable[key])
-            .map((key) => HOME_BLOCKS[key])}
-        />
-      </PopupAction>
-    </div>
+    <PopupAction
+      title="Personalizza Oggi"
+      ariaLabel="Personalizza Oggi"
+      triggerRow={
+        <span
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 999,
+            background: "#ffffff",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 6px 14px rgba(76, 29, 149, 0.08)",
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="2" />
+            <rect x="14" y="3" width="7" height="7" rx="2" />
+            <rect x="3" y="14" width="7" height="7" rx="2" />
+            <path d="M17.5 14v7M14 17.5h7" />
+          </svg>
+        </span>
+      }
+    >
+      <HomeEditor
+        shown={homeBlocks}
+        extras={HOME_EXTRA[homeProfile]}
+        choices={homeChoices(homeProfile)
+          .filter((key) => homeAvailable[key])
+          .map((key) => HOME_BLOCKS[key])}
+      />
+    </PopupAction>
   );
   const phoneHome = (
     <Stack>
@@ -1231,7 +1251,10 @@ export default async function DashboardPage() {
             <span>Ciao {session.user.firstName}</span>
             <h1>Oggi</h1>
           </div>
-          {cartBlock}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            {homeEditor}
+            {cartBlock}
+          </span>
         </div>
         {reviewBlock}
         {clockFix && (clockFix.offer || clockFix.pending.length > 0) ? (
@@ -1243,7 +1266,6 @@ export default async function DashboardPage() {
         ) : null}
         {clockPointLine}
         {homeBlocks.map((key) => (homeAvailable[key] && homeBlockNodes[key] ? <Fragment key={key}>{homeBlockNodes[key]}</Fragment> : null))}
-        {homeEditor}
       </div>
     </Stack>
   );
