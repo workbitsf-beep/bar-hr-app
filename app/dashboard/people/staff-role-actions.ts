@@ -86,7 +86,7 @@ export async function updateStaffRoleAction(formData: FormData) {
     });
 
     for (const path of ["/dashboard", "/dashboard/people", "/dashboard/calendar", "/dashboard/requests"]) {
-      revalidatePath(path);
+      revalidatePath(path, "layout");
     }
 
     const name = membership.user.firstName;

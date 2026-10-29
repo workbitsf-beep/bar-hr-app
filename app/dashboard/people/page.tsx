@@ -4,17 +4,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCourseUrgency } from "@/lib/course-kinds";
 import { formatDurationFromMilliseconds } from "@/lib/time-format";
-import { createEmployeeAction, removeEmployeeAction } from "../actions";
+import { createEmployeeAction } from "../actions";
 import { getDashboardContext } from "../context";
-import {
-  EmptyState,
-  Panel,
-  PrimaryButton,
-  Stack,
-} from "../ui";
+import { EmptyState, Panel } from "../ui";
 import { PopupAction } from "../popup-action";
-import { ListRowTrigger } from "../list-row-trigger";
-import { ConfirmSubmit } from "./confirm-submit";
 import { NewPersonForm } from "./new-person-form";
 import { ClassicBack, ClassicToggle } from "../classic-toggle";
 import { Avatar } from "../desk-helpers";
@@ -22,10 +15,9 @@ import "../desk.css";
 import { getVenueDepartments, staffDepartments } from "@/lib/departments";
 import { getSeatUsage, getVenueEntitlements } from "@/lib/plans";
 import { SeatsFull } from "./seats-full";
-import { DepartmentDot, MemberDepartmentForm } from "../department-forms";
-import { can, isStaffRole, PERMISSION_LABELS, PERMISSIONS } from "@/lib/staff-permissions";
+import { DepartmentDot } from "../department-forms";
+import { can, isStaffRole } from "@/lib/staff-permissions";
 import { memberScopeWhere } from "@/lib/staff-scope";
-import { StaffRoleForm } from "./staff-role-form";
 
 function formatRoleLabel(role: Role) {
   if (role === Role.OWNER) {
@@ -41,59 +33,6 @@ function formatRoleLabel(role: Role) {
   }
 
   return "Dipendente";
-}
-
-const personLinkStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 10,
-  padding: "11px 12px",
-  borderRadius: 15,
-  border: "1px solid #e9edf3",
-  background: "#ffffff",
-  color: "#0f172a",
-  fontSize: 13.5,
-  fontWeight: 780,
-  textDecoration: "none",
-} as const;
-
-function PersonFigure({ label, value, lead = false }: { label: string; value: string; lead?: boolean }) {
-  return (
-    <span
-      style={{
-        display: "grid",
-        gap: 1,
-        padding: "10px 12px",
-        borderRadius: 15,
-        background: lead ? "#f3e8ff" : "#f8fafc",
-        border: `1px solid ${lead ? "rgba(124, 58, 237, 0.42)" : "#e9edf3"}`,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 820,
-          letterSpacing: "0.07em",
-          textTransform: "uppercase",
-          color: lead ? "#8b5cf6" : "#94a3b8",
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontSize: 18,
-          fontWeight: 830,
-          letterSpacing: "-0.03em",
-          fontVariantNumeric: "tabular-nums",
-          color: lead ? "#4c1d95" : "#0f172a",
-        }}
-      >
-        {value}
-      </span>
-    </span>
-  );
 }
 
 export default async function DashboardPeoplePage({
@@ -134,7 +73,7 @@ export default async function DashboardPeoplePage({
   const [seats, entitlements] = await Promise.all([getSeatUsage(activeBarId), getVenueEntitlements(activeBarId)]);
   const departmentOf = (id: string | null) => departments.list.find((entry) => entry.id === id) ?? null;
 
-  const [members, monthLogs, documents, courses] = await Promise.all([
+  const [members, monthLogs, documents, courses, consultants] = await Promise.all([
     prisma.employeeBar.findMany({
       where: {
         barId: activeBarId,
@@ -146,6 +85,7 @@ export default async function DashboardPeoplePage({
         id: true,
         role: true,
         hourlyRate: true,
+        payrollCode: true,
         department: true,
         helpsIn: true,
         permissions: true,
@@ -174,6 +114,8 @@ export default async function DashboardPeoplePage({
       where: { barId: activeBarId },
       select: { assignedToId: true, assignedToAll: true, startsAt: true, endsAt: true, expiresAt: true },
     }),
+    // With a consultant set up, a person without a code is a gap in the file.
+    isOwner ? prisma.payrollRecipient.count({ where: { barId: activeBarId } }) : Promise.resolve(0),
   ]);
 
   const isCompany = activeBarActivityType === ActivityType.COMPANY;
@@ -186,9 +128,11 @@ export default async function DashboardPeoplePage({
       isCompany={isCompany}
       employeesOnly={!isOwner}
       departments={
-        isOwner || !departments.enabled
+        !departments.enabled
           ? []
-          : staffDepartments(departments.list).filter((entry) => can(staff, "people", entry.id))
+          : isOwner
+            ? staffDepartments(departments.list)
+            : staffDepartments(departments.list).filter((entry) => can(staff, "people", entry.id))
       }
     />
   );
@@ -200,11 +144,6 @@ export default async function DashboardPeoplePage({
       : isCompany && departments.enabled
         ? "tutte le sedi"
         : "tutto il locale";
-  const permissionText = (member: (typeof members)[number]) =>
-    PERMISSIONS.filter((permission) => member.permissions.includes(permission))
-      .map((permission) => PERMISSION_LABELS[permission].title)
-      .join(" · ") || "Nessun permesso";
-
   // How the month is going for each person, and who is in right now: a shift
   // is open when the last stamp of the month is an entrata.
   const worked = new Map<string, { ms: number; since: Date | null }>();
@@ -257,6 +196,10 @@ export default async function DashboardPeoplePage({
       return expired === 1 ? "1 corso scaduto" : `${expired} corsi scaduti`;
     }
 
+    if (consultants > 0 && member.role !== Role.OWNER && !member.payrollCode) {
+      return "Manca il codice per il consulente";
+    }
+
     if (member.role !== Role.OWNER && (documentCount.get(member.user.id) ?? 0) === 0) {
       return "Nessun documento personale";
     }
@@ -285,18 +228,15 @@ export default async function DashboardPeoplePage({
   const offShift = team.filter((row) => !row.since);
   const inServiceCount = rows.filter((row) => row.since).length;
 
-  function groupStyle(color: string) {
-    return {
-      marginTop: 3,
-      fontSize: 11.5,
-      fontWeight: 820,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase" as const,
-      color,
-    };
-  }
+  const clockTime = (value: Date) =>
+    value.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
+  const hoursText = (ms: number) => {
+    const minutes = Math.round(ms / 60_000);
+    return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
+  };
 
-  function renderPerson(row: (typeof rows)[number], live: boolean) {
+  // A line of the team: who, what they do or what is wrong, the month's hours.
+  function personRow(row: (typeof rows)[number], first: boolean) {
     const { member } = row;
     const name = `${member.user.firstName} ${member.user.lastName}`;
     const memberDepartment = departments.enabled ? departmentOf(member.department) : null;
@@ -304,273 +244,103 @@ export default async function DashboardPeoplePage({
     const roleLabel = manages
       ? `${formatRoleLabel(member.role)} · ${scopeText(member)}`
       : formatRoleLabel(member.role) + (memberDepartment ? ` · ${memberDepartment.name}` : "");
-    const line = live
-      ? `dalle ${row.since?.toLocaleTimeString("it-IT", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "Europe/Rome",
-        })} · ${roleLabel}`
-      : manages
-        ? roleLabel
-        : row.warning ?? roleLabel;
-    // Who runs things reads their role; a warning stays in their card.
-    const warn = Boolean(row.warning) && !manages;
+    const live = Boolean(row.since);
+    const line = live ? `In lavoro dalle ${clockTime(row.since!)}${memberDepartment ? ` · ${memberDepartment.name}` : ""}` : row.warning ?? roleLabel;
+    const tone = live ? "#0f7a4f" : row.warning ? (row.expired ? "#b3202f" : "#b45309") : "#8a85a3";
 
     return (
-      <PopupAction
+      <Link
         key={member.id}
-        title={name}
-        ariaLabel={`Apri la scheda di ${name}`}
-        triggerRow={(
-          <ListRowTrigger
-            tone={live ? "live" : warn ? "warn" : "plain"}
-            minHeight={66}
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                width: 40,
-                height: 40,
-                flex: "0 0 auto",
-                display: "inline-grid",
-                placeItems: "center",
-                borderRadius: 999,
-                background: live ? "#dcfce7" : warn ? "#ffffff" : "#f3e8ff",
-                color: live ? "#15803d" : warn ? "#92400e" : "#4c1d95",
-                fontSize: 13,
-                fontWeight: 850,
-              }}
-            >
-              {initialsOf(member.user.firstName, member.user.lastName)}
-            </span>
-
-            <span style={{ display: "grid", gap: 3, minWidth: 0, flex: "1 1 auto" }}>
-              <strong style={{ fontSize: 15, letterSpacing: "-0.015em", color: "#0f172a", display: "flex", alignItems: "center", gap: 7 }}>
-                {name}
-                {memberDepartment ? <DepartmentDot department={memberDepartment} size={18} /> : null}
-              </strong>
-              <span
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: live || warn ? 790 : 690,
-                  color: live ? "#15803d" : warn ? "#92400e" : "#64748b",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {line}
-              </span>
-              {manages ? (
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 650,
-                    color: "#8a84a8",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {permissionText(member)}
-                </span>
-              ) : null}
-            </span>
-
-            <span style={{ flex: "0 0 auto", textAlign: "right", display: "grid", gap: 1 }}>
-              <strong
-                style={{
-                  fontSize: 14.5,
-                  fontWeight: 830,
-                  fontVariantNumeric: "tabular-nums",
-                  color: live ? "#15803d" : "#0f172a",
-                }}
-              >
-                {formatDurationFromMilliseconds(row.monthMs)}
-              </strong>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: "#94a3b8",
-                }}
-              >
-                mese
-              </span>
-            </span>
-          </ListRowTrigger>
-        )}
+        href={`/dashboard/people/${member.id}`}
+        aria-label={`Apri la scheda di ${name}`}
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderTop: first ? 0 : "1px solid #f2f0f8", color: "#1f1b3a", textDecoration: "none" }}
       >
-        <div style={{ display: "grid", gap: 13 }}>
-          <span style={{ color: "#64748b", fontSize: 13, fontWeight: 720 }}>
-            {roleLabel} · {member.user.email}
+        <span
+          aria-hidden="true"
+          style={{
+            width: 40,
+            height: 40,
+            flex: "0 0 auto",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 999,
+            background: live ? "#e7f7ef" : "#f1eeff",
+            color: live ? "#0f7a4f" : "#4c1d95",
+            fontSize: 13.5,
+            fontWeight: 700,
+          }}
+        >
+          {initialsOf(member.user.firstName, member.user.lastName)}
+        </span>
+        <span style={{ display: "grid", gap: 1, minWidth: 0, flex: "1 1 auto" }}>
+          <span style={{ fontSize: 16, display: "flex", alignItems: "center", gap: 7 }}>
+            {name}
+            {memberDepartment ? <DepartmentDot department={memberDepartment} size={16} /> : null}
           </span>
-
-          <div
-            className="dashboard-inline-grid"
-            style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}
-          >
-            <PersonFigure label="Ore mese" value={formatDurationFromMilliseconds(row.monthMs)} lead />
-            <PersonFigure label="Documenti" value={String(row.documents)} />
-            <PersonFigure
-              label="Paga"
-              value={isOwner && member.hourlyRate ? `${Number(member.hourlyRate).toFixed(2)}` : "—"}
-            />
-          </div>
-
-          {manages ? (
-            <span style={{ fontSize: 12.5, color: "#6b6880", fontWeight: 700 }}>Può: {permissionText(member)}</span>
-          ) : null}
-
-          {isOwner && member.role !== Role.OWNER ? (
-            <details className="wb-staff-role">
-              <summary style={{ ...personLinkStyle, cursor: "pointer", listStyle: "none" }}>
-                <span>🛡️ {manages ? "Ruolo e permessi" : "Nomina responsabile"}</span>
-                <span style={{ color: "#94a3b8", fontWeight: 800 }}>&rsaquo;</span>
-              </summary>
-              <div style={{ paddingTop: 12 }}>
-              <StaffRoleForm
-                membershipId={member.id}
-                firstName={member.user.firstName}
-                isCompany={isCompany}
-                role={member.role as "EMPLOYEE" | "MANAGER" | "AMMINISTRAZIONE"}
-                permissions={member.permissions}
-                managesDepartments={member.managesDepartments}
-                departments={departments.enabled ? staffDepartments(departments.list) : null}
-                kind={departments.kind}
-              />
-              </div>
-            </details>
-          ) : null}
-
-          {departments.enabled ? (
-            <MemberDepartmentForm
-              words={departments.words}
-              membershipId={member.id}
-              department={member.department}
-              helpsIn={member.helpsIn}
-              departments={
-                isOwner
-                  ? staffDepartments(departments.list)
-                  : staffDepartments(departments.list).filter((entry) => can(staff, "people", entry.id))
-              }
-            />
-          ) : null}
-
-          {row.warning ? (
-            <div
-              style={{
-                padding: "10px 12px",
-                borderRadius: 14,
-                background: "#fffbeb",
-                border: "1px solid #fde68a",
-                color: "#92400e",
-                fontSize: 12.5,
-                fontWeight: 790,
-              }}
-            >
-              ⚠ {row.warning}
-            </div>
-          ) : null}
-
-          <Link href="/dashboard/documents" style={personLinkStyle}>
-            <span>📄 Documenti</span>
-            <span style={{ color: "#94a3b8", fontWeight: 800 }}>{row.documents} &rsaquo;</span>
-          </Link>
-          <Link href="/dashboard/courses" style={personLinkStyle}>
-            <span>🎓 Corsi</span>
-            <span style={{ color: row.expired > 0 ? "#b91c1c" : "#94a3b8", fontWeight: 800 }}>
-              {row.expired > 0 ? `${row.expired} scaduti` : "in regola"} &rsaquo;
-            </span>
-          </Link>
-          <Link href="/dashboard/presenze" style={personLinkStyle}>
-            <span>⏱️ Timbrature</span>
-            <span style={{ color: "#94a3b8", fontWeight: 800 }}>&rsaquo;</span>
-          </Link>
-          <Link href="/dashboard/presenze" style={personLinkStyle}>
-            <span>🧾 Report del mese</span>
-            <span style={{ color: "#94a3b8", fontWeight: 800 }}>&rsaquo;</span>
-          </Link>
-
-          {member.role !== Role.OWNER ? (
-            <ConfirmSubmit
-              action={removeEmployeeAction}
-              question={`Togliere ${name} da questo locale? Non vedrà più turni, note e documenti di qui.`}
-            >
-              <input type="hidden" name="membershipId" value={member.id} />
-              <PrimaryButton type="submit" tone="red">
-                Rimuovi dal locale
-              </PrimaryButton>
-            </ConfirmSubmit>
-          ) : null}
-        </div>
-      </PopupAction>
+          <span style={{ fontSize: 13.5, color: tone, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{line}</span>
+        </span>
+        <span style={{ flex: "0 0 auto", fontSize: 15, fontVariantNumeric: "tabular-nums", color: live ? "#0f7a4f" : "#1f1b3a" }}>{hoursText(row.monthMs)}</span>
+      </Link>
     );
   }
 
-  const phonePage = (
-    <>
-      <Stack className="workbit-people-page">
-        {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
+  function teamGroup(title: string, list: typeof rows, color = "#8a85a3") {
+    if (!list.length) return null;
+    return (
+      <section style={{ display: "grid", gap: 8 }}>
+        <span style={{ fontSize: 13, color, padding: "0 18px" }}>{title}</span>
+        <div style={{ background: "#ffffff", borderRadius: 22, overflow: "hidden", boxShadow: "0 1px 2px rgba(31,27,58,.04)" }}>
+          {list.map((row, index) => personRow(row, index === 0))}
+        </div>
+      </section>
+    );
+  }
 
-        <Panel
-          title="Team"
-          className="workbit-people-panel"
-          action={
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <span>
-                {seatLabel ? `${seatLabel} persone` : members.length === 1 ? "1 persona" : `${members.length} persone`}
-                {inServiceCount > 0 ? ` · ${inServiceCount} in servizio` : ""}
-              </span>
-              <PopupAction title="Nuova persona" ariaLabel="Aggiungi persona">
-                {addPerson}
-              </PopupAction>
-            </div>
+  const freeSeats = seats.limit === null ? null : Math.max(0, seats.limit - seats.used);
+  const teamLine = [
+    members.length === 1 ? "1 persona" : `${members.length} persone`,
+    freeSeats === null ? null : freeSeats === 0 ? "nessun posto libero" : freeSeats === 1 ? "1 posto libero" : `${freeSeats} posti liberi`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const phonePage = (
+    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px", color: "#1f1b3a" }}>
+      {errorParam === "posti-finiti" ? <SeatsFull seats={seats} entitlements={entitlements} company={isCompany} callout /> : null}
+
+      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Team</h1>
+          <span style={{ fontSize: 15, color: "#8a85a3" }}>{teamLine}</span>
+        </div>
+        <PopupAction
+          title="Nuova persona"
+          ariaLabel="Aggiungi una persona"
+          triggerRow={
+            <span style={{ width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
           }
         >
-          {members.length === 0 ? (
-            <EmptyState message="Nessuna persona collegata a questo locale." />
-          ) : (
-            <div style={{ display: "grid", gap: 9 }}>
-              {leaders.length > 0 ? (
-                <>
-                  <span style={groupStyle("#5b3fd6")}>Chi gestisce</span>
-                  {leaders.map((row) => renderPerson(row, Boolean(row.since)))}
-                  {team.length > 0 ? <span style={groupStyle("#94a3b8")}>Dipendenti · {team.length}</span> : null}
-                </>
-              ) : null}
+          {addPerson}
+        </PopupAction>
+      </header>
 
-              {onShift.length > 0 ? (
-                <span style={groupStyle("#15803d")}>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      display: "inline-block",
-                      width: 9,
-                      height: 9,
-                      borderRadius: 999,
-                      background: "#22c55e",
-                      marginRight: 6,
-                    }}
-                  />
-                  In servizio adesso
-                </span>
-              ) : null}
+      {members.length === 0 ? (
+        <div style={{ background: "#ffffff", borderRadius: 22, padding: "16px 18px", color: "#8a85a3", fontSize: 15 }}>Nessuna persona in questo locale: aggiungila col +.</div>
+      ) : (
+        <>
+          {teamGroup("Chi gestisce", leaders)}
+          {teamGroup("In lavoro adesso", onShift, "#0f7a4f")}
+          {teamGroup(onShift.length ? "Il resto del team" : "Dipendenti", offShift)}
+        </>
+      )}
 
-              {onShift.map((row) => renderPerson(row, true))}
-
-              {onShift.length > 0 && offShift.length > 0 ? (
-                <span style={groupStyle("#94a3b8")}>Il resto del team</span>
-              ) : null}
-
-              {offShift.map((row) => renderPerson(row, false))}
-            </div>
-          )}
-        </Panel>
-      </Stack>
-    </>
+      {members.length ? <span style={{ fontSize: 13, color: "#8a85a3", textAlign: "center" }}>Ore del mese. Tocca una persona per la sua scheda.</span> : null}
+    </div>
   );
 
   // ---- On a computer: the team as a table, the chosen person on the side.
@@ -787,8 +557,13 @@ export default async function DashboardPeoplePage({
                 </section>
 
                 <section className="wbd-card">
-                  <h3>Gestisci</h3>
-                  {renderPerson(selected, Boolean(selected.since))}
+                  <h3>
+                    Gestisci
+                    <Link className="wbd-r" href={`/dashboard/people/${selected.member.id}`}>
+                      Apri la scheda →
+                    </Link>
+                  </h3>
+                  <p className="wbd-empty">Ruolo, reparto, paga e matricola per il consulente.</p>
                 </section>
               </aside>
             ) : null}

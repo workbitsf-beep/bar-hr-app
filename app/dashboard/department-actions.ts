@@ -34,7 +34,7 @@ async function ownerOfProVenue() {
 
 function refresh() {
   for (const path of ["/dashboard", "/dashboard/calendar", "/dashboard/people", "/dashboard/settings"]) {
-    revalidatePath(path);
+    revalidatePath(path, "layout");
   }
 }
 

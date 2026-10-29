@@ -4350,7 +4350,10 @@ async function runCreateEmployee(formData: FormData) {
   if (!isOwner && userRole !== Role.EMPLOYEE) {
     throw new RuleError("Solo il titolare può nominare un responsabile.");
   }
-  const staffScope = isOwner ? null : departmentWithin(staff, parseDepartment(formData.get("department")));
+  // The owner may place them in a reparto too; staff always inside their own.
+  const staffScope = departmentWithin(staff, parseDepartment(formData.get("department")));
+  // How the consultant knows them, kept from the start: matricola or codice fiscale.
+  const payrollCode = isOwner ? String(formData.get("payrollCode") ?? "").trim().toUpperCase().slice(0, 30) || null : null;
 
   const [bar, existingUser] = await Promise.all([
     prisma.bar.findUnique({
@@ -4435,6 +4438,7 @@ async function runCreateEmployee(formData: FormData) {
         permissions: defaultPermissionsFor(userRole),
         managesDepartments: [],
         ...(staffScope ? { department: staffScope } : {}),
+        ...(payrollCode ? { payrollCode } : {}),
         hourlyRate:
           hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
       },
@@ -4445,6 +4449,7 @@ async function runCreateEmployee(formData: FormData) {
         isActive: true,
         permissions: defaultPermissionsFor(userRole),
         department: staffScope,
+        payrollCode,
         hourlyRate:
           hourlyRate === null ? undefined : new Prisma.Decimal(hourlyRate),
       },
@@ -4524,8 +4529,16 @@ export async function removeEmployeeAction(formData: FormData) {
     throw new Error("Membership not found");
   }
 
+  // A second titolare added by mistake goes, as long as they never came in
+  // and are not the one the venue belongs to.
   if (membership.role === Role.OWNER) {
-    throw new Error("Owner cannot be removed");
+    const [bar, user] = await Promise.all([
+      prisma.bar.findUnique({ where: { id: activeBarId }, select: { ownerId: true } }),
+      prisma.user.findUnique({ where: { id: membership.userId }, select: { mustChangePwd: true } }),
+    ]);
+    if (isStaffRole(staff.role) || bar?.ownerId === membership.userId || !user?.mustChangePwd) {
+      throw new RuleError("Un titolare che usa già l'app non si toglie da qui.");
+    }
   }
 
   if (isStaffRole(staff.role) && (membership.role !== Role.EMPLOYEE || !can(staff, "people", membership.department))) {
@@ -4550,7 +4563,9 @@ export async function removeEmployeeAction(formData: FormData) {
   revalidatePath("/dashboard/people");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/requests");
-  redirect(appendStatusToPath(returnPath, { success: "employee-removed" }));
+  // From the person's own page, back to the team: their page is gone.
+  const backTo = returnPath.startsWith("/dashboard/people/") ? "/dashboard/people" : returnPath;
+  redirect(appendStatusToPath(backTo, { success: "employee-removed" }));
 }
 
 async function createEmployeeBySuperAdmin(formData: FormData) {
