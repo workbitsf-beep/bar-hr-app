@@ -1,3 +1,9 @@
+import { Fragment, type ReactNode } from "react";
+import { PopupAction } from "./popup-action";
+import { costsEnabledFor } from "@/lib/costs/access";
+import { HOME_BLOCKS, homeChoices, resolveHomeBlocks, type HomeBlockKey, type HomeProfile } from "@/lib/home-blocks";
+import { HomeEditor } from "./home-editor";
+import { HomeCoursesBlock, HomeCostsBlock, HomeHoursBlock, HomeNotesBlock, HomeShoppingBlock } from "./home-extra-blocks";
 import { BillingRequired } from "./billing-required";
 import { RequestStatus, RequestType, Role, type Department } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -127,6 +133,13 @@ export default async function DashboardPage() {
   if (billingStatus && !billingStatus.canAccess) {
     return <BillingRequired role={String(role)} />;
   }
+
+  const homeProfile: HomeProfile = role === Role.OWNER ? "owner" : "staff";
+  const homeLayout = await prisma.homeLayout.findUnique({
+    where: { userId_barId: { userId: session.user.id, barId: activeBarId } },
+    select: { blocks: true },
+  });
+  const homeBlocks = resolveHomeBlocks(homeLayout?.blocks ?? null, homeProfile);
 
   const now = new Date();
   // What this person runs, as the owner chose (lib/staff-permissions); staff
@@ -924,21 +937,7 @@ export default async function DashboardPage() {
 
   const checklistBlock = todayChecklists.length > 0 ? <ChecklistsCard checklists={todayChecklists} /> : null;
 
-  const phoneHome = (
-    <Stack>
-      {isOperationalProfile ? (
-        <div className="workbit-home">
-          <div className="workbit-home-title">
-            <div className="workbit-home-greet">
-              <span>Ciao {session.user.firstName}</span>
-              <h1>Oggi</h1>
-            </div>
-            {cartBlock}
-          </div>
-
-          {reviewBlock}
-
-          {features.timeTracking ? (
+  const clockBlock = features.timeTracking ? (
             <ClockActionsPanel
               role={role}
               settings={clockSettings}
@@ -956,17 +955,8 @@ export default async function DashboardPage() {
               shiftEndAt={timerShift ? timerShift.endTime.toISOString() : null}
               compact
             />
-          ) : null}
-
-          {clockFix && (clockFix.offer || clockFix.pending.length > 0) ? (
-            <ClockFixEmployee
-              offer={clockFix.offer}
-              pending={clockFix.pending}
-              reviewerName={venueOwner?.owner.firstName ?? "il titolare"}
-            />
-          ) : null}
-
-          {features.timeTracking && ownHours ? (
+          ) : null;
+  const myHoursBlock = features.timeTracking && ownHours ? (
             <WorkHoursRing
               activeClockInAt={activeClockInAt}
               plannedTodayMinutes={Math.max(0, Math.round(plannedTodayMinutes))}
@@ -974,9 +964,8 @@ export default async function DashboardPage() {
               closedMonthMinutes={Math.round(ownHours.roundedHours * 60)}
               monthDays={monthWorkedDays}
             />
-          ) : null}
-
-          {features.shifts ? (
+          ) : null;
+  const myWeekBlock = features.shifts ? (
             <section className="workbit-week">
               <div className="workbit-week-head">
                 <strong>La tua settimana</strong>
@@ -1038,8 +1027,8 @@ export default async function DashboardPage() {
                 <small className="workbit-week-mates">Nessun turno programmato questa settimana.</small>
               ) : null}
             </section>
-          ) : null}
-
+          ) : null;
+  const inboxBlock = (
           <section className="workbit-inbox">
             <div className="workbit-inbox-head">
               <strong>Da leggere e da fare</strong>
@@ -1113,29 +1102,8 @@ export default async function DashboardPage() {
             </div>
           ) : null}
           </section>
-
-          {crewBlock}
-          {checklistBlock}
-        </div>
-      ) : (
-        <div className="workbit-home">
-          <div className="workbit-home-title">
-            <div className="workbit-home-greet">
-              <span>Ciao {session.user.firstName}</span>
-              <h1>Oggi</h1>
-            </div>
-            {cartBlock}
-          </div>
-
-          {reviewBlock}
-          {crewBlock}
-          {checklistBlock}
-          {clockPointLine}
-          {weekLine}
-        </div>
-      )}
-
-      {canRequests && pendingApprovalRequests.length > 0 ? (
+  );
+  const requestsBlock = canRequests && pendingApprovalRequests.length > 0 ? (
         <Panel title="Richieste da approvare" action={`${pendingApprovalRequests.length} in attesa`}>
           <div style={{ display: "grid", gap: 10 }}>
             {pendingApprovalRequests.map((request) => (
@@ -1189,9 +1157,8 @@ export default async function DashboardPage() {
             ))}
           </div>
         </Panel>
-      ) : null}
-
-      {showKpi ? (
+      ) : null;
+  const teamBlock = showKpi ? (
         <KpiDashboard
           activeBarId={activeBarId}
           role={role}
@@ -1200,11 +1167,86 @@ export default async function DashboardPage() {
           initialData={kpiData}
           departments={departments.enabled ? departments.list : null}
         />
-      ) : null}
-
+      ) : null;
+  // Oggi as this person arranged it (lib/home-blocks.ts); warnings that ask
+  // for something to be done stay on top, whatever the arrangement.
+  const homeBlockNodes: Record<HomeBlockKey, ReactNode> = {
+    crew: crewBlock,
+    checklists: checklistBlock,
+    nextWeek: weekLine,
+    requests: requestsBlock,
+    team: teamBlock,
+    notes: homeBlocks.includes("notes") && features.tasks ? <HomeNotesBlock barId={activeBarId} /> : null,
+    hours: homeBlocks.includes("hours") && features.timeTracking ? <HomeHoursBlock barId={activeBarId} /> : null,
+    courses: homeBlocks.includes("courses") && features.courses ? <HomeCoursesBlock barId={activeBarId} /> : null,
+    shopping: features.shoppingList ? <HomeShoppingBlock items={shoppingItems} /> : null,
+    costs: homeBlocks.includes("costs") && costsEnabledFor(String(role)) ? <HomeCostsBlock barId={activeBarId} /> : null,
+    clock: clockBlock,
+    myHours: myHoursBlock,
+    myWeek: myWeekBlock,
+    inbox: inboxBlock,
+  };
+  // What this venue can show at all: a block with nothing behind it is not offered.
+  const homeAvailable: Record<HomeBlockKey, boolean> = {
+    crew: Boolean(crewBlock),
+    checklists: departments.enabled,
+    nextWeek: isOwner && features.shifts,
+    requests: canRequests && features.requests,
+    team: showKpi,
+    notes: features.tasks,
+    hours: isOwner && features.timeTracking,
+    courses: features.courses,
+    shopping: features.shoppingList,
+    costs: isOwner && costsEnabledFor(String(role)),
+    clock: features.timeTracking,
+    myHours: features.timeTracking,
+    myWeek: features.shifts,
+    inbox: true,
+  };
+  const homeEditor = (
+    <div style={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
+      <PopupAction
+        title="Modifica Oggi"
+        ariaLabel="Modifica Oggi"
+        triggerRow={
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 999, background: "#ffffff", border: "1px solid rgba(94, 92, 230, 0.14)", color: "#5e4ae3", fontWeight: 700, fontSize: 14.5 }}>
+            ✏️ Modifica Oggi
+          </span>
+        }
+      >
+        <HomeEditor
+          shown={homeBlocks}
+          choices={homeChoices(homeProfile)
+            .filter((key) => homeAvailable[key])
+            .map((key) => HOME_BLOCKS[key])}
+        />
+      </PopupAction>
+    </div>
+  );
+  const phoneHome = (
+    <Stack>
+      <div className="workbit-home">
+        <div className="workbit-home-title">
+          <div className="workbit-home-greet">
+            <span>Ciao {session.user.firstName}</span>
+            <h1>Oggi</h1>
+          </div>
+          {cartBlock}
+        </div>
+        {reviewBlock}
+        {clockFix && (clockFix.offer || clockFix.pending.length > 0) ? (
+          <ClockFixEmployee
+            offer={clockFix.offer}
+            pending={clockFix.pending}
+            reviewerName={venueOwner?.owner.firstName ?? "il titolare"}
+          />
+        ) : null}
+        {clockPointLine}
+        {homeBlocks.map((key) => (homeAvailable[key] && homeBlockNodes[key] ? <Fragment key={key}>{homeBlockNodes[key]}</Fragment> : null))}
+        {homeEditor}
+      </div>
     </Stack>
   );
-
   // On a computer the home is "Oggi" (desktop-today.tsx); the phone keeps
   // this one. Which shows is decided in CSS at 1100px.
   return (

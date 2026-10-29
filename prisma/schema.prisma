@@ -260,6 +260,7 @@ model User {
   checklistRunsCompleted   ChecklistRun[]          @relation("ChecklistCompletedBy")
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @updatedAt
+  homeLayouts              HomeLayout[]
 
   @@index([role])
   @@index([retiredAt])
@@ -401,6 +402,7 @@ model Bar {
   sessions               Session[]
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
+  homeLayouts            HomeLayout[]
 
   @@index([ownerId])
   @@index([mainBarId])
@@ -1465,4 +1467,19 @@ model CourseCertificate {
   @@index([barId, expiresAt])
   @@index([barId, userId, kind])
   @@index([courseId])
+}
+
+/// The blocks a person keeps on Oggi, in order (lib/home-blocks.ts). No row
+/// means the base layout.
+model HomeLayout {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  barId     String   @db.Uuid
+  blocks    String[] @default([])
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bar       Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, barId])
+  @@index([barId])
 }
