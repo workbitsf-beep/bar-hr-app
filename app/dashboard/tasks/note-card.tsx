@@ -24,8 +24,8 @@ export function chipsOf(meta: NoteMeta, options: { ahead: boolean; repeat: boole
 }
 
 /**
- * A note as a card: the round tick on the left, the text, its chips. A note
- * with nothing to confirm shows 📣 where the tick would be.
+ * A note as a card: the text and its chips, the green tick on the right. A
+ * note with nothing to confirm has no tick.
  */
 export function NoteCard({
   title,
@@ -51,19 +51,10 @@ export function NoteCard({
         padding: "14px 16px",
         display: "flex",
         gap: 12,
-        alignItems: "flex-start",
+        alignItems: "center",
         boxShadow: urgent && !done ? "inset 3px 0 0 #e5484d, 0 1px 2px rgba(31,27,58,.04)" : "0 1px 2px rgba(31,27,58,.04)",
       }}
     >
-      <span style={{ flex: "0 0 auto", width: 28, display: "flex", justifyContent: "center", marginTop: 0 }}>
-        {done ? (
-          <span aria-label="Fatta" style={{ width: 26, height: 26, borderRadius: 999, background: "#10b981", color: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
-            ✓
-          </span>
-        ) : (
-          tick ?? <span aria-hidden style={{ fontSize: 18, lineHeight: "26px" }}>📣</span>
-        )}
-      </span>
       <span style={{ display: "grid", gap: 6, flex: 1, minWidth: 0 }}>
         <span style={{ fontSize: 16, lineHeight: 1.3, color: done ? "#8a85a3" : "#1f1b3a", textDecoration: done ? "line-through" : "none", overflowWrap: "anywhere" }}>{title}</span>
         {chips.length ? (
@@ -77,19 +68,30 @@ export function NoteCard({
         ) : null}
         {footnote ? <span style={{ fontSize: 12.5, color: "#8a85a3" }}>{footnote}</span> : null}
       </span>
+      {done ? (
+        <span aria-label="Fatta" style={{ flex: "0 0 auto", width: 40, height: 40, borderRadius: 999, background: "#10b981", color: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800 }}>
+          ✓
+        </span>
+      ) : tick ? (
+        <span style={{ flex: "0 0 auto" }}>{tick}</span>
+      ) : null}
     </div>
   );
 }
 
-/** The empty round tick that confirms a note. */
+/** The green tick on the right that confirms a note. */
 export const tickStyle = {
-  width: 26,
-  height: 26,
+  width: 40,
+  height: 40,
   borderRadius: 999,
-  border: 0,
-  background: "#ffffff",
-  boxShadow: "inset 0 0 0 2px #d9d5e8",
+  border: "1px solid #bbf7d0",
+  background: "#dcfce7",
+  color: "#166534",
+  fontSize: 16,
+  fontWeight: 900,
   cursor: "pointer",
   padding: 0,
-  display: "block",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 } as const;

@@ -230,10 +230,14 @@ export default async function DashboardTasksPage({
               <ActionForm action={completeTaskAction} success="Nota fatta.">
                 <input type="hidden" name="taskId" value={pendingIds} />
                 <input type="hidden" name="notifySuccess" value="1" />
-                <button type="submit" aria-label="Segna come fatta" title="Segna come fatta" style={tickStyle} />
+                <button type="submit" aria-label="Segna come fatta" title="Segna come fatta" style={tickStyle}>
+                  ✓
+                </button>
               </ActionForm>
             ) : task.requiresConfirmation ? (
-              <span aria-hidden style={{ ...tickStyle, cursor: "default", opacity: 0.5 }} />
+              <span aria-hidden style={{ ...tickStyle, cursor: "default", opacity: 0.4 }}>
+                ✓
+              </span>
             ) : null
           }
         />
