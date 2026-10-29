@@ -108,8 +108,6 @@ export default async function DashboardCoursesPage() {
   const current = latestOnly(certificates)
     .map((certificate) => ({ ...certificate, state: certificateState(certificate.expiresAt, lead, now) }))
     .sort((a, b) => rank[a.state] - rank[b.state]);
-  const expired = current.filter((item) => item.state === "expired");
-  const expiring = current.filter((item) => item.state === "expiring");
   const upcoming = courses.filter((course) => course.endsAt >= now);
 
   // Courses done that still miss someone's certificate, one row per person.
@@ -179,114 +177,140 @@ export default async function DashboardCoursesPage() {
     />
   );
 
+  // Each person's card: the ring tells the worst state, the sentence the most urgent fact.
+  const STANDARD: CourseKind[] = [CourseKind.HACCP, CourseKind.FIRE_SAFETY, CourseKind.FIRST_AID];
+  const BADGE: Record<CertificateState | "missing", { background: string; color: string }> = {
+    expired: { background: "#fdecec", color: "#b3202f" },
+    expiring: { background: "#fff4dc", color: "#b45309" },
+    valid: { background: "#e7f7ef", color: "#0f7a4f" },
+    lasting: { background: "#e7f7ef", color: "#0f7a4f" },
+    missing: { background: "#f4f3f9", color: "#9a95b2" },
+  };
+  const RING: Record<string, string> = { expired: "#e5484d", expiring: "#f59e0b", valid: "#10b981", lasting: "#10b981", none: "#d9d5e8" };
+  const monthYear = new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric", timeZone: "UTC" });
+  const cards = (manager ? people : people.filter((person) => person.id === session.user.id).concat(nameOf.has(session.user.id) ? [] : [{ id: session.user.id, firstName: session.user.firstName ?? "", lastName: session.user.lastName ?? "" }]))
+    .map((person) => {
+      const items = byPerson.get(person.id) ?? [];
+      const worst = items[0]?.state ?? null;
+      const kinds = new Map(items.map((item) => [item.kind === CourseKind.OTHER ? `o:${item.title.toLowerCase()}` : item.kind, item]));
+      const badges = [
+        ...STANDARD.map((kind) => ({ key: kind, label: getCourseKind(kind).label, state: (kinds.get(kind)?.state ?? "missing") as CertificateState | "missing" })),
+        ...items.filter((item) => item.kind === CourseKind.OTHER).map((item) => ({ key: item.id, label: item.title, state: item.state as CertificateState | "missing" })),
+      ];
+      const urgent = items.find((item) => item.state === "expired") ?? items.find((item) => item.state === "expiring") ?? null;
+      const nextExpiry = items.filter((item) => item.expiresAt).sort((a, b) => a.expiresAt!.getTime() - b.expiresAt!.getTime())[0];
+      const sentence = urgent
+        ? `${courseName(urgent)} ${stateText(urgent.state, urgent.expiresAt)}`
+        : items.length
+          ? nextExpiry
+            ? `In regola fino a ${monthYear.format(nextExpiry.expiresAt!)}`
+            : "In regola"
+          : "Nessun attestato";
+      return { person, items, worst, badges, sentence, order: worst ? rank[worst] : 4 };
+    })
+    .sort((a, b) => a.order - b.order || a.person.lastName.localeCompare(b.person.lastName, "it"));
+
   return (
-    <div style={{ display: "grid", gap: 22, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px" }}>
+    <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px" }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "grid", gap: 4 }}>
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 750, letterSpacing: "-0.03em" }}>Corsi</h1>
-          <Quiet style={{ fontSize: 15 }}>{manager ? "Attestati e scadenze del personale" : "I tuoi attestati"}</Quiet>
+          <Quiet style={{ fontSize: 15 }}>{manager ? `${covered} di ${people.length} in regola` : "I tuoi attestati"}</Quiet>
         </div>
         <span aria-label={manager ? "Aggiungi un attestato" : "Carica un attestato"}>{plus}</span>
       </header>
 
-      {manager ? (
-        <div style={{ display: "grid", gap: 2 }}>
-          <span style={{ fontSize: 52, fontWeight: 750, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-            {covered} di {people.length}
-          </span>
-          <Quiet style={{ fontSize: 14.5 }}>persone in regola con tutti i corsi</Quiet>
-        </div>
-      ) : null}
-
-      {expired.length || expiring.length || toUpload.length ? (
-        <div style={{ display: "grid", gap: 10, padding: "0 4px" }}>
-          {expired.length ? (
-            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: TONE.expired }}>
-              <span style={dot(TONE.expired)} />
-              {expired.length} {expired.length === 1 ? "attestato scaduto" : "attestati scaduti"}
-            </span>
-          ) : null}
-          {expiring.length ? (
-            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: TONE.expiring }}>
-              <span style={dot("#f59e0b")} />
-              {expiring.length} in scadenza nei prossimi {lead} giorni
-            </span>
-          ) : null}
-          {toUpload.length ? (
-            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: "#5e4ae3" }}>
-              <span style={dot("#6d5ce7")} />
+      {toUpload.length ? (
+        <details style={{ background: "#f1eeff", borderRadius: 16 }}>
+          <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, padding: "13px 16px" }}>
+            <span style={dot("#6d5ce7")} />
+            <span style={{ flex: 1, fontSize: 15, color: "#4c1d95" }}>
               {toUpload.length} {toUpload.length === 1 ? "attestato da caricare" : "attestati da caricare"}
             </span>
-          ) : null}
-        </div>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#4c1d95" }}>Vedi</span>
+          </summary>
+          <div style={{ background: "#ffffff", borderRadius: "0 0 16px 16px" }}>
+            {toUpload.map(({ course, userId }) => (
+              <div key={`${course.id}:${userId}`} style={row}>
+                <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
+                  <span style={{ fontSize: 15.5 }}>{nameOf.get(userId)}</span>
+                  <Quiet style={{ fontSize: 13 }}>
+                    {course.title} · {dayMonth.format(course.startsAt)}
+                  </Quiet>
+                </span>
+                <CertificateButton
+                  members={memberOptions}
+                  selfId={session.user.id}
+                  preset={{ userId, kind: course.kind, title: course.title, courseId: course.id, completedAt: course.startsAt.toISOString().slice(0, 10) }}
+                  trigger="Carica"
+                  style={link}
+                />
+              </div>
+            ))}
+          </div>
+        </details>
       ) : null}
 
-      {manager && (expired.length || expiring.length) ? <Group title="Da rinnovare">{[...expired, ...expiring].map((item) => certificateLine(item, true))}</Group> : null}
-
-      {toUpload.length ? (
-        <Group title="Corsi fatti, attestato da caricare">
-          {toUpload.map(({ course, userId }) => (
-            <div key={`${course.id}:${userId}`} style={row}>
-              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
-                <span style={{ fontSize: 16 }}>{nameOf.get(userId)}</span>
-                <Quiet style={{ fontSize: 13.5 }}>
-                  {course.title} · {dayMonth.format(course.startsAt)}
-                </Quiet>
+      {cards.length ? (
+        cards.map(({ person, items, worst, badges, sentence }) => (
+          <details key={person.id} style={{ background: "#ffffff", borderRadius: 22, boxShadow: "0 1px 2px rgba(31,27,58,.04)" }}>
+            <summary style={{ listStyle: "none", cursor: "pointer", padding: 16, display: "grid", gap: 12 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span
+                  aria-hidden
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 999,
+                    background: "#ffffff",
+                    boxShadow: `inset 0 0 0 2.5px ${RING[worst ?? "none"]}`,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "#1f1b3a",
+                    flex: "0 0 auto",
+                  }}
+                >
+                  {`${person.firstName.charAt(0)}${person.lastName.charAt(0)}`.toUpperCase()}
+                </span>
+                <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                  <span style={{ fontSize: 16.5 }}>{`${person.firstName} ${person.lastName}`.trim()}</span>
+                  <span style={{ fontSize: 13.5, color: worst === "expired" || worst === "expiring" ? TONE[worst] : "#8a85a3" }}>{sentence}</span>
+                </span>
+                <span style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
               </span>
-              <CertificateButton
-                members={memberOptions}
-                selfId={session.user.id}
-                preset={{ userId, kind: course.kind, title: course.title, courseId: course.id, completedAt: course.startsAt.toISOString().slice(0, 10) }}
-                trigger="Carica"
-                style={link}
-              />
+              <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {badges.map((badge) => (
+                  <span key={badge.key} style={{ borderRadius: 999, padding: "6px 11px", fontSize: 12.5, fontWeight: badge.state === "missing" ? 500 : 600, ...BADGE[badge.state] }}>
+                    {badge.label}
+                  </span>
+                ))}
+              </span>
+            </summary>
+            <div style={{ borderTop: "1px solid #f2f0f8" }}>
+              <div style={{ marginTop: -1 }}>
+                {items.map((item) => certificateLine(item, false))}
+                <div style={row}>
+                  <CertificateButton
+                    members={manager ? memberOptions : null}
+                    selfId={session.user.id}
+                    preset={manager ? { userId: person.id } : undefined}
+                    trigger="+ Aggiungi un attestato"
+                    style={link}
+                  />
+                </div>
+              </div>
             </div>
-          ))}
-        </Group>
-      ) : null}
-
-      {manager ? (
-        <Group title="Persone">
-          {people.length ? (
-            people.map((person) => {
-              const items = byPerson.get(person.id) ?? [];
-              const worst = items[0]?.state ?? null;
-              return (
-                <details key={person.id} style={{ borderTop: "1px solid #f2f0f8" }}>
-                  <summary style={{ ...row, borderTop: 0, listStyle: "none", cursor: "pointer" }}>
-                    <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
-                      <span style={{ fontSize: 16 }}>{`${person.firstName} ${person.lastName}`.trim()}</span>
-                      <span style={{ fontSize: 13.5, color: worst ? TONE[worst] : "#8a85a3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {items.length ? items.map((item) => courseName(item)).join(" · ") : "Nessun attestato"}
-                      </span>
-                    </span>
-                    <span style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
-                  </summary>
-                  <div style={{ background: "#fbfaff" }}>
-                    {items.map((item) => certificateLine(item, false))}
-                    <div style={row}>
-                      <CertificateButton members={memberOptions} selfId={session.user.id} preset={{ userId: person.id }} trigger="+ Aggiungi un attestato" style={link} />
-                    </div>
-                  </div>
-                </details>
-              );
-            })
-          ) : (
-            <div style={row}>
-              <Quiet>Aggiungi le persone del locale per seguire i loro corsi.</Quiet>
-            </div>
-          )}
-        </Group>
+          </details>
+        ))
       ) : (
-        <Group title="I tuoi attestati">
-          {current.length ? (
-            current.map((item) => certificateLine(item, false))
-          ) : (
-            <div style={row}>
-              <Quiet>Nessun attestato: caricalo appena lo ricevi, ti avvisiamo prima che scada.</Quiet>
-            </div>
-          )}
-        </Group>
+        <Sheet>
+          <div style={row}>
+            <Quiet>Aggiungi le persone del locale per seguire i loro corsi.</Quiet>
+          </div>
+        </Sheet>
       )}
 
       <Group
