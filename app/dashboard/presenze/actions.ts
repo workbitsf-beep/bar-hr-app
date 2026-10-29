@@ -116,7 +116,7 @@ export async function saveRecipientAction(formData: FormData) {
   } catch (error) {
     return ruleFailure(error);
   }
-  if (createdId) redirect(`${PATH}/impostazioni?success=destinatario`);
+  if (createdId) redirect(`${PATH}?success=destinatario`);
   return { ok: true };
 }
 

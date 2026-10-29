@@ -13,6 +13,7 @@ import { RowsCard, softButton } from "../../../costi/cost-ui";
 import { EmptyState, Panel } from "../../../ui";
 import { deleteRecipientAction, saveRecipientAction } from "../../actions";
 import { fieldLabel, inputStyle, ROLE_LABELS } from "../../payroll-ui";
+import { ConsultantWizard } from "../../consultant-wizard";
 import { TemplateEditor } from "../../template-editor";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,15 @@ export default async function RecipientPage({ params }: { params: Promise<{ id: 
       entries: person.entries,
     })),
   };
+
+  // A new one: three short steps instead of the whole form.
+  if (isNew) {
+    return (
+      <div style={{ maxWidth: 560, margin: "0 auto", width: "100%", padding: "4px 4px 12px" }}>
+        <ConsultantWizard sample={sample} aiEnabled={templateAiEnabled()} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>

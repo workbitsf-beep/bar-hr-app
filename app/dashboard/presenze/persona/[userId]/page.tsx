@@ -7,7 +7,8 @@ import { memberScopeWhere } from "@/lib/staff-scope";
 import { BillingRequired } from "../../../billing-required";
 import { getDashboardContext } from "../../../context";
 import { EmptyState, Panel } from "../../../ui";
-import { Avatar, initials } from "../../payroll-ui";
+import { MonthMenu } from "../../payroll-ui";
+import { PdfButton } from "../../pdf-button";
 import { PersonMonth } from "../../person-month";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function PersonPresencePage({
   const [member, lastStamp] = await Promise.all([
     prisma.employeeBar.findFirst({
       where: { barId: activeBarId, userId, ...(isOwner || isSelf ? {} : memberScopeWhere(staff)) },
-      select: { contractWeeklyHours: true, user: { select: { firstName: true, lastName: true } } },
+      select: { user: { select: { firstName: true, lastName: true } } },
     }),
     prisma.timeLog.findFirst({
       where: { barId: activeBarId, userId, timestamp: { gte: new Date(Date.now() - 16 * 3_600_000) } },
@@ -62,27 +63,40 @@ export default async function PersonPresencePage({
   const { year, month } =
     parseMonthKey(mese) ?? (today.getDate() <= 5 && !isSelf ? defaultPayrollMonth(today) : { year: today.getFullYear(), month: today.getMonth() + 1 });
   const name = `${member.user.firstName} ${member.user.lastName}`.trim();
-  const status =
-    features.timeTracking && lastStamp?.type === "IN"
-      ? `In lavoro dalle ${clock.format(lastStamp.timestamp)}`
-      : member.contractWeeklyHours
-        ? `Contratto ${member.contractWeeklyHours.toLocaleString("it-IT")} h a settimana`
-        : null;
+  const inNow = features.timeTracking && lastStamp?.type === "IN";
+  const canPdf = features.reports && (canReports || isSelf);
+  const base = `/dashboard/presenze/persona/${userId}`;
 
   return (
-    <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 760, margin: "0 auto", width: "100%" }}>
-      <header style={{ display: "grid", gap: 8, padding: "0 4px" }}>
-        <Link href={`/dashboard/presenze?mese=${year}-${String(month).padStart(2, "0")}`} style={{ fontSize: 13.5, fontWeight: 700, color: "#5e4ae3", textDecoration: "none" }}>
+    <div style={{ display: "grid", gap: 20, gridTemplateColumns: "minmax(0, 1fr)", maxWidth: 640, margin: "0 auto", width: "100%", padding: "4px 4px 8px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <Link href={`/dashboard/presenze?mese=${year}-${String(month).padStart(2, "0")}`} style={{ fontSize: 15, fontWeight: 600, color: "#5e4ae3", textDecoration: "none" }}>
           ‹ Presenze
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar text={initials(member.user.firstName, member.user.lastName)} size={44} />
-          <div style={{ display: "grid", gap: 1, minWidth: 0 }}>
-            <h1 style={{ margin: 0, fontSize: 25, fontWeight: 750, letterSpacing: "-0.03em" }}>{name}</h1>
-            {status ? (
-              <span style={{ fontSize: 13, color: lastStamp?.type === "IN" && features.timeTracking ? "#0f7a4f" : "#6f6a88" }}>{status}</span>
-            ) : null}
-          </div>
+        {canPdf ? (
+          <details style={{ position: "relative" }}>
+            <summary
+              aria-label="Altro"
+              style={{ listStyle: "none", width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#4c1d95", fontSize: 20, cursor: "pointer", boxShadow: "0 1px 2px rgba(31,27,58,.06)" }}
+            >
+              ⋯
+            </summary>
+            <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 30, background: "#ffffff", borderRadius: 16, boxShadow: "0 18px 40px rgba(31,27,58,.16)", padding: 6, minWidth: 190 }}>
+              <PdfButton
+                userId={userId}
+                month={month}
+                year={year}
+                style={{ border: 0, background: "transparent", width: "100%", textAlign: "left", padding: "11px 12px", borderRadius: 12, fontSize: 15, color: "#1f1b3a", cursor: "pointer" }}
+              />
+            </div>
+          </details>
+        ) : null}
+      </div>
+      <header style={{ display: "grid", gap: 4 }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 750, letterSpacing: "-0.03em" }}>{name}</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <MonthMenu base={base} year={year} month={month} />
+          {inNow ? <span style={{ fontSize: 14, color: "#0f7a4f" }}>· in lavoro dalle {clock.format(lastStamp!.timestamp)}</span> : null}
         </div>
       </header>
       <PersonMonth
@@ -94,7 +108,7 @@ export default async function PersonPresencePage({
         // Staff never fix their own hours: the owner does.
         canFixStamps={canStamps && (isOwner || !isSelf)}
         canCorrectFile={canReports}
-        canPdf={features.reports && (canReports || isSelf)}
+        canPdf={canPdf}
         timeTracking={features.timeTracking}
       />
     </div>

@@ -142,3 +142,78 @@ export function MonthSwitch({ base, year, month, size = "large" }: { base: strin
     </div>
   );
 }
+
+/** The quiet grey of secondary words. */
+export function Quiet({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  return <span style={{ fontSize: 14, color: "#8a85a3", ...style }}>{children}</span>;
+}
+
+/** A white sheet of rows, no border: the minimal card. */
+export function Sheet({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  return <div style={{ background: "#ffffff", borderRadius: 22, overflow: "hidden", boxShadow: "0 1px 2px rgba(31,27,58,.04)", ...style }}>{children}</div>;
+}
+
+export function GearLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      style={{ width: 42, height: 42, borderRadius: 999, background: "#ffffff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(31,27,58,.06)", flex: "0 0 auto" }}
+    >
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#4c1d95" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+      </svg>
+    </Link>
+  );
+}
+
+/** "Ottobre 2026 ▾": the last twelve months, in a menu that opens on tap. */
+export function MonthMenu({ base, year, month }: { base: string; year: number; month: number }) {
+  const now = new Date();
+  const months = Array.from({ length: 12 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - index, 1));
+  return (
+    <details style={{ position: "relative" }}>
+      <summary style={{ listStyle: "none", cursor: "pointer", fontSize: 15.5, fontWeight: 600, color: "#5e4ae3", display: "inline-flex", alignItems: "center", gap: 6 }}>
+        {monthNames[month - 1]} {year}
+        <span aria-hidden style={{ fontSize: 11 }}>▾</span>
+      </summary>
+      <div
+        style={{
+          position: "absolute",
+          zIndex: 30,
+          top: "calc(100% + 8px)",
+          left: 0,
+          width: 220,
+          background: "#ffffff",
+          borderRadius: 18,
+          boxShadow: "0 18px 40px rgba(31,27,58,.16)",
+          padding: 6,
+          display: "grid",
+        }}
+      >
+        {months.map((date) => {
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+          const active = date.getFullYear() === year && date.getMonth() + 1 === month;
+          return (
+            <Link
+              key={key}
+              href={`${base}${base.includes("?") ? "&" : "?"}mese=${key}`}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 12,
+                fontSize: 15,
+                textDecoration: "none",
+                color: active ? "#4c1d95" : "#1f1b3a",
+                background: active ? "#f1eeff" : "transparent",
+                fontWeight: active ? 700 : 400,
+              }}
+            >
+              {monthNames[date.getMonth()]} {date.getFullYear()}
+            </Link>
+          );
+        })}
+      </div>
+    </details>
+  );
+}

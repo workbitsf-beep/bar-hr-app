@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { buildMonthlyDataset } from "@/lib/reporting";
 import { AddDay } from "./day-editor";
 import { AddStampButton, DayRow, type DayChoice, type DayView, type Span } from "./day-item";
-import { Card, ghostButton, hoursValue, MonthSwitch, SectionHead } from "./payroll-ui";
+import { hoursValue, Quiet, Sheet } from "./payroll-ui";
 import { PdfButton } from "./pdf-button";
 
 const AWAY_LABELS: Partial<Record<PayrollCodeKey, string>> = {
@@ -20,7 +20,6 @@ const AWAY_LABELS: Partial<Record<PayrollCodeKey, string>> = {
 
 const weekdayOf = new Intl.DateTimeFormat("it-IT", { weekday: "short", timeZone: "UTC" });
 const romeParts = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Rome" });
-const dayMonth = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", timeZone: "UTC" });
 
 function clockText(value: Date) {
   return romeParts.format(value);
@@ -44,12 +43,6 @@ function dayKeyLocal(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 }
 
-function weekStart(dayKey: string) {
-  const date = new Date(`${dayKey}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
-  return date.toISOString().slice(0, 10);
-}
-
 function workedOf(entries: PayrollPerson["entries"]) {
   return entries.filter((entry) => entry.kind === "ordinary" || entry.kind === "overtime").reduce((sum, entry) => sum + entry.hours, 0);
 }
@@ -69,6 +62,7 @@ export async function PersonMonth({
   canCorrectFile,
   canPdf,
   timeTracking,
+  embedded = false,
 }: {
   barId: string;
   userId: string;
@@ -79,6 +73,8 @@ export async function PersonMonth({
   canCorrectFile: boolean;
   canPdf: boolean;
   timeTracking: boolean;
+  /** On the main page, for an employee: the month menu is already above. */
+  embedded?: boolean;
 }) {
   const key = monthKeyOf(year, month);
   const monthStart = new Date(year, month - 1, 1);
@@ -191,108 +187,94 @@ export async function PersonMonth({
     .reverse()
     .map((view) => ({ date: view.date, weekday: view.weekday, day: view.day, shift: view.shift }));
 
-  // Newest week first: the days that matter now sit on top.
-  const weeks = new Map<string, DayView[]>();
-  for (const view of views) weeks.set(weekStart(view.date), [...(weeks.get(weekStart(view.date)) ?? []), view]);
-  const weekList = Array.from(weeks.entries()).reverse();
-
   const worked = person ? person.totals.ordinary.hours + person.totals.overtime.hours : 0;
-  const chips = person
+  const summary = person
     ? [
-        { text: `${person.workedDays} ${person.workedDays === 1 ? "giorno" : "giorni"}`, tone: "grey" },
-        person.totals.overtime.hours ? { text: `Straord. ${hoursValue(person.totals.overtime.hours)} h`, tone: "violet" } : null,
-        person.totals.holiday.days ? { text: `Ferie ${person.totals.holiday.days} gg`, tone: "green" } : null,
-        person.totals.sickness.days ? { text: `Malattia ${person.totals.sickness.days} gg`, tone: "blue" } : null,
-        person.totals.leave.hours ? { text: `Permessi ${hoursValue(person.totals.leave.hours)} h`, tone: "green" } : null,
-        person.totals.closure.days + person.totals.publicHoliday.days
-          ? { text: `Chiuso ${person.totals.closure.days + person.totals.publicHoliday.days} gg`, tone: "grey" }
-          : null,
-      ].filter((item): item is { text: string; tone: string } => item !== null)
-    : [];
-  const chipColors: Record<string, [string, string]> = {
-    grey: ["#f3f1fa", "#4b4763"],
-    violet: ["#f5eefe", "#7e22ce"],
-    green: ["#e2f6ed", "#0f7a4f"],
-    blue: ["#e6f4ff", "#0369a1"],
-  };
-  const base = `/dashboard/presenze/persona/${userId}`;
+        `${person.workedDays} ${person.workedDays === 1 ? "giorno" : "giorni"}`,
+        person.totals.overtime.hours ? `straord. ${hoursValue(person.totals.overtime.hours)}` : null,
+        person.totals.holiday.days ? `ferie ${person.totals.holiday.days}` : null,
+        person.totals.sickness.days ? `malattia ${person.totals.sickness.days}` : null,
+        person.totals.leave.hours ? `permessi ${hoursValue(person.totals.leave.hours)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+  const missing = canFixStamps && timeTracking ? stampChoices.length : 0;
+  const days = [...views].reverse();
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <Card style={{ padding: 16, display: "grid", gap: 12 }}>
-        <MonthSwitch base={base} year={year} month={month} size="small" />
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center" }}>
-          <span style={{ fontSize: 40, fontWeight: 750, letterSpacing: "-0.04em", fontVariantNumeric: "tabular-nums" }}>{hoursValue(worked)}</span>
-          <span style={{ fontSize: 16, color: "#6f6a88" }}>ore</span>
-        </div>
-        {chips.length ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-            {chips.map((chip) => (
-              <span
-                key={chip.text}
-                style={{ fontSize: 12, borderRadius: 999, padding: "4px 10px", fontWeight: 600, background: chipColors[chip.tone][0], color: chipColors[chip.tone][1] }}
-              >
-                {chip.text}
+    <div style={{ display: "grid", gap: 18 }}>
+      <div style={{ display: "grid", gap: 2 }}>
+        {embedded ? (
+          <span style={{ fontSize: 52, fontWeight: 750, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{hoursValue(worked)}</span>
+        ) : null}
+        <Quiet style={{ fontSize: 14.5 }}>
+          {embedded ? "ore nel mese" : <span style={{ color: "#1f1b3a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{hoursValue(worked)} ore</span>}
+          {summary ? ` · ${summary}` : ""}
+          {payroll.source === "SHIFTS" ? " · dai turni" : ""}
+        </Quiet>
+      </div>
+
+      {missing ? (
+        <AddStampButton
+          userId={userId}
+          personName={personName}
+          choices={stampChoices}
+          style={{
+            all: "unset",
+            boxSizing: "border-box",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            background: "#fff7e8",
+            borderRadius: 16,
+            padding: "13px 16px",
+            cursor: "pointer",
+            width: "100%",
+          }}
+          trigger={
+            <>
+              <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: "#f59e0b", flex: "0 0 auto" }} />
+              <span style={{ flex: 1, fontSize: 15, color: "#92400e" }}>
+                {missing} {missing === 1 ? "turno senza timbratura" : "turni senza timbratura"}
               </span>
-            ))}
-          </div>
-        ) : null}
-        {canPdf || (canFixStamps && timeTracking) ? (
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            {canPdf ? <PdfButton userId={userId} month={month} year={year} style={ghostButton} /> : null}
-            {canFixStamps && timeTracking ? <AddStampButton userId={userId} personName={personName} choices={stampChoices} style={ghostButton} /> : null}
-          </div>
-        ) : null}
-        <span style={{ fontSize: 12, color: "#9a95b2", textAlign: "center" }}>{payroll.source === "SHIFTS" ? "Ore dai turni pubblicati" : "Ore dalle timbrature, arrotondate"}</span>
-      </Card>
-
-      {weekList.map(([start, days]) => {
-        const first = days[0];
-        const last = days[days.length - 1];
-        const total = days.reduce((sum, view) => sum + workedOf(entriesOf.get(view.date) ?? []), 0);
-        return (
-          <section key={start} style={{ display: "grid", gap: 8 }}>
-            <SectionHead
-              title={
-                first.date === last.date
-                  ? dayMonth.format(new Date(`${first.date}T00:00:00Z`))
-                  : `${first.day} – ${dayMonth.format(new Date(`${last.date}T00:00:00Z`))}`
-              }
-              aside={total ? `${hoursValue(total)} h` : undefined}
-            />
-            <Card>
-              <div style={{ marginTop: -1 }}>
-                {[...days].reverse().map((view) => (
-                  <div key={view.date} style={view.right === "Riposo" && !view.flags.length && !view.segments.length ? { opacity: 0.55 } : undefined}>
-                    <DayRow view={view} userId={userId} personName={personName} canFix={canFixStamps && timeTracking && missingStamp(view)} />
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </section>
-        );
-      })}
-
-      {timeTracking ? (
-        <div style={{ display: "flex", gap: 14, padding: "0 6px", flexWrap: "wrap", fontSize: 12, color: "#6f6a88" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 14, height: 6, borderRadius: 3, background: "#6d5ce7" }} />
-            timbrato
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 14, height: 6, borderRadius: 3, border: "1.5px dashed #f59e0b", boxSizing: "border-box" }} />
-            turno senza timbratura
-          </span>
-          <span>barra dalle 6 a mezzanotte</span>
-        </div>
+              <span style={{ fontSize: 14.5, fontWeight: 700, color: "#92400e" }}>Sistema</span>
+            </>
+          }
+        />
       ) : null}
 
+      <Sheet>
+        <div style={{ marginTop: -1 }}>
+          {days.length ? (
+            days.map((view) => (
+              <DayRow key={view.date} view={view} userId={userId} personName={personName} canFix={canFixStamps && timeTracking && missingStamp(view)} />
+            ))
+          ) : (
+            <div style={{ padding: "15px 18px" }}>
+              <Quiet>Nessun giorno in questo mese.</Quiet>
+            </div>
+          )}
+        </div>
+      </Sheet>
+
       {canCorrectFile && person ? (
-        <Card>
+        <Sheet>
           <div style={{ marginTop: -1 }}>
             <AddDay editor={{ userId, dailyHours: person.dailyHours, minDate, maxDate }} />
           </div>
-        </Card>
+        </Sheet>
+      ) : null}
+
+      {embedded && canPdf ? (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <PdfButton
+            userId={userId}
+            month={month}
+            year={year}
+            style={{ border: 0, background: "transparent", color: "#5e4ae3", fontSize: 15, fontWeight: 600, cursor: "pointer", minHeight: 44 }}
+          />
+        </div>
       ) : null}
     </div>
   );

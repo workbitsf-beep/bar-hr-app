@@ -282,44 +282,6 @@ function DaySheet({
   );
 }
 
-function Track({ view }: { view: DayView }) {
-  return (
-    <span
-      aria-hidden
-      style={{
-        position: "relative",
-        display: "block",
-        width: "100%",
-        maxWidth: 190,
-        height: 12,
-        borderRadius: 6,
-        background: view.away ? "#e2f6ed" : "#f3f1fa",
-      }}
-    >
-      {view.segments.map((segment, index) => (
-        <span
-          key={index}
-          style={{ position: "absolute", top: 0, height: 12, borderRadius: 6, background: "#6d5ce7", left: `${segment.left}%`, width: `${Math.max(segment.width, 2)}%` }}
-        />
-      ))}
-      {view.planned ? (
-        <span
-          style={{
-            position: "absolute",
-            top: 0,
-            height: 12,
-            borderRadius: 6,
-            border: "1.5px dashed #f59e0b",
-            boxSizing: "border-box",
-            left: `${view.planned.left}%`,
-            width: `${Math.max(view.planned.width, 3)}%`,
-          }}
-        />
-      ) : null}
-    </span>
-  );
-}
-
 /**
  * One day of the month: the date, the day's track (6:00–24:00) with the
  * stamped spans, the exact times under it, the hours on the right. Tapped,
@@ -329,40 +291,42 @@ export function DayRow({ view, userId, personName, canFix }: { view: DayView; us
   const [open, setOpen] = useState(false);
   const actionable = canFix || Boolean(view.editor);
   const flagged = view.flags.length > 0;
+  const status = view.flags.length
+    ? view.flags[0].replace(" senza timbratura", ", non timbrato")
+    : view.times || (view.away ?? (view.right === "Riposo" ? "Riposo" : ""));
   const content = (
     <>
-      <span style={{ width: 40, display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.1, flex: "0 0 auto" }}>
-        <small style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#7c7894" }}>{view.weekday}</small>
-        <b style={{ fontSize: 18, fontWeight: 600 }}>{view.day}</b>
-      </span>
-      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
-        <Track view={view} />
-        {view.times ? <span style={{ fontSize: 12, color: "#6f6a88", fontVariantNumeric: "tabular-nums" }}>{view.times}</span> : null}
-        {flagged ? <span style={{ fontSize: 12, color: "#b45309" }}>{view.flags.join(" · ")}</span> : null}
-        {view.overridden ? <span style={{ fontSize: 12, color: "#6d5ce7" }}>Corretto nel file del consulente</span> : null}
+      <span style={{ fontSize: 14, color: "#8a85a3", whiteSpace: "nowrap" }}>
+        {view.weekday.charAt(0).toUpperCase() + view.weekday.slice(1)}
+        <b style={{ color: "#1f1b3a", fontWeight: 600, fontSize: 16, marginLeft: 5 }}>{view.day}</b>
       </span>
       <span
         style={{
-          marginLeft: "auto",
-          textAlign: "right",
+          minWidth: 0,
+          fontSize: 14,
           fontVariantNumeric: "tabular-nums",
-          fontSize: flagged && actionable ? 13 : view.away ? 13 : 14.5,
-          fontWeight: flagged && actionable ? 700 : 400,
-          color: flagged && actionable ? "#b45309" : view.away ? "#0f7a4f" : "#1f1b3a",
-          whiteSpace: "nowrap",
+          color: flagged ? "#b45309" : view.away ? "#0f7a4f" : "#8a85a3",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
-        {flagged && actionable ? "Sistema ›" : view.right}
+        {status}
+        {view.overridden ? <span style={{ color: "#6d5ce7" }}> · corretto nel file</span> : null}
+      </span>
+      <span style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 15.5, color: flagged ? "#b45309" : "#1f1b3a", whiteSpace: "nowrap" }}>
+        {flagged && actionable ? "›" : view.segments.length || /^\d/.test(view.right) ? view.right : ""}
       </span>
     </>
   );
   const rowStyle: CSSProperties = {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "58px minmax(0, 1fr) auto",
     alignItems: "center",
-    gap: 12,
-    padding: "11px 14px",
-    borderTop: "1px solid #f1eff8",
-    background: flagged ? "#fffaf0" : "transparent",
+    gap: 10,
+    padding: "13px 18px",
+    borderTop: "1px solid #f2f0f8",
+    background: "transparent",
+    opacity: view.right === "Riposo" && !flagged ? 0.45 : 1,
     color: "#1f1b3a",
     width: "100%",
     textAlign: "left",
@@ -371,7 +335,7 @@ export function DayRow({ view, userId, personName, canFix }: { view: DayView; us
   return (
     <>
       {actionable ? (
-        <button type="button" onClick={() => setOpen(true)} style={{ ...rowStyle, border: 0, borderTop: "1px solid #f1eff8", cursor: "pointer" }}>
+        <button type="button" onClick={() => setOpen(true)} style={{ ...rowStyle, border: 0, borderTop: "1px solid #f2f0f8", cursor: "pointer" }}>
           {content}
         </button>
       ) : (
@@ -390,12 +354,14 @@ export function AddStampButton({
   personName,
   choices,
   style,
+  trigger,
 }: {
   userId: string;
   personName: string;
   /** Days so far with no stamp and no day away, newest first. */
   choices: DayChoice[];
   style: CSSProperties;
+  trigger?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<DayChoice | null>(null);
@@ -443,10 +409,14 @@ export function AddStampButton({
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} style={style}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        Timbratura
+        {trigger ?? (
+          <>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Timbratura
+          </>
+        )}
       </button>
       {open && current ? (
         <DaySheet
