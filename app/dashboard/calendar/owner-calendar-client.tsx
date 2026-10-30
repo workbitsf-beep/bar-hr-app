@@ -3130,6 +3130,7 @@ export function OwnerCalendarClient({
               {weekIsEmpty && weekIsAhead ? (
                 <button
                   type="button"
+                  data-tour="copy-week"
                   disabled={isPending}
                   ref={(node) => {
                     if (node) void prefetchCopyWeekPreview(weekKey).catch(() => undefined);

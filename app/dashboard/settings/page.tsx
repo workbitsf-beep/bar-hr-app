@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { ReplayTourButton } from "../guided-tour";
+import { TOUR_PILOT_BARS } from "@/lib/tours";
 import { ActivityType, Prisma, Role, type AppLanguage } from "@prisma/client";
 import { WebAuthnRegistrationPanel } from "@/app/components/webauthn-registration-panel";
 import { getBillingStatus } from "@/lib/billing";
@@ -913,6 +915,11 @@ export default async function DashboardSettingsPage({
 
   const helpGroup = (
     <SettingsGroup label="Documenti e assistenza">
+      {activeBarId && TOUR_PILOT_BARS.has(activeBarId) ? (
+        <ReplayTourButton>
+          <SettingsRow dot="#8b5cf6" title="Rivedi la guida" lead="Ti mostra di nuovo come si usa l'app" />
+        </ReplayTourButton>
+      ) : null}
       <PopupAction
         title="Documenti legali"
         ariaLabel="Apri documenti legali"
@@ -1314,6 +1321,11 @@ export default async function DashboardSettingsPage({
       {accountGroup}
 
       <SettingsGroup label="Abbonamento e assistenza">
+        {activeBarId && TOUR_PILOT_BARS.has(activeBarId) ? (
+          <ReplayTourButton>
+            <SettingsRow dot="#8b5cf6" title="Rivedi la guida" lead="Ti mostra di nuovo come si usa l'app" />
+          </ReplayTourButton>
+        ) : null}
         {role === Role.OWNER && entitlements.branding && activeBarName ? (
           <PopupAction
             title="Stile del locale"

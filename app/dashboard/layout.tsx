@@ -9,6 +9,8 @@ import { getDashboardContext } from "./context";
 import { NotificationBarSync } from "./notification-bar-sync";
 import { NativeExtras } from "./native-extras";
 import { NativeWidgetsSync } from "./native-widgets-sync";
+import { GuidedTour } from "./guided-tour";
+import { TOUR_PILOT_BARS } from "@/lib/tours";
 import { PushRegistration } from "./push-registration";
 import { NativePermissions } from "./native-permissions";
 import {
@@ -142,6 +144,7 @@ export default async function DashboardLayout({
       <NativePermissions />
       <NativeExtras canClock={role !== "OWNER" && String(role) !== "SUPER_ADMIN" && features.timeTracking} />
       <NativeWidgetsSync />
+      <GuidedTour enabled={Boolean(activeBarId && TOUR_PILOT_BARS.has(activeBarId))} profile={role === "OWNER" ? "owner" : "staff"} />
       <DashboardRouteGuard
         redirectTo={ownerNeedsSubscriptionActivation ? "/dashboard/settings?billing=1" : null}
         allowPrefixes={["/dashboard/settings"]}
