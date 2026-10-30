@@ -48,3 +48,15 @@ test("whole days are added on free days and removed from the last ones", () => {
 test("nothing asked, nothing changed", () => {
   assert.deepEqual(applyMonthTargets(worked, {}, month), worked);
 });
+
+test("rows left out stay in the review and leave the file; a changed row keeps its new hours", async () => {
+  const { applyAdjustment } = await import("../lib/payroll/adjust");
+  const result = applyAdjustment(
+    worked,
+    { targets: {}, rows: { "2026-10-02|ordinary": { off: true }, "2026-10-01|ordinary": { hours: 6 } }, kindsOff: ["overtime"], off: false },
+    month,
+  );
+  assert.equal(result.all.length, 4);
+  assert.deepEqual(result.file.map((entry) => [entry.date, entry.kind, entry.hours]), [["2026-10-01", "ordinary", 6], ["2026-10-03", "ordinary", 8]]);
+  assert.ok(result.off.has("2026-10-02|ordinary") && result.off.has("2026-10-03|overtime"));
+});

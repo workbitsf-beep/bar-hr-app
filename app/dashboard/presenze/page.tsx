@@ -185,7 +185,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
       : null;
   const lastChange = [lastOverride?.updatedAt, lastAdjustment?.updatedAt, lastShiftChange?.updatedAt].filter(Boolean).sort((a, b) => b!.getTime() - a!.getTime())[0] ?? null;
 
-  const totalWorked = data.people.reduce((sum, person) => sum + person.totals.ordinary.hours + person.totals.overtime.hours, 0);
+  const totalWorked = data.people.reduce((sum, person) => sum + person.computedTotals.ordinary.hours + person.computedTotals.overtime.hours, 0);
   const venue = data.legalName || data.venueName;
   const signer = `${session.user.firstName ?? ""} ${session.user.lastName ?? ""}`.trim();
   const recipient = recipients[0] ?? null;
@@ -287,7 +287,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
                   {twin ? <Quiet style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{person.email}</Quiet> : null}
                 </span>
                 {person.flags.length ? <span aria-label={`${person.flags.length} da sistemare`} style={dot("#f59e0b")} /> : null}
-                <b style={{ fontSize: 15.5, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{hoursValue(person.totals.ordinary.hours + person.totals.overtime.hours)}</b>
+                <b style={{ fontSize: 15.5, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{hoursValue(person.computedTotals.ordinary.hours + person.computedTotals.overtime.hours)}</b>
                 <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
               </Link>
             );
@@ -308,11 +308,11 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
             >
               <span aria-hidden style={{ width: 26, fontSize: 19, textAlign: "center" }}>✏️</span>
               <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
-                <span style={{ fontSize: 15.5 }}>Rivedi il file prima di mandarlo</span>
+                <span style={{ fontSize: 15.5 }}>Il file come lo riceve, da controllare</span>
                 <Quiet style={{ fontSize: 13 }}>
                   {data.people.some((person) => person.adjusted)
-                    ? `${data.people.filter((person) => person.adjusted).length} modificate da te`
-                    : "Cambia ore e voci di ognuno"}
+                    ? `${data.people.filter((person) => person.adjusted).length === 1 ? "1 persona cambiata" : `${data.people.filter((person) => person.adjusted).length} persone cambiate`} da te`
+                    : "Scegli le righe e cambia le ore prima di mandarlo"}
                 </Quiet>
               </span>
               <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>

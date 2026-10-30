@@ -1,20 +1,36 @@
 import { DAY_KINDS, PAYROLL_KINDS, type PayrollCodeKey, type PayrollEntry } from "./template";
 
 /**
- * The owner's own totals for a person's month, laid over the computed days so
- * the file still adds up in every layout: one row per day, the calendar, the
- * totals. Hours taken off come from the last days first; hours added go on the
- * days that already have that item, else on the days worked, last first, a few
- * hours at a time. Whole days (holiday, sickness...) are dropped or added on
- * the last days with nothing on them. The clock-ins themselves never change.
+ * The owner's changes to a person's month in the consultant's file, made on
+ * the file itself before sending:
+ * - rows: a day's item with other hours or days, or left out (off);
+ * - kindsOff: a whole item left out (one row per item files);
+ * - targets: a month total for an item (per-item and per-person files),
+ *   laid over the days so the file still adds up in every layout;
+ * - off: the person left out of the file.
+ * The clock-ins themselves never change.
  */
 
 export type MonthTargets = Partial<Record<PayrollCodeKey, { hours?: number; days?: number }>>;
+export type RowChange = { hours?: number; days?: number; off?: boolean };
+export type MonthAdjustment = {
+  targets: MonthTargets;
+  /** "2026-10-03|ordinary" → the change. */
+  rows: Record<string, RowChange>;
+  kindsOff: PayrollCodeKey[];
+  off: boolean;
+};
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 const WORKED: PayrollCodeKey[] = ["ordinary", "overtime"];
 /** Past this a day takes no more added hours, unless there is nowhere else to put them. */
 const DAY_CAP = 12;
+
+export const rowKey = (date: string, kind: PayrollCodeKey) => `${date}|${kind}`;
+
+function isKind(value: unknown): value is PayrollCodeKey {
+  return typeof value === "string" && PAYROLL_KINDS.includes(value as PayrollCodeKey);
+}
 
 export function targetsOf(value: unknown): MonthTargets {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -31,6 +47,34 @@ export function targetsOf(value: unknown): MonthTargets {
   return targets;
 }
 
+/** The stored JSON as an adjustment; the first version kept the targets at the top. */
+export function adjustmentOf(value: unknown): MonthAdjustment {
+  const stored = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  const rows: Record<string, RowChange> = {};
+  if (stored.rows && typeof stored.rows === "object" && !Array.isArray(stored.rows)) {
+    for (const [key, raw] of Object.entries(stored.rows as Record<string, unknown>)) {
+      const [date, kind] = key.split("|");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? "") || !isKind(kind) || !raw || typeof raw !== "object") continue;
+      const { hours, days, off } = raw as { hours?: unknown; days?: unknown; off?: unknown };
+      const change: RowChange = {};
+      if (typeof hours === "number" && Number.isFinite(hours) && hours >= 0 && hours <= 24) change.hours = round2(hours);
+      if (typeof days === "number" && (days === 0 || days === 1)) change.days = days;
+      if (off === true) change.off = true;
+      if (Object.keys(change).length) rows[key] = change;
+    }
+  }
+  return {
+    targets: targetsOf(stored.targets ?? stored),
+    rows,
+    kindsOff: Array.isArray(stored.kindsOff) ? (stored.kindsOff as unknown[]).filter(isKind) : [],
+    off: stored.off === true,
+  };
+}
+
+export function isEmptyAdjustment(adjustment: MonthAdjustment) {
+  return !Object.keys(adjustment.targets).length && !Object.keys(adjustment.rows).length && !adjustment.kindsOff.length && !adjustment.off;
+}
+
 export function totalsOf(entries: PayrollEntry[]) {
   const totals = Object.fromEntries(PAYROLL_KINDS.map((kind) => [kind, { hours: 0, days: 0 }])) as Record<PayrollCodeKey, { hours: number; days: number }>;
   for (const entry of entries) {
@@ -38,6 +82,33 @@ export function totalsOf(entries: PayrollEntry[]) {
     totals[entry.kind].days += entry.days;
   }
   return totals;
+}
+
+/**
+ * The person's month after the owner's changes: every row (for the review,
+ * with the ones left out marked) and the rows that go in the file.
+ */
+export function applyAdjustment(
+  source: PayrollEntry[],
+  adjustment: MonthAdjustment,
+  context: { year: number; month: number; dailyHours: number | null },
+) {
+  let entries = source.map((entry) => {
+    const change = adjustment.rows[rowKey(entry.date, entry.kind)];
+    return change ? { ...entry, hours: change.hours ?? entry.hours, days: change.days ?? entry.days } : { ...entry };
+  });
+  entries = applyMonthTargets(entries, adjustment.targets, context);
+  const off = new Set<string>();
+  for (const entry of entries) {
+    if (adjustment.off || adjustment.kindsOff.includes(entry.kind) || adjustment.rows[rowKey(entry.date, entry.kind)]?.off) {
+      off.add(rowKey(entry.date, entry.kind));
+    }
+  }
+  return {
+    all: entries,
+    file: entries.filter((entry) => !off.has(rowKey(entry.date, entry.kind)) && (entry.hours > 0 || entry.days > 0)),
+    off,
+  };
 }
 
 export function applyMonthTargets(

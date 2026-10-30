@@ -3,7 +3,7 @@ import "server-only";
 import { ActivityType, RequestStatus, RequestType, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyDataset } from "@/lib/reporting";
-import { applyMonthTargets, targetsOf, totalsOf, type MonthTargets } from "./adjust";
+import { adjustmentOf, applyAdjustment, isEmptyAdjustment, totalsOf, type MonthAdjustment } from "./adjust";
 import {
   DAY_KINDS,
   PAYROLL_CODE_LABELS,
@@ -45,9 +45,14 @@ export type PayrollPerson = PayrollPersonData & {
   overridden: string[];
   /** The totals before the owner's own (when there are some), for "era 168:00". */
   computedTotals: Record<PayrollCodeKey, { hours: number; days: number }>;
-  /** The owner's totals for the month, when set. */
-  adjusted: MonthTargets | null;
+  /** The owner's changes made on the file, when there are some. */
+  adjusted: MonthAdjustment | null;
   adjustedNote: string | null;
+  /** Every row of the month, the ones left out of the file included ("date|kind" in offRows). */
+  reviewEntries: PayrollEntry[];
+  offRows: string[];
+  /** Left out of the file altogether. */
+  excluded: boolean;
   warnings: string[];
 };
 
@@ -354,13 +359,19 @@ export async function buildPayrollMonth(input: {
 
     // The owner's own totals, when set, laid over the days: the file only.
     const computedTotals = totalsOf(entries);
-    const adjustment = adjustments.find((item) => item.userId === member.userId);
-    const targets = adjustment ? targetsOf(adjustment.totals) : null;
-    if (targets && Object.keys(targets).length) {
-      entries = applyMonthTargets(entries, targets, { year: input.year, month: input.month, dailyHours });
+    const stored = adjustments.find((item) => item.userId === member.userId);
+    const parsed = stored ? adjustmentOf(stored.totals) : null;
+    const adjustment = parsed && !isEmptyAdjustment(parsed) ? parsed : null;
+    let reviewEntries = entries;
+    let offRows: string[] = [];
+    if (adjustment) {
+      const applied = applyAdjustment(entries, adjustment, { year: input.year, month: input.month, dailyHours });
+      reviewEntries = applied.all;
+      entries = applied.file;
+      offRows = Array.from(applied.off);
       workedDays = new Set(entries.filter((entry) => (entry.kind === "ordinary" || entry.kind === "overtime") && entry.hours > 0).map((entry) => entry.date)).size;
     }
-    const totals = targets ? totalsOf(entries) : computedTotals;
+    const totals = adjustment ? totalsOf(entries) : computedTotals;
 
     result.push({
       userId: member.userId,
@@ -378,8 +389,11 @@ export async function buildPayrollMonth(input: {
       flags: flags.filter((flag) => !corrected.has(flag.date)).sort((a, b) => a.date.localeCompare(b.date)),
       overridden: Array.from(corrected.keys()).sort(),
       computedTotals,
-      adjusted: targets && Object.keys(targets).length ? targets : null,
-      adjustedNote: adjustment?.note ?? null,
+      adjusted: adjustment,
+      adjustedNote: stored?.note ?? null,
+      reviewEntries,
+      offRows,
+      excluded: adjustment?.off ?? false,
       warnings,
     });
   }
@@ -404,7 +418,9 @@ const MIME = {
 };
 
 /** The file the template describes: its bytes, name and type. */
-export async function payrollFile(data: PayrollMonth, template: PayrollTemplate) {
+export async function payrollFile(month: PayrollMonth, template: PayrollTemplate) {
+  // The people the owner left out of the file are not in it at all.
+  const data = { ...month, people: month.people.filter((person) => !person.excluded) };
   const table = renderPayrollTable(data, template);
   const fileName = `${payrollFileBaseName(data, template)}.${template.fileType}`;
 

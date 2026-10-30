@@ -4,7 +4,8 @@ import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { EMAIL_PATTERN, emailList, payrollAccess } from "@/lib/payroll/access";
-import { PAYROLL_KINDS, templateOf, type PayrollCodeKey } from "@/lib/payroll/template";
+import { adjustmentOf, isEmptyAdjustment, rowKey, type MonthAdjustment } from "@/lib/payroll/adjust";
+import { DAY_KINDS, PAYROLL_KINDS, templateOf, type PayrollCodeKey } from "@/lib/payroll/template";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { ensureMembersInScope } from "@/lib/staff-scope";
@@ -270,15 +271,45 @@ async function monthTarget(formData: FormData) {
   return { ...access, userId, month };
 }
 
+async function loadAdjustment(barId: string, userId: string, month: string) {
+  const row = await prisma.payrollMonthAdjustment.findUnique({ where: { barId_userId_month: { barId, userId, month } }, select: { totals: true, note: true } });
+  return { adjustment: adjustmentOf(row?.totals ?? null), note: row?.note ?? null };
+}
+
+async function storeAdjustment(input: { barId: string; userId: string; month: string; updatedById: string; adjustment: MonthAdjustment; note: string | null }) {
+  const { barId, userId, month, adjustment, note, updatedById } = input;
+  if (isEmptyAdjustment(adjustment) && !note) {
+    await prisma.payrollMonthAdjustment.deleteMany({ where: { barId, userId, month } });
+  } else {
+    const totals = adjustment as unknown as Prisma.InputJsonValue;
+    await prisma.payrollMonthAdjustment.upsert({
+      where: { barId_userId_month: { barId, userId, month } },
+      create: { barId, userId, month, totals, note, updatedById },
+      update: { totals, note, updatedById },
+    });
+  }
+  revalidatePath(PATH, "layout");
+}
+
+function rowTarget(formData: FormData) {
+  const date = String(formData.get("date") ?? "");
+  const kind = String(formData.get("kind") ?? "");
+  return {
+    date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    kind: PAYROLL_KINDS.includes(kind as PayrollCodeKey) ? (kind as PayrollCodeKey) : null,
+  };
+}
+
 /**
- * A person's month as the owner wants it in the file: the totals typed in
- * replace the computed ones (lib/payroll/adjust.ts). Only the items that
- * differ from the computed value are kept; the clock-ins stay as they were.
+ * A person's month totals as the owner wants them in the file: the totals
+ * typed in replace the computed ones (lib/payroll/adjust.ts). Only the items
+ * that differ from the computed value are kept; the clock-ins stay as they were.
  */
 export async function saveMonthTotalsAction(formData: FormData) {
   try {
     const { barId, userId, month, session } = await monthTarget(formData);
-    const totals: Record<string, { hours?: number; days?: number }> = {};
+    const { adjustment } = await loadAdjustment(barId, userId, month);
+    const targets: MonthAdjustment["targets"] = {};
     for (const kind of PAYROLL_KINDS) {
       const hours = hoursInput(formData.get(`hours_${kind}`));
       const daysText = String(formData.get(`days_${kind}`) ?? "").trim();
@@ -289,20 +320,65 @@ export async function saveMonthTotalsAction(formData: FormData) {
       const entry: { hours?: number; days?: number } = {};
       if (hours !== undefined && Math.abs(hours - computedHours) >= 0.01) entry.hours = hours;
       if (days !== undefined && days !== computedDays) entry.days = days;
-      if (entry.hours !== undefined || entry.days !== undefined) totals[kind] = entry;
+      if (entry.hours !== undefined || entry.days !== undefined) targets[kind] = entry;
     }
     const note = String(formData.get("note") ?? "").trim().slice(0, 200) || null;
+    await storeAdjustment({ barId, userId, month, updatedById: session.user.id, adjustment: { ...adjustment, targets }, note });
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
 
-    if (!Object.keys(totals).length && !note) {
-      await prisma.payrollMonthAdjustment.deleteMany({ where: { barId, userId, month } });
+/** A row of the file with other hours or days: a day's item, or an item's month total. */
+export async function saveFileRowAction(formData: FormData) {
+  try {
+    const { barId, userId, month, session } = await monthTarget(formData);
+    const { date, kind } = rowTarget(formData);
+    if (!kind) throw new RuleError("Riga non valida.");
+    const hours = hoursInput(formData.get("hours")) ?? 0;
+    const daysText = String(formData.get("days") ?? "").trim();
+    const days = daysText ? Number(daysText) : undefined;
+    const { adjustment, note } = await loadAdjustment(barId, userId, month);
+    if (date) {
+      if (hours > 24) throw new RuleError("Un giorno ha al massimo 24 ore.");
+      if (days !== undefined && days !== 0 && days !== 1) throw new RuleError("In un giorno: 0 o 1.");
+      const key = rowKey(date, kind);
+      adjustment.rows[key] = { ...adjustment.rows[key], hours, ...(days !== undefined ? { days } : {}) };
+      // A month total for the item would undo the day's change.
+      delete adjustment.targets[kind];
     } else {
-      await prisma.payrollMonthAdjustment.upsert({
-        where: { barId_userId_month: { barId, userId, month } },
-        create: { barId, userId, month, totals, note, updatedById: session.user.id },
-        update: { totals, note, updatedById: session.user.id },
-      });
+      if (days !== undefined && (!Number.isInteger(days) || days < 0 || days > 31)) throw new RuleError("I giorni vanno da 0 a 31.");
+      adjustment.targets[kind] = { hours, ...(days !== undefined && DAY_KINDS.includes(kind) ? { days } : {}) };
     }
-    revalidatePath(PATH, "layout");
+    await storeAdjustment({ barId, userId, month, updatedById: session.user.id, adjustment, note });
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** The green tick on a row of the file: in the file, or left out. */
+export async function toggleFileRowAction(formData: FormData) {
+  try {
+    const { barId, userId, month, session } = await monthTarget(formData);
+    const { date, kind } = rowTarget(formData);
+    const { adjustment, note } = await loadAdjustment(barId, userId, month);
+    if (date && kind) {
+      const key = rowKey(date, kind);
+      const { off, ...rest } = adjustment.rows[key] ?? {};
+      if (off) {
+        if (Object.keys(rest).length) adjustment.rows[key] = rest;
+        else delete adjustment.rows[key];
+      } else {
+        adjustment.rows[key] = { ...rest, off: true };
+      }
+    } else if (kind) {
+      adjustment.kindsOff = adjustment.kindsOff.includes(kind) ? adjustment.kindsOff.filter((item) => item !== kind) : [...adjustment.kindsOff, kind];
+    } else {
+      adjustment.off = !adjustment.off;
+    }
+    await storeAdjustment({ barId, userId, month, updatedById: session.user.id, adjustment, note });
     return { ok: true };
   } catch (error) {
     return ruleFailure(error);

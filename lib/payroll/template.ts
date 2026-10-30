@@ -321,7 +321,9 @@ export function templateOf(value: unknown): PayrollTemplate {
 /* ---------- Rendering ---------- */
 
 export type Cell = string | number;
-export type PayrollTable = { header: string[] | null; rows: Cell[][]; legend: string | null };
+/** What a row of the file stands for: a person, and for some layouts a day and an item. */
+export type RowRef = { userId: string; date?: string; kind?: PayrollCodeKey };
+export type PayrollTable = { header: string[] | null; rows: Cell[][]; legend: string | null; refs: RowRef[] };
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
@@ -429,18 +431,21 @@ export function renderPayrollTable(data: PayrollMonthData, template: PayrollTemp
 
   if (template.layout === "rows") {
     const rows: Cell[][] = [];
+    const refs: RowRef[] = [];
     for (const person of data.people) {
       for (const entry of person.entries) {
         if (!exported(template, entry.kind)) continue;
         if (template.skipEmpty && !entry.hours && !entry.days) continue;
         rows.push(template.columns.map((column) => entryValue(column, person, data, entry, template)));
+        refs.push({ userId: person.userId, date: entry.date, kind: entry.kind });
       }
     }
-    return { header, rows, legend: null };
+    return { header, rows, legend: null, refs };
   }
 
   if (template.layout === "perCode") {
     const rows: Cell[][] = [];
+    const refs: RowRef[] = [];
     for (const person of data.people) {
       const totals = totalsOf(person);
       for (const kind of PAYROLL_KINDS) {
@@ -448,9 +453,10 @@ export function renderPayrollTable(data: PayrollMonthData, template: PayrollTemp
         if (!exported(template, kind) || !total) continue;
         if (template.skipEmpty && !total.hours && !total.days) continue;
         rows.push(template.columns.map((column) => entryValue(column, person, data, { kind, ...total }, template)));
+        refs.push({ userId: person.userId, kind });
       }
     }
-    return { header, rows, legend: null };
+    return { header, rows, legend: null, refs };
   }
 
   if (template.layout === "perPerson") {
@@ -470,7 +476,12 @@ export function renderPayrollTable(data: PayrollMonthData, template: PayrollTemp
         }),
       ];
     });
-    return { header: template.headerRow ? [...template.columns.map((column) => column.header), ...kinds.map(kindHeader)] : null, rows, legend: null };
+    return {
+      header: template.headerRow ? [...template.columns.map((column) => column.header), ...kinds.map(kindHeader)] : null,
+      rows,
+      legend: null,
+      refs: data.people.map((person) => ({ userId: person.userId })),
+    };
   }
 
   // Calendar: people down, days across.
@@ -517,6 +528,7 @@ export function renderPayrollTable(data: PayrollMonthData, template: PayrollTemp
       : null,
     rows,
     legend,
+    refs: data.people.map((person) => ({ userId: person.userId })),
   };
 }
 
