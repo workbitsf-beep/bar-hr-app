@@ -46,8 +46,8 @@ export default async function BillingLayout({
                 gap: 4,
                 padding: 14,
                 borderRadius: 18,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                background: "#fbfaff",
+                border: "1px solid #ece9f7",
               }}
             >
               <strong style={{ color: "#0f172a", fontSize: 16 }}>

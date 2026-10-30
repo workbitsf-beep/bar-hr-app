@@ -46,7 +46,7 @@ function paletteFor(extension: string) {
     return { background: "#eaf4fd", color: "#1d4ed8" };
   }
 
-  return { background: "#eef2ff", color: "#4338ca" };
+  return { background: "#f1eeff", color: "#4338ca" };
 }
 
 function shortDate(value: Date) {

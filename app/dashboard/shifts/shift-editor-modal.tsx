@@ -306,7 +306,7 @@ export function ShiftEditorModal({
           maxHeight: "calc(100vh - 32px)",
           overflowY: "auto",
           background: "rgba(255,255,255,0.98)",
-          border: "1px solid #e2e8f0",
+          border: "1px solid #ece9f7",
           borderRadius: 28,
           boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
           padding: 24,
@@ -513,7 +513,7 @@ export function ShiftEditorModal({
                         gap: 8,
                         padding: "12px 14px",
                         borderRadius: 16,
-                        border: "1px solid #e2e8f0",
+                        border: "1px solid #ece9f7",
                         background: selectedMembers.includes(member.id) ? "#e2e8f0" : "#f8fafc",
                       }}
                     >
@@ -565,8 +565,8 @@ export function ShiftEditorModal({
               gap: 12,
               padding: 18,
               borderRadius: 20,
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
+              background: "#fbfaff",
+              border: "1px solid #ece9f7",
             }}
           >
               <div style={{ color: "#64748b", fontSize: 14 }}>Persone nel turno</div>

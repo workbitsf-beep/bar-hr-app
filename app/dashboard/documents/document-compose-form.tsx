@@ -89,7 +89,7 @@ function badgeFor(fileName: string) {
     return { label: extension, background: "#eaf4fd", color: "#1d4ed8" };
   }
 
-  return { label: extension, background: "#eef2ff", color: "#4338ca" };
+  return { label: extension, background: "#f1eeff", color: "#4338ca" };
 }
 
 /**
@@ -373,8 +373,8 @@ export function DocumentComposeForm({
                   gap: 10,
                   padding: "9px 11px",
                   borderRadius: 14,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
+                  background: "#fbfaff",
+                  border: "1px solid #ece9f7",
                 }}
               >
                 <span
@@ -480,7 +480,7 @@ export function DocumentComposeForm({
                 padding: "20px 12px",
                 borderRadius: 18,
                 border: "1.5px dashed #cbd5e1",
-                background: "#f8fafc",
+                background: "#fbfaff",
                 color: "#0f172a",
                 fontWeight: 830,
                 fontSize: 13.5,
@@ -608,7 +608,7 @@ export function DocumentComposeForm({
                     border:
                       draft.assignedToAll === option.all
                         ? "1px solid rgba(124, 58, 237, 0.46)"
-                        : "1px solid #e2e8f0",
+                        : "1px solid #ece9f7",
                     background: draft.assignedToAll === option.all ? "#f3e8ff" : "#ffffff",
                     color: draft.assignedToAll === option.all ? "#4c1d95" : "#334155",
                     fontWeight: 820,
@@ -633,7 +633,7 @@ export function DocumentComposeForm({
                       style={{
                         padding: "8px 13px",
                         borderRadius: 999,
-                        border: selected ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #e2e8f0",
+                        border: selected ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #ece9f7",
                         background: selected ? "#f3e8ff" : "#ffffff",
                         color: selected ? "#4c1d95" : "#475569",
                         fontSize: 13,

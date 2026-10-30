@@ -401,7 +401,7 @@ export function LocaleSettingsPopupContent({
                 gap: 8,
                 padding: 14,
                 borderRadius: 18,
-                background: "#f8fafc",
+                background: "#fbfaff",
                 color: "#0f172a",
                 fontWeight: 800,
               }}

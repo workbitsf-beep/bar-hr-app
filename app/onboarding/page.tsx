@@ -884,7 +884,7 @@ function StepShell({
               fontWeight: 800,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              color: "#6d5ce7",
+              color: "#5e4ae3",
             }}
           >
             {isLast ? "Ultimo passo" : "Configurazione"}

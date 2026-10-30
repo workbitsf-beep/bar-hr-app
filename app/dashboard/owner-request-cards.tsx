@@ -232,8 +232,8 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
                   width: "100%",
                   padding: 16,
                   borderRadius: 20,
-                  border: "1px solid #e2e8f0",
-                  background: "#f8fafc",
+                  border: "1px solid #ece9f7",
+                  background: "#fbfaff",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
@@ -311,7 +311,7 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
                   maxHeight: "calc(100vh - 32px)",
                   overflowY: "auto",
                   background: "rgba(255,255,255,0.98)",
-                  border: "1px solid #e2e8f0",
+                  border: "1px solid #ece9f7",
                   borderRadius: 28,
                   boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18)",
                   padding: 24,
@@ -365,8 +365,8 @@ export function OwnerRequestCards({ requests }: { requests: RequestCardItem[] })
                     gap: 12,
                     padding: 18,
                     borderRadius: 20,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
+                    background: "#fbfaff",
+                    border: "1px solid #ece9f7",
                   }}
                 >
                   <div style={{ color: "#64748b", fontSize: 14 }}>Dettagli richiesta</div>

@@ -116,7 +116,7 @@ export default async function LegalAcceptancePage({
                 )}
                 {document.fileName ? (
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <LegalFileLink documentId={document.id} signedHref={legalDocumentLink(document.id)} mode="open" style={{ color: "#6d28d9", fontWeight: 800 }}>
+                    <LegalFileLink documentId={document.id} signedHref={legalDocumentLink(document.id)} mode="open" style={{ color: "#5e4ae3", fontWeight: 800 }}>
                       Apri PDF
                     </LegalFileLink>
                     <LegalFileLink

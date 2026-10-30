@@ -326,7 +326,7 @@ export function DayRow({ view, userId, personName, canFix }: { view: DayView; us
           }}
         >
           {status}
-          {view.overridden ? <span style={{ color: "#6d5ce7" }}> · corretto nel file</span> : null}
+          {view.overridden ? <span style={{ color: "#5e4ae3" }}> · corretto nel file</span> : null}
         </span>
       </span>
       {flagged && actionable ? (

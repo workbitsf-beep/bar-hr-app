@@ -1193,9 +1193,9 @@ export function ResetLink({ href, children = "Reset" }: { href: string; children
         borderRadius: 999,
         padding: "12px 16px",
         textDecoration: "none",
-        background: "#f8fafc",
+        background: "#fbfaff",
         color: "#0f172a",
-        border: "1px solid #e2e8f0",
+        border: "1px solid #ece9f7",
         fontWeight: 700,
       }}
     >

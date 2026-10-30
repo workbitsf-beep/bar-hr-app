@@ -533,7 +533,7 @@ export function PlanBilling({
                 inputMode="numeric"
                 placeholder="11 cifre"
                 maxLength={16}
-                style={{ minHeight: 44, padding: "0 12px", borderRadius: 14, border: "1px solid #e2e8f0", fontSize: 15 }}
+                style={{ minHeight: 44, padding: "0 12px", borderRadius: 14, border: "1px solid #ece9f7", fontSize: 15 }}
               />
             </label>
           ) : null}

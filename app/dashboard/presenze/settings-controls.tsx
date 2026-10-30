@@ -171,7 +171,7 @@ export function PersonPayrollRow({
           {detail ? <span style={{ fontSize: 12, color: "#7c7894", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detail}</span> : null}
         </span>
         {open ? (
-          <span style={{ fontSize: 12.5, color: "#6d5ce7", fontWeight: 700 }}>Chiudi</span>
+          <span style={{ fontSize: 12.5, color: "#5e4ae3", fontWeight: 700 }}>Chiudi</span>
         ) : done ? (
           <span style={{ fontSize: 12.5, color: "#6f6a88", fontVariantNumeric: "tabular-nums" }}>
             {payrollCode} · {String(weeklyHours).replace(".", ",")} h

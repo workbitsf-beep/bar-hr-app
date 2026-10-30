@@ -91,7 +91,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
           {report.pendingLines ? (
             <RowsCard>
               <Row first rail="amber">
-                <Line left={`${report.pendingLines} righe da classificare`} right={<Link href={`/dashboard/costi/fatture?month=${report.month}&da=1`} style={{ color: "#6d5ce7" }}>Sistema ›</Link>} />
+                <Line left={`${report.pendingLines} righe da classificare`} right={<Link href={`/dashboard/costi/fatture?month=${report.month}&da=1`} style={{ color: "#5e4ae3" }}>Sistema ›</Link>} />
                 <Line muted left="Nessuna regola le riconosce ancora: scegli tu la categoria, Workbit la ricorda per le prossime fatture." />
                 {ai ? (
                   <ActionForm action={reclassifyAction} success="Righe rilette" style={{ marginTop: 6 }}>
@@ -117,11 +117,11 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
       )}
 
       <section style={{ display: "grid", gap: 8 }}>
-        <RowsCard title="Fatture" aside={report ? <Link href={`/dashboard/costi/fatture?month=${report.month}`} style={{ color: "#6d5ce7" }}>Tutte le fatture ›</Link> : null}>
+        <RowsCard title="Fatture" aside={report ? <Link href={`/dashboard/costi/fatture?month=${report.month}`} style={{ color: "#5e4ae3" }}>Tutte le fatture ›</Link> : null}>
           <Row first>
             <UploadPanel compact={Boolean(report)} allowAnyRecipient={String(session.user.role) === "SUPER_ADMIN"} />
             <details style={{ marginTop: 4 }}>
-              <summary style={{ cursor: "pointer", fontSize: 13, color: "#6d5ce7" }}>Come si scarica lo zip dal cassetto fiscale</summary>
+              <summary style={{ cursor: "pointer", fontSize: 13, color: "#5e4ae3" }}>Come si scarica lo zip dal cassetto fiscale</summary>
               <ol style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 13, color: "#4b4763", display: "grid", gap: 4 }}>
                 <li>Entra in Fatture e Corrispettivi sul sito dell&apos;Agenzia delle Entrate (SPID o CIE).</li>
                 <li>Consultazione → Fatture elettroniche e altri dati IVA → Fatture ricevute.</li>
@@ -447,7 +447,7 @@ function ProductTrends({ report }: { report: CostReport }) {
       {items.length > 8 ? (
         <Row>
           <details>
-            <summary style={{ cursor: "pointer", fontSize: 13.5, color: "#6d5ce7", fontWeight: 650 }}>Tutti i prodotti ({items.length})</summary>
+            <summary style={{ cursor: "pointer", fontSize: 13.5, color: "#5e4ae3", fontWeight: 650 }}>Tutti i prodotti ({items.length})</summary>
             <div style={{ display: "grid" }}>{items.slice(8).map((item, index) => row(item, index + 1))}</div>
           </details>
         </Row>
@@ -476,7 +476,7 @@ function Savings({ report, ai }: { report: CostReport; ai: boolean }) {
                   {tip.confidence === "sicuro" ? "Dalle tue fatture" : "Prezzo trovato online · da verificare"}
                 </Pill>
                 {tip.link ? (
-                  <a href={tip.link.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#6d5ce7" }}>
+                  <a href={tip.link.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#5e4ae3" }}>
                     {tip.link.label} ↗
                   </a>
                 ) : null}
@@ -588,7 +588,7 @@ async function Products({ barId, report, ai }: { barId: string; report: CostRepo
               />
               {check ? (
                 <details>
-                  <summary style={{ cursor: "pointer", fontSize: 12.5, color: "#6d5ce7" }}>
+                  <summary style={{ cursor: "pointer", fontSize: 12.5, color: "#5e4ae3" }}>
                     Online: {check.bestUnitPrice ? `da ${unitPrice(check.bestUnitPrice, check.baseUnit ?? product.unit)}` : "nessuna offerta uguale"} ·{" "}
                     {new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short" }).format(check.checkedAt)}
                   </summary>

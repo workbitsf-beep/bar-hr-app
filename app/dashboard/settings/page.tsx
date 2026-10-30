@@ -538,7 +538,7 @@ async function LegalDocumentsPanel({
               )}
               {document.fileName ? (
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  <LegalFileLink documentId={document.id} signedHref={legalDocumentLink(document.id)} mode="open" style={{ color: "#6d28d9", fontWeight: 800 }}>
+                  <LegalFileLink documentId={document.id} signedHref={legalDocumentLink(document.id)} mode="open" style={{ color: "#5e4ae3", fontWeight: 800 }}>
                     Apri PDF
                   </LegalFileLink>
                   <LegalFileLink
@@ -1436,7 +1436,7 @@ export default async function DashboardSettingsPage({
                         {(invoice.totalAmount / 100).toLocaleString("it-IT", { style: "currency", currency: "EUR" })}
                       </span>
                     </span>
-                    <a href={`/api/billing/invoices/${invoice.id}`} target="_blank" rel="noreferrer" style={{ color: "#6d28d9", fontWeight: 800, fontSize: 13.5 }}>
+                    <a href={`/api/billing/invoices/${invoice.id}`} target="_blank" rel="noreferrer" style={{ color: "#5e4ae3", fontWeight: 800, fontSize: 13.5 }}>
                       PDF
                     </a>
                     <a href={`/api/billing/invoices/${invoice.id}?xml=1`} style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5 }}>

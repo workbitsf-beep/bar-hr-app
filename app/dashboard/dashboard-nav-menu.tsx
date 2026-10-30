@@ -305,7 +305,7 @@ export function DashboardNavMenu({
                             width: 44,
                             height: 44,
                             borderRadius: 999,
-                            background: "#f8fafc",
+                            background: "#fbfaff",
                             color: "#4c1d95",
                             border: "1px solid rgba(124, 58, 237, 0.12)",
                             boxShadow: "0 8px 18px rgba(88, 28, 135, 0.07)",

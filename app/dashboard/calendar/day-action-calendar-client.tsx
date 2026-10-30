@@ -1328,8 +1328,8 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
       style={{
         padding: mobile ? "7px 9px" : "7px 9px",
         borderRadius: mobile ? 12 : 12,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        background: "#fbfaff",
+        border: "1px solid #ece9f7",
         color: "#334155",
         lineHeight: 1.55,
         cursor: onOpen ? "pointer" : "default",
@@ -1383,8 +1383,8 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
       style={{
         padding: mobile ? "7px 9px" : "7px 9px",
         borderRadius: mobile ? 12 : 12,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        background: "#fbfaff",
+        border: "1px solid #ece9f7",
         color: "#334155",
         lineHeight: 1.55,
         cursor: onOpen ? "pointer" : "default",
@@ -1440,8 +1440,8 @@ function renderCourseCard(course: CourseItem, locale: string, mobile = false) {
       style={{
         padding: mobile ? 8 : "10px 12px",
         borderRadius: mobile ? 12 : 16,
-        background: "#eef2ff",
-        border: "1px solid #c7d2fe",
+        background: "#f1eeff",
+        border: "1px solid #dcd6f3",
         display: "grid",
         gap: mobile ? 3 : 4,
       }}
@@ -1572,8 +1572,8 @@ function renderNoteCard(note: NoteItem, locale: string, currentUserId: string, m
       style={{
         padding: mobile ? 10 : "10px 12px",
         borderRadius: mobile ? 14 : 16,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        background: "#fbfaff",
+        border: "1px solid #ece9f7",
         display: "grid",
         gap: mobile ? 5 : 4,
       }}
@@ -2613,7 +2613,7 @@ export function DayActionCalendarClient({
           height: 38,
           borderRadius: 13,
           border: "1px solid #ddd6fe",
-          background: "#7c3aed",
+          background: "#5e4ae3",
           color: "#ffffff",
           cursor: isPending ? "progress" : "pointer",
           fontWeight: 900,
@@ -3355,8 +3355,8 @@ export function DayActionCalendarClient({
                 boxSizing: "border-box",
                 padding: 14,
                 borderRadius: 22,
-                background: weekIsCurrent ? "#eef2ff" : "#f8fafc",
-                border: weekIsCurrent ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
+                background: weekIsCurrent ? "#f1eeff" : "#f8fafc",
+                border: weekIsCurrent ? "1px solid #dcd6f3" : "1px solid #ece9f7",
                 boxShadow: weekIsCurrent
                   ? "0 10px 24px rgba(99, 102, 241, 0.08)"
                   : undefined,
@@ -3465,7 +3465,7 @@ export function DayActionCalendarClient({
                             fontSize: 9,
                             fontWeight: 780,
                             letterSpacing: "0.11em",
-                            color: "#6d5ce7",
+                            color: "#5e4ae3",
                           }}
                         >
                           OGGI
@@ -3867,8 +3867,8 @@ export function DayActionCalendarClient({
                               style={{
                                 padding: "6px 9px",
                                 borderRadius: 12,
-                                background: "#f8fafc",
-                                border: "1px solid #e2e8f0",
+                                background: "#fbfaff",
+                                border: "1px solid #ece9f7",
                                 color: "#475569",
                                 lineHeight: 1.3,
                                 fontSize: 12,
@@ -4000,7 +4000,7 @@ export function DayActionCalendarClient({
                         fontWeight: 780,
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
-                        color: "#6d5ce7",
+                        color: "#5e4ae3",
                       }}
                     >
                       Oggi
@@ -4228,7 +4228,7 @@ export function DayActionCalendarClient({
                               padding: 10,
                               borderRadius: 18,
                               background: "rgba(248,250,252,0.92)",
-                              border: "1px solid #e2e8f0",
+                              border: "1px solid #ece9f7",
                             }}
                           >
                             <span style={{ color: "#64748b", fontSize: 12, fontWeight: 800 }}>
@@ -4372,7 +4372,7 @@ export function DayActionCalendarClient({
                                 padding: "10px 12px",
                                 borderRadius: 16,
                                 background: "#ffffff",
-                                border: "1px solid #e2e8f0",
+                                border: "1px solid #ece9f7",
                               }}
                             >
                               <button
@@ -4433,7 +4433,7 @@ export function DayActionCalendarClient({
                                 padding: 16,
                                 borderRadius: 20,
                                 background: "#ffffff",
-                                border: "1px solid #e2e8f0",
+                                border: "1px solid #ece9f7",
                               }}
                             >
                               <div
@@ -4565,7 +4565,7 @@ export function DayActionCalendarClient({
                                         gap: 8,
                                         padding: "12px 14px",
                                         borderRadius: 16,
-                                        border: "1px solid #e2e8f0",
+                                        border: "1px solid #ece9f7",
                                         background: draft.memberIds.includes(member.id) ? "#e2e8f0" : "#ffffff",
                                         color: blockedMemberReasons.has(member.id) ? "#94a3b8" : "#0f172a",
                                         opacity: blockedMemberReasons.has(member.id) ? 0.6 : 1,
@@ -4619,7 +4619,7 @@ export function DayActionCalendarClient({
                                 gap: 8,
                                 padding: 4,
                                 borderRadius: 999,
-                                background: "#eef2ff",
+                                background: "#f1eeff",
                                 border: "1px solid #ddd6fe",
                               }}
                             >
@@ -4765,7 +4765,7 @@ export function DayActionCalendarClient({
                                               gap: 8,
                                               padding: "12px 14px",
                                               borderRadius: 16,
-                                              border: "1px solid #e2e8f0",
+                                              border: "1px solid #ece9f7",
                                               background: currentShiftDraft.memberIds.includes(member.id)
                                                 ? "#e2e8f0"
                                                 : "#ffffff",
@@ -4817,7 +4817,7 @@ export function DayActionCalendarClient({
                                         }
                                         style={{
                                           borderRadius: 999,
-                                          border: selected ? "1px solid #7c3aed" : "1px solid #e2e8f0",
+                                          border: selected ? "1px solid #7c3aed" : "1px solid #ece9f7",
                                           background: selected ? "#ede9fe" : "#ffffff",
                                           color: selected ? "#4c1d95" : "#475569",
                                           padding: "8px 11px",
@@ -4855,7 +4855,7 @@ export function DayActionCalendarClient({
                                         gap: 8,
                                         padding: "12px 14px",
                                         borderRadius: 16,
-                                        border: "1px solid #e2e8f0",
+                                        border: "1px solid #ece9f7",
                                         background: currentShiftDraft.memberIds.includes(member.id)
                                           ? "#e2e8f0"
                                           : "#ffffff",

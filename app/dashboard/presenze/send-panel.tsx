@@ -243,7 +243,7 @@ export function SendPanel(props: Props) {
         />
       </label>
       <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#4b4763" }}>
-        <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: "#7c3aed", flex: "0 0 auto" }} />
+        <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: "#5e4ae3", flex: "0 0 auto" }} />
         Allegato: {props.fileName}
       </span>
       <button type="button" style={{ ...primary, opacity: busy ? 0.7 : 1 }} disabled={busy !== null} onClick={() => void openInMail()}>

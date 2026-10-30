@@ -246,8 +246,8 @@ export function CourseComposeForm({
                 gap: 10,
                 padding: "10px 12px",
                 borderRadius: 16,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                background: "#fbfaff",
+                border: "1px solid #ece9f7",
               }}
             >
               <button
@@ -308,7 +308,7 @@ export function CourseComposeForm({
                   gap: 12,
                   padding: "11px 13px",
                   borderRadius: 18,
-                  border: "1px solid #e2e8f0",
+                  border: "1px solid #ece9f7",
                   background: "#ffffff",
                   textAlign: "left",
                   cursor: "pointer",
@@ -322,7 +322,7 @@ export function CourseComposeForm({
                     display: "inline-grid",
                     placeItems: "center",
                     borderRadius: 14,
-                    background: "#f8fafc",
+                    background: "#fbfaff",
                     fontSize: 18,
                   }}
                 >
@@ -423,7 +423,7 @@ export function CourseComposeForm({
                       minHeight: 38,
                       padding: "0 13px",
                       borderRadius: 999,
-                      border: active ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #e2e8f0",
+                      border: active ? "1px solid rgba(124, 58, 237, 0.46)" : "1px solid #ece9f7",
                       background: active ? "#f3e8ff" : "#ffffff",
                       color: active ? "#4c1d95" : "#475569",
                       fontSize: 13,

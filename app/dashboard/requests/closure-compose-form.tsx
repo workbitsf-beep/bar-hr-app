@@ -124,8 +124,8 @@ export function ClosureComposeForm({
                 gap: 10,
                 padding: "10px 12px",
                 borderRadius: 16,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                background: "#fbfaff",
+                border: "1px solid #ece9f7",
               }}
             >
               <button

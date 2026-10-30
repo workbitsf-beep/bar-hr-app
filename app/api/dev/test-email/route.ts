@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     subject: "Workbit verifica email",
     html: buildEmailTemplate({
       title: "Verifica email",
-      message: `Questa e una email di test inviata da Workbit a ${to}.`,
+      message: `Questa è una email di test inviata da Workbit a ${to}.`,
       ctaLabel: "Apri dashboard",
       ctaUrl: getEmailAppUrl("/dashboard"),
     }),

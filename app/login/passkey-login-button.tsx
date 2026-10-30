@@ -175,7 +175,7 @@ export function PasskeyLoginButton({
         compact
           ? undefined
           : {
-              background: "#f8fafc",
+              background: "#fbfaff",
               color: "#0f172a",
               border: "1px solid #dbe3ee",
               borderRadius: 999,

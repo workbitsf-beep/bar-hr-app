@@ -108,7 +108,7 @@ export function NoteKindPicker({
               gap: 12,
               padding: "11px 13px",
               borderRadius: 18,
-              border: "1px solid #e2e8f0",
+              border: "1px solid #ece9f7",
               background: "#ffffff",
               textAlign: "left",
               cursor: "pointer",
@@ -122,7 +122,7 @@ export function NoteKindPicker({
                 display: "inline-grid",
                 placeItems: "center",
                 borderRadius: 14,
-                background: "#f8fafc",
+                background: "#fbfaff",
                 fontSize: 18,
               }}
             >
@@ -258,7 +258,7 @@ export function NoteKindFields({
                 border:
                   draft.requiresConfirmation === option.value
                     ? "1px solid rgba(124, 58, 237, 0.46)"
-                    : "1px solid #e2e8f0",
+                    : "1px solid #ece9f7",
                 background: draft.requiresConfirmation === option.value ? "#f3e8ff" : "#ffffff",
                 color: draft.requiresConfirmation === option.value ? "#4c1d95" : "#334155",
                 fontWeight: 800,

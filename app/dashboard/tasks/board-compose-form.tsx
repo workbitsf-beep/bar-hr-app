@@ -147,8 +147,8 @@ export function BoardComposeForm({
                 gap: 10,
                 padding: "10px 12px",
                 borderRadius: 16,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                background: "#fbfaff",
+                border: "1px solid #ece9f7",
               }}
             >
               <button
@@ -188,8 +188,8 @@ export function BoardComposeForm({
               gap: 10,
               padding: 14,
               borderRadius: 18,
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
+              background: "#fbfaff",
+              border: "1px solid #ece9f7",
             }}
           >
             {children}
@@ -237,7 +237,7 @@ export function BoardComposeForm({
                         borderRadius: 14,
                         border: draft.requiresConfirmation === option.value
                           ? "1px solid rgba(124, 58, 237, 0.46)"
-                          : "1px solid #e2e8f0",
+                          : "1px solid #ece9f7",
                         background: draft.requiresConfirmation === option.value ? "#f3e8ff" : "#ffffff",
                         color: draft.requiresConfirmation === option.value ? "#4c1d95" : "#334155",
                         fontWeight: 800,

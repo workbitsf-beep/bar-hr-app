@@ -60,7 +60,7 @@ export function buildEmailTemplate({
             }
             <tr>
               <td style="padding:0 28px 28px;font-size:13px;line-height:1.7;color:#94a3b8;">
-                Questa email e stata inviata automaticamente da Workbit.
+                Questa email è stata inviata automaticamente da Workbit.
               </td>
             </tr>
           </table>

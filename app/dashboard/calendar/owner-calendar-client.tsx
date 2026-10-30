@@ -1257,8 +1257,8 @@ function renderTaskPreviewCard(task: TaskItem, mobile = false, onOpen?: () => vo
       style={{
         padding: mobile ? "7px 9px" : "7px 9px",
         borderRadius: mobile ? 12 : 12,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        background: "#fbfaff",
+        border: "1px solid #ece9f7",
         color: "#334155",
         lineHeight: 1.55,
         cursor: onOpen ? "pointer" : "default",
@@ -1312,8 +1312,8 @@ function renderNotePreviewCard(note: NoteItem, mobile = false, onOpen?: () => vo
       style={{
         padding: mobile ? "7px 9px" : "7px 9px",
         borderRadius: mobile ? 12 : 12,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
+        background: "#fbfaff",
+        border: "1px solid #ece9f7",
         color: "#334155",
         lineHeight: 1.55,
         cursor: onOpen ? "pointer" : "default",
@@ -2478,7 +2478,7 @@ export function OwnerCalendarClient({
           height: 38,
           borderRadius: 13,
           border: "1px solid #ddd6fe",
-          background: "#7c3aed",
+          background: "#5e4ae3",
           color: "#ffffff",
           cursor: isPending ? "progress" : "pointer",
           fontWeight: 900,
@@ -3120,8 +3120,8 @@ export function OwnerCalendarClient({
                 boxSizing: "border-box",
                 padding: 14,
                 borderRadius: 22,
-                background: weekIsCurrent ? "#eef2ff" : "#f8fafc",
-                border: weekIsCurrent ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
+                background: weekIsCurrent ? "#f1eeff" : "#f8fafc",
+                border: weekIsCurrent ? "1px solid #dcd6f3" : "1px solid #ece9f7",
                 boxShadow: weekIsCurrent
                   ? "0 10px 24px rgba(99, 102, 241, 0.08)"
                   : undefined,
@@ -3251,7 +3251,7 @@ export function OwnerCalendarClient({
                             fontSize: 9,
                             fontWeight: 780,
                             letterSpacing: "0.11em",
-                            color: "#6d5ce7",
+                            color: "#5e4ae3",
                           }}
                         >
                           OGGI
@@ -3588,8 +3588,8 @@ export function OwnerCalendarClient({
                               style={{
                                 padding: "7px 9px",
                                 borderRadius: 12,
-                                background: "#eef2ff",
-                                border: "1px solid #c7d2fe",
+                                background: "#f1eeff",
+                                border: "1px solid #dcd6f3",
                                 color: "#3730a3",
                                 lineHeight: 1.35,
                                 fontSize: 12,
@@ -3671,8 +3671,8 @@ export function OwnerCalendarClient({
                               style={{
                                 padding: "6px 9px",
                                 borderRadius: 12,
-                                background: "#f8fafc",
-                                border: "1px solid #e2e8f0",
+                                background: "#fbfaff",
+                                border: "1px solid #ece9f7",
                                 color: "#475569",
                                 lineHeight: 1.3,
                                 fontSize: 12,
@@ -3804,7 +3804,7 @@ export function OwnerCalendarClient({
                         fontWeight: 780,
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
-                        color: "#6d5ce7",
+                        color: "#5e4ae3",
                       }}
                     >
                       Oggi
@@ -4040,7 +4040,7 @@ export function OwnerCalendarClient({
                                       minHeight: 38,
                                       padding: "0 14px",
                                       borderRadius: 999,
-                                      border: on ? "1px solid transparent" : "1px solid #e2e8f0",
+                                      border: on ? "1px solid transparent" : "1px solid #ece9f7",
                                       background: on ? entry.ink : "#ffffff",
                                       color: on ? "#ffffff" : "#475569",
                                       fontSize: 13,
@@ -4306,8 +4306,8 @@ export function OwnerCalendarClient({
                           style={{
                             padding: 14,
                             borderRadius: 18,
-                            background: "#f8fafc",
-                            border: "1px solid #e2e8f0",
+                            background: "#fbfaff",
+                            border: "1px solid #ece9f7",
                             display: "grid",
                             gap: 8,
                             textAlign: "left",
@@ -4539,7 +4539,7 @@ export function OwnerCalendarClient({
                         </svg>
                       </IconButton>
                       <strong style={{ color: "#0f172a", fontSize: 20, paddingRight: 44 }}>📌 Nota</strong>
-                      <div className="dashboard-list-card" style={{ padding: 14, borderRadius: 18, background: "#f8fafc", border: "1px solid #e2e8f0", display: "grid", gap: 10 }}>
+                      <div className="dashboard-list-card" style={{ padding: 14, borderRadius: 18, background: "#fbfaff", border: "1px solid #ece9f7", display: "grid", gap: 10 }}>
                         <strong style={{ color: "#0f172a" }}>{selectedNote.content}</strong>
                         <span style={{ color: "#64748b", fontSize: 14 }}>
                           {selectedNote.authorName} - {formatDayTime(selectedNote.createdAt, locale)}

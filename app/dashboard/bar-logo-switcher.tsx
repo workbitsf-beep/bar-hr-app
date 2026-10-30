@@ -118,7 +118,7 @@ export function BarHeaderSwitcher({
           height: 44,
           borderRadius: 16,
           border: "1px solid rgba(221, 214, 254, 0.9)",
-          background: "#7c3aed",
+          background: "#5e4ae3",
           color: "#ffffff",
           cursor: isPending ? "progress" : "pointer",
           display: "inline-flex",
@@ -196,7 +196,7 @@ export function BarHeaderSwitcher({
             👋
           </span>
           <strong style={{ fontSize: 17 }}>Benvenuto</strong>
-          <span style={{ color: "#6d28d9", fontWeight: 900, fontSize: 20 }}>{welcomeName}</span>
+          <span style={{ color: "#5e4ae3", fontWeight: 900, fontSize: 20 }}>{welcomeName}</span>
         </div>
       ) : null}
     </>

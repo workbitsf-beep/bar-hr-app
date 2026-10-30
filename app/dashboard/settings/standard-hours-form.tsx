@@ -29,8 +29,8 @@ export function StandardHoursPreview({ entries }: { entries: StandardHourEntry[]
         style={{
           padding: 14,
           borderRadius: 18,
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
+          background: "#fbfaff",
+          border: "1px solid #ece9f7",
           color: "#64748b",
         }}
       >
@@ -50,8 +50,8 @@ export function StandardHoursPreview({ entries }: { entries: StandardHourEntry[]
             gap: 12,
             padding: "10px 12px",
             borderRadius: 16,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
+            background: "#fbfaff",
+            border: "1px solid #ece9f7",
             color: "#334155",
             fontSize: 14,
           }}

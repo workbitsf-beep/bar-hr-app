@@ -509,7 +509,7 @@ export function ShiftQuickAdd({
             Tocca inizio o fine per cambiarli solo per questo turno
           </span>
         ) : keypadOpen && replacing ? (
-          <span style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#6d5ce7", marginTop: -6 }}>
+          <span style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#5e4ae3", marginTop: -6 }}>
             Scrivi il nuovo orario di {replacing === "start" ? "inizio" : "fine"}
           </span>
         ) : null}
@@ -598,7 +598,7 @@ export function ShiftQuickAdd({
                   border: 0,
                   background: "none",
                   padding: 0,
-                  color: "#6d5ce7",
+                  color: "#5e4ae3",
                   fontSize: 12,
                   fontWeight: 820,
                   letterSpacing: 0,

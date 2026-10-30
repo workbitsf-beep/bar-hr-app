@@ -197,7 +197,7 @@ export function ShiftDetailTap({
                           </span>
                           <span style={{ fontSize: 15, fontWeight: me ? 800 : 600, color: "#17161f", minWidth: 0, overflowWrap: "anywhere" }}>
                             {person.firstName} {person.lastName}
-                            {me ? <span style={{ fontWeight: 600, color: "#6d5ce7" }}> · tu</span> : null}
+                            {me ? <span style={{ fontWeight: 600, color: "#5e4ae3" }}> · tu</span> : null}
                           </span>
                         </li>
                       );

@@ -107,7 +107,7 @@ export function UploadPanel({ compact = false, allowAnyRecipient = false }: { co
           </span>
           {summary.notes.length ? (
             <details>
-              <summary style={{ cursor: "pointer", color: "#6d5ce7" }}>Cosa è stato escluso e perché</summary>
+              <summary style={{ cursor: "pointer", color: "#5e4ae3" }}>Cosa è stato escluso e perché</summary>
               <ul style={{ margin: "6px 0 0", paddingLeft: 18, display: "grid", gap: 2 }}>
                 {summary.notes.map((note) => (
                   <li key={note}>{note}</li>
