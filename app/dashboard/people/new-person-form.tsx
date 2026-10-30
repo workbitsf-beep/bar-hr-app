@@ -45,15 +45,15 @@ export function NewPersonForm({
       <div style={group}>
         <label style={{ ...line, borderTop: 0 }}>
           <span style={lineLabel}>Nome</span>
-          <input name="firstName" required autoComplete="off" autoCapitalize="words" style={input} />
+          <input name="firstName" required autoComplete="off" autoCapitalize="words" className="wb-inset-control" style={input} />
         </label>
         <label style={line}>
           <span style={lineLabel}>Cognome</span>
-          <input name="lastName" required autoComplete="off" autoCapitalize="words" style={input} />
+          <input name="lastName" required autoComplete="off" autoCapitalize="words" className="wb-inset-control" style={input} />
         </label>
         <label style={line}>
           <span style={lineLabel}>Email</span>
-          <input name="email" type="email" required autoComplete="off" autoCapitalize="none" inputMode="email" style={input} />
+          <input name="email" type="email" required autoComplete="off" autoCapitalize="none" inputMode="email" className="wb-inset-control" style={input} />
         </label>
       </div>
 
@@ -105,14 +105,14 @@ export function NewPersonForm({
             <div style={group}>
               <label style={{ ...line, borderTop: 0 }}>
                 <span style={lineLabel}>{place}</span>
-                <select value={department} onChange={(event) => setDepartment(event.currentTarget.value)} style={{ ...input, appearance: "none", WebkitAppearance: "none" }}>
+                <select className="wb-inset-control" value={department} onChange={(event) => setDepartment(event.currentTarget.value)} style={{ ...input, appearance: "none", WebkitAppearance: "none" }}>
                   {departments.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.name}
                     </option>
                   ))}
                 </select>
-                <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+                <span aria-hidden style={{ color: "#b5b0c8", fontSize: 20, lineHeight: 1 }}>›</span>
               </label>
             </div>
           ) : null}
@@ -124,7 +124,7 @@ export function NewPersonForm({
             {showDepartment ? (
               <label style={{ ...line, borderTop: 0 }}>
                 <span style={lineLabel}>{place}</span>
-                <select name="department" value={department} onChange={(event) => setDepartment(event.currentTarget.value)} style={{ ...input, appearance: "none", WebkitAppearance: "none", color: department ? "#1f1b3a" : "#b5b0c8" }}>
+                <select name="department" className={department ? "wb-inset-control" : "wb-inset-control wb-inset-empty"} value={department} onChange={(event) => setDepartment(event.currentTarget.value)} style={{ ...input, appearance: "none", WebkitAppearance: "none", color: department ? "#1f1b3a" : "#b5b0c8" }}>
                   <option value="">Nessuno</option>
                   {departments.map((option) => (
                     <option key={option.id} value={option.id}>
@@ -132,16 +132,16 @@ export function NewPersonForm({
                     </option>
                   ))}
                 </select>
-                <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+                <span aria-hidden style={{ color: "#b5b0c8", fontSize: 20, lineHeight: 1 }}>›</span>
               </label>
             ) : null}
             <label style={{ ...line, ...(showDepartment ? {} : { borderTop: 0 }) }}>
               <span style={lineLabel}>Paga oraria</span>
-              <input name="hourlyRate" type="number" step="0.01" min="0" inputMode="decimal" placeholder="€ all'ora" style={input} />
+              <input name="hourlyRate" type="number" step="0.01" min="0" inputMode="decimal" placeholder="€ all'ora" className="wb-inset-control" style={input} />
             </label>
             <label style={line}>
-              <span style={lineLabel}>Matricola</span>
-              <input name="payrollCode" maxLength={30} autoComplete="off" autoCapitalize="characters" placeholder="o codice fiscale" style={input} />
+              <span style={lineLabel}>Codice</span>
+              <input name="payrollCode" maxLength={30} autoComplete="off" autoCapitalize="characters" placeholder="matricola o cod. fiscale" className="wb-inset-control" style={input} />
             </label>
           </div>
           <span style={caption}>Il codice va nel file delle presenze per il consulente.</span>

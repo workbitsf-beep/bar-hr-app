@@ -4116,3 +4116,27 @@
         margin-top: -1px;
         clip-path: inset(1px 0 0 0);
       }
+
+      /* Grouped "settings" rows (label left, value right, one grey card): the
+         field is the row, so the popup's boxed-input look must not apply.
+         The :not(#_) lifts this above every .dashboard-modal-panel rule. */
+      .wb-inset-control:not(#_),
+      .wb-inset-control:not(#_):focus {
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        outline: none !important;
+        padding: 14px 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        font-size: 16px !important;
+        color: #1f1b3a !important;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .wb-inset-control:not(#_)::placeholder,
+      select.wb-inset-control.wb-inset-empty:not(#_) {
+        color: #b5b0c8 !important;
+      }
