@@ -74,7 +74,25 @@ export function isPasskeyCancelled(error: unknown) {
 
   const message = error instanceof Error ? error.message : String(error ?? "");
 
-  return /\[(10|13|16)\]|cancel|annull|abort/i.test(message);
+  // iPhone: AuthorizationError 1001 is "canceled" - also what it says when
+  // the person closes the sheet that lists no passkey.
+  return /\[(10|13|16)\]|AuthorizationError(?: error)? 1001|cancel|annull|abort/i.test(message);
+}
+
+/**
+ * True when the phone has no passkey for Workbit: someone who just installed
+ * the app and pressed the button before ever turning it on. iPhone answers
+ * with an AuthorizationError (1000/1003/1004), Android with a
+ * NoCredentialException, a browser with a NotFoundError or "no credentials".
+ */
+function isPasskeyMissing(error: unknown) {
+  if (error instanceof Error && error.name === "NotFoundError") {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error ?? "");
+
+  return /AuthorizationError|NoCredential|no credential|no passkey|not found/i.test(message);
 }
 
 export function describePasskeyFailure(error: unknown, action: "registrazione" | "accesso") {
@@ -84,14 +102,19 @@ export function describePasskeyFailure(error: unknown, action: "registrazione" |
       : "Accesso annullato. Entra con la password.";
   }
 
+  if (action === "accesso" && isPasskeyMissing(error)) {
+    return "Su questo telefono l'accesso con il telefono non è ancora attivo. Entra con email e password: dopo potrai attivarlo.";
+  }
+
+  // The technical detail goes to the log, never in front of the client.
+  console.warn("[passkey]", action, describeError(error));
+
   const sentence =
     action === "registrazione"
       ? "Il dispositivo non ha completato la registrazione biometrica"
       : "Il dispositivo non ha completato l'accesso biometrico";
 
-  const detail = describeError(error);
-
-  return detail ? `${sentence} (${detail}).` : `${sentence}.`;
+  return action === "registrazione" ? `${sentence}. Riprova tra poco.` : `${sentence}. Entra con email e password.`;
 }
 
 function describeError(error: unknown) {
