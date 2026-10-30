@@ -261,6 +261,7 @@ function buildTerms(profile: CompanyProfile) {
     "Il Servizio legge le fatture elettroniche dei fornitori che il Cliente carica o che riceve tramite il codice destinatario indicato dal Fornitore, le classifica e ne ricava analisi, confronti di prezzo e consigli. Parte dell'analisi è svolta con sistemi di intelligenza artificiale e con ricerche sul web: i risultati sono indicativi, possono contenere errori e non costituiscono consulenza fiscale, contabile o commerciale. I risparmi indicati sono stime e non sono garantiti.",
     "Il Servizio non effettua la conservazione a norma delle fatture elettroniche, che resta a carico del Cliente; l'originale di ogni fattura rimane disponibile nell'area riservata dell'Agenzia delle Entrate. Se il Cliente registra presso l'Agenzia il codice destinatario indicato dal Fornitore, è suo compito informarne il proprio commercialista e i fornitori; il Fornitore non risponde di fatture non recapitate per dati errati o per registrazioni non effettuate o revocate.",
     "Per offrire i confronti di prezzo, il Fornitore può usare in forma aggregata e anonima i prezzi unitari dei prodotti presenti nelle fatture di tutti i clienti. Nessun confronto rivela l'identità di un altro cliente né consente di ricondurre a lui un prezzo o una condizione commerciale.",
+    "I confronti possono usare anche i listini che i fornitori pubblicano su Workbit accettando le relative condizioni, i prezzi pubblicati su pagine web accessibili a tutti e valori di mercato tratti da fonti pubbliche, indicate ogni volta. Sono riferimenti indicativi e non offerte vincolanti: le condizioni effettive vanno sempre concordate con il fornitore.",
     "",
 
     "12. FILE PER IL CONSULENTE DEL LAVORO E CORREZIONI",
@@ -764,6 +765,60 @@ function buildImpactAssessment(profile: CompanyProfile) {
     .join("\n");
 }
 
+function buildSupplierTerms(profile: CompanyProfile) {
+  const service = value(profile, "serviceName");
+
+  return [
+    heading(profile, `CONDIZIONI PER I FORNITORI CHE PUBBLICANO IL LISTINO SU ${service.toUpperCase()}`),
+
+    "1. CHI SIAMO E A CHI SI RIVOLGONO",
+    `${service} è un servizio di ${company(profile)}. Queste condizioni regolano la pubblicazione dei listini prezzi da parte di imprese che vendono prodotti o servizi ad attività che usano ${service} (di seguito «Fornitore»). Si accettano nel portale fornitori, prima di caricare un listino, con una conferma che ${service} registra con la data, l'ora e la versione.`,
+    "",
+
+    "2. COSA FA WORKBIT CON IL LISTINO",
+    `Il Fornitore carica il proprio listino (PDF, Excel o CSV). ${service} lo legge in automatico, anche con sistemi di intelligenza artificiale, riconduce ogni voce a un prodotto comune e calcola il prezzo per unità (kg, litro, pezzo). Il listino viene mostrato alle attività clienti di ${service} che acquistano lo stesso prodotto, in particolare a quelle della zona indicata dal Fornitore che oggi lo pagano di più, con il nome del Fornitore, il prezzo per unità e la data del listino.`,
+    "La lettura automatica può contenere errori: il Fornitore controlla nel portale i prodotti e i prezzi riconosciuti e può correggerli o togliere il listino in qualsiasi momento.",
+    "",
+
+    "3. AUTORIZZAZIONE E GARANZIE DEL FORNITORE",
+    `Caricando il listino il Fornitore autorizza ${service} a conservarlo, elaborarlo e mostrarne i prezzi ai clienti come descritto al punto 2, per tutto il tempo in cui resta pubblicato. Il Fornitore garantisce di avere il diritto di pubblicarlo e che il listino non contiene condizioni riservate a singoli clienti né informazioni coperte da obblighi di riservatezza verso terzi.`,
+    "",
+
+    "4. NATURA DEI PREZZI",
+    `I prezzi pubblicati sono indicativi e non costituiscono un'offerta al pubblico né una proposta contrattuale vincolante. Ogni fornitura si conclude direttamente tra il Fornitore e il cliente, alle condizioni che concordano tra loro (quantità minime, consegna, pagamento). ${service} non è parte di quei contratti e non risponde della loro esecuzione.`,
+    "",
+
+    "5. AGGIORNAMENTO E RIMOZIONE",
+    "Il Fornitore tiene il listino aggiornato: un nuovo caricamento sostituisce il precedente. Può togliere il listino in qualsiasi momento dal portale; da quel momento non viene più mostrato. Un listino più vecchio di dodici mesi può essere nascosto finché non viene aggiornato.",
+    "",
+
+    "6. RICHIESTE DEI CLIENTI",
+    `Quando un cliente chiede un preventivo tramite ${service}, il Fornitore riceve il nome dell'attività, il referente e i dati di contatto che il cliente sceglie di condividere, e li usa solo per rispondere alla richiesta. Eventuali corrispettivi per questo servizio sono comunicati al Fornitore in anticipo e si applicano solo se li accetta espressamente; fino ad allora la pubblicazione è gratuita.`,
+    "",
+
+    "7. COSA NON FACCIAMO",
+    `${service} non mostra al Fornitore quanto pagano i singoli clienti né i loro altri fornitori. Non modifica i prezzi del listino e non li presenta come prezzi di altri fornitori.`,
+    "",
+
+    "8. DATI PERSONALI",
+    `${company(profile)} tratta i dati di contatto del Fornitore (email, nome, telefono) come titolare, per gestire l'accesso al portale e la pubblicazione del listino (esecuzione del contratto, art. 6.1.b GDPR), secondo l'informativa privacy pubblicata su ${value(profile, "website")}. I dati si conservano finché il Fornitore usa il portale e per i ${value(profile, "exportDays")} giorni successivi alla richiesta di chiusura.`,
+    "",
+
+    "9. RESPONSABILITÀ",
+    `${service} pubblica i listini con diligenza ma non garantisce che il servizio sia sempre disponibile né che produca un numero minimo di contatti. Risponde solo dei danni diretti causati da propria colpa grave o dolo. Il Fornitore tiene indenne ${company(profile)} da pretese di terzi legate al contenuto del listino che ha pubblicato.`,
+    "",
+
+    "10. MODIFICHE E RECESSO",
+    `${service} può modificare queste condizioni comunicandolo al Fornitore almeno ${value(profile, "noticeDays")} giorni prima; il Fornitore che non le accetta toglie il listino. Ciascuna parte può smettere in qualsiasi momento: il Fornitore togliendo il listino, ${service} con un avviso via email.`,
+    "",
+
+    "11. LEGGE E FORO",
+    `Queste condizioni sono regolate dalla legge italiana. Per ogni controversia è competente il Foro di ${value(profile, "courtCity")}. Contatti: ${value(profile, "supportEmail")}, PEC ${value(profile, "certifiedEmail")}.`,
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
 export const LEGAL_TEMPLATES: LegalTemplate[] = [
   {
     type: LegalDocumentType.PRIVACY_POLICY,
@@ -822,5 +877,12 @@ export const LEGAL_TEMPLATES: LegalTemplate[] = [
     internal: true,
     summary: "Non si pubblica. Va completata prima di attivare il trattamento, non dopo (art. 35).",
     build: buildImpactAssessment,
+  },
+  {
+    type: LegalDocumentType.SUPPLIER_TERMS,
+    title: "Condizioni per i fornitori",
+    essential: false,
+    summary: "Pubblica su /condizioni-fornitori. La accetta nel portale ogni fornitore che carica un listino.",
+    build: buildSupplierTerms,
   },
 ];

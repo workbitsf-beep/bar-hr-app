@@ -107,10 +107,21 @@ Salta le righe senza prezzo, i titoli e le note. Non inventare prezzi.`;
 }
 
 /** Reads and saves a list, replacing the same supplier's earlier one. */
-export async function importPriceList(input: { fileName: string; bytes: Buffer; supplierName: string; zone: string | null; validFrom: Date; barId: string | null }) {
+export async function importPriceList(input: {
+  fileName: string;
+  bytes: Buffer;
+  supplierName: string;
+  zone: string | null;
+  validFrom: Date;
+  barId: string | null;
+  /** Set when the supplier uploads it from its own portal. */
+  supplierId?: string;
+}) {
   const rows = await readPriceList(input);
   if (!rows.length) return 0;
-  await prisma.supplierListPrice.deleteMany({ where: { supplierName: input.supplierName, barId: input.barId, source: "listino" } });
+  await prisma.supplierListPrice.deleteMany({
+    where: input.supplierId ? { supplierId: input.supplierId } : { supplierName: input.supplierName, barId: input.barId, source: "listino" },
+  });
   await prisma.supplierListPrice.createMany({
     data: rows.map((row) => ({
       supplierName: input.supplierName,
@@ -121,7 +132,8 @@ export async function importPriceList(input: { fileName: string; bytes: Buffer; 
       unitPrice: row.unitPrice,
       description: row.description.slice(0, 300),
       validFrom: input.validFrom,
-      source: "listino",
+      source: input.supplierId ? "fornitore" : "listino",
+      supplierId: input.supplierId ?? null,
       barId: input.barId,
     })),
   });

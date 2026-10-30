@@ -45,6 +45,11 @@ export default async function ConsoleSystemPage() {
           meta="Carica un PDF o un Excel: Workbit lo legge e lo confronta con i clienti"
         />
         <Row
+          href="/dashboard/super-admin/prova"
+          title="Prova gratuita"
+          meta="Le risposte delle attività: punti di forza, problemi, quanto pagherebbero"
+        />
+        <Row
           href="/dashboard/super-admin/usage"
           title="Utilizzo e diagnostica"
           meta="Carico della piattaforma e stato del database"

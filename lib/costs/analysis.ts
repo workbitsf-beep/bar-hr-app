@@ -612,8 +612,8 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
       savings.push({
         id: `listino:${trend.productKey}:${list.supplierName}`,
         kind: "fornitore",
-        title: `${trend.label}: a listino da ${list.supplierName}`,
-        detail: `Il listino di ${list.supplierName}${list.zone ? ` (${list.zone})` : ""} lo dà a ${unitPriceText(list.unitPrice, trend.unit)}, tu lo paghi ${unitPriceText(trend.unitPrice, trend.unit)}. Con le tue quantità sono circa ${euros(yearly(list.unitPrice))} all'anno: chiedi un'offerta.`,
+        title: `${trend.label}: ${list.source === "online" ? "online" : "a listino"} da ${list.supplierName}`,
+        detail: `${list.source === "online" ? `Su una pagina pubblica di ${list.supplierName}` : `Il listino di ${list.supplierName}${list.zone ? ` (${list.zone})` : ""}`} lo dà a ${unitPriceText(list.unitPrice, trend.unit)}, tu lo paghi ${unitPriceText(trend.unitPrice, trend.unit)}. Con le tue quantità sono circa ${euros(yearly(list.unitPrice))} all'anno: ${list.source === "online" ? "controlla consegna e minimi, poi chiedi un'offerta." : "chiedi un'offerta."}`,
         yearlyCents: yearly(list.unitPrice),
         confidence: "da verificare",
         productKey: trend.productKey,

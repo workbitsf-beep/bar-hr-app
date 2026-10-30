@@ -12,6 +12,7 @@ export const legalDocumentTypeLabels: Record<LegalDocumentType, string> = {
   GEOLOCATION_NOTICE: "Informativa Geolocalizzazione",
   DPA: "DPA",
   SAAS_CONTRACT: "Contratto SaaS",
+  SUPPLIER_TERMS: "Condizioni per i fornitori",
   OTHER: "Altro",
 };
 

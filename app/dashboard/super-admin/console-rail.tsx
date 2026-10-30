@@ -15,7 +15,7 @@ const ROOT = "/dashboard/super-admin";
 // Pages that live under their own path but belong to a section's territory.
 const ANNEXES: Record<string, string[]> = {
   [ROOT]: [`${ROOT}/bar/`, `${ROOT}/new`],
-  [`${ROOT}/system`]: [`${ROOT}/legal`, `${ROOT}/settings`, `${ROOT}/usage`, `${ROOT}/mercato`, `${ROOT}/listini`],
+  [`${ROOT}/system`]: [`${ROOT}/legal`, `${ROOT}/settings`, `${ROOT}/usage`, `${ROOT}/mercato`, `${ROOT}/listini`, `${ROOT}/prova`],
 };
 
 function isActive(pathname: string, href: string) {

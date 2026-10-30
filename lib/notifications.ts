@@ -52,6 +52,10 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   SUPPLIER_PAYMENT: "supplier-payment.due",
   // To the super admins, early in the month: last month's market prices to type in.
   MARKET_PRICES: "market-prices.due",
+  // To the super admins: the month's search of public price lists is done.
+  ONLINE_LISTS: "online-lists.done",
+  // To the super admins: a business in the free pilot told us what it thinks.
+  PILOT_FEEDBACK: "pilot-feedback.received",
 } as const;
 
 export type InternalNotificationType =

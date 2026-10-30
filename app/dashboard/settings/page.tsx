@@ -140,6 +140,7 @@ const ROW_ICONS: Record<string, string> = {
   "Controllo widget": "🧩",
   "Scrivi all’assistenza": "💬",
   Assistenza: "💬",
+  "Com'è andata la prova?": "⭐",
   "Elimina il mio account": "🗑️",
   "Elimina locale e account": "🗑️",
   "Locale e attività": "🏠",
@@ -1459,6 +1460,10 @@ export default async function DashboardSettingsPage({
         >
           <SupportPanel activeBarName={activeBarName} userEmail={session.user.email} />
         </PopupAction>
+
+        <a href="/dashboard/prova" style={{ textDecoration: "none", color: "inherit" }}>
+          <SettingsRow dot="#f59e0b" title="Com'è andata la prova?" lead="Cosa va, cosa manca, quanto vale per te" />
+        </a>
       </SettingsGroup>
 
       {/* The most irreversible thing in the app used to be a form at the

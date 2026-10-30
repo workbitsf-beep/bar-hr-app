@@ -23,6 +23,7 @@ export async function GET(request: Request): Promise<Response> {
     { runAccountantNotices },
     { runPaymentReminders },
     { runMarketReminder },
+    { runOnlineListSearch },
   ] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/task-recurrence"),
@@ -38,6 +39,7 @@ export async function GET(request: Request): Promise<Response> {
     import("@/lib/accountant/invoices"),
     import("@/lib/costs/payments"),
     import("@/lib/costs/market"),
+    import("@/lib/costs/online-lists"),
   ]);
 
   // Recurrence runs before escalation: escalation rewrites an overdue note's
@@ -45,7 +47,7 @@ export async function GET(request: Request): Promise<Response> {
   // it stayed untouched.
   const recurrenceResult = await runTaskRecurrence();
 
-  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult, inboxResult, payrollResult, courseResult, accountantResult, paymentResult, marketResult] =
+  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult, inboxResult, payrollResult, courseResult, accountantResult, paymentResult, marketResult, onlineListResult] =
     await Promise.all([
       runTaskEscalation(),
       runShiftRetentionCleanup(),
@@ -70,6 +72,8 @@ export async function GET(request: Request): Promise<Response> {
       runPaymentReminders().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
       // From the 3rd: the super admins type in last month's market prices.
       runMarketReminder().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
+      // From the 5th: the month's search of public price lists for the top products.
+      runOnlineListSearch().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
     ]);
 
   return Response.json({
@@ -84,6 +88,7 @@ export async function GET(request: Request): Promise<Response> {
     accountantNotices: accountantResult,
     paymentReminders: paymentResult,
     marketReminder: marketResult,
+    onlineListSearch: onlineListResult,
     updatedCount: taskResult.count,
     renewedRecurringTaskCount: recurrenceResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,

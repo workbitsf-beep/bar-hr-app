@@ -184,14 +184,19 @@ export async function searchOnlinePrices(input: {
   ourUnitPrice: number | null;
   examples: string[];
   city: string | null;
+  /** Who buys it: a venue (the default) or a company, whose suppliers are B2B. */
+  buyer?: "venue" | "company";
 }): Promise<{ offers: PriceOffer[]; summary: string } | null> {
   if (!aiEnabled()) return null;
   const unit = input.baseUnit ?? "pz";
-  const prompt = `Prodotto comprato da un locale in Italia: "${input.productLabel}".
+  const company = input.buyer === "company";
+  const prompt = `Prodotto comprato da ${company ? "una piccola azienda (officina, laboratorio, produzione)" : "un locale"} in Italia: "${input.productLabel}".
 Come appare sulle sue fatture: ${input.examples.map((text) => `"${text}"`).join("; ")}.
 ${input.ourUnitPrice ? `Lo paga ${input.ourUnitPrice.toFixed(3)} € per ${unit}, IVA esclusa.` : ""}
 
-Cerca sul web prezzi attuali dello STESSO prodotto (stessa marca, stesso formato) da venditori che riforniscono bar e ristoranti in Italia: ingrossi online, cash & carry (Metro, Sogegross...), siti di bevande per locali, Amazon Business. Restituisci fino a 5 offerte reali con il link della pagina.
+${company
+    ? "Cerca sul web prezzi attuali dello STESSO prodotto (stesso materiale, qualità e forma, o stesso codice) da venditori che riforniscono aziende in Italia: e-commerce industriali (RS, Hoffmann, Würth, Misumi, ManoMano Pro...), centri servizi e distributori che pubblicano listini o prezzi online, Amazon Business."
+    : "Cerca sul web prezzi attuali dello STESSO prodotto (stessa marca, stesso formato) da venditori che riforniscono bar e ristoranti in Italia: ingrossi online, cash & carry (Metro, Sogegross...), siti di bevande per locali, Amazon Business."} Restituisci fino a 5 offerte reali con il link della pagina.
 - price: il prezzo della confezione mostrata, IVA esclusa (se la pagina lo dà IVA inclusa, scorporala e dillo in conditions).
 - unitPrice: il prezzo per ${unit}, IVA esclusa, calcolato dalla confezione.
 - conditions: cosa cambia rispetto a un fornitore che consegna (ritiro in negozio, ordine minimo, spedizione, quantità).

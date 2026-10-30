@@ -194,6 +194,7 @@ enum LegalDocumentType {
   GEOLOCATION_NOTICE
   DPA
   SAAS_CONTRACT
+  SUPPLIER_TERMS
   OTHER
 }
 
@@ -1642,8 +1643,10 @@ model SupplierListPrice {
   /// As it reads on the list, for checking.
   description  String?
   validFrom    DateTime
-  /// "listino" (uploaded) or "fornitore" (published by the supplier).
+  /// "listino" (uploaded by Workbit), "fornitore" (by the supplier), "online" (a public page).
   source       String   @default("listino")
+  supplierId   String?  @db.Uuid
+  supplier     Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   url          String?
   barId        String?  @db.Uuid
   bar          Bar?     @relation(fields: [barId], references: [id], onDelete: Cascade)
@@ -1651,4 +1654,68 @@ model SupplierListPrice {
 
   @@index([productKey, baseUnit])
   @@index([barId])
+  @@index([supplierId])
+}
+
+/// A supplier who publishes its price list on Workbit, by its own email.
+model Supplier {
+  id              String              @id @default(uuid()) @db.Uuid
+  /// Lowercase.
+  email           String              @unique
+  companyName     String?
+  vatNumber       String?
+  zone            String?
+  categories      String?
+  phone           String?
+  /// The supplier terms accepted: when and which version. Nothing is published before.
+  termsAcceptedAt DateTime?
+  termsVersion    String?
+  prices          SupplierListPrice[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+/// A six-digit code mailed to sign in to a portal outside the app (kind: "supplier").
+model PortalLoginCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  kind      String
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([kind, email, createdAt])
+}
+
+model PortalSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  kind      String
+  email     String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([kind, email])
+}
+
+/// What a business in the free pilot thinks: strengths, what is wrong, what
+/// is missing, and what it would pay.
+model PilotFeedback {
+  id            String   @id @default(uuid()) @db.Uuid
+  barId         String   @db.Uuid
+  userId        String   @db.Uuid
+  strengths     String?
+  problems      String?
+  missing       String?
+  /// Euro a month it would pay; null when it did not say.
+  wouldPay      Int?
+  payNote       String?
+  /// 0-10: would it recommend Workbit.
+  recommend     Int?
+  mostUsed      String?
+  createdAt     DateTime @default(now())
+
+  @@index([barId, createdAt])
 }

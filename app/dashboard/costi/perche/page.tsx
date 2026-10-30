@@ -94,7 +94,7 @@ function ProductCard({ item, kind, tip }: { item: ProductTrend; kind: Kind; tip:
         ) : null}
         {item.listPrices.length ? (
           <Compare icon="📋" title="Listini dei fornitori" tone="good">
-            {item.listPrices.map((list) => `${list.supplierName}${list.zone ? ` (${list.zone})` : ""} ${price(list.unitPrice, item.unit)}`).join(" · ")}
+            {item.listPrices.map((list) => `${list.supplierName}${list.zone ? ` (${list.zone})` : ""}${list.source === "online" ? " · online" : ""} ${price(list.unitPrice, item.unit)}`).join(" · ")}
           </Compare>
         ) : null}
         {item.twoMonthsUnitPrice !== null || item.lastYearUnitPrice !== null ? (
