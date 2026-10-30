@@ -22,9 +22,6 @@ export type TourStep = {
 
 export type Tour = { key: string; steps: TourStep[] };
 
-/** Venues where the guide is on while it is being tried. */
-export const TOUR_PILOT_BARS = new Set(["f139252b-b2f5-4e99-8e5e-bfe05ba70598"]);
-
 const nav = (href: string) => `.dashboard-bottom-nav a[href="${href}"], .wb-desk-only a[href="${href}"], aside a[href="${href}"]`;
 
 const TOURS: Record<string, Record<TourProfile, TourStep[]>> = {
