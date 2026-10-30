@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 /**
@@ -32,8 +32,10 @@ function key() {
   if (cachedKey !== undefined) return cachedKey;
   const raw = process.env.DATA_ENCRYPTION_KEY?.trim();
   const parsed = raw ? Buffer.from(raw, "base64") : null;
-  cachedKey = parsed && parsed.length === 32 ? parsed : null;
-  if (raw && !cachedKey) console.error("[crypto] DATA_ENCRYPTION_KEY must be 32 bytes in base64: encryption is off");
+  // 32 bytes in base64, or any long random text (Railway's ${{ secret(64) }}),
+  // turned into 32 bytes by SHA-256. Shorter than 32 characters is refused.
+  cachedKey = parsed && parsed.length === 32 ? parsed : raw && raw.length >= 32 ? createHash("sha256").update(raw).digest() : null;
+  if (raw && !cachedKey) console.error("[crypto] DATA_ENCRYPTION_KEY is too short: encryption is off");
   return cachedKey;
 }
 
