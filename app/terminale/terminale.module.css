@@ -390,9 +390,16 @@
   padding: 28px 22px;
   width: min(100%, 460px);
   display: grid;
+  /* One column as wide as the card: centred items would size to their
+     longest line and push the text past the screen on a phone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   text-align: center;
-  justify-items: center;
+  box-sizing: border-box;
+}
+
+.pairCard .logo {
+  justify-self: center;
 }
 
 .pairCard h1 {
@@ -409,6 +416,7 @@
 
 .pairCard form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   width: 100%;
 }
@@ -426,6 +434,9 @@
 }
 
 .codeInput {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 60px;
   border-radius: 16px;
   border: 1px solid #dcd6f3;
