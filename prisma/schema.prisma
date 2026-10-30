@@ -398,6 +398,7 @@ model Bar {
   payrollMonthAdjustments PayrollMonthAdjustment[]
   supplierPayments        SupplierPayment[]
   supplierPaymentRules    SupplierPaymentRule[]
+  marketPrices            MarketPrice[]
   payrollDayOverrides     PayrollDayOverride[]
   payrollSends            PayrollSend[]
   legalAcceptances        LegalAcceptance[]
@@ -1598,4 +1599,22 @@ model SupplierPaymentRule {
   createdAt    DateTime @default(now())
 
   @@unique([barId, supplierKey])
+}
+
+/// A market reference price for a month (lib/costs/market.ts): inox 304 from
+/// ANIE, diesel from the ministry, coffee, milk... typed in by Workbit every
+/// month. barId set: demo values seen by that venue only.
+model MarketPrice {
+  id        String   @id @default(uuid()) @db.Uuid
+  indexKey  String
+  /// "2026-10"
+  month     String
+  value     Float
+  barId     String?  @db.Uuid
+  bar       Bar?     @relation(fields: [barId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([indexKey, month])
+  @@index([barId])
 }

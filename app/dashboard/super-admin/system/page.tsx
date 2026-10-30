@@ -35,6 +35,11 @@ export default async function ConsoleSystemPage() {
           meta="Password, impronta e Face ID, altri super admin"
         />
         <Row
+          href="/dashboard/super-admin/mercato"
+          title="Prezzi di mercato"
+          meta="Metalli, gasolio, luce, caffè, latte: un valore al mese"
+        />
+        <Row
           href="/dashboard/super-admin/usage"
           title="Utilizzo e diagnostica"
           meta="Carico della piattaforma e stato del database"

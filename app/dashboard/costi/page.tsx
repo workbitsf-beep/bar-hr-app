@@ -301,6 +301,7 @@ function Summary({ report, company }: { report: CostReport; company: boolean }) 
 
 const signedEuro = (cents: number) => `${cents > 0 ? "+" : cents < 0 ? "−" : ""}${euro(Math.abs(cents))}`;
 const quantityText = (value: number, unit: string) => `${value.toLocaleString("it-IT", { maximumFractionDigits: 1 })} ${BASE_UNIT_LABEL[unit] ?? unit}`;
+const pctSigned = (value: number) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toLocaleString("it-IT", { maximumFractionDigits: 1 })}%`;
 const pctText = (now: number | null, before: number | null) => {
   if (now === null || before === null || before <= 0) return null;
   const value = (now / before - 1) * 100;
@@ -382,6 +383,16 @@ function ProductTrends({ report }: { report: CostReport }) {
           }
         />
         {prices.length ? <Line muted left={<span style={{ color: up ? "#b3202f" : "#0f7a4f" }}>Prezzo {prices.join(" · ")}</span>} /> : null}
+        {item.market ? (
+          <Line
+            muted
+            left={
+              <span style={{ color: item.market.productPct - item.market.marketPct >= 3 ? "#b3202f" : "#7c7894" }}>
+                Mercato {item.market.label.toLowerCase()}: {pctSigned(item.market.marketPct)} in {item.market.months === 1 ? "un mese" : `${item.market.months} mesi`}, il tuo prezzo {pctSigned(item.market.productPct)}
+              </span>
+            }
+          />
+        ) : null}
       </Row>
     );
   };

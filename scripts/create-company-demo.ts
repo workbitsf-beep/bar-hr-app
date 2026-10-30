@@ -354,13 +354,38 @@ async function create() {
     ],
   });
 
+  await seedMarket(bar.id);
   console.log(`Creato: ${BAR_NAME}`);
   console.log(`Titolari: ${owners.map((item) => item.email).join(", ")}`);
   console.log(`Dipendente demo: ${EMPLOYEE_EMAIL} / ${employeePassword}`);
 }
 
+/**
+ * Market values for the demo only (barId set: no other venue sees them),
+ * so "the market moved this much" shows tonight. Real ones are typed in
+ * the console every month.
+ */
+async function seedMarket(barId: string) {
+  const values: Record<string, number[]> = {
+    "inox-304": [100, 99.8, 99.6, 99.5],
+    "acciaio-carbonio": [100, 100.5, 101, 101.2],
+    gasolio: [1.73, 1.76, 1.71, 1.74],
+    "energia-pun": [112, 118, 121, 115],
+  };
+  await prisma.marketPrice.deleteMany({ where: { barId } });
+  await prisma.marketPrice.createMany({
+    data: Object.entries(values).flatMap(([indexKey, list]) => list.map((value, index) => ({ indexKey, month: MONTHS[index], value, barId }))),
+  });
+}
+
 const mode = process.argv[2];
-(mode === "--remove" ? remove() : mode === "--confirm" ? create() : Promise.reject(new Error("Usa --confirm o --remove")))
+(mode === "--remove"
+  ? remove()
+  : mode === "--confirm"
+    ? create()
+    : mode === "--market"
+      ? prisma.bar.findFirstOrThrow({ where: { name: BAR_NAME }, select: { id: true } }).then((bar) => seedMarket(bar.id))
+      : Promise.reject(new Error("Usa --confirm o --remove")))
   .then(() => prisma.$disconnect())
   .catch(async (error) => {
     console.error(error instanceof Error ? error.message : error);

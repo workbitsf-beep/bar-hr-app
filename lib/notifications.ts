@@ -50,6 +50,8 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   PAYROLL_READY: "payroll.ready",
   // To the owner: a bonifico due soon, or one past its day with no word yet.
   SUPPLIER_PAYMENT: "supplier-payment.due",
+  // To the super admins, early in the month: last month's market prices to type in.
+  MARKET_PRICES: "market-prices.due",
 } as const;
 
 export type InternalNotificationType =

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { buildMonthlyTotals } from "@/lib/reporting";
 import { BASE_UNIT_LABEL, CATEGORY_BY_KEY, COST_CATEGORIES, categoryOf, normalizeText } from "./categories";
 import { supplierKeyOf } from "./import";
+import { changeBetween, indexFor, loadMarket } from "./market";
 
 export type SavingTip = {
   id: string;
@@ -68,6 +69,8 @@ export type ProductTrend = {
   /** The change in spend split in two: quantity at last month's price, and price on this month's quantity. */
   quantityCents: number;
   priceCents: number;
+  /** The same stretch of months for the product and its market index, when there is one. */
+  market: { key: string; label: string; source: string; months: number; productPct: number; marketPct: number } | null;
 };
 
 export function monthKey(date: Date) {
@@ -467,6 +470,22 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
     productMonths.set(id, entry);
   }
   const unitOf = (bucket: Bucket | undefined) => (bucket && bucket.qty > 0 ? bucket.qtyCents / 100 / bucket.qty : null);
+  const market = await loadMarket(barId);
+  // Against the market: the furthest month back, up to three, where both are known.
+  const marketOf = (productKey: string, label: string, byMonth: Map<string, Bucket>) => {
+    const index = indexFor(productKey, label);
+    const series = index ? market.get(index.key) : undefined;
+    const now = unitOf(byMonth.get(month));
+    if (!index || !series || now === null || !series.has(month)) return null;
+    for (const back of [3, 2, 1]) {
+      const from = shiftMonth(month, -back);
+      const then = unitOf(byMonth.get(from));
+      const marketPct = changeBetween(series, from, month);
+      if (then === null || marketPct === null) continue;
+      return { key: index.key, label: index.label, source: index.source, months: back, productPct: (now / then - 1) * 100, marketPct };
+    }
+    return null;
+  };
   const productTrends: ProductTrend[] = [];
   let quantityCents = 0;
   let priceCents = 0;
@@ -505,9 +524,29 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
       lastYearUnitPrice: unitOf(entry.byMonth.get(shiftMonth(month, -12))),
       quantityCents: quantityPart,
       priceCents: pricePart,
+      market: marketOf(id.split("|")[0], entry.label, entry.byMonth),
     });
   }
   productTrends.sort((a, b) => b.cents - a.cents || b.previousCents - a.previousCents);
+  // A supplier's price that rose well past its market's.
+  for (const trend of productTrends) {
+    const gap = trend.market ? trend.market.productPct - trend.market.marketPct : 0;
+    if (!trend.market || gap < 3 || trend.unitPrice === null || !trend.quantity) continue;
+    const fair = trend.unitPrice / (1 + trend.market.productPct / 100) * (1 + trend.market.marketPct / 100);
+    const yearlyCents = Math.round((trend.unitPrice - fair) * trend.quantity * 12 * 100);
+    if (yearlyCents < 3000) continue;
+    const pct = (value: number) => `${value > 0 ? "+" : "−"}${Math.abs(value).toLocaleString("it-IT", { maximumFractionDigits: 1 })}%`;
+    savings.push({
+      id: `mercato:${trend.productKey}`,
+      kind: "aumento",
+      title: `${trend.label}: ${pct(trend.market.productPct)} contro il mercato ${pct(trend.market.marketPct)}`,
+      detail: `In ${trend.market.months === 1 ? "un mese" : `${trend.market.months} mesi`} il prezzo che paghi è cambiato del ${pct(trend.market.productPct)}, il mercato (${trend.market.label}, ${trend.market.source}) del ${pct(trend.market.marketPct)}. Se seguisse il mercato pagheresti circa ${euros(yearlyCents)} in meno all'anno: è un buon argomento con il fornitore.`,
+      yearlyCents,
+      confidence: "sicuro",
+      productKey: trend.productKey,
+    });
+  }
+  savings.sort((a, b) => (b.yearlyCents ?? 0) - (a.yearlyCents ?? 0));
   const monthStory = availableMonths.includes(previous)
     ? { deltaCents: monthTotal(month) - monthTotal(previous), quantityCents, priceCents, newCents, goneCents }
     : null;
