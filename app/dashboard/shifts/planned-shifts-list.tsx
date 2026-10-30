@@ -75,7 +75,7 @@ export function PlannedShiftsList({
               padding: 16,
               borderRadius: 20,
               border: shift.highlight ? "1px solid #cbd5e1" : "1px solid #ece9f7",
-              background: shift.highlight ? "#f1f5f9" : "#f8fafc",
+              background: shift.highlight ? "#f1f5f9" : "#fbfaff",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",

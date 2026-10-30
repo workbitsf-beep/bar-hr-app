@@ -3120,7 +3120,7 @@ export function OwnerCalendarClient({
                 boxSizing: "border-box",
                 padding: 14,
                 borderRadius: 22,
-                background: weekIsCurrent ? "#f1eeff" : "#f8fafc",
+                background: weekIsCurrent ? "#f1eeff" : "#fbfaff",
                 border: weekIsCurrent ? "1px solid #dcd6f3" : "1px solid #ece9f7",
                 boxShadow: weekIsCurrent
                   ? "0 10px 24px rgba(99, 102, 241, 0.08)"

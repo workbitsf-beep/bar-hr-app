@@ -514,7 +514,7 @@ export function ShiftEditorModal({
                         padding: "12px 14px",
                         borderRadius: 16,
                         border: "1px solid #ece9f7",
-                        background: selectedMembers.includes(member.id) ? "#e2e8f0" : "#f8fafc",
+                        background: selectedMembers.includes(member.id) ? "#e2e8f0" : "#fbfaff",
                       }}
                     >
                       <input

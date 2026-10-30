@@ -160,7 +160,7 @@ export function DashboardNavMenu({
           height: 44,
           borderRadius: 999,
           padding: 0,
-          background: open ? "#e2e8f0" : "#f8fafc",
+          background: open ? "#e2e8f0" : "#fbfaff",
           color: open ? "#4c1d95" : "#0f172a",
           border: "1px solid rgba(124, 58, 237, 0.12)",
           fontWeight: 700,
