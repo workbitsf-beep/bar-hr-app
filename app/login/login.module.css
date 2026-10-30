@@ -74,6 +74,9 @@
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
+  /* Never sideways: one long unbroken word (an Apple error code) once made
+     the form wider than the phone and slid the whole page to the left. */
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -310,6 +313,8 @@
 /* Something went wrong. */
 .errorMessage {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 10px 12px;
   border-radius: 13px;
   background: #fdeef0;
@@ -324,6 +329,8 @@
    Android class. */
 .hintMessage {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 10px 12px;
   border-radius: 13px;
   background: #f2f0fa;
