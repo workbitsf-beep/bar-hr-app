@@ -248,3 +248,75 @@ export async function markSentAction(input: { recipientId: string; month: string
     return ruleFailure(error);
   }
 }
+
+/** "150", "150,5" or "150:30" as hours; empty is no change for that item. */
+function hoursInput(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+  const clock = /^(\d{1,3}):([0-5]\d)$/.exec(text);
+  const hours = clock ? Number(clock[1]) + Number(clock[2]) / 60 : Number(text.replace(",", "."));
+  if (!Number.isFinite(hours) || hours < 0 || hours > 400) throw new RuleError("Scrivi le ore come 150 o 150:30.");
+  return Math.round(hours * 100) / 100;
+}
+
+async function monthTarget(formData: FormData) {
+  const access = await payrollAccess();
+  const userId = String(formData.get("userId") ?? "");
+  const month = String(formData.get("month") ?? "");
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new RuleError("Mese non valido.");
+  const member = await prisma.employeeBar.findFirst({ where: { barId: access.barId, userId }, select: { userId: true } });
+  if (!member) throw new RuleError("Persona non trovata.");
+  if (!access.isOwner) await ensureMembersInScope(access.staff, "reports", access.barId, [userId]);
+  return { ...access, userId, month };
+}
+
+/**
+ * A person's month as the owner wants it in the file: the totals typed in
+ * replace the computed ones (lib/payroll/adjust.ts). Only the items that
+ * differ from the computed value are kept; the clock-ins stay as they were.
+ */
+export async function saveMonthTotalsAction(formData: FormData) {
+  try {
+    const { barId, userId, month, session } = await monthTarget(formData);
+    const totals: Record<string, { hours?: number; days?: number }> = {};
+    for (const kind of PAYROLL_KINDS) {
+      const hours = hoursInput(formData.get(`hours_${kind}`));
+      const daysText = String(formData.get(`days_${kind}`) ?? "").trim();
+      const days = daysText ? Number(daysText) : undefined;
+      if (days !== undefined && (!Number.isInteger(days) || days < 0 || days > 31)) throw new RuleError("I giorni vanno da 0 a 31.");
+      const computedHours = Number(formData.get(`was_hours_${kind}`) ?? 0);
+      const computedDays = Number(formData.get(`was_days_${kind}`) ?? 0);
+      const entry: { hours?: number; days?: number } = {};
+      if (hours !== undefined && Math.abs(hours - computedHours) >= 0.01) entry.hours = hours;
+      if (days !== undefined && days !== computedDays) entry.days = days;
+      if (entry.hours !== undefined || entry.days !== undefined) totals[kind] = entry;
+    }
+    const note = String(formData.get("note") ?? "").trim().slice(0, 200) || null;
+
+    if (!Object.keys(totals).length && !note) {
+      await prisma.payrollMonthAdjustment.deleteMany({ where: { barId, userId, month } });
+    } else {
+      await prisma.payrollMonthAdjustment.upsert({
+        where: { barId_userId_month: { barId, userId, month } },
+        create: { barId, userId, month, totals, note, updatedById: session.user.id },
+        update: { totals, note, updatedById: session.user.id },
+      });
+    }
+    revalidatePath(PATH, "layout");
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** Back to the totals the clock-ins or the shifts give. */
+export async function resetMonthTotalsAction(formData: FormData) {
+  try {
+    const { barId, userId, month } = await monthTarget(formData);
+    await prisma.payrollMonthAdjustment.deleteMany({ where: { barId, userId, month } });
+    revalidatePath(PATH, "layout");
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}

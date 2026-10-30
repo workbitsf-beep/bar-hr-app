@@ -3,6 +3,7 @@ import "server-only";
 import { ActivityType, RequestStatus, RequestType, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyDataset } from "@/lib/reporting";
+import { applyMonthTargets, targetsOf, totalsOf, type MonthTargets } from "./adjust";
 import {
   DAY_KINDS,
   PAYROLL_CODE_LABELS,
@@ -42,6 +43,11 @@ export type PayrollPerson = PayrollPersonData & {
   flags: PayrollFlag[];
   /** Days corrected at review. */
   overridden: string[];
+  /** The totals before the owner's own (when there are some), for "era 168:00". */
+  computedTotals: Record<PayrollCodeKey, { hours: number; days: number }>;
+  /** The owner's totals for the month, when set. */
+  adjusted: MonthTargets | null;
+  adjustedNote: string | null;
   warnings: string[];
 };
 
@@ -55,10 +61,6 @@ export type PayrollMonth = Omit<PayrollMonthData, "people"> & {
 };
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
-
-function emptyTotals(): PayrollPerson["totals"] {
-  return Object.fromEntries(PAYROLL_KINDS.map((kind) => [kind, { hours: 0, days: 0 }])) as PayrollPerson["totals"];
-}
 
 /** Same local day key as the monthly report. */
 function dayKeyOf(date: Date) {
@@ -109,7 +111,8 @@ export async function buildPayrollMonth(input: {
   const monthStart = new Date(input.year, input.month - 1, 1);
   const monthEnd = new Date(input.year, input.month, 1);
 
-  const [bar, settings, members, sickness, overtimeRequests, overrides] = await Promise.all([
+  const monthKey = `${input.year}-${String(input.month).padStart(2, "0")}`;
+  const [bar, settings, members, sickness, overtimeRequests, overrides, adjustments] = await Promise.all([
     prisma.bar.findUniqueOrThrow({
       where: { id: input.barId },
       select: { name: true, legalName: true, vatNumber: true, ownerId: true, activityType: true },
@@ -158,6 +161,10 @@ export async function buildPayrollMonth(input: {
         date: { gte: new Date(Date.UTC(input.year, input.month - 1, 1)), lt: new Date(Date.UTC(input.year, input.month, 1)) },
       },
       select: { userId: true, date: true, entries: true },
+    }),
+    prisma.payrollMonthAdjustment.findMany({
+      where: { barId: input.barId, month: monthKey },
+      select: { userId: true, totals: true, note: true },
     }),
   ]);
 
@@ -297,7 +304,7 @@ export async function buildPayrollMonth(input: {
     );
     for (const key of corrected.keys()) dayOf(key);
 
-    const entries: PayrollEntry[] = [];
+    let entries: PayrollEntry[] = [];
     const workedByWeek = new Map<string, number>();
     let workedDays = 0;
     for (const key of Array.from(days.keys()).sort()) {
@@ -345,11 +352,15 @@ export async function buildPayrollMonth(input: {
     }
     if (!member.payrollCode) warnings.push("Manca la matricola o il codice fiscale.");
 
-    const totals = emptyTotals();
-    for (const entry of entries) {
-      totals[entry.kind].hours = round2(totals[entry.kind].hours + entry.hours);
-      totals[entry.kind].days += entry.days;
+    // The owner's own totals, when set, laid over the days: the file only.
+    const computedTotals = totalsOf(entries);
+    const adjustment = adjustments.find((item) => item.userId === member.userId);
+    const targets = adjustment ? targetsOf(adjustment.totals) : null;
+    if (targets && Object.keys(targets).length) {
+      entries = applyMonthTargets(entries, targets, { year: input.year, month: input.month, dailyHours });
+      workedDays = new Set(entries.filter((entry) => (entry.kind === "ordinary" || entry.kind === "overtime") && entry.hours > 0).map((entry) => entry.date)).size;
     }
+    const totals = targets ? totalsOf(entries) : computedTotals;
 
     result.push({
       userId: member.userId,
@@ -366,6 +377,9 @@ export async function buildPayrollMonth(input: {
       certificates: sickness.filter((request) => request.employeeId === member.userId).map((request) => request.certificateCode!),
       flags: flags.filter((flag) => !corrected.has(flag.date)).sort((a, b) => a.date.localeCompare(b.date)),
       overridden: Array.from(corrected.keys()).sort(),
+      computedTotals,
+      adjusted: targets && Object.keys(targets).length ? targets : null,
+      adjustedNote: adjustment?.note ?? null,
       warnings,
     });
   }

@@ -395,6 +395,7 @@ model Bar {
   monthlyRevenues        MonthlyRevenue[]
   payrollRecipients      PayrollRecipient[]
   accountantAccesses     AccountantAccess[]
+  payrollMonthAdjustments PayrollMonthAdjustment[]
   payrollDayOverrides    PayrollDayOverride[]
   payrollSends           PayrollSend[]
   legalAcceptances       LegalAcceptance[]
@@ -1415,6 +1416,27 @@ model PayrollDayOverride {
 
   @@unique([barId, userId, date])
   @@index([barId, date])
+}
+
+/// The owner's totals for a person's month, set before sending: they
+/// replace the computed ones in the files only (lib/payroll/adjust.ts).
+/// The clock-ins and the shifts stay as they were.
+model PayrollMonthAdjustment {
+  id          String   @id @default(uuid()) @db.Uuid
+  barId       String   @db.Uuid
+  bar         Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  userId      String   @db.Uuid
+  /// "2026-10"
+  month       String
+  /// { ordinary: { hours }, holiday: { days, hours }, ... }
+  totals      Json
+  note        String?
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([barId, userId, month])
+  @@index([barId, month])
 }
 
 /// A month's files handed to a recipient: opened in the phone's mail, or

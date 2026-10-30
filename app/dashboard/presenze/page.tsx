@@ -117,11 +117,12 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const showToday = features.timeTracking && isCurrentMonth;
 
-  const [data, recipients, sends, lastOverride, todayLogs, todayShifts] = await Promise.all([
+  const [data, recipients, sends, lastOverride, lastAdjustment, todayLogs, todayShifts] = await Promise.all([
     buildPayrollMonth({ barId: activeBarId, month, year, memberWhere: memberScopeWhere(staff) }),
     canReports ? prisma.payrollRecipient.findMany({ where: { barId: activeBarId }, orderBy: { createdAt: "asc" } }) : Promise.resolve([]),
     canReports ? prisma.payrollSend.findMany({ where: { barId: activeBarId, month: key }, orderBy: { sentAt: "desc" } }) : Promise.resolve([]),
     prisma.payrollDayOverride.findFirst({ where: { barId: activeBarId, date: range }, orderBy: { updatedAt: "desc" }, select: { updatedAt: true } }),
+    prisma.payrollMonthAdjustment.findFirst({ where: { barId: activeBarId, month: key }, orderBy: { updatedAt: "desc" }, select: { updatedAt: true } }),
     showToday
       ? prisma.timeLog.findMany({
           where: { barId: activeBarId, timestamp: { gte: new Date(Math.min(dayStart.getTime(), now.getTime() - 16 * 3_600_000)) } },
@@ -182,7 +183,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
           select: { updatedAt: true },
         })
       : null;
-  const lastChange = [lastOverride?.updatedAt, lastShiftChange?.updatedAt].filter(Boolean).sort((a, b) => b!.getTime() - a!.getTime())[0] ?? null;
+  const lastChange = [lastOverride?.updatedAt, lastAdjustment?.updatedAt, lastShiftChange?.updatedAt].filter(Boolean).sort((a, b) => b!.getTime() - a!.getTime())[0] ?? null;
 
   const totalWorked = data.people.reduce((sum, person) => sum + person.totals.ordinary.hours + person.totals.overtime.hours, 0);
   const venue = data.legalName || data.venueName;
@@ -301,6 +302,21 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
       {canReports ? (
         recipient ? (
           <div style={{ display: "grid", gap: 8, paddingBottom: 8 }}>
+            <Link
+              href={`/dashboard/presenze/rivedi?mese=${key}`}
+              style={{ ...row, borderTop: 0, background: "#ffffff", border: "1px solid #ece9f7", borderRadius: 20, padding: "12px 16px" }}
+            >
+              <span aria-hidden style={{ width: 26, fontSize: 19, textAlign: "center" }}>✏️</span>
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+                <span style={{ fontSize: 15.5 }}>Rivedi il file prima di mandarlo</span>
+                <Quiet style={{ fontSize: 13 }}>
+                  {data.people.some((person) => person.adjusted)
+                    ? `${data.people.filter((person) => person.adjusted).length} modificate da te`
+                    : "Cambia ore e voci di ognuno"}
+                </Quiet>
+              </span>
+              <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+            </Link>
             <SendPanel
               recipientId={recipient.id}
               firstName={/^(studio|dott|rag|avv)/i.test(recipient.name) ? recipient.name : recipient.name.split(/\s+/)[0]}
