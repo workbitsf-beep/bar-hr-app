@@ -271,10 +271,10 @@ async function create() {
 
   // Certificates: one lapsed, two about to, the rest in order.
   const certificates: Prisma.CourseCertificateCreateManyInput[] = [
-    { barId: bar.id, userId: id("Davide"), kind: "FIRST_AID", title: "Primo soccorso", completedAt: day("2023-09-30"), expiresAt: day("2026-09-30") },
-    { barId: bar.id, userId: id("Giulia"), kind: "FIRE_SAFETY", title: "Antincendio rischio medio", completedAt: day("2021-11-20"), expiresAt: day("2026-11-20") },
-    { barId: bar.id, userId: id("Matteo"), kind: "OTHER", title: "Carrellista (muletto)", completedAt: day("2021-12-10"), expiresAt: day("2026-12-10") },
-    ...people.map((person) => ({ barId: bar.id, userId: person.id, kind: "OTHER" as const, title: "Sicurezza generale e specifica", completedAt: day("2024-02-15"), expiresAt: day("2029-02-15") })),
+    { barId: bar.id, userId: id("Davide"), kind: "FIRST_AID", title: "Primo soccorso", completedAt: utc("2023-09-30"), expiresAt: utc("2026-09-30") },
+    { barId: bar.id, userId: id("Giulia"), kind: "FIRE_SAFETY", title: "Antincendio rischio medio", completedAt: utc("2021-11-20"), expiresAt: utc("2026-11-20") },
+    { barId: bar.id, userId: id("Matteo"), kind: "OTHER", title: "Carrellista (muletto)", completedAt: utc("2021-12-10"), expiresAt: utc("2026-12-10") },
+    ...people.map((person) => ({ barId: bar.id, userId: person.id, kind: "OTHER" as const, title: "Sicurezza generale e specifica", completedAt: utc("2024-02-15"), expiresAt: utc("2029-02-15") })),
   ];
   await prisma.courseCertificate.createMany({ data: certificates });
 
