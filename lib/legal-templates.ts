@@ -90,8 +90,8 @@ function buildPrivacy(profile: CompanyProfile) {
     "",
 
     "2. A CHI SI RIVOLGE QUESTA INFORMATIVA",
-    `${service} è un servizio in abbonamento per la gestione del personale di bar e ristoranti: turni, timbrature, richieste di ferie e permessi, note interne, documenti e formazione. Si usa dal sito ${value(profile, "website")} e dall'app per smartphone.`,
-    "Questa informativa riguarda i clienti, cioè le attività che sottoscrivono l'abbonamento e le persone che le rappresentano; i dipendenti e collaboratori dei clienti che usano il servizio; chi visita il sito o scrive all'assistenza.",
+    `${service} è un servizio in abbonamento per la gestione di bar e ristoranti: turni, timbrature, richieste di ferie e permessi, note interne, documenti e formazione, i file delle presenze per il consulente del lavoro e la lettura delle fatture dei fornitori per l'analisi dei costi. Si usa dal sito ${value(profile, "website")} e dall'app per smartphone.`,
+    "Questa informativa riguarda i clienti, cioè le attività che sottoscrivono l'abbonamento e le persone che le rappresentano; i dipendenti e collaboratori dei clienti che usano il servizio; i professionisti a cui il cliente dà accesso o fa avere dei file, come il commercialista e il consulente del lavoro; chi visita il sito o scrive all'assistenza.",
     "Il nostro ruolo cambia a seconda dei dati. Per i dati dei clienti siamo titolari. Per i dati che i locali gestiscono sul proprio personale agiamo come responsabili del trattamento per conto del locale, che ne è il titolare (punto 4).",
     "",
 
@@ -102,6 +102,7 @@ function buildPrivacy(profile: CompanyProfile) {
     "• Rispondere alle richieste di assistenza — dati di contatto e contenuto della richiesta. Base giuridica: esecuzione del contratto.",
     "• Inviare comunicazioni di servizio — email e identificativo del dispositivo per le notifiche. Base giuridica: esecuzione del contratto.",
     "• Proteggere il servizio da accessi non autorizzati — sessioni attive, log di accesso, indirizzo IP, tipo di dispositivo. Base giuridica: legittimo interesse alla sicurezza (art. 6.1.f).",
+    "• Far accedere il commercialista indicato dal cliente — indirizzo email del professionista, codici di accesso monouso, sessioni e data degli scaricamenti. Base giuridica: esecuzione del contratto con il cliente e legittimo interesse a verificare chi accede (art. 6.1.f).",
     "Fornire questi dati è necessario per sottoscrivere e usare il servizio. Non facciamo profilazione, non vendiamo i dati e non li cediamo a terzi per finalità di marketing.",
     "",
 
@@ -109,39 +110,47 @@ function buildPrivacy(profile: CompanyProfile) {
     `I dati che il locale gestisce sui propri dipendenti tramite ${service} sono trattati per conto del locale, che in quanto datore di lavoro è titolare del trattamento. ${service} li tratta come responsabile ai sensi dell'art. 28 GDPR, secondo le istruzioni del locale e in base a un accordo sottoscritto con esso. Si tratta di:`,
     "• dati dell'account: nome, cognome, email, ruolo, credenziali, lingua, identificativo del dispositivo;",
     "• turni, assegnazioni, conferme e disponibilità;",
-    "• timbrature di entrata e uscita, con data, ora e posizione al momento della timbratura (punto 5);",
+    "• timbrature di entrata e uscita, con data, ora e posizione al momento della timbratura (punto 6);",
     `• richieste di ferie, permessi, cambio turno, straordinari e malattia, con le relative motivazioni${cert ? " e, per la malattia, il numero di protocollo del certificato medico" : ""};`,
     "• note scritte dai responsabili del locale su singoli dipendenti;",
     "• documenti caricati dal locale, per esempio contratti, buste paga o attestati;",
-    "• corsi di formazione assegnati e stato di completamento.",
+    "• corsi di formazione assegnati, stato di completamento e attestati, con la data di scadenza;",
+    "• dati per i file del consulente del lavoro: paga oraria, matricola o codice fiscale, ore lavorate e voci del mese (ordinarie, straordinari, ferie, permessi, malattia), comprese le correzioni fatte dal locale prima dell'invio.",
+    "Allo stesso modo, come responsabile per conto del locale, trattiamo le fatture elettroniche che il locale riceve dai propri fornitori, caricate dal locale o ricevute tramite il Sistema di Interscambio: contengono i dati del fornitore, che quando è una ditta individuale o un professionista sono dati personali.",
     cert
       ? `Il numero di protocollo del certificato medico è un dato relativo alla salute. È accessibile solo al dipendente e alle persone che il locale abilita a gestire le richieste, e si conserva ${value(profile, "retentionCertificate")}.`
       : "",
     "Se sei un dipendente, l'informativa completa te la fornisce il tuo datore di lavoro, al quale puoi rivolgerti per esercitare i tuoi diritti. Se scrivi a noi, inoltriamo la richiesta al locale e lo aiutiamo a darti una risposta.",
     "",
 
-    "5. POSIZIONE AL MOMENTO DELLA TIMBRATURA",
+    "5. FILE PER IL CONSULENTE E FATTURE PER IL COMMERCIALISTA",
+    "Su istruzione del locale prepariamo ogni mese il file delle presenze nel formato del suo consulente del lavoro e, se il locale lo chiede, glielo inviamo per email. Allo stesso modo, il locale può dare al proprio commercialista l'accesso alle fatture dei fornitori: il commercialista entra con la propria email e un codice monouso, vede solo le fatture dei locali che gli hanno dato accesso e può scaricarle. Il consulente e il commercialista sono scelti dal locale e ricevono i dati come suoi incaricati o titolari autonomi; il locale può revocare l'accesso in qualsiasi momento.",
+    "Prima dell'invio il locale può correggere le ore e le voci del file. Le correzioni restano nel file inviato; le timbrature originali non vengono modificate e restano conservate come descritto al punto 9.",
+    "",
+
+    "6. POSIZIONE AL MOMENTO DELLA TIMBRATURA",
     "L'app rileva la posizione del dispositivo solo nel momento in cui il dipendente timbra l'entrata o l'uscita, per verificare che si trovi entro il raggio dalla sede impostato dal locale. La posizione non viene rilevata in altri momenti, né in background, né in modo continuativo, e non viene ricostruito alcun percorso.",
     `Le coordinate vengono salvate insieme alla timbratura e si conservano ${value(profile, "retentionPosition")}. Il permesso di localizzazione si può revocare dalle impostazioni del telefono: in quel caso la timbratura dall'app potrebbe non essere possibile e il locale indica una modalità alternativa.`,
     "",
 
-    "6. A CHI COMUNICHIAMO I DATI",
+    "7. A CHI COMUNICHIAMO I DATI",
     "I dati sono accessibili al nostro personale autorizzato, vincolato alla riservatezza, e ai fornitori che ci aiutano a erogare il servizio, nominati responsabili del trattamento:",
     `• Railway — server e database. Area di conservazione: ${value(profile, "hostingRegion")}. Tutti i dati del servizio.`,
     "• Stripe — incasso degli abbonamenti. Dati del cliente e di pagamento.",
     "• Google Firebase — notifiche push. Identificativo del dispositivo e testo della notifica.",
     "• Resend — invio di email. Indirizzo, nome e contenuto del messaggio.",
     profile.invoicingActive
-      ? "• Openapi S.p.A. — invio delle fatture elettroniche al Sistema di Interscambio. Dati fiscali del cliente."
+      ? "• Openapi S.p.A. — invio delle nostre fatture elettroniche al Sistema di Interscambio e, per i locali che lo attivano, ricezione delle fatture dei loro fornitori. Dati fiscali del cliente e contenuto delle fatture."
       : "",
+    "• Anthropic — analisi delle righe delle fatture dei fornitori, ricerca dei prezzi e lettura del file di esempio del consulente del lavoro, con il modello di intelligenza artificiale Claude. Riceve solo i dati necessari alla singola richiesta e, secondo le sue condizioni commerciali, non li usa per addestrare i propri modelli.",
     "Per alcune finalità, come la prevenzione delle frodi nei pagamenti, Stripe agisce come titolare autonomo secondo la propria informativa. I dati possono inoltre essere comunicati a consulenti fiscali e legali, vincolati al segreto professionale, e alle autorità quando la legge lo richiede.",
     "",
 
-    "7. TRASFERIMENTI FUORI DALL'UNIONE EUROPEA",
+    "8. TRASFERIMENTI FUORI DALL'UNIONE EUROPEA",
     `Alcuni fornitori hanno sede negli Stati Uniti o possono accedere ai dati da lì. In questi casi il trasferimento avviene sulla base della decisione di adeguatezza EU-US Data Privacy Framework, per i fornitori che vi aderiscono, oppure delle clausole contrattuali standard approvate dalla Commissione Europea (art. 46 GDPR). Puoi chiederne copia scrivendo a ${value(profile, "privacyEmail")}.`,
     "",
 
-    "8. PER QUANTO TEMPO CONSERVIAMO I DATI",
+    "9. PER QUANTO TEMPO CONSERVIAMO I DATI",
     `• Dati dell'account: per tutta la durata del contratto. Alla cessazione il locale può chiedere l'esportazione entro ${value(profile, "exportDays")} giorni, dopodiché vengono cancellati.`,
     `• Dati fiscali e di fatturazione: ${value(profile, "retentionTaxData")}.`,
     `• Orari delle timbrature: ${value(profile, "retentionTimelogs")}.`,
@@ -150,34 +159,37 @@ function buildPrivacy(profile: CompanyProfile) {
     cert ? `• Numero di protocollo del certificato medico: ${value(profile, "retentionCertificate")}.` : "",
     `• Note sul personale: ${value(profile, "retentionNotes")}.`,
     `• Documenti caricati: ${value(profile, "retentionDocuments")}.`,
+    "• Fatture dei fornitori del locale: per la durata del contratto, salvo che il locale le elimini prima.",
+    "• File inviati al consulente del lavoro: non li conserviamo; restano le correzioni del locale, con le timbrature, per i tempi indicati sopra.",
+    "• Email del commercialista e sessioni di accesso: finché il locale non revoca l'accesso; i codici monouso 24 ore.",
     `• Log di accesso: ${value(profile, "retentionAccessLogs")}.`,
     `• Turni pianificati: ${value(profile, "retentionTimelogs")}, come le timbrature che spiegano.`,
     "• Notifiche: 90 giorni.",
     "Per i dati del personale il locale, in quanto titolare, può chiedere la cancellazione anticipata. Quando una persona chiude il proprio account, credenziali, sessioni e notifiche vengono cancellati subito, mentre timbrature e richieste restano al locale per i periodi indicati. L'eliminazione di un locale, decisa dal titolare, cancella tutti i dati del locale, comprese le timbrature: prima di procedere il titolare è invitato a scaricare i report che deve conservare.",
     "",
 
-    "9. COME PROTEGGIAMO I DATI",
+    "10. COME PROTEGGIAMO I DATI",
     "Le comunicazioni con il servizio sono cifrate. Le password sono salvate solo in forma non reversibile ed è possibile accedere con passkey. Ogni utente vede solo i dati del proprio locale e secondo il proprio ruolo; le sessioni attive si possono chiudere in qualsiasi momento. L'accesso ai sistemi è limitato al personale autorizzato.",
     "",
 
-    "10. I TUOI DIRITTI",
+    "11. I TUOI DIRITTI",
     `Puoi chiedere l'accesso ai tuoi dati, la rettifica, la cancellazione, la limitazione del trattamento e la portabilità, e puoi opporti ai trattamenti basati sul legittimo interesse (artt. 15–22 GDPR). Scrivi a ${value(profile, "privacyEmail")} o alla PEC ${value(profile, "certifiedEmail")}: rispondiamo entro un mese.`,
     "Hai anche il diritto di proporre reclamo al Garante per la protezione dei dati personali (www.garanteprivacy.it).",
     "",
 
-    "11. CANCELLAZIONE DELL'ACCOUNT",
+    "12. CANCELLAZIONE DELL'ACCOUNT",
     `Puoi chiedere la cancellazione del tuo account seguendo le indicazioni della pagina «Cancellazione account» su ${value(profile, "website")}. Gli account dei dipendenti sono gestiti dal locale: il dipendente può chiedere la cancellazione al proprio datore di lavoro o a noi, e in questo caso la inoltriamo al locale.`,
     "",
 
-    "12. COOKIE E STRUMENTI SIMILI",
+    "13. COOKIE E STRUMENTI SIMILI",
     "Il sito e l'app usano solo strumenti tecnici necessari al funzionamento, come il mantenimento della sessione e la lingua scelta. Non usiamo cookie di profilazione né strumenti pubblicitari. Per questi strumenti non è richiesto il consenso.",
     "",
 
-    "13. MINORI",
+    "14. MINORI",
     `${service} è destinato ad attività commerciali. Se un locale impiega lavoratori minorenni, ne gestisce i dati in qualità di titolare, nel rispetto delle norme applicabili.`,
     "",
 
-    "14. MODIFICHE",
+    "15. MODIFICHE",
     "Pubblichiamo ogni nuova versione di questa informativa su questa pagina, con numero di versione e data. Le modifiche rilevanti le comunichiamo anche via email o nell'app.",
   ]
     .filter((line) => line !== "")
@@ -199,7 +211,7 @@ function buildTerms(profile: CompanyProfile) {
     "",
 
     "2. OGGETTO",
-    "Il Fornitore concede al Cliente l'uso del Servizio in abbonamento per gestire il proprio personale: pianificazione dei turni, timbrature con verifica della posizione, richieste di ferie, permessi e malattia, note interne, documenti, formazione e notifiche.",
+    "Il Fornitore concede al Cliente l'uso del Servizio in abbonamento per gestire il proprio personale e la propria attività: pianificazione dei turni, timbrature con verifica della posizione, richieste di ferie, permessi e malattia, note interne, documenti, formazione e notifiche; preparazione dei file delle presenze per il consulente del lavoro; lettura e analisi delle fatture dei fornitori, con confronti di prezzo e consigli di risparmio; accesso del commercialista alle fatture.",
     "Il Fornitore può aggiornare e migliorare le funzionalità, a condizione di non ridurre in modo sostanziale quelle essenziali descritte al momento della sottoscrizione.",
     "",
 
@@ -242,39 +254,54 @@ function buildTerms(profile: CompanyProfile) {
 
     "10. DISPONIBILITÀ E ASSISTENZA",
     `Il Fornitore mantiene il Servizio con diligenza professionale, ma non può garantire che funzioni senza interruzioni o errori. Le manutenzioni programmate vengono annunciate quando possibile. L'assistenza è disponibile a ${value(profile, "supportEmail")}.`,
-    "Il Servizio è uno strumento organizzativo: non sostituisce il Libro Unico del Lavoro né gli altri adempimenti del datore di lavoro. Il Cliente verifica i dati prima di usarli per paghe, contributi o provvedimenti verso il personale.",
+    "Il Servizio è uno strumento organizzativo: non sostituisce il Libro Unico del Lavoro, l'elaborazione delle paghe né gli altri adempimenti del datore di lavoro. Il Cliente verifica i dati prima di usarli per paghe, contributi o provvedimenti verso il personale.",
     "",
 
-    "11. PROPRIETÀ INTELLETTUALE",
+    "11. COSTI, FATTURE DEI FORNITORI E CONFRONTI",
+    "Il Servizio legge le fatture elettroniche dei fornitori che il Cliente carica o che riceve tramite il codice destinatario indicato dal Fornitore, le classifica e ne ricava analisi, confronti di prezzo e consigli. Parte dell'analisi è svolta con sistemi di intelligenza artificiale e con ricerche sul web: i risultati sono indicativi, possono contenere errori e non costituiscono consulenza fiscale, contabile o commerciale. I risparmi indicati sono stime e non sono garantiti.",
+    "Il Servizio non effettua la conservazione a norma delle fatture elettroniche, che resta a carico del Cliente; l'originale di ogni fattura rimane disponibile nell'area riservata dell'Agenzia delle Entrate. Se il Cliente registra presso l'Agenzia il codice destinatario indicato dal Fornitore, è suo compito informarne il proprio commercialista e i fornitori; il Fornitore non risponde di fatture non recapitate per dati errati o per registrazioni non effettuate o revocate.",
+    "Per offrire i confronti di prezzo, il Fornitore può usare in forma aggregata e anonima i prezzi unitari dei prodotti presenti nelle fatture di tutti i clienti. Nessun confronto rivela l'identità di un altro cliente né consente di ricondurre a lui un prezzo o una condizione commerciale.",
+    "",
+
+    "12. FILE PER IL CONSULENTE DEL LAVORO E CORREZIONI",
+    "Il Servizio prepara un file delle presenze a partire dalle timbrature o dai turni, nel formato indicato dal Cliente, e su sua richiesta lo invia al consulente da lui indicato. Prima dell'invio il Cliente può correggere liberamente ore e voci del file.",
+    "Le correzioni sono decise e inserite dal Cliente sotto la sua esclusiva responsabilità. Il Fornitore non verifica il contenuto dei file, non risponde della loro esattezza o conformità alla legge e al contratto di lavoro, né dell'uso che il Cliente o il consulente ne fanno per paghe, contributi e adempimenti. Il Servizio conserva in ogni caso le timbrature originali senza modificarle. Il Cliente tiene indenne il Fornitore da qualsiasi pretesa di dipendenti, enti o terzi derivante dai file inviati e dalle correzioni apportate.",
+    "",
+
+    "13. ACCESSO DEL COMMERCIALISTA E DI ALTRI PROFESSIONISTI",
+    "Il Cliente può dare a professionisti di sua scelta, come il commercialista, l'accesso alle fatture dei fornitori. Il Cliente risponde della scelta dei professionisti, delle istruzioni che dà loro e della revoca tempestiva dell'accesso quando il rapporto finisce. Il professionista che segue più clienti del Servizio li vede insieme con un unico accesso, ciascuno solo per quanto il singolo Cliente ha autorizzato.",
+    "",
+
+    "14. PROPRIETÀ INTELLETTUALE",
     "Il Servizio e il software restano di proprietà del Fornitore. Il Cliente riceve una licenza d'uso non esclusiva e non trasferibile per la durata del contratto. I dati inseriti dal Cliente e dagli Utenti restano del Cliente.",
     "",
 
-    "12. LIMITAZIONE DI RESPONSABILITÀ",
+    "15. LIMITAZIONE DI RESPONSABILITÀ",
     "Il Fornitore risponde solo dei danni diretti causati da un proprio inadempimento, entro l'importo pagato dal Cliente nei 12 mesi precedenti il fatto. Sono esclusi i danni indiretti, il mancato guadagno e la perdita di opportunità. Questi limiti non si applicano in caso di dolo o colpa grave (art. 1229 c.c.) né negli altri casi in cui la legge non consente di limitare la responsabilità.",
     "",
 
-    "13. SOSPENSIONE",
+    "16. SOSPENSIONE",
     "Il Fornitore può sospendere l'accesso, con avviso quando possibile, in caso di mancato pagamento, di violazione grave di queste condizioni o di rischi concreti per la sicurezza del Servizio o di altri clienti.",
     "",
 
-    "14. FINE DEL CONTRATTO E RESTITUZIONE DEI DATI",
+    "17. FINE DEL CONTRATTO E RESTITUZIONE DEI DATI",
     `Alla cessazione del contratto il Cliente può chiedere l'esportazione dei propri dati entro ${value(profile, "exportDays")} giorni. Trascorso questo termine i dati vengono cancellati, salvo quelli che il Fornitore deve conservare per legge.`,
     "",
 
-    "15. MODIFICHE ALLE CONDIZIONI",
+    "18. MODIFICHE ALLE CONDIZIONI",
     `Il Fornitore può modificare queste condizioni comunicandolo almeno ${value(profile, "noticeDays")} giorni prima dell'entrata in vigore. Il Cliente che non accetta le modifiche può disdire prima di quella data senza costi. Ogni accettazione viene registrata con la versione accettata.`,
     "",
 
-    "16. COMUNICAZIONI",
+    "19. COMUNICAZIONI",
     `Il Fornitore scrive al Cliente all'indirizzo email dell'account. Il Cliente scrive al Fornitore a ${value(profile, "supportEmail")} o, per le comunicazioni formali, alla PEC ${value(profile, "certifiedEmail")}.`,
     "",
 
-    "17. LEGGE APPLICABILE E FORO",
+    "20. LEGGE APPLICABILE E FORO",
     `Queste condizioni sono regolate dalla legge italiana. Per ogni controversia è competente in via esclusiva il Foro di ${value(profile, "courtCity")}.`,
     "",
 
     "APPROVAZIONE SPECIFICA",
-    "Ai sensi degli artt. 1341 e 1342 c.c. il Cliente dichiara di approvare specificamente, tramite un'apposita conferma nell'app distinta dall'accettazione delle presenti condizioni, le clausole: 6 (rinnovo automatico e variazioni di prezzo), 7 (assenza di rimborsi per periodi parziali, recesso del Fornitore), 10 (limiti di disponibilità), 12 (limitazione di responsabilità), 13 (sospensione), 15 (modifiche alle condizioni), 17 (foro esclusivo).",
+    "Ai sensi degli artt. 1341 e 1342 c.c. il Cliente dichiara di approvare specificamente, tramite un'apposita conferma nell'app distinta dall'accettazione delle presenti condizioni, le clausole: 6 (rinnovo automatico e variazioni di prezzo), 7 (assenza di rimborsi per periodi parziali, recesso del Fornitore), 10 (limiti di disponibilità), 11 (natura indicativa delle analisi, conservazione a norma a carico del Cliente, uso aggregato dei prezzi), 12 (responsabilità esclusiva del Cliente per le correzioni dei file e manleva), 13 (responsabilità per l'accesso dei professionisti), 15 (limitazione di responsabilità), 16 (sospensione), 18 (modifiche alle condizioni), 20 (foro esclusivo).",
   ]
     .filter((line) => line !== "")
     .join("\n");
@@ -300,10 +327,11 @@ function buildDpa(profile: CompanyProfile) {
 
     "2. NATURA E FINALITÀ DEL TRATTAMENTO",
     "Conservazione, organizzazione, consultazione, elaborazione e cancellazione dei dati, e invio di notifiche ed email, allo scopo di mettere a disposizione del Titolare le funzioni di gestione del personale: turni, timbrature con verifica della posizione, richieste, note, documenti e formazione.",
+    "Inoltre, su istruzione del Titolare: preparazione dei file delle presenze per il consulente del lavoro e loro invio all'indirizzo indicato dal Titolare; ricezione, lettura e analisi delle fatture elettroniche dei fornitori del Titolare; messa a disposizione delle fatture al commercialista indicato dal Titolare.",
     "",
 
     "3. INTERESSATI",
-    "Dipendenti e collaboratori del Titolare, e le persone che il Titolare abilita come responsabili o amministratori del proprio locale.",
+    "Dipendenti e collaboratori del Titolare; le persone che il Titolare abilita come responsabili o amministratori del proprio locale; i fornitori del Titolare persone fisiche o ditte individuali; il consulente del lavoro e il commercialista indicati dal Titolare.",
     "",
 
     "4. TIPI DI DATI",
@@ -314,11 +342,15 @@ function buildDpa(profile: CompanyProfile) {
     `• periodi di assenza per malattia${cert ? " e numero di protocollo del certificato medico, che costituisce dato relativo alla salute (art. 9 GDPR)" : ""};`,
     "• note dei responsabili su singoli dipendenti;",
     "• documenti caricati dal Titolare e i dati in essi contenuti, anche di natura retributiva;",
-    "• corsi di formazione e stato di completamento.",
+    "• corsi di formazione, stato di completamento e attestati con la data di scadenza;",
+    "• paga oraria, matricola o codice fiscale, ore e voci del mese per i file del consulente del lavoro, comprese le correzioni del Titolare;",
+    "• fatture dei fornitori del Titolare, con i dati identificativi e fiscali dei fornitori, anche persone fisiche;",
+    "• indirizzo email del consulente del lavoro e del commercialista indicati dal Titolare.",
     "",
 
     "5. ISTRUZIONI DEL TITOLARE",
     "Il Responsabile tratta i dati solo su istruzioni documentate del Titolare, costituite da questo accordo, dalle Condizioni generali e dalle impostazioni che il Titolare configura nel Servizio, salvo che il diritto dell'Unione o italiano lo obblighi diversamente. Informa subito il Titolare se ritiene che un'istruzione violi la normativa.",
+    "Costituiscono istruzioni documentate anche l'invio del file delle presenze al consulente indicato, le correzioni che il Titolare apporta al file prima dell'invio e l'accesso concesso al commercialista. Il consulente e il commercialista non sono sub-responsabili del Responsabile: ricevono i dati dal Titolare, che ne risponde.",
     "",
 
     "6. RISERVATEZZA",
@@ -372,8 +404,9 @@ function buildDpa(profile: CompanyProfile) {
     "• Resend — invio di email. Nome, indirizzo email e contenuto del messaggio. Area: USA.",
     "• Stripe — incasso degli abbonamenti. Dati del cliente e di pagamento. Area: UE / USA.",
     profile.invoicingActive
-      ? "• Openapi S.p.A. — invio delle fatture elettroniche al Sistema di Interscambio. Dati fiscali del cliente. Area: Italia (UE)."
+      ? "• Openapi S.p.A. — invio delle fatture elettroniche al Sistema di Interscambio e ricezione delle fatture dei fornitori per i locali che la attivano. Dati fiscali e contenuto delle fatture. Area: Italia (UE)."
       : "",
+    "• Anthropic PBC — analisi delle righe delle fatture dei fornitori, ricerca dei prezzi e lettura del file di esempio del consulente del lavoro con il modello Claude. Solo i dati della singola richiesta, non usati per addestrare i modelli. Area: USA.",
     "",
 
     "ALLEGATO B — MISURE DI SICUREZZA",
@@ -382,7 +415,9 @@ function buildDpa(profile: CompanyProfile) {
     "• separazione dei dati per locale e permessi in base al ruolo dell'utente;",
     "• sessioni attive visibili e revocabili;",
     "• accesso amministrativo ai sistemi limitato al personale autorizzato;",
-    "• cancellazione a cascata dei dati collegati quando si elimina un utente o un locale.",
+    "• cancellazione a cascata dei dati collegati quando si elimina un utente o un locale;",
+    "• accesso dei professionisti esterni con codice monouso inviato per email, limitato alle fatture dei locali che lo hanno concesso e revocabile dal Titolare;",
+    "• conservazione invariata delle timbrature originali anche quando il Titolare corregge il file per il consulente.",
     "",
 
     "ACCETTAZIONE",
@@ -604,7 +639,7 @@ function buildProcessingRegister(profile: CompanyProfile) {
     `Responsabile: ${value(profile, "legalName")}, ${value(profile, "registeredOffice")}, PEC ${value(profile, "certifiedEmail")}.`,
     `Titolari per conto dei quali si tratta: ciascun locale cliente del servizio ${service}. L'elenco aggiornato dei titolari, con i rispettivi dati identificativi e di contatto, è tenuto nel sistema ed è estraibile su richiesta. Il rapporto è regolato dall'Accordo sul trattamento accettato da ciascun cliente.`,
     "Interessati: dipendenti e collaboratori dei locali; responsabili e amministratori abilitati dai locali.",
-    "Sub-responsabili: Railway (server e database), Google Firebase (notifiche push), Resend (email).",
+    `Sub-responsabili: Railway (server e database), Google Firebase (notifiche push), Resend (email)${profile.invoicingActive ? ", Openapi (ricezione delle fatture dei fornitori)" : ""}, Anthropic (analisi delle fatture e lettura del file di esempio del consulente con il modello Claude).`,
     `Trasferimenti extra UE: ${transfers}`,
     "",
     "Categorie di trattamenti svolti per conto dei titolari:",
@@ -620,6 +655,9 @@ function buildProcessingRegister(profile: CompanyProfile) {
     `• Archiviazione dei documenti — file caricati dal locale, anche contratti e buste paga. Conservazione: ${value(profile, "retentionDocuments")}.`,
     "• Formazione — corsi assegnati, scadenze, stato di completamento. Conservazione: fino alla scadenza del certificato del corso e per 60 giorni dopo; i corsi senza scadenza 60 giorni dopo la data del corso.",
     "• Notifiche ed email — identificativo del dispositivo, indirizzo email, testo del messaggio. Conservazione: il tempo necessario all'invio.",
+    `• File per il consulente del lavoro — paga oraria, matricola o codice fiscale, ore e voci del mese, correzioni del locale; invio all'email del consulente indicata dal locale. Conservazione: il file non si conserva; le correzioni ${value(profile, "retentionTimelogs")}, come le timbrature.`,
+    "• Fatture dei fornitori — dati identificativi e fiscali dei fornitori, righe, importi; analisi e classificazione anche con il modello Claude di Anthropic. Conservazione: per la durata del contratto, salvo cancellazione anticipata da parte del locale.",
+    "• Accesso del commercialista — email del professionista, codici monouso, sessioni. Conservazione: finché il locale non revoca l'accesso; codici 24 ore.",
     "",
 
     "PARTE C — MISURE TECNICHE E ORGANIZZATIVE (art. 32)",
@@ -633,7 +671,7 @@ function buildProcessingRegister(profile: CompanyProfile) {
     "",
 
     "STORICO DEGLI AGGIORNAMENTI",
-    `Versione ${value(profile, "documentVersion")} del ${value(profile, "effectiveFrom")} — prima redazione del registro.`,
+    `Versione ${value(profile, "documentVersion")} del ${value(profile, "effectiveFrom")} — aggiornamento: file per il consulente del lavoro, fatture dei fornitori e analisi dei costi, accesso del commercialista, Anthropic tra i sub-responsabili.`,
   ]
     .filter((line) => line !== "")
     .join("\n");
