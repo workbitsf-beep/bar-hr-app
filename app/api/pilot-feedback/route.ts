@@ -15,7 +15,7 @@ export async function GET() {
     return /[;"\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   const rows = [
-    ["Data", "Attività", "Tipo", "Usa di più", "Punti di forza", "Cosa non va", "Cosa manca", "Pagherebbe €/mese", "Nota sul prezzo", "Consiglierebbe 0-10"].join(";"),
+    ["Data", "Attività", "Tipo", "Usa di più", "Punti di forza", "Cosa non va", "Cosa manca", "Pagherebbe €/mese", "Troppo caro oltre €/mese", "Troppo poco sotto €/mese", "Nota sul prezzo", "Consiglierebbe 0-10"].join(";"),
     ...answers.map((answer) =>
       [
         answer.createdAt.toISOString().slice(0, 10),
@@ -26,6 +26,8 @@ export async function GET() {
         answer.problems,
         answer.missing,
         answer.wouldPay,
+        answer.tooExpensive,
+        answer.tooCheap,
         answer.payNote,
         answer.recommend,
       ]

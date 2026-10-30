@@ -84,6 +84,16 @@ export default async function PilotFeedbackPage() {
           </label>
           <textarea name="payNote" placeholder="Facoltativo: perché, o a quali condizioni pagheresti di più" style={{ ...area, minHeight: 64 }} />
         </Question>
+        <Question title="Quanto ti sembrerebbe caro?" hint="La cifra al mese oltre la quale diresti «è troppo, non lo prendo».">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15 }}>
+            <input name="tooExpensive" inputMode="numeric" placeholder="es. 90" style={{ ...field, width: 120 }} />€ al mese
+          </label>
+        </Question>
+        <Question title="Quanto ti sembrerebbe troppo poco?" hint="La cifra al mese sotto la quale penseresti «costa così poco che non mi fido».">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15 }}>
+            <input name="tooCheap" inputMode="numeric" placeholder="es. 15" style={{ ...field, width: 120 }} />€ al mese
+          </label>
+        </Question>
         <Question title="Lo consiglieresti a un collega?" hint="0 = per niente, 10 = sicuramente.">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(11, minmax(0, 1fr))", gap: 4 }}>
             {Array.from({ length: 11 }, (_, value) => (

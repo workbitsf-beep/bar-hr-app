@@ -17,6 +17,12 @@ export default async function PilotAnswersPage() {
   const pays = answers.map((item) => item.wouldPay).filter((value): value is number => value !== null).sort((a, b) => a - b);
   const votes = answers.map((item) => item.recommend).filter((value): value is number => value !== null);
   const median = pays.length ? pays[Math.floor(pays.length / 2)] : null;
+  const middle = (values: Array<number | null>) => {
+    const list = values.filter((value): value is number => value !== null).sort((a, b) => a - b);
+    return list.length ? list[Math.floor(list.length / 2)] : null;
+  };
+  const dear = middle(answers.map((item) => item.tooExpensive));
+  const cheap = middle(answers.map((item) => item.tooCheap));
 
   return (
     <div className="wbc-page">
@@ -30,6 +36,7 @@ export default async function PilotAnswersPage() {
       <FigureBand>
         <Figure label="Risposte" value={String(answers.length)} />
         <Figure label="Pagherebbero (mediana)" value={median !== null ? `${median} €/mese` : "–"} />
+        <Figure label="Fascia accettabile (mediane)" value={cheap !== null || dear !== null ? `${cheap ?? "?"}–${dear ?? "?"} €` : "–"} />
         <Figure label="Consiglierebbero (media)" value={votes.length ? `${(votes.reduce((sum, vote) => sum + vote, 0) / votes.length).toFixed(1)}/10` : "–"} />
       </FigureBand>
       <Section title="Risposte">
@@ -42,6 +49,7 @@ export default async function PilotAnswersPage() {
                   <b>
                     {bar?.name ?? "Locale"} · {date.format(answer.createdAt)}
                     {answer.wouldPay !== null ? ` · ${answer.wouldPay} €/mese` : ""}
+                    {answer.tooCheap !== null || answer.tooExpensive !== null ? ` (fascia ${answer.tooCheap ?? "?"}–${answer.tooExpensive ?? "?"} €)` : ""}
                     {answer.recommend !== null ? ` · ${answer.recommend}/10` : ""}
                   </b>
                   {answer.mostUsed ? <span>Usa di più: {answer.mostUsed}</span> : null}

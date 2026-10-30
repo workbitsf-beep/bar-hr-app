@@ -1711,6 +1711,9 @@ model PilotFeedback {
   missing       String?
   /// Euro a month it would pay; null when it did not say.
   wouldPay      Int?
+  /// Euro a month that would feel too dear, and too cheap to trust.
+  tooExpensive  Int?
+  tooCheap      Int?
   payNote       String?
   /// 0-10: would it recommend Workbit.
   recommend     Int?
