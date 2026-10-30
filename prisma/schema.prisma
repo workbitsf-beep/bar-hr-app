@@ -394,6 +394,7 @@ model Bar {
   priceChecks            PriceCheck[]
   monthlyRevenues        MonthlyRevenue[]
   payrollRecipients      PayrollRecipient[]
+  accountantAccesses     AccountantAccess[]
   payrollDayOverrides    PayrollDayOverride[]
   payrollSends           PayrollSend[]
   legalAcceptances       LegalAcceptance[]
@@ -1482,4 +1483,53 @@ model HomeLayout {
 
   @@unique([userId, barId])
   @@index([barId])
+}
+
+/// The venue's accountant (commercialista), by email: one email reaches
+/// every venue whose owner added it, and downloads that venue's supplier
+/// invoices month by month. Nothing else of the venue is visible to it.
+model AccountantAccess {
+  id        String   @id @default(uuid()) @db.Uuid
+  barId     String   @db.Uuid
+  bar       Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  /// Lowercase.
+  email     String
+  name      String?
+  addedById String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  @@unique([barId, email])
+  @@index([email])
+}
+
+/// A six-digit code mailed to an accountant to sign in; kept hashed.
+model AccountantLoginCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+}
+
+/// An accountant signed in on a browser; the cookie holds the token, this
+/// row its hash.
+model AccountantSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+/// Per accountant email: the last month they were told is ready.
+model AccountantNotice {
+  email         String   @id
+  notifiedMonth String
+  updatedAt     DateTime @updatedAt
 }

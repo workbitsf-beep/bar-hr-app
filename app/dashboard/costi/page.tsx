@@ -10,9 +10,12 @@ import { costsEnabledFor } from "@/lib/costs/access";
 import { prisma } from "@/lib/prisma";
 import { BillingRequired } from "../billing-required";
 import { getDashboardContext } from "../context";
-import { EmptyState, Panel } from "../ui";
+import { EmptyState, FormField, Panel, PrimaryButton, TextInput } from "../ui";
+import { PopupAction } from "../popup-action";
 import {
   activateInboxAction,
+  addAccountantAction,
+  removeAccountantAction,
   deactivateInboxAction,
   deleteUploadAction,
   priceCheckAction,
@@ -49,7 +52,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
   }
 
   const { month: requested } = await searchParams;
-  const [report, settings, uploads, bar] = await Promise.all([
+  const [report, settings, uploads, bar, accountants] = await Promise.all([
     buildCostReport(activeBarId, requested && /^\d{4}-\d{2}$/.test(requested) ? requested : null),
     prisma.barSettings.findUnique({
       where: { barId: activeBarId },
@@ -57,6 +60,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
     }),
     prisma.invoiceUpload.findMany({ where: { barId: activeBarId }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.bar.findUnique({ where: { id: activeBarId }, select: { vatNumber: true, mainBar: { select: { vatNumber: true } } } }),
+    prisma.accountantAccess.findMany({ where: { barId: activeBarId }, orderBy: { createdAt: "asc" }, select: { id: true, email: true, name: true } }),
   ]);
   const ai = aiEnabled();
 
@@ -148,6 +152,8 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
           ))}
         </RowsCard>
       </section>
+
+      <Accountants list={accountants} />
 
       {/* Only the zip for now (29 Oct 2026): automatic receiving shows once Workbit turns it on. */}
       {inboxAvailable() || (settings?.invoiceInboxStatus ?? "OFF") !== "OFF" ? (
@@ -490,6 +496,57 @@ async function Energy({ barId, report, ai }: { barId: string; report: CostReport
   );
 }
 
+/** Who downloads the supplier invoices: one email per accountant, who sees all their client venues together. */
+function Accountants({ list }: { list: { id: string; email: string; name: string | null }[] }) {
+  return (
+    <RowsCard
+      title="Commercialista"
+      aside={
+        <PopupAction title="Aggiungi il commercialista" ariaLabel="Aggiungi il commercialista">
+          <ActionForm action={addAccountantAction} success="Accesso dato: gli abbiamo scritto" style={{ display: "grid", gap: 14 }}>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: "#4b4763" }}>
+              Entra con la sua email e un codice, senza password, e scarica le fatture dei fornitori mese per mese. Se segue altri locali su Workbit, li vede tutti nella stessa pagina. Non vede nient&apos;altro del locale.
+            </p>
+            <FormField label="Email">
+              <TextInput name="email" type="email" required placeholder="studio@esempio.it" />
+            </FormField>
+            <FormField label="Nome">
+              <TextInput name="name" placeholder="Facoltativo: Studio Rossi" />
+            </FormField>
+            <div className="dashboard-form-actions">
+              <PrimaryButton type="submit">Dai accesso</PrimaryButton>
+            </div>
+          </ActionForm>
+        </PopupAction>
+      }
+    >
+      {list.length === 0 ? (
+        <Row first>
+          <Line muted left="Dai al commercialista l'accesso alle fatture: le scarica da solo, in uno zip al mese." />
+        </Row>
+      ) : (
+        list.map((access, index) => (
+          <Row key={access.id} first={index === 0} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+              <span style={{ fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis" }}>{access.name || access.email}</span>
+              {access.name ? <span style={{ fontSize: 12.5, color: "#7c7894", overflow: "hidden", textOverflow: "ellipsis" }}>{access.email}</span> : null}
+            </span>
+            <ActionForm action={removeAccountantAction} success="Accesso tolto">
+              <input type="hidden" name="accessId" value={access.id} />
+              <PendingButton type="submit" style={{ ...softButton, background: "#ffffff", color: "#7c7894", borderColor: "#e9e6f5" }} pendingLabel="…">
+                Togli
+              </PendingButton>
+            </ActionForm>
+          </Row>
+        ))
+      )}
+      <Row>
+        <Line muted left="Lui entra da app.workbit.it/commercialista. A inizio mese gli scriviamo che le fatture sono pronte." />
+      </Row>
+    </RowsCard>
+  );
+}
+
 function Inbox({
   status,
   since,
@@ -531,7 +588,7 @@ function Inbox({
               <Line left={status === "WAITING" ? "Ultimo passo: il codice all'Agenzia delle Entrate" : "Le fatture arrivano da sole"} right={status === "ACTIVE" ? date(syncedAt) : undefined} />
               {status === "WAITING" ? (
                 <ol style={{ margin: "4px 0 0", paddingLeft: 20, fontSize: 13, color: "#4b4763", display: "grid", gap: 4 }}>
-                  <li>Avvisa il commercialista: se riceve le fatture con un suo codice, dopo le leggerà dal cassetto fiscale.</li>
+                  <li>Avvisa il commercialista: se riceve le fatture con un suo codice, da ora le scarica qui sopra con il suo accesso, o dal cassetto fiscale.</li>
                   <li>In Fatture e Corrispettivi apri Registrazione dell&apos;indirizzo telematico.</li>
                   <li>
                     Scegli Codice destinatario e scrivi <strong style={{ letterSpacing: "0.08em" }}>{OPENAPI_RECIPIENT_CODE}</strong>, poi conferma.

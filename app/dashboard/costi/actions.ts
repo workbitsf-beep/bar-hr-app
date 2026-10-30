@@ -3,6 +3,8 @@
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
+import { normalizeEmail } from "@/lib/accountant/auth";
+import { sendAccountantInvite } from "@/lib/accountant/invoices";
 import { canAccessBar as canAccessBillingBar } from "@/lib/billing";
 import { aiEnabled } from "@/lib/costs/ai";
 import { isCategoryKey } from "@/lib/costs/categories";
@@ -150,6 +152,43 @@ export async function deleteUploadAction(formData: FormData) {
     if (!upload) throw new RuleError("Caricamento non trovato.");
     await prisma.supplierInvoice.deleteMany({ where: { barId, uploadId } });
     await prisma.invoiceUpload.delete({ where: { id: uploadId } });
+    refresh();
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** Gives an accountant's email the venue's supplier invoices, and tells them where to find them. */
+export async function addAccountantAction(formData: FormData) {
+  try {
+    const barId = await ownerVenue();
+    const email = normalizeEmail(formData.get("email"));
+    if (!email) throw new RuleError("Scrivi l'email del commercialista.");
+    const name = String(formData.get("name") ?? "").trim().slice(0, 80) || null;
+    const session = await getSession();
+    const existing = await prisma.accountantAccess.count({ where: { barId } });
+    if (existing >= 5) throw new RuleError("Al massimo 5 accessi per locale.");
+    await prisma.accountantAccess.upsert({
+      where: { barId_email: { barId, email } },
+      create: { barId, email, name, addedById: session?.user.id ?? null },
+      update: { name },
+    });
+    const bar = await prisma.bar.findUnique({ where: { id: barId }, select: { name: true } });
+    await sendAccountantInvite(email, bar?.name ?? "Il tuo cliente", session?.user.firstName ?? "Il titolare").catch((error) =>
+      console.error("[accountant] invite not sent", error instanceof Error ? error.message : error),
+    );
+    refresh();
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+export async function removeAccountantAction(formData: FormData) {
+  try {
+    const barId = await ownerVenue();
+    await prisma.accountantAccess.deleteMany({ where: { barId, id: String(formData.get("accessId") ?? "") } });
     refresh();
     return { ok: true };
   } catch (error) {
