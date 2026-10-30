@@ -25,7 +25,7 @@ export async function POST(): Promise<Response> {
 
   await prisma.session.update({
     where: {
-      token: session.token,
+      id: session.id,
     },
     data: {
       expiresAt: nextExpiresAt,
@@ -33,7 +33,9 @@ export async function POST(): Promise<Response> {
   });
 
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions(sessionMaxAge));
+  // The cookie as it came: the database holds only its hash.
+  const raw = cookieStore.get(SESSION_COOKIE_NAME)?.value ?? "";
+  cookieStore.set(SESSION_COOKIE_NAME, raw, getSessionCookieOptions(sessionMaxAge));
   cookieStore.set(
     SESSION_PERSIST_COOKIE_NAME,
     rememberMe ? "1" : "0",

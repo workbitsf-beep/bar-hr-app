@@ -14,7 +14,7 @@ export async function POST(): Promise<Response> {
     await prisma.session.updateMany({
       where: {
         userId: session.user.id,
-        token: session.token,
+        id: session.id,
         revokedAt: null,
       },
       data: {

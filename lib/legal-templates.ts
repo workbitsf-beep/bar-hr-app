@@ -169,7 +169,8 @@ function buildPrivacy(profile: CompanyProfile) {
     "",
 
     "10. COME PROTEGGIAMO I DATI",
-    "Le comunicazioni con il servizio sono cifrate. Le password sono salvate solo in forma non reversibile ed è possibile accedere con passkey. Ogni utente vede solo i dati del proprio locale e secondo il proprio ruolo; le sessioni attive si possono chiudere in qualsiasi momento. L'accesso ai sistemi è limitato al personale autorizzato.",
+    "Le comunicazioni con il servizio sono cifrate (HTTPS). Le password e le chiavi delle sessioni sono salvate solo in forma non reversibile, ed è possibile accedere con passkey (Face ID, impronta). I dati più delicati - documenti del personale, attestati, codici dei certificati di malattia, matricole e codici fiscali, fatture dei fornitori e IBAN - sono conservati cifrati (AES-256), con una chiave custodita separatamente dal database. Ogni utente vede solo i dati del proprio locale e secondo il proprio ruolo; le sessioni attive si possono chiudere in qualsiasi momento e si chiudono da sole al cambio della password.",
+    `Registriamo gli accessi al servizio (data, indirizzo IP, tipo di dispositivo, esito) e li controlliamo per individuare tentativi di accesso non autorizzati, che il sistema segnala in automatico al nostro personale; li conserviamo ${value(profile, "retentionAccessLogs")}. Quando un accesso del nostro personale ai dati di un locale è necessario (assistenza, sicurezza), viene registrato. Base giuridica: legittimo interesse alla sicurezza del servizio e dei dati dei clienti (art. 6.1.f).`,
     "",
 
     "11. I TUOI DIRITTI",
@@ -419,6 +420,12 @@ function buildDpa(profile: CompanyProfile) {
     "• cancellazione a cascata dei dati collegati quando si elimina un utente o un locale;",
     "• accesso dei professionisti esterni con codice monouso inviato per email, limitato alle fatture dei locali che lo hanno concesso e revocabile dal Titolare;",
     "• conservazione invariata delle timbrature originali anche quando il Titolare corregge il file per il consulente.",
+    "• cifratura a livello di campo (AES-256-GCM) di documenti del personale, attestati, codici dei certificati di malattia, matricole e codici fiscali, fatture dei fornitori e IBAN, con chiave custodita separatamente dal database;",
+    "• chiavi di sessione conservate solo come impronta (hash); chiusura delle altre sessioni al cambio della password, che richiede quella attuale;",
+    "• registro degli accessi riusciti e falliti, con avvisi automatici al personale autorizzato del Responsabile per tentativi ripetuti, accessi da nuovi dispositivi degli amministratori e scaricamenti anomali;",
+    "• registro degli accessi del personale del Responsabile ai dati del Titolare;",
+    "• monitoraggio degli errori del servizio con avviso immediato al personale autorizzato;",
+    "• intestazioni di sicurezza del browser (HTTPS obbligatorio, divieto di incorporamento in altri siti, limiti all'uso di posizione, fotocamera e microfono).",
     "",
 
     "ACCETTAZIONE",
@@ -668,6 +675,9 @@ function buildProcessingRegister(profile: CompanyProfile) {
     "• sessioni attive visibili e revocabili;",
     "• accesso amministrativo ai sistemi limitato al personale autorizzato, vincolato alla riservatezza;",
     "• fornitori nominati responsabili o sub-responsabili con accordo scritto;",
+    "• cifratura a livello di campo (AES-256-GCM) dei dati più delicati, con chiave custodita separatamente dal database; chiavi di sessione conservate come hash;",
+    "• registro degli accessi (riusciti e falliti) e degli accessi del personale ai dati dei clienti, con avvisi automatici su tentativi ripetuti e accessi anomali;",
+    "• monitoraggio degli errori del servizio con avviso immediato al personale autorizzato;",
     `• procedura di gestione delle violazioni dei dati, con avviso ai clienti entro ${value(profile, "breachHours")} ore.`,
     "",
 

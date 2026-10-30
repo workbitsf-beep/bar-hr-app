@@ -56,6 +56,8 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   ONLINE_LISTS: "online-lists.done",
   // To the super admins: a business in the free pilot told us what it thinks.
   PILOT_FEEDBACK: "pilot-feedback.received",
+  // To the super admins: odd sign-ins, attacks, server errors.
+  SECURITY_ALERT: "security.alert",
 } as const;
 
 export type InternalNotificationType =

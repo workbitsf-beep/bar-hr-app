@@ -2,6 +2,8 @@ import { ActivityType, Role } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { headers } from "next/headers";
+import { contextFrom, recordSecurityEvent } from "@/lib/security/events";
 import { getDashboardContext } from "../../../context";
 import { createEmployeeBySuperAdminAction, removeEmployeeBySuperAdminAction, updateBarSubscriptionAction } from "../../../actions";
 import { Empty, Field, FieldGrid, Figure, FigureBand, Forbidden, Note, Row, Section, Status } from "../../console-ui";
@@ -30,13 +32,15 @@ export default async function ConsoleBarPage({
 }: {
   params: Promise<{ barId: string }>;
 }) {
-  const { role } = await getDashboardContext();
+  const { role, session } = await getDashboardContext();
 
   if (String(role) !== "SUPER_ADMIN") {
     return <Forbidden />;
   }
 
   const { barId } = await params;
+  // Who of Workbit looked at which client, and when: the audit trail.
+  await recordSecurityEvent({ type: "console_view", userId: session.user.id, email: session.user.email, barId, detail: "scheda del locale in console", context: contextFrom(await headers()) });
 
   const [bar, owners] = await Promise.all([
     prisma.bar.findUnique({

@@ -1,12 +1,13 @@
 import "server-only";
 
 import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createAttemptThrottle } from "@/lib/attempt-throttle";
 import { buildEmailTemplate } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/resend";
 import { prisma } from "@/lib/prisma";
 import { RuleError } from "@/lib/rule-error";
+import { contextFrom, recordFailedSignIn, recordSecurityEvent } from "@/lib/security/events";
 
 /**
  * The supplier's sign-in, the same way as the accountant's: their email and a
@@ -75,13 +76,16 @@ export async function verifySupplierCode(rawEmail: unknown, rawCode: unknown) {
 
   const expected = Buffer.from(row.codeHash, "hex");
   const given = Buffer.from(hash(`${email}:${code}`), "hex");
+  const context = contextFrom(await headers());
   if (!timingSafeEqual(expected, given)) {
+    await recordFailedSignIn({ kind: "supplier_code", email, context });
     await prisma.portalLoginCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
     throw new RuleError("Codice sbagliato.");
   }
   await prisma.portalLoginCode.update({ where: { id: row.id }, data: { usedAt: new Date() } });
   await prisma.supplier.upsert({ where: { email }, create: { email }, update: {} });
 
+  await recordSecurityEvent({ type: "code_ok", email, detail: "fornitore", context });
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.portalSession.create({ data: { kind: KIND, email, tokenHash: hash(token), expiresAt } });

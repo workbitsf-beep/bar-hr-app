@@ -25,6 +25,11 @@ export default async function ConsoleSystemPage() {
 
       <Section title="Gestione" flush>
         <Row
+          href="/dashboard/super-admin/sicurezza"
+          title="Sicurezza"
+          meta="Avvisi, errori, accessi strani, cifratura dei dati"
+        />
+        <Row
           href="/dashboard/super-admin/legal"
           title="Documenti legali"
           meta="Privacy, termini e contratti da far accettare"

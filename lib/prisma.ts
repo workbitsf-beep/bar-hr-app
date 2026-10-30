@@ -1,4 +1,5 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
+import { fieldEncryption } from "./security/crypto";
 
 const BUILD_TIME_DATABASE_URL = "postgresql://mock:mock@localhost:5432/mock";
 
@@ -203,6 +204,7 @@ function withConnectionLimit(databaseUrl: string) {
 }
 
 function prismaClientSingleton(databaseUrl = resolveDatabaseUrl()) {
+  // The sensitive fields encrypted on write and opened on read (lib/security/crypto.ts).
   return new PrismaClient({
     log: prismaLogLevels,
     datasources: {
@@ -210,7 +212,7 @@ function prismaClientSingleton(databaseUrl = resolveDatabaseUrl()) {
         url: withConnectionLimit(databaseUrl),
       },
     },
-  });
+  }).$extends(fieldEncryption) as unknown as PrismaClient;
 }
 
 function getPrismaClient() {

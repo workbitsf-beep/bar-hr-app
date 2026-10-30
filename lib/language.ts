@@ -303,12 +303,12 @@ const runtimeEntries: RuntimeEntry[] = [
   ["AMMINISTRAZIONE", { it: "Amministrazione", en: "Administration", es: "Administracion", fr: "Administration" }],
   ["EMPLOYEE", { it: "Dipendente", en: "Employee", es: "Empleado", fr: "Employe" }],
   [
-    "La password deve avere almeno 6 caratteri.",
+    "La password deve avere almeno 8 caratteri.",
     {
-      it: "La password deve avere almeno 6 caratteri.",
-      en: "The password must contain at least 6 characters.",
-      es: "La contrasena debe tener al menos 6 caracteres.",
-      fr: "Le mot de passe doit contenir au moins 6 caracteres.",
+      it: "La password deve avere almeno 8 caratteri.",
+      en: "The password must contain at least 8 characters.",
+      es: "La contrasena debe tener al menos 8 caracteres.",
+      fr: "Le mot de passe doit contenir au moins 8 caracteres.",
     },
   ],
   [

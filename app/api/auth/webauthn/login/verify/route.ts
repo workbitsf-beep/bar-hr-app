@@ -9,10 +9,12 @@ import {
   getSessionPersistenceCookieOptions,
   SESSION_COOKIE_NAME,
   SESSION_PERSIST_COOKIE_NAME,
+  sessionKey,
 } from "@/lib/auth";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { getAccessibleBarsForUser, getPostLoginDestination } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { contextFrom, recordFailedSignIn, recordSignIn } from "@/lib/security/events";
 import {
   getWebAuthnConfig,
   toWebAuthnCredential,
@@ -54,6 +56,7 @@ export async function POST(req: Request): Promise<Response> {
     });
 
     if (!credentialRecord) {
+      await recordFailedSignIn({ kind: "passkey", email: null, context: contextFrom(req.headers) });
       return NextResponse.json(
         { ok: false, message: "Passkey non riconosciuta su Workbit." },
         { status: 401 }
@@ -92,6 +95,7 @@ export async function POST(req: Request): Promise<Response> {
     });
 
     if (!verification.verified) {
+      await recordFailedSignIn({ kind: "passkey", email: credentialRecord.user.email, context: contextFrom(req.headers) });
       return NextResponse.json(
         { ok: false, message: "Firma biometrica non verificata." },
         { status: 401 }
@@ -127,7 +131,7 @@ export async function POST(req: Request): Promise<Response> {
       }),
       prisma.session.create({
         data: {
-          token: sessionToken,
+          token: sessionKey(sessionToken),
           userId: credentialRecord.user.id,
           activeBarId,
           expiresAt: getSessionExpiresAt(rememberMe),
@@ -135,6 +139,13 @@ export async function POST(req: Request): Promise<Response> {
       }),
     ]);
 
+    await recordSignIn({
+      userId: credentialRecord.user.id,
+      email: credentialRecord.user.email,
+      role: String(credentialRecord.user.role),
+      method: "passkey",
+      context: contextFrom(req.headers),
+    });
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE_NAME, sessionToken, getSessionCookieOptions(sessionMaxAge));
     cookieStore.set(

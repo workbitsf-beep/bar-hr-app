@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPostLoginDestination } from "@/lib/permissions";
+import { contextFrom, recordSecurityEvent } from "@/lib/security/events";
 
 export async function POST(req: Request): Promise<Response> {
   const session = await getSession();
@@ -20,9 +21,9 @@ export async function POST(req: Request): Promise<Response> {
   const currentPassword = String(body.currentPassword ?? "").trim();
   const requireCurrentPassword = Boolean(body.requireCurrentPassword);
 
-  if (newPassword.length < 6) {
+  if (newPassword.length < 8) {
     return NextResponse.json(
-      { ok: false, message: "La password deve avere almeno 6 caratteri" },
+      { ok: false, message: "La password deve avere almeno 8 caratteri" },
       { status: 400 }
     );
   }
@@ -39,7 +40,10 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ ok: false, message: "Utente non trovato" }, { status: 404 });
   }
 
-  if (requireCurrentPassword || currentPassword.length > 0) {
+  // The current password is always asked, except right after a temporary
+  // one: a session left open on someone's phone must not be enough to take
+  // the account.
+  if (requireCurrentPassword || currentPassword.length > 0 || !user.mustChangePwd) {
     if (!currentPassword) {
       return NextResponse.json(
         { ok: false, message: "Inserisci la password attuale" },
@@ -62,16 +66,24 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: {
-      passwordHash: await bcrypt.hash(newPassword, 10),
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        passwordHash: await bcrypt.hash(newPassword, 12),
       mustChangePwd: false,
       // A temporary password asked for meanwhile no longer applies.
-      tempPasswordHash: null,
-      tempPasswordExpiresAt: null,
-    },
-  });
+        tempPasswordHash: null,
+        tempPasswordExpiresAt: null,
+      },
+    }),
+    // A new password closes every other open session.
+    prisma.session.updateMany({
+      where: { userId: session.user.id, revokedAt: null, id: { not: session.id } },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
+  await recordSecurityEvent({ type: "password_changed", userId: session.user.id, email: session.user.email, context: contextFrom(req.headers) });
 
   return NextResponse.json({
     ok: true,

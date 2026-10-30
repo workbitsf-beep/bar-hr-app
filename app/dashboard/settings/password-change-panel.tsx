@@ -25,8 +25,8 @@ export function PasswordChangePanel() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("La password deve avere almeno 6 caratteri.");
+    if (newPassword.length < 8) {
+      setError("La password deve avere almeno 8 caratteri.");
       return;
     }
 

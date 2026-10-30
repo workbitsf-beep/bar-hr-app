@@ -19,6 +19,21 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Security for every page and API: HTTPS only, no framing by other
+        // sites, no content sniffing, no referrer to other sites, and the
+        // device features limited to what the app uses (location for the
+        // clock-in, camera for photos of documents).
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'; base-uri 'self'; object-src 'none'" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "geolocation=(self), camera=(self), microphone=(), payment=(), usb=(), interest-cohort=()" },
+        ],
+      },
+      {
         source: "/:asset(next|vercel|globe|file|window).svg",
         headers: [
           {

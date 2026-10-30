@@ -76,6 +76,22 @@ export async function GET(request: Request): Promise<Response> {
       runOnlineListSearch().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
     ]);
 
+  // The security log is kept a year, the errors three months once solved.
+  {
+    const { prisma } = await import("@/lib/prisma");
+    await prisma.securityEvent.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 365 * 24 * 60 * 60_000) } } }).catch(() => null);
+    await prisma.errorEvent.deleteMany({ where: { resolvedAt: { lt: new Date(Date.now() - 90 * 24 * 60 * 60_000) } } }).catch(() => null);
+  }
+
+  // A nightly job that failed is an error like any other: the super admins hear of it.
+  const jobs: Record<string, unknown> = { fiscalResult, forgottenExitResult, inboxResult, payrollResult, courseResult, accountantResult, paymentResult, marketResult, onlineListResult };
+  for (const [name, result] of Object.entries(jobs)) {
+    if (result && typeof result === "object" && "error" in result) {
+      const { recordServerError } = await import("@/lib/security/errors");
+      await recordServerError({ message: String((result as { error: unknown }).error), path: `cron:${name}` });
+    }
+  }
+
   return Response.json({
     ok: true,
     retention: retentionResult,

@@ -8,11 +8,13 @@ import {
   getSessionPersistenceCookieOptions,
   SESSION_COOKIE_NAME,
   SESSION_PERSIST_COOKIE_NAME,
+  sessionKey,
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LANGUAGE_COOKIE_NAME } from "@/lib/language";
 import { getAccessibleBarsForUser, getPostLoginDestination } from "@/lib/permissions";
 import { createAttemptThrottle } from "@/lib/attempt-throttle";
+import { contextFrom, recordFailedSignIn, recordSignIn } from "@/lib/security/events";
 
 // Ten wrong passwords for the same address in fifteen minutes, then a pause.
 // There was no limit at all: a script could try passwords without end.
@@ -76,8 +78,10 @@ export async function POST(req: Request): Promise<Response> {
 
   // A closed account keeps a placeholder no password can match, but the check
   // is explicit so the refusal never depends on that alone.
+  const context = contextFrom(req.headers);
   if (!user || user.retiredAt || (!matchesPassword && !matchesTemporary)) {
     failedLogins.record(email);
+    await recordFailedSignIn({ kind: "password", email, context });
     return NextResponse.json(
       { ok: false, message: "Credenziali non valide" },
       { status: 401 }
@@ -85,6 +89,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   failedLogins.reset(email);
+  await recordSignIn({ userId: user.id, email, role: String(user.role), method: matchesTemporary ? "temporary" : "password", context });
   let mustChangePwd = user.mustChangePwd;
 
   if (matchesTemporary && temporaryHash) {
@@ -125,7 +130,7 @@ export async function POST(req: Request): Promise<Response> {
 
   await prisma.session.create({
     data: {
-      token: sessionToken,
+      token: sessionKey(sessionToken),
       userId: user.id,
       activeBarId,
       expiresAt: getSessionExpiresAt(rememberMe),

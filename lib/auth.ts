@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { cache } from "react";
@@ -47,6 +48,15 @@ export function getSessionPersistenceCookieOptions(maxAge: number) {
   };
 }
 
+/**
+ * What the database keeps of a session: the hash of the cookie, never the
+ * cookie itself, so a copy of the database opens no account. Sessions made
+ * before this keep the plain value until their next visit (see getSession).
+ */
+export function sessionKey(raw: string) {
+  return `h:${createHash("sha256").update(raw).digest("hex")}`;
+}
+
 export const getSession = cache(async (): Promise<SessionWithUser | null> => {
   const cookieStore = await cookies();
   const sessionValue = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -65,10 +75,19 @@ export const getSession = cache(async (): Promise<SessionWithUser | null> => {
 
   let session = await prisma.session.findUnique({
     where: {
-      token: sessionValue,
+      token: sessionKey(sessionValue),
     },
     include: { user: true },
   });
+
+  // A session from before the hashing: found by its plain value, and from
+  // now on kept as a hash.
+  if (!session) {
+    session = await prisma.session.findUnique({ where: { token: sessionValue }, include: { user: true } });
+    if (session) {
+      await prisma.session.update({ where: { id: session.id }, data: { token: sessionKey(sessionValue) } }).catch(() => null);
+    }
+  }
 
   if (
     session &&

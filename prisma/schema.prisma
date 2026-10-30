@@ -1722,3 +1722,52 @@ model PilotFeedback {
 
   @@index([barId, createdAt])
 }
+
+/// What happened at the doors of Workbit: sign-ins (good and bad), new
+/// devices, codes for accountants and suppliers, a super admin looking at a
+/// venue, downloads. "alert" rows are the ones a super admin is told about;
+/// a client hears only when the super admin decides (clientNotifiedAt).
+model SecurityEvent {
+  id               String    @id @default(uuid()) @db.Uuid
+  /// login_failed, login_ok, new_device, code_failed, console_view, zip_download, alert...
+  type             String
+  /// info, warn, alert
+  severity         String    @default("info")
+  userId           String?   @db.Uuid
+  email            String?
+  barId            String?   @db.Uuid
+  ip               String?
+  userAgent        String?
+  /// A short hash of browser and network, to tell a new device.
+  device           String?
+  detail           String?
+  /// Groups repeats of the same alert, so one storm is one message.
+  alertKey         String?
+  reviewedAt       DateTime?
+  clientNotifiedAt DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([type, createdAt])
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@index([severity, createdAt])
+  @@index([alertKey, createdAt])
+}
+
+/// A server error, counted by its signature: the super admins hear of a new
+/// one at once and of a repeat at most once an hour.
+model ErrorEvent {
+  id         String    @id @default(uuid()) @db.Uuid
+  signature  String    @unique
+  message    String
+  path       String?
+  digest     String?
+  count      Int       @default(1)
+  firstAt    DateTime  @default(now())
+  lastAt     DateTime  @default(now())
+  alertedAt  DateTime?
+  resolvedAt DateTime?
+
+  @@index([lastAt])
+}

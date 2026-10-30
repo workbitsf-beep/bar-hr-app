@@ -1,5 +1,6 @@
 import { getAccountantEmail } from "@/lib/accountant/auth";
 import { allowedBars, buildAccountantZip } from "@/lib/accountant/invoices";
+import { contextFrom, recordSecurityEvent } from "@/lib/security/events";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
   if (!venues.length) return new Response("Locale non trovato.", { status: 404 });
 
   const zip = await buildAccountantZip(venues, month);
+  await recordSecurityEvent({ type: "zip_download", email, barId: bar, detail: `${month} · ${venues.length} locali · ${zip.count} fatture`, context: contextFrom(request.headers) });
   return new Response(new Uint8Array(zip.content), {
     headers: {
       "Content-Type": "application/zip",
