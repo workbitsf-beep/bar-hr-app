@@ -125,7 +125,7 @@ export default async function DashboardPage() {
 
   if (!activeBarId) {
     return (
-      <Panel title="Dashboard">
+      <Panel title="Oggi">
         <EmptyState message="Seleziona un locale attivo per visualizzare i dati operativi." />
       </Panel>
     );
