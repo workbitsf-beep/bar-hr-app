@@ -364,6 +364,8 @@ export function SwipeRevealAction({
     <div
       ref={containerRef}
       className={className}
+      // For the guide (lib/tours.ts): which sides this row opens to.
+      data-swipe={enabled ? (leadingAction ? "both" : "left") : undefined}
       style={{
         position: "relative",
         overflow: "hidden",

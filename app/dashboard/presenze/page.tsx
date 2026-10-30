@@ -317,6 +317,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
               </span>
               <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
             </Link>
+            <div data-tour="send" style={{ display: "contents" }}>
             <SendPanel
               recipientId={recipient.id}
               firstName={/^(studio|dott|rag|avv)/i.test(recipient.name) ? recipient.name : recipient.name.split(/\s+/)[0]}
@@ -335,6 +336,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
               month={month}
               year={year}
             />
+            </div>
             <Quiet style={{ fontSize: 12.5, textAlign: "center", color: lastSend ? (changedAfter ? "#b45309" : "#0f7a4f") : undefined }}>
               {lastSend
                 ? changedAfter

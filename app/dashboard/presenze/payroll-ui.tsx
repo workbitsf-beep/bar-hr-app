@@ -178,7 +178,7 @@ export function MonthMenu({ base, year, month }: { base: string; year: number; m
   const months = Array.from({ length: 12 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - 11 + index, 1));
   const round: CSSProperties = { width: 38, height: 38, borderRadius: 999, background: "#f4f3f9", color: "#4c1d95", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 19, textDecoration: "none", flex: "0 0 auto" };
   return (
-    <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, background: "#ffffff", borderRadius: 18, padding: 6, boxShadow: "0 1px 2px rgba(31,27,58,.04)" }}>
+    <div data-tour="month" style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, background: "#ffffff", borderRadius: 18, padding: 6, boxShadow: "0 1px 2px rgba(31,27,58,.04)" }}>
       <Link href={monthHref(base, year, month, -1)} aria-label="Mese prima" scroll={false} style={round}>
         ‹
       </Link>

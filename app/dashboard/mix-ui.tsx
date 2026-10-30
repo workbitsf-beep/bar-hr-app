@@ -42,7 +42,7 @@ export const mixCard: CSSProperties = {
 /** A card of the page: its bold title inside, an aside on the right, rows under it. */
 export function MixCard({ title, aside, children, style }: { title?: ReactNode; aside?: ReactNode; children: ReactNode; style?: CSSProperties }) {
   return (
-    <section style={{ ...mixCard, ...style }}>
+    <section style={{ ...mixCard, ...style }} data-card={typeof title === "string" ? title : undefined}>
       {title || aside ? (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, fontSize: 14.5, fontWeight: 750, letterSpacing: "-0.01em", marginBottom: 4 }}>
           <span>{title}</span>

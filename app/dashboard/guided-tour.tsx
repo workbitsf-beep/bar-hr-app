@@ -149,8 +149,8 @@ export function GuidedTour({ enabled, profile }: { enabled: boolean; profile: To
         <p>{step.body}</p>
         <div className="wb-tour-foot">
           <span className="wb-tour-dots" aria-label={`${index + 1} di ${steps.length}`}>
-            {steps.map((entry, position) => (
-              <i key={entry.target} className={position === index ? "on" : undefined} />
+            {steps.map((_, position) => (
+              <i key={position} className={position === index ? "on" : undefined} />
             ))}
           </span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>

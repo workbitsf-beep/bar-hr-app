@@ -119,7 +119,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
       <section style={{ display: "grid", gap: 8 }}>
         <RowsCard title="Fatture" aside={report ? <Link href={`/dashboard/costi/fatture?month=${report.month}`} style={{ color: "#5e4ae3" }}>Tutte le fatture ›</Link> : null}>
           <Row first>
-            <UploadPanel compact={Boolean(report)} allowAnyRecipient={String(session.user.role) === "SUPER_ADMIN"} />
+            <div data-tour="upload" style={{ display: "contents" }}><UploadPanel compact={Boolean(report)} allowAnyRecipient={String(session.user.role) === "SUPER_ADMIN"} /></div>
             <details style={{ marginTop: 4 }}>
               <summary style={{ cursor: "pointer", fontSize: 13, color: "#5e4ae3" }}>Come si scarica lo zip dal cassetto fiscale</summary>
               <ol style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 13, color: "#4b4763", display: "grid", gap: 4 }}>
