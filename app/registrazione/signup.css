@@ -332,6 +332,7 @@
 
 .wb-signup__done {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   justify-items: center;
   padding: 28px 22px;
