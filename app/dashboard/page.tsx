@@ -885,7 +885,7 @@ export default async function DashboardPage() {
         id: item.id,
         name: item.name,
         quantity: item.quantity,
-        createdByName: item.createdBy.firstName,
+        createdByName: item.createdBy?.firstName ?? "Terminale",
         department: departmentInfo(item.department),
       }))}
       departments={

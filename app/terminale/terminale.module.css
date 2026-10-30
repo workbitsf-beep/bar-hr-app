@@ -1,0 +1,444 @@
+/* The venue's terminal: read from a step away, tapped with a work glove on.
+   Same lilac and white cards as the app, everything a size bigger. */
+
+.shell {
+  min-height: 100dvh;
+  background: #eae6f7;
+  color: #111827;
+  display: flex;
+  flex-direction: column;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  gap: 14px;
+  font-size: 17px;
+  overflow-x: hidden;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.venue {
+  display: block;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.sub {
+  display: block;
+  color: #667085;
+  font-size: 14px;
+}
+
+.clock {
+  font-size: 16px;
+  font-weight: 650;
+  color: #4c1d95;
+  text-transform: capitalize;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.tab,
+.tabOn {
+  flex: 1;
+  min-height: 56px;
+  border-radius: 18px;
+  border: 1px solid #ece9f7;
+  background: #ffffff;
+  color: #4c1d95;
+  font-size: 18px;
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.tabOn {
+  background: #5e4ae3;
+  border-color: #5e4ae3;
+  color: #ffffff;
+}
+
+.count {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #f1eeff;
+  color: #4c1d95;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabOn .count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.body {
+  flex: 1;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #ece9f7;
+  border-radius: 22px;
+  padding: 14px 18px;
+  box-shadow: 0 3px 10px rgba(76, 29, 149, 0.04);
+  min-width: 0;
+}
+
+.card h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.notice {
+  margin: 0;
+  padding: 10px 0;
+  border-top: 1px solid #f1eff8;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.notice span {
+  color: #667085;
+  font-size: 14px;
+}
+
+.noteRow,
+.doneRow,
+.shopRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #f1eff8;
+  min-width: 0;
+}
+
+.urgent b {
+  color: #b3202f;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.desc {
+  color: #475467;
+  font-size: 15px;
+}
+
+.meta {
+  color: #667085;
+  font-size: 14px;
+}
+
+.doneButton {
+  flex: 0 0 auto;
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 16px;
+  border: 0;
+  background: #5e4ae3;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.doneRow {
+  color: #667085;
+}
+
+.tick {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.empty {
+  margin: 0;
+  padding: 12px 0 4px;
+  color: #667085;
+}
+
+.addRow {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0 12px;
+  flex-wrap: wrap;
+}
+
+.addRow input {
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 1px solid #dcd6f3;
+  padding: 0 14px;
+  font-size: 17px;
+  background: #fbfaff;
+}
+
+.addRow .qty {
+  flex: 0 1 120px;
+}
+
+.primary {
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: 16px;
+  border: 0;
+  background: #5e4ae3;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+}
+
+.clockCard {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: 22px 18px;
+}
+
+.pad {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  width: 100%;
+  max-width: 340px;
+  margin: 10px auto 0;
+}
+
+.dots {
+  display: flex;
+  gap: 14px;
+  min-height: 18px;
+}
+
+.dot,
+.dotOn {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid #5e4ae3;
+}
+
+.dotOn {
+  background: #5e4ae3;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.keys button {
+  min-height: 66px;
+  border-radius: 18px;
+  border: 1px solid #ece9f7;
+  background: #fbfaff;
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+}
+
+.keys button:active {
+  background: #f1eeff;
+}
+
+.keys .okKey {
+  background: #5e4ae3;
+  border-color: #5e4ae3;
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.keys button:disabled {
+  opacity: 0.45;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 20;
+}
+
+.pinSheet {
+  background: #ffffff;
+  border-radius: 26px;
+  padding: 20px 18px 12px;
+  width: min(100%, 400px);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.pinTitle {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.linkButton {
+  border: 0;
+  background: none;
+  color: #5e4ae3;
+  font-size: 15px;
+  font-weight: 650;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #8a86a0;
+  font-size: 13px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.bannerGood,
+.bannerBad {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 560px);
+  padding: 18px 20px;
+  border-radius: 20px;
+  font-size: 19px;
+  font-weight: 750;
+  text-align: center;
+  z-index: 30;
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.18);
+  overflow-wrap: anywhere;
+}
+
+.bannerGood {
+  background: #166534;
+  color: #ffffff;
+}
+
+.bannerBad {
+  background: #b3202f;
+  color: #ffffff;
+}
+
+.pairCard {
+  margin: auto;
+  background: #ffffff;
+  border-radius: 26px;
+  padding: 28px 22px;
+  width: min(100%, 460px);
+  display: grid;
+  gap: 12px;
+  text-align: center;
+  justify-items: center;
+}
+
+.pairCard h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+}
+
+.pairCard p {
+  margin: 0;
+  color: #475467;
+  line-height: 1.45;
+}
+
+.pairCard form {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1e0f45, #5e4ae3);
+  color: #ffffff;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.codeInput {
+  min-height: 60px;
+  border-radius: 16px;
+  border: 1px solid #dcd6f3;
+  font-size: 26px;
+  letter-spacing: 0.25em;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 750;
+  background: #fbfaff;
+}
+
+.errorText {
+  color: #b3202f !important;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}

@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getPostLoginDestination } from "@/lib/permissions";
+import { hasTerminalCookie } from "@/lib/terminal/terminal";
 
 export default async function Home() {
   const session = await getSession();
 
   if (!session) {
-    redirect("/login");
+    // The venue's terminal opens straight on its screen.
+    redirect((await hasTerminalCookie()) ? "/terminale" : "/login");
   }
 
   redirect(

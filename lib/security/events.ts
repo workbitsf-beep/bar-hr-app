@@ -68,7 +68,7 @@ async function raiseAlert(input: { key: string; title: string; detail: string; u
 }
 
 /** A wrong password, code or passkey: counted per address and per network. */
-export async function recordFailedSignIn(input: { kind: "password" | "passkey" | "accountant_code" | "supplier_code"; email: string | null; context: SecurityContext }) {
+export async function recordFailedSignIn(input: { kind: "password" | "passkey" | "accountant_code" | "supplier_code" | "terminal_code"; email: string | null; context: SecurityContext }) {
   try {
     const type = input.kind === "password" || input.kind === "passkey" ? "login_failed" : "code_failed";
     await prisma.securityEvent.create({

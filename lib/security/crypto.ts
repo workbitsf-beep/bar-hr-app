@@ -22,7 +22,7 @@ export const ENCRYPTED_FIELDS: Record<string, string[]> = {
   SupplierInvoice: ["xmlGz"],
   SupplierPayment: ["iban"],
   Request: ["certificateCode"],
-  EmployeeBar: ["payrollCode"],
+  EmployeeBar: ["payrollCode", "terminalPin"],
   Document: ["content"],
   CourseCertificate: ["content"],
 };

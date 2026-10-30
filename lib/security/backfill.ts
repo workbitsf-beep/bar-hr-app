@@ -14,6 +14,7 @@ const TABLES: Record<string, { table: string; bytes: boolean }> = {
   "SupplierPayment.iban": { table: "SupplierPayment", bytes: false },
   "Request.certificateCode": { table: "Request", bytes: false },
   "EmployeeBar.payrollCode": { table: "EmployeeBar", bytes: false },
+  "EmployeeBar.terminalPin": { table: "EmployeeBar", bytes: false },
   "Document.content": { table: "Document", bytes: true },
   "CourseCertificate.content": { table: "CourseCertificate", bytes: true },
 };

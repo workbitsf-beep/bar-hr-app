@@ -403,6 +403,13 @@ export default function LoginPage() {
           <p className={styles.inviteNote}>
             Lavori in un locale? Il tuo accesso te lo manda il titolare.
           </p>
+          {/* The venue's shared tablet or PC: paired with the owner's code,
+              nobody signs in on it (app/terminale). */}
+          <p className={styles.inviteNote}>
+            <a href="/terminale" style={{ color: "#5e4ae3", fontWeight: 650, textDecoration: "none" }}>
+              Questo dispositivo è il terminale del locale ›
+            </a>
+          </p>
         </div>
       </section>
     </main>

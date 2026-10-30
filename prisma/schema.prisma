@@ -412,6 +412,7 @@ model Bar {
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   homeLayouts             HomeLayout[]
+  terminals               Terminal[]
 
   @@index([ownerId])
   @@index([mainBarId])
@@ -558,6 +559,10 @@ model BarSettings {
   documentsEnabled       Boolean       @default(true)
   reportsEnabled         Boolean       @default(true)
   shoppingListEnabled    Boolean       @default(true)
+  /// The shared terminal (a tablet or PC in the venue): notes completed
+  /// there ask for the person's PIN, so it is known who did it. Off: anyone
+  /// completes, and the note reads "dal terminale". Clocking in always asks.
+  terminalPinForTasks    Boolean       @default(true)
   roundingEnabled        Boolean       @default(false)
   roundingMinutes        Int?
   roundingMode           RoundingMode?
@@ -676,10 +681,15 @@ model EmployeeBar {
   /// Contract hours a week: above them a day's hours are overtime on the
   /// consultant's export. Null when the owner has not said.
   contractWeeklyHours Float?
+  /// The PIN typed on the venue's terminal: kept encrypted to be shown to the
+  /// person and the owner, and as a keyed hash to find who typed it.
+  terminalPin         String?
+  terminalPinKey      String?
   user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   bar                 Bar          @relation(fields: [barId], references: [id], onDelete: Cascade)
 
   @@unique([userId, barId])
+  @@unique([barId, terminalPinKey])
   @@index([userId])
   @@index([barId])
   @@index([barId, isActive])
@@ -754,6 +764,8 @@ model TimeLog {
   /// Stamped on the phone without network and sent when it came back: the
   /// time is the phone's, so the owner sees it marked "senza rete".
   offline      Boolean   @default(false)
+  /// Stamped on the venue's terminal with the PIN, not on the person's phone.
+  viaTerminal  Boolean   @default(false)
   note         String?
 
   @@index([barId, userId, timestamp])
@@ -836,6 +848,8 @@ model Task {
   completedAt          DateTime?
   completedById        String?          @db.Uuid
   completedBy          User?            @relation("TaskCompleted", fields: [completedById], references: [id], onDelete: SetNull)
+  /// Completed on the venue's terminal (with no PIN, completedBy stays empty).
+  completedOnTerminal  Boolean          @default(false)
   completions          TaskCompletion[]
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
@@ -1129,16 +1143,18 @@ model DownloadTicket {
 }
 
 model ShoppingListItem {
-  id          String      @id @default(uuid()) @db.Uuid
-  barId       String      @db.Uuid
-  name        String
-  quantity    String?
+  id              String      @id @default(uuid()) @db.Uuid
+  barId           String      @db.Uuid
+  name            String
+  quantity        String?
   /// Pro: the department the item is for; null on Base, or for the whole venue.
-  department  Department?
-  createdById String      @db.Uuid
-  bar         Bar         @relation(fields: [barId], references: [id], onDelete: Cascade)
-  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now())
+  department      Department?
+  /// Empty when added on the terminal without a PIN.
+  createdById     String?     @db.Uuid
+  addedOnTerminal Boolean     @default(false)
+  bar             Bar         @relation(fields: [barId], references: [id], onDelete: Cascade)
+  createdBy       User?       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt       DateTime    @default(now())
 
   @@index([barId, createdAt])
 }
@@ -1632,7 +1648,7 @@ model MarketPrice {
 /// (PDF, Excel) or a supplier published: what a client could pay elsewhere.
 /// barId set: seen by that venue only (a list it uploaded, or a demo).
 model SupplierListPrice {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String    @id @default(uuid()) @db.Uuid
   supplierName String
   /// Province or region it delivers to, free text ("Veneto", "PD").
   zone         String?
@@ -1644,13 +1660,13 @@ model SupplierListPrice {
   description  String?
   validFrom    DateTime
   /// "listino" (uploaded by Workbit), "fornitore" (by the supplier), "online" (a public page).
-  source       String   @default("listino")
-  supplierId   String?  @db.Uuid
+  source       String    @default("listino")
+  supplierId   String?   @db.Uuid
   supplier     Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   url          String?
-  barId        String?  @db.Uuid
-  bar          Bar?     @relation(fields: [barId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
+  barId        String?   @db.Uuid
+  bar          Bar?      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
 
   @@index([productKey, baseUnit])
   @@index([barId])
@@ -1703,22 +1719,22 @@ model PortalSession {
 /// What a business in the free pilot thinks: strengths, what is wrong, what
 /// is missing, and what it would pay.
 model PilotFeedback {
-  id            String   @id @default(uuid()) @db.Uuid
-  barId         String   @db.Uuid
-  userId        String   @db.Uuid
-  strengths     String?
-  problems      String?
-  missing       String?
+  id           String   @id @default(uuid()) @db.Uuid
+  barId        String   @db.Uuid
+  userId       String   @db.Uuid
+  strengths    String?
+  problems     String?
+  missing      String?
   /// Euro a month it would pay; null when it did not say.
-  wouldPay      Int?
+  wouldPay     Int?
   /// Euro a month that would feel too dear, and too cheap to trust.
-  tooExpensive  Int?
-  tooCheap      Int?
-  payNote       String?
+  tooExpensive Int?
+  tooCheap     Int?
+  payNote      String?
   /// 0-10: would it recommend Workbit.
-  recommend     Int?
-  mostUsed      String?
-  createdAt     DateTime @default(now())
+  recommend    Int?
+  mostUsed     String?
+  createdAt    DateTime @default(now())
 
   @@index([barId, createdAt])
 }
@@ -1770,4 +1786,29 @@ model ErrorEvent {
   resolvedAt DateTime?
 
   @@index([lastAt])
+}
+
+/// A shared device in the venue - a tablet by the door, the office PC - that
+/// shows the notes and the shopping list to everyone and lets people clock in
+/// with their PIN. Nothing personal (shifts, documents, hours) is ever on it.
+/// Paired with a one-time code from the owner's settings; the device keeps a
+/// long random key, stored here only as a hash.
+model Terminal {
+  id               String    @id @default(uuid()) @db.Uuid
+  barId            String    @db.Uuid
+  bar              Bar       @relation(fields: [barId], references: [id], onDelete: Cascade)
+  name             String
+  tokenHash        String?   @unique
+  pairingCodeHash  String?   @unique
+  pairingExpiresAt DateTime?
+  pairedAt         DateTime?
+  lastSeenAt       DateTime?
+  revokedAt        DateTime?
+  /// Wrong PINs in a row, and until when the keypad is locked after too many.
+  failedPins       Int       @default(0)
+  lockedUntil      DateTime?
+  createdById      String?   @db.Uuid
+  createdAt        DateTime  @default(now())
+
+  @@index([barId])
 }

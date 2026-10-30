@@ -73,7 +73,7 @@ export default async function DashboardShoppingListPage() {
               id: item.id,
               name: item.name,
               quantity: item.quantity,
-              createdByName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
+              createdByName: item.createdBy ? `${item.createdBy.firstName} ${item.createdBy.lastName}` : "Terminale",
             }))}
           />
         )}

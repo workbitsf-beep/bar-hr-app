@@ -1303,6 +1303,12 @@ export default async function DashboardSettingsPage({
             <LocaleSettingsPopupContent {...localeProps} section="tracking" />
           </PopupAction>
         ) : null}
+
+        {role === Role.OWNER ? (
+          <a href="/dashboard/terminale" style={{ textDecoration: "none", color: "inherit" }}>
+            <SettingsRow dot="#5e4ae3" title="Terminale" lead="Tablet o PC nel locale, PIN" />
+          </a>
+        ) : null}
       </SettingsGroup>
 
       {accountGroup}

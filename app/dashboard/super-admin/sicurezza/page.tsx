@@ -15,6 +15,7 @@ const FIELD_LABELS: Record<string, string> = {
   "SupplierPayment.iban": "IBAN dei fornitori",
   "Request.certificateCode": "Codici dei certificati di malattia",
   "EmployeeBar.payrollCode": "Matricole e codici fiscali",
+  "EmployeeBar.terminalPin": "PIN del terminale",
   "Document.content": "Documenti del personale",
   "CourseCertificate.content": "Attestati dei corsi",
 };
