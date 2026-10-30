@@ -30,6 +30,17 @@ export type ParsedInvoice = {
   taxableCents: number;
   vatCents: number;
   lines: ParsedLine[];
+  /** DatiPagamento: one per instalment. Empty when the invoice does not say. */
+  payments: ParsedPayment[];
+};
+
+export type ParsedPayment = {
+  /** YYYY-MM-DD */
+  dueDate: string;
+  amountCents: number;
+  /** MP01..MP23 */
+  method: string | null;
+  iban: string | null;
 };
 
 export type ReadResult =
@@ -164,6 +175,27 @@ export function readInvoiceFile(name: string, bytes: Buffer): ReadResult {
       : lines.reduce((sum, line) => sum + Math.abs(line.totalCents), 0);
     const vat = summaries.reduce((sum, item) => sum + cents(textAt(item, "Imposta")), 0);
     const declaredTotal = textAt(general, "ImportoTotaleDocumento");
+    const date = (textAt(general, "Data") ?? "").slice(0, 10);
+
+    // When and how it is paid: the due date as written, or the reference
+    // date plus the days of the terms, or the invoice's own date.
+    const payments: ParsedPayment[] = [];
+    for (const terms of childrenNamed(body, "DatiPagamento")) {
+      for (const detail of childrenNamed(terms, "DettaglioPagamento")) {
+        const amountCents = cents(textAt(detail, "ImportoPagamento"));
+        if (amountCents <= 0) continue;
+        let dueDate = (textAt(detail, "DataScadenzaPagamento") ?? "").slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+          const from = (textAt(detail, "DataRiferimentoTerminiPagamento") ?? date).slice(0, 10);
+          const days = Number(textAt(detail, "GiorniTerminiPagamento") ?? 0) || 0;
+          const base = /^\d{4}-\d{2}-\d{2}$/.test(from) ? new Date(`${from}T00:00:00Z`) : null;
+          if (base) base.setUTCDate(base.getUTCDate() + days);
+          dueDate = base ? base.toISOString().slice(0, 10) : date;
+        }
+        const iban = (textAt(detail, "IBAN") ?? "").replace(/\s+/g, "").toUpperCase();
+        payments.push({ dueDate, amountCents, method: textAt(detail, "ModalitaPagamento"), iban: iban || null });
+      }
+    }
 
     invoices.push({
       docType,
@@ -173,12 +205,14 @@ export function readInvoiceFile(name: string, bytes: Buffer): ReadResult {
       recipientVat: vatOf(recipient),
       recipientTaxCode: taxCodeOf(recipient),
       number: textAt(general, "Numero") ?? "s.n.",
-      date: (textAt(general, "Data") ?? "").slice(0, 10),
+      date,
       currency: textAt(general, "Divisa") ?? "EUR",
       totalCents: sign * Math.abs(declaredTotal ? cents(declaredTotal) : taxable + vat),
       taxableCents: sign * Math.abs(taxable),
       vatCents: sign * Math.abs(vat),
       lines,
+      // A credit note is money back, not a payment to make.
+      payments: sign < 0 ? [] : payments,
     });
   }
 

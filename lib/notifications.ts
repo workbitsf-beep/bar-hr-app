@@ -48,6 +48,8 @@ export const INTERNAL_NOTIFICATION_TYPES = {
   GENERIC_REQUEST_REVIEWED: "generic-request.reviewed",
   // To the owner, on the day they chose: last month's attendance to check and send.
   PAYROLL_READY: "payroll.ready",
+  // To the owner: a bonifico due soon, or one past its day with no word yet.
+  SUPPLIER_PAYMENT: "supplier-payment.due",
 } as const;
 
 export type InternalNotificationType =

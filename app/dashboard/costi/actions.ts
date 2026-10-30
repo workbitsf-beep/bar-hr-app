@@ -195,3 +195,44 @@ export async function removeAccountantAction(formData: FormData) {
     return ruleFailure(error);
   }
 }
+
+/** An instalment told paid, not paid yet, or back to "to confirm". */
+export async function markPaymentAction(formData: FormData) {
+  try {
+    const barId = await ownerVenue();
+    const state = String(formData.get("state") ?? "");
+    const ids = formData.getAll("paymentId").map(String).filter(Boolean).slice(0, 500);
+    if (!ids.length) throw new RuleError("Nessun pagamento scelto.");
+    await prisma.supplierPayment.updateMany({
+      where: { barId, id: { in: ids } },
+      data:
+        state === "PAID"
+          ? { state: "PAID", paidAt: new Date() }
+          : state === "NOT_PAID"
+            ? { state: "NOT_PAID", paidAt: null }
+            : { state: null, paidAt: null },
+    });
+    revalidatePath("/dashboard/costi/pagamenti");
+    revalidatePath("/dashboard/costi");
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** "I always pay this supplier on the spot": its invoices count as paid. Sent again, it is removed. */
+export async function toggleSupplierRuleAction(formData: FormData) {
+  try {
+    const barId = await ownerVenue();
+    const supplierKey = String(formData.get("supplierKey") ?? "").slice(0, 200);
+    const supplierName = String(formData.get("supplierName") ?? "").slice(0, 200);
+    if (!supplierKey) throw new RuleError("Fornitore non valido.");
+    const existing = await prisma.supplierPaymentRule.findUnique({ where: { barId_supplierKey: { barId, supplierKey } }, select: { id: true } });
+    if (existing) await prisma.supplierPaymentRule.delete({ where: { id: existing.id } });
+    else await prisma.supplierPaymentRule.create({ data: { barId, supplierKey, supplierName } });
+    revalidatePath("/dashboard/costi/pagamenti");
+    return { ok: true };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}

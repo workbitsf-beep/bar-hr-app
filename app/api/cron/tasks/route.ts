@@ -21,6 +21,7 @@ export async function GET(request: Request): Promise<Response> {
     { runPayrollReminders },
     { runCourseReminders },
     { runAccountantNotices },
+    { runPaymentReminders },
   ] = await Promise.all([
     import("@/lib/taskEscalation"),
     import("@/lib/task-recurrence"),
@@ -34,6 +35,7 @@ export async function GET(request: Request): Promise<Response> {
     import("@/lib/payroll/reminders"),
     import("@/lib/course-certificates"),
     import("@/lib/accountant/invoices"),
+    import("@/lib/costs/payments"),
   ]);
 
   // Recurrence runs before escalation: escalation rewrites an overdue note's
@@ -41,7 +43,7 @@ export async function GET(request: Request): Promise<Response> {
   // it stayed untouched.
   const recurrenceResult = await runTaskRecurrence();
 
-  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult, inboxResult, payrollResult, courseResult, accountantResult] =
+  const [taskResult, shiftResult, timelogReminderResult, retentionResult, trialResult, fiscalResult, forgottenExitResult, inboxResult, payrollResult, courseResult, accountantResult, paymentResult] =
     await Promise.all([
       runTaskEscalation(),
       runShiftRetentionCleanup(),
@@ -62,6 +64,8 @@ export async function GET(request: Request): Promise<Response> {
       runCourseReminders().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
       // From the 2nd: each accountant hears that last month's invoices are ready.
       runAccountantNotices().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
+      // Supplier bonifici: three days before, and "did you pay?" the day after.
+      runPaymentReminders().catch((error) => ({ error: error instanceof Error ? error.message : "errore" })),
     ]);
 
   return Response.json({
@@ -74,6 +78,7 @@ export async function GET(request: Request): Promise<Response> {
     payrollReminders: payrollResult,
     courseReminders: courseResult,
     accountantNotices: accountantResult,
+    paymentReminders: paymentResult,
     updatedCount: taskResult.count,
     renewedRecurringTaskCount: recurrenceResult.count,
     deletedShiftCount: shiftResult.deletedShiftCount,

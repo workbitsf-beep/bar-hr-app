@@ -7,6 +7,7 @@ import { buildCostReport, monthLabel, shiftMonth, type CostReport } from "@/lib/
 import { BASE_UNIT_LABEL } from "@/lib/costs/categories";
 import { inboxAvailable, OPENAPI_RECIPIENT_CODE } from "@/lib/costs/openapi-inbox";
 import { costsEnabledFor } from "@/lib/costs/access";
+import { buildSchedule } from "@/lib/costs/payments";
 import { prisma } from "@/lib/prisma";
 import { BillingRequired } from "../billing-required";
 import { getDashboardContext } from "../context";
@@ -63,6 +64,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
     prisma.bar.findUnique({ where: { id: activeBarId }, select: { vatNumber: true, mainBar: { select: { vatNumber: true } } } }),
     prisma.accountantAccess.findMany({ where: { barId: activeBarId }, orderBy: { createdAt: "asc" }, select: { id: true, email: true, name: true } }),
   ]);
+  const schedule = report ? await buildSchedule(activeBarId) : null;
   const ai = aiEnabled();
 
   return (
@@ -76,6 +78,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
       {report ? (
         <>
           <Summary report={report} company={company} />
+          {schedule ? <PaymentsLink schedule={schedule} /> : null}
           <MonthStory report={report} />
           <ProductTrends report={report} />
           <Savings report={report} ai={ai} />
@@ -304,6 +307,28 @@ const pctText = (now: number | null, before: number | null) => {
   if (Math.abs(value) < 0.5) return "uguale";
   return `${value > 0 ? "+" : "−"}${Math.abs(value).toLocaleString("it-IT", { maximumFractionDigits: 1 })}%`;
 };
+
+/** The way into the payment schedule, with what needs a look. */
+function PaymentsLink({ schedule }: { schedule: Awaited<ReturnType<typeof buildSchedule>> }) {
+  const count = (status: string) => schedule.items.filter((item) => item.status === status).length;
+  const overdue = count("overdue");
+  const confirm = count("confirm");
+  const soon = schedule.weeks.reduce((sum, week) => sum + week.manualCents + week.automaticCents, 0);
+  return (
+    <RowsCard>
+      <Row first href="/dashboard/costi/pagamenti" rail={overdue ? "amber" : undefined} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span aria-hidden style={{ width: 26, fontSize: 19, textAlign: "center" }}>📅</span>
+        <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 1 }}>
+          <span style={{ fontSize: 15 }}>Pagamenti ai fornitori</span>
+          <span style={{ fontSize: 12.5, color: overdue ? "#b3202f" : "#7c7894" }}>
+            {[overdue ? `${overdue} scadute` : null, confirm ? `${confirm} da confermare` : null, `${euro(soon)} nelle prossime 4 settimane`].filter(Boolean).join(" · ")}
+          </span>
+        </span>
+        <span aria-hidden style={{ color: "#c4c0d6", fontSize: 18 }}>›</span>
+      </Row>
+    </RowsCard>
+  );
+}
 
 /** Why the month moved, in one card: bought more or less, paid more or less for the same things. */
 function MonthStory({ report }: { report: CostReport }) {

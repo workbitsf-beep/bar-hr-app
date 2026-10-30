@@ -315,96 +315,98 @@ model WebAuthnChallenge {
 }
 
 model Bar {
-  id                     String                  @id @default(uuid()) @db.Uuid
-  name                   String
-  legalName              String?
-  email                  String?
-  phone                  String?
-  addressLine1           String?
-  city                   String?
-  postalCode             String?
-  vatNumber              String?
-  latitude               Float
-  longitude              Float
-  radiusMeters           Int                     @default(10)
-  roundingEnabled        Boolean                 @default(false)
-  entryToleranceMin      Int                     @default(5)
-  roundingStepMin        Int                     @default(15)
-  exitToleranceMin       Int                     @default(13)
-  activityType           ActivityType            @default(RESTAURANT)
-  plan                   VenuePlan               @default(BASE)
+  id                      String                   @id @default(uuid()) @db.Uuid
+  name                    String
+  legalName               String?
+  email                   String?
+  phone                   String?
+  addressLine1            String?
+  city                    String?
+  postalCode              String?
+  vatNumber               String?
+  latitude                Float
+  longitude               Float
+  radiusMeters            Int                      @default(10)
+  roundingEnabled         Boolean                  @default(false)
+  entryToleranceMin       Int                      @default(5)
+  roundingStepMin         Int                      @default(15)
+  exitToleranceMin        Int                      @default(13)
+  activityType            ActivityType             @default(RESTAURANT)
+  plan                    VenuePlan                @default(BASE)
   /// Base extras (Pro includes them all): departments, packs of five more
   /// people (at most two), and the venue's own logo and sign font.
-  departmentsAddon       Boolean                 @default(false)
-  extraSeatPacks         Int                     @default(0)
-  brandingAddon          Boolean                 @default(false)
+  departmentsAddon        Boolean                  @default(false)
+  extraSeatPacks          Int                      @default(0)
+  brandingAddon           Boolean                  @default(false)
   /// Paid sites at 7,99 each. A company's are Site rows inside it (up to 3 on
   /// Base; on Pro on top of the 3 it includes, up to 6 in all). A
   /// restaurant's are branches - venues of their own linked by mainBarId -
   /// under the same name and tax details (up to 3 on Base; on Pro on top of
   /// the 2 it includes, up to 6 in all).
-  extraSites             Int                     @default(0)
+  extraSites              Int                      @default(0)
   /// The Su misura plan: what was agreed with the customer.
-  customPriceCents       Int?
-  customSeatLimit        Int?
-  customSiteLimit        Int?
-  customPlanNote         String?
+  customPriceCents        Int?
+  customSeatLimit         Int?
+  customSiteLimit         Int?
+  customPlanNote          String?
   /// The venue's logo, already cropped square and small, and its sign font.
-  logo                   Bytes?
-  logoType               String?
-  logoUpdatedAt          DateTime?
-  signFont               String?
-  departmentMode         DepartmentMode          @default(UNIFIED)
+  logo                    Bytes?
+  logoType                String?
+  logoUpdatedAt           DateTime?
+  signFont                String?
+  departmentMode          DepartmentMode           @default(UNIFIED)
   /// The name of the fourth department; null while the owner has not added it.
-  customDepartmentName   String?
+  customDepartmentName    String?
   /// When and from where the owner declared, at public signup, to run a real
   /// business with this VAT number. Null for venues opened by hand.
-  businessDeclaredAt     DateTime?
-  businessDeclaredIp     String?
-  ownerId                String                  @db.Uuid
-  owner                  User                    @relation("BarOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  memberships            EmployeeBar[]
-  settings               BarSettings?
-  subscription           Subscription?
-  billingProfile         BillingProfile?
-  invoices               Invoice[]
-  shifts                 Shift[]
-  timeLogs               TimeLog[]
-  clockFixes             ClockFix[]
-  tasks                  Task[]
-  notes                  Note[]
-  requests               Request[]
-  availabilities         Availability[]
-  courses                Course[]
-  courseCertificates     CourseCertificate[]
-  calendarClosures       CalendarClosure[]
-  documents              Document[]
-  shoppingListItems      ShoppingListItem[]
-  checklists             Checklist[]
-  sites                  Site[]
+  businessDeclaredAt      DateTime?
+  businessDeclaredIp      String?
+  ownerId                 String                   @db.Uuid
+  owner                   User                     @relation("BarOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships             EmployeeBar[]
+  settings                BarSettings?
+  subscription            Subscription?
+  billingProfile          BillingProfile?
+  invoices                Invoice[]
+  shifts                  Shift[]
+  timeLogs                TimeLog[]
+  clockFixes              ClockFix[]
+  tasks                   Task[]
+  notes                   Note[]
+  requests                Request[]
+  availabilities          Availability[]
+  courses                 Course[]
+  courseCertificates      CourseCertificate[]
+  calendarClosures        CalendarClosure[]
+  documents               Document[]
+  shoppingListItems       ShoppingListItem[]
+  checklists              Checklist[]
+  sites                   Site[]
   /// A restaurant's branch (sede): a venue of its own - departments, calendar,
   /// clock-in point, people - billed with its main venue, whose plan and
   /// extras it shares (lib/venue-branches.ts).
-  mainBarId              String?                 @db.Uuid
-  mainBar                Bar?                    @relation("BarBranches", fields: [mainBarId], references: [id], onDelete: Cascade)
-  branches               Bar[]                   @relation("BarBranches")
-  supplierInvoices       SupplierInvoice[]
-  invoiceUploads         InvoiceUpload[]
-  supplierCategories     SupplierCategory[]
-  priceChecks            PriceCheck[]
-  monthlyRevenues        MonthlyRevenue[]
-  payrollRecipients      PayrollRecipient[]
-  accountantAccesses     AccountantAccess[]
+  mainBarId               String?                  @db.Uuid
+  mainBar                 Bar?                     @relation("BarBranches", fields: [mainBarId], references: [id], onDelete: Cascade)
+  branches                Bar[]                    @relation("BarBranches")
+  supplierInvoices        SupplierInvoice[]
+  invoiceUploads          InvoiceUpload[]
+  supplierCategories      SupplierCategory[]
+  priceChecks             PriceCheck[]
+  monthlyRevenues         MonthlyRevenue[]
+  payrollRecipients       PayrollRecipient[]
+  accountantAccesses      AccountantAccess[]
   payrollMonthAdjustments PayrollMonthAdjustment[]
-  payrollDayOverrides    PayrollDayOverride[]
-  payrollSends           PayrollSend[]
-  legalAcceptances       LegalAcceptance[]
-  notifications          Notification[]
-  scheduledNotifications ScheduledNotification[]
-  sessions               Session[]
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  homeLayouts            HomeLayout[]
+  supplierPayments        SupplierPayment[]
+  supplierPaymentRules    SupplierPaymentRule[]
+  payrollDayOverrides     PayrollDayOverride[]
+  payrollSends            PayrollSend[]
+  legalAcceptances        LegalAcceptance[]
+  notifications           Notification[]
+  scheduledNotifications  ScheduledNotification[]
+  sessions                Session[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  homeLayouts             HomeLayout[]
 
   @@index([ownerId])
   @@index([mainBarId])
@@ -1252,6 +1254,9 @@ model SupplierInvoice {
   /// The original XML, gzip-compressed, attachments removed.
   xmlGz           Bytes?
   lines           SupplierInvoiceLine[]
+  payments        SupplierPayment[]
+  /// When the payment terms were read from the XML (null: not yet, for invoices from before).
+  paymentsReadAt  DateTime?
   createdAt       DateTime              @default(now())
 
   @@unique([barId, dedupeKey])
@@ -1554,4 +1559,43 @@ model AccountantNotice {
   email         String   @id
   notifiedMonth String
   updatedAt     DateTime @updatedAt
+}
+
+/// One instalment of a supplier invoice, from its DatiPagamento: when, how
+/// much, how (MP05 bonifico, MP12 RiBa...), to which IBAN. Whether it is paid
+/// is read from the method (card, cash, direct debit) or told by the owner.
+model SupplierPayment {
+  id          String          @id @default(uuid()) @db.Uuid
+  barId       String          @db.Uuid
+  bar         Bar             @relation(fields: [barId], references: [id], onDelete: Cascade)
+  invoiceId   String          @db.Uuid
+  invoice     SupplierInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  /// UTC midnight of the due day.
+  dueDate     DateTime
+  amountCents Int
+  /// MP01..MP23, null when the invoice does not say.
+  method      String?
+  iban        String?
+  /// The owner's word: PAID or NOT_PAID; null until they say.
+  state       String?
+  paidAt      DateTime?
+  /// The reminder before the due day, and the "did you pay?" after it.
+  remindedAt  DateTime?
+  askedAt     DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([barId, dueDate])
+  @@index([invoiceId])
+}
+
+/// "This supplier I always pay on the spot": its invoices count as paid.
+model SupplierPaymentRule {
+  id           String   @id @default(uuid()) @db.Uuid
+  barId        String   @db.Uuid
+  bar          Bar      @relation(fields: [barId], references: [id], onDelete: Cascade)
+  supplierKey  String
+  supplierName String
+  createdAt    DateTime @default(now())
+
+  @@unique([barId, supplierKey])
 }

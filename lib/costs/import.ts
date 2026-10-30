@@ -11,6 +11,7 @@ import {
   unitsFromDescription,
 } from "./categories";
 import { readInvoiceFile, type ParsedInvoice, type ParsedLine } from "./fattura";
+import { savePayments } from "./payments";
 import { isZip, readZip } from "./zip";
 
 export type ImportSummary = {
@@ -179,7 +180,7 @@ export async function importInvoiceFiles(input: {
       continue;
     }
     try {
-      await prisma.supplierInvoice.create({
+      const created = await prisma.supplierInvoice.create({
         data: {
           barId: input.barId,
           source: input.source,
@@ -221,6 +222,9 @@ export async function importInvoiceFiles(input: {
           },
         },
       });
+      await savePayments(input.barId, created.id, invoice.payments).catch((error) =>
+        console.error("[costs] payment terms not saved", error instanceof Error ? error.message : error),
+      );
       summary.imported += 1;
       months.add(invoice.date.slice(0, 7));
     } catch (error) {
