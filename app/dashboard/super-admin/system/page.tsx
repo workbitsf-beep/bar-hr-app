@@ -40,6 +40,11 @@ export default async function ConsoleSystemPage() {
           meta="Metalli, gasolio, luce, caffè, latte: un valore al mese"
         />
         <Row
+          href="/dashboard/super-admin/listini"
+          title="Listini fornitori"
+          meta="Carica un PDF o un Excel: Workbit lo legge e lo confronta con i clienti"
+        />
+        <Row
           href="/dashboard/super-admin/usage"
           title="Utilizzo e diagnostica"
           meta="Carico della piattaforma e stato del database"

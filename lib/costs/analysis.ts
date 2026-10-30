@@ -5,6 +5,7 @@ import { buildMonthlyTotals } from "@/lib/reporting";
 import { BASE_UNIT_LABEL, CATEGORY_BY_KEY, COST_CATEGORIES, categoryOf, normalizeText } from "./categories";
 import { supplierKeyOf } from "./import";
 import { changeBetween, indexFor, loadMarket } from "./market";
+import { peerPrices, type PeerStats } from "./peers";
 
 export type SavingTip = {
   id: string;
@@ -71,6 +72,14 @@ export type ProductTrend = {
   priceCents: number;
   /** The same stretch of months for the product and its market index, when there is one. */
   market: { key: string; label: string; source: string; months: number; productPct: number; marketPct: number } | null;
+  /** Who it was bought from this month and the month before, at what unit price. */
+  suppliers: Array<{ name: string; unitPrice: number | null; previousUnitPrice: number | null; cents: number; quantity: number }>;
+  /** The cheapest of the venue's own suppliers for it in the last six months. */
+  bestOwnSupplier: { name: string; unitPrice: number } | null;
+  /** The other clients of Workbit, when enough of them buy it. */
+  peers: PeerStats | null;
+  /** Suppliers' list prices below what the venue pays, cheapest first. */
+  listPrices: Array<{ supplierName: string; zone: string | null; unitPrice: number; validFrom: Date; source: string }>;
 };
 
 export function monthKey(date: Date) {
@@ -455,6 +464,7 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
   // Product by product, across suppliers: this month against the last.
   type Bucket = { cents: number; qty: number; qtyCents: number };
   const productMonths = new Map<string, { label: string; unit: string; category: string; byMonth: Map<string, Bucket> }>();
+  const supplierBuckets = new Map<string, Map<string, { name: string; byMonth: Map<string, Bucket> }>>();
   for (const line of lines) {
     if (!line.productKey || line.baseUnit === "kwh" || line.baseUnit === "smc") continue;
     if (CATEGORY_BY_KEY.get(line.category)?.key === "energia") continue;
@@ -468,6 +478,17 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
     }
     entry.byMonth.set(line.month, bucket);
     productMonths.set(id, entry);
+    const bySupplier = supplierBuckets.get(id) ?? new Map<string, { name: string; byMonth: Map<string, Bucket> }>();
+    const supplier = bySupplier.get(line.supplierKey) ?? { name: line.supplierName, byMonth: new Map<string, Bucket>() };
+    const own = supplier.byMonth.get(line.month) ?? { cents: 0, qty: 0, qtyCents: 0 };
+    own.cents += line.totalCents;
+    if (line.baseQty && line.baseQty > 0 && line.totalCents > 0) {
+      own.qty += line.baseQty;
+      own.qtyCents += line.totalCents;
+    }
+    supplier.byMonth.set(line.month, own);
+    bySupplier.set(line.supplierKey, supplier);
+    supplierBuckets.set(id, bySupplier);
   }
   const unitOf = (bucket: Bucket | undefined) => (bucket && bucket.qty > 0 ? bucket.qtyCents / 100 / bucket.qty : null);
   const market = await loadMarket(barId);
@@ -487,6 +508,34 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
     return null;
   };
   const productTrends: ProductTrend[] = [];
+  const recentMonths = [0, 1, 2, 3, 4, 5].map((back) => shiftMonth(month, -back));
+  const ownSuppliers = (id: string) => {
+    const list = [...(supplierBuckets.get(id)?.values() ?? [])];
+    const suppliers = list
+      .filter((supplier) => supplier.byMonth.get(month) || supplier.byMonth.get(previous))
+      .map((supplier) => ({
+        name: supplier.name,
+        unitPrice: unitOf(supplier.byMonth.get(month)),
+        previousUnitPrice: unitOf(supplier.byMonth.get(previous)),
+        cents: supplier.byMonth.get(month)?.cents ?? 0,
+        quantity: supplier.byMonth.get(month)?.qty ?? 0,
+      }))
+      .sort((a, b) => b.cents - a.cents);
+    const recent = list
+      .map((supplier) => {
+        const sum = recentMonths.reduce(
+          (total, key) => {
+            const bucket = supplier.byMonth.get(key);
+            return bucket ? { qty: total.qty + bucket.qty, cents: total.cents + bucket.qtyCents } : total;
+          },
+          { qty: 0, cents: 0 },
+        );
+        return sum.qty > 0 ? { name: supplier.name, unitPrice: sum.cents / 100 / sum.qty } : null;
+      })
+      .filter((item): item is { name: string; unitPrice: number } => item !== null)
+      .sort((a, b) => a.unitPrice - b.unitPrice);
+    return { suppliers, bestOwnSupplier: recent.length > 1 ? recent[0] : null };
+  };
   let quantityCents = 0;
   let priceCents = 0;
   let newCents = 0;
@@ -525,9 +574,52 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
       quantityCents: quantityPart,
       priceCents: pricePart,
       market: marketOf(id.split("|")[0], entry.label, entry.byMonth),
+      ...ownSuppliers(id),
+      peers: null,
+      listPrices: [],
     });
   }
   productTrends.sort((a, b) => b.cents - a.cents || b.previousCents - a.previousCents);
+  const compared = productTrends.slice(0, 60).filter((trend) => trend.unit && trend.unitPrice !== null);
+  const [peers, listRows] = await Promise.all([
+    peerPrices({ barId, month, products: compared.map((trend) => ({ productKey: trend.productKey, unit: trend.unit })) }),
+    prisma.supplierListPrice.findMany({
+      where: { productKey: { in: compared.map((trend) => trend.productKey) }, OR: [{ barId: null }, { barId }] },
+      orderBy: { unitPrice: "asc" },
+      select: { productKey: true, baseUnit: true, supplierName: true, zone: true, unitPrice: true, validFrom: true, source: true },
+    }),
+  ]);
+  for (const trend of compared) {
+    trend.peers = peers.get(`${trend.productKey}|${trend.unit}`) ?? null;
+    trend.listPrices = listRows
+      .filter((row) => row.productKey === trend.productKey && row.baseUnit === trend.unit && row.unitPrice < (trend.unitPrice ?? 0) * 0.98)
+      .slice(0, 3)
+      .map(({ supplierName, zone, unitPrice, validFrom, source }) => ({ supplierName, zone, unitPrice, validFrom, source }));
+    const yearly = (cheaper: number) => Math.round(((trend.unitPrice ?? 0) - cheaper) * (trend.quantity ?? 0) * 12 * 100);
+    if (trend.peers && trend.unitPrice !== null && trend.unitPrice > trend.peers.average * 1.05 && yearly(trend.peers.average) >= 3000) {
+      savings.push({
+        id: `colleghi:${trend.productKey}`,
+        kind: "fornitore",
+        title: `${trend.label}: i colleghi pagano ${Math.round((1 - trend.peers.average / trend.unitPrice) * 100)}% meno`,
+        detail: `Tu lo paghi ${unitPriceText(trend.unitPrice, trend.unit)}, le altre ${trend.peers.venues} aziende su Workbit in media ${unitPriceText(trend.peers.average, trend.unit)}, le più brave ${unitPriceText(trend.peers.best, trend.unit)}. Al prezzo medio risparmieresti circa ${euros(yearly(trend.peers.average))} all'anno.`,
+        yearlyCents: yearly(trend.peers.average),
+        confidence: "sicuro",
+        productKey: trend.productKey,
+      });
+    }
+    const list = trend.listPrices[0];
+    if (list && trend.unitPrice !== null && list.unitPrice < trend.unitPrice * 0.95 && yearly(list.unitPrice) >= 3000) {
+      savings.push({
+        id: `listino:${trend.productKey}:${list.supplierName}`,
+        kind: "fornitore",
+        title: `${trend.label}: a listino da ${list.supplierName}`,
+        detail: `Il listino di ${list.supplierName}${list.zone ? ` (${list.zone})` : ""} lo dà a ${unitPriceText(list.unitPrice, trend.unit)}, tu lo paghi ${unitPriceText(trend.unitPrice, trend.unit)}. Con le tue quantità sono circa ${euros(yearly(list.unitPrice))} all'anno: chiedi un'offerta.`,
+        yearlyCents: yearly(list.unitPrice),
+        confidence: "da verificare",
+        productKey: trend.productKey,
+      });
+    }
+  }
   // A supplier's price that rose well past its market's.
   for (const trend of productTrends) {
     const gap = trend.market ? trend.market.productPct - trend.market.marketPct : 0;

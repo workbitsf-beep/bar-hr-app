@@ -2,9 +2,9 @@ import Link from "next/link";
 import { MARKET_INDEXES, type MarketIndex } from "@/lib/costs/market";
 import { prisma } from "@/lib/prisma";
 import { getDashboardContext } from "../../context";
-import { ConsoleForm } from "../console-form";
-import { Field, FieldGrid, Forbidden, Section } from "../console-ui";
-import { saveMarketPricesAction } from "./actions";
+import { ConsoleButton, ConsoleForm } from "../console-form";
+import { Field, FieldGrid, Forbidden, Note, Section } from "../console-ui";
+import { saveMarketPricesAction, searchMarketAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +37,15 @@ export default async function MarketPricesPage({ searchParams }: { searchParams:
   const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const month = mese && /^\d{4}-(0[1-9]|1[0-2])$/.test(mese) ? mese : shift(current, -1);
   const months = [shift(month, -3), shift(month, -2), shift(month, -1), month];
-  const rows = await prisma.marketPrice.findMany({ where: { barId: null, month: { in: months } }, select: { indexKey: true, month: true, value: true } });
-  const value = (key: string, at: string) => rows.find((row) => row.indexKey === key && row.month === at)?.value;
+  const rows = await prisma.marketPrice.findMany({
+    where: { barId: null, month: { in: months } },
+    select: { indexKey: true, month: true, value: true, status: true, foundUrl: true, note: true },
+  });
+  const confirmed = (key: string, at: string) => rows.find((row) => row.indexKey === key && row.month === at && row.status === "confirmed");
+  const proposal = (key: string, at: string) => rows.find((row) => row.indexKey === key && row.month === at && row.status === "proposed");
+  const value = (key: string, at: string) => confirmed(key, at)?.value;
   const filled = MARKET_INDEXES.filter((index) => value(index.key, month) !== undefined).length;
+  const proposals = MARKET_INDEXES.filter((index) => !confirmed(index.key, month) && proposal(index.key, month)).length;
 
   return (
     <div className="wbc-page">
@@ -62,7 +68,19 @@ export default async function MarketPricesPage({ searchParams }: { searchParams:
         <Link className="wbc-btn wbc-btn-sm" href={`/dashboard/super-admin/mercato?mese=${shift(month, 1)}`}>
           {label(shift(month, 1))} ›
         </Link>
+        <ConsoleButton
+          action={searchMarketAction}
+          fields={{ month }}
+          label="🔎 Cerca online i mancanti"
+          pendingLabel="Avvio…"
+          className="wbc-btn wbc-btn-sm"
+        />
       </div>
+      {proposals ? (
+        <Note tone="warning">
+          {proposals} valori trovati online e già scritti nei riquadri: controlla il link di ognuno e premi Salva per confermarli. Finché non li salvi, i clienti non li vedono.
+        </Note>
+      ) : null}
 
       <ConsoleForm action={saveMarketPricesAction} label={`Salva ${label(month)}`}>
         <input type="hidden" name="month" value={month} />
@@ -78,7 +96,18 @@ export default async function MarketPricesPage({ searchParams }: { searchParams:
                     .map((at) => number(value(index.key, at)) || "–")
                     .join(" · ")}. Fonte: ${index.source}, ${index.sourceUrl}`}
                 >
-                  <input name={`value_${index.key}`} defaultValue={number(value(index.key, month))} inputMode="decimal" autoComplete="off" />
+                  <input
+                    name={`value_${index.key}`}
+                    defaultValue={number(value(index.key, month) ?? proposal(index.key, month)?.value)}
+                    inputMode="decimal"
+                    autoComplete="off"
+                    style={!confirmed(index.key, month) && proposal(index.key, month) ? { borderColor: "#f59e0b", background: "#fffbeb" } : undefined}
+                  />
+                  {!confirmed(index.key, month) && proposal(index.key, month) ? (
+                    <a href={proposal(index.key, month)!.foundUrl ?? "#"} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5, color: "#b45309" }}>
+                      🔎 Trovato online, da confermare: {proposal(index.key, month)!.note} ↗
+                    </a>
+                  ) : null}
                 </Field>
               ))}
             </FieldGrid>

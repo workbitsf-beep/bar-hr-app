@@ -399,6 +399,9 @@ model Bar {
   supplierPayments        SupplierPayment[]
   supplierPaymentRules    SupplierPaymentRule[]
   marketPrices            MarketPrice[]
+  supplierListPrices      SupplierListPrice[]
+  /// A demo venue: its invoices only ever meet other demo venues' in the comparisons.
+  isDemo                  Boolean                  @default(false)
   payrollDayOverrides     PayrollDayOverride[]
   payrollSends            PayrollSend[]
   legalAcceptances        LegalAcceptance[]
@@ -1610,11 +1613,42 @@ model MarketPrice {
   /// "2026-10"
   month     String
   value     Float
+  /// "confirmed" counts; "proposed" was found online and waits for a super admin.
+  status    String   @default("confirmed")
+  /// Where a proposed value was found.
+  foundUrl  String?
+  note      String?
   barId     String?  @db.Uuid
   bar       Bar?     @relation(fields: [barId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([indexKey, month])
+  @@index([barId])
+}
+
+/// A supplier's list price for a product, from a price list Workbit read
+/// (PDF, Excel) or a supplier published: what a client could pay elsewhere.
+/// barId set: seen by that venue only (a list it uploaded, or a demo).
+model SupplierListPrice {
+  id           String   @id @default(uuid()) @db.Uuid
+  supplierName String
+  /// Province or region it delivers to, free text ("Veneto", "PD").
+  zone         String?
+  productKey   String
+  productLabel String
+  baseUnit     String
+  unitPrice    Float
+  /// As it reads on the list, for checking.
+  description  String?
+  validFrom    DateTime
+  /// "listino" (uploaded) or "fornitore" (published by the supplier).
+  source       String   @default("listino")
+  url          String?
+  barId        String?  @db.Uuid
+  bar          Bar?     @relation(fields: [barId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([productKey, baseUnit])
   @@index([barId])
 }

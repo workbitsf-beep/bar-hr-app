@@ -79,6 +79,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
         <>
           <Summary report={report} company={company} />
           {schedule ? <PaymentsLink schedule={schedule} /> : null}
+          <Colleagues report={report} />
           <MonthStory report={report} />
           <ProductTrends report={report} />
           <Savings report={report} ai={ai} />
@@ -331,16 +332,50 @@ function PaymentsLink({ schedule }: { schedule: Awaited<ReturnType<typeof buildS
   );
 }
 
+/** Where the venue pays more than the other clients of Workbit: first, because it is what the owner acts on. */
+function Colleagues({ report }: { report: CostReport }) {
+  const compared = report.productTrends.filter((item) => item.peers && item.unitPrice !== null);
+  const dearer = compared
+    .map((item) => ({ item, gap: (item.unitPrice! / item.peers!.average - 1) * 100, yearly: Math.round((item.unitPrice! - item.peers!.average) * (item.quantity ?? 0) * 12 * 100) }))
+    .filter((entry) => entry.gap > 3)
+    .sort((a, b) => b.yearly - a.yearly);
+  return (
+    <RowsCard title="Tu e i colleghi su Workbit" aside={compared.length ? `${compared.length} prodotti a confronto` : null}>
+      {dearer.length ? (
+        dearer.slice(0, 5).map(({ item, gap, yearly }, index) => (
+          <Row key={`${item.productKey}-${item.unit}`} first={index === 0} href={`/dashboard/costi/perche?month=${report.month}&tipo=prezzi`} rail="amber">
+            <Line left={<b style={{ fontWeight: 650 }}>{item.label}</b>} right={<b style={{ color: "#b3202f" }}>+{gap.toLocaleString("it-IT", { maximumFractionDigits: 0 })}%</b>} />
+            <Line
+              muted
+              left={`Tu ${unitPrice(item.unitPrice, item.unit)} · media ${unitPrice(item.peers!.average, item.unit)} · i migliori ${unitPrice(item.peers!.best, item.unit)}${yearly > 0 ? ` · ${euro(yearly)} l'anno` : ""}`}
+            />
+          </Row>
+        ))
+      ) : compared.length ? (
+        <Row first rail="green">
+          <Line left="Paghi come o meno dei colleghi su tutti i prodotti a confronto" />
+          <Line muted left={`${compared.length} prodotti che comprano almeno 3 aziende su Workbit.`} />
+        </Row>
+      ) : (
+        <Row first>
+          <Line left="Il confronto con le altre aziende si accende da solo" />
+          <Line muted left="Appena almeno 3 aziende su Workbit comprano lo stesso prodotto: vedi la media e i prezzi migliori, mai chi sono." />
+        </Row>
+      )}
+    </RowsCard>
+  );
+}
+
 /** Why the month moved, in one card: bought more or less, paid more or less for the same things. */
 function MonthStory({ report }: { report: CostReport }) {
   const story = report.monthStory;
   if (!story) return null;
   const previousLabel = monthLabel(shiftMonth(report.month, -1)).split(" ")[0];
   const parts = [
-    { label: "Hai comprato di più o di meno", cents: story.quantityCents, hint: "stesse cose, quantità diverse, ai prezzi del mese prima" },
-    { label: "I prezzi sono cambiati", cents: story.priceCents, hint: "stesse quantità, prezzo diverso" },
-    { label: "Cose nuove questo mese", cents: story.newCents, hint: `non comprate a ${previousLabel}` },
-    { label: "Cose non ricomprate", cents: -story.goneCents, hint: `comprate solo a ${previousLabel}` },
+    { label: "I prezzi sono cambiati", cents: story.priceCents, hint: "stesse quantità, prezzo diverso: tocca per vedere dove", tipo: "prezzi" },
+    { label: "Hai comprato di più o di meno", cents: story.quantityCents, hint: "stesse cose, quantità diverse, ai prezzi del mese prima", tipo: "quantita" },
+    { label: "Cose nuove questo mese", cents: story.newCents, hint: `non comprate a ${previousLabel}`, tipo: "nuovi" },
+    { label: "Cose non ricomprate", cents: -story.goneCents, hint: `comprate solo a ${previousLabel}`, tipo: "tolti" },
   ].filter((part) => Math.abs(part.cents) >= 100);
   return (
     <RowsCard title="Com'è andato il mese" aside={`rispetto a ${previousLabel}`}>
@@ -348,8 +383,8 @@ function MonthStory({ report }: { report: CostReport }) {
         <Line left={story.deltaCents >= 0 ? "Hai speso di più" : "Hai speso di meno"} right={<b style={{ color: story.deltaCents > 0 ? "#b3202f" : "#0f7a4f" }}>{signedEuro(story.deltaCents)}</b>} />
       </Row>
       {parts.map((part) => (
-        <Row key={part.label}>
-          <Line left={part.label} right={signedEuro(part.cents)} />
+        <Row key={part.label} href={`/dashboard/costi/perche?month=${report.month}&tipo=${part.tipo}`}>
+          <Line left={<span style={{ color: "#4c1d95", fontWeight: 650 }}>{part.label} ›</span>} right={<b style={{ color: part.cents > 0 ? "#b3202f" : "#0f7a4f" }}>{signedEuro(part.cents)}</b>} />
           <Line muted left={part.hint} />
         </Row>
       ))}
@@ -383,6 +418,16 @@ function ProductTrends({ report }: { report: CostReport }) {
           }
         />
         {prices.length ? <Line muted left={<span style={{ color: up ? "#b3202f" : "#0f7a4f" }}>Prezzo {prices.join(" · ")}</span>} /> : null}
+        {item.peers && item.unitPrice !== null ? (
+          <Line
+            muted
+            left={
+              <span style={{ color: item.unitPrice > item.peers.average * 1.03 ? "#b3202f" : item.unitPrice < item.peers.average * 0.97 ? "#0f7a4f" : "#7c7894" }}>
+                👥 Colleghi su Workbit: media {unitPrice(item.peers.average, item.unit)}, i migliori {unitPrice(item.peers.best, item.unit)}
+              </span>
+            }
+          />
+        ) : null}
         {item.market ? (
           <Line
             muted

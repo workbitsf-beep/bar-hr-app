@@ -204,7 +204,7 @@ const STAFF: Array<[string, string, "MANAGER" | "EMPLOYEE", number, string]> = [
 ];
 
 async function remove() {
-  const bars = await prisma.bar.findMany({ where: { name: BAR_NAME }, select: { id: true } });
+  const bars = await prisma.bar.findMany({ where: { OR: [{ name: BAR_NAME }, { name: { startsWith: COLLEAGUE_PREFIX } }] }, select: { id: true } });
   for (const bar of bars) await prisma.bar.delete({ where: { id: bar.id } });
   const users = await prisma.user.deleteMany({ where: { OR: [{ email: EMPLOYEE_EMAIL }, { email: { endsWith: "@azienda.demo.workbit.invalid" } }] } });
   console.log(`Demo azienda rimossa (${bars.length} locale, ${users.count} account).`);
@@ -218,7 +218,7 @@ async function create() {
   const employeePassword = readablePassword();
 
   const bar = await prisma.bar.create({
-    data: { name: BAR_NAME, legalName: "Officina Meccanica Bellini Srl", vatNumber: VAT, latitude: 45.4064, longitude: 11.8768, ownerId: owner.id, activityType: "COMPANY", city: "Padova" },
+    data: { name: BAR_NAME, legalName: "Officina Meccanica Bellini Srl", vatNumber: VAT, latitude: 45.4064, longitude: 11.8768, ownerId: owner.id, activityType: "COMPANY", city: "Padova", isDemo: true },
   });
   await prisma.barSettings.create({ data: { barId: bar.id, timeTrackingEnabled: false, shiftsEnabled: false, payrollSource: "CONTRACT", payrollOvertime: true } });
   await prisma.subscription.create({ data: { barId: bar.id, planType: "LIFETIME", status: "ACTIVE" } });
@@ -355,9 +355,91 @@ async function create() {
   });
 
   await seedMarket(bar.id);
+  await seedColleagues(bar.id);
   console.log(`Creato: ${BAR_NAME}`);
   console.log(`Titolari: ${owners.map((item) => item.email).join(", ")}`);
   console.log(`Dipendente demo: ${EMPLOYEE_EMAIL} / ${employeePassword}`);
+}
+
+const COLLEAGUE_PREFIX = "Collega demo";
+
+/**
+ * Three demo companies whose invoices make "the colleagues on Workbit" show
+ * for the demo. isDemo: they only ever meet other demo venues, never a real
+ * client's comparison. Plus a supplier's price list seen by the demo only.
+ */
+async function seedColleagues(demoBarId: string) {
+  const owner = await prisma.user.upsert({
+    where: { email: "colleghi@azienda.demo.workbit.invalid" },
+    create: { email: "colleghi@azienda.demo.workbit.invalid", passwordHash: closedPassword(), firstName: "Demo", lastName: "Colleghi", role: "OWNER", mustChangePwd: false },
+    update: {},
+  });
+  const prices = [
+    { inox: 2.88, tube: 1.74, screw: 0.039, diesel: 1.69, zinc: 0.62 },
+    { inox: 2.95, tube: 1.79, screw: 0.041, diesel: 1.71, zinc: 0.64 },
+    { inox: 3.0, tube: 1.81, screw: 0.04, diesel: 1.73, zinc: 0.66 },
+  ];
+  for (const [index, price] of prices.entries()) {
+    const bar = await prisma.bar.create({
+      data: { name: `${COLLEAGUE_PREFIX} ${index + 1}`, latitude: 45.4, longitude: 11.9, ownerId: owner.id, activityType: "COMPANY", city: "Padova", isDemo: true },
+    });
+    const lines: LineSpec[] = [
+      { description: "LAMIERA INOX 304", qty: 300, unit: "KG", price: price.inox, category: "materie_prime", productKey: "lamiera-inox-aisi-304", productLabel: "Lamiera inox AISI 304", baseUnit: "kg" },
+      { description: "TUBO ZINCATO", qty: 120, unit: "KG", price: price.tube, category: "materie_prime", productKey: "tubo-acciaio-zincato", productLabel: "Tubo acciaio zincato", baseUnit: "kg" },
+      { description: "VITE INOX A2 M8", qty: 2000, unit: "PZ", price: price.screw, category: "componenti", productKey: "vite-inox-a2-m8", productLabel: "Viti inox A2 M8", baseUnit: "pz" },
+      { description: "GASOLIO", qty: 250, unit: "LT", price: price.diesel, category: "carburante", productKey: "gasolio-autotrazione", productLabel: "Gasolio", baseUnit: "l" },
+      { description: "ZINCATURA A CALDO", qty: 400, unit: "KG", price: price.zinc, category: "lavorazioni", productKey: "zincatura-a-caldo", productLabel: "Zincatura a caldo", baseUnit: "kg" },
+    ];
+    for (const month of MONTHS.slice(1)) {
+      const taxable = lines.reduce((sum, line) => sum + cents(line.qty * line.price), 0);
+      await prisma.supplierInvoice.create({
+        data: {
+          barId: bar.id,
+          source: "upload",
+          dedupeKey: `demo|${index}|${month}`,
+          docType: "TD01",
+          supplierName: "Fornitore demo",
+          number: `${month}-${index}`,
+          issueDate: utc(`${month}-12`),
+          totalCents: Math.round(taxable * 1.22),
+          taxableCents: taxable,
+          vatCents: Math.round(taxable * 0.22),
+          paymentsReadAt: new Date(),
+          lines: {
+            create: lines.map((line, lineNo) => ({
+              barId: bar.id,
+              lineNo: lineNo + 1,
+              description: line.description,
+              quantity: line.qty,
+              unit: line.unit,
+              unitPrice: line.price,
+              totalCents: cents(line.qty * line.price),
+              vatRate: 22,
+              category: line.category,
+              categorySource: "rule",
+              productKey: line.productKey,
+              productLabel: line.productLabel,
+              baseUnit: line.baseUnit,
+              baseQty: line.qty,
+            })),
+          },
+        },
+      });
+    }
+  }
+  await prisma.supplierListPrice.create({
+    data: {
+      supplierName: "Siderurgica Veneta Srl",
+      zone: "Veneto",
+      productKey: "lamiera-inox-aisi-304",
+      productLabel: "Lamiera inox AISI 304",
+      baseUnit: "kg",
+      unitPrice: 2.89,
+      description: "Lamiera inox AISI 304 2B sp. 2 mm (listino di prova)",
+      validFrom: utc("2026-10-01"),
+      barId: demoBarId,
+    },
+  });
 }
 
 /**
@@ -383,6 +465,13 @@ const mode = process.argv[2];
   ? remove()
   : mode === "--confirm"
     ? create()
+    : mode === "--colleagues"
+      ? prisma.bar
+          .findFirstOrThrow({ where: { name: BAR_NAME }, select: { id: true } })
+          .then(async (bar) => {
+            await prisma.bar.updateMany({ where: { name: BAR_NAME }, data: { isDemo: true } });
+            await seedColleagues(bar.id);
+          })
     : mode === "--market"
       ? prisma.bar.findFirstOrThrow({ where: { name: BAR_NAME }, select: { id: true } }).then((bar) => seedMarket(bar.id))
       : Promise.reject(new Error("Usa --confirm o --remove")))

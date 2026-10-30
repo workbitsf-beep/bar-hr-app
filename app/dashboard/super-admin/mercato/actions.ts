@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { aiEnabled } from "@/lib/costs/ai";
 import { MARKET_INDEXES } from "@/lib/costs/market";
+import { proposeMarketValues } from "@/lib/costs/market-search";
 import { prisma } from "@/lib/prisma";
 import { RuleError, ruleFailure } from "@/lib/rule-error";
 import { getDashboardContext } from "../../context";
@@ -28,6 +30,22 @@ export async function saveMarketPricesAction(formData: FormData): Promise<Consol
     }
     revalidatePath("/dashboard/super-admin/mercato");
     return { ok: true, message: `${saved} valori salvati per ${month}.` };
+  } catch (error) {
+    return ruleFailure(error);
+  }
+}
+
+/** Looks up the month's missing values on the web; they arrive as proposals in a few minutes. */
+export async function searchMarketAction(formData: FormData): Promise<ConsoleResult> {
+  try {
+    const { role } = await getDashboardContext();
+    if (String(role) !== "SUPER_ADMIN") throw new RuleError("Solo i super admin.");
+    const month = String(formData.get("month") ?? "");
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new RuleError("Mese non valido.");
+    if (!aiEnabled()) throw new RuleError("Manca la chiave di Anthropic sul server: la ricerca online è spenta.");
+    // Minutes of searching: it carries on after this answer.
+    void proposeMarketValues(month).catch((error) => console.error("[market] search failed", error instanceof Error ? error.message : error));
+    return { ok: true, message: "Ricerca avviata: ricarica la pagina fra 3-4 minuti." };
   } catch (error) {
     return ruleFailure(error);
   }

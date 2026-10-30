@@ -174,7 +174,7 @@ export function indexFor(productKey: string, label: string | null) {
 /** Every index's months; a venue's demo values replace the general ones. */
 export async function loadMarket(barId: string) {
   const rows = await prisma.marketPrice.findMany({
-    where: { OR: [{ barId: null }, { barId }] },
+    where: { status: "confirmed", OR: [{ barId: null }, { barId }] },
     select: { indexKey: true, month: true, value: true, barId: true },
   });
   const series = new Map<string, Map<string, number>>();
@@ -210,16 +210,40 @@ export async function runMarketReminder(now = new Date()) {
   const key = `${previous.getUTCFullYear()}-${String(previous.getUTCMonth() + 1).padStart(2, "0")}`;
 
   const already = await prisma.notification.count({ where: { type: INTERNAL_NOTIFICATION_TYPES.MARKET_PRICES, createdAt: { gte: monthStart } } });
-  if (already) return { sent: 0 };
-  const filled = await prisma.marketPrice.count({ where: { barId: null, month: key } });
-  if (filled >= MARKET_INDEXES.length) return { sent: 0 };
+  if (already || searching) return { sent: 0 };
+  const confirmed = await prisma.marketPrice.count({ where: { barId: null, month: key, status: "confirmed" } });
+  if (confirmed >= MARKET_INDEXES.length) return { sent: 0 };
+
+  // The web search takes minutes: it runs after the cron has answered, and
+  // the reminder goes when it is done, saying what it found.
+  searching = true;
+  void import("./market-search")
+    .then(({ proposeMarketValues }) => proposeMarketValues(key))
+    .catch((error) => {
+      console.error("[market] proposals failed", error instanceof Error ? error.message : error);
+      return { proposed: 0, missing: MARKET_INDEXES.length };
+    })
+    .then((result) => notifyMarketAdmins(previous, key, result.proposed))
+    .catch((error) => console.error("[market] reminder failed", error instanceof Error ? error.message : error))
+    .finally(() => {
+      searching = false;
+    });
+  return { sent: 1 };
+}
+
+let searching = false;
+
+async function notifyMarketAdmins(previous: Date, key: string, proposed: number) {
+  const filled = await prisma.marketPrice.count({ where: { barId: null, month: key, status: "confirmed" } });
 
   const admins = await prisma.user.findMany({ where: { role: "SUPER_ADMIN" }, select: { id: true, email: true } });
   const label = new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric", timeZone: "UTC" }).format(previous);
   const url = `${(process.env.APP_URL?.trim() || "https://app.workbit.it").replace(/\/$/, "")}/dashboard/super-admin/mercato?mese=${key}`;
   await notifyUsers(admins.map((admin) => admin.id), {
     title: `Prezzi di mercato di ${label}`,
-    message: `Da inserire: ${MARKET_INDEXES.length - filled} valori (metalli, gasolio, luce, caffè, latte…). Bastano cinque minuti.`,
+    message: proposed
+      ? `Trovati online ${proposed} valori su ${MARKET_INDEXES.length - filled}: controllali e conferma con Salva.${MARKET_INDEXES.length - filled - proposed > 0 ? ` Gli altri ${MARKET_INDEXES.length - filled - proposed} vanno scritti a mano.` : ""}`
+      : `Da inserire: ${MARKET_INDEXES.length - filled} valori (metalli, gasolio, luce, caffè, latte…). Bastano cinque minuti.`,
     type: INTERNAL_NOTIFICATION_TYPES.MARKET_PRICES,
     actionUrl: `/dashboard/super-admin/mercato?mese=${key}`,
   });
@@ -228,10 +252,11 @@ export async function runMarketReminder(now = new Date()) {
     subject: `Workbit: prezzi di mercato di ${label} da inserire`,
     html: buildEmailTemplate({
       title: `Prezzi di mercato di ${label}`,
-      message: `È il momento di aggiornare i valori di mercato che i clienti vedono accanto ai prezzi dei fornitori:\n${MARKET_INDEXES.map((index) => `• ${index.label} (${index.unit}) – ${index.source}`).join("\n")}\n\nNella pagina c'è, per ognuno, dove trovarlo.`,
+      message: `${proposed ? `Workbit ha cercato online e ha trovato ${proposed} valori: aprili, controlla il link della fonte e conferma con Salva.
+
+` : ""}È il momento di aggiornare i valori di mercato che i clienti vedono accanto ai prezzi dei fornitori:\n${MARKET_INDEXES.map((index) => `• ${index.label} (${index.unit}) – ${index.source}`).join("\n")}\n\nNella pagina c'è, per ognuno, dove trovarlo.`,
       ctaLabel: "Inserisci i prezzi",
       ctaUrl: url,
     }),
   }).catch((error) => console.error("[market] reminder email not sent", error instanceof Error ? error.message : error));
-  return { sent: admins.length };
 }
