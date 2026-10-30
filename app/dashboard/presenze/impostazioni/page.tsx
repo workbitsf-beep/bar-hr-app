@@ -1,3 +1,4 @@
+import { resolvePayrollSource } from "@/lib/payroll/consultant-export";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Sheet } from "../payroll-ui";
@@ -22,7 +23,7 @@ export default async function PayrollSettingsPage() {
   ]);
   const clocks = settings?.timeTrackingEnabled ?? true;
   const stored = settings?.payrollSource ?? "AUTO";
-  const source = stored === "CLOCK" || stored === "SHIFTS" ? stored : clocks ? "CLOCK" : "SHIFTS";
+  const source = resolvePayrollSource(stored, settings ? clocks : null, bar?.activityType === "COMPANY");
   const overtime = settings?.payrollOvertime ?? bar?.activityType === "COMPANY";
   const people = members.filter((member) => member.userId !== bar?.ownerId);
   const complete = people.filter((member) => member.payrollCode && member.contractWeeklyHours).length;
@@ -34,7 +35,7 @@ export default async function PayrollSettingsPage() {
         <Link href="/dashboard/presenze/impostazioni/ore" style={{ ...settingsRow, borderTop: 0 }}>
           <span>Da dove</span>
           <span style={value}>
-            {source === "SHIFTS" ? "Turni del calendario" : "Timbrature"}
+            {source === "SHIFTS" ? "Turni del calendario" : source === "CONTRACT" ? "Orario di contratto" : "Timbrature"}
             {source === "SHIFTS" && settings?.payrollBreakMinutes ? ` · pausa ${settings.payrollBreakMinutes} min` : ""}
           </span>
           {chev}

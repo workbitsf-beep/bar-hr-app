@@ -1,3 +1,4 @@
+import { resolvePayrollSource } from "@/lib/payroll/consultant-export";
 import { prisma } from "@/lib/prisma";
 import { Sheet } from "../../payroll-ui";
 import { BreakFields, SourceSwitch } from "../../settings-controls";
@@ -9,13 +10,14 @@ export const dynamic = "force-dynamic";
 export default async function PayrollSourcePage() {
   const { barId, page } = await ownerSettings();
   if (!barId) return page;
-  const settings = await prisma.barSettings.findUnique({
-    where: { barId },
-    select: { payrollSource: true, timeTrackingEnabled: true, payrollBreakMinutes: true, payrollBreakAfterHours: true },
-  });
-  const clocks = settings?.timeTrackingEnabled ?? true;
-  const stored = settings?.payrollSource ?? "AUTO";
-  const source: "CLOCK" | "SHIFTS" = stored === "CLOCK" || stored === "SHIFTS" ? stored : clocks ? "CLOCK" : "SHIFTS";
+  const [settings, bar] = await Promise.all([
+    prisma.barSettings.findUnique({
+      where: { barId },
+      select: { payrollSource: true, timeTrackingEnabled: true, payrollBreakMinutes: true, payrollBreakAfterHours: true },
+    }),
+    prisma.bar.findUnique({ where: { id: barId }, select: { activityType: true } }),
+  ]);
+  const source = resolvePayrollSource(settings?.payrollSource, settings ? settings.timeTrackingEnabled : null, bar?.activityType === "COMPANY");
 
   return (
     <SettingsShell back="/dashboard/presenze/impostazioni" backLabel="Impostazioni" title="Da dove prendere le ore">
@@ -23,7 +25,9 @@ export default async function PayrollSourcePage() {
       <GroupNote>
         {source === "SHIFTS"
           ? "Le ore dei turni pubblicati: se aggiungi, sposti o cancelli un turno, il mese cambia da solo. Non serve timbrare."
-          : "Le ore timbrate, arrotondate con le regole del locale."}
+          : source === "CONTRACT"
+            ? "Ogni giorno lavorativo con le ore del contratto (8 al giorno se mancano, 40 a settimana): ferie, permessi, malattia, chiusure e festività prendono il loro posto, gli straordinari approvati si aggiungono. Il file è già compilato."
+            : "Le ore timbrate, arrotondate con le regole del locale."}
       </GroupNote>
       {source === "SHIFTS" ? (
         <Sheet style={{ padding: 18, display: "grid", gap: 10 }}>

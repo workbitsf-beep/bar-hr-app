@@ -198,7 +198,7 @@ export default async function PresencePage({ searchParams }: { searchParams: Pro
         <span style={{ fontSize: 52, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{hoursValue(totalWorked)}</span>
         <Quiet style={{ fontSize: 14.5 }}>
           ore nel mese · {data.people.length} {data.people.length === 1 ? "persona" : "persone"}
-          {data.source === "SHIFTS" ? " · dai turni" : ""}
+          {data.source === "SHIFTS" ? " · dai turni" : data.source === "CONTRACT" ? " · dal contratto" : ""}
         </Quiet>
       </div>
 

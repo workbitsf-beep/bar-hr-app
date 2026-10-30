@@ -3,6 +3,7 @@ import "server-only";
 import { ActivityType, RequestStatus, RequestType, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyDataset } from "@/lib/reporting";
+import { italianHolidays } from "./holidays";
 import { adjustmentOf, applyAdjustment, isEmptyAdjustment, totalsOf, type MonthAdjustment } from "./adjust";
 import {
   DAY_KINDS,
@@ -27,7 +28,8 @@ import {
  * corrected at review replaces that day in the file only.
  */
 
-export type PayrollSource = "CLOCK" | "SHIFTS";
+/** CONTRACT: every working day at the contract's hours, absences and approved overtime laid in. */
+export type PayrollSource = "CLOCK" | "SHIFTS" | "CONTRACT";
 
 export type PayrollFlag = { date: string; message: string };
 
@@ -100,10 +102,23 @@ export function entriesOf(value: Prisma.JsonValue): Array<Omit<PayrollEntry, "da
     .filter((item): item is Omit<PayrollEntry, "date"> => item !== null);
 }
 
+/**
+ * Where the hours come from. Left on automatic: the clock-ins when the venue
+ * clocks in; otherwise the shifts, or for a company the contract's hours,
+ * since an office rarely plans shifts.
+ */
+export function resolvePayrollSource(stored: string | null | undefined, timeTracking: boolean | null | undefined, company: boolean): PayrollSource {
+  if (stored === "CLOCK" || stored === "SHIFTS" || stored === "CONTRACT") return stored;
+  if (timeTracking === false) return company ? "CONTRACT" : "SHIFTS";
+  return "CLOCK";
+}
+
 export async function payrollSourceOf(barId: string): Promise<PayrollSource> {
-  const settings = await prisma.barSettings.findUnique({ where: { barId }, select: { payrollSource: true, timeTrackingEnabled: true } });
-  if (settings?.payrollSource === "CLOCK" || settings?.payrollSource === "SHIFTS") return settings.payrollSource;
-  return settings && !settings.timeTrackingEnabled ? "SHIFTS" : "CLOCK";
+  const [settings, bar] = await Promise.all([
+    prisma.barSettings.findUnique({ where: { barId }, select: { payrollSource: true, timeTrackingEnabled: true } }),
+    prisma.bar.findUnique({ where: { id: barId }, select: { activityType: true } }),
+  ]);
+  return resolvePayrollSource(settings?.payrollSource, settings ? settings.timeTrackingEnabled : null, bar?.activityType === ActivityType.COMPANY);
 }
 
 export async function buildPayrollMonth(input: {
@@ -137,6 +152,8 @@ export async function buildPayrollMonth(input: {
         userId: true,
         payrollCode: true,
         contractWeeklyHours: true,
+        hiredAt: true,
+        endedAt: true,
         user: { select: { firstName: true, lastName: true, email: true } },
       },
     }),
@@ -173,12 +190,7 @@ export async function buildPayrollMonth(input: {
     }),
   ]);
 
-  const source: PayrollSource =
-    settings?.payrollSource === "CLOCK" || settings?.payrollSource === "SHIFTS"
-      ? settings.payrollSource
-      : settings && !settings.timeTrackingEnabled
-        ? "SHIFTS"
-        : "CLOCK";
+  const source = resolvePayrollSource(settings?.payrollSource, settings ? settings.timeTrackingEnabled : null, bar.activityType === ActivityType.COMPANY);
   const people = members.filter((item) => item.userId !== bar.ownerId);
   const userIds = people.map((member) => member.userId);
 
@@ -226,14 +238,19 @@ export async function buildPayrollMonth(input: {
   for (const member of people) {
     // Always the day-by-day report: absences on every day they cover.
     const dataset = await buildMonthlyDataset(input.barId, member.userId, input.month, input.year, ActivityType.RESTAURANT);
-    const dailyHours = member.contractWeeklyHours ? round2(member.contractWeeklyHours / workingDays) : null;
+    // On the contract's hours a company without them counts the usual 40 a week.
+    const dailyHours = member.contractWeeklyHours
+      ? round2(member.contractWeeklyHours / workingDays)
+      : source === "CONTRACT"
+        ? round2(40 / workingDays)
+        : null;
     const memberShifts = shiftsByUser.get(member.userId) ?? [];
     const flags: PayrollFlag[] = [];
     const warnings: string[] = [];
     let onCallHours = 0;
 
     // Day by day: worked hours, and the absences on the calendar.
-    type Day = { worked: number; absences: Array<Omit<PayrollEntry, "date">> };
+    type Day = { worked: number; absences: Array<Omit<PayrollEntry, "date">>; overtime?: number };
     const days = new Map<string, Day>();
     const dayOf = (key: string) => {
       const existing = days.get(key);
@@ -292,6 +309,41 @@ export async function buildPayrollMonth(input: {
         day.worked = round2(day.worked + shiftHours(shift));
       }
       if (onCallShifts) warnings.push(`${onCallShifts} ${onCallShifts === 1 ? "turno su chiamata non è contato" : "turni su chiamata non sono contati"}: se ha lavorato, correggi il giorno.`);
+    } else if (source === "CONTRACT") {
+      // Every working day at the contract's hours: whole days away replace
+      // them, hours away (a permesso) come off them, national holidays are
+      // festività. Only the days the person was employed.
+      const holidays = italianHolidays(input.year);
+      const lastDay = new Date(Date.UTC(input.year, input.month, 0)).getUTCDate();
+      const from = member.hiredAt > monthStart ? dayKeyOf(member.hiredAt) : null;
+      const until = member.endedAt && member.endedAt < monthEnd ? dayKeyOf(member.endedAt) : null;
+      for (let date = 1; date <= lastDay; date += 1) {
+        const key = `${input.year}-${String(input.month).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
+        const weekday = new Date(`${key}T12:00:00Z`).getUTCDay();
+        if (weekday === 0 || (workingDays === 5 && weekday === 6)) {
+          // Holiday or sickness over a weekend counts the working days only.
+          const rest = days.get(key);
+          if (rest) rest.absences = [];
+          continue;
+        }
+        if ((from && key < from) || (until && key > until)) continue;
+        const day = dayOf(key);
+        if (day.absences.some((absence) => absence.days > 0)) continue;
+        if (holidays.has(key)) {
+          day.absences.push({ kind: "publicHoliday", hours: dailyHours ?? 0, days: 1 });
+          continue;
+        }
+        const away = day.absences.reduce((sum, absence) => sum + absence.hours, 0);
+        day.worked = round2(Math.max(0, (dailyHours ?? 0) - away));
+      }
+      for (const request of overtimeRequests) {
+        if (request.employeeId !== member.userId || !request.startsAt || !request.endsAt) continue;
+        const hours = round2((request.endsAt.getTime() - request.startsAt.getTime()) / 3_600_000);
+        if (hours <= 0 || hours > 16) continue;
+        const day = dayOf(dayKeyOf(request.startsAt));
+        day.overtime = round2((day.overtime ?? 0) + hours);
+      }
+      if (!member.contractWeeklyHours) warnings.push("Ore di contratto mancanti: contate 8 al giorno, 40 a settimana.");
     } else {
       // A published shift with nobody clocked and no absence: forgotten, or not worked?
       for (const shift of memberShifts) {
@@ -339,6 +391,7 @@ export async function buildPayrollMonth(input: {
           entries.push({ date: key, kind: "ordinary", hours: round2(worked), days: 0 });
         }
       }
+      if (day.overtime) entries.push({ date: key, kind: "overtime", hours: day.overtime, days: 0 });
       for (const absence of day.absences) {
         // A whole day away is not also a day worked: the hours worked win.
         if (worked > 0 && absence.days > 0) continue;
@@ -349,7 +402,7 @@ export async function buildPayrollMonth(input: {
     const approvedOvertime = overtimeRequests
       .filter((request) => request.employeeId === member.userId && request.startsAt && request.endsAt)
       .reduce((sum, request) => sum + (request.endsAt!.getTime() - request.startsAt!.getTime()) / 3_600_000, 0);
-    if (countOvertime && !member.contractWeeklyHours && approvedOvertime > 0) {
+    if (source !== "CONTRACT" && countOvertime && !member.contractWeeklyHours && approvedOvertime > 0) {
       warnings.push(`${round2(approvedOvertime)} ore di straordinario approvate sono comprese nelle ordinarie: scrivi le ore settimanali del contratto per separarle.`);
     }
     if (!member.contractWeeklyHours && entries.some((entry) => DAY_KINDS.includes(entry.kind))) {

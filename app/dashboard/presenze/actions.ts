@@ -22,7 +22,7 @@ export async function saveSourceAction(formData: FormData) {
     const data: { payrollSource?: string; payrollBreakMinutes?: number | null; payrollBreakAfterHours?: number | null; payrollOvertime?: boolean | null } = {};
     if (formData.has("source")) {
       const source = String(formData.get("source"));
-      if (!["AUTO", "CLOCK", "SHIFTS"].includes(source)) throw new RuleError("Scegli da dove prendere le ore.");
+      if (!["AUTO", "CLOCK", "SHIFTS", "CONTRACT"].includes(source)) throw new RuleError("Scegli da dove prendere le ore.");
       data.payrollSource = source;
     }
     if (formData.has("breakMinutes")) {

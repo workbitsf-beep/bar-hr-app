@@ -231,7 +231,7 @@ export async function PersonMonth({
         <Quiet style={{ fontSize: 14.5 }}>
           {embedded ? "ore nel mese" : <span style={{ color: "#1f1b3a", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{hoursValue(worked)} ore</span>}
           {summary ? ` · ${summary}` : ""}
-          {payroll.source === "SHIFTS" ? " · dai turni" : ""}
+          {payroll.source === "SHIFTS" ? " · dai turni" : payroll.source === "CONTRACT" ? " · dal contratto" : ""}
         </Quiet>
       </div>
 

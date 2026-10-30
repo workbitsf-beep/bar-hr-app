@@ -60,3 +60,11 @@ test("rows left out stay in the review and leave the file; a changed row keeps i
   assert.deepEqual(result.file.map((entry) => [entry.date, entry.kind, entry.hours]), [["2026-10-01", "ordinary", 6], ["2026-10-03", "ordinary", 8]]);
   assert.ok(result.off.has("2026-10-02|ordinary") && result.off.has("2026-10-03|overtime"));
 });
+
+test("Easter Monday and the fixed national holidays", async () => {
+  const { italianHolidays } = await import("../lib/payroll/holidays");
+  const days = italianHolidays(2026);
+  assert.ok(days.has("2026-04-06"), "Pasquetta 2026 è il 6 aprile");
+  assert.ok(days.has("2026-12-08") && days.has("2026-06-02"));
+  assert.ok(italianHolidays(2025).has("2025-04-21"), "Pasquetta 2025 è il 21 aprile");
+});

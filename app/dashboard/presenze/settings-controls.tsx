@@ -18,24 +18,25 @@ async function save(action: (formData: FormData) => Promise<unknown>, values: Re
 }
 
 /** Timbrature or turni del calendario, saved as soon as it is tapped. */
-export function SourceSwitch({ value }: { value: "CLOCK" | "SHIFTS" }) {
+export function SourceSwitch({ value }: { value: "CLOCK" | "SHIFTS" | "CONTRACT" }) {
   const router = useRouter();
   const [current, setCurrent] = useState(value);
   const [pending, start] = useTransition();
-  const pick = (next: "CLOCK" | "SHIFTS") => {
+  const pick = (next: "CLOCK" | "SHIFTS" | "CONTRACT") => {
     if (next === current || pending) return;
     setCurrent(next);
     start(async () => {
-      if (await save(saveSourceAction, { source: next }, next === "SHIFTS" ? "Ore dai turni del calendario" : "Ore dalle timbrature")) router.refresh();
+      if (await save(saveSourceAction, { source: next }, next === "SHIFTS" ? "Ore dai turni del calendario" : next === "CONTRACT" ? "Ore dal contratto" : "Ore dalle timbrature")) router.refresh();
       else setCurrent(current);
     });
   };
   return (
-    <div role="radiogroup" aria-label="Da dove prendere le ore" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", background: "#f3f1fa", borderRadius: 999, padding: 4 }}>
+    <div role="radiogroup" aria-label="Da dove prendere le ore" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", background: "#f3f1fa", borderRadius: 999, padding: 4 }}>
       {(
         [
           ["CLOCK", "Timbrature"],
-          ["SHIFTS", "Turni del calendario"],
+          ["SHIFTS", "Turni"],
+          ["CONTRACT", "Contratto"],
         ] as const
       ).map(([key, label]) => (
         <button
