@@ -108,7 +108,7 @@ function invoices(): InvoiceSpec[] {
         date,
         method: "MP12",
         due: addDays(date, 60),
-        lines: [{ description: "LAMIERA AISI 304 2B SP.2", qty: 120, unit: "KG", price: 2.95, category: "materie_prime", productKey: "lamiera-inox-aisi-304", productLabel: "Lamiera inox AISI 304", baseUnit: "kg" }],
+        lines: [{ description: "LAMIERA AISI 304 2B SP.2", qty: 120, unit: "KG", price: 2.85, category: "materie_prime", productKey: "lamiera-inox-aisi-304", productLabel: "Lamiera inox AISI 304", baseUnit: "kg" }],
       });
     }
     const vitDate = `${month}-10`;

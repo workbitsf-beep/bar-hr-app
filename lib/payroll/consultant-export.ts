@@ -150,6 +150,7 @@ export async function buildPayrollMonth(input: {
       },
       select: {
         userId: true,
+        role: true,
         payrollCode: true,
         contractWeeklyHours: true,
         hiredAt: true,
@@ -191,7 +192,8 @@ export async function buildPayrollMonth(input: {
   ]);
 
   const source = resolvePayrollSource(settings?.payrollSource, settings ? settings.timeTrackingEnabled : null, bar.activityType === ActivityType.COMPANY);
-  const people = members.filter((item) => item.userId !== bar.ownerId);
+  // The owners are not on the payroll: neither the one the venue belongs to nor a partner.
+  const people = members.filter((item) => item.userId !== bar.ownerId && item.role !== "OWNER");
   const userIds = people.map((member) => member.userId);
 
   // The calendar: hours themselves when the venue does not clock in, and a
