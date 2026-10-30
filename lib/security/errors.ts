@@ -21,7 +21,11 @@ function signatureOf(message: string, path: string | null) {
   return createHash("sha256").update(`${normalized}|${page}`).digest("hex").slice(0, 32);
 }
 
+/** The visitor left (closed the app, changed page) while the page was still being sent: nothing broke. */
+const CLIENT_GONE = /destination stream closed early|ResponseAborted|^aborted$|ECONNRESET|socket hang up|The operation was aborted/i;
+
 export async function recordServerError(input: { message: string; path?: string | null; digest?: string | null }) {
+  if (CLIENT_GONE.test(input.message.trim())) return;
   try {
     const message = input.message.slice(0, 1000) || "Errore senza messaggio";
     const path = input.path?.slice(0, 300) ?? null;
