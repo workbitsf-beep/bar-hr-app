@@ -19,7 +19,7 @@ const config: CapacitorConfig & { errorPath?: string } = {
   // start showed a lilac screen and then a pale band under the opening. It is
   // the opening's own dark now, so the handover cannot be seen.
   // Reaches phones only through a new native build, not through a deploy.
-  backgroundColor: "#140a2c",
+  backgroundColor: "#eae6f7",
   // Shown instead of the system's grey network error when the site cannot be
   // reached. Capacitor loads it by itself on a failed main-frame load.
   errorPath: "index.html",
@@ -78,7 +78,7 @@ const config: CapacitorConfig & { errorPath?: string } = {
     SplashScreen: {
       launchAutoHide: true,
       launchShowDuration: 8000,
-      backgroundColor: "#140a2c",
+      backgroundColor: "#eae6f7",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",
       splashFullScreen: true,
