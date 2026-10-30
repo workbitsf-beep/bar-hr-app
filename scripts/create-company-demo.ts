@@ -367,9 +367,9 @@ async function create() {
  */
 async function seedMarket(barId: string) {
   const values: Record<string, number[]> = {
-    "inox-304": [100, 99.8, 99.6, 99.5],
+    "inox-304": [100, 99.6, 99.2, 98.9],
     "acciaio-carbonio": [100, 100.5, 101, 101.2],
-    gasolio: [1.73, 1.76, 1.71, 1.74],
+    gasolio: [1.73, 1.76, 1.71, 1.72],
     "energia-pun": [112, 118, 121, 115],
   };
   await prisma.marketPrice.deleteMany({ where: { barId } });
