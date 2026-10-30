@@ -45,6 +45,29 @@ export type CostReport = {
   topProducts: Array<{ productKey: string; label: string; unit: string; unitPrice: number | null; cents: number; quantity: number | null; checkedAt: Date | null }>;
   savings: SavingTip[];
   pendingLines: number;
+  /** Every product of this month or the last: how much, at what price, against before. */
+  productTrends: ProductTrend[];
+  /** Why the month moved: bought more or less, or paid more or less for the same things. */
+  monthStory: { deltaCents: number; quantityCents: number; priceCents: number; newCents: number; goneCents: number } | null;
+};
+
+export type ProductTrend = {
+  productKey: string;
+  label: string;
+  unit: string;
+  category: string;
+  cents: number;
+  previousCents: number;
+  quantity: number | null;
+  previousQuantity: number | null;
+  unitPrice: number | null;
+  previousUnitPrice: number | null;
+  /** The unit price two months back and twelve months back, when bought then. */
+  twoMonthsUnitPrice: number | null;
+  lastYearUnitPrice: number | null;
+  /** The change in spend split in two: quantity at last month's price, and price on this month's quantity. */
+  quantityCents: number;
+  priceCents: number;
 };
 
 export function monthKey(date: Date) {
@@ -426,6 +449,69 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
   }
   savings.sort((a, b) => (b.yearlyCents ?? 0) - (a.yearlyCents ?? 0));
 
+  // Product by product, across suppliers: this month against the last.
+  type Bucket = { cents: number; qty: number; qtyCents: number };
+  const productMonths = new Map<string, { label: string; unit: string; category: string; byMonth: Map<string, Bucket> }>();
+  for (const line of lines) {
+    if (!line.productKey || line.baseUnit === "kwh" || line.baseUnit === "smc") continue;
+    if (CATEGORY_BY_KEY.get(line.category)?.key === "energia") continue;
+    const id = `${line.productKey}|${line.baseUnit ?? ""}`;
+    const entry = productMonths.get(id) ?? { label: line.productLabel ?? line.productKey, unit: line.baseUnit ?? "", category: line.category, byMonth: new Map<string, Bucket>() };
+    const bucket = entry.byMonth.get(line.month) ?? { cents: 0, qty: 0, qtyCents: 0 };
+    bucket.cents += line.totalCents;
+    if (line.baseQty && line.baseQty > 0 && line.totalCents > 0) {
+      bucket.qty += line.baseQty;
+      bucket.qtyCents += line.totalCents;
+    }
+    entry.byMonth.set(line.month, bucket);
+    productMonths.set(id, entry);
+  }
+  const unitOf = (bucket: Bucket | undefined) => (bucket && bucket.qty > 0 ? bucket.qtyCents / 100 / bucket.qty : null);
+  const productTrends: ProductTrend[] = [];
+  let quantityCents = 0;
+  let priceCents = 0;
+  let newCents = 0;
+  let goneCents = 0;
+  for (const [id, entry] of productMonths) {
+    const now = entry.byMonth.get(month);
+    const before = entry.byMonth.get(previous);
+    if (!now && !before) continue;
+    const unitPrice = unitOf(now);
+    const previousUnitPrice = unitOf(before);
+    let quantityPart = 0;
+    let pricePart = 0;
+    if (now && before && unitPrice !== null && previousUnitPrice !== null) {
+      quantityPart = Math.round((now.qty - before.qty) * previousUnitPrice * 100);
+      pricePart = Math.round((unitPrice - previousUnitPrice) * now.qty * 100);
+      quantityCents += quantityPart;
+      priceCents += pricePart;
+    } else if (now && !before) {
+      newCents += now.cents;
+    } else if (!now && before) {
+      goneCents += before.cents;
+    }
+    productTrends.push({
+      productKey: id.split("|")[0],
+      label: entry.label,
+      unit: entry.unit,
+      category: entry.category,
+      cents: now?.cents ?? 0,
+      previousCents: before?.cents ?? 0,
+      quantity: now?.qty || null,
+      previousQuantity: before?.qty || null,
+      unitPrice,
+      previousUnitPrice,
+      twoMonthsUnitPrice: unitOf(entry.byMonth.get(shiftMonth(month, -2))),
+      lastYearUnitPrice: unitOf(entry.byMonth.get(shiftMonth(month, -12))),
+      quantityCents: quantityPart,
+      priceCents: pricePart,
+    });
+  }
+  productTrends.sort((a, b) => b.cents - a.cents || b.previousCents - a.previousCents);
+  const monthStory = availableMonths.includes(previous)
+    ? { deltaCents: monthTotal(month) - monthTotal(previous), quantityCents, priceCents, newCents, goneCents }
+    : null;
+
   const [laborNow, laborPrevious, revenue, pendingLines] = await Promise.all([
     laborCost(barId, month),
     availableMonths.includes(previous) ? laborCost(barId, previous) : Promise.resolve(null),
@@ -451,5 +537,7 @@ export async function buildCostReport(barId: string, requestedMonth: string | nu
     topProducts,
     savings,
     pendingLines,
+    productTrends: productTrends.slice(0, 60),
+    monthStory,
   };
 }

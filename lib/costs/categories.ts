@@ -21,6 +21,11 @@ export const COST_CATEGORIES: CostCategory[] = [
   { key: "fresco", label: "Pane, dolci e fresco", color: "#ca8a04", kind: "merce" },
   { key: "frutta_verdura", label: "Frutta e verdura", color: "#65a30d", kind: "merce" },
   { key: "carne_pesce", label: "Carne e pesce", color: "#dc2626", kind: "merce" },
+  // A company's purchases: what goes into what it makes or sells.
+  { key: "materie_prime", label: "Materie prime e semilavorati", color: "#0f766e", kind: "merce" },
+  { key: "componenti", label: "Componenti e minuteria", color: "#2563eb", kind: "merce" },
+  { key: "lavorazioni", label: "Lavorazioni esterne", color: "#9333ea", kind: "merce" },
+  { key: "carburante", label: "Carburante e mezzi", color: "#b45309", kind: "spese" },
   { key: "monouso", label: "Monouso e confezioni", color: "#94a3b8", kind: "spese" },
   { key: "pulizia", label: "Pulizia e igiene", color: "#14b8a6", kind: "spese" },
   { key: "energia", label: "Luce e gas", color: "#f59e0b", kind: "spese" },

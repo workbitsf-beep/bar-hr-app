@@ -3,7 +3,7 @@ import { Role } from "@prisma/client";
 import { ActionForm } from "@/app/components/action-form";
 import { PendingButton } from "@/app/components/pending-button";
 import { aiEnabled } from "@/lib/costs/ai";
-import { buildCostReport, type CostReport } from "@/lib/costs/analysis";
+import { buildCostReport, monthLabel, shiftMonth, type CostReport } from "@/lib/costs/analysis";
 import { BASE_UNIT_LABEL } from "@/lib/costs/categories";
 import { inboxAvailable, OPENAPI_RECIPIENT_CODE } from "@/lib/costs/openapi-inbox";
 import { costsEnabledFor } from "@/lib/costs/access";
@@ -34,7 +34,8 @@ function unitPrice(value: number | null, unit: string) {
 }
 
 export default async function CostsPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
-  const { session, role, activeBarId, billingStatus } = await getDashboardContext();
+  const { session, role, activeBarId, billingStatus, activeBarActivityType } = await getDashboardContext();
+  const company = activeBarActivityType === "COMPANY";
   if (!activeBarId) {
     return (
       <Panel title="Costi">
@@ -74,7 +75,9 @@ export default async function CostsPage({ searchParams }: { searchParams: Promis
 
       {report ? (
         <>
-          <Summary report={report} />
+          <Summary report={report} company={company} />
+          <MonthStory report={report} />
+          <ProductTrends report={report} />
           <Savings report={report} ai={ai} />
           <Categories report={report} />
           <Suppliers report={report} />
@@ -201,7 +204,7 @@ function MonthChips({ report }: { report: CostReport }) {
   );
 }
 
-function Summary({ report }: { report: CostReport }) {
+function Summary({ report, company }: { report: CostReport; company: boolean }) {
   const revenue = report.revenueCents;
   const ratio = (cents: number) => (revenue ? `${((cents / revenue) * 100).toLocaleString("it-IT", { maximumFractionDigits: 0 })}% degli incassi` : null);
   const laborCents = report.labor?.cents ?? 0;
@@ -223,7 +226,7 @@ function Summary({ report }: { report: CostReport }) {
           ) : null}
         </Row>
         <Row>
-          <Line left={<><Dot color="#16a34a" />Merce (cibo e bevande)</>} right={euro(report.merceCents)} />
+          <Line left={<><Dot color="#16a34a" />{company ? "Merce e materiali" : "Merce (cibo e bevande)"}</>} right={euro(report.merceCents)} />
           {ratio(report.merceCents) ? <Line muted left={ratio(report.merceCents)} /> : null}
         </Row>
         <Row>
@@ -290,6 +293,85 @@ function Summary({ report }: { report: CostReport }) {
         </Row>
       </RowsCard>
     </section>
+  );
+}
+
+const signedEuro = (cents: number) => `${cents > 0 ? "+" : cents < 0 ? "−" : ""}${euro(Math.abs(cents))}`;
+const quantityText = (value: number, unit: string) => `${value.toLocaleString("it-IT", { maximumFractionDigits: 1 })} ${BASE_UNIT_LABEL[unit] ?? unit}`;
+const pctText = (now: number | null, before: number | null) => {
+  if (now === null || before === null || before <= 0) return null;
+  const value = (now / before - 1) * 100;
+  if (Math.abs(value) < 0.5) return "uguale";
+  return `${value > 0 ? "+" : "−"}${Math.abs(value).toLocaleString("it-IT", { maximumFractionDigits: 1 })}%`;
+};
+
+/** Why the month moved, in one card: bought more or less, paid more or less for the same things. */
+function MonthStory({ report }: { report: CostReport }) {
+  const story = report.monthStory;
+  if (!story) return null;
+  const previousLabel = monthLabel(shiftMonth(report.month, -1)).split(" ")[0];
+  const parts = [
+    { label: "Hai comprato di più o di meno", cents: story.quantityCents, hint: "stesse cose, quantità diverse, ai prezzi del mese prima" },
+    { label: "I prezzi sono cambiati", cents: story.priceCents, hint: "stesse quantità, prezzo diverso" },
+    { label: "Cose nuove questo mese", cents: story.newCents, hint: `non comprate a ${previousLabel}` },
+    { label: "Cose non ricomprate", cents: -story.goneCents, hint: `comprate solo a ${previousLabel}` },
+  ].filter((part) => Math.abs(part.cents) >= 100);
+  return (
+    <RowsCard title="Com'è andato il mese" aside={`rispetto a ${previousLabel}`}>
+      <Row first>
+        <Line left={story.deltaCents >= 0 ? "Hai speso di più" : "Hai speso di meno"} right={<b style={{ color: story.deltaCents > 0 ? "#b3202f" : "#0f7a4f" }}>{signedEuro(story.deltaCents)}</b>} />
+      </Row>
+      {parts.map((part) => (
+        <Row key={part.label}>
+          <Line left={part.label} right={signedEuro(part.cents)} />
+          <Line muted left={part.hint} />
+        </Row>
+      ))}
+    </RowsCard>
+  );
+}
+
+/** Product by product: how much, at what price, against last month, two months back and a year back. */
+function ProductTrends({ report }: { report: CostReport }) {
+  const items = report.productTrends.filter((item) => item.cents > 0 || item.previousCents > 0);
+  if (!items.length) return null;
+  const row = (item: CostReport["productTrends"][number], index: number) => {
+    const qtyDelta = item.quantity !== null && item.previousQuantity !== null ? item.quantity - item.previousQuantity : null;
+    const prices = [
+      pctText(item.unitPrice, item.previousUnitPrice) ? `${pctText(item.unitPrice, item.previousUnitPrice)} sul mese prima` : null,
+      pctText(item.unitPrice, item.twoMonthsUnitPrice) ? `${pctText(item.unitPrice, item.twoMonthsUnitPrice)} su due mesi fa` : null,
+      pctText(item.unitPrice, item.lastYearUnitPrice) ? `${pctText(item.unitPrice, item.lastYearUnitPrice)} su un anno fa` : null,
+    ].filter(Boolean);
+    const up = item.unitPrice !== null && item.previousUnitPrice !== null && item.unitPrice > item.previousUnitPrice * 1.005;
+    return (
+      <Row key={`${item.productKey}-${item.unit}`} first={index === 0}>
+        <Line left={item.label} right={<>{euro(item.cents)}<Delta value={change(item.cents, item.previousCents || null)} /></>} />
+        <Line
+          muted
+          left={
+            item.cents === 0
+              ? "non ricomprato questo mese"
+              : item.quantity !== null
+                ? `${quantityText(item.quantity, item.unit)}${qtyDelta !== null && Math.abs(qtyDelta) >= 0.05 ? ` (${qtyDelta > 0 ? "+" : "−"}${quantityText(Math.abs(qtyDelta), item.unit)})` : item.previousQuantity === null ? " · nuovo" : " · come il mese prima"}${item.unitPrice !== null ? ` · ${unitPrice(item.unitPrice, item.unit)}` : ""}`
+                : "quantità non leggibile dalla fattura"
+          }
+        />
+        {prices.length ? <Line muted left={<span style={{ color: up ? "#b3202f" : "#0f7a4f" }}>Prezzo {prices.join(" · ")}</span>} /> : null}
+      </Row>
+    );
+  };
+  return (
+    <RowsCard title="Prodotto per prodotto" aside="quanto, a che prezzo, contro prima">
+      {items.slice(0, 8).map(row)}
+      {items.length > 8 ? (
+        <Row>
+          <details>
+            <summary style={{ cursor: "pointer", fontSize: 13.5, color: "#6d5ce7", fontWeight: 650 }}>Tutti i prodotti ({items.length})</summary>
+            <div style={{ display: "grid" }}>{items.slice(8).map((item, index) => row(item, index + 1))}</div>
+          </details>
+        </Row>
+      ) : null}
+    </RowsCard>
   );
 }
 
