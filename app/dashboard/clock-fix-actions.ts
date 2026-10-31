@@ -286,7 +286,7 @@ export async function approveClockFixAction(formData: FormData) {
           ? `Alle ${clockTime(resolvedOutAt)} · da ${reviewer}`
           : `Alle ${clockTime(resolvedInAt)}` + (resolvedOutAt ? `, uscita alle ${clockTime(resolvedOutAt)}` : "") + ` · da ${reviewer}`,
       type: INTERNAL_NOTIFICATION_TYPES.REQUEST_REVIEWED,
-      actionUrl: "/dashboard/timelogs",
+      actionUrl: "/dashboard/presenze",
     });
 
     refresh();

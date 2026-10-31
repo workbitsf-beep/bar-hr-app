@@ -84,8 +84,11 @@ export function NativeWidgetsSync() {
           open("/dashboard?azione=timbra", direction);
           return;
         }
+        // A full load, not router.push: right after a cold start the router
+        // may still be hydrating and drop the push, and the venue may just
+        // have changed under a layout rendered for the old one.
         const target = typeof data.actionUrl === "string" && data.actionUrl.startsWith("/") ? data.actionUrl : null;
-        if (target) open(target);
+        if (target) window.location.assign(target);
         else router.refresh();
       });
       removers.push(() => void handle.remove());

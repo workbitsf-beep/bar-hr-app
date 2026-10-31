@@ -3251,7 +3251,7 @@ async function runCreateBoardNote(formData: FormData) {
           title: recipient.count === 1 ? `${authorName} ha pubblicato una nota` : `${authorName} ha pubblicato ${recipient.count} note`,
           message: "In bacheca",
           type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
-          actionUrl: "/dashboard/board",
+          actionUrl: "/dashboard/tasks",
         });
       })
     );
@@ -3358,7 +3358,7 @@ async function runUpdateBoardNote(formData: FormData) {
         title: "Nota aggiornata",
         message: `Modificata da ${shortName(session.user)}`,
         type: INTERNAL_NOTIFICATION_TYPES.BOARD_MESSAGE,
-        actionUrl: "/dashboard/board",
+        actionUrl: "/dashboard/tasks",
       });
     }
   }
@@ -5164,7 +5164,7 @@ export async function deleteTimeLogPairAction(formData: FormData) {
     title: "Timbratura annullata",
     message: `${when} · da ${shortName(session.user)}`,
     type: INTERNAL_NOTIFICATION_TYPES.TIMELOG_CANCELLED,
-    actionUrl: "/dashboard/timelogs",
+    actionUrl: "/dashboard/presenze",
   });
 
   revalidatePath("/dashboard/presenze", "layout");
